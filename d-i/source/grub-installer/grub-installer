@@ -479,25 +479,25 @@ db_progress INFO grub-installer/progress/step_install
 # apt-install passes --no-remove to apt, but grub{,2} conflict each other, so
 # we need to purge them first to support users who try grub2 and then switch
 # to grub legacy, or vice-versa
-case "$grub_package" in
-    grub)
-	log-output -t grub-installer $chroot $ROOT dpkg -P grub-pc
-	;;
-    grub-pc)
-	log-output -t grub-installer $chroot $ROOT dpkg -P grub
-	;;
-esac
+#case "$grub_package" in
+#   grub)
+#	log-output -t grub-installer $chroot $ROOT dpkg -P grub-pc
+#	;;
+#   grub-pc)
+#	log-output -t grub-installer $chroot $ROOT dpkg -P grub
+#	;;
+#esac
 
-if ! apt-install $grub_package ; then
-	db_progress STOP
-	info "Calling 'apt-install $grub_package' failed"
-	db_subst grub-installer/apt-install-failed GRUB "$grub_package"
-	db_input critical grub-installer/apt-install-failed || true
-	if ! db_go; then
-		exit 10 # back up to menu
-	fi
-	exit 1
-fi
+#if ! apt-install $grub_package ; then
+#	db_progress STOP
+#	info "Calling 'apt-install $grub_package' failed"
+#	db_subst grub-installer/apt-install-failed GRUB "$grub_package"
+#	db_input critical grub-installer/apt-install-failed || true
+#	if ! db_go; then
+#		exit 10 # back up to menu
+#	fi
+#	exit 1
+#fi
 
 if [ "$frtype" = multipath ]; then
 	$chroot $ROOT umount /proc
@@ -985,11 +985,16 @@ if db_get grub-installer/bootdev_directory && [ "$RET" ]; then
 	# Be careful to deal with either UUID-style or non-UUID-style groot.
 	# grub4dos doesn't recognise UUIDs yet.
 	sed -i "s:^\(# groot=\)[^(].*:\1():; s:^\(# groot=([^)]*)\).*:\1$bootdev_directory:" $ROOT/boot/grub/$menu_file
+	sed -i "s:^# groot=(hd.*:# groot=()$RET:" $ROOT/boot/grub/$menu_file
+	need_update_grub=1
 	hide_menu=1
 fi
 # In either case, update the Debian kernel entries
 if [ "$user_params" ] || [ "$bootdev_directory" ]; then
 	update_grub
+fi
+if [ "$need_update_grub" ]; then
+	update_grub # again, to add new options to all the Debian kernel entries
 fi
 
 if [ -z "$hide_menu" ] && [ -s /tmp/os-probed ]; then

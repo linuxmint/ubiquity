@@ -386,7 +386,7 @@ class Install:
             self.db.progress('SET', 79)
             self.db.progress('REGION', 79, 80)
             self.db.progress('INFO', 'ubiquity/install/apt')
-            self.configure_apt()
+            #self.configure_apt()
 
             self.db.progress('SET', 80)
             self.db.progress('REGION', 80, 85)
@@ -1559,7 +1559,7 @@ exit 0"""
         except debconf.DebconfError:
             domain = ''
         if hostname == '':
-            hostname = 'ubuntu'
+            hostname = 'mint'
 
         fp = open(os.path.join(self.target, 'etc/hostname'), 'w')
         print >>fp, hostname

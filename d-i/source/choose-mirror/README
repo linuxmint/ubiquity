@@ -1,0 +1,65 @@
+This little program allows the user to pick a http (could support ftp too)
+mirror, by choosing first a country, then a mirror, or by manually entering
+mirror info. The mirror list is built into it at compile time.
+
+After it has run, the debconf question http/hostname will have the mirror 
+host, http/directory will have the base of the mirror, and http/proxy may
+contain proxy info in standard form. These values can be used by
+retrievers, and eventually, I'd hope, by apt-setup.
+
+The system for building the country list
+----------------------------------------
+
+1) get-iso-codes script
+   Get ISO 3166 (country names) translations
+
+ This needs the iso-codes package installed on the build machine
+
+ The translations are picked from *.mo files by using msgunfmt utility and
+ put into PO files in debian/iso-codes
+
+2) mktemplates script
+   Create the Choices lists in the templates file
+   Insert translations in the templates file
+   Create the translated templates file
+  
+ The Choices list are first grabbed from 
+ Mirrors.masterlist (this file is fetched at build time if possible).
+
+ Then, the codes list is transformed into a country name list (in English)
+ by using the iso_3166.xml file from the iso-codes package.
+
+ This list is transformed into a comma-separated list (NOTE : country "names"
+ may contain commas which need to be escaped) and inserted into the Choices
+ lists in the templates file
+
+ The translations (from debian/iso-codes/*po) and the "normal" translations
+ of the remaining fields of the templates (from debian/po/*po) are merged
+ together into PO files in debian/po-build
+
+ The po2debconf utility inserts these translations into the templates
+ file
+
+3) sort-countries script
+ For each language and each protocol, sort the country list according to
+ the language's sorting rules
+
+ This uses Indices-xx fields, which is a special debconf feature currently
+ only implemented in cdebconf, the debconf flavour used in Debian Installer
+ first stage.
+
+ Beware of the early hack replacing commas *inside* country names by
+ double dashes, temporarily, so that the number of choices is not
+ broken by these extra commas.
+
+ This script directly edits the final templates file, AFTER running po2debconf.
+ So, be aware of the very specific place for it to be called in debian/rules.
+
+The result is very sensitive to strange errors. For instance, one
+common symptom during the early development of this script was Indices-xx
+field not having all the same number of choices and not the same number of
+choices than Choices-xx fields. When this happens, the multiselect
+screen is completely *BROKEN* with "/dev/null" as the only choice..:-)
+
+So, if this happens again, please look at the generated templates file
+and count the number of Choices in each Indices fields and each Choices fields.

@@ -1,0 +1,129 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+
+<html>
+
+<head>
+
+<meta http-equiv="content-type" content="text/html; charset=iso-8859-1">
+
+<title>The Hackers Guide for console-setup - The New Fonts</title>
+
+</head>
+
+<body>
+
+<p><a name="ch4"></a></p>
+<hr>
+
+<p>
+[ <a href="ch3.html">previous</a> ]
+[ <a href="index.html#contents">Contents</a> ]
+[ <a href="ch1.html">1</a> ]
+[ <a href="ch2.html">2</a> ]
+[ <a href="ch3.html">3</a> ]
+[ 4 ]
+[ <a href="ch-ckbcomp.html">5</a> ]
+[ <a href="ch-ckbcomp.html">next</a> ]
+</p>
+
+<hr>
+
+<h1>
+The Hackers Guide for <samp>console-setup</samp>
+<br>Chapter 4 - The New Fonts
+</h1>
+
+<hr>
+
+<p>
+Even for the new PSF fonts it is not wise to use a single BDF source.  Many of
+the BDF fonts share a common look.  For example the X font <code>fixed</code>
+was used by Roman Czyborra in order to create his <code>unifont.bdf</code>.
+The same font was used also by Electronic Font Open Laboratory for their
+<code>h16.bdf</code> and by the former Electrotechnical Laboratory (now
+National Institute of Advanced Industrial Science Technology, Japan) for their
+<code>etl16-unicode.bdf</code> font.
+</p>
+
+<p>
+The targets <samp><var>FONTFACE</var>-BDFS</samp> in the <code>Makefile</code>
+specify the BDF fonts to use in order to generate the PSF font fonts.  For
+example the combination &quot;<samp>unifont.bdf</samp> + <samp>h16.bdf</samp> +
+<samp>etl16-unicode.bdf</samp>&quot; is used for the Fixed16 font face.  The
+fonts listed first take precedence, so it is wise to list first the fonts which
+symbols look better and not the fonts with more symbols.
+</p>
+
+<p>
+The <code>bdf</code> directory contains almost all free BDF fonts that can be
+used to generate console fonts.  Currently they allow to generate fonts from
+the following font faces: Fixed13, Fixed14, Fixed15, Fixed16, Fixed18,
+Fixed24x12, FixedBold13, FixedBold14, FixedBold15, FixedBold16, FixedBold18,
+FixedBold24x12, FixedOblique13, Terminus12x6, Terminus14, Terminus16,
+Terminus24x12, Terminus20x10, Terminus28x14, Terminus32x16, TerminusBold12x6,
+TerminusBold14, TerminusBold16, TerminusBold20x10, TerminusBold24x12,
+TerminusBold28x14, TerminusBold32x16, TerminusBoldVGA14, TerminusBoldVGA16,
+Courier13, Courier14, Courier15, Courier16, CourierBold13, CourierBold14,
+CourierBold15, Lucid12, Lucid13, Lucid15, Lucid16, Lucid22x12, Lucid29x16,
+LucidBold11, LucidBold13, LucidBold15, LucidBold16, LucidBold22x12,
+LucidBold29x16, Goha12, Goha14, Goha16, GohaClassic12, GohaClassic14 and
+GohaClassic16.
+</p>
+
+<p>
+The targets in the <code>Makefile</code> are able to generate a PSF font for
+every <var>CHARSET</var>-<var>FONTFACE</var> combination.  The
+<code>build</code> target however will generate fonts only for the
+&quot;good&quot; combinations.
+</p>
+
+<p>
+First, the program <code>fontcodesets</code> is used to determine which
+charsets a particular font face supports.  The result is stored in the file
+<code>soft.Makefile</code> where the variable <code>PSF_FONTS</code> is defined
+and it is directly included in the main <code>Makefile</code>.  Use the target
+<code>soft.Makefile</code> in order to update this file (this doesn't happen
+automatically).
+</p>
+
+<p>
+Second, some of the font faces are not generated because they do not look very
+attractive on the console (certainly the choice is a personal opinion).  Only
+the following font faces are approved: Fixed13, Fixed14, Fixed15, Fixed16,
+Fixed18, Terminus12x6, Terminus14, Terminus16, Terminus24x12, Terminus20x10,
+Terminus28x14, Terminus32x16, TerminusBold12x6, TerminusBold14, TerminusBold16,
+TerminusBold20x10, TerminusBold24x12, TerminusBold28x14, TerminusBold32x16,
+TerminusBoldVGA14, TerminusBoldVGA16, Goha12, Goha14, Goha16, GohaClassic12,
+GohaClassic14 and GohaClassic16.  See the <code>GOOD_PSF_FONTS</code> variable
+in the <code>Makefile</code>.
+</p>
+
+<hr>
+
+<p>
+[ <a href="ch3.html">previous</a> ]
+[ <a href="index.html#contents">Contents</a> ]
+[ <a href="ch1.html">1</a> ]
+[ <a href="ch2.html">2</a> ]
+[ <a href="ch3.html">3</a> ]
+[ 4 ]
+[ <a href="ch-ckbcomp.html">5</a> ]
+[ <a href="ch-ckbcomp.html">next</a> ]
+</p>
+
+<hr>
+
+<p>
+The Hackers Guide for <samp>console-setup</samp>
+</p>
+
+<address>
+Anton Zinoviev <code><a href="mailto:anton@lml.bas.bg">anton@lml.bas.bg</a></code><br>
+<br>
+</address>
+<hr>
+
+</body>
+
+</html>
+

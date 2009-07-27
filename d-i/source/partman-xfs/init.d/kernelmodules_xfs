@@ -1,0 +1,20 @@
+#!/bin/sh
+
+mkdir -p /var/lib/partman
+
+cat /proc/modules |
+while read module_name x; do
+	if [ "$module_name" = xfs ]; then
+		>/var/lib/partman/xfs
+		exit 0
+	fi
+done
+
+if modprobe xfs >/dev/null 2>/dev/null; then
+	>/var/lib/partman/xfs
+	exit 0
+fi
+
+if grep -q xfs /proc/filesystems; then
+	>/var/lib/partman/xfs
+fi

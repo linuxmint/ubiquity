@@ -1,0 +1,33 @@
+#!/bin/sh
+
+set -e
+
+# Get ISO codes from the iso-codes package and extract translations
+
+[ -r debian/iso_3166.tab ] || exit 1
+
+rm -rf debian/iso-codes
+mkdir debian/iso-codes
+
+for i in $(find /usr/share/locale/ -name iso_3166.mo) ; do
+	language=$(echo $i | cut -f5 -d/)
+	# Extract translations from the iso-codes package
+	msgunfmt $i >debian/iso-codes/${language}.po 2>/dev/null
+done
+
+DATE="$(date +'%Y-%m-%d %H:%M%z')"
+cat <<EOF >debian/iso-codes/en.po
+msgid ""
+msgstr ""
+"Project-Id-Version: iso_3166 CVS\\n"
+"Report-Msgid-Bugs-To: Alastair McKinstry <mckinstry@debian.org>\\n"
+"POT-Creation-Date: $DATE\\n"
+"PO-Revision-Date: $DATE\\n"
+"MIME-Version: 1.0\\n"
+"Content-Type: text/plain; charset=UTF-8\\n"
+"Content-Transfer-Encoding: 8bit\\n"
+
+EOF
+
+perl -pe 's/.*?\t(.*)/msgid "$1"\nmsgstr "$1"\n/' \
+	<debian/iso_3166.tab >>debian/iso-codes/en.po

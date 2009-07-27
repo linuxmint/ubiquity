@@ -1,0 +1,38 @@
+#!/usr/bin/make -f
+
+build:
+	dh_testdir
+
+clean:
+	dh_testdir
+	dh_testroot
+	dh_clean
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_install
+	dh_installdirs -p apt-cdrom-setup usr/lib/finish-install.d
+	install -m755 finish-install.apt-cdrom-setup \
+		debian/apt-cdrom-setup/usr/lib/finish-install.d/10apt-cdrom-setup
+
+binary-indep: build install
+	dh_testdir
+	dh_testroot
+	dh_installdebconf
+	echo >> debian/apt-mirror-setup/DEBIAN/templates
+	po2debconf debian/apt-mirror-setup.templates-ubuntu \
+		>> debian/apt-mirror-setup/DEBIAN/templates
+	dh_strip
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+	dh_shlibdeps
+	dh_gencontrol
+	dh_builddeb
+
+binary-arch: build install
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install

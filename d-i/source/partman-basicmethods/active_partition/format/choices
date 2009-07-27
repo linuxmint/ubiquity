@@ -1,0 +1,34 @@
+#!/bin/sh
+
+. /usr/share/debconf/confmodule
+
+dev="$1"
+id=$2
+cd $dev
+
+[ -f $id/method ] || exit 0
+method=$(cat $id/method)
+[ "$method" = keep -o "$method" = format ] || exit 0
+
+[ -f $id/filesystem ] || exit 0
+
+[ -f $id/existing -a -f $id/formatable ] || exit 0
+
+if [ "$method" = format ]; then
+	db_metaget partman-basicmethods/text/yes_format description || RET=''
+	if [ "$RET" ]; then
+		status="$RET"
+	else
+		status=yes
+	fi
+else
+	db_metaget partman-basicmethods/text/no_dont_format description || RET=''
+	if [ "$RET" ]; then
+		status="$RET"
+	else
+		status=no
+	fi
+fi
+
+db_metaget partman-basicmethods/text/format description
+printf "format\t%s\${!TAB}%s\n" "${RET}" "$status"

@@ -1,0 +1,47 @@
+#! /bin/sh -e
+
+. /usr/share/debconf/confmodule
+
+. /usr/share/grub-installer/functions.sh
+
+db_progress START 0 2 grub-installer/progress/title
+db_progress INFO grub-installer/progress/step_bootdev
+
+db_input critical grub-installer/bootdev
+if ! db_go; then
+	# back up to menu
+	db_progress STOP
+	exit 10
+fi
+
+db_get grub-installer/bootdev
+bootdev="$RET"
+if echo "$bootdev" | grep -qv '('; then
+	mappedbootdev="$(mapdevfs "$bootdev")" || true
+	if [ "$mappedbootdev" ]; then
+		bootdev="$mappedbootdev"
+	fi
+fi
+
+db_progress STEP 1
+db_subst grub-installer/progress/step_install_loader BOOTDEV "$bootdev"
+db_progress INFO grub-installer/progress/step_install_loader
+
+update_mtab
+
+if ! is_floppy "$bootdev"; then
+	if chroot /target grub-install -h 2>&1 | grep -q no-floppy; then
+		floppyparam="--no-floppy"
+	fi
+fi
+
+if ! log-output -t grub-installer chroot /target grub-install --recheck $floppyparam "$bootdev"; then
+	db_subst grub-installer/grub-install-failed BOOTDEV "$bootdev"
+	db_input critical grub-installer/grub-install-failed || true
+	db_go || true
+	db_progress STOP
+	exit 1
+fi
+
+db_progress STEP 1
+db_progress STOP

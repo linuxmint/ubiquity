@@ -1,0 +1,20 @@
+* If ftp or http isn't turned on, we can trim down the templates file..
+  Or, if cdebconf supports registration, I could just collapse the more or
+  less duplicate ftp and http templates into one, and register multiple
+  questions from it. Which is probably best..
+* Grab country names translations at build time by using the iso_3166
+  translations from the iso-codes package. See countrychooser mechanism
+  for this. Will save useless work to translators.
+* Dynamically build list of suites on a mirror and let the user choose
+  between them, instead of choosing from a static list that might be wrong.
+  (The question is, where to get translated descriptions of the available
+  suites? Or would a list of suite names w/o descriptions be ok as the
+  question only shows up in expert mode?)
+* Now that the mirror split has happened, some work needs to be done on
+  default mirrors. The current default of ftp.debian.org is not available
+  for some arches, and those arches will get a semi-randomly determined
+  default. Possible solutions include:
+
+    - Using ftp.debian.org/debian-all , but this would best be aliased to
+      ftp-all.debian.org due to limitations of Mirrors.masterlist format.
+    - Using the mirrors.debian.net dns infrastructure, if it's reads.

@@ -1,0 +1,44 @@
+#! /bin/sh
+
+. /lib/partman/lib/base.sh
+
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ "$fs" != free ] || continue
+		[ -s "$id/label" ] || continue
+		partitions="${partitions:+$partitions
+}$(cat "$id/label") $path"
+	done
+	close_dialog
+	partitions="$(echo "$partitions" | sort)"
+
+	oldlabel=
+	oldpath=
+	IFS="$NL"
+	for partition in $partitions; do
+		restore_ifs
+		label="${partition% *}"
+		path="${partition##* }"
+		if [ "$label" = "$oldlabel" ]; then
+			db_subst partman-target/same_label PART1 "$(humandev "$oldpath")"
+			db_subst partman-target/same_label PART2 "$(humandev "$path")"
+			db_subst partman-target/same_label LABEL "$label"
+			db_capb align
+			db_input critical partman-target/same_label || true
+			db_go || true
+			db_capb backup align
+			exit 1
+		else
+			oldlabel="$label"
+			oldpath="$path"
+		fi
+		IFS="$NL"
+	done
+	restore_ifs
+done
+
+exit 0

@@ -1,0 +1,25 @@
+#! /bin/sh -e
+mkdir -p /var/lib/ubiquity
+for package; do
+	echo "$package" >> /var/lib/ubiquity/apt-installed
+done
+# TODO cjwatson 2006-09-04: queueing not implemented
+if [ -f /var/lib/ubiquity/apt-install-direct ]; then
+	installed="$(mktemp -t ubiquity.XXXXXX)"
+	trap "rm -f '$installed'" EXIT HUP INT QUIT TERM
+	chroot /target dpkg-query -W --showformat='${Package} ${Status}\n' | \
+		grep ' installed$' | cut -d' ' -f1 | sort > "$installed"
+	toinstall="$(echo "$@" | xargs -n1 | sort | join -v1 - "$installed")"
+	if [ "$toinstall" ]; then
+		# TODO: use chroot-setup
+		unset DEBIAN_HAS_FRONTEND
+		export DEBIAN_FRONTEND=noninteractive
+		unset DEBCONF_FRONTEND
+		unset DEBCONF_REDIR
+		export DEBCONF_ADMIN_EMAIL=
+		export APT_LISTCHANGES_FRONTEND=none
+		chroot /target apt-get --no-upgrade \
+			-o Acquire::gpgv::Options::=--ignore-time-conflict -y \
+			install $toinstall </dev/null
+	fi
+fi

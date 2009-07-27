@@ -1,0 +1,59 @@
+#!/usr/bin/make -f
+
+PACKAGES=$(shell dh_listpackages)
+ARCH=$(shell dpkg-architecture -qDEB_HOST_ARCH)
+
+build: build-stamp
+build-stamp:
+	dh_testdir
+ifeq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
+	$(MAKE) small
+else
+	$(MAKE) DEBUG=1
+endif
+	touch build-stamp
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp
+	$(MAKE) clean
+	dh_clean
+	-for p in $(PACKAGES); do \
+	    rm -f debian/$$p.postinst; \
+	done
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+	install -m755 -d debian/partconf-find-partitions/usr/lib/partconf \
+			 debian/partconf-mkfstab/usr/lib/partconf \
+			 debian/partconf-mkfstab/var/lib/partconf/fstab.d
+	install -m755 partconf debian/partconf.postinst
+	install -m755 find-partitions debian/partconf-find-partitions/usr/lib/partconf
+	install -m755 mkfstab mountpoint debian/partconf-mkfstab/usr/lib/partconf
+	#install -m755 mkfstab debian/partconf-mkfstab.postinst
+	install -m644 fstab-common \
+		debian/partconf-mkfstab/var/lib/partconf/fstab.d/common
+
+# Build architecture-dependent files here.
+binary-arch: build install
+	dh_testdir -s
+	dh_testroot -s
+	dh_installdebconf -s
+ifeq ($(ARCH),mips)
+	install -m755 debian/partconf.isinstallable debian/partconf/DEBIAN/isinstallable
+endif
+	dh_compress -s
+	dh_fixperms -s
+	dh_installdeb -s
+	dh_shlibdeps -s
+	dh_gencontrol -s
+	dh_builddeb -s
+
+binary-indep:
+
+binary: binary-arch binary-indep
+.PHONY: build clean binary-arch binary-indep binary install

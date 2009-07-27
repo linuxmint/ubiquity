@@ -1,0 +1,58 @@
+Template: base-installer/kernel/override-image
+Type: string
+Description: always use this kernel image (for preseeding)
+
+Template: base-installer/kernel/linux/initrd-2.6
+Type: boolean
+Default: true
+Default[mips]: false
+Default[mipsel]: false
+Default[m68k]: false
+Description: for internal use only
+ Use an (initramfs) initrd (linux 2.6 only)
+
+Template: base-installer/kernel/linux/initramfs-generators
+Type: string
+Default: initramfs-tools yaird
+Default[s390]: initramfs-tools
+# Space separated list of initrd generator packages to use. If you list more
+# than one for an architecture, the user will be asked to select one
+# (depending on priority). The generator listed first will be the default.
+# Note: if you add a new one, don't forget to support it in the postinst.
+Description: for internal use; can be preseeded
+ Package to use to generate initramfs
+
+Template: base-installer/kernel/linux/initramfs-tools/driver-policy
+Type: string
+Default: most
+Default[arm]: dep
+Default[armel]: dep
+Description: for internal use
+ Default driver inclusion policy for initramfs-tools
+
+Template: base-installer/kernel/linux/extra-packages
+Type: string
+Default:
+Description: for internal use; can be preseeded
+ Extra packages to install with init*-tools (linux only)
+
+Template: base-installer/kernel/linux/extra-packages-2.6
+Type: string
+Default:
+Description: for internal use; can be preseeded
+ Extra packages to install with init*-tools (linux 2.6 only)
+
+Template: base-installer/kernel/linux/link_in_boot
+Type: boolean
+Default: true
+Default[alpha]: false
+Default[i386]: false
+Default[amd64]: false
+Default[lpia]: false
+Default[ia64]: false
+Default[mips]: false
+Default[mipsel]: false
+Default[m68k]: false
+Default[hppa]: true
+Description: for internal use only
+ Kernel needs a link in /boot/ (linux only)

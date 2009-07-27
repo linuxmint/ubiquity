@@ -1,0 +1,100 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+file="$1"
+
+if [ ! -e /cdrom/.disk/base_installable ] && [ -z "$OVERRIDE_BASE_INSTALLABLE" ]; then
+	exit 0
+fi
+if [ ! -s /cdrom/.disk/info ]; then
+	exit 0
+fi
+REMOUNT_CD=true
+if [ "$OVERRIDE_LEAVE_CD_MOUNTED" ]; then
+	REMOUNT_CD=
+fi
+cd_type=$(cat /cdrom/.disk/cd_type)
+case $cd_type in
+    */single)
+	REMOUNT_CD=
+	;;
+esac
+
+cdfstype=$(mount | grep "on /cdrom " | cut -d' ' -f5)
+isofs=
+if [ "$cdfstype" = "iso9660" ]; then
+	isofs=1
+fi
+
+remount_cd() {
+	if [ "$ROOT" ] && [ -n "$isofs" ] && [ ! -d /hd-media ] && [ "$REMOUNT_CD" ]; then
+		fs=iso9660
+		if db_get cdrom-detect/cdrom_fs && [ "$RET" ]; then
+			fs="$RET"
+		fi
+		db_get cdrom-detect/cdrom_device
+		$logoutput mount -t "$fs" -o ro,exec $RET /cdrom || true
+	fi
+}
+
+bail_out() {
+	remount_cd
+	rm -f $ROOT$tmp $ROOT$tmp~
+	rm -f /var/lib/install-cd.id
+
+	db_input critical apt-setup/cdrom/failed || true
+	db_go || exit 10
+	exit 1
+}
+
+# Save identification of installation CD
+save_label() {
+	local ident
+
+	if ! ident="$($logoutput --pass-stdout $chroot $ROOT apt-cdrom ident)"; then
+		bail_out
+	fi
+	echo "$ident" | grep "^Identifying" | cut -d" " -f2 \
+		>/var/lib/install-cd.id
+	echo "$ident" | grep "^Stored label:" | sed "s/^[^:]*: //" \
+		>>/var/lib/install-cd.id
+}
+
+logoutput=""
+if [ "$CATCHLOG" ]; then
+	logoutput="log-output -t apt-setup"
+fi
+
+chroot=
+if [ "$ROOT" ]; then
+	chroot=chroot
+
+	# Allow apt-cdrom to manage mounting/unmounting CDs in /target
+	# (except for hd-media installs)
+	if [ ! -d /hd-media ] && [ -n "$isofs" ] && [ "$REMOUNT_CD" ]; then
+		rm -f $ROOT/etc/apt/apt.conf.d/00NoMountCDROM
+
+		# Also removes the bind-mount in /target
+		$logoutput umount /cdrom || true
+	fi
+fi
+
+tmp=$($chroot $ROOT tempfile)
+
+# apt-cdrom can be interactive, avoid that
+if $logoutput $chroot $ROOT apt-cdrom add \
+   -o Dir::Etc::SourceList=$tmp \
+   </dev/null; then
+	cat $ROOT$tmp >> $file
+
+	if [ "$ROOT" ] && [ -n "$isofs" ] && [ ! -d /hd-media ] && [ "$REMOUNT_CD" ]; then
+		save_label
+	fi
+else
+	bail_out
+fi
+
+remount_cd
+rm -f $ROOT$tmp $ROOT$tmp~

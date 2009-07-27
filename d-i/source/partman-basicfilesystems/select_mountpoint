@@ -1,0 +1,70 @@
+#!/bin/sh
+
+. /usr/share/debconf/confmodule
+
+dev=$1
+id=$2
+part=$dev/$id
+
+cd $dev
+
+do_mountpoint () {
+	local noninteractive
+	noninteractive=true
+	while true; do
+		if [ -f "$part/mountpoint" ]; then
+			old_mountpoint=$(cat $part/mountpoint)
+		else
+			old_mountpoint=/
+		fi
+		db_set partman-basicfilesystems/mountpoint "$old_mountpoint"
+		db_input critical partman-basicfilesystems/mountpoint || $noninteractive
+		db_go || return 1
+		db_get partman-basicfilesystems/mountpoint
+
+		case "$RET" in
+		    Do?not?mount?it)
+			rm -f $part/mountpoint
+			break
+			;;
+		    Enter?manually)
+			if do_mountpoint_manual; then break; fi
+			noninteractive="return 1"
+			;;
+		    *)
+			echo ${RET%% *} >$part/mountpoint
+			break
+		esac
+	done
+}
+
+do_mountpoint_manual () {
+	local noninteractive
+	noninteractive=true
+	while true; do
+		new_mountpoint=
+		while [ -z "$new_mountpoint" ]; do
+			if [ -f "$part/mountpoint" ]; then
+				old_mountpoint=$(cat $part/mountpoint)
+			else
+				old_mountpoint=/
+			fi
+			db_set partman-basicfilesystems/mountpoint_manual "$old_mountpoint"
+			db_input critical partman-basicfilesystems/mountpoint_manual || \
+				$noninteractive
+			db_go || return 1
+			db_get partman-basicfilesystems/mountpoint_manual
+
+			if expr "$RET" : '/[^ ]*$' >/dev/null; then
+				new_mountpoint=$RET
+			else
+				db_input high partman-basicfilesystems/bad_mountpoint || true
+				db_go || true
+			fi
+		done
+		echo $RET >$part/mountpoint
+		break
+	done
+}
+
+do_mountpoint

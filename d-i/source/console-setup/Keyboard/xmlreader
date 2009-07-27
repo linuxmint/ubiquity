@@ -1,0 +1,321 @@
+#!/usr/bin/perl
+
+#     xmlreader -- read xorg.xml file
+#     Copyright © 2005 Anton Zinoviev <anton@lml.bas.bg>
+
+#     This program is free software; you can redistribute it and/or modify
+#     it under the terms of the GNU General Public License as published by
+#     the Free Software Foundation; either version 2 of the License, or
+#     (at your option) any later version.
+
+#     This program is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU General Public License for more details.
+
+#     If you have not received a copy of the GNU General Public License
+#     along with this program, write to the Free Software Foundation, Inc.,
+#     59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+use warnings 'all';
+use strict;
+use encoding 'utf8';
+
+my $file;
+if ($ARGV[0]) {
+    $file = $ARGV[0];
+} else {
+    $file = 'ckb/rules/xorg.xml';
+}
+
+sub debug {
+    if (1) {
+	print STDERR "@_";
+    }
+}
+
+sub warning {
+    print STDERR  "WARNING: @_";
+}
+
+sub print_arg {
+}
+
+sub print_xml;
+sub print_xml {
+    my @stream = @{$_[0]};
+    while (@stream) {
+	my $tag = shift @stream;
+	my $arg = shift @stream;
+	if ($tag eq 0) {
+	    print STDERR $arg;
+	} else {
+	    my @substream = @{$arg};
+	    print STDERR "<$tag";
+	    print_arg shift(@substream);
+	    print STDERR ">";
+	    print_xml \@substream;
+	    print STDERR "</$tag>\n";
+	}
+    }
+}
+
+use XML::Parser;
+
+my $parser = new XML::Parser (Style => 'Tree');
+
+my $tree = $parser->parsefile ($file);
+
+my %models;
+my %layouts;
+my %variants;
+
+sub parse_text {
+    my $tree = $_[0];
+    my $contents = '';
+    shift @{$tree};
+    while (@{$tree}) {
+	my $tag = shift @{$tree};
+	my $arg = shift @{$tree};
+	if ($tag eq 0) {
+	    $contents = $contents . $arg;
+	} else {
+	    $contents = $contents . parse_text ($arg);
+	}
+    }
+    return $contents;
+}
+
+sub parse_configItem {
+    my $tree = $_[0];
+    shift @{$tree};
+    my $name;
+    my $description;
+    while (@{$tree}) {
+	my $tag = shift @{$tree};
+	my $arg = shift @{$tree};
+	if ($tag eq 'name') {
+	    $name = parse_text $arg;
+	} elsif ($tag eq 'description') {
+	    if (! %{$arg->[0]}) {
+		$description = parse_text $arg;
+	    }
+	} elsif ($tag =~ /^(shortDescription|_description
+                           |vendor|languageList|countryList)$/x) {
+	} elsif ($tag eq 0) {
+	    warning "configItem: Garbage in configItem: $arg.\n" if ($arg !~ /^\s*$/);
+	} else {
+	    warning "configItem: Unknown tag $tag, arg=$arg\n";
+	}
+    }
+    $name = '' unless ($name);
+    $description = $name unless ($description);
+    return ($name, $description);
+}
+
+sub parse_model {
+    my $tree = $_[0];
+    shift @{$tree};
+    while (@{$tree}) {
+	my $tag = shift @{$tree};
+	my $arg = shift @{$tree};
+	if ($tag eq 'configItem') {
+	    my ($name, $description) = parse_configItem $arg;
+	    if ($name ne '') {
+		$models{$description} = $name;
+	    }
+	} elsif ($tag eq 0) {
+	    warning "model: Garbage in model: $arg.\n" if ($arg !~ /^\s*$/);
+	} else {
+	    warning "model: Unknown tag $tag, arg=$arg\n";
+	}
+    }
+}
+
+sub parse_modelList {
+    my $tree = $_[0];
+    shift @{$tree};
+    while (@{$tree}) {
+	my $tag = shift @{$tree};
+	my $arg = shift @{$tree};
+	if ($tag eq 'model') {
+	    parse_model $arg;
+	} elsif ($tag eq 0) {
+	    warning "modelList: Garbage in modelList: $arg.\n" if ($arg !~ /^\s*$/);
+	} else {
+	    warning "modelList: Unknown tag $tag, arg=$arg\n";
+	}
+    }
+}
+
+sub parse_variant {
+    my $layout = $_[0];
+    my $tree = $_[1];
+    shift @{$tree};
+    my $name;
+    my $description;
+    while (@{$tree}) {
+	my $tag = shift @{$tree};
+	my $arg = shift @{$tree};
+	if ($tag eq 'configItem') {
+	    ($name, $description) = parse_configItem $arg;
+	    if ($layout ne '' && $name ne '') {
+		$variants{$layout}{$description} = $name;
+	    }
+	} elsif ($tag eq 0) {
+	    warning "variant: Garbage in variant: $arg.\n" if ($arg !~ /^\s*$/);
+	} else {
+	    warning "variant: Unknown tag $tag, arg=$arg\n";
+	}
+    }
+}
+
+sub parse_variantList {
+    my $name = $_[0];
+    my $tree = $_[1];
+    shift @{$tree};
+    while (@{$tree}) {
+	my $tag = shift @{$tree};
+	my $arg = shift @{$tree};
+	if ($tag eq 'variant') {
+	    parse_variant $name, $arg;
+	} elsif ($tag eq 0) {
+	    warning "variantList: Garbage in variantList: $arg.\n" if ($arg !~ /^\s*$/);
+	} else {
+	    warning "variantList: Unknown tag $tag\n";
+	    shift @{$arg};
+	    print_xml $arg;
+	}
+    }
+}
+
+sub parse_layout {
+    my $tree = $_[0];
+    shift @{$tree};
+    my $name;
+    my $description;
+    while (@{$tree}) {
+	my $tag = shift @{$tree};
+	my $arg = shift @{$tree};
+	if ($tag eq 'configItem') {
+	    ($name, $description) = parse_configItem $arg;
+	    if ($name ne "") {
+		$layouts{$description} = $name;
+	    }
+	} elsif ($tag eq 'variantList') {
+	    if (! $name) {
+		warning "layout: variantList before configItem\n";
+		next;
+	    }
+	    parse_variantList $name, $arg;
+	} elsif ($tag eq 0) {
+	    warning "layout: Garbage in model: $arg.\n" if ($arg !~ /^\s*$/);
+	} else {
+	    warning "layout: Unknown tag $tag, arg=$arg\n";
+	}
+    }
+}
+
+sub parse_layoutList {
+    my $tree = $_[0];
+    shift @{$tree};
+    while (@{$tree}) {
+	my $tag = shift @{$tree};
+	my $arg = shift @{$tree};
+	if ($tag eq 'layout') {
+	    parse_layout $arg;
+	} elsif ($tag eq 0) {
+	    warning "layoutList: Garbage in modelList: $arg.\n" if ($arg !~ /^\s*$/);
+	} else {
+	    warning "layoutList: Unknown tag $tag, arg=$arg\n";
+	}
+    }
+}
+
+sub parse_optionList {
+}
+
+sub parse_xkbConfigRegistry {
+    my $tree = $_[0];
+    shift @{$tree};
+    while (@{$tree}) {
+	my $tag = shift @{$tree};
+	my $arg = shift @{$tree};
+	if ($tag eq 'modelList') {
+	    parse_modelList $arg;
+	} elsif ($tag eq 'layoutList') {
+	    parse_layoutList $arg;
+	} elsif ($tag eq 'optionList') {
+	    parse_optionList $arg;
+	} elsif ($tag eq 0) {
+	    warning "xkbConfigRegistry: Garbage in xkbConfigRegistry: $arg.\n"
+		if ($arg !~ /^\s*$/);
+	} else {
+	    warning "xkbConfigRegistry: Unknown tag $tag, arg=$arg\n";
+	}
+    }
+}
+
+while (@{$tree}) {
+    my $tag = shift @{$tree};
+    my $arg = shift @{$tree};
+    if ($tag eq 'xkbConfigRegistry') {
+	parse_xkbConfigRegistry $arg;
+    }
+}
+
+# Fixups for model names we need
+my %modelvalues = map { $_ => 1 } values %models;
+if (not exists $modelvalues{amiga}) {
+    $models{'Amiga'} = 'amiga';
+}
+if (not exists $modelvalues{ataritt}) {
+    $models{'Atari TT'} = 'ataritt';
+}
+if (not exists $modelvalues{sun4}) {
+    $models{'Sun Type 4'} = 'sun4';
+}
+if (not exists $modelvalues{sun5}) {
+    $models{'Sun Type 5'} = 'sun5';
+}
+if (not exists $modelvalues{SKIP}) {
+    $models{'Do not configure keyboard; keep kernel keymap'} = 'SKIP';
+}
+
+print <<'EOT';
+#!/usr/bin/perl -w
+
+package KeyboardNames;
+
+EOT
+
+print "%models = (\n";
+for my $x (sort keys %models) {
+    my $y = $models{$x};
+    $x =~ s/'//g;
+    print "    '$x' => '$y',\n";
+}
+print ");\n\n";
+
+print "%layouts = (\n";
+for my $x (sort keys %layouts) {
+    my $y = $layouts{$x};
+    $x =~ s/'//g;
+    print "    '$x' => '$y',\n";
+}
+print ");\n\n";
+
+print "%variants = (\n";
+for my $x (sort keys %variants) {
+    my $y = $variants{$x};
+    print "    '$x' => {\n";
+    for my $z (sort keys %{$y}) {
+	my $t = $y->{$z};
+	$z =~ s/'//g;
+	print "	'$z' => '$t',\n";
+    }
+    print "    },\n";
+}
+print ");\n\n";
+
+print "1;\n";

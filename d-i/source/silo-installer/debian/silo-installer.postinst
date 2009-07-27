@@ -1,0 +1,238 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+db_capb backup
+
+convert_to_uuid() {
+	root="$1"
+	case "$root" in
+		UUID=*|LABEL=*|/dev/disk/*|/dev/mapper/*|/dev/evms/*|/dev/md[0-9]*)
+		;;
+		/dev/*)
+			if [ -L "$root" ] && readlink "$root" | grep -q "^/dev/mapper/"
+			then
+				:
+			elif [ -b "$root" ]; then
+				uuid=$(/lib/udev/vol_id -u "$root" || true)
+				if [ -n "$uuid" ]; then
+					root="/dev/disk/by-uuid/$uuid"
+				fi
+			fi
+		;;
+	esac
+	echo "$root"
+}
+
+findfs () {
+        check=$(mount | grep "on /target${1%/} " | cut -d' ' -f1)
+        if [ -n "$check" ]; then
+		mapdevfs $check
+	fi
+}
+
+create_dev () {
+	device=$(echo $1 | sed -e 's#/dev/##g' -e 's/[0-9]*//g')
+	maj=$(cat /sys/block/$device/dev | cut -d ":" -f 1)
+	min=$(cat /sys/block/$device/dev | cut -d ":" -f 2)
+	mknod /target/dev/$device b $maj $min
+	cd /sys/block/$device
+	for i in ${device}*; do
+		min=$(cat $i/dev | cut -d ":" -f 2)
+		mknod /target/dev/$i b $maj $min
+	done
+}
+
+# detect the partitions /target and /target/boot
+rootfs=$(findfs /)
+bootfs=$(findfs /boot)
+[ -n "$bootfs" ] || bootfs="$rootfs"
+bootpart=${bootfs#${bootfs%?}}
+
+if [ "$rootfs" = "$bootfs" ]; then
+	boot="/boot"
+else
+	boot=""
+fi
+
+# create devices in target if they don't exists
+if [ ! -e "/target$rootfs" ]; then
+	create_dev $rootfs
+fi
+if [ ! -e "/target$bootfs" ]; then
+	create_dev $bootfs
+fi
+
+rootfs=$(convert_to_uuid $rootfs)
+
+# force -t on raid
+if echo "$bootfs" | grep -q "/dev/md"; then
+	raidinstall=y
+else
+	raidinstall=n
+fi
+
+if [ -e "/target/boot/initrd.img" ]; then
+	initrd="initrd=${boot}/initrd.img"
+	initrdold="${initrd}.old"
+else
+	initrd=""
+	initrdold=""
+fi
+
+# Install silo
+if ! apt-install silo; then
+        db_input critical silo-installer/apt-install-failed || [ $? -eq 30 ]
+        db_go
+        db_get silo-installer/apt-install-failed
+        if [ "$RET" = false ]; then
+                db_stop
+                exit 1
+        fi
+fi
+
+# Write out silo.conf for this installation.
+cat > /target/boot/silo.conf << EOF
+default=Linux
+read-only
+timeout=100
+
+image=${boot}/vmlinuz
+	label=Linux
+	${initrd}
+	root=${rootfs}
+	partition=${bootpart}
+	append="quiet splash"
+
+image=${boot}/vmlinuz.old
+	label=LinuxOLD
+	${initrdold}
+	root=${rootfs}
+	partition=${bootpart}
+	append="quiet splash"
+
+image=${boot}/vmlinuz
+	label=Linux-rescue
+	${initrd}
+	root=${rootfs}
+	partition=${bootpart}
+	append="single"
+
+image=${boot}/vmlinuz.old
+	label=LinuxOLD-rescue
+	${initrdold}
+	root=${rootfs}
+	partition=${bootpart}
+	append="single"
+
+EOF
+
+# detect other OS'es and add them to silo.conf.
+probedos=$(os-prober)
+
+if [ -n "$probedos" ]; then
+	echo "$probedos" | { while read os; do
+		rootpart=$(echo $os | cut -d ":" -f 1)
+		# we need to make sure we have the read device
+		rootpart=$(readlink -f $rootpart)
+		osname=$(echo $os | cut -d ":" -f 3)
+		ostype=$(echo $os | cut -d ":" -f 4)
+		case $ostype in
+		linux)
+			probedsiloconf=$(linux-boot-prober $rootpart)
+			if [ -n "$probedsiloconf" ]; then
+				echo "$probedsiloconf" | { while read siloentry; do
+					bootpart=$(echo $siloentry | cut -d ":" -f 2)
+					# we need to make sure we have the read device
+					bootpart=$(readlink -f $bootpart)
+					label=$(echo $siloentry | cut -d ":" -f 3)
+					kernel=$(echo $siloentry | cut -d ":" -f 4)
+					initrd=$(echo $siloentry | cut -d ":" -f 5)
+					opts=$(echo $siloentry | cut -d ":" -f 6)
+					# strip ro and root=
+					newopts=""
+					for i in $opts; do
+						case $i in
+							root=*|ro) ;;
+							*) newopts="$newopts $i" ;;
+						esac
+					done
+					opts=$(echo $newopts)
+					obpentry=$(device2obp $bootpart)
+					obpalias=$(echo $obpentry | cut -d " " -f 1)
+					obppath=$(echo $obpentry | cut -d " " -f 2)
+					obppart=$(echo $obpentry | cut -d " " -f 3)
+
+					# write stanza
+					echo "image=$obppath$obppart$kernel" >> /target/boot/silo.conf
+					echo -e "\tlabel=$label-$obpalias" >> /target/boot/silo.conf
+					if [ -n "$initrd" ]; then
+						echo -e "\tinitrd=$obppath$obppart$initrd" >> /target/boot/silo.conf
+					fi
+					echo -e "\troot=$rootpart" >> /target/boot/silo.conf
+					echo -e "\tpartition=$(echo $obppart | sed -e 's/;//g')" >> /target/boot/silo.conf
+					echo -e "\tappend=\"$opts\"" >> /target/boot/silo.conf
+					echo "" >> /target/boot/silo.conf
+				done }
+			fi
+		;;
+		chain)
+			obpentry=$(device2obp $rootpart)
+			obpalias=$(echo $obpentry | cut -d " " -f 1)
+			obppath=$(echo $obpentry | cut -d " " -f 2)
+			obppart=$(echo $obpentry | cut -d " " -f 3)
+			echo "other=$obppath$obppart" >> /target/boot/silo.conf
+			echo -e "\tlabel=$osname-$obpalias\n" >> /target/boot/silo.conf
+		;;
+		esac
+	done }
+fi
+
+# setting up OBP to boot from our disk because we CAN.
+# but only if boot/root is not on raid. Expanding the RAID to single
+# devices requires tons of extra code for a very small beneficial feature
+# that a RAID user should be able to mangle manually anyway if it needs
+# to recover.
+if [ "$raidinstall" = "n" ]; then
+	obpalias=$(device2obp $bootfs | cut -d " " -f 1)
+	bootdev=$(eeprom boot-device | sed -e 's/boot-device=//g')
+	newbootdev=""
+	if [ -n "$obpalias" ]; then
+		for i in $bootdev; do
+			case $i in
+				$obpalias) ;;
+				*) newbootdev="$newbootdev$i " ;;
+			esac
+		done
+		# set our device as default
+		eeprom boot-device="$obpalias $newbootdev"
+		# make sure to boot into it
+		echo "$obpalias" > /proc/sys/kernel/reboot-cmd
+	fi
+fi
+
+# do the rest of the job.
+chmod 644 /target/boot/silo.conf
+
+# Compat links
+ln -sf ../boot/silo.conf /target/etc/silo.conf
+ln -sf . /target/boot/boot
+ln -sf . /target/boot/etc
+
+# this part needs some review with Solaris boot support but only when
+# installing on the same disk.
+if chroot /target /sbin/silo -f; then
+	if [ "$raidinstall" = "y" ]; then
+		chroot /target /sbin/silo -f -t >/dev/null 2>&1
+	fi
+	db_input medium silo-installer/success || [ $? -eq 30 ]
+	db_go || true
+	exit 0
+else
+	ERRCODE=$?
+	db_subst silo-installer/failed ERRCODE "$ERRCODE"
+	db_input critical silo-installer/failed || [ $? -eq 30 ]
+	db_go || exit 10 # back up
+	exit 1
+fi
+

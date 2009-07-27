@@ -1,0 +1,81 @@
+#!/bin/sh
+
+# Only run the first time.
+if [ -f /var/lib/partman/auto_mountpoints ]; then
+	exit 0
+fi
+[ -d /var/lib/partman ] || mkdir /var/lib/partman
+touch /var/lib/partman/auto_mountpoints
+
+. /lib/partman/lib/base.sh
+
+db_get partman/automount
+if [ "$RET" = false ]; then
+	exit 0
+fi
+
+if type udevadm >/dev/null 2>&1; then
+	udevinfo () {
+		udevadm info "$@"
+	}
+fi
+
+partitions=
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		if udevinfo -q env -n "$path" 2>/dev/null | egrep -q 'ID_PATH=(pci-[^-]*-)?(ieee1394|usb)'; then
+			continue
+		fi
+		[ -f $id/detected_filesystem ] || continue
+		fs=$(cat $id/detected_filesystem)
+		if [ "$name" ]; then
+			mountpoint="$(/usr/lib/partconf/mountpoint "$path" "$fs" "$name")"
+		else
+			mountpoint="$(/usr/lib/partconf/mountpoint "$path" "$fs")"
+		fi
+		if [ "$mountpoint" ]; then
+			partitions="$partitions
+$dev,$id,$fs,$mountpoint"
+		fi
+	done
+	close_dialog
+done
+
+IFS_SAVE="$IFS"
+IFS='
+'
+for part in $partitions; do
+	IFS="$IFS_SAVE"
+	dev="${part%%,*}"
+	cdr="${part#*,}"
+	id="${cdr%%,*}"
+	cdr="${cdr#*,}"
+	fs="${cdr%%,*}"
+	mountpoint="${cdr#*,}"
+
+	[ -d "$dev/$id" ] || continue
+
+	if [ -f "$dev/$id/method" ]; then
+		method="$(cat $dev/$id/method)"
+		if [ "$method" ]; then
+			# Already used for something else.
+			continue
+		fi
+	fi
+
+	echo keep >"$dev/$id/method"
+	rm -f "$dev/$id/format"
+	>"$dev/$id/use_filesystem"
+	echo "$fs" >"$dev/$id/filesystem"
+	mkdir -p "$dev/$id/options"
+	echo "$mountpoint" >"$dev/$id/mountpoint"
+
+	update_partition "$dev" "$id"
+
+	IFS='
+'
+done
+IFS="$IFS_SAVE"

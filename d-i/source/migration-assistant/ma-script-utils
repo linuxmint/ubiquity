@@ -1,0 +1,207 @@
+#!/bin/sh
+
+. /usr/share/debconf/confmodule
+
+error () {
+    logger -t migration-assistant "error: $@"
+}
+
+log () {
+    logger -t migration-assistant "info: $@"
+}
+
+ostype=""
+set_os_type () {
+# Rather than test for every distro possible in the shortname, we test
+# the bootloader type for 'linux.'  This *should* be fine as we're only
+# working with user's home directories.
+
+    if [ ${1##*:} = "linux" ]; then
+	ostype="linux"
+	return 0
+    fi
+    
+    case `LC_ALL=C expr match "$1" '.*:.*:\(.*\):.*'` in
+	"Windows" )
+	ostype="windowsxp"
+        return 0
+	;;
+
+        Windows[0-9] )
+        ostype="windowsxp"
+        return 0
+        ;;
+
+	"Windows9xMe" )
+	ostype="windows9x"
+        return 0
+	;;
+
+	"MacOSX" )
+	ostype="macosx"
+        return 0
+	;;
+
+    *)
+    echo "Unknown ostype from $1" 1>&2
+    return 1
+    ;;
+    esac
+}
+mountpoint="/mnt/migrationassistant"
+
+unmount_os() {
+    # If we didn't mount the device ourselves, don't unmount it.
+    [ "$mountpoint" = "/mnt/migrationassistant" ] || return 0
+    unmount_previously_run=
+    device="$1"
+
+    if [ -f /etc/mtab ]; then
+        MTAB=/etc/mtab
+    else
+        MTAB=/proc/mounts
+    fi
+
+    while :; do
+        failed=
+        
+	ISMOUNTED=
+	if [ "$device" ]; then
+		ISMOUNTED=$(grep "^$device " $MTAB) || ISMOUNTED=
+	else
+		ISMOUNTED=$(grep " $mountpoint " $MTAB) || ISMOUNTED=
+	fi
+        if [ -z "$ISMOUNTED" ]; then
+	        break
+        fi
+        HOME=$(grep " $mountpoint/home " $MTAB) || HOME=
+        if [ "$HOME" ]; then
+            umount "$mountpoint/home" || failed="$mountpoint/home"
+        fi
+        if [ -z "$failed" ]; then
+            if [ -z "$device" ]; then
+                umount $mountpoint || failed="$mountpoint"
+            else
+                umount $device || failed="$device"
+            fi
+        fi
+
+        if [ -z "$failed" ]; then
+            break
+        fi
+        # lets try waiting briefly once before we completely give up on
+        # unmounting the partition and dump the problem on the user.
+        if [ -z "$unmount_previously_run" ]; then
+            unmount_previously_run=1
+            sleep 15
+            continue
+        fi
+
+        db_reset migration-assistant/failed-unmount
+        db_subst migration-assistant/failed-unmount MOUNTED "$failed"
+        db_input critical migration-assistant/failed-unmount || true
+        db_go || exit 10
+        db_get migration-assistant/failed-unmount
+        [ "$RET" = true ] || exit 10
+    done
+}
+
+mount_os () {
+    ostype="$1"
+    device="$2"
+
+
+    if [ "$1" = "linux" ]; then
+        mkdir -p $mountpoint
+        unmount_os $device
+        mount $device $mountpoint || error "Failed to mount $device"
+        if [ -f "$mountpoint/etc/fstab" ]; then
+            while read uuid mp rest; do
+                if [ "$mp" != "/home" ]; then
+                    continue
+                fi
+
+                if [ "${uuid%=*}" = "UUID" ]; then
+                    devname="/dev/disk/by-uuid/${uuid#*=}"
+                    uuid=$(readlink -e "$devname") || \
+                        error "$devname does not exist."
+                elif [ "${uuid%=*}" = "LABEL" ]; then
+                    devname="/dev/disk/by-label/${uuid#*=}"
+                    uuid=$(readlink -e "$devname") || \
+                        error "$devname does not exist."
+                    elif [ ! -e "$uuid" ]; then
+                        # This happens when the IDE driver in the old OS
+                        # doesn't match the driver in the installer.  The old
+                        # /home might be mounted on /dev/hda3 which could now
+                        # be /dev/sda3 or something entirely different.  Since
+                        # there's no way to determine what the device is
+                        # without the old kernel loaded, we fail gracefully so
+                        # that we can continue to the next OS.
+                        log "$uuid does not exist, continuing."
+                        break
+                    fi
+                    failed=
+                    mount $uuid "$mountpoint/home" || failed="1"
+                        if [ "$failed" ]; then
+                    unmount_os "$uuid"
+                    mount $uuid "$mountpoint/home" || \
+                        error "failed to mount $uuid"
+                fi
+                break
+            done < "$mountpoint/etc/fstab"
+        fi
+    elif [ "$1" = "windowsxp" ]; then
+        # Since we don't have to worry about separate partitions making up the
+        # whole system in Windows (yet), we can allow already mounted
+        # partitions.  This may fix some corner cases.  At any rate, it's
+        # required for Wubi to function properly.
+        mnt=$(grep "$device" /proc/mounts | head -n1 | cut -d " " -f 2)
+        [ -z "$mnt" ] && [ -f /etc/mtab ] && mnt=$(grep "$device" /etc/mtab | head -n1 | cut -d " " -f 2)
+        [ -n "$mnt" ] && mountpoint=$mnt && return 0
+
+        mkdir -p $mountpoint
+        unmount_os $device
+        mount -t ntfs $device $mountpoint -o umask=0022,nls=utf8 3>&- || \
+        ( log "Mounting $device to $mountpoint with NTFS failed."
+        mount -t vfat $device $mountpoint -o umask=0022,utf8 || \
+        log "Mounting $device to $mountpoint with VFAT failed." )
+    fi
+
+}
+
+ROOT=/target
+add_user() {
+    local username
+    local fullname
+    local password
+
+    username="$1"
+    fullname="$2"
+    password="$3"
+
+    chroot=chroot
+
+# Taken from user-setup/user-setup-apply
+
+	# Add the user
+	if [ -x $ROOT/usr/sbin/adduser ]; then
+		$chroot $ROOT adduser --disabled-password --gecos \
+		"$fullname" "$username" >/dev/null || true
+	else
+		$chroot $ROOT useradd -c "$fullname" -m "$username" >/dev/null || true
+	fi
+
+	# Set the password
+	$chroot $ROOT chpasswd <<EOF
+$username:$password
+EOF
+
+	# Add the user to groups
+	if [ -n "$username" ]; then
+		db_get passwd/user-default-groups
+		for group in $RET; do
+			log $chroot $ROOT adduser "$USER" $group >/dev/null 2>&1 || true
+		done
+	fi
+}
+# vim:ai:et:sts=4:tw=80:sw=4:

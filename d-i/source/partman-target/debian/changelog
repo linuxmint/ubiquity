@@ -1,0 +1,1463 @@
+partman-target (58ubuntu7) jaunty; urgency=low
+
+  * Update Ubuntu-specific strings from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 09 Apr 2009 02:20:52 +0100
+
+partman-target (58ubuntu6) jaunty; urgency=low
+
+  * Rather than pretending that partitions have no longer been formatted
+    after the partitioner is complete, reset their intended state from
+    "format the partition" to "keep and use the existing data". This still
+    solves the original problem reported in Debian bug #256090 while also
+    stopping partitions from being needlessly reformatted if you go back to
+    the partitioner after base system installation and then forward again
+    (LP: #29712).
+  * Don't clear partitions or complain about them not being formatted if
+    they've already been formatted by a previous partitioner run.
+  * Introduce partman/mount_style (choices: traditional, label, uuid) to
+    allow controlling how filesystems are mounted. Default this to uuid, and
+    stop using labels by default since they have unavoidable problems with
+    removable disks (LP: #347817).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 27 Mar 2009 11:59:04 +0000
+
+partman-target (58ubuntu5) jaunty; urgency=low
+
+  * Issue an error message if two file systems are assigned the same label
+    (LP: #320872).
+  * Improve fstab comments for partitions without mount points (e.g. swap).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 16 Mar 2009 14:46:47 +0000
+
+partman-target (58ubuntu4) jaunty; urgency=low
+
+  * Escape spaces, tabs, newlines, and backslashes in fstab according to the
+    procedure described in getmntent(3) (LP: #38224).
+  * Use labels rather than UUIDs if they exist (LP: #320871).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 24 Feb 2009 13:10:14 +0000
+
+partman-target (58ubuntu3) jaunty; urgency=low
+
+  * Fix disk_containing function to use its argument rather than relying on
+    $dev.
+  * Fix use of udevinfo rather than udevadm info when checking if a disk is
+    USB.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 06 Feb 2009 16:23:57 +0100
+
+partman-target (58ubuntu2) jaunty; urgency=low
+
+  * /media must be on the root file system (although subdirectories may be
+    mounted separately), since the installer relies on being able to mount
+    things like /media/cdrom during installation. Check this (LP: #16871).
+  * Expand comment above each UUID-mounted partition, based on a suggestion
+    by Daniel Pocock in Debian #509378.
+  * Add a note about 'vol_id --uuid' to the top of /etc/fstab; thanks to
+    Chris Cheney for the suggestion (LP: #221474).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 06 Jan 2009 17:18:06 +0000
+
+partman-target (58ubuntu1) jaunty; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Use UUID= fstab syntax for all partitions if a UUID is available, and
+      add a comment above each UUID to indicate the corresponding device at
+      install time.
+    - Disable automatic mounting of USB removable devices.
+    - Don't use UUIDs in fstab for those device types that volumeid.postinst
+      refuses to convert.
+    - Mount CD-ROMs and floppies with 'exec'.
+    - Use the path of the file associated with a loop device in /etc/fstab,
+      rather than the filesystem's UUID or the loop device path.
+    - Always set the loop option for loop devices.
+    - Remove critical system files from the existing filesystem before
+      installing.
+    - Preserve the UID and GID of the initial user, if possible.  Requires a
+      patch to user-setup.
+    - Mount CD-ROMs and floppies with the "utf8" option by default.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Thu, 20 Nov 2008 15:55:19 +0000
+
+partman-target (58) unstable; urgency=low
+
+  [ Giuseppe Iuculano ]
+  * active_partition/method/choices: remove check for the sataraid file;
+    Serial ATA RAID partitions are now treated like any other partition.
+    Patch based on work done by Luke Yelavich <themuso@ubuntu.com> in Ubuntu.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Bengali (bn.po) by Mahay Alam Khan (মাহে আলম খান)
+  * Bosnian (bs.po) by Armin Besirovic
+  * Catalan (ca.po) by Jordi Mallach
+  * Welsh (cy.po) by Jonathan Price
+  * Danish (da.po)
+  * Greek, Modern (1453-) (el.po)
+  * Esperanto (eo.po) by Felipe Castro
+  * French (fr.po) by Christian Perrier
+  * Hebrew (he.po) by Omer Zak
+  * Croatian (hr.po) by Josip Rodin
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Latvian (lv.po) by Peteris Krisjanis
+  * Macedonian (mk.po) by Arangel Angov
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Serbian (sr.po) by Veselin Mijušković
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+
+ -- Otavio Salvador <otavio@debian.org>  Sun, 21 Sep 2008 22:11:23 -0300
+
+partman-target (56) unstable; urgency=low
+
+  [ Jérémy Bobbio ]
+  * Update to the new debconf_select interface.
+    Requires partman-base (>= 124).
+  * Use cdebconf's new column alignment feature for active_partition.
+    Requires cdebconf (>= 0.133).
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Pavel Piatruk
+  * Esperanto (eo.po) by Felipe Castro
+  * Basque (eu.po) by Iñaki Larrañaga Murgoitio
+  * Croatian (hr.po) by Josip Rodin
+  * Italian (it.po) by Milo Casagrande
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Turkish (tr.po) by Mert Dirik
+	
+ -- Otavio Salvador <otavio@debian.org>  Tue, 05 Aug 2008 14:06:24 -0300
+
+partman-target (55ubuntu5) intrepid; urgency=low
+
+  * Remove the cdrom mounpoint if the filesystem is not iso9660 or udf
+    (LP: #150872).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Mon, 20 Oct 2008 11:38:26 -0400
+
+partman-target (55ubuntu4) intrepid; urgency=low
+
+  * Update Ubuntu-specific strings from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 12 Oct 2008 00:11:37 +0100
+
+partman-target (55ubuntu3) intrepid; urgency=low
+
+  * active_partition/method/choices: Remove check for the sataraid file.
+    Sataraid partitions are now treated like any other partition.
+
+ -- Luke Yelavich <themuso@ubuntu.com>  Thu, 21 Aug 2008 09:29:55 +1000
+
+partman-target (55ubuntu2) intrepid; urgency=low
+
+  [ Evan Dandrea ]
+  * Don't clear boot.  It makes sharing a boot partition impossible and
+    other distributions use sufficiently different kernel names anyway.
+    (LP: #231727)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 28 Jul 2008 09:49:33 +0100
+
+partman-target (55ubuntu1) intrepid; urgency=low
+
+  [ Evan Dandrea ]
+  * Ensure that if we clear the root partition, / is owned by root:root
+    (LP: #224446).
+
+  [ Colin Watson ]
+  * Resynchronise with Debian. Remaining changes:
+    - Use UUID= fstab syntax for all partitions if a UUID is available, and
+      add a comment above each UUID to indicate the corresponding device at
+      install time.
+    - Disable automatic mounting of USB removable devices.
+    - Don't use UUIDs in fstab for those device types that volumeid.postinst
+      refuses to convert.
+    - Mount CD-ROMs and floppies with 'exec'.
+    - Use the path of the file associated with a loop device in /etc/fstab,
+      rather than the filesystem's UUID or the loop device path.
+    - Always set the loop option for loop devices.
+    - Remove critical system files from the existing filesystem before
+      installing.
+    - Preserve the UID and GID of the initial user, if possible.  Requires a
+      patch to user-setup.
+    - Mount CD-ROMs and floppies with the "utf8" option by default.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 13 Jun 2008 21:14:30 +0100
+
+partman-target (55) unstable; urgency=low
+
+  [ Updated translations ]
+  * Amharic (am.po) by tegegne tefera
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Gujarati (gu.po) by Kartik Mistry
+  * Malayalam (ml.po) by Praveen|പ്രവീണ്‍ A|എ
+  * Marathi (mr.po) by Sampada
+  * Panjabi (pa.po) by Amanpreet Singh Alam
+
+ -- Otavio Salvador <otavio@debian.org>  Thu, 08 May 2008 01:14:46 -0300
+
+partman-target (54ubuntu6) hardy; urgency=low
+
+  * Remove some mistakenly-placed po-debconf flags.
+  * Update translations of Ubuntu-specific strings from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 15 Apr 2008 01:12:54 +0100
+
+partman-target (54ubuntu5) hardy; urgency=low
+
+  * Backed out check.d/12partitions_formatted.  Moved the ubiquity version
+    into partman-target.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Mon, 14 Apr 2008 16:20:45 -0400
+
+partman-target (54ubuntu4) hardy; urgency=low
+
+  * Whitelist /usr/local in clear_partitions (LP: #200582).
+  * Whitelist /var/local in clear_partitions.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Thu, 13 Mar 2008 09:43:28 -0400
+
+partman-target (54ubuntu3) hardy; urgency=low
+
+  * Fix build; commit.d is gone, really.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 06 Mar 2008 22:13:09 +0000
+
+partman-target (54ubuntu2) hardy; urgency=low
+
+  * Don't clear partitions that aren't marked as using a filesystem.
+  * Run clear_partitions from finish.d, not commit.d; commit.d is run in all
+    sorts of places, such as while configuring RAID, where we don't want to
+    clear partitions yet (LP: #198106).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 06 Mar 2008 13:24:59 +0000
+
+partman-target (54ubuntu1) hardy; urgency=low
+
+  [ Colin Watson ]
+  * Resynchronise with Debian, largely to pick up checks for directories
+    that must be on the root file system (LP: #148331). Remaining changes:
+    - Use UUID= fstab syntax for all partitions if a UUID is available, and
+      add a comment above each UUID to indicate the corresponding device at
+      install time.
+    - Disable automatic mounting of USB removable devices.
+    - Don't use UUIDs in fstab for those device types that volumeid.postinst
+      refuses to convert.
+    - Mount CD-ROMs and floppies with 'exec'.
+    - Use the path of the file associated with a loop device in /etc/fstab,
+      rather than the filesystem's UUID or the loop device path.
+    - Always set the loop option for loop devices.
+    - Remove critical system files from the existing filesystem before
+      installing.
+    - Preserve the UID and GID of the initial user, if possible.  Requires a
+      patch to user-setup.
+    - Mount CD-ROMs and floppies with the "utf8" option by default.
+  * Don't clear partitions marked "do not use" (LP: #198106).
+
+  [ Evan Dandrea ]
+  * Clean up mountpoint check for bug fixing and readability.  Thanks
+    Colin Watson.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 03 Mar 2008 22:49:56 +0000
+
+partman-target (54) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Ensure that /bin, /etc, /lib*, and /sbin are on the root file system.
+
+  [ Frans Pop ]
+  * Add default value for mount_failed template (see #457901).
+
+  [ Updated translations ]
+  * Amharic (am.po) by tegegne tefera
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Catalan (ca.po) by Jordi Mallach
+  * Czech (cs.po) by Miroslav Kure
+  * German (de.po) by Jens Seidel
+  * Dzongkha (dz.po) by Jurmey Rabgay
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * Finnish (fi.po) by Esko Arajärvi
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Kumar Appaiah
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Italian (it.po) by Stefano Canepa
+  * Japanese (ja.po) by Kenshi Muto
+  * Central Khmer (km.po) by Khoem Sokhem
+  * Korean (ko.po) by Changwoo Ryu
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Latvian (lv.po) by Viesturs Zarins
+  * Malayalam (ml.po) by Praveen|പ്രവീണ്‍ A|എ
+  * Norwegian Bokmål (nb.po) by Hans Fredrik Nordhaug
+  * Nepali (ne.po) by Shyam Krishna Bal
+  * Dutch (nl.po) by Frans Pop
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Panjabi (pa.po) by Amanpreet Singh Alam
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Romanian (ro.po) by Eddy Petrișor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Peter Mann
+  * Slovenian (sl.po) by Matej Kovacic
+  * Swedish (sv.po) by Daniel Nylander
+  * Tamil (ta.po) by Dr.T.Vasudevan
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Turkish (tr.po) by Recai Oktaş
+  * Ukrainian (uk.po)
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 15 Feb 2008 15:43:39 -0200
+
+partman-target (53) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Moved definitions.sh to ./lib/base.sh. Requires partman-base (>= 114).
+  * Major whitespace cleanup and a few minor coding style fixes.
+
+  [ Colin Watson ]
+  * udev 117 merged all udev tools into a single binary called udevadm.
+    Check for this and use it instead of udevinfo if available.
+
+  [ Updated translations ]
+  * Amharic (am.po) by tegegne tefera
+  * Belarusian (be.po) by Hleb Rubanau
+  * Korean (ko.po) by Changwoo Ryu
+  * Malayalam (ml.po) by Praveen|പ്രവീണ്‍ A|എ
+  * Panjabi (pa.po) by A S Alam
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Romanian (ro.po) by Eddy Petrișor
+  * Slovak (sk.po) by Ivan Masár
+
+ -- Frans Pop <fjp@debian.org>  Sat, 29 Dec 2007 22:16:34 +0100
+
+partman-target (52ubuntu6) hardy; urgency=low
+
+  * Fixed major bug in 60clear_partitions and re-enabled it.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Wed, 20 Feb 2008 02:37:59 -0500
+
+partman-target (52ubuntu5) hardy; urgency=low
+
+  * fstab_removable_media_entries: Mount CD-ROMs and Floppies with the "utf8"
+    option by default, since this is our only supported encoding since Hoary.
+    (LP: #22623)
+
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Wed, 13 Feb 2008 15:56:29 +0100
+
+partman-target (52ubuntu4) hardy; urgency=low
+
+  * Temporarily disable clear_partitions.  It's removing directories on
+    partitions that it should not be.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Fri, 01 Feb 2008 07:22:23 -0500
+
+partman-target (52ubuntu3) hardy; urgency=low
+
+  * Updated translations.
+  * Rework clear_partitions to not try to remove active mountpoints (LP:
+    #186711).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Wed, 30 Jan 2008 12:39:17 -0500
+
+partman-target (52ubuntu2) hardy; urgency=low
+
+  [ Colin Watson ]
+  * Set Vcs-Bzr for Ubuntu.
+
+  [ Evan Dandrea ]
+  * Added support for installing without reformatting existing partitions for
+    the ubiquity-preserve-home specification (LP: #174619):
+    - Remove critical system files from the existing filesystem before
+      installing.
+    - Preserve the UID and GID of the initial user, if possible.  Requires a
+      patch to user-setup.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 22 Jan 2008 16:06:55 +0000
+
+partman-target (52ubuntu1) hardy; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Use UUID= fstab syntax for all partitions if a UUID is available, and
+      add a comment above each UUID to indicate the corresponding device at
+      install time.
+    - Disable automatic mounting of USB removable devices.
+    - Don't use UUIDs in fstab for those device types that volumeid.postinst
+      refuses to convert.
+    - Mount CD-ROMs and floppies with 'exec'.
+    - Use the path of the file associated with a loop device in /etc/fstab,
+      rather than the filesystem's UUID or the loop device path.
+    - Always set the loop option for loop devices.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 23 Oct 2007 17:53:53 +0100
+
+partman-target (52) unstable; urgency=low
+
+  * Use 'mkdir -p' rather than more awkward test-then-create constructions
+    (or the labyrinthine reimplementation in finish.d/mount_partitions).
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Jamil Ahmed
+  * Italian (it.po) by Stefano Canepa
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 02 Oct 2007 17:25:50 +0100
+
+partman-target (51) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Move deletion of SVN directories to install-rc script.
+  * Improve the way install-rc is called.
+  * Do not offer to set method for a Serial ATA RAID disk.
+
+  [ Colin Watson ]
+  * Filter ro out of options passed to mount.d scripts.
+
+  [ Updated translations ]
+  * Panjabi (pa.po) by A S Alam
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Romanian (ro.po) by Eddy Petrișor
+  * Ukrainian (uk.po)
+
+ -- Colin Watson <cjwatson@debian.org>  Wed, 04 Jul 2007 16:30:01 +0100
+
+partman-target (50ubuntu5) gutsy; urgency=low
+
+  [ Colin Watson ]
+  * Always set the loop option for loop devices.
+  * Fix loop device detection.
+
+  [ Reinhard Tartler ]
+  * don't do UUID conversion for /dev/mapper/*_crypt devices. Those are
+    created by partman-crypto, and are used by cryptsetup's cryptroot-hook.
+    LP: #144390
+
+ -- Reinhard Tartler <siretart@tauware.de>  Fri, 28 Sep 2007 18:26:30 +0200
+
+partman-target (50ubuntu4) gutsy; urgency=low
+
+  * Use the path of the file associated with a loop device in /etc/fstab,
+    rather than the filesystem's UUID or the loop device path.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 07 Sep 2007 12:48:53 +0100
+
+partman-target (50ubuntu3) gutsy; urgency=low
+
+  * Mount CD-ROMs and floppies with 'exec' (LP: #131506).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 21 Aug 2007 11:07:33 +0100
+
+partman-target (50ubuntu2) gutsy; urgency=low
+
+  * Sync with udev 113-0ubuntu4: allow mounting /dev/mapper/*, /dev/evms/*,
+    and /dev/md[0-9]* by UUID.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 13 Jul 2007 23:52:32 +0100
+
+partman-target (50ubuntu1) gutsy; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Use UUID= fstab syntax for all partitions if a UUID is available, and
+      add a comment above each UUID to indicate the corresponding device at
+      install time.
+    - Disable automatic mounting of USB removable devices.
+    - Don't use UUIDs in fstab for those device types that volumeid.postinst
+      refuses to convert.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 30 Apr 2007 11:42:14 +0100
+
+partman-target (50) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Create /var/lock and /var/run on the root filesystem before /var is
+    mounted, so that they can be mounted as tmpfses as in Ubuntu
+    (https://launchpad.net/bugs/44142).
+  * We don't need to call update_partition if the user backs up from
+    selecting a method.
+  * Move sanity-checking scripts from finish.d to check.d. Requires
+    partman-base 106.
+
+  [ Frans Pop ]
+  * Code cleanup: remove no longer used code in fstab_removable_media_entries.
+
+  [ Updated translations ]
+  * Basque (eu.po) by Piarres Beobide
+  * Norwegian Bokmål (nb.po) by Bjørn Steensrud
+
+ -- Colin Watson <cjwatson@debian.org>  Fri, 27 Apr 2007 09:18:23 +0100
+
+partman-target (49) unstable; urgency=low
+
+  * Add missing devfs translation for USB devices. Closes: #414733.
+
+ -- Frans Pop <fjp@debian.org>  Tue, 13 Mar 2007 18:40:32 +0100
+
+partman-target (48) unstable; urgency=low
+
+  [ Updated translations ]
+  * Hebrew (he.po) by Lior Kaplan
+  * Malayalam (ml.po) by Praveen A
+
+ -- Frans Pop <fjp@debian.org>  Tue, 27 Feb 2007 18:26:31 +0100
+
+partman-target (47) unstable; urgency=low
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Belarusian (be.po) by Pavel Piatruk
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bengali (bn.po) by Jamil Ahmed
+  * Bosnian (bs.po) by Safir Secerovic
+  * Catalan (ca.po) by Jordi Mallach
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Estonian (et.po) by Siim Põder
+  * Galician (gl.po) by Jacobo Tarrio
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Kurdish (ku.po) by Amed Çeko Jiyan
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Malayalam (ml.po) by Praveen A
+  * Norwegian Bokmål (nb.po) by Bjørn Steensrud
+  * Panjabi (pa.po) by A S Alam
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Romanian (ro.po) by Eddy Petrișor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Peter Mann
+  * Slovenian (sl.po) by Matej Kovačič
+  * Swedish (sv.po) by Daniel Nylander
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Tagalog (tl.po) by Eric Pareja
+
+ -- Frans Pop <fjp@debian.org>  Wed, 31 Jan 2007 12:27:42 +0100
+
+partman-target (46ubuntu2) feisty; urgency=low
+
+  * Move sanity-checking scripts from finish.d to check.d.
+  * Set Maintainer to ubuntu-installer@lists.ubuntu.com.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 21 Feb 2007 00:10:37 +0000
+
+partman-target (46ubuntu1) feisty; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Create /var/lock and /var/run on the root filesystem before /var is
+      mounted, so that udev can use them.
+    - Use UUID= fstab syntax for all partitions if a UUID is available, and
+      add a comment above each UUID to indicate the corresponding device at
+      install time.
+    - Disable automatic mounting of USB removable devices.
+    - Don't use UUIDs in fstab for those device types that volumeid.postinst
+      refuses to convert.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 20 Nov 2006 16:44:48 +0000
+
+partman-target (46) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Mark ${ARCHITECTURE_HELP} in partman-target/help as untranslatable.
+
+  [ Frans Pop ]
+  * Add missing debconf dependency.
+  * Remove standards-version and add Lintian override for it.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Andrei Darashenka
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Estonian (et.po) by Siim Põder
+  * Basque (eu.po) by Piarres Beobide
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Nishant Sharma
+  * Croatian (hr.po) by Josip Rodin
+  * Japanese (ja.po) by Kenshi Muto
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Norwegian Bokmål (nb.po) by Bjørn Steensrud
+  * Romanian (ro.po) by Eddy Petrișor
+  * Russian (ru.po) by Yuri Kozlov
+  * Swedish (sv.po) by Daniel Nylander
+  * Tamil (ta.po) by Damodharan Rajalingam
+  * Tagalog (tl.po) by Eric Pareja
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+
+ -- Frans Pop <fjp@debian.org>  Tue, 24 Oct 2006 16:38:31 +0200
+
+partman-target (45ubuntu3) edgy; urgency=low
+
+  * Don't use UUIDs in fstab for those device types that volumeid.postinst
+    refuses to convert, namely /dev/disk/*, floppies, devmapper, EVMS, and
+    RAID (closes: Malone #62476).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 26 Sep 2006 21:57:11 +0100
+
+partman-target (45ubuntu2) edgy; urgency=low
+
+  * Disable automatic mounting of USB removable devices (closes: Malone
+    #60552).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 23 Sep 2006 00:47:42 +0100
+
+partman-target (45ubuntu1) edgy; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Create /var/lock and /var/run on the root filesystem before /var is
+      mounted, so that udev can use them.
+    - Use UUID= fstab syntax for all partitions if a UUID is available, and
+      add a comment above each UUID to indicate the corresponding device at
+      install time.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 30 Aug 2006 11:22:43 +0100
+
+partman-target (45) unstable; urgency=low
+
+  * Remove partman-target/choose_filesystem,
+    partman-target/text/choose_filesystem, and
+    partman-target/text/no_file_system templates; none of these have been
+    used since partman-basicmethods started handling filesystems
+    (partman-target 25).
+  * Use list-devices to find CDs and floppies. Requires di-utils 1.33.
+  * Use sysfs and udevinfo if available to find usb-storage devices.
+
+  [ Updated translations ]
+  * Catalan (ca.po) by Jordi Mallach
+  * Greek, Modern (1453-) (el.po) by quad-nrg.net
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Finnish (fi.po) by Tapio Lehtonen
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Italian (it.po) by Giuseppe Sacco
+  * Korean (ko.po) by Sunjae park
+  * Dutch (nl.po) by Bart Cornelis
+  * Romanian (ro.po) by Eddy Petrişor
+  * Tagalog (tl.po) by Eric Pareja
+  * Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 29 Aug 2006 11:58:53 +0100
+
+partman-target (44) unstable; urgency=low
+
+  * finish.d/mount_partitions: partman-doc specifies that mount.d scripts
+    print the command needed to unmount the partition; avoid that this output
+    ends up in the syslog even though it is currently unused.
+
+  [ Updated translations ]
+  * Punjabi (pa.po) by A S Alam
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Frans Pop <fjp@debian.org>  Wed, 19 Jul 2006 22:17:56 +0200
+
+partman-target (43) unstable; urgency=low
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Bengali (bn.po) by Progga
+  * Bosnian (bs.po) by Safir Secerovic
+  * Catalan (ca.po) by Jordi Mallach
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Dzongkha (dz.po)
+  * Esperanto (eo.po) by Serge Leblanc
+  * Estonian (et.po) by Siim Põder
+  * Basque (eu.po) by Piarres Beobide
+  * Irish (ga.po) by Kevin Patrick Scannell
+  * Hungarian (hu.po) by SZERVÑC Attila
+  * Italian (it.po) by Giuseppe Sacco
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Khmer (km.po) by Leang Chumsoben
+  * Korean (ko.po) by Sunjae park
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Bokmål, Norwegian (nb.po) by Bjørn Steensrud
+  * Nepali (ne.po) by Shiva Pokharel
+  * Dutch (nl.po) by Bart Cornelis
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Northern Sami (se.po) by Børre Gaup
+  * Slovak (sk.po) by Peter Mann
+  * Slovenian (sl.po) by Jure Čuhalev
+  * Swedish (sv.po) by Daniel Nylander
+  * Tamil (ta.po) by Damodharan Rajalingam
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Frans Pop <fjp@debian.org>  Thu, 13 Jul 2006 17:44:28 +0200
+
+partman-target (42ubuntu2) edgy; urgency=low
+
+  * Use UUID= fstab syntax for all partitions if a UUID is available, and
+    add a comment above each UUID to indicate the corresponding device at
+    install time.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 25 Jul 2006 12:17:00 +0100
+
+partman-target (42ubuntu1) edgy; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 29 Jun 2006 16:51:29 +0100
+
+partman-target (42) unstable; urgency=low
+
+  [ Updated translations ]
+  * Catalan (ca.po) by Jordi Mallach
+  * Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+  * Finnish (fi.po) by Tapio Lehtonen
+  * French (fr.po) by Christian Perrier
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Malagasy (mg.po) by Jaonary Rabarisoa
+  * Punjabi (Gurmukhi) (pa_IN.po) by Amanpreet Singh Alam
+  * Polish (pl.po) by Bartosz Fenski
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovenian (sl.po) by Jure Cuhalev
+  * Albanian (sq.po) by Elian Myftiu
+  * Swedish (sv.po) by Daniel Nylander
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Frans Pop <fjp@debian.org>  Tue, 24 Jan 2006 22:14:29 +0100
+
+partman-target (41ubuntu1) dapper; urgency=low
+
+  * Create /var/lock and /var/run on the root filesystem before /var is
+    mounted, so that udev can use them (closes: Malone #44142).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 11 May 2006 10:17:10 +0100
+
+partman-target (41ubuntu0) dapper; urgency=low
+
+  * Write out UUID entries for devices on removable buses (IEEE1394,
+    USB).
+
+ -- Tollef Fog Heen <tfheen@ubuntu.com>  Fri,  3 Feb 2006 18:47:54 +0100
+
+partman-target (41) unstable; urgency=low
+
+  * Tweak syntax of case statements within command substitution so that bash
+    is happy with it as well as busybox sh.
+
+  [ Updated translations ]
+  * French (fr.po) by Christian Perrier
+  * Romanian (ro.po) by Eddy Petrişor
+  * Swedish (sv.po) by Daniel Nylander
+
+ -- Colin Watson <cjwatson@debian.org>  Thu, 24 Nov 2005 11:53:21 +0000
+
+partman-target (40) unstable; urgency=low
+
+  * Don't explicitly mount CD-like removable media read-only, as that breaks
+    packet writing to DVDs, and the kernel will deal with mounting truly
+    read-only media read-only (closes: Ubuntu #11775).
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Ognyan Kulev
+  * Bengali (bn.po) by Baishampayan Ghose
+  * Icelandic (is.po) by David Steinn Geirsson
+  * Swedish (sv.po) by Daniel Nylander
+
+ -- Colin Watson <cjwatson@debian.org>  Mon, 14 Nov 2005 13:20:15 +0000
+
+partman-target (39) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Update help for the removal of the utf-8 symbols.
+  * Update help regarding installation over other unix system files, since it
+    mostly works and checks will catch any problems.
+
+  [ Colin Watson ]
+  * Use 'rm -f' rather than more awkward test-then-remove constructions.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Bengali (bn.po) by Baishampayan Ghose
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Italian (it.po) by Giuseppe Sacco
+  * Japanese (ja.po) by Kenshi Muto
+  * Korean (ko.po) by Changwoo Ryu
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Bokmål, Norwegian (nb.po) by Bjørn Steensrud
+  * Dutch (nl.po) by Bart Cornelis
+  * Norwegian Nynorsk (nn.po)
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Romanian (ro.po) by Eddy Petrişor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Peter Mann
+  * Swedish (sv.po) by Daniel Nylander
+  * Tagalog (tl.po) by Eric Pareja
+  * Turkish (tr.po) by Recai Oktaş
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+
+ -- Colin Watson <cjwatson@debian.org>  Sun, 23 Oct 2005 18:56:17 +0100
+
+partman-target (38) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Reword help templates to avoid unnecessary Debian "branding".
+
+  [ Joey Hess ]
+  [ Updated translations ]
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Holger Wansing
+  * Greek, Modern (1453-) (el.po) by Greek Translation Team
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Italian (it.po) by Giuseppe Sacco
+  * Japanese (ja.po) by Kenshi Muto
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Bokmål, Norwegian (nb.po) by Bjørn Steensrud
+  * Dutch (nl.po) by Bart Cornelis
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+  * Romanian (ro.po) by Eddy Petrisor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Peter Mann
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 26 Sep 2005 18:19:39 +0200
+
+partman-target (37) unstable; urgency=low
+
+  * Updated translations: 
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Tagalog (tl.po) by Eric Pareja
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 15 Jul 2005 17:29:29 +0300
+
+partman-target (36) unstable; urgency=low
+
+  * Colin Watson
+    - Create /media/* mount points, but still don't mount filesystems on
+      them.
+  * Updated translations:
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Romanian (ro.po) by Eddy Petrişor
+
+ -- Colin Watson <cjwatson@debian.org>  Thu, 16 Jun 2005 11:05:07 +0100
+
+partman-target (35) unstable; urgency=low
+
+  * Christian Perrier
+    - Rename the templates file to help out translators working
+      on a single file
+  * Colin Watson
+    - Shell cleanups: avoid complicated 'test' arguments.
+    - Mount /media/cdrom as udf,iso9660 rather than iso9660, to help DVDs.
+    - Don't mount hard disk filesystems whose mount points are /media/*; it
+      gets in the way of os-prober.
+  * Updated translations:
+    - Arabic (ar.po) by Ossama M. Khayat
+    - Catalan (ca.po) by Guillem Jover
+    - Czech (cs.po) by Miroslav Kure
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Spanish (es.po) by Javier Fernández-Sanguino Peña
+    - Basque (eu.po)
+    - Hebrew (he.po) by Lior Kaplan
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Yuri Kozlov
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Colin Watson <cjwatson@debian.org>  Fri,  3 Jun 2005 14:55:31 +0100
+
+partman-target (34) unstable; urgency=low
+
+  * Matt Kraai
+    - Fix the spelling of "file system".
+  * Updated translations: 
+    - Gallegan (gl.po) by Jacobo Tarrio
+    - Hebrew (he.po) by Lior Kaplan
+    - Romanian (ro.po) by Eddy Petrisor
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 16 Feb 2005 22:12:26 -0500
+
+partman-target (33) unstable; urgency=low
+
+  * Includes fixes for variable substitution in translated templates.
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Bosnian (bs.po) by Safir Šećerović
+    - Catalan (ca.po) by Jordi Mallach
+    - Welsh (cy.po) by Dafydd Harries
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Finnish (fi.po) by Tapio Lehtonen
+    - Gallegan (gl.po) by Hctor Fenndez Lpez
+    - Dutch (nl.po) by Bart Cornelis
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Dmitry Beloglazov
+    - Slovenian (sl.po) by Jure Čuhalev
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  2 Feb 2005 17:44:17 -0500
+
+partman-target (32) unstable; urgency=low
+
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - French (fr.po) by French Team
+    - Hebrew (he.po) by Lior Kaplan
+    - Croatian (hr.po) by Krunoslav Gernhard
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 20 Oct 2004 14:51:37 -0400
+
+partman-target (31) unstable; urgency=low
+
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kure
+    - Welsh (cy.po) by Dafydd Harries
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by French Team
+    - Hebrew (he.po) by Lior Kaplan
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Hungarian (hu.po) by VEROK Istvan
+    - Indonesian (id.po) by Debian Indonesia Team
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnasn
+    - Latvian (lv.po) by Aigars Mahinovs
+    - Bøkmal, Norwegian (nb.po) by Bjorn Steensrud
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Russian L10N Team
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Albanian (sq.po) by Elian Myftiu
+    - Swedish (sv.po) by Per Olofsson
+    - Turkish (tr.po) by Recai Oktaş
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  6 Oct 2004 15:25:50 -0400
+
+partman-target (30) unstable; urgency=low
+
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by French Team
+    - Hebrew (he.po) by Lior Kaplan
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnasn
+    - Bøkmal, Norwegian (nb.po) by Axel Bojer
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Russian (ru.po) by Russian L10N Team
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Swedish (sv.po) by Per Olofsson
+    - Turkish (tr.po) by Recai Oktaş
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 27 Sep 2004 21:26:27 -0400
+
+partman-target (29) unstable; urgency=low
+
+  * Remove seen flag munging to better support preseeding.
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  1 Sep 2004 16:23:14 -0400
+
+partman-target (28) unstable; urgency=low
+
+  * Joey Hess
+    - Don't assume that the hd-media device is usb without checking.
+      Closes: #265707
+  * Updated translations: 
+    - Bosnian (bs.po) by Safir Šećerović
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 14 Aug 2004 13:29:02 -0300
+
+partman-target (27) unstable; urgency=low
+
+  * Updated translations: 
+    - Persian (fa.po) by Arash Bijanzadeh
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 26 Jul 2004 13:32:34 -0400
+
+partman-target (26) unstable; urgency=low
+
+  * Updated translations: 
+    - Arabic (ar.po) by Abdulaziz Al-Arfaj
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kuře
+    - Welsh (cy.po) by Dafydd Harries
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by George Papamichelakis
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by Christian Perrier
+    - Hebrew (he.po) by Lior Kaplan
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Hungarian (hu.po) by VERÓK István
+    - Indonesian (id.po) by I Gede Wijaya S
+    - Italian (it.po) by Stefano Canepa
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Yuri Kozlov
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Albanian (sq.po) by Elian Myftiu
+    - Swedish (sv.po) by Per Olofsson
+    - Turkish (tr.po) by Osman Yüksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Ming Hua
+    - Persian (fa.po) by Arash Bijanzadeh
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 25 Jul 2004 19:21:19 -0400
+
+partman-target (25) unstable; urgency=low
+
+  * Anton Zinoviev
+    - acknowledge NMU: closes: #250190
+    - active_partition/filesystem: removed as now partman-basicmethods
+      cares about file systems  
+    - update.d/filesystems: do not create file `available_filesystems' as it
+      is not used any more and the file system is always specified
+      explicitly by a file `filesystem'
+    - templates (text/method): s/Usage method/Use as/
+    - update.d/filesystems: there is acting_filesystem only when
+      the method is such that use_filesystem.  Thanks to Jurij Smakov and
+      Joey Hess, closes: #250453, #251487 
+    - add finish.d/reformat_after_restart: remove the information which
+      file systems have been already formatted.  Thanks to Matt Kraai,
+      closes: #256090
+  * Updated translations: 
+    - Albanian (sq.po) by Elian Myftiu
+    - Arabic (ar.po) by Abdulaziz Al-Arfaj
+    - Bosnian (bs.po) by Safir Šećerović
+    - German (de.po) by Dennis Stampfer
+    - Croatian (hr.po) by Kruno
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  
+ -- Anton Zinoviev <zinoviev@debian.org>  Tue, 20 Jul 2004 15:59:57 +0300
+
+partman-target (24) unstable; urgency=low
+
+  * Matt Kraai
+    - Explain the bootable flag on the help page on NewWorld PowerPCs.
+  * Joey Hess
+    - Don't unconditionally modprobe floppy. In fact, don't modprobe floppy
+      at all; that's hw-detect's job. Fixes crash on G5.
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 10 Jul 2004 17:04:35 -0400
+
+partman-target (23) unstable; urgency=low
+
+  * Updated translations: 
+    - Russian (ru.po) by Yuri Kozlov
+    - Albanian (sq.po) by Elian Myftiu
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 25 May 2004 12:32:51 -0300
+
+partman-target (22) unstable; urgency=low
+
+  * Colin Watson
+    - Fix English errors in package description and help text.
+  * Christian Perrier
+    - Add a short description to the partman-target/help template
+      Closes: #250190
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 21 May 2004 19:03:24 +0200
+
+partman-target (21) unstable; urgency=low
+
+  * Colin Watson
+    - Depend on partman.
+  * Anton Zinoviev
+    - sort the entries for non-removable media in fstab acording to the
+      mount point.  Thanks to Sylvain Sauvage and Guido Trotter, 
+      closes: #245145, #247439
+    - remove dependency on partman as otherwise main-menu falls in
+      infinite loop - partman depends on partman-target
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Sat, 15 May 2004 07:40:13 +0300
+
+partman-target (20) unstable; urgency=low
+
+  * Joey Hess
+    - Don't provide created-fstab, as the fstab is not created when this
+      package is unpacked and configured, but when partman is run. Thus,
+      partman should provide it. Closes: #247927
+    - Bogons ate version 19.
+
+ -- Joey Hess <joeyh@debian.org>  Fri,  7 May 2004 20:31:51 -0400
+
+partman-target (18) unstable; urgency=low
+
+  * Joey Hess
+    - Add currently available usb storage devices to the fstab.
+      It is unfortunatly too hard (and probably not wise) to do anything
+      if usb is available but no usb storage is plugged in. This will at
+      least do reasonable things when installing from usb, or on systems
+      with integrated usb storage.
+    - Even if there is only one removable device in a class right now, there
+      may be more later. So always use the numbered mount points scheme with
+      the symlink.
+    - Make a /cdrom link to media/cdrom, instead of adding a duplicate fstab
+      entry for the device. Closes: #245898
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+
+ -- Joey Hess <joeyh@debian.org>  Fri,  7 May 2004 13:56:49 -0400
+
+partman-target (17) unstable; urgency=low
+
+  * Updated translations: 
+    - Finnish (fi.po) by Tapio Lehtonen
+    - Bokmal, Norwegian (nb.po) by Bjørn Steensrud
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Romanian (ro.po) by Eddy Petrisor
+    - Slovenian (sl.po) by Matjaz Horvat
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 23 Apr 2004 13:15:15 -0400
+
+partman-target (16) unstable; urgency=low
+
+  * Anton Zinoviev
+    - update.d/filesystems: count properly the number of available file
+      systems - removed extra `-n' from two echo commands.  Thanks to
+      Martin Michlmayr, closes: #244424.
+  * Updated translations: 
+    - Bosnian (bs.po) by Safir Šećerović
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kuře
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - French (fr.po) by Christian Perrier
+    - Gallegan (gl.po) by Héctor Fernández López
+    - Hebrew (he.po) by Lior Kaplan
+    - Hungarian (hu.po) by VERÓK István
+    - Indonesian (id.po) by I Gede Wijaya S
+    - Italian (it.po) by Stefano Canepa
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Nikolai Prokoschenko
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Albanian (sq.po) by Elian Myftiu
+    - Swedish (sv.po) by André Dahlqvist
+    - Turkish (tr.po) by Osman Yüksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 20 Apr 2004 09:54:36 -0400
+
+partman-target (15) unstable; urgency=low
+
+  * Anton Zinoviev
+    - add a help item in the main menu
+    - it gives description to ☻, ☺, ☠ and ↯.  Thanks to Kenshi Muto
+      (closes: #238060)
+    - update.d/filesystems: take into consideration the new file
+      use_filesystem. 
+    - finish.d/fstab_removable_media_entries: add entries for all CD/DVD
+      and floppy devices, create in /target/media sub directories acording
+      to FHS, ver 2.3.
+    - rules: remove .svn directories from the package
+  * Joshua Kwan
+    - Use the new debhelper udeb support.
+  * Joey Hess
+    - Template polishing.
+  * Updated translations: 
+    - Czech (cs.po) by Miroslav Kuře
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - French (fr.po) by Christian Perrier
+    - Gallegan (gl.po) by 
+    - Hebrew (he.po) by Lior Kaplan
+    - Hungarian (hu.po) by VERÓK István
+    - Indonesian (id.po) by I Gede Wijaya S
+    - Italian (it.po) by Stefano Canepa
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Dutch (nl.po) by Bart Cornelis
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrisor
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Albanian (sq.po) by Elian Myftiu
+    - Swedish (sv.po) by André Dahlqvist
+    - Turkish (tr.po) by Osman Yüksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+  
+ -- Joey Hess <joeyh@debian.org>  Sun, 11 Apr 2004 21:27:57 -0400
+
+partman-target (14) unstable; urgency=low
+
+  * Joey Hess
+    - Fix inverted test and bad loopback mount detection in cdrom
+      fstab code.
+  * Updated translations: 
+    - Bosnian (bs.po) by Safir Šećerović
+    - Albanian (sq.po) by Elian Myftiu
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 25 Mar 2004 13:53:14 -0500
+ 
+
+partman-target (13) unstable; urgency=low
+
+  * Joey Hess
+    - Add an entry to /target/etc/fstab for a CD if one is mounted.
+      Closes: #238776
+    - Add commented out floppy and CD entries also as examples.
+  * Updated translations: 
+    - Italian (it.po) by Stefano Canepa
+    - Romanian (ro.po) by Eddy Petrisor
+    - Turkish (tr.po) by Osman Yüksel
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 23 Mar 2004 12:39:13 -0500
+
+partman-target (12) unstable; urgency=low
+
+  * Updated translations: 
+    - Turkish (tr.po) by Osman Yüksel
+  * Anton Zinoviev
+    - finish.d/proper_mountpoints: do not complain when two swap spaces
+      are in use. 
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Sun, 14 Mar 2004 12:18:30 +0200
+
+partman-target (11) unstable; urgency=low
+
+  * Anton Zinoviev
+    - active_partition/*/choices: use stralign where appropriately.
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 12 Mar 2004 13:00:11 -0500
+
+partman-target (10) unstable; urgency=low
+
+  * Anton Zinoviev
+    - finish.d/fstab_hd_entries: print entries for all devices
+      (includingly LVM), not only for IDE and SCSI disks.
+
+ -- Joey Hess <joeyh@debian.org>  Tue,  9 Mar 2004 12:18:04 -0500
+
+partman-target (9) unstable; urgency=HIGH
+
+  * Remove the inform_partconf-mkfstab kludge.
+  * Write fstab header, including /proc to fstab on our own. Closes: #236995
+  * fstab_hd_entries moves to here from partman.
+  * Depend on di-utils-mapdevfs for mapdevfs.
+  * Provide created-fstab.
+
+ -- Joey Hess <joeyh@debian.org>  Tue,  9 Mar 2004 02:52:17 -0500
+
+partman-target (8) unstable; urgency=low
+
+  * Joey Hess
+    - Remove autogenerated postrm.
+    - In mount_partitions, call mount.d scripts on items that do not have a
+      mount point, such as swap.
+  * Maybe some translations changed. I don't know.
+
+ -- Joey Hess <joeyh@debian.org>  Mon,  8 Mar 2004 19:43:25 -0500
+
+partman-target (7) unstable; urgency=low
+
+  * Anton Zinoviev
+    - update.d/filesystems: invoke opendialog CHANGE_FILE_SYSTEM only when
+      the new file system differs from the file system know by parted_server.
+  * Updated translations: 
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kuře
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by Christian Perrier
+    - Hungarian (hu.po) by VERÓK István
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Dravidian (Other) (nl.po) by Bart Cornelis
+    -  (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Nuno Sénica
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Albanian (sq.po) by Elian Myftiu
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+  
+ -- Joey Hess <joeyh@debian.org>  Thu,  4 Mar 2004 14:37:39 -0500
+
+partman-target (6) unstable; urgency=low
+
+  * Christian Perrier
+    - unmess changelog
+
+  * Anton Zinoviev
+    - new look of the menu items of active_partition
+    - use translatable file system and method names as described in the
+      new version of the documentation
+  
+  * Updated translations:
+    - Stefano Canepa
+      - Add Italian (it) translation
+    - Miroslav Kure
+      - fix Czech translation
+    - Peter Mann
+      - Update Slovak translation
+    - Nuno Sénica
+      - Added Portuguese translation (pt.po)
+    - h3li0s
+      - added albanian translation (sq.po)
+    - Jordi Mallach
+      - Add Catalan translation (ca.po).
+    - Eugen Meshcheryakov
+      - added Ukrainian translation (uk.po)
+    - Kęstutis Biliūnas
+      - Updated Lithuanian translation (lt.po).
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Tue, 24 Feb 2004 20:16:55 +0200
+
+partman-target (5) unstable; urgency=low
+
+  * Bartosz Fenski
+    - Add Polish (pl) translation.
+  * Kenshi Muto
+    - Add Japanese translation (ja.po)
+    - Update Japanese translation
+  * Christian Perrier
+    - First debconf templates polishing
+    - Run debconf-updatepo
+  * André Luís Lopes
+    - Added Brazilian Portuguese (pt_BR) translation.
+  * Nikolai Prokoschenko
+    - Added russian translation
+  * Peter Mann
+    - Initial Slovak translation
+  * Anton Zinoviev
+    - the install target in debian/rules removes all files CVS from the
+      generated package.
+    - added local variable for Emacs `coding: utf-8' at the end of the
+      changelog.
+  * Christian Perrier
+    - Initial French translation (fr.po)
+  * Anmar Oueja
+    - Initial Arabic Trnaslation (ar.po)
+  * Claus Hindsgaul
+    - Initial Danish Trnaslation (da.po)
+  * Miroslav Kure
+    - Initial Czech translation
+  * Ming Hua
+    - Initial Simplified Chinese translation (zh_CN.po)
+  * Bart Cornelis
+    - Initial Dutch (nl.po) translation 
+  * Dennis Stampfer
+    - Initial German translation (de.po)
+  * Kęstutis Biliūnas
+    - Initial Lithuanian (lt.po) translation.
+  * Safir Secerovic
+    - Add Bosnian translation (bs.po).
+  * Joey Hess
+    - Fix udeb filename.
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 21 Jan 2004 14:20:29 -0500
+
+partman-target (4) unstable; urgency=low
+
+  * Uses debconf-po.
+  * Use db_metaget to translate strings.
+  * Konstantinos Margaritis
+    - Initial Greek translation (el.po)
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Mon, 22 Dec 2003 22:33:15 +0200
+
+partman-target (3) unstable; urgency=low
+
+  * finish.d/ensure_root renamed to finish.d/check_mountpoints.  Added
+    check that no file systems are assigned one and the same mount point.
+  * Uses `exit 0' and `return 0' instead of just `exit' and `return'.
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Fri, 12 Dec 2003 09:09:26 +0200
+
+partman-target (2) unstable; urgency=low
+
+  * First version.
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Wed, 10 Dec 2003 12:54:40 +0200
+
+Local Variables:
+coding: utf-8
+End:

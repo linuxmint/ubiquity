@@ -1,0 +1,42 @@
+#!/usr/bin/make -f
+# Sample debian/rules that uses debhelper.
+# GNU copyright 1997 to 1999 by Joey Hess.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+export PACKAGE = partman-target
+
+build:
+# Ye olde no-op.
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f `find . -name '*~'`
+	dh_clean
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	debian/install-rc check.d
+	debian/install-rc finish.d
+	debian/install-rc update.d
+	debian/install-rc active_partition
+	debian/install-rc choose_partition
+	dh_install choose_method lib/partman
+
+binary-indep: build install
+	dh_testdir
+	dh_testroot
+	dh_installdebconf   
+	dh_fixperms
+	dh_installdeb
+	dh_gencontrol 
+	dh_builddeb 
+
+binary-arch: build install
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install

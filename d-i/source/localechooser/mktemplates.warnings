@@ -1,0 +1,46 @@
+#!/usr/bin/perl
+#
+# Author: Frans Pop (2008)
+#
+# Append language-specific warnings about incomplete translations
+
+use strict;
+use warnings;
+
+my $list       = shift;
+my $outfile    = shift;
+
+print "Appending language-specific templates about incomplete translations...\n";
+
+open(TOUT, ">> $outfile") || die "Unable to write $outfile";
+open(L, "< $list") || die "Unable to read $list";
+while (<L>) {
+	chomp;
+	next if m/^\#/;
+	my ($code, $name, $translation, $level, $country, $locale, $langlist, ) = split(/;/);
+	next if $langlist !~ /:/;
+
+	my $have_template = 0;
+	if (! open(T, "< debian/localechooser.templates-$code")) {
+		print "Warning: missing localized warnings file for $code!\n";
+		next
+	}
+	while (<T>) {
+		chomp;
+		next if m/^\#/;
+		if (! $have_template) {
+			if (m/^Template:/) {
+				$have_template = 1;
+				print TOUT "\n";
+				print TOUT $_, "\n";
+			}
+		} else {
+			print TOUT $_, "\n";
+		}
+	}
+	if (! $have_template) {
+		print "Warning: no localized warnings for $code in file!\n";
+	}
+}
+close(L);
+close(TOUT) || warn;

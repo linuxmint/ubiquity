@@ -1,0 +1,201 @@
+migration-assistant (0.6.4) jaunty; urgency=low
+
+  * If there are no items to import, don't bother asking the question.
+    This supports a change to ubiquity to not always show the migration-
+    assistant page.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Thu, 09 Apr 2009 10:34:46 +0100
+
+migration-assistant (0.6.3) jaunty; urgency=low
+
+  * Rename Gaim to Pidgin.  Thanks Mike Rooney (LP: #224797).
+  * Do not force chpasswd to md5 crypt passwords (LP: #51551).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Thu, 09 Apr 2009 10:26:16 +0100
+
+migration-assistant (0.6.2) intrepid; urgency=low
+
+  * Several fixes from Olivier Blin of Mandriva:
+    - Close file descriptors when they're no longer needed.
+    - Move a closedir() call, it can free data returned by readdir() too
+      early.  It leads to path corruption in some cases.
+    - Fix a segfault with files with no extension.
+    - Remove a spurious directory creation, with uninitialized name.
+    - Fix Windows 2000 migration, by not trying to import music if not
+      present.
+    - Fix detection of Windows-NT-like registry path in ma-search-users, by
+      splitting and reusing WINNT code from utils.c
+    - Reimplement copy using read/write (like cp) to handle large files,
+      since we can't mmap() (twice) large files in memory.
+    - fix segfault by zeroing buffers for strcat.
+    - Improve WINNT patch to factorize user registry location as well.
+    - Vista profile directories support.  Get profiles directory from
+      registry for ma-search-items and ma-import as well ("Documents and
+      Settings" is not correct in Vista), this also allows us to read the
+      user registries.
+    - Vista users support.  Filter Public and Default users for Vista (from
+      registry keys).  Filter "Default User" key in Vista (it is a junction
+      to Default).  Do not segfault if keys are missing.
+  * More efficient and less error-prone device substring extraction.
+  * Set the locale to C when using expr.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 27 May 2008 14:07:31 -0400
+
+migration-assistant (0.6.1) hardy; urgency=low
+
+  * Use + instead of : for a replacement character as it is explicitly
+    allowed by debconf policy.
+  * Look in .purple for Pidgin settings as well.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Mon, 07 Apr 2008 11:16:20 -0400
+
+migration-assistant (0.6.0) hardy; urgency=low
+
+  * Copy NTFS mount fix.
+  * Removed dead ubiquity-specific code in ma-ask.
+  * Cleaned up ma-ask and ma-apply.
+  * Fix potential bugs where RET could get set to an error description and
+    then be used as the answer to other questions.
+  * Add the user to the groups specified by user-setup-udeb.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Thu, 24 Jan 2008 09:25:41 +0000
+
+migration-assistant (0.5.4) gutsy; urgency=low
+
+  * Added a short timeout and retry to unmounting to accomodate slow umounts
+    (LP: #135149).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Mon, 15 Oct 2007 11:54:33 -0400
+
+migration-assistant (0.5.3) gutsy; urgency=low
+
+  * Move initialize_registry_paths call later to avoid situations where
+    other needed variables may not be set yet, causing m-a to fail.
+  * Fix logging.
+  * Fix IFS handling around call to expr.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 09 Oct 2007 10:58:09 -0400
+
+migration-assistant (0.5.2) gutsy; urgency=low
+
+  * Fix IFS handling (LP: #145712, #135149)
+
+ -- Evan Dandrea <evand@ubuntu.com>  Wed, 03 Oct 2007 22:27:20 -0400
+
+migration-assistant (0.5.1) gutsy; urgency=low
+
+  [ Colin Watson ]
+  * In the Windows case in mount_os:
+    - Look in /proc/mounts, not /proc/partitions.
+    - Look in /proc/mounts before /etc/mtab.
+    - Make sure to select only the first mountpoint for a given device (in
+      case of bind mounts).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Fri, 21 Sep 2007 21:48:48 -0400
+
+migration-assistant (0.5.0) gutsy; urgency=low
+
+  * Handle more than one installed copy of Windows (LP: #97081).
+  * Error if unable to mount Linux partitions.
+  * Bump installer-menu-item to 6400.
+  * Close directories in ma-search-users.
+  * Don't unmount devices when we can avoid having to.
+  * Look for registry files case-insensitively.
+  * Quote arguments to add_user (LP: #123425).
+  * Use stat instead of the DT_ macros to avoid issues with fuse.
+  * Add a debug log.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 31 Jul 2007 20:21:35 -0400
+
+migration-assistant (0.4.5) feisty; urgency=low
+
+  * Proper grep for mounted devices. (LP: #99004)
+
+ -- Evan Dandrea <evand@ubuntu.com>  Thu,  5 Apr 2007 02:27:15 -0400
+
+migration-assistant (0.4.4) feisty;  urgency=low
+
+  * Grab the location of Documents and Settings from the registry.
+    (LP: #95152)
+
+ -- Evan Dandrea <evand@ubuntu.com>  Wed,  4 Apr 2007 15:09:17 -0400
+
+migration-assistant (0.4.3) feisty; urgency=low
+
+  * Possible fix for ostype not getting set in the -ask and -apply
+    scripts.  Also added some temporary debugging information.
+    (LP: #93197)
+  * If the /home partition device doesn't exist under the same name in
+    the running kernel, fail gracefully and continue to the next OS.
+    (LP: #94878)
+  * Added more logging and crash partial recovery.
+  * Gracefully fail and continue on items where a non C: drive letter
+    comes into play. (LP: #95422)
+  * Don't import Windows default bookmarks.  Import, but don't set
+    "Bliss" as the default wallpaper.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 27 Mar 2007 03:44:25 -0400
+
+migration-assistant (0.4.2) feisty; urgency=low
+
+  * Added XS-Vcs-Bzr field to debian/control.
+  * Mount /home if necessary. (LP: 85222)
+  * Display an error on unmount failure and prompt the user to continue.
+    (LP: 89605)
+  * Put usage statements on stderr. (LP: 89821)
+
+ -- Evan Dandrea <evand@ubuntu.com>  Wed, 21 Mar 2007 22:16:29 -0400
+
+migration-assistant (0.4.1) feisty; urgency=low
+
+  * Added proper support for the Windows registry's use of UTF-16 strings.
+  * Grab locations from the registry rather than assuming that everything is
+    a subdirectory of Documents and Settings.
+  * Don't fail when trying to copy empty files.
+  * Fix incorrect detection of Firefox and AIM Triton.
+  * Handle spaces in usernames.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Sat,  3 Mar 2007 17:57:46 -0500
+
+migration-assistant (0.4) feisty; urgency=low
+
+  * Added Outlook Express and Evolution account support.
+  * Don't assume Windows XP means a NTFS formatted drive (LP #85330).
+  * Unmount by device, not mountpoint (LP #85222).
+  * Gracefully handle empty registry string values.
+  * Fixed a bug where the non bookmarks toolbar folders were getting
+    marked as being one.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Fri, 16 Feb 2007 14:49:25 -0500
+
+migration-assistant (0.3.1) feisty; urgency=low
+
+  * Added a reference to common-licenses and added a long description.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Thu,  8 Feb 2007 09:43:04 -0500
+
+migration-assistant (0.3) feisty; urgency=low
+
+  * Added tests for empty passwords, reserved usernames, bad usernames and
+    more.
+  * removed the administrator debconf option.
+  * fixed quite a few bugs in ma-ask's regular expressions, mounting of
+    filesystems and ifs handling.
+  * Added bookmarks importing from Firefox and IE.
+  * Removed the last bit of code referencing the administrator, allowing
+    installs to work again.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue,  6 Feb 2007 00:58:57 -0500
+
+migration-assistant (0.2) edgy; urgency=low
+
+  * Ubiquity support.
+
+ -- Evan Dandrea <evan@evalicious.com>  Thu, 31 Aug 2006 16:47:25 -0400
+
+migration-assistant (0.1) edgy; urgency=low
+
+  * Initial release.
+
+ -- Evan Dandrea <evan@evalicious.com>  Tue,  1 Aug 2006 00:50:33 -0400
+

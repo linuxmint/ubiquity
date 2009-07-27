@@ -1,0 +1,111 @@
+README.wget404 -- adding a return code of 4 for 404 errors to wget
+
+[Rather than bloat the udeb with comments, the wget404 wrapper is documented here.]
+
+This was originally inspired by a patch submitted by Alex Owen in bug #422088
+
+As mentioned by Joey, the fragile bit of a script like this is due to
+it's dependence on wget's output not changing.  That being the case,
+I've made the search string quite long so that it's very unlikely to
+match something that's not a 404 error, and also ensured that if the
+output does change, the sed will fail safe by returning 1 (i.e. general
+error) if no specific error is found.
+
+Alex Owen alerts us (#491098) to the fact that:
+From etch to lenny busybox wget error output has changed.
+For lenny busybox wget 404 output is for example:
+"server returned error: HTTP/1.1 404 Not Found"
+This comprises the static string "server returned error: " 
+followed by the server response which should follow rfc2616 section 6.1.
+Thus the output may say HTTP/1.0 instead of HTTP/1.1 and the string "Not Found"
+may also change. Thus the regular expression:
+  /server returned error: HTTP\/[0-9.]\+ 404 /
+should catch all possible output for lenny.
+
+For the ftp method the error string is different. The following regexp should work:
+ /bad response to RETR: 550 /
+
+Here is a copy of the function being documented (since it's bound to
+get out of sync with the one in the fetch-url-methods/http file, so you
+might as well see the one that's being documented as well ;-)
+
+        wget404() {
+        # see README.wget404 in the debian-installer-utils udeb source for more info about this
+                if [ "ftp" = "$proto" ] ; then
+                        local file_not_found_pattern='bad response to RETR: 550 '
+                else
+                        local file_not_found_pattern='server returned error: HTTP\/[0-9.]\+ 404 '
+                fi
+
+                local RETVAL=$( {
+                        echo 1
+                        wget "$@" 2>&1 >&3 && echo %OK%
+                        echo %EOF%
+                        } | ( sed -ne '1{h;d};/'"$file_not_found_pattern"'/{p;s/.*/4/;h;d};/^%OK%$/{s/.*/0/;h;d};$!p;$x;$w /proc/self/fd/4' >&2 ) 4>&1
+                ) 3>&1
+                return $RETVAL
+        }
+
+The heart of this is the sed, which looks for the $file_not_found_pattern,
+while also outputting the original STDOUT/ERR from wget untouched so that
+it's available for the caller.
+
+It manages this by doing the following:
+
+  1{h;d}  --  take the first line (provided by the echo 1) and put it in sed's hold space
+              this will provide a default return value of 1 unless something else happens
+
+  $file_not_found_pattern{p;s/.*/4/;h;d}
+          as mentioned above, the wget output is protocol dependent,
+          so we've previously set $file_not_found_pattern depending
+          on the protocol in use, then if we see the matching string,
+          we print it, then turn it into a "4" and stuff it in the sed
+          hold space, and finally, delete the "4" This is where our
+          return value of 4 comes from.
+
+  /^%OK%$/{s/.*/0/;h;d}
+          If we see a "%OK%" line (provided by the echo %OK% if wget returns 0)
+          then we replace it with "0", stuff that in the hold space, and discard it
+
+  $!p    --  for all but the last line, print them if not yet matched
+
+  $x     -- when we get to the last line (provided by the echo %EOF%) swap the pattern
+            with the hold space -- so now we have our return code in the pattern space
+
+  $w /proc/self/fd/4 -- write the result to file handle 4
+
+The rest of this is just making sure that the standard error, and standard
+out pops out of the function as if it were just wget, while allowing us
+to do things with the results in between.
+
+So, we call wget and put it's STDERR on STDOUT, and it's STDOUT on file
+handle 3
+
+   2>&1 >&3
+
+that allows us to put the STDERR into sed to look for the 404 error
+
+then, we make sure that the sed outputs everything that it was given,
+and redirect that back onto STDERR:
+
+   >&2
+
+additionally, we're running the sed in a subshell, and the return value
+is going to pop out on file handle 4, so we need to make that STDOUT so
+that the $(...) can pick up on it and shove it into RETVAL, hence the:
+
+  4>&1
+
+finally, we've still got the wget's original STDOUT floating around on
+file handle 3, so to get it back we do:
+
+  3>&1
+
+I did think that one might be able to do this without the variable
+assignment, but that seems not to work for some reason.
+
+Of course, having managed to preserve the STDOUT & STDERR, I note that
+it's always called with a -q (quiet) and therefore shouldn't be producing
+STDOUT anyway -- Doh!
+
+Phil Hands -- 2008-07-18

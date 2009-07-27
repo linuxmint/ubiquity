@@ -1,0 +1,28 @@
+#!/bin/sh
+
+dev=$1
+id=$2
+property=$3
+
+[ -f /var/lib/partman/vfat ] || exit 0
+
+case $property in
+    formatable)
+	echo fat16
+	echo fat32
+	;;
+    existing)
+	[ -f $id/detected_filesystem ] || exit 0
+	fs=$(cat $id/detected_filesystem)
+
+	case "$fs" in
+	    fat16)
+		echo fat16
+		;;
+	    fat32)
+		echo fat32
+		;;
+	esac
+	;;
+esac
+

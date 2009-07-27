@@ -1,0 +1,72 @@
+Using partman-auto-loop
+-----------------------
+
+This allows preseeding of a number of filesystems loop-mounted from images
+on a pre-existing filesystem. (At present, there is no way to create the
+host filesystem in the same installation run; the primary use case is
+installing on filesystem images hosted on a Windows filesystem, in order to
+avoid repartitioning the disk.)
+
+The preseedable question partman-auto/disk should be set to the device name
+for the host disk (the disk on which filesystem images should be created),
+partman-auto/method should be set to "loop", and partman-auto-loop/partition
+should be set to the number of the host partition. On modern Linux kernels,
+the disk will typically be /dev/sda and the partition number will be 1 for
+the first partition on the first hard disk; the disk might be /dev/hda
+instead if the kernel still uses the old drivers/ide/ tree for your disk, or
+/dev/sdb etc. for subsequent disks.
+
+The preseedable question partman-auto-loop/recipe should consist of
+space-separated recipes, each of which are of the form:
+
+  <imagepath> <minsize> <priority> <maxsize> <fstype> <specifiers> .
+
+This is deliberately analogous to the regular partman recipe format as
+documented in installer/doc/devel/partman-auto-recipe.txt, so a valid recipe
+might look like this (without the line breaks, which have been added for
+readability):
+
+  /disks/root.disk 500 10000 5000 ext3
+    method{ format }
+    format{ }
+    use_filesystem{ }
+    filesystem{ ext3 }
+    mountpoint{ / } .
+
+  /disks/swap.disk 96 512 300% linux-swap
+    method{ swap }
+    format{ } .
+
+Internal specifiers such as $primary{ } and $bootable{ } may be used as in
+normal recipes, but are currently ignored.
+
+Image paths may not contain spaces.
+
+Future work
+-----------
+
+partman-auto-loop is in many ways a temporary workaround. It would be
+possible to integrate much of this into partman proper, and some of the
+steps along the way would be valuable elsewhere.
+
+  * Add multi-device support to partman-auto, in order that one can specify
+    partitions on more than one disk in a single recipe. (Note that
+    loop-mounted filesystem images are considered, more or less, as
+    "disks".) Ensure that recipes are processed in order to the extent that
+    one recipe line may depend for its underlying device on a previous
+    recipe line having been processed. This naturally has some complications
+    in terms of things like calculating desired partition sizes up-front.
+
+  * Make it possible for recipes to specify existing partitions to be
+    located (by device path or perhaps by other more stable means),
+    modified, and mounted. This would make it possible to specify the host
+    filesystem in a more stable way.
+
+  * Add recipe syntax to instruct partman to create loop-mounted filesystem
+    images on which other filesystems can be created. This should be done
+    with consideration for other complex devices such as LVM, RAID, and
+    encrypted devices.
+
+  * Potentially add UI for loop-mounting. See also partman-crypto.
+
+ -- Colin Watson <cjwatson@ubuntu.com>, for Canonical Ltd.

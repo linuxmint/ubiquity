@@ -1,0 +1,325 @@
+debian-installer locale chooser
+===============================
+
+The purpose of localechooser is to ask the person doing the
+installation about his preferred language and country of "residence".
+This information can be used to choose which language and country or
+region to use during installation and set this language and country as
+the default language and country after the installation.
+
+This information will be used for building a value for the general system
+locale.
+
+This task was formerly split in two packages, named languagechooser
+and countrychooser. As both interacted heavily, it was finally decided
+to merge them, mostly because changing the language implied prompting
+for the country again.
+
+When merging the package, a new question about the final locale was added.
+
+The language will be chosen among a list of "supported" languages. The
+choice of language presets some country and locale -related values.
+
+The country choice question refines the country choice inherited from
+the language choice. It allows choosing any "country" in the
+world. Depending on the language+country combination, this will be
+used for setting a default locale or not (see below for details).
+
+Finally, a lower priority question is shown to users so that they can
+choose a locale based on the two former choices when several different
+locales for a single language/country combination are supported in
+Debian.
+
+"Language" here means any language Debian has been significantly
+translated into. This may be a simple ISO-639 code such as "en" or
+"de" or a language "variant" code such as "pt_BR" (Brazilian
+Portuguese) or zh_TW (for Traditional Chinese). The tradition of
+representing language variants may here be confusing as zh_TW seems to
+be "Chinese as spoken in Taiwan" while it is indeed "Traditional
+Chinese". Debian has just here kept the most common way to represent
+these language flavours.
+
+"Country" here is meant to represent the place the user or the machine
+is located. This value will be used for several location-related
+settings as well as locale-related settings. The list of countries is
+taken from the ISO-3166 standards. The names used are the "common"
+names of these countries, as defined in the iso-codes package.
+
+The way both packages collaborate is somewhat complicated and will be
+described in details below. The general rationale is about building a
+value for the system locale which may be as close as possible of the
+"real" locale (language+country). As not all language+country
+combinations are currently supported in Debian, approximations will
+occur in some cases.
+
+The mechanism is the following:
+1) propose a language choice
+2) propose a "short" list of countries with all countries for which
+   this language has a supported locale
+3) optionally propose the whole list of world countries, split into
+   separate questions for first continent/area and the country
+4) (for medium priority installs) prompt for a locale if several locales
+   (with different modifiers or charsets) exist for that language/country
+   combination
+
+This package should behave as follows:
+
+
+Language choice
+---------------
+
+Which languages are supported depends on the installation method and on
+the cdebconf frontend that is being used.
+Currently 5 levels are distinguished:
+- dumb or serial terminal                -->level 0 (only ASCII)
+- no framebuffer                         -->level 1 (only Latin1)
+- framebuffer and non-graphical interface-->level 2 and 3 (no combining langs)
+- framebuffer and graphical interface    -->level 4 (all langs)
+
+Depending on these values, we use different templates with a different
+list of languages. These lists are created at package build-time from
+the contents of the second field of languagelist entries.
+
+When the gtk frontend is used, it is assumed that all languages are supported.
+
+The steps during language selection are:
+
+  0. Ask the user to pick one of the available languages.
+
+  1. Change presentation language in debconf.
+     (value debconf/language; content=language ISO-639 code plus
+      optionally language variant, for instance pt_BR)
+
+  2. Set the following variables for later use:
+     -debian-installer/language
+      LIST of languages in order of
+      preference. This will be a succession of several xx_YY values
+      where xx is a ISO-639 code for language and YY is an ISO-3166
+      code for country. The list is to be read from left to right
+      with the preferred combination at the left
+      This is meant to be used as the LANGUAGE variable later
+     -debian-installer/country:
+      This value may be pre-feeded with an ISO-3166 name for a country
+      This should be done when only one country has a valid locale
+      for the given language. For other languages, with several
+      possible countries ("possible" here is "supported by locales"),
+      the country must NOT be set by languagechooser
+     -debian-installer/locale
+      This should be a single entry such as fr_CA
+      Each language MUST provide one, which will be the default for this
+      language
+
+      This entry may be modified by the country choice running after
+      the language choice
+     -debian-installer/fallbacklocale This should be similar to the
+      "locale" value. This value will *never* change. The country
+      choice section will set debian-installer/locale to it when the
+      chosen country builds an unsupported locale
+
+  3. pass the locale information on to the modules that needs it.
+
+The language code is passed into cdebconf.  The locale, country code
+and priority list of languages are passed to the installed system
+via the cdebconf database.
+
+Country choice
+--------------
+
+1) If a country code was set by the language choice section
+   ("mono country" languages....that is, languages for which only one
+     country gives a valid locale)
+
+-always keep the valid locale inherited from languagechooser for
+ debian-installer/locale
+
+-present user, at medium priority only, with a screen listing all
+ world countries
+ This value will see the debian-installer/country value with the ISO-3166
+ code of the country. This value will only be used as a default for
+ location related choices such as the timezone or the mirror
+
+2) If NO country code was set after the language choice
+   (language with at least two countries with a valid locale
+    for this language)
+
+-always prompt the user (high priority) with a *short* list of all
+ countries for which a valid locale exists for this language
+ THIS LIST IS BUILT AT BUILD TIME for countrychooser, not on the fly
+ at install time. It is built only for languages which have a debconf
+ translation for countrychooser
+
+ This short list includes an "other" choice.
+
+2a) If the user picks up one of the countries in the short list
+    the debian-installer/locale value is CHANGED to language_COUNTRY
+
+2b) If the user picks up the "other" choice
+    the debian-installer/locale is set to the "fallback-locale" value
+    debian-installer/fallbacklocale
+
+Locale choice
+-------------
+
+When both language (xx) and country (YY) are set, the locale is
+defined as follows:
+
+-if the language was mono-country AND the locale set *in the language section*
+ is *different* from xx_YY because it was set differently in languagelist, this
+ locale is kept. This special case was historically meant to deal with
+ the Norwegian locales transition mechanism (requiring to keep no_NO as locale
+ even if the language code became nb)
+
+-if at least one xx_YY locale exists in Debian:
+
+ -the fallback locale set in the language selection part (3rd field of
+  the languagelist file) is examined and any modifier or charset is
+  added to xx_YY, leading to xx_YY@modifier.charset:
+
+  -if this locale exists it is kept to debian-installer/locale
+  -if this locale does not exists, xx_YY is set as debian-installer/locale
+
+-if no xx_YY locale exists in Debian, the fallback locale (3rd field of
+ languagelist) is set as debian-installer/locale
+
+If LANG (locale) and/or LANGUAGE (priority list of language codes) was
+passed as arguments to the kernel from the boot prompt, these values
+should be used instead of presenting the user with questions.
+
+Locale choice
+-------------
+This part only happens at medium and low priority, for instance in "expert"
+installs.
+
+The xx_YY value is grepped in the list of all supported locales in
+Debian.  The remaining list is presented to the user with the above
+determined default value.
+
+This part allows for a final refinement of the locale without filling
+default installs with a rather technical question.
+
+There have been request for the possibility of editing the priority
+list of language codes to use.  This might be done, with debconf
+priority 'low' to make sure the question will be invisible for most
+users.  I [pere 2003-02-28] do not think this is needed in the general
+installation, and will keep it out of the first version.
+On 2004-06-07, this hasn't been achieved yet.
+
+Information passed into other modules
+-------------------------------------
+
+  cdebconf
+
+   - (List of?) language codes to use when choosing which translation
+     to use.  Inserted into the 'debconf/language' debconf template.
+
+  kbd-chooser
+
+   - Selects default keyboard based on the locale selected.  This information
+     is passed on to base-config and console-tools.
+
+   At the moment this documentation is being rewritten, this is a
+   rather obscure mechanism which need more documentation. Adding a
+   way for localechooser to preseed kbd-chooser would be a great
+   enhancement.
+
+  choose-mirror
+
+   - The country set is used as a default choice
+
+  tzsetup
+
+   - Timezone restricted list of choices based on the selected country
+
+  locales
+   - The selected additional locales will be generated on the installed system
+
+Interaction with the lowmem package
+-----------------------------------
+
+The lowmem package is triggered when the available memory prevents
+using translations, because they eat a lot of space on the ramdisk.
+
+For this to work, lowmem must set debian-installer/locale to en_US and set
+its seen flag.
+
+With this, the installation will continue with English and USA as
+values for language and country and the user will not be prompted for
+language and country.
+
+Technical details
+-----------------
+
+Language choice
+---------------
+
+The core of the package are the languagelist and languagelist.l10n files.
+For a language to appear in the language chooser screen it must have entries in both these files.
+
+  languagelist
+  ------------
+The format if the following:
+
+Language;supported_environments;langcode;countrycode;fallbacklocale;langlist;console-data
+ where:
+
+   -Language        =language name, in English
+                     It is recommended to refer to ISO-639
+   -Supported env.  =code to define in which environments this language
+                     can be supported by the installer
+                     0=OK in ASCII-only environments
+		     1=OK in Latin-1 only environment (Linux console
+                       without framebuffer, some serial consoles)
+                     2=OK with the framebuffer console
+                     3=OK with the framebuffer console but not
+                       possible to display in the regular Linux console
+                     4=OK only with the graphical installer
+   -langcode        =iso-639 TWO characters language code
+
+                     DO NOT GUESS IT. Please check in the iso-codes
+                     and locales packages
+
+		     Three letter language code may, at the moment
+		     this documentation is written, trigger hidden
+		     problems. If a new language has no two-letter ISO
+                     code, then this problem should be sorted out.
+
+		     If we're lucky, everything is OK and 3-letter codes
+                     will work..:-)
+
+   -countrycode     =default value for country choice in countrychoose
+                     MUST be a valid ISO-3166 alpha-2 code
+
+                     DO NOT GUESS IT. Please check in the iso-codes
+                     package
+
+   -fallbacklocale  =fallback locale (MUST be valid, except for modifier
+                                      see below)
+                     This locale will be used in case the user goes to
+                     the "other" choice in countrychooser and chooses a
+                     country with "unsupported" locale
+
+		     It is recommended to use here the country where
+                     the language is most widely spoken
+
+		     Any modifier (@euro for instance) or charset mentioned
+                     here will be ADDED to the final locale if such combination
+		     is supported.
+
+                     Example: Assume English uses "en_US@euro".
+                              If the user chooses
+                              USA as country, the @euro will be dropped as
+                              these is no en_US@euro locale. However, if
+                              Ireland is chosen, the locale will be en_IE@euro
+
+   -langlist        =colon-separated list of possible fallback languages
+		     It will usually be empty except for languages
+		     where fallback to something else than English is wished
+
+		     Setting this field will enforce setting LANGUAGE in
+		     /etc/environment or /etc/default/locale
+
+                     Never add random languages without talking deeply
+		     with the i18n coordinators.
+
+   -console-data    =special options for the console-data package
+                     (mostly keyboard or terminal settings)

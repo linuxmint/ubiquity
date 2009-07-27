@@ -1,0 +1,112 @@
+#! /bin/sh
+
+# This should largely be unnecessary now that partman-base/init.d/parted
+# checks for mounted partitions at startup, but it may still serve as
+# insurance against partitions being mounted while the partitioner is
+# running.
+
+. /lib/partman/lib/base.sh
+
+db_get ubiquity/partman-skip-unmount
+if [ "$RET" = true ]; then
+    exit 0
+fi
+
+if [ -f /etc/mtab ]; then
+    MTAB=/etc/mtab
+else
+    MTAB=/proc/mounts
+fi
+
+busy_partitions=
+
+for dev in $DEVICES/*; do
+    [ -d "$dev" ] || continue
+    cd $dev
+
+    partitions=
+    found_mounted=false
+    open_dialog PARTITIONS
+    while { read_line num id size type fs path name; [ "$id" ]; }; do
+	[ "$fs" != free ] || continue
+	partitions="$partitions $id,$path"
+	if [ -f "$id/mountpoint" ]; then
+	    mp="$(cat "$id/mountpoint")"
+	    case $mp in
+		/media/*)
+		    ;;
+		*)
+		    found_mounted=:
+		    ;;
+	    esac
+	fi
+    done
+    close_dialog
+
+    if ! $found_mounted; then
+	open_dialog IS_CHANGED
+	read_line changed
+	close_dialog
+	[ "$changed" = yes ] || continue
+    fi
+
+    for part in $partitions; do
+	id="${part%,*}"
+	path="${part#*,}"
+	open_dialog IS_BUSY "$id"
+	read_line busy
+	close_dialog
+	[ "$busy" = yes ] || continue
+	busy_partitions="$busy_partitions $path"
+    done
+done
+
+[ "$busy_partitions" ] || exit 0
+
+noninteractive=:
+while :; do
+    failed_mountpoints=
+    for part in $busy_partitions; do
+	for mp in $(grep "^$part " "$MTAB" | cut -d' ' -f2); do
+	    # This is impressively horrible, but it's the best way I can
+	    # come up with to unmangle mtab entries in shell.
+	    new_mp=
+	    while [ "$mp" ]; do
+		case $mp in
+		    \\[0-9][0-9][0-9]*)
+			octal="$(echo "$mp" | sed 's/^\\\([0-9][0-9][0-9]\).*/\1/')"
+			new_mp="$new_mp$(printf "\\$octal")"
+			mp="${mp#\\[0-9][0-9][0-9]}"
+			;;
+		    \\*)
+			new_mp="$new_mp\\"
+			mp="${mp#\\}"
+			;;
+		    *\\*)
+			new_mp="$new_mp${mp%%\\*}"
+			mp="\\${mp#*\\}"
+			;;
+		    *)
+			new_mp="$new_mp$mp"
+			mp=
+			;;
+		esac
+	    done
+	    umount "$new_mp" || failed_mountpoints="${failed_mountpoints:+$failed_mountpoints }$new_mp"
+	done
+    done
+
+    if [ -z "$failed_mountpoints" ]; then
+	break
+    fi
+
+    db_reset ubiquity/partman-failed-unmount
+    db_subst ubiquity/partman-failed-unmount MOUNTED "$failed_mountpoints"
+    db_input critical ubiquity/partman-failed-unmount || $noninteractive
+    db_go || exit 1
+    db_get ubiquity/partman-failed-unmount
+    [ "$RET" = true ] || exit 1
+    noninteractive='exit 1'
+done
+
+exit 0

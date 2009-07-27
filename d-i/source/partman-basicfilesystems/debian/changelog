@@ -1,0 +1,1729 @@
+partman-basicfilesystems (62ubuntu2) jaunty; urgency=low
+
+  * When formatting swap partitions, save the old UUID in a file rather than
+    in a shell variable, as the latter approach eats NULs (LP: #336992).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 03 Mar 2009 12:54:26 +0000
+
+partman-basicfilesystems (62ubuntu1) jaunty; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - If partman/automount is preseeded to true, automatically mount
+      partitions with usefully-mountable filesystems on subdirectories of
+      /media.
+    - Add minimal support for NTFS partitions using ntfs-3g.
+    - Mount FAT and NTFS filesystems at boot (fstab pass 1).
+    - Mount FAT and NTFS with umask=007,gid=46 (static group plugdev).
+    - When formatting over the top of an existing swap partition, preserve
+      its UUID to avoid leaving systems that use UUIDs in /etc/fstab without
+      swap.
+    - mount.d/basic: Close mount's fd 3 so that it doesn't inherit a debconf
+      file descriptor, to prevent log-output hanging when ntfs-3g is in use.
+    - Special case loopmounted filesystems as it's safer to format the
+      underlying file, not the device.
+    - Default to mounting ext2 with relatime.
+
+ -- Luke Yelavich <luke@barbiton.yelavich.home>  Tue, 11 Nov 2008 09:01:11 +1100
+
+partman-basicfilesystems (62) unstable; urgency=low
+
+  [ Giuseppe Iuculano ]
+  * init.d/autouse_swap: We no longer need to skip sataraid partitions.
+    Patch based on work done by Luke Yelavich <themuso@ubuntu.com> in Ubuntu.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Bengali (bn.po) by Mahay Alam Khan (মাহে আলম খান)
+  * Bosnian (bs.po) by Armin Besirovic
+  * Welsh (cy.po) by Jonathan Price
+  * Danish (da.po)
+  * Greek, Modern (1453-) (el.po)
+  * Hebrew (he.po) by Omer Zak
+  * Croatian (hr.po) by Josip Rodin
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Latvian (lv.po) by Peteris Krisjanis
+  * Macedonian (mk.po) by Arangel Angov
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Serbian (sr.po) by Veselin Mijušković
+  * Tamil (ta.po) by Dr.T.Vasudevan
+  * Ukrainian (uk.po) by Євгеній Мещеряков
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+
+ -- Otavio Salvador <otavio@debian.org>  Sun, 21 Sep 2008 22:08:44 -0300
+
+partman-basicfilesystems (61) unstable; urgency=low
+
+  [ Jérémy Bobbio ]
+  * Use cdebconf's new column alignment feature for active_partition.
+    Requires partman-base (>= 124).
+
+  [ Updated translations ]
+  * Esperanto (eo.po) by Felipe Castro
+  * Basque (eu.po) by Iñaki Larrañaga Murgoitio
+  * Finnish (fi.po) by Esko Arajärvi
+  * Croatian (hr.po) by Josip Rodin
+  * Italian (it.po) by Milo Casagrande
+  * Marathi (mr.po) by Sampada
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Turkish (tr.po) by Mert Dirik
+  * Simplified Chinese (zh_CN.po) by Kov Chai
+	
+ -- Otavio Salvador <otavio@debian.org>  Tue, 05 Aug 2008 13:49:02 -0300
+
+partman-basicfilesystems (60ubuntu2) intrepid; urgency=low
+
+  * init.d/autouse_swap: We no longer need to skip sataraid partitions.
+
+ -- Luke Yelavich <themuso@ubuntu.com>  Wed, 27 Aug 2008 14:27:08 +1000
+
+partman-basicfilesystems (60ubuntu1) intrepid; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - If partman/automount is preseeded to true, automatically mount
+      partitions with usefully-mountable filesystems on subdirectories of
+      /media.
+    - Add minimal support for NTFS partitions using ntfs-3g.
+    - Mount FAT and NTFS filesystems at boot (fstab pass 1).
+    - Mount FAT and NTFS with umask=007,gid=46 (static group plugdev).
+    - When formatting over the top of an existing swap partition, preserve
+      its UUID to avoid leaving systems that use UUIDs in /etc/fstab without
+      swap.
+    - mount.d/basic: Close mount's fd 3 so that it doesn't inherit a debconf
+      file descriptor, to prevent log-output hanging when ntfs-3g is in use.
+    - Special case loopmounted filesystems as it's safer to format the
+      underlying file, not the device.
+    - Default to mounting ext2 with relatime.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 24 Jun 2008 11:43:02 +0100
+
+partman-basicfilesystems (60) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Remove compatibility code for mount options selection.
+
+  [ Updated translations ]
+  * Basque (eu.po) by Iñaki Larrañaga Murgoitio
+  * Malayalam (ml.po) by Praveen|പ്രവീണ്‍ A|എ
+  * Marathi (mr.po) by Sampada
+  * Panjabi (pa.po) by Amanpreet Singh Alam
+  
+ -- Otavio Salvador <otavio@debian.org>  Thu, 08 May 2008 13:33:49 -0300
+
+partman-basicfilesystems (59ubuntu2) intrepid; urgency=low
+
+  * Adjust init.d/auto_mountpoints for move of definitions.sh to
+    lib/base.sh.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 20 Jun 2008 13:09:49 +0100
+
+partman-basicfilesystems (59ubuntu1) intrepid; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - If partman/automount is preseeded to true, automatically mount
+      partitions with usefully-mountable filesystems on subdirectories of
+      /media.
+    - Add minimal support for NTFS partitions using ntfs-3g.
+    - Mount FAT and NTFS filesystems at boot (fstab pass 1).
+    - Mount FAT and NTFS with umask=007,gid=46 (static group plugdev).
+    - When formatting over the top of an existing swap partition, preserve
+      its UUID to avoid leaving systems that use UUIDs in /etc/fstab without
+      swap.
+    - mount.d/basic: Close mount's fd 3 so that it doesn't inherit a debconf
+      file descriptor, to prevent log-output hanging when ntfs-3g is in use.
+    - Special case loopmounted filesystems as it's safer to format the
+      underlying file, not the device.
+    - Default to mounting ext2 with relatime.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 07 May 2008 13:02:37 +0100
+
+partman-basicfilesystems (59) unstable; urgency=low
+
+  * Use Choices-C in template for mount options selection and build the list
+    of supported options dynamically. This means we can use a single common
+    template for all file system types which helps save over 200kB in memory.
+  * Drop dependency on ancient version of di-utils.
+
+ -- Frans Pop <fjp@debian.org>  Wed, 26 Mar 2008 15:39:04 +0100
+
+partman-basicfilesystems (58) unstable; urgency=low
+
+  [ Updated translations ]
+  * German (de.po) by Jens Seidel
+  * Finnish (fi.po) by Esko Arajärvi
+  * Hindi (hi.po) by Kumar Appaiah
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Central Khmer (km.po) by Khoem Sokhem
+  * Kurdish (ku.po) by Amed Çeko Jiyan
+  * Latvian (lv.po) by Viesturs Zarins
+  * Nepali (ne.po) by Shyam Krishna Bal
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Slovenian (sl.po) by Matej Kovacic
+  * Turkish (tr.po) by Recai Oktaş
+  * Ukrainian (uk.po)
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 15 Feb 2008 08:45:31 -0200
+
+partman-basicfilesystems (57) unstable; urgency=low
+
+  * Moved definitions.sh to ./lib/base.sh. Requires partman-base (>= 114).
+  * Major whitespace cleanup and some coding style improvements.
+
+  [ Updated translations ]
+  * Amharic (am.po) by tegegne tefera
+  * Dzongkha (dz.po) by Jurmey Rabgay
+  * Korean (ko.po) by Changwoo Ryu
+  * Malayalam (ml.po) by Praveen|പ്രവീണ്‍ A|എ
+  * Norwegian Bokmål (nb.po) by Hans Fredrik Nordhaug
+  * Panjabi (pa.po) by A S Alam
+  * Polish (pl.po) by Bartosz Fenski
+  * Romanian (ro.po) by Eddy Petrișor
+  * Slovak (sk.po) by Ivan Masár
+
+ -- Frans Pop <fjp@debian.org>  Sat, 29 Dec 2007 22:12:14 +0100
+
+partman-basicfilesystems (56ubuntu4) hardy; urgency=low
+
+  * Disable automounting unless partman/automount is preseeded to true. This
+    makes LP #106209 much less likely to occur, since future installations
+    are less likely to format a partition whose UUID we have in /etc/fstab.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 09 Apr 2008 08:18:47 +0100
+
+partman-basicfilesystems (56ubuntu3) hardy; urgency=low
+
+  * Add Choices-C entries for mount options.
+  * Default to mounting ext2 with relatime (LP: #160450).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 04 Mar 2008 20:15:18 +0000
+
+partman-basicfilesystems (56ubuntu2) hardy; urgency=low
+
+  [ Colin Watson ]
+  * udev 117 merged all udev tools into a single binary called udevadm.
+    Check for this and use it instead of udevinfo if available.
+
+  [ Evan Dandrea ]
+  * Special case loopmounted filesystems as it's safer to format the
+    underlying file, not the device (LP: #177868).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Mon, 14 Jan 2008 10:17:23 -0500
+
+partman-basicfilesystems (56ubuntu1) hardy; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Default to mounting partitions with usefully-mountable filesystems on
+      subdirectories of /media.
+    - Add minimal support for NTFS partitions.
+    - Mount FAT and NTFS filesystems at boot (fstab pass 1).
+    - Mount FAT and NTFS with umask=007,gid=46 (static group plugdev).
+    - When formatting over the top of an existing swap partition, preserve
+      its UUID to avoid leaving systems that use UUIDs in /etc/fstab without
+      swap.
+    - init.d/auto_mountpoints: Use 'rm -f' rather than a more awkward
+      test-then-remove construction.
+    - Adjust Description to note that we provide NTFS support too.
+    - If ntfs-3g is available, try to load the fuse module; if we can do
+      that and the fuseblk filesystem is available, accept that as
+      sufficient NTFS support.
+    - Don't set the nls=utf8 mount option if using ntfs-3g.
+    - mount.d/basic: Close mount's fd 3 so that it doesn't inherit a debconf
+      file descriptor, to prevent log-output hanging when ntfs-3g is in use.
+  * debian/control: Add XS-Vcs-Bzr for the Ubuntu branch.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Fri, 23 Nov 2007 14:00:28 -0500
+
+partman-basicfilesystems (56) unstable; urgency=low
+
+  * Resolve symlinks before looking up devices in /proc/swaps.
+  * Use 'mkdir -p' rather than more awkward test-then-create constructions.
+  * Add support for relatime mount option (see
+    http://lkml.org/lkml/2006/8/25/380; requires util-linux(-ng) 2.13).
+  * Remove redundant "defaults" if adding other mount options.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Hleb Rubanau
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bengali (bn.po) by Jamil Ahmed
+  * Catalan (ca.po) by Jordi Mallach
+  * Czech (cs.po) by Miroslav Kure
+  * German (de.po) by Jens Seidel
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hebrew (he.po) by Lior Kaplan
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Italian (it.po) by Stefano Canepa
+  * Japanese (ja.po) by Kenshi Muto
+  * Korean (ko.po) by Sunjae Park
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Dutch (nl.po) by Bart Cornelis
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Punjabi (Gurmukhi) (pa.po) by A S Alam
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Romanian (ro.po) by Eddy Petrișor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Peter Mann
+  * Albanian (sq.po) by Elian Myftiu
+  * Swedish (sv.po) by Daniel Nylander
+  * Tamil (ta.po) by Dr.T.Vasudevan
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 23 Oct 2007 16:10:58 +0100
+
+partman-basicfilesystems (55) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Move deletion of SVN directories to install-rc script.
+  * Improve the way install-rc is called.
+  * Don't autouse swap a partition if the parent device is Serial ATA RAID.
+
+  [ Colin Watson ]
+  * Save a process in get_mountoptions and select_mountoptions.
+  * Honour all supplied mount options. Requires partman-target 51 to filter
+    out ro.
+
+  [ Updated translations ]
+  * Punjabi (Gurmukhi) (pa.po) by A S Alam
+  * Romanian (ro.po) by Eddy Petrișor
+
+ -- Frans Pop <fjp@debian.org>  Fri, 06 Jul 2007 00:23:33 +0200
+
+partman-basicfilesystems (54ubuntu4) gutsy; urgency=low
+
+  * mount.d/basic: Close mount's fd 3 so that it doesn't inherit a debconf
+    file descriptor, to prevent log-output hanging when ntfs-3g is in use.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 28 Sep 2007 11:03:53 +0100
+
+partman-basicfilesystems (54ubuntu3) gutsy; urgency=low
+
+  * init.d/auto_mountpoints: Use 'rm -f' rather than a more awkward
+    test-then-remove construction.
+  * Adjust Description to note that we provide NTFS support too.
+  * If ntfs-3g is available, try to load the fuse module; if we can do that
+    and the fuseblk filesystem is available, accept that as sufficient NTFS
+    support.
+  * Don't set the nls=utf8 mount option if using ntfs-3g.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 20 Aug 2007 19:44:25 +0100
+
+partman-basicfilesystems (54ubuntu2) gutsy; urgency=low
+
+  * Backport from trunk (LP: #126328):
+    - Resolve symlinks before looking up devices in /proc/swaps.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 16 Jul 2007 18:03:30 +0100
+
+partman-basicfilesystems (54ubuntu1) gutsy; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Default to mounting partitions with usefully-mountable filesystems on
+      subdirectories of /media.
+    - Add minimal support for NTFS partitions.
+    - Mount FAT and NTFS filesystems at boot (fstab pass 1).
+    - Mount FAT and NTFS with umask=007,gid=46 (static group plugdev).
+    - When formatting over the top of an existing swap partition, preserve
+      its UUID to avoid leaving systems that use UUIDs in /etc/fstab without
+      swap.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 30 Apr 2007 13:08:02 +0100
+
+partman-basicfilesystems (54) unstable; urgency=low
+
+  * Mount vfat filesystems with the utf8 mount option if the locale contains
+    ".UTF-8" (closes: #413248).
+  * Move sanity-checking scripts from finish.d to check.d. Requires
+    partman-base 106.
+
+  [ Updated translations ]
+  * Esperanto (eo.po) by Serge Leblanc
+  * Basque (eu.po) by Piarres Beobide
+  * Norwegian Bokmål (nb.po) by Bjørn Steensrud
+  * Tamil (ta.po) by Dr.T.Vasudevan
+
+ -- Colin Watson <cjwatson@debian.org>  Fri, 27 Apr 2007 00:21:56 +0100
+
+partman-basicfilesystems (53) unstable; urgency=low
+
+  * Fix handling of partman-basicfilesystems/no_swap so it can be preseeded.
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 13 Mar 2007 20:40:01 -0400
+
+partman-basicfilesystems (52) unstable; urgency=low
+
+  [ Updated translations ]
+  * French (fr.po) by Christian Perrier
+  * Hebrew (he.po) by Lior Kaplan
+  * Malayalam (ml.po) by Praveen A
+  * Swedish (sv.po) by Daniel Nylander
+
+ -- Frans Pop <fjp@debian.org>  Tue, 27 Feb 2007 18:18:34 +0100
+
+partman-basicfilesystems (51ubuntu2) feisty; urgency=low
+
+  * Move sanity-checking scripts from finish.d to check.d.
+  * Set maintainer to ubuntu-installer@lists.ubuntu.com.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 20 Feb 2007 19:08:28 +0000
+
+partman-basicfilesystems (51ubuntu1) feisty; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Default to mounting partitions with usefully-mountable filesystems on
+      subdirectories of /media.
+    - Add minimal support for NTFS partitions.
+    - Mount FAT and NTFS filesystems at boot (fstab pass 1).
+    - Mount FAT with utf8 and NTFS with nls=utf8.
+    - Mount FAT and NTFS with umask=007,gid=46 (static group plugdev).
+  * When formatting over the top of an existing swap partition, preserve its
+    UUID to avoid leaving systems that use UUIDs in /etc/fstab without swap.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon,  5 Feb 2007 19:40:31 +0000
+
+partman-basicfilesystems (51) unstable; urgency=low
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Danish (da.po) by Claus Hindsgaul
+  * French (fr.po) by Christian Perrier
+  * Kurdish (ku.po) by Amed Çeko Jiyan
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Panjabi (pa.po) by A S Alam
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Romanian (ro.po) by Eddy Petrișor
+  * Slovak (sk.po) by Peter Mann
+
+ -- Frans Pop <fjp@debian.org>  Wed, 31 Jan 2007 12:21:15 +0100
+
+partman-basicfilesystems (50ubuntu1) feisty; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Default to mounting partitions with usefully-mountable filesystems on
+      subdirectories of /media.
+    - Add minimal support for NTFS partitions.
+    - Mount FAT and NTFS filesystems at boot (fstab pass 1).
+    - Mount FAT with utf8 and NTFS with nls=utf8.
+    - Mount FAT and NTFS with umask=007,gid=46 (static group plugdev).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 22 Dec 2006 18:52:03 +0000
+
+partman-basicfilesystems (50) unstable; urgency=low
+
+  [ Christian Perrier ]
+  * Add a bracketed comment in the "none" string so that it may be different
+    from "none" in other D-I packages
+
+  [ Colin Watson ]
+  * We don't need to call update_partition if the user backs up from
+    selecting a mountpoint.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Pavel Piatruk
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bosnian (bs.po) by Safir Secerovic
+  * Catalan (ca.po) by Jordi Mallach
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * Galician (gl.po) by Jacobo Tarrio
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Kurdish (ku.po) by rizoye-xerzi
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Malayalam (ml.po) by Praveen A
+  * Norwegian Bokmål (nb.po) by Bjørn Steensrud
+  * Panjabi (pa.po) by A S Alam
+  * Polish (pl.po) by Bartosz Fenski
+  * Romanian (ro.po) by Eddy Petrișor
+  * Slovak (sk.po) by Peter Mann
+  * Slovenian (sl.po) by Matej Kovačič
+
+ -- Frans Pop <fjp@debian.org>  Thu, 21 Dec 2006 16:30:56 +0100
+
+partman-basicfilesystems (49ubuntu1) feisty; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Default to mounting partitions with usefully-mountable filesystems on
+      subdirectories of /media.
+    - Add minimal support for NTFS partitions.
+    - Mount FAT and NTFS filesystems at boot (fstab pass 1).
+    - Mount FAT with utf8 and NTFS with nls=utf8.
+    - Mount FAT and NTFS with umask=007,gid=46 (static group plugdev).
+  * Don't call update_partition when backing up from mount point questions.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 21 Nov 2006 17:37:42 +0000
+
+partman-basicfilesystems (49) unstable; urgency=low
+
+  * Add missing debconf dependency.
+  * Add Lintian override for standards-version.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Andrei Darashenka
+  * Bengali (bn.po) by Mahay Alam Khan (মাহে আলম খান)
+  * Catalan (ca.po) by Jordi Mallach
+  * German (de.po) by Jens Seidel
+  * Greek, Modern (1453-) (el.po) by quad-nrg.net
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Estonian (et.po) by Siim Põder
+  * Basque (eu.po) by Piarres Beobide
+  * Finnish (fi.po) by Tapio Lehtonen
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Nishant Sharma
+  * Croatian (hr.po) by Josip Rodin
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Khmer (km.po) by Khoem Sokhem
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Norwegian Bokmål (nb.po) by Bjørn Steensrud
+  * Nepali (ne.po) by Shiva Prasad Pokharel
+  * Panjabi (pa.po) by A S Alam
+  * Romanian (ro.po) by Eddy Petrișor
+  * Slovenian (sl.po) by Jure Čuhalev
+  * Albanian (sq.po) by Elian Myftiu
+  * Swedish (sv.po) by Daniel Nylander
+  * Tamil (ta.po) by Damodharan Rajalingam
+  * Tagalog (tl.po) by Eric Pareja
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+  * Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Frans Pop <fjp@debian.org>  Tue, 24 Oct 2006 15:52:04 +0200
+
+partman-basicfilesystems (48) unstable; urgency=low
+
+  [ Updated translations ]
+  * Dzongkha (dz.po) by Jurmey Rabgay
+  * Esperanto (eo.po) by Serge Leblanc
+  * Estonian (et.po) by Siim Põder
+  * Gujarati (gu.po) by Kartik Mistry
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Dutch (nl.po) by Bart Cornelis
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Polish (pl.po) by Bartosz Fenski
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Frans Pop <fjp@debian.org>  Thu, 13 Jul 2006 17:37:47 +0200
+
+partman-basicfilesystems (47ubuntu3) edgy; urgency=low
+
+  * Don't automatically set up mount points for IEEE1394 or USB removable
+    devices (closes: Malone #60552).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 25 Sep 2006 11:24:28 +0100
+
+partman-basicfilesystems (47ubuntu2) edgy; urgency=low
+
+  * Add NTFS to partman-basicfilesystems/posix_filesystem_required check;
+    see Malone #48410.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 13 Sep 2006 18:43:47 +0100
+
+partman-basicfilesystems (47ubuntu1) edgy; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 29 Jun 2006 13:55:22 +0100
+
+partman-basicfilesystems (47) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Don't use the mountpoint as a default label (closes: #310754).
+
+  [ Christian Perrier ]
+  * Replace a remaining occurrence of "filesystem"
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Bulgarian (bg.po) by Ognyan Kulev
+  * Bengali (bn.po) by Baishampayan Ghose
+  * Bosnian (bs.po) by Safir Secerovic
+  * Catalan (ca.po) by Jordi Mallach
+  * Czech (cs.po) by Miroslav Kure
+  * Welsh (cy.po) by Dafydd Harries
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Dzongkha (dz.po) by Jurmey Rabgay
+  * Greek, Modern (1453-) (el.po) by quad-nrg.net
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * Finnish (fi.po) by Tapio Lehtonen
+  * French (fr.po) by Christian Perrier
+  * Irish (ga.po) by Kevin Patrick Scannell
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hebrew (he.po) by Lior Kaplan
+  * Hungarian (hu.po) by SZERVÑC Attila
+  * Indonesian (id.po) by Parlin Imanuel Toh
+  * Italian (it.po) by Stefano Canepa
+  * Japanese (ja.po) by Kenshi Muto
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Khmer (km.po) by Khoem Sokhem
+  * Korean (ko.po) by Sunjae park
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Bokmål, Norwegian (nb.po) by Bjørn Steensrud
+  * Nepali (ne.po) by Shiva Pokharel
+  * Dutch (nl.po) by Bart Cornelis
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Punjabi (pa.po) by Amanpreet Singh Alam
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+  * Romanian (ro.po) by Eddy Petrişor
+  * Russian (ru.po) by Yuri Kozlov
+  * Northern Sami (se.po) by Børre Gaup
+  * Slovak (sk.po) by Peter Mann
+  * Slovenian (sl.po) by Jure Čuhalev
+  * Albanian (sq.po) by Elian Myftiu
+  * Swedish (sv.po) by Daniel Nylander
+  * Tamil (ta.po) by Damodharan Rajalingam
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Tagalog (tl.po) by Eric Pareja
+  * Turkish (tr.po) by Recai Oktaş
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+  * Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  7 Jun 2006 22:16:50 -0400
+
+partman-basicfilesystems (46ubuntu5) dapper; urgency=low
+
+  * Don't use the mountpoint as a default label (closes: Malone #21655).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed,  3 May 2006 12:29:34 +0100
+
+partman-basicfilesystems (46ubuntu4) dapper; urgency=low
+
+  * As noted in Malone #20814, set the utf8 mount option rather than
+    iocharset=utf8 for FAT.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat,  1 Apr 2006 17:32:29 +0100
+
+partman-basicfilesystems (46ubuntu3) dapper; urgency=low
+
+  * Mount FAT with iocharset=utf8; see previous comment about NTFS.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat,  1 Apr 2006 10:28:44 +0100
+
+partman-basicfilesystems (46ubuntu2) dapper; urgency=low
+
+  * Mount FAT and NTFS filesystems at boot (fstab pass 1).
+  * Mount NTFS with nls=utf8, which is always correct for Ubuntu systems and
+    avoids files going missing due to their names containing unconvertable
+    characters (suggestion from Malone bug #25071).
+  * Mount FAT and NTFS with umask=007,gid=46 (static group plugdev), so that
+    users can easily be given privileges to read/write mounted Windows
+    filesystems, and so that the first user can do so automatically (closes:
+    Malone #8048, #25071).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat,  1 Apr 2006 09:59:59 +0100
+
+partman-basicfilesystems (46ubuntu1) dapper; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 20 Mar 2006 14:05:15 +0000
+
+partman-basicfilesystems (46) unstable; urgency=low
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Ognyan Kulev
+  * Bengali (bn.po) by Baishampayan Ghose
+  * Catalan (ca.po) by Jordi Mallach
+  * German (de.po) by Jens Seidel
+  * Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+  * Finnish (fi.po) by Tapio Lehtonen
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hindi (hi.po) by Nishant Sharma
+  * Indonesian (id.po) by Parlin Imanuel Toh
+  * Icelandic (is.po) by David Steinn Geirsson
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Malagasy (mg.po) by Jaonary Rabarisoa
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Bokmål, Norwegian (nb.po) by Bjørn Steensrud
+  * Dutch (nl.po) by Bart Cornelis
+  * Punjabi (Gurmukhi) (pa_IN.po) by Amanpreet Singh Alam
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+  * Romanian (ro.po) by Eddy Petrişor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovenian (sl.po) by Jure Cuhalev
+  * Albanian (sq.po) by Elian Myftiu
+  * Swedish (sv.po) by Daniel Nylander
+  * Turkish (tr.po) by Recai Oktaş
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Frans Pop <fjp@debian.org>  Tue, 24 Jan 2006 21:57:18 +0100
+
+partman-basicfilesystems (45ubuntu1) dapper; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 30 Oct 2005 17:58:24 -0500
+
+partman-basicfilesystems (45) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Set pass field to 0 for FAT filesystems, to prevent filesystem checks
+    that sometimes behave strangely (closes: #305137, Ubuntu #1912).
+  * Use 'rm -f' rather than more awkward test-then-remove constructions.
+  * Prevent FAT filesystems from being mounted where POSIX semantics are
+    required (closes: Ubuntu #5374, #6441).
+  * Record whether swap has been autoused on a per-device basis, so that it
+    can be autoused on newly-configured RAID devices (closes: #296785).
+  * Remove Standards-Version:, not applicable to udebs.
+  * Add myself to Uploaders.
+
+  [ Christian Perrier ]
+  * s/behaviour/behavior for consistency
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Bengali (bn.po) by Baishampayan Ghose
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Italian (it.po) by Giuseppe Sacco
+  * Japanese (ja.po) by Kenshi Muto
+  * Korean (ko.po) by Sunjae park
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Bokmål, Norwegian (nb.po) by Bjørn Steensrud
+  * Dutch (nl.po) by Bart Cornelis
+  * Norwegian Nynorsk (nn.po)
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Romanian (ro.po) by Eddy Petrişor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Peter Mann
+  * Swedish (sv.po) by Daniel Nylander
+  * Tagalog (tl.po) by Eric Pareja
+  * Turkish (tr.po) by Recai Oktaş
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+
+ -- Colin Watson <cjwatson@debian.org>  Thu, 27 Oct 2005 15:14:11 +0100
+
+partman-basicfilesystems (44) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Use American English ("behavior") in templates.
+
+  [ Joey Hess ]
+  * Use log-output.
+  * Remove incorrect and useless extended description.
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 26 Sep 2005 17:51:49 +0200
+
+partman-basicfilesystems (43ubuntu2) breezy; urgency=low
+
+  * Add minimal support for NTFS partitions, so that they can be added to
+    /etc/fstab automatically, have their mount point changed, etc. (closes:
+    Ubuntu #14236, #16233).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri,  7 Oct 2005 14:36:27 +0100
+
+partman-basicfilesystems (43ubuntu1) breezy; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 13 Sep 2005 19:54:06 +0100
+
+partman-basicfilesystems (43) unstable; urgency=low
+
+  * Fix mount point sanity check to really reject mount points containing
+    spaces.
+
+  * Updated translations:
+    - German (de.po) by Dennis Stampfer
+    - Spanish (es.po) by Javier Fernández-Sanguino Peña
+    - Basque (eu.po)
+    - Persian (fa.po) by Arash Bijanzadeh
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Macedonian (mk.po) by Georgi Stanojevski
+    - Dutch (nl.po) by Frans Pop
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Russian (ru.po) by Yuri Kozlov
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Colin Watson <cjwatson@debian.org>  Wed,  3 Aug 2005 11:21:13 +0100
+
+partman-basicfilesystems (42) unstable; urgency=low
+
+  * Really fix swap space detection w/o breaking the shell syntax this time.
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 17 Jul 2005 21:18:02 +0300
+
+partman-basicfilesystems (41) unstable; urgency=low
+
+  * Fix broken logic in no swap checking code.
+  * If a swap partition was not marked for formatting, avoid no swap warning.
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 17 Jul 2005 12:27:54 +0300
+
+partman-basicfilesystems (40) unstable; urgency=low
+
+  * Colin Watson
+    - Warn if no swap space is configured (Ubuntu bug #11327).
+
+  * Updated translations: 
+    - Arabic (ar.po) by Ossama M. Khayat
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Catalan (ca.po) by Guillem Jover
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Spanish (es.po) by Javier Fernández-Sanguino Peña
+    - Estonian (et.po) by Siim Põder
+    - Basque (eu.po) by Piarres Beobide
+    - French (fr.po) by Christian Perrier
+    - Gallegan (gl.po) by Jacobo Tarrio
+    - Hebrew (he.po) by Lior Kaplan
+    - Hungarian (hu.po) by VEROK Istvan
+    - Indonesian (id.po) by Arief S Fitrianto
+    - Italian (it.po) by Giuseppe Sacco
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Bokmål, Norwegian (nb.po) by Hans Fredrik Nordhaug
+    - Dutch (nl.po) by Bart Cornelis
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrişor
+    - Russian (ru.po) by Yuri Kozlov
+    - Slovak (sk.po) by Peter Mann
+    - Albanian (sq.po) by Elian Myftiu
+    - Tagalog (tl.po) by Eric Pareja
+    - Turkish (tr.po) by Recai Oktaş
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Vietnamese (vi.po) by Clytie Siddall
+    - Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+    - Xhosa (xh.po) by Canonical Ltd
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 15 Jul 2005 17:18:18 +0300
+
+partman-basicfilesystems (39ubuntu2) breezy; urgency=low
+
+  * Default to mounting partitions with usefully-mountable filesystems on
+    subdirectories of /media.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed,  1 Jun 2005 16:58:08 +0100
+
+partman-basicfilesystems (39ubuntu1) breezy; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon,  9 May 2005 15:31:26 +0100
+
+partman-basicfilesystems (39) unstable; urgency=low
+
+  * Colin Watson
+    - Don't autouse swap partitions that are already been used for some
+      other purpose; notably, partitions in a RAID set containing a swap
+      partition at the start will be detected as linux-swap, and we don't
+      want to use just part of the set as swap (Ubuntu bug #2591).
+    - Add user_xattr mount option for ext2.
+  * Christian Perrier
+    - Add the mention of the 65 chars limit for choices in the templates
+  * Updated translations:
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Bosnian (bs.po) by Safir Šećerović
+    - Catalan (ca.po) by Guillem Jover
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Spanish (es.po) by Javier Fernandez-Sanguino Peña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by Christian Perrier
+    - Gallegan (gl.po) by Jacobo Tarrio
+    - Hebrew (he.po) by Lior Kaplan
+    - Italian (it.po) by Stefano Canepa
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Yuri Kozlov
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Swedish (sv.po) by Per Olofsson
+    - Turkish (tr.po) by Recai Oktaş
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Colin Watson <cjwatson@debian.org>  Thu,  5 May 2005 11:44:24 +0100
+
+partman-basicfilesystems (38ubuntu1) breezy; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 21 Apr 2005 22:14:21 +1000
+
+partman-basicfilesystems (38) unstable; urgency=low
+
+  * Note that this includes fixes for substitution bugs in translated
+    templates.
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Welsh (cy.po) by Dafydd Harries
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Gallegan (gl.po) by Hctor Fenndez Lpez
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Dutch (nl.po) by Bart Cornelis
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Russian (ru.po) by Dmitry Beloglazov
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  2 Feb 2005 17:25:32 -0500
+
+partman-basicfilesystems (37) unstable; urgency=low
+
+  * Upload with a few translation updates, notably Dutch.
+  * Updated translations: 
+    - Bosnian (bs.po) by Safir Šećerović
+    - Czech (cs.po) by Miroslav Kure
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by French Team
+    - Dutch (nl.po) by Frans Pop
+      Correction of translation of 'swap' for Dutch (fixes ugly screen)
+    - Romanian (ro.po) by Eddy Petrisor
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 11 Jan 2005 15:00:22 -0500
+
+partman-basicfilesystems (36ubuntu2) hoary; urgency=low
+
+  * Add draft Xhosa translation.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 22 Mar 2005 14:07:23 +0000
+
+partman-basicfilesystems (36ubuntu1) hoary; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@canonical.com>  Fri, 29 Oct 2004 17:50:24 +0100
+
+partman-basicfilesystems (36) unstable; urgency=low
+
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - French (fr.po) by French Team
+    - Hebrew (he.po) by Lior Kaplan
+    - Croatian (hr.po) by Krunoslav Gernhard
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 20 Oct 2004 14:23:27 -0400
+
+partman-basicfilesystems (35) unstable; urgency=low
+
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kure
+    - Welsh (cy.po) by Dafydd Harries
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by French Team
+    - Hebrew (he.po) by Lior Kaplan
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Hungarian (hu.po) by VEROK Istvan
+    - Indonesian (id.po) by Debian Indonesia Team
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnasn
+    - Latvian (lv.po) by Aigars Mahinovs
+    - Bøkmal, Norwegian (nb.po) by Bjorn Steensrud
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Russian L10N Team
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Albanian (sq.po) by Elian Myftiu
+    - Swedish (sv.po) by Per Olofsson
+    - Turkish (tr.po) by Recai Oktaş
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  6 Oct 2004 15:47:38 -0400
+
+partman-basicfilesystems (34) unstable; urgency=low
+
+  * Joey Hess
+    - Always format swap partitions. Closes: #238384
+      (Also fixes the bug of checking mounted swap partitions.)
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - French (fr.po) by French Team
+    - Italian (it.po) by Stefano Canepa
+    - Lithuanian (lt.po) by Kęstutis Biliūnasn
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Russian (ru.po) by Russian L10N Team
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Swedish (sv.po) by Per Olofsson
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 24 Sep 2004 09:45:03 +0200
+
+partman-basicfilesystems (33) unstable; urgency=low
+
+  * Joey Hess
+    - Don't call restore_ifs in select_mountoptions, this is a standalone
+      program so no need. Fixes crash to main partman menu UI glitch in
+      reiserfs. Closes: #270138
+  * Updated translations: 
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by French Team
+    - Hebrew (he.po) by Lior Kaplan
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Hungarian (hu.po) by VERÓK István
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Romanian (ro.po) by Eddy Petrisor
+    - Turkish (tr.po) by Recai Oktaş
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Mon,  6 Sep 2004 15:11:56 -0400
+
+partman-basicfilesystems (32) unstable; urgency=low
+
+  * Joey Hess
+    - Move a few db_resets to after the question is first asked, to allow for
+      preseeding.
+    - Don't mess with the seen flag, that's not necessary and breaks preseeding.
+  * Updated translations: 
+    - Arabic (ar.po) by Abdulaziz Al-Arfaj
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  1 Sep 2004 15:55:30 -0400
+
+partman-basicfilesystems (31) unstable; urgency=low
+
+  * Christian Perrier
+    - Typo correction in French translation. Closes: #266306
+    - Rename templates file to partman-basicfilesystems.templates
+  * Anton Zinoviev
+    - new script select_mountpoint in order to share code with the other
+      file system packages.
+    - select_mountpoint: show descriptions of the directories.  Add /opt
+      and /srv.  Thanks to Ryan Underwood, closes: #265296.
+    - new scripts get_mountoptions and select_mountoptions in order to
+      share code with the other file system packages
+    - get_mountoptions, select_mountoptions: use a directory "options"
+      instead of files "mountoptions" and "full_mountoptions".  Ignore
+      options that are not allowed for the selected file system.  For
+      example if the user chooses "notail" with reiserfs and then changes
+      reiserfs to ext2 the option "notail" will be ignored
+    - use capital letter in the long name of the file system ("Ext2 file
+      system") to be consistent with the names of the other file systems.
+      Thanks to Changwoo Ryu.
+    - allow user to specify usage type (the -T parameter of mkfs.ext2) and
+      percentage reserved blocks for super-user (the -m parameter of
+      tune2fs).  The same change is made in partman-ext3.  Thanks to Tomas
+      Davidek, closes: #242632.
+  * Updated translations: 
+    - Arabic (ar.po) by Christian Perrier
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Bosnian (bs.po) by Safir Šećerović
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kure
+    - Welsh (cy.po) by Dafydd Harries
+    - Danish (da.po) by Claus Hindsgaul
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - French (fr.po) by French Team
+    - Hebrew (he.po) by Lior Kaplan
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Japanese (ja.po) by Kenshi Muto
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Latvian (lv.po) by Aigars Mahinovs
+    - Bøkmal, Norwegian (nb.po) by Bjørn Steensrud
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Russian (ru.po) by Yuri Kozlov
+    - Turkish (tr.po) by Recai Oktaş
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Ming Hua
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 30 Aug 2004 12:16:12 -0400
+
+partman-basicfilesystems (30) unstable; urgency=low
+
+  * Updated translations: 
+    - Arabic (ar.po) by Abdulaziz Al-Arfaj
+    - Catalan (ca.po) by Jordi Mallach
+    - Welsh (cy.po) by Dafydd Harries
+    - Greek, Modern (1453-) (el.po) by George Papamichelakis
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Hungarian (hu.po) by VERÓK István
+    - Italian (it.po) by Stefano Canepa
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Swedish (sv.po) by Per Olofsson
+    - Simplified Chinese (zh_CN.po) by Ming Hua
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 25 Jul 2004 19:23:07 -0400
+
+partman-basicfilesystems (29) unstable; urgency=low
+
+  * Joey Hess
+    - Now that swap is a method, it does not have a acting_filesystem. Fix
+      fstab.d/basic to write swap entries in this new situation. 
+      Closes: #260746
+    - But this means that mount.d is once again called on swap partitions,
+      which may be already mounted due to my other changes, so make
+      mount.d/basic not fail in that case.
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 21 Jul 2004 20:25:50 -0400
+
+partman-basicfilesystems (28) unstable; urgency=low
+
+  * Joey Hess
+    - don't disable swap after formatting
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by George Papamichelakis
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by Christian Perrier
+    - Hebrew (he.po) by Lior Kaplan
+    - Japanese (ja.po) by Kenshi Muto
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Albanian (sq.po) by Elian Myftiu
+    - Turkish (tr.po) by Osman Yüksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 21 Jul 2004 17:56:39 -0400
+
+partman-basicfilesystems (27) unstable; urgency=low
+
+  * Anton Zinoviev:
+    - disable the "noexec" mount option for the file system mounted on
+      /tmp; thanks to Mika Bostrom, Stephen Touset and Ken Schweigert
+      (closes: #249322, #255135, #258117)
+    - update.d/swap: tell parted_server when the method of a partition is
+      `swap'.  Thanks to Andrew Pollock and Didier MISSON, 
+      closes: #243648, #253420
+    - templates: remove partman-basicfilesystems/text/swap_method
+    - choose_method/swap/choices: use partman/method_long/swap
+      instead of partman-basicfilesystems/text/swap_method
+    - active_partition/basicfilesystems/*, commit.d/format_basicfilesystems: 
+      support for labels of ext2 file system
+  * Updated translations:
+    - Albanian (sq.po) by Elian Myftiu
+    - Arabic (ar.po) by Abdulaziz Al-Arfaj
+    - Welsh (cy.po) by Dafydd Harries
+    - German (de.po) by Dennis Stampfer
+    - Persian (fa.po) by Arash Bijanzadeh
+    - Finnish (fi.po) by Tapio Lehtonen
+    - Croatian (hr.po) by Kruno
+    - Korean (ko.po) by Changwoo Ryu
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Turkish (tr.po) by Osman Yüksel
+  
+ -- Anton Zinoviev <zinoviev@debian.org>  Tue, 20 Jul 2004 15:53:41 +0300
+
+partman-basicfilesystems (26ubuntu1) warty; urgency=low
+
+  * Set pass field to 0 for FAT filesystems, to prevent filesystem checks
+    that sometimes behave strangely (closes: Ubuntu #1912).
+
+ -- Colin Watson <cjwatson@canonical.com>  Wed,  6 Oct 2004 02:44:52 +0100
+
+partman-basicfilesystems (26) unstable; urgency=low
+
+  * Updated translations: 
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - Japanese (ja.po) by Kenshi Muto
+    - Slovenian (sl.po) by Jure Čuhalev
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 25 May 2004 12:36:05 -0300
+
+partman-basicfilesystems (25) unstable; urgency=low
+
+  * Colin Watson
+    - Make sure the ext2 module is loaded, to support non-ext2 initrds.
+    - Add dependencies on filesystem modules and e2fsprogs-udeb.
+    - Depend on partman.
+  * Anton Zinoviev
+    - send the output of modprobe to /dev/null
+    - commit.d/format_{swap,basicfilesystems}: do not use timestamps of
+      the form "formatted_as_$filesystem", but use just "formatted".  This
+      allows other parts of partma to know whether some partition is going
+      to be formatted again or not.
+    - remove dependency on partman as otherwise main-menu falls in
+      infinite loop - partman depends on partman-target, partman-target
+      depends on partman-basicfilesystems
+
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Romanian (ro.po) by Eddy Petrisor
+    - Swedish (sv.po) by André Dahlqvist
+  
+ -- Anton Zinoviev <zinoviev@debian.org>  Sat, 15 May 2004 07:37:46 +0300
+
+partman-basicfilesystems (24) unstable; urgency=low
+
+  * Updated translations: 
+    - Bokmal, Norwegian (nb.po) by Bjørn Steensrud
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 23 Apr 2004 13:18:42 -0400
+
+partman-basicfilesystems (23) unstable; urgency=low
+
+  * Updated translations: 
+    - Bosnian (bs.po) by Safir Šećerović
+    - Catalan (ca.po) by Jordi Mallach
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - Gallegan (gl.po) by Héctor Fernández López
+    - Hebrew (he.po) by Lior Kaplan
+    - Indonesian (id.po) by I Gede Wijaya S
+    - Italian (it.po) by Stefano Canepa
+    - Korean (ko.po) by Changwoo Ryu
+    - Bokmal, Norwegian (nb.po) by Axel Bojer
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Eugene Konev
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Turkish (tr.po) by Osman Yüksel
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 20 Apr 2004 11:08:36 -0400
+
+partman-basicfilesystems (22) unstable; urgency=low
+
+  * Anton Zinoviev
+    - the formatting progress bar provides feedback on the mount point
+      (when such is assigned).
+    - the same change is made to partman-ext3, partman-reiserfs and
+      partman-xfs.  Thanks to Sven Luther (closes: #238062).
+    - new method `swap'; the swap is not a file system any more.  Thanks
+      to Joey Hess (closes: #235371).
+    - make the file system name in the check progress bar translatable.
+    - the script update.d/swap_mountpoint is obsoleted and removed.
+      I hope this closes: #238383, thanks to Martin Michlmayr.
+    - show `swap' as mount point for swap partitions.  Thanks to Frans Pop,
+      closes: #239387
+    - rules: remove .svn directories from the package
+    - commit.d/format_*: do not format already formatted partitions for
+      second time.
+    - the same change is made in partman-ext3, partman-reiserfs and
+      partman-xfs.  Thanks to Martin Michlmayr (closes: #238385).
+  * Joshua Kwan
+    - switch to new debhelper udeb support
+  * Updated translations: 
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - French (fr.po) by Christian Perrier
+    - Hebrew (he.po) by Lior Kaplan
+    - Hungarian (hu.po) by VERÓK István
+    - Italian (it.po) by Stefano Canepa
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Dutch (nl.po) by Bart Cornelis
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrisor
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Albanian (sq.po) by Elian Myftiu
+    - Swedish (sv.po) by André Dahlqvist
+    - Turkish (tr.po) by Osman Yüksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+  
+ -- Joey Hess <joeyh@debian.org>  Sun, 11 Apr 2004 21:23:17 -0400
+
+partman-basicfilesystems (21) unstable; urgency=low
+
+  * Updated translations: 
+    - Bosnian (bs.po) by Safir Šećerović
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Hebrew (he.po) by Lior Kaplan
+    - Italian (it.po) by Stefano Canepa
+    - Japanese (ja.po) by Kenshi Muto
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Nikolai Prokoschenko
+    - Swedish (sv.po) by André Dahlqvist
+    - Turkish (tr.po) by Osman Yüksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Albanian (sq.po) by Elian Myftiu
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 30 Mar 2004 15:23:22 -0500
+
+partman-basicfilesystems (20) unstable; urgency=low
+
+  * Updated translations: 
+    - Russian (ru.po) by Nikolai Prokoschenko
+    - Turkish (tr.po) by Osman Yüksel
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 14 Mar 2004 13:15:35 -0500
+
+partman-basicfilesystems (19) unstable; urgency=low
+
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Italian (it.po) by Stefano Canepa
+    - Portuguese (pt.po) by Nuno Sénica
+    - Russian (ru.po) by Nikolai Prokoschenko
+    - Turkish (tr.po) by Osman Yüksel
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Sun, 14 Mar 2004 17:17:26 +0200
+
+partman-basicfilesystems (18) unstable; urgency=low
+
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Albanian (sq.po) by Elian Myftiu
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 13 Mar 2004 12:32:28 -0500
+
+partman-basicfilesystems (17) unstable; urgency=low
+
+  * Anton Zinoviev
+    - use stralign where appropriately.
+
+  * Translations:
+    - Steinar H. Gunderson: Updated Norwegian Bokmål translation (nb.po).
+    - Elian Myftiu: Updated Albanian translation (sq.po)
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 12 Mar 2004 12:49:54 -0500
+
+partman-basicfilesystems (16) unstable; urgency=low
+
+  * Anton Zinoviev
+    - init.d/autouse_swap creates method file in the right directory.
+    - new script commit.d/format_swap.  We want to be sure that the other
+      mkfs-scripts are able to use swap. 
+    - commit.d/format_basicfilesystems: do not format swap.
+    - commit.d/format_basicfilesystems: enable swap at start, disable it
+      after the file systems are created.
+    - add "sync" after every creation of file systems.  At least for the
+      swap this is necessary.
+
+ -- Joey Hess <joeyh@debian.org>  Tue,  9 Mar 2004 18:53:24 -0500
+
+partman-basicfilesystems (15) unstable; urgency=low
+
+  * Joey Hess
+    - Add a full stop at the end of no_mount_point template.
+
+ -- Joey Hess <joeyh@debian.org>  Mon,  8 Mar 2004 19:24:27 -0500
+
+partman-basicfilesystems (14) unstable; urgency=low
+
+  * Joey Hess
+    - Remove autogenerated postrm.
+    - Swapon swap space in mount.d. Closes: #236921
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by Christian Perrier
+    - Hungarian (hu.po) by VERÓK István
+    - Italian (it.po) by Stefano Canepa
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Bokmal, Norwegian (nb.po) by Axel Bojer, Knut Yrvin
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrisor
+    - Albanian (sq.po) by Elian Myftiu
+    - Turkish (tr.po) by Osman Yüksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Thu,  4 Mar 2004 14:25:55 -0500
+
+partman-basicfilesystems (13) unstable; urgency=low
+
+  * Joey Hess
+    - Don't call ext2 "extended 2". Closes: #235369
+    - Add myself to uploaders.
+  * Anton Zinoviev
+    - finish.d/check_basicfilesystems: use name_progress_bar instead of
+      the non-existing current_action
+    - Do not use the generic template for checking file systems when
+      checking swap space.  Add new template for this purpose.
+    - Similarly, do not use the generic template for creating file systems
+      when formatting swap space.
+    - Do not create empty files mountoptions in partition directories.
+      Otherwise the setting "defaults"  disappears in active_partition
+      menu. 
+    - Move the mount options definitions in the select list after option
+      names.  Remove the long description screen.  Closes: #235370.
+    - init.d/autouse_swap: the swap spaces are automatically selected for
+      use only once.
+    - check_basicfilesytems: add forgotten command db_get
+  * Christian Perrier
+    - s/permitions/permissions in templates. Unfuzzy translations
+
+  * Updated translations: 
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by Christian Perrier
+    - Hungarian (hu.po) by VERÓK István
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Bokmal, Norwegian (nb.po) by Axel Bojer
+    -  (nn.po) by Håvard Korsvoll
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Romanian (ro.po) by Eddy Petrisor
+    - Albanian (sq.po) by Elian Myftiu
+    - Turkish (tr.po) by Osman Yüksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+ 
+ -- Joey Hess <joeyh@debian.org>  Thu,  4 Mar 2004 14:02:40 -0500
+
+partman-basicfilesystems (12) unstable; urgency=low
+
+  * This package needs to be standard.
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 29 Feb 2004 14:10:59 -0500
+
+partman-basicfilesystems (11) unstable; urgency=low
+
+  * Anton Zinoviev
+    - new release
+  * Joey Hess
+    - change 90aptinstall_basicfiles's number from 90 to 70, anton says this
+      fixes a hang
+  * Translations :
+    - Bartosz Fenski
+      - Updated Polish translation (pl.po)
+    - Pierre Machard
+      - Updated French translation (fr.po)
+    - André Luís Lopes
+      - Updated Brazilian Portuguese translation (pt_BR.po)
+    - Kęstutis Biliūnas
+      - Updated Lithuanian translation (lt.po)
+    - Håvard Korsvoll
+      - Added Norwegian, nynorsk translation (nn.po)
+    - Elian Myftiu
+      - Updated Albanian translation (sq.po)
+    - Peter Mann
+      - Updated Slovak translation (sk.po)
+    - Carlos Z.F. Liu
+      - update Simplified Chinese translation (zh_CN.po)
+    - Changwoo Ryu
+      - Added Korean translation (ko.po)
+    - Eugeniy Meshcheryakov
+      - Updated Ukrainian translation (uk.po)
+    - Miroslav Kure
+      - Updated Czech translation (cs.po)
+    - Dennis Stampfer
+      - Update German translation (de.po)
+    - Konstantinos Margaritis
+      - Updated Greek translation (el.po)
+    - Kenshi Muto
+      - Updated Japanese translation (ja.po)
+    - Claus Hindsgaul
+      - Updated Danish translation (da.po)
+    - Bart Cornelis
+      - Updated Dutch translation (nl.po) 
+    - Javier Fernandez-Sanguino
+      - Added Spanish translation (es.po)
+    - Ming Hua
+      - Initial Traditional Chinese translation (zh_TW.po), by Tetralet
+      - Updated Traditional Chinese translation (zh_TW.po), by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 28 Feb 2004 19:18:37 -0500
+
+partman-basicfilesystems (10) unstable; urgency=low
+
+  * Anton Zinoviev
+    - apt-install e2fsprogs when ext2 is used
+    - apt-install dosfsprogs when fat16 or fat32 is used
+    - new script init.d/autouse_swap: automatically detect and use the
+      existing swap partitions
+    - new look of the items in the active_partition menu
+    - provides templates with names of the file systems as said in the new
+      version of the documentation.  The scripts in valid_filesystems also
+      changed
+    - change then number of update.d/swap_nomountpoint (30->60) as it must
+      be after 50filesystems
+
+  * Translations:
+    - Eugeniy Meshcheryakov
+      - Updated Ukrainian translation (uk.po)
+    - Kęstutis Biliūnas
+      - Updated Lithuanian translation (lt.po)
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Fri, 20 Feb 2004 18:59:50 +0200
+
+partman-basicfilesystems (9) unstable; urgency=low
+
+  * Anton Zinoviev
+    - Check if `vfat' kernel module is already loaded before `modprobe vfat'.
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Sat, 14 Feb 2004 20:24:04 +0200
+
+partman-basicfilesystems (8) unstable; urgency=low
+
+  * Christian Perrier
+    - corrected the partman-basicfilesystems/options template for
+      consistency with partman-ext3 and DTSG, regarding short and
+      long description. Run debconf-updatepo.
+  * Denis Barbier
+    - Because of a bug in po2debconf, generated templates file is
+      corrupted if a comment appears before the Template line, as
+      before the partman-basicfilesystems/text/specify_mountpoint
+      template.  Closes: #232495
+
+  * Translations:
+    - Bartosz Fenski
+      - Updated Polish (pl) translation.
+    - Bart Cornelis
+      - Updated Dutch (nl.po) translation
+    - Nikolai Prokoschenko
+      - Updated Russian translation (ru.po)
+    - Konstantinos Margaritis
+      - Updated Greek translation (el.po)
+    - Claus Hindsgaul
+      - Updated Danish translation (da.po)
+    - Nuno Sénica
+      - Added Portuguese translation (pt.po)
+    - Christian Perrier
+      - Update french translation (fr.po)
+    - Dennis Stampfer
+      - Update German translation (de.po)
+    - Carlos Z.F. Liu
+      - update Simplified Chinese translation (zh_CN.po)
+    - Kenshi Muto
+      - Updated Japanese translation (ja.po)
+    - Miroslav Kure
+      - Update Czech translation (cs.po)
+    - Miguel Figueiredo
+      - Update Portuguese translation (pt.po)
+    - André Luís Lopes
+      - Updated Brazilian Portuguese (pt_BR) translation.
+    - h3li0s
+      - added albanian translation (sq.po)
+    - Jordi Mallach
+      - Add Catalan translation (ca.po).
+    - Kęstutis Biliūnas
+      - Updated Lithuanian translation (lt.po).
+    - Safir Šećerović
+      - Update Bosnian translation (bs.po).
+    - Eugen Meshcheryakov
+      - Added Ukrainian translation (uk.po)
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Fri, 13 Feb 2004 09:55:39 +0200
+
+partman-basicfilesystems (7) unstable; urgency=low
+
+  * Bartosz Fenski
+    - Updated Polish (pl) translation. Removed some inconsistencies. 
+  * Christian Perrier
+    - changelog corrections
+    - added missing dot in danish translation for one string
+    - fixed minor inconsistencies in danish translation
+  * Carlos Z.F. Liu
+    - fix some small Simplified Chinese translation errors
+  * Miroslav Kure
+    - fix Czech translation
+  * Peter Mann
+    - Update Slovak translation
+  * Anton Zinoviev
+    - changelog: new release 7.  Move some of the stuff from already
+      released and uploaded 6 to 7. 
+    - templates: s/_Descriptions:/_Description:/
+    - new templates: partman-basicfilesystems/options_help and
+      partman-basicfilesystems/fatoptions_help.  We show the help only
+      once as otherwise it can be boring.
+    - templates: correct some punctuation signs.
+  
+ -- Anton Zinoviev <zinoviev@debian.org>  Thu, 29 Jan 2004 11:22:23 +0200
+
+partman-basicfilesystems (6) unstable; urgency=low
+
+  * Stefano Canepa
+    - added Italian translation (it.po)
+  * Bart Cornelis
+    - small update to Dutch translation as a result of [DICO] discussion on
+      debian-l10n-dutch@l.d.o
+  * Anton Zinoviev
+    - format ext2 and linux-swap using parted when possible and fallback
+      on mkfs.ext2 and mkswap only when parted fails.  This is in order to
+      support the progress bar.
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Fri, 23 Jan 2004 13:06:24 +0200
+
+partman-basicfilesystems (5) unstable; urgency=low
+
+  * Bartosz Fenski
+    - Add Polish (pl) translation.
+  * Kenshi Muto
+    - Add Japanese translation (ja.po)
+    - Update Japanese translation
+  * Christian Perrier
+    - First debconf templates polishing
+    - Run debconf-updatepo
+  * André Luís Lopes
+    - Run debconf-updatepo
+    - Added Brazilian Portuguese (pt_BR) translation.
+  * Christian Perrier
+    - changed partman-basicfilesystems/no_mount_point template
+      to boolean
+  * Konstantinos Margaritis
+    - Updated Greek translation (el.po)
+  * Nikolai Prokoschenko
+    - added russian translation (ru.po)
+  * Peter Mann
+    - Initial Slovak translation
+  * Anton Zinoviev
+    - the install target in debian/rules removes all files CVS from the
+      generated package.
+    - added local variable for Emacs `coding: utf-8' at the end of the
+      changelog.
+  * Christian Perrier
+    - changed the check_failed template to boolean
+    - Initial French translation
+  * Konstantinos Margaritis
+    - Updated Greek translation (el.po)
+  * Dennis Stampfer
+    - Initial German translation (de.po)
+  * Anmar Oueja
+    - Initial Arabic Translation (ar.po)
+  * Claus Hindsgaul
+    - Initial Danish translation (da.po)
+  * Christian Perrier
+    - run debconf-updatepo on Slovak translation
+  * Miroslav Kure
+    - Initial Czech translation
+  * Ming Hua
+    - Initial Simplified Chinese translation (zh_CN.po)
+  * Bart Cornelis
+    - Initial Dutch (nl.po) translation
+  * Kęstutis Biliūnas
+    - Initial Lithuanian (lt.po) translation.
+  * Safir Secerovic
+    - Add Bosnian translation (bs.po).
+  * Joey Hess
+    - Change udeb filename to use "all".
+
+ -- Bart Cornelis <cobaco@linux.be>  Thu, 22 Jan 2004 09:26:14 +0100
+
+partman-basicfilesystems (4) never released; urgency=low
+
+  * Uses po-debconf.
+  * Use db_metaget to translate messages.
+  * Added support to set mount options.
+  * Removed "-o $options" for the mount-command in mount.d/basic.
+    Otherwise the ro flag would mount read-only...
+  * Konstantinos Margaritis
+    - Initial Greek translation (el.po)
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Mon,  5 Jan 2004 22:56:41 +0200
+
+partman-basicfilesystems (3) never released; urgency=low
+
+  * commit.d/format_basic: invoke `name_progress_bar' before open_dialog
+    CREATE_FILE_SYSTEM.
+  * New script commit.d/check_basicfilesystems.
+  * Rename commit.d/format_basic to commit.d/format_basicfilesystems.
+  * format_basicfilesystems: checks the existence of $id/format rather
+    than the contents of $id/method.
+  * New template partman-basicfilesystems/fat_mountpoint: the default
+    mount points for fat filesystems are different...
+  * Uses `exit 0' and `return 0' instead of just `exit' and `return'.
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Fri, 12 Dec 2003 09:01:15 +0200
+
+partman-basicfilesystems (2) never released; urgency=low
+
+  * First version.
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Wed, 12 Nov 2003 16:55:08 +0200
+
+Local Variables:
+coding: utf-8
+End:

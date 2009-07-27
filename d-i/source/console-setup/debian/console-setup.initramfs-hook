@@ -1,0 +1,48 @@
+#! /bin/sh -e
+
+PREREQ="kbd|console_tools"
+
+prereqs () {
+	echo "$PREREQ"
+}
+
+case $1 in
+prereqs)
+	prereqs
+	exit 0
+	;;
+esac
+
+. /usr/share/initramfs-tools/hook-functions
+. /etc/default/console-setup
+
+# Copy console-setup configuration
+mkdir -p "$DESTDIR/etc/default"
+cp -p /etc/default/console-setup "$DESTDIR/etc/default"
+
+# Assume setupcon --save has been run
+if [ -f "$FONT" ]; then
+	FONT="/etc/console-setup/${FONT##*/}"
+else
+	FONT="/etc/console-setup/$CODESET-$FONTFACE$FONTSIZE.psf.gz"
+fi
+if [ -f "$FONT" ]; then
+	mkdir -p "$DESTDIR${FONT%/*}"
+	cp -p "$FONT" "$DESTDIR$FONT"
+fi
+if [ -f "$ACM" ]; then
+	ACM="/etc/console-setup/${ACM##*/}"
+else
+	ACM="/etc/console-setup/$CHARMAP.acm.gz"
+fi
+if [ -f "$ACM" ]; then
+	mkdir -p "$DESTDIR${ACM%/*}"
+	cp -p "$ACM" "$DESTDIR$ACM"
+fi
+if [ -f /etc/console-setup/boottime.kmap.gz ]; then
+	mkdir -p "$DESTDIR/etc/console-setup"
+	cp -p /etc/console-setup/boottime.kmap.gz \
+		"$DESTDIR/etc/console-setup/boottime.kmap.gz"
+fi
+
+exit 0

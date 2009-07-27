@@ -1,0 +1,104 @@
+#! /bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+log () {
+    logger -t kboot-installer "$@"
+}
+
+error () {
+    log "error: $@"
+}
+
+info () {
+    log "info: $@"
+}
+
+die () {
+    template="$1"
+    shift
+
+    error "$@"
+    db_input critical "$template" || [ $? -eq 30 ]
+    db_go || true
+    exit 1
+}
+
+findfs () {
+    mount | grep "on /target${1%/} " | cut -d' ' -f1
+}
+
+rootfs_devfs="$(findfs /)"
+[ "$rootfs_devfs" ] || die kboot-installer/noroot 'No root partition found'
+
+bootfs_devfs="$(findfs /boot)"
+[ "$bootfs_devfs" ] || bootfs_devfs="$rootfs_devfs"
+
+if [ -b "$rootfs_devfs" ]; then
+    rootfs="$(PATH="/lib/udev:$PATH" vol_id -u "$rootfs_devfs" || true)"
+fi
+if [ -b "$bootfs_devfs" ]; then
+    bootfs="$(PATH="/lib/udev:$PATH" vol_id -u "$bootfs_devfs" || true)"
+fi
+
+if [ "$rootfs" ]; then
+    rootfs="UUID=$rootfs"
+else
+    rootfs="$(mapdevfs "$rootfs_devfs")"
+fi
+if [ "$bootfs" ]; then
+    bootfs="UUID=$bootfs"
+else
+    bootfs="$(mapdevfs "$bootfs_devfs")"
+fi
+
+# Work out user parameters.
+user_params=quiet
+# usplash disabled for 8.10 due to https://launchpad.net/bugs/285218.
+#if db_get debian-installer/framebuffer && [ "$RET" = true ]; then
+#    user_params="$user_params splash"
+#fi
+user_params="$(echo $user_params $(user-params))" || true
+
+if [ -e /target/boot/vmlinux ]; then
+    kernel=/boot/vmlinux
+else
+    kernel=/vmlinux
+fi
+
+if [ -e /target/boot/initrd.img ]; then
+    initrd=/boot/initrd.img
+else
+    initrd=/initrd.img
+fi
+
+if [ "$rootfs" = "$bootfs" ]; then
+    etc='/target/etc'
+else
+    kernel="${kernel#/boot}"
+    initrd="${initrd#/boot}"
+    etc='/target/boot/etc'
+fi
+
+mkdir -p "$etc"
+
+cat >"$etc/kboot.msg" <<EOF
+Ubuntu PS3 KBoot Loader.
+
+- Hit enter to boot the default system. 
+- Type 'game' and press the enter key to get back to the Sony XMB operating system.
+If this is for some reason not possible, carrying out a hard-reset (see PS3 instruction manual) will return to the XMB on next run.
+- You can also use the shell by typing 'sh'. Exiting the shell returns to the kboot prompt.
+
+EOF
+
+cat >"$etc/kboot.conf" <<EOF
+message=/etc/kboot.msg
+default=linux
+timeout=100
+linux='$kernel initrd=$initrd root=$rootfs $user_params'
+old='$kernel.old initrd=$initrd.old root=$rootfs $user_params'
+EOF
+
+exit 0

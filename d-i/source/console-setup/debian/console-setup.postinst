@@ -1,0 +1,167 @@
+#!/bin/sh
+
+set -e
+
+# Source debconf library.
+. /usr/share/debconf/confmodule
+
+# The same as /usr/bin/which - in order to make this script work
+# in environments where "which" is not available
+which () {
+    local IFS
+    IFS=:
+    for i in $PATH; do
+	if [ -x "$i/$1" ]; then
+	    echo "$i/$1"
+	    return 0
+	fi
+    done
+    return 1
+}
+
+# In order to make this script work in environments where
+# "md5sum" is not available
+md5sum=`which md5sum`
+if [ -z "$md5sum" ]; then
+    md5sum=true
+fi
+
+# In d-i the config script is not executed automatically
+if [ -f /usr/share/console-setup-mini/console-setup.config ]; then
+    . /usr/share/console-setup-mini/console-setup.config
+fi
+
+db_fset console-setup/dont_ask_layout asked_this_run false
+
+CONFIGDIR=/etc/console-setup
+CONFIGFILE=/etc/default/console-setup
+
+if [ "$1" = "configure" ]; then
+    
+    db_get console-setup/codesetcode
+    codeset="$RET"
+    db_get console-setup/fontface
+    fontface="$RET"
+    db_get console-setup/fontsize
+    fontsize="$RET"
+
+    fontname=$codeset-$fontface$fontsize.psf.gz
+    
+    if which ckbcomp-mini >/dev/null; then
+	charmap=UTF-8
+    else
+	db_get console-setup/charmap
+	charmap="${RET:-UTF-8}"
+    fi
+
+    db_get console-setup/ttys
+    ttys="$RET"
+
+
+    db_get console-setup/modelcode
+    model="$RET"
+
+    db_get console-setup/layoutcode
+    layout="$RET"
+
+    db_get console-setup/variantcode
+    variant="$RET"
+
+    db_get console-setup/optionscode
+    options="$RET"
+
+    if [ "$charmap" != UTF-8 ]; then
+	acm=$CONFIGDIR/$charmap.acm.gz
+	acm_option="-charmap $charmap"
+    else
+	acm=''
+	acm_option=''
+    fi
+
+    if [ ! -e $CONFIGFILE ]; then
+	cat /usr/share/doc/console-setup/examples/console-setup \
+	    /usr/share/doc/console-setup-mini/examples/console-setup \
+	    /usr/share/console-setup-mini/console-setup.proto \
+	    2>/dev/null >$CONFIGFILE || true
+	cat >>$CONFIGFILE <<EOF
+
+# Do not update the following md5 sum if you change
+# $CONFIGDIR/boottime.kmap.gz and Debconf will not overwrite
+# your custom keymap.  Do not update it even if you want to make
+# Debconf overwrite it.  Instead simply specify the empty string as
+# a md5 sum.
+
+BOOTTIME_KMAP_MD5=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+EOF
+    fi
+
+    . $CONFIGFILE || true
+
+    if [ "$model" = SKIP ]; then
+	BOOTTIME_KMAP_MD5=
+    elif \
+	[ -z "$BOOTTIME_KMAP_MD5" ] \
+	|| [ ! -f "$CONFIGDIR/boottime.kmap.gz" ] \
+	|| echo "$BOOTTIME_KMAP_MD5  $CONFIGDIR/boottime.kmap.gz" \
+	    | $md5sum -c 2>/dev/null >/dev/null
+    then
+	if which gzip >/dev/null; then
+	    ckbcomp $acm_option -model "$model" \
+		"$layout" "$variant" "$options" \
+		| gzip -9 >$CONFIGDIR/boottime.kmap.gz
+	fi
+	BOOTTIME_KMAP_MD5=`$md5sum $CONFIGDIR/boottime.kmap.gz | sed 's/ .*//'`
+    fi
+
+    # Ensure we do not mess up the config file's ownership and permissions.
+    cp -a -f $CONFIGFILE $CONFIGFILE.tmp
+
+    # If the admin deleted or commented some variables but then set
+    # them via debconf, (re-)add them to the conffile.
+    for var in \
+	ACTIVE_CONSOLES CHARMAP CODESET FONTFACE FONTSIZE \
+	XKBMODEL XKBLAYOUT XKBVARIANT XKBOPTIONS BOOTTIME_KMAP_MD5
+    do
+        if ! grep "^ *${var}=" $CONFIGFILE >/dev/null; then
+	    echo "${var}=" >>$CONFIGFILE
+	fi
+    done    
+    
+    sed \
+	-e "s|^ *ACTIVE_CONSOLES=.*|ACTIVE_CONSOLES=\"$ttys\"|" \
+	-e "s|^ *CHARMAP=.*|CHARMAP=\"$charmap\"|" \
+	-e "s|^ *CODESET=.*|CODESET=\"$codeset\"|" \
+	-e "s|^ *FONTFACE=.*|FONTFACE=\"$fontface\"|" \
+	-e "s|^ *FONTSIZE=.*|FONTSIZE=\"$fontsize\"|" \
+	-e "s|^ *XKBMODEL=.*|XKBMODEL=\"$model\"|" \
+	-e "s|^ *XKBLAYOUT=.*|XKBLAYOUT=\"$layout\"|" \
+	-e "s|^ *XKBVARIANT=.*|XKBVARIANT=\"$variant\"|" \
+	-e "s|^ *XKBOPTIONS=.*|XKBOPTIONS=\"$options\"|" \
+	-e "s|^ *BOOTTIME_KMAP_MD5=.*|BOOTTIME_KMAP_MD5=\"$BOOTTIME_KMAP_MD5\"|" \
+	<$CONFIGFILE >$CONFIGFILE.tmp
+    
+    mv -f $CONFIGFILE.tmp $CONFIGFILE
+fi
+
+# In d-i debhelper doesn't use /etc/init.d scripts :-)
+if [ -f /usr/share/console-setup-mini/console-setup.config ]; then
+    if [ -d /lib/debian-installer ]; then
+	setupcon --force --save
+    else
+	# setting the font corrupts X
+	setupcon --save-only
+	setupcon --force -k
+	cat >&2 <<EOF
+Your console font configuration will be updated the next time your system
+boots. If you want to update it now, run 'setupcon' from a virtual console.
+EOF
+    fi
+fi
+
+#DEBHELPER#
+
+if type update-initramfs >/dev/null 2>&1; then
+    update-initramfs -u
+fi
+
+exit 0

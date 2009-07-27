@@ -1,0 +1,514 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+log() {
+    logger -t yaboot-installer "$@"
+}
+
+error() {
+    log "error: $@"
+}
+
+info() {
+    log "info: $@"
+}
+
+debug() {
+    log "debug: $@"
+}
+
+writefile () {
+    cat >>"$1" || die yaboot-installer/conferr "Error writing $2"
+}
+
+findfs () {
+    mount | grep "on /target${1%/} " | cut -d' ' -f1
+}
+
+partitions_with_flag () {
+    /usr/lib/partconf/find-partitions --colons --flag "$1" 2>/dev/null || true
+}
+
+db_capb backup
+
+db_progress START 0 6 yaboot-installer/progress
+
+die() {
+    template="$1"
+    shift
+
+    error "$@"
+    db_input critical "$template" || [ $? -eq 30 ]
+    db_go || true
+    db_progress STOP
+    exit 1
+}
+
+ARCH="$(archdetect)"
+info "architecture: $ARCH"
+
+# Install yaboot in /target
+
+db_progress INFO yaboot-installer/apt-install
+
+PACKAGES=yaboot
+if [ "$ARCH" = powerpc/powermac_newworld ]; then
+    PACKAGES="$PACKAGES hfsutils"
+fi
+
+if ! apt-install $PACKAGES; then
+    info "Calling 'apt-install $PACKAGES' failed"
+    # Hm, unable to install yaboot into /target/, what should we do?
+    db_input critical yaboot-installer/apt-install-failed || [ $? -eq 30 ]
+    if ! db_go; then
+	db_progress STOP
+	exit 10 # back up to menu
+    fi
+    db_get yaboot-installer/apt-install-failed
+    if [ "$RET" != true ]; then
+	db_progress STOP
+	exit 1
+    fi
+fi
+
+# Find the boot partition
+
+db_progress STEP 1
+db_progress INFO yaboot-installer/part
+
+# Telling parted to create an Apple_Bootstrap partition doesn't work as well
+# as we might like: parted's probe function isn't intelligent enough to know
+# about this, and reports the partition as containing whatever filesystem
+# was there beforehand.
+#
+# As a workaround, we only check for partitions with the boot flag set, and
+# don't bother checking the filesystem. However, this means that we *must*
+# ask the user to confirm the bootstrap partition, otherwise we might
+# mistakenly overwrite some other partition that happened to be flagged as
+# bootable.
+
+PARTITIONS=
+DEFAULT=
+bootdev_priority=critical
+
+if [ "$ARCH" = powerpc/powermac_newworld ] && \
+   db_get partman-newworld/boot_partitions && [ "$RET" ]; then
+    OLDIFS="$IFS"
+    IFS=,
+    for part in $RET; do
+	IFS="$OLDIFS"
+	mappart="$(mapdevfs "$part")"
+	if [ -z "$PARTITIONS" ]; then
+	    DEFAULT="$mappart"
+	    PARTITIONS="$mappart"
+	else
+	    PARTITIONS="$PARTITIONS, $mappart"
+	fi
+	IFS=,
+    done
+    IFS="$OLDIFS"
+    info "partman-supplied bootstrap partitions: $PARTITIONS"
+    info "partman-supplied default bootstrap partition: $DEFAULT"
+    if [ "$PARTITIONS" ] && [ "$DEFAULT" = "$PARTITIONS" ]; then
+	# We have explicit information from partman-newworld that only one
+	# bootstrap partition is available, so it's safe to bypass this
+	# question.
+	bootdev_priority=medium
+    fi
+fi
+
+if [ -z "$PARTITIONS" ]; then
+    case $ARCH in
+	powerpc/powermac_newworld)
+	    PARTED_FLAGS='boot'
+	    ;;
+	powerpc/chrp|powerpc/chrp_rs6k|powerpc/chrp_ibm|powerpc/cell)
+	    PARTED_FLAGS='prep prep-boot'
+	    ;;
+	powerpc/chrp_pegasos)
+	    PARTED_FLAGS=
+	    ;;
+	*)
+	    error 'unknown subarchitecture; allowing any bootable partition'
+	    PARTED_FLAGS='boot'
+	    ;;
+    esac
+
+    for flag in $PARTED_FLAGS; do
+	for part in $(partitions_with_flag "$flag" | cut -d: -f1); do
+	    mappart="$(mapdevfs "$part")"
+	    if [ -z "$PARTITIONS" ]; then
+		DEFAULT="$mappart"
+		PARTITIONS="$mappart"
+	    else
+		PARTITIONS="$PARTITIONS, $mappart"
+	    fi
+	done
+    done
+    if [ "$PARTED_FLAGS" ]; then
+	info "guessed bootstrap partitions: $PARTITIONS"
+	info "guessed default bootstrap partition: $DEFAULT"
+    fi
+fi
+
+if [ "$PARTED_FLAGS" ] && [ -z "$PARTITIONS" ]; then
+    # error: no viable boot partitions found; fall over
+    die yaboot-installer/nopart 'No bootstrap partitions found'
+fi
+
+if [ "$PARTITIONS" ]; then
+    db_subst yaboot-installer/bootdev DEVICES "$PARTITIONS"
+    db_set yaboot-installer/bootdev "$DEFAULT"
+    db_input "$bootdev_priority" yaboot-installer/bootdev || [ $? -eq 30 ]
+    if ! db_go; then
+	db_progress STOP
+	exit 10 # back up to menu
+    fi
+
+    db_get yaboot-installer/bootdev
+    if [ "$RET" = false ]; then
+	die yaboot-installer/nopart 'No bootstrap partition selected (?)'
+    fi
+    # already devfs-mapped
+    boot="$RET"
+else
+    # no bootstrap partition on Pegasos
+    boot=
+fi
+
+# Find the root partition
+
+db_progress STEP 1
+db_progress INFO yaboot-installer/root
+
+rootdev="$(findfs /)"
+[ "$rootdev" ] || die yaboot-installer/noroot 'No root partition found'
+
+slashbootdev="$(findfs /boot)"
+[ "$slashbootdev" ] || slashbootdev="$rootdev"
+
+mountvirtfs () {
+    fstype="$1"
+    path="$2"
+    if grep -q "[[:space:]]$fstype\$" /proc/filesystems && \
+       ! grep -q "^[^ ]\+ \+$path " /proc/mounts; then
+	mkdir -p "$path" || \
+	    die yaboot-installer/mounterr "Error creating $path"
+	mount -t "$fstype" "$fstype" "$path" || \
+	    die yaboot-installer/mounterr "Error mounting $path"
+	trap "umount $path" HUP INT QUIT PIPE TERM EXIT
+    fi
+}
+
+# mkofboot needs proc in /target
+mountvirtfs proc /target/proc
+# ofpath needs sysfs in /target for 2.6
+mountvirtfs sysfs /target/sys
+
+# Probe for other OSes.
+
+db_progress STEP 1
+db_progress INFO yaboot-installer/os-probing
+
+os-prober >/tmp/os-probed || true
+
+if [ -s /tmp/os-probed ]; then
+    # Other operating systems are installed, so use a longer timeout.
+    timeout=100
+else
+    timeout=50
+fi
+
+extraglobals=/tmp/yaboot.conf.extraglobals
+rm -f "$extraglobals"
+extraimages=/tmp/yaboot.conf.extraimages
+rm -f "$extraimages"
+
+writeglobals() {
+    writefile "$extraglobals" 'extra global settings'
+}
+
+writeimages() {
+    writefile "$extraimages" 'extra image records'
+}
+
+# Get the Open Firmware path for a device. Requires non-devfs syntax.
+map_of_path() {
+    # TODO: look for shorter name using OF aliases?
+    chroot /target ofpath "$1" || return 1
+}
+
+OLDIFS="$IFS"
+IFS=:
+# Note that this creates a subshell, so variables set inside this loop won't
+# persist outside it.
+cat /tmp/os-probed | while read partition title label loadertype; do
+    IFS="$OLDIFS"
+    info "probed: $partition:$title:$label:$loadertype"
+    mappedpartition="$(mapdevfs "$partition")"
+    debug "mapped: $mappedpartition"
+    # You only get the first of each non-Linux OS here, as that's all
+    # yaboot supports without painful hacking. Sorry.
+    case $loadertype in
+	linux)
+	    IFS=:
+	    linux-boot-prober "$partition" | while read \
+		    rootpart bootpart label kernel initrd params; do
+		IFS="$OLDIFS"
+		info "linux-boot-probed:" \
+		     "$rootpart:$bootpart:$label:$kernel:$initrd:$params"
+		ofrootpart="$(map_of_path "$mappedpartition")" || continue
+		debug "OF root partition: $ofrootpart"
+		# bootpart may or may not be in devfs syntax.
+		mappedbootpart="$(mapdevfs "$bootpart")" || \
+		    mappedbootpart="$bootpart"
+		debug "mapped boot partition: $mappedbootpart"
+		ofbootpart="$(map_of_path "$mappedbootpart")" || continue
+		debug "OF boot partition: $ofbootpart"
+		if [ -z "$label" ]; then
+		    label="$title"
+		fi
+		# Prepend the last part of the partition name to the label,
+		# for uniqueness and (I hope) clarity, given that we don't
+		# have a way to display a useful description in yaboot.
+		label="${mappedbootpart##*/}-$label"
+		if echo "$kernel" | grep -q '^/boot/' && \
+		   [ "$mappedbootpart" != "$mappedpartition" ]; then
+		    # separate /boot partition
+		    kernel="${kernel#/boot}"
+		    initrd="${initrd#/boot}"
+		fi
+		writeimages <<EOF
+
+# This entry automatically added by the Ubuntu installer for an existing
+# Linux installation on $mappedpartition.
+image=$ofbootpart,$kernel
+    label=$label
+    root=$ofrootpart
+    append="$params"
+EOF
+		if [ -n "$initrd" ]; then
+		    writeimages <<EOF
+    initrd=$ofbootpart,$initrd
+EOF
+		fi
+		IFS=:
+	    done
+	    IFS="$OLDIFS"
+	    ;;
+	macosx)
+	    if ! [ "$macosx" ]; then
+		macosx=1
+		echo "macosx=$mappedpartition" | writeglobals
+	    fi
+	    ;;
+	macos)
+	    if ! [ "$macos" ]; then
+		macos=1
+		echo "macos=$mappedpartition" | writeglobals
+	    fi
+	    ;;
+	*)
+	    info "unhandled: $partition:$title:$label:$loadertype"
+	    ;;
+    esac
+    IFS=:
+done
+IFS="$OLDIFS"
+
+# Generate yaboot.conf
+
+db_progress STEP 1
+db_progress INFO yaboot-installer/conf
+
+root="`mapdevfs "$rootdev"`"
+slashboot="`mapdevfs "$slashbootdev"`"
+
+partnr="`printf %s "$slashboot" | sed 's/[^0-9]*\([0-9]\)/\1/'`"
+if [ "$ARCH" = powerpc/chrp_pegasos ]; then
+    # Pegasos OF starts counting at 0.
+    partnr="$(($partnr - 1))"
+fi
+disk="`printf %s "$slashboot" | sed 's/[0-9].*//'`"
+
+ofpath="$(map_of_path "$disk" || true)"
+
+if [ -e /target/boot/vmlinux ]; then
+    kernel=/boot/vmlinux
+else
+    kernel=/vmlinux
+fi
+
+if [ -e /target/boot/initrd.img ]; then
+    initrd=/boot/initrd.img
+elif [ -e /target/initrd.img ]; then
+    initrd=/initrd.img
+else
+    initrd=
+fi
+
+# Is /boot on a separate partition?
+if [ "$slashboot" != "$root" ]; then
+    kernel="${kernel#/boot}"
+    initrd="${initrd#/boot}"
+fi
+
+# Work out user parameters.
+user_params=quiet
+if db_get debian-installer/framebuffer && [ "$RET" = true ]; then
+    user_params="$user_params splash"
+fi
+user_params="$(echo $user_params $(user-params))" || true
+
+# If we're using an HVC virtual serial console, put that in append=.
+# TODO: should we do this for other types of serial console too?
+OLDIFS="$IFS"
+IFS=' '
+for arg in $(cat /proc/cmdline); do
+    IFS="$OLDIFS"
+    case $arg in
+	console=*)
+	    defconsole="$arg"
+	    ;;
+    esac
+    IFS=' '
+done
+IFS="$OLDIFS"
+case $defconsole in
+    hvc*)
+	user_params="console=$defconsole${user_params:+ $user_params}"
+	;;
+esac
+
+if [ "$ARCH" = powerpc/chrp_pegasos ]; then
+    # Create a /boot/yaboot symlink, and get yaboot to maintain it for us.
+    # TODO: a symlink is suboptimal because it doesn't work if /boot != /.
+    # mkofboot should probably be changed to take a copy instead.
+    ln -sf /usr/lib/yaboot/yaboot /target/boot/yaboot
+    yaboot_location=/boot/yaboot
+else
+    yaboot_location=/usr/lib/yaboot/yaboot
+fi
+
+# we generate our own yaboot.conf kernel (yabootconfig is horribly broken)
+# cjwatson: a little more justification of that would have been nice ...
+# but it does seem clear that yabootconfig isn't flexible enough for our
+# needs, e.g. OS probing.
+
+rm -f /target/etc/yaboot.conf
+
+writeyabootconf() {
+    writefile /target/etc/yaboot.conf yaboot.conf
+}
+
+writeyabootconf <<EOF
+## yaboot.conf generated by the Ubuntu installer
+##
+## run: "man yaboot.conf" for details. Do not make changes until you have!!
+## see also: /usr/share/doc/yaboot/examples for example configurations.
+##
+## For a dual-boot menu, add one or more of:
+## bsd=/dev/hdaX, macos=/dev/hdaY, macosx=/dev/hdaZ
+
+EOF
+
+if [ "$boot" ]; then
+    writeyabootconf <<EOF
+boot=$boot
+EOF
+fi
+
+if [ "$ofpath" ]; then
+    writeyabootconf <<EOF
+device=$ofpath
+EOF
+else
+    info "ofpath returned nothing; leaving out device= line and praying"
+fi
+writeyabootconf <<EOF
+partition=$partnr
+root=$root
+timeout=$timeout
+install=$yaboot_location
+EOF
+if [ "$ARCH" = powerpc/powermac_newworld ]; then
+    writeyabootconf <<EOF
+magicboot=/usr/lib/yaboot/ofboot
+EOF
+fi
+writeyabootconf <<EOF
+enablecdboot
+EOF
+
+if [ -s "$extraglobals" ]; then
+    cat "$extraglobals" | writeyabootconf
+    rm -f "$extraglobals"
+fi
+
+writeyabootconf <<EOF
+
+image=$kernel
+	label=Linux
+	read-only
+EOF
+if [ "$initrd" ]; then
+    writeyabootconf <<EOF
+	initrd=$initrd
+EOF
+fi
+if [ "$user_params" ]; then
+    writeyabootconf <<EOF
+	append="$user_params"
+EOF
+fi
+writeyabootconf <<EOF
+
+image=$kernel.old
+	label=old
+	read-only
+EOF
+if [ "$initrd" ]; then
+    writeyabootconf <<EOF
+	initrd=$initrd.old
+EOF
+fi
+if [ "$user_params" ]; then
+    writeyabootconf <<EOF
+	append="$user_params"
+EOF
+fi
+
+if [ -s "$extraimages" ]; then
+    cat "$extraimages" | writeyabootconf
+    rm -f "$extraimages"
+fi
+
+# Install into bootstrap partition
+
+db_progress STEP 1
+db_progress INFO yaboot-installer/ybin
+
+if [ "$ARCH" = powerpc/chrp_pegasos ]; then
+    if [ "$slashboot" = "$root" ]; then
+	yabootpath=boot/yaboot
+    else
+	yabootpath=yaboot
+    fi
+    db_subst yaboot-installer/of_pegasos OF_BOOT_DEVICE "$ofpath$partnr"
+    db_subst yaboot-installer/of_pegasos OF_BOOT_FILE "$yabootpath"
+    db_subst yaboot-installer/of_pegasos BOOT "boot $ofpath$partnr $yabootpath"
+    db_input high yaboot-installer/of_pegasos || true
+else
+    log-output -t yaboot-installer chroot /target mkofboot -v -f || \
+	die yaboot-installer/ybinerr "mkofboot failed with exit status $?"
+fi
+
+# Done!
+
+db_progress STEP 1
+db_progress STOP
+
+db_input medium yaboot-installer/success || [ $? -eq 30 ]
+db_go || true

@@ -1,0 +1,44 @@
+#!/bin/sh
+
+. /usr/share/debconf/confmodule
+
+dev=$1
+id=$2
+part=$dev/$id
+filesystem=$(cat $part/acting_filesystem)
+tpl=partman-basicfilesystems/mountoptions
+
+cd $dev
+
+full_options=''
+all_options=''
+descriptions=''
+for op in $(cat /lib/partman/mountoptions/$filesystem); do
+	if db_metaget partman-basicfilesystems/text/$op description && \
+	   [ "$RET" ]; then
+		all_options="${all_options:+$all_options, }$op"
+		descriptions="${descriptions:+$descriptions, }$RET"
+	else
+		logger -t partman "Error: no description for mount option $op found; skipping"
+		break
+	fi
+
+	if [ -f $part/options/$op ]; then
+		full_options="${full_options:+$full_options,}$(cat $part/options/$op)"
+	fi
+done
+
+db_subst $tpl options "$all_options"
+db_subst $tpl descriptions "$descriptions"
+db_set $tpl "$full_options"
+db_input critical $tpl || true
+db_go || exit
+
+db_get $tpl
+rm -rf $part/options
+mkdir $part/options
+IFS=,
+for op in $RET; do
+	op=${op# }
+	echo "$op" >$part/options/${op%% *}
+done

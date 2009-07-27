@@ -1,0 +1,161 @@
+Template: debian-installer/localechooser/title
+Type: text
+# This menu entry may be translated.
+# However, translators are required to keep "Choose language"
+# as an alternative separated by the "/" character
+# Example (french): Choisir la langue/Choose language
+# :sl1:
+_Description: Choose language
+
+Template: debian-installer/locale
+Type: select
+Choices: ${LOCALELIST}
+# :sl2:
+_Description: Choose a locale:
+ Based on your language and country choices, the following locale
+ parameters are supported.
+
+Template: debian-installer/fallbacklocale
+Type: select
+Choices: ${LOCALELIST}
+Description: for internal use only
+
+Template: debian-installer/language
+Type: string
+Description: for internal use only
+
+Template: debian-installer/country
+Type: string
+Description: for internal use; can be preseeded
+
+Template: debian-installer/consoledisplay
+Type: string
+Description: for internal use only
+
+Template: debian-installer/charmap
+Type: string
+Description: for internal use; cannot be preseeded
+ This variable is meant for console-setup use.
+
+Template: finish-install/progress/localechooser
+Type: text
+# finish-install progress bar item
+# :sl1:
+_Description: Storing language...
+
+Template: localechooser/languagelist
+Type: select
+Choices-C: ${CODES}
+Choices: ${NAMES_EN}
+Choices-en.UTF-8: ${NAMES_BOTH}
+Default: en
+Description: Choose a language:
+ Please choose the language used for the installation process. This
+ language will be the default language for the final system.
+
+Template: localechooser/translation/none-yet
+Type: note
+# :sl1:
+Description: Translations temporarily not available
+ Because of the low available space on the installation media, translations
+ will not be available immediately.
+ .
+ The installation will continue in English until the installer
+ loads packages that include translations from a CD or the network.
+
+Template: localechooser/translation/no-select
+Type: note
+# :sl1:
+_Description: Language selection no longer possible
+ At this point it is no longer possible to change the language for the
+ installation, but you can still change the country or locale.
+ .
+ To select a different language you will need to abort this installation
+ and reboot the installer.
+
+Template: localechooser/translation/warn-severe
+Type: boolean
+Default: false
+# :sl1:
+#flag:translate!:3,4
+_Description: Continue the installation in the selected language?
+ The translation of the installer is incomplete for the selected language.
+ .
+ ${TXT-WARN}
+ .
+ ${TXT-ABORT}
+
+Template: localechooser/translation/warn-light
+Type: boolean
+Default: true
+# :sl1:
+#flag:translate!:3
+_Description: Continue the installation in the selected language?
+ The translation of the installer is not fully complete for the selected
+ language.
+ .
+ ${TXT-WARN}
+
+Template: localechooser/translation/text/warn_incomplete
+Type: text
+# :sl1:
+_Description: This means that there is a significant chance that some dialogs will be displayed in English instead.
+
+Template: localechooser/translation/text/warn_normal-ok
+Type: text
+# :sl1:
+_Description: If you do anything other than a purely default installation, there is a real chance that some dialogs will be displayed in English instead.
+
+Template: localechooser/translation/text/warn_partial
+Type: text
+# :sl1:
+_Description: If you continue the installation in the selected language, most dialogs should be displayed correctly but - especially if you use the more advanced options of the installer - some may be displayed in English instead.
+
+Template: localechooser/translation/text/warn_mostly-ok
+Type: text
+# :sl1:
+_Description: If you continue the installation in the selected language, dialogs should normally be displayed correctly but - especially if you use the more advanced options of the installer - there is a slight chance some may be displayed in English instead.
+
+Template: localechooser/translation/text/warn_exceptions
+Type: text
+# :sl1:
+_Description: The chance that you will actually encounter a dialog that is not translated into the selected language is extremely small, but it cannot be ruled out completely.
+
+Template: localechooser/translation/text/abort
+Type: text
+# :sl1:
+_Description: Unless you have a good understanding of the alternative language, it is recommended to either select a different language or abort the installation.
+
+Template: localechooser/translation/text/maybe-abort
+Type: text
+# :sl1:
+_Description: If you choose not to continue, you will be given the option of selecting a different language, or you can abort the installation.
+
+Template: localechooser/shortlist
+Type: select
+#flag:translate!:1
+# "other", here, is added to the list of countries that will be displayed
+# for users to choose among them
+# For instance, choosing "Italian" will show:
+# Italy, Switzerland, other
+# :sl1:
+__Choices: ${SHORTLIST}, other
+# :sl1:
+_Description: Choose a country, territory or area:
+ Based on your language, you are probably located in one of these countries
+ or regions.
+
+Template: localechooser/supported-locales
+Type: multiselect
+Choices: ${LOCALELIST}
+# :sl2:
+_Description: Choose other locales to be supported:
+ You may choose additional locales to be installed from this list.
+
+# This template does not really belong in localechooser, but it is probably
+# the best place for it. It is used to display the language currently being
+# installed during babelbox demo runs.
+# Note that the template is not marked translatable on purpose!
+Template: babelbox/info
+Type: title
+Description: Demo - ${LANGNAME}

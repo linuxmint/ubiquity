@@ -1,0 +1,47 @@
+#!/bin/sh
+
+# On Intel Macs, it isn't entirely clear that you have to have an EFI system
+# partition; see http://refit.sourceforge.net/myths/ for further details. In
+# the meantime, we only force an EFI system partition on ia64.
+if [ ! -e /var/lib/partman/efi ] || \
+   [ "$(udpkg --print-architecture)" != ia64 ]; then
+	exit 0
+fi
+
+. /lib/partman/lib/base.sh
+
+have_efi=no
+
+# Is there at least one efi-partition?
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ "$fs" != free ] || continue
+		partitions="$partitions $id,$num"
+	done
+	close_dialog
+
+	for part in $partitions; do
+		id=${part%,*}
+		num=${part#*,}
+		[ -f $id/method ] || continue
+		method=$(cat $id/method)
+		if [ "$method" = efi ] && [ -f $id/bootable ]; then
+			have_efi=yes
+		fi
+	done
+done
+
+if [ $have_efi = no ]; then
+	db_input critical partman-efi/no_efi || true
+	db_go || exit 1
+	db_get partman-efi/no_efi
+	if [ "$RET" = true ]; then
+		exit 1
+	fi
+fi
+
+exit 0

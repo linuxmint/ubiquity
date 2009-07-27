@@ -1,0 +1,87 @@
+#! /usr/bin/perl -w
+use strict;
+
+use Dpkg::Deps;
+
+# Get the first in a list of or-ed dependencies.
+sub first_dep ($) {
+	my $inner = shift;
+	while ($inner->isa('Dpkg::Deps::OR')) {
+		my @deps = $inner->get_deps();
+		$inner = $deps[0];
+	}
+	unless ($inner->isa('Dpkg::Deps::Simple')) {
+		die sprintf "Couldn't reduce %s to a simple dependency!\n",
+			    $inner->dump();
+	}
+	return $inner;
+}
+
+my $control = 'debian/control';
+unless (-e $control) {
+	$control = '../debian/control';
+	unless (-e $control) {
+		die "cannot find debian/control";
+	}
+}
+
+my %builddeps;
+
+# Always include base ubiquity build dependencies.
+my @basebd = (
+    'apt',
+    'dctrl-tools',
+    'debhelper (>= 5.0.37.3ubuntu2)',
+    'intltool (>= 0.40.0)',
+    'libglib2.0-dev',
+    'libgtk2.0-dev',
+    'libart-2.0-dev',
+    'po-debconf (>= 1.0)',
+    'python-central (>= 0.5)',
+    'python-all-dev (>= 2.3.5-11)',
+    'python-gobject-dev (>= 2.15.1)',
+    'python-gtk2-dev',
+    'xkb-data (>= 0.9)',
+);
+my $basebd = join ', ', @basebd;
+my $parsed = Dpkg::Deps::parse($basebd, reduce_arch => 1);
+for my $bd ($parsed->get_deps()) {
+	my $firstbd = first_dep($bd);
+	$builddeps{$firstbd->{package}} = $firstbd;
+}
+
+for my $source (<source/*/debian/control>) {
+	# We don't build console-setup, so skip its build-dependencies.
+	next if $source eq 'source/console-setup/debian/control';
+	open SOURCE, '<', $source or die "can't open $source: $!";
+	while (<SOURCE>) {
+		if (/^Build-Depends(?:-Indep)?:\s*(.*)/i) {
+			$parsed = Dpkg::Deps::parse($1, reduce_arch => 1);
+			for my $bd ($parsed->get_deps()) {
+				# Reduce any or-ed dependencies to the first
+				# alternative.
+				my $firstbd = first_dep($bd);
+				my $package = $firstbd->{package};
+				if (not exists $builddeps{$package} or
+				    $firstbd->implies($builddeps{$package})) {
+					$builddeps{$package} = $firstbd;
+				}
+			}
+			next;
+		}
+	}
+	close SOURCE;
+}
+
+my $builddeps =
+	join ', ', map { $builddeps{$_}->dump() } sort keys %builddeps;
+open IN, '<', $control or die "can't open $control: $!";
+open OUT, '>', "$control.tmp" or die "can't open $control.tmp for writing: $!";
+foreach (<IN>) {
+	s/^(Build-Depends:\s*)(.*)/$1$builddeps/;
+	print OUT or die "can't print to $control.tmp: $!";
+}
+close OUT or die "can't close $control.tmp: $!";
+close IN;
+rename "$control.tmp", $control
+	or die "can't rename $control.tmp to $control: $!";

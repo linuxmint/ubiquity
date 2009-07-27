@@ -1,0 +1,21 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+dev=$1
+id=$2
+
+cd $dev
+
+open_dialog PARTITION_INFO $id
+read_line x1 id x2 type x3 x4 x5
+close_dialog
+
+[ "$id" ] || exit 0
+
+case "$type" in
+    primary|logical|pri/log)
+	db_metaget partman-partitioning/text/new description
+	printf "new\t${RET}\n"
+	;;
+esac

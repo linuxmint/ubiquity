@@ -1,0 +1,18 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+dev="$2"
+id=$3
+
+cd $dev
+
+open_dialog GET_CHS $id
+read_line cs hs ss ce he se
+close_dialog
+
+db_subst partman/show_partition_chs FROMCHS "($cs,$hs,$ss)"
+db_subst partman/show_partition_chs TOCHS "($ce,$he,$se)"
+
+db_input critical partman/show_partition_chs || true
+db_go || true

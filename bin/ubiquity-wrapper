@@ -1,0 +1,132 @@
+#! /usr/bin/python
+
+# Wrapper script to run Ubiquity as root using the appropriate privilege
+# escalation method for the frontend.
+
+import sys
+import os
+import syslog
+import subprocess
+
+sys.path.insert(0, '/usr/lib/ubiquity')
+
+from ubiquity import osextras
+
+def main():
+    newargv = []
+    desktop = None
+    frontend = None
+    toexec = []
+
+    i = 1
+    while i < len(sys.argv):
+        if sys.argv[i] == '--desktop':
+            desktop = sys.argv[i + 1]
+            i += 2
+            # strip option and argument from newargv
+            continue
+        elif not sys.argv[i].startswith('-'):
+            frontend = sys.argv[i]
+        newargv.append(sys.argv[i])
+        i += 1
+
+    if os.getuid() == 0:
+        # no privilege escalation required
+        inner = ['/usr/lib/ubiquity/bin/ubiquity']
+        inner.extend(newargv)
+
+        # Lock HAL's storage subsystem.
+        if osextras.find_on_path('hal-lock'):
+            toexec.extend(['hal-lock',
+                           '--interface', 'org.freedesktop.Hal.Device.Storage',
+                           '--exclusive', '--run'])
+            # hal-lock has irritating argument passing conventions.
+            toexec.append(' '.join(inner))
+        else:
+            toexec.extend(inner)
+    else:
+        if frontend is None:
+            # Try to detect which frontend will be used by looking for a
+            # frontend module.
+            import imp
+            import ubiquity.frontend
+            frontend_names = ['mythbuntu_ui', 'gtk_ui', 'kde_ui']
+            for f in frontend_names:
+                try:
+                    imp.find_module(f, ubiquity.frontend.__path__)
+                    frontend = f
+                    break
+                except ImportError:
+                    pass
+
+        if frontend in ('gtk_ui', 'mythbuntu_ui'):
+            toexec = ['gksudo', '--preserve-env']
+            if desktop:
+                toexec.extend(['--desktop', desktop])
+            toexec.append('--')
+        elif frontend == 'kde_ui':
+            kdesu = None
+            if osextras.find_on_path('kdesu'):
+                kdesu = 'kdesu'
+            elif osextras.find_on_path('kdesudo'):
+                kdesu = 'kdesudo'
+            elif os.path.exists('/usr/lib/kde4/bin/kdesudo'):
+                kdesu = '/usr/lib/kde4/bin/kdesudo'
+            if kdesu:
+                toexec = [kdesu, '--nonewdcop', '--']
+            else:
+                toexec = ['sudo', '-E']
+            #temporarily force sudo until we work out why kdesudo stops it passing partitioning stage
+            toexec = ['sudo', '-E']
+        else:
+            toexec = ['sudo', '-E']
+
+        # re-exec ourselves first time round, to cope with broken argument
+        # handling in kdesu
+        toexec.append(sys.argv[0])
+        toexec.extend(newargv)
+
+    # Workaround for hang on relatively low-memory PS3 systems (#106683).
+    # Apparently killing a few processes up-front helps.
+    try:
+        lowmem = False
+        archdetect = subprocess.Popen(['archdetect'], stdout=subprocess.PIPE)
+        arch = archdetect.communicate()[0].strip()
+        if arch == 'powerpc/ps3':
+            meminfo = open('/proc/meminfo')
+            try:
+                for line in meminfo:
+                    if line.startswith('MemTotal:'):
+                        mem = int(line.split()[1])
+                        if mem <= 262144:
+                            lowmem = True
+                            break
+            finally:
+                meminfo.close()
+        if lowmem:
+            syslog.syslog("Low memory: killing processes to work around hang")
+            if frontend == 'gtk_ui':
+                for session_process in ('evolution-alarm-notify',
+                                        'gnome-cups-icon',
+                                        'jockey-gtk',
+                                        'update-notifier'):
+                    subprocess.call(['gnome-session-remove',
+                                     session_process])
+            if os.getuid() == 0:
+                subprocess.call(['/etc/init.d/cupsys', 'stop'])
+                subprocess.call(['/etc/init.d/hplip', 'stop'])
+            else:
+                subprocess.call(['sudo', '/etc/init.d/cupsys', 'stop'])
+                subprocess.call(['sudo', '/etc/init.d/hplip', 'stop'])
+    except (KeyboardInterrupt, SystemExit):
+        raise
+    except:
+        pass
+
+    if 'UBIQUITY_WRAPPER_DEBUG' in os.environ:
+        print >>sys.stderr, toexec
+    os.execvp(toexec[0], toexec)
+    sys.exit(127)
+
+if __name__ == '__main__':
+    main()

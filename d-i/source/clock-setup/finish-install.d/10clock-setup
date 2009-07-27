@@ -1,0 +1,135 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+log() {
+	logger -t clock-setup "$@"
+}
+warning() {
+	log "warning: $*"
+}
+
+os_needs_local_clock () {
+	while read line; do
+		shortname=$(echo "$line" | cut -d : -f 3)
+		case $shortname in
+		MS-DOS*|Windows*|FreeDOS*|Solaris*) # keep in sync with os-prober
+			return 0
+		;;
+		esac
+	done
+	return 1
+}
+
+pri=high
+
+if db_fget clock-setup/utc seen && [ "$RET" = true ]; then
+	# keep preseeded value
+	:
+else
+	# os-prober is may not yet be installed..
+	anna-install os-prober-udeb || true
+
+	probed=$(os-prober) || true
+
+	if echo "$probed" | os_needs_local_clock; then
+		# default to localtime for some OSes
+		db_set clock-setup/utc false
+		pri=low
+	fi
+
+	if [ -z "$probed" ]; then
+		# installing the only OS, so use UTC
+		db_set clock-setup/utc true
+		db_get clock-setup/utc-auto
+		if [ "$RET" = true ]; then
+			pri=low
+		fi
+	fi
+fi
+
+db_input $pri clock-setup/utc || true
+if ! db_go; then
+	exit 10 # back to main menu
+fi
+
+rcsfile=/target/etc/default/rcS
+adjtimefile=/target/etc/adjtime
+
+db_get clock-setup/utc
+if [ "$RET" = true ]; then
+	sed -i -e 's:^UTC="no":UTC="yes":' -e 's:^UTC=no:UTC=yes:' $rcsfile
+	if [ -e "$adjtimefile" ]; then
+		sed -i -e 's:^LOCAL:UTC:' $adjtimefile
+	fi
+else
+	sed -i -e 's:^UTC="yes":UTC="no":' -e 's:^UTC=yes:UTC=no:' $rcsfile
+	if [ -e "$adjtimefile" ]; then
+		sed -i -e 's:^UTC:LOCAL:' $adjtimefile
+	fi
+fi
+
+anna-install rtc-modules || true
+
+# This may not be necessary on all hardware; hwclock can do direct IO if
+# the rtc module is not loaded.
+log-output -t hw-detect modprobe -v rtc || log "rtc module not loaded"
+log-output -t hw-detect modprobe -v rtc-dev || log "rtc-dev module not loaded"
+update-dev --settle
+
+# rtc-dev creates a /dev/rtc0, so set up a symlink
+# XXX This won't be needed once a new udev (116) that
+# handles the symlink gets into Debian.
+if [ -e /dev/rtc0 ] && [ ! -e /dev/rtc ]; then
+	ln -sf rtc0 /dev/rtc
+fi
+
+# bind mount /dev into /target/dev so that rtc devices are available for hwclock
+if mount -o bind /dev /target/dev; then
+	target_dev_mounted=1
+else
+	warning "failed to bind mount /target/dev"
+fi
+
+cleanup () {
+	if [ "$target_dev_mounted" ] && ! umount /target/dev; then
+		warning "failed to unmount /target/dev bind mount"
+	fi
+}
+
+db_progress INFO clock-setup/progress/hwclock
+log-output -t clock-setup chroot /target hwclock --systohc --debug &
+pid="$!"
+count=0
+
+stop_hwclock () {
+	kill $pid || return
+	sleep 1
+	if [ -e /proc/$pid ]; then
+		kill -9 $pid || return
+	fi
+}
+
+while sleep 1; do
+	if [ ! -e /proc/$pid ]; then
+		break
+	fi
+	count=$(expr $count + 1)
+	if [ "$count" = 30 ]; then
+		count=0
+		db_input critical clock-setup/hwclock-wait || true
+		if ! db_go; then
+			stop_hwclock
+			cleanup
+			exit 10 # back to main menu
+		fi
+		db_get clock-setup/hwclock-wait
+		if [ "$RET" = false ]; then
+			stop_hwclock
+			break
+		fi
+	fi
+done
+
+cleanup

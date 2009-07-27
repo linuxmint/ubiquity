@@ -1,0 +1,141 @@
+#!/bin/sh
+
+. /usr/share/debconf/confmodule
+
+set -e
+
+dev=$1
+id=$2
+part=$dev/$id
+
+cd $dev
+
+[ -f $part/method -a -f $part/acting_filesystem ] || exit 0
+
+method=$(cat $part/method)
+filesystem=$(cat $part/acting_filesystem)
+
+case "$filesystem" in
+    ext2|fat16|fat32|ntfs)
+	:
+	;;
+    *)
+	exit 0
+	;;
+esac
+
+choice_mountpoint () {
+	case "$filesystem" in
+	    ext2|fat16|fat32|ntfs)
+		if [ -f $part/mountpoint ]; then
+			mp=$(cat $part/mountpoint)
+		else
+			db_metaget partman-basicfilesystems/text/no_mountpoint description
+			mp="$RET"
+		fi
+		db_metaget partman-basicfilesystems/text/specify_mountpoint description
+		printf "mountpoint\t%s\${!TAB}%s\n" "$RET" "$mp"
+		;;
+	esac
+}
+
+choice_options () {
+	if [ "$filesystem" = ntfs ]; then
+		# no mount options support yet (requires translations)
+		return
+	fi
+	db_metaget partman-basicfilesystems/text/options description
+	printf "options\t%s\${!TAB}%.45s\n" "$RET" "$(get_mountoptions $dev $id)"
+}
+
+choice_format_swap () {
+	if [ "$method" = swap ] && [ -f $part/detected_filesystem ] && \
+	   [ "$(cat $part/detected_filesystem)" = linux-swap ];	then
+		db_metaget partman-basicfilesystems/text/format_swap description
+		description="$RET"
+		if [ -f $part/format ]; then
+			db_metaget partman-basicfilesystems/text/yes description
+			printf "dont_format_swap\t%s\${!TAB}%s\n" "$description" "${RET}"
+		else
+			db_metaget partman-basicfilesystems/text/no description
+			printf "format_swap\t%s\${!TAB}%s\n" "$description" "${RET}"
+		fi
+	fi
+}
+
+choice_label () {
+	# allow to set label only if the partition is to be formatted
+	[ -f $part/format ] || return 0
+	[ ! -f $part/formatted \
+	  -o $part/formatted -ot $part/method \
+	  -o $part/formatted -ot $part/filesystem ] || return 0
+	case "$filesystem" in
+	    ext2)
+		if [ -f $part/label ]; then
+			label=$(cat $part/label)
+		else
+			db_metaget partman-basicfilesystems/text/none description
+			label=$RET
+		fi
+		db_metaget partman-basicfilesystems/text/specify_label description
+		printf "label\t%s\${!TAB}%s\n" "$RET" "$label"
+		;;
+	    _no_fat16|_no_fat32) # we dont have tools to set label of FAT file systems
+		if [ -f $part/label ]; then
+			label=$(cat $part/label)
+		else
+			db_metaget partman-basicfilesystems/text/none description
+			label=$RET
+		fi
+		db_metaget partman-basicfilesystems/text/specify_label description
+		printf "label\t%s\${!TAB}%s\n" "$RET" "$label"
+		;;
+	esac
+}
+
+choice_reserved () {
+	local reserved
+	[ "$filesystem" = ext2 ] || return 0
+	# allow to set reserved space only if the partition is to be formatted
+	[ -f $part/format ] || return 0
+	[ ! -f $part/formatted \
+	  -o $part/formatted -ot $part/method \
+	  -o $part/formatted -ot $part/filesystem ] || return 0
+	if [ -f $part/reserved_for_root ]; then
+		reserved=$(cat $part/reserved_for_root)
+	else
+		reserved=5
+	fi
+	db_metaget partman-basicfilesystems/text/reserved_for_root description
+	printf "reserved_for_root\t%s\${!TAB}%s\n" "$RET" "$reserved%"
+}
+
+choice_usage () {
+	local usage
+	[ "$filesystem" = ext2 ] || return 0
+	# allow to set usage only if the partition is to be formatted
+	[ -f $part/format ] || return 0
+	[ ! -f $part/formatted \
+	  -o $part/formatted -ot $part/method \
+	  -o $part/formatted -ot $part/filesystem ] || return 0
+	if [ -f $part/usage ]; then
+		usage=$(cat $part/usage)
+	else
+		db_metaget partman-basicfilesystems/text/typical_usage description
+		usage=$RET
+	fi
+	db_metaget partman-basicfilesystems/text/usage description
+	printf "usage\t%s\${!TAB}%s\n" "$RET" "$usage"
+}
+
+choice_mountpoint
+
+choice_options
+
+choice_format_swap
+
+choice_label
+
+choice_reserved
+
+choice_usage

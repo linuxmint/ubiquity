@@ -1,0 +1,234 @@
+#!/usr/bin/python
+
+'''
+Installer
+
+This is a installer program for a Ubuntu or Metadistros Live system.
+This is the main program, but there are also a couple of libraries to
+help it to work, such as the frontend.
+The way it works is simple. It detects the frontend to use, then
+load the module for that frontend. After that, it makes some calls
+through the frontend in order to get the info necessary to install.
+
+Once it has the info, partitioning, format, copy the distro to the disk
+and configure everything.
+'''
+
+import sys
+import os
+import errno
+import fcntl
+import shutil
+import syslog
+import atexit
+import optparse
+import subprocess
+
+sys.path.insert(0, '/usr/lib/ubiquity')
+
+from ubiquity import misc
+
+VERSION = '@VERSION@'
+TARGET = '/target'
+LOCKFILE = '/var/lock/ubiquity'
+lock = None
+
+def distribution():
+    """Returns the name of the running distribution."""
+
+    proc = subprocess.Popen(['lsb_release', '-is'], stdout=subprocess.PIPE)
+    return proc.communicate()[0].strip()
+
+def install(frontend=None):
+    '''install(frontend=None) -> none
+    
+    Get the type of frontend to use and load the module for that.
+    If frontend is None, defaults to the first of mythbuntu_ui, 
+    gtk_ui, and kde_ui that exists.
+    '''
+    if frontend is None:
+        frontends = ['mythbuntu_ui', 'gtk_ui', 'kde_ui']
+    else:
+        frontends = [frontend]
+    mod = __import__('ubiquity.frontend', globals(), locals(), frontends)
+    for f in frontends:
+        if hasattr(mod, f):
+            ui = getattr(mod, f)
+            # Noninteractive implies automatic mode.
+            if f == 'noninteractive':
+                os.environ['UBIQUITY_AUTOMATIC'] = '1'
+            break
+    else:
+        raise AttributeError, ('No frontend available; tried %s' %
+                               ', '.join(frontends))
+
+    unmount_target()
+    distro = distribution().lower()
+    wizard = ui.Wizard(distro)
+    ret = wizard.run()
+    copy_debconf()
+    unmount_target()
+    if ret == 10:
+        wizard.do_reboot()
+
+def copy_debconf():
+    """Copy a few important questions into the installed system."""
+    targetdb = '/target/var/cache/debconf/config.dat'
+    # xserver-xorg is temporary, pending a rework of bullet-proof-x; but
+    # note that xserver-xorg/config/inputdevice/keyboard/* is still needed
+    for q in ('^console-setup/','^xserver-xorg/'):
+        misc.execute('debconf-copydb', 'configdb', 'targetdb', '-p', q,
+                     '--config=Name:targetdb', '--config=Driver:File',
+                     '--config=Filename:%s' % targetdb)
+
+def unmount_target():
+    paths = []
+    mounts = open('/proc/mounts')
+    for line in mounts:
+        path = line.split(' ')[1]
+        if path == '/target' or path.startswith('/target/'):
+            paths.append(path)
+    mounts.close()
+    paths.sort()
+    paths.reverse()
+    for path in paths:
+        misc.execute('umount', path)
+
+def prepend_path(directory):
+    if 'PATH' in os.environ and os.environ['PATH'] != '':
+        os.environ['PATH'] = '%s:%s' % (directory, os.environ['PATH'])
+    else:
+        os.environ['PATH'] = directory
+
+def release_lock():
+    global lock
+    try:
+        os.unlink(LOCKFILE)
+    except OSError:
+        pass
+    if lock is not None:
+        lock.close()
+        lock = None
+
+def acquire_lock():
+    global lock
+    lock = open(LOCKFILE, 'w')
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except IOError, e:
+        if e.errno in (errno.EACCES, errno.EAGAIN, errno.EWOULDBLOCK):
+            print "Ubiquity is already running!"
+            sys.exit(1)
+        raise
+    atexit.register(release_lock)
+    fcntl.fcntl(lock, fcntl.F_SETFD, fcntl.FD_CLOEXEC)
+    print >>lock, os.getpid()
+    lock.flush()
+    os.fsync(lock.fileno())
+
+def main():
+    usage = '%prog [options] [frontend]'
+    parser = optparse.OptionParser(usage=usage, version=VERSION)
+    parser.set_defaults(
+        debug=('UBIQUITY_DEBUG' in os.environ),
+        debug_pdb=False,
+        cdebconf=False,
+        automatic=False,
+        migration_assistant=True)
+    parser.add_option('-d', '--debug', dest='debug', action='store_true',
+                      help='debug mode (warning: passwords will be logged!)')
+    parser.add_option('--pdb', dest='debug_pdb', action='store_true',
+                      help='drop into Python debugger on a crash')
+    parser.add_option('--cdebconf', dest='cdebconf', action='store_true',
+                      help='use cdebconf instead of debconf (experimental)')
+    parser.add_option('--no-migration-assistant', dest='migration_assistant',
+                      action='store_false',
+                      help='disable Migration Assistant')
+    parser.add_option('--automatic', dest='automatic', action='store_true',
+                      help='do not ignore the "seen" flag (useful for ' \
+                      'unattended installations).')
+    parser.add_option('--old-tzmap', dest='old_tzmap', action='store_true',
+                      help='use the old timezone map.')
+    parser.add_option('--only', dest='only', action='store_true',
+                      help='tell the application that it is the only desktop ' \
+                      'program running so that it can customize its UI to ' \
+                      'better suit a minimal environment.')
+    (options, args) = parser.parse_args()
+
+    if options.debug:
+        os.environ['UBIQUITY_DEBUG'] = '1'
+
+    if options.debug_pdb:
+        os.environ['UBIQUITY_DEBUG_PDB'] = '1'
+
+    if options.cdebconf:
+        # Note that this needs to be set before DebconfCommunicate is
+        # imported by anything.
+        os.environ['DEBCONF_USE_CDEBCONF'] = '1'
+        prepend_path('/usr/lib/cdebconf')
+    prepend_path('/usr/lib/ubiquity/compat')
+
+    if options.automatic:
+        os.environ['UBIQUITY_AUTOMATIC'] = '1'
+
+    if options.migration_assistant:
+        os.environ['UBIQUITY_MIGRATION_ASSISTANT'] = '1'
+
+    if options.old_tzmap:
+        os.environ['UBIQUITY_OLD_TZMAP'] = '1'
+
+    if options.only:
+        os.environ['UBIQUITY_ONLY'] = '1'
+
+    acquire_lock()
+
+    if not os.path.exists('/var/log/installer'):
+        os.makedirs('/var/log/installer')
+    syslog.openlog('ubiquity', syslog.LOG_NOWAIT | syslog.LOG_PID)
+
+    syslog.syslog("Ubiquity %s" % VERSION)
+    version_file = open('/var/log/installer/version', 'w')
+    print >>version_file, 'ubiquity %s' % VERSION
+    version_file.close()
+
+    if 'UBIQUITY_DEBUG' in os.environ:
+        if 'UBIQUITY_DEBUG_CORE' not in os.environ:
+            os.environ['UBIQUITY_DEBUG_CORE'] = '1'
+        if 'DEBCONF_DEBUG' not in os.environ:
+            os.environ['DEBCONF_DEBUG'] = 'developer|filter'
+    # The frontend should take care of displaying a helpful message if
+    # we are being run without root privileges.
+    if not (args and args[0] == 'noninteractive'):
+        try:
+            log = os.open('/var/log/installer/debug',
+                          os.O_WRONLY | os.O_CREAT | os.O_APPEND)
+            os.dup2(log, 2)
+            os.close(log)
+            sys.stderr = os.fdopen(2, 'a', 1)
+            print >>sys.stderr, "Ubiquity %s" % VERSION
+        except (IOError, OSError), err:
+            if err.errno != errno.EACCES:
+                raise
+
+    # Default to enabling internal (non-debconf) debugging except for when
+    # using --automatic.
+    if 'UBIQUITY_DEBUG_CORE' not in os.environ:
+        if options.automatic:
+            os.environ['UBIQUITY_DEBUG_CORE'] = '1'
+
+    # Clean up old state.
+    for name in ('apt-installed', 'apt-install-direct', 'remove-kernels'):
+        path = os.path.join('/var/lib/ubiquity', name)
+        if os.path.exists(path):
+            os.unlink(path)
+    shutil.rmtree("/var/lib/partman", ignore_errors=True)
+
+    if args:
+        install(args[0])
+    else:
+        install()
+
+if __name__ == '__main__':
+    main()
+
+# vim:ai:et:sts=4:tw=80:sw=4:

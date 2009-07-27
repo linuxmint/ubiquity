@@ -1,0 +1,20 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+. /lib/preseed/preseed.sh
+
+# DHCP filename preseeding.
+for file in /var/lib/dhcp/dhclient.leases /var/lib/dhcp3/dhclient.leases; do
+	if [ -r "$file" ]; then
+		FN="$(sed -n -e '/filename/s/.*"\(.*\)"./\1/p' $file)"
+		if echo "$FN" | grep -q "://" ; then
+			preseed_location "$FN"
+		fi
+	fi
+done
+
+preseed preseed/url
+preseed_command preseed/early_command
+
+

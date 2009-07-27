@@ -1,0 +1,42 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+mkdir -p /var/lib/partman/autoused_swap
+
+partitions=
+for dev in /var/lib/partman/devices/*; do
+	[ -d "$dev" ] || continue
+
+	# Only run the first time each device is encountered
+	devbase="$(basename "$dev")"
+	[ ! -f "/var/lib/partman/autoused_swap/$devbase" ] || continue
+	>"/var/lib/partman/autoused_swap/$devbase"
+
+	cd $dev
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ -f $id/detected_filesystem ] || continue
+		fs=$(cat $id/detected_filesystem)
+		if [ "$fs" = linux-swap ]; then
+			partitions="$partitions $dev,$id"
+		fi
+	done
+	close_dialog
+done
+
+for part in $partitions; do
+	dev=${part%,*}
+	id=${part#*,}
+	[ -d $dev/$id ] || continue
+	if [ -f $dev/$id/method ]; then
+		method="$(cat $dev/$id/method)"
+		if [ "$method" ] && [ "$method" != swap ]; then
+			# Already used for something else, e.g. RAID
+			continue
+		fi
+	fi
+	echo swap >$dev/$id/method
+	> $dev/$id/format
+	update_partition $dev $id
+done

@@ -1,0 +1,40 @@
+README for partconf
+===================
+
+partconf currently consists of three binary packages.
+1. partconf                     The main program.
+2. partconf-find-partitions     Support program for shell scripts that
+                                want information about partitions and
+                                logical volumes.
+3. partconf-mkfstab             Creates the /target/etc/fstab file.
+
+
+Mapping devfs names into something easier to read
+-------------------------------------------------
+/dev/ide/host0/bus0/target0/lun0/part1 kinda sucks to read, and uses a lot
+of space too :) same for scsi. I think it's OK to have /dev/volgrp/vol1
+for LVM volumes. If you're using LVM you probably know what you are doing
+and it's harder to map this. RAID can probably be mapped to.
+
+Mappings for IDE:
+* hostX/busY is translated to IDE(2*X+Y+1), so host0/bus0 becomes IDE1,
+  host0/bus1 becomes IDE2, host1/bus0 becomes IDE3 et.c.
+* target0 is translated to "master", target1 to "slave". Will there ever
+  be target2+? Unlikely.
+* We ignore lunN, it is unlikely that an IDE device will have more than one
+  LUN.
+Examples:
+ /dev/ide/host0/bus0/target0/lun0/part2 -> "IDE1 master, part. 2"
+ /dev/ide/host0/bus1/target1/lun0/part1 -> "IDE2 slave, part. 1"
+
+Mappings for SCSI:
+* hostX is translated to SCSI(X+1), so host0 is SCSI1, host1 is SCSI2
+* busX/targetY/lunZ is mapped to a (X,Y,Z) triplet. People using SCSI are
+  probably familiar with these triplets.
+Examples:
+  /dev/scsi/host0/bus0/target0/lun5/part1 -> "SCSI1 (0,0,5), part. 1"
+
+Mappings for RAID:
+* /dev/md/X is translated to "RAID logical volume X"
+Examples:
+  /dev/md/0 -> "RAID logical volume 0"

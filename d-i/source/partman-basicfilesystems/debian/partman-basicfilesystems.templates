@@ -1,0 +1,360 @@
+Template: partman-basicfilesystems/progress_checking
+Type: text
+# :sl1:
+_Description: Checking the ${TYPE} file system in partition #${PARTITION} of ${DEVICE}...
+
+Template: partman-basicfilesystems/progress_swap_checking
+Type: text
+# :sl1:
+_Description: Checking the swap space in partition #${PARTITION} of ${DEVICE}...
+
+Template: partman-basicfilesystems/progress_formatting
+Type: text
+# :sl1:
+_Description: Creating ${TYPE} file system in partition #${PARTITION} of ${DEVICE}...
+
+Template: partman-basicfilesystems/progress_formatting_mountable
+Type: text
+# :sl1:
+_Description: Creating ${TYPE} file system for ${MOUNT_POINT} in partition #${PARTITION} of ${DEVICE}...
+
+Template: partman-basicfilesystems/progress_swap_formatting
+Type: text
+# :sl1:
+_Description: Formatting swap space in partition #${PARTITION} of ${DEVICE}...
+
+Template: partman-basicfilesystems/check_failed
+Type: boolean
+# :sl2:
+_Description: Go back to the menu and correct errors?
+ The test of the file system with type ${TYPE} in partition #${PARTITION}
+ of ${DEVICE} found uncorrected errors.
+ .
+ If you do not go back to the partitioning menu and correct these errors,
+ the partition will be used as is.
+
+Template: partman-basicfilesystems/swap_check_failed
+Type: boolean
+# :sl2:
+_Description: Go back to the menu and correct errors?
+ The test of the swap space in partition #${PARTITION} of ${DEVICE} found
+ uncorrected errors.
+ .
+ If you do not go back to the partitioning menu and correct these errors,
+ the partition will be used as is.
+
+Template: partman-basicfilesystems/no_swap
+Type: boolean
+Default: true
+# :sl2:
+_Description: Do you want to return to the partitioning menu?
+ You have not selected any partitions for use as swap space. Enabling swap
+ space is recommended so that the system can make better use of the
+ available physical memory, and so that it behaves better when physical
+ memory is scarce. You may experience installation problems if you do not
+ have enough physical memory.
+ .
+ If you do not go back to the partitioning menu and assign a swap partition,
+ the installation will continue without swap space.
+
+Template: partman-basicfilesystems/create_failed
+Type: error
+# :sl2:
+_Description: Failed to create a file system
+ The ${TYPE} file system creation in partition
+ #${PARTITION} of ${DEVICE} failed.
+
+Template: partman-basicfilesystems/create_swap_failed
+Type: error
+# :sl2:
+_Description: Failed to create a swap space
+ The creation of swap space in partition #${PARTITION} of ${DEVICE} failed.
+
+Template: partman-basicfilesystems/no_mount_point
+Type: boolean
+# :sl2:
+_Description: Do you want to return to the partitioning menu?
+ No mount point is assigned for ${FILESYSTEM} file system in partition
+ #${PARTITION} of ${DEVICE}.
+ .
+ If you do not go back to the partitioning menu and assign a mount point
+ from there, this partition will not be used at all.
+
+Template: partman-basicfilesystems/posix_filesystem_required
+Type: error
+# :sl2:
+_Description: Invalid file system for this mount point
+ The file system type ${FILESYSTEM} cannot be mounted on ${MOUNTPOINT},
+ because it is not a fully-functional Unix file system. Please choose a
+ different file system, such as ${EXT2}.
+
+Template: partman-basicfilesystems/mountpoint
+Type: select
+# Note to translators : Please keep your translations of the choices
+# below a 65 columns limit (which means 65 characters
+# in single-byte languages) including the initial path
+# :sl2:
+__Choices: / - the root file system, /boot - static files of the boot loader, /home - user home directories, /tmp - temporary files, /usr - static data, /var - variable data, /srv - data for services provided by this system, /opt - add-on application software packages, /usr/local - local hierarchy, Enter manually, Do not mount it
+_Description: Mount point for this partition:
+
+Template: partman-basicfilesystems/fat_mountpoint
+Type: select
+# :sl2:
+__Choices: /dos, /windows, Enter manually, Do not mount it
+_Description: Mount point for this partition:
+
+Template: partman-basicfilesystems/mountpoint_manual
+Type: string
+# :sl2:
+_Description: Mount point for this partition:
+
+Template: partman-basicfilesystems/bad_mountpoint
+Type: error
+# :sl2:
+_Description: Invalid mount point
+ The mount point you entered is invalid.
+ .
+ Mount points must start with "/". They cannot contain spaces.
+
+Template: partman-basicfilesystems/choose_label
+Type: string
+# :sl2:
+_Description: Label for the file system in this partition:
+
+Template: partman-basicfilesystems/text/format_swap
+Type: text
+# :sl2:
+_Description: Format the swap area:
+
+Template: partman-basicfilesystems/text/yes
+Type: text
+# In the following context: "Format the partition: yes"
+# :sl2:
+_Description: yes
+
+Template: partman-basicfilesystems/text/no
+Type: text
+# In the following context: "Format the partition: no"
+# :sl2:
+_Description: no
+
+Template: partman-basicfilesystems/text/specify_label
+Type: text
+# label of file system
+# :sl2:
+_Description: Label:
+
+Template: partman-basicfilesystems/text/none
+Type: text
+# for partman-basicfilesystems: in the following context: "Label: none"
+# :sl2:
+_Description: none[ Do not translate what's inside the brackets and just put the translation for the word "none" in your language without any brackets. This "none" relates to "Label:" ]
+
+Template: partman-basicfilesystems/text/reserved_for_root
+Type: text
+# Up to 24 character positions
+# :sl2:
+_Description: Reserved blocks:
+
+Template: partman-basicfilesystems/specify_reserved
+Type: string
+# :sl2:
+_Description: Percentage of the file system blocks reserved for the super-user:
+
+Template: partman-basicfilesystems/text/usage
+Type: text
+# :sl2:
+# Up to 25 character positions
+_Description: Typical usage:
+
+Template: partman-basicfilesystems/text/typical_usage
+Type: text
+# :sl2:
+# In the following context: "Typical usage: standard"
+_Description: standard
+
+Template: partman-basicfilesystems/specify_usage
+Type: select
+# :sl2:
+# Translate "standard" the same way as in the
+# partman-basicfilesystems/text/typical_usage template.  Do not
+# translate "news", "largefile" and "largefile4".
+Choices: ${CHOICES}
+_Description: Typical usage of this partition:
+ Please specify how the file system is going to be used, so that
+ optimal file system parameters can be chosen for that use.
+ .
+ standard = standard parameters,
+ news = one inode per 4KB block,
+ largefile = one inode per megabyte,
+ largefile4 = one inode per 4 megabytes.
+
+Template: partman-basicfilesystems/text/specify_mountpoint
+Type: text
+# This is an item in the menu "Partition settings"
+# :sl2:
+_Description: Mount point:
+
+Template: partman-basicfilesystems/text/no_mountpoint
+Type: text
+# :sl2:
+# In the following context: "Mount point: none"
+_Description: none[ Do not translate what's inside the brackets and just put the translation for the word "none" in your language without any brackets. This "none" relates to "Mount point:" ]
+
+Template: partman/filesystem_long/ext2
+Type: text
+# :sl2:
+_Description: Ext2 file system
+
+Template: partman/filesystem_short/ext2
+Type: text
+# :sl1:
+# Short file system name (untranslatable in many languages)
+_Description: ext2
+
+Template: partman/filesystem_long/fat16
+Type: text
+# :sl2:
+_Description: FAT16 file system
+
+Template: partman/filesystem_short/fat16
+Type: text
+# :sl1:
+# Short file system name (untranslatable in many languages)
+_Description: fat16
+
+Template: partman/filesystem_long/fat32
+Type: text
+# :sl2:
+_Description: FAT32 file system
+
+Template: partman/filesystem_short/fat32
+Type: text
+# :sl1:
+# Short file system name (untranslatable in many languages)
+_Description: fat32
+
+Template: partman/method_long/swap
+Type: text
+# :sl2:
+_Description: swap area
+
+Template: partman/method_short/swap
+Type: text
+# :sl1:
+# Short variant of `swap space'
+_Description: swap
+
+Template: partman/filesystem_long/linux-swap
+# :sl2:
+Type: text
+_Description: swap area
+
+Template: partman/filesystem_short/linux-swap
+Type: text
+# :sl1:
+# Short variant of `swap space'
+_Description: swap
+
+Template: partman-basicfilesystems/text/options
+# :sl2:
+Type: text
+_Description: Mount options:
+
+Template: partman-basicfilesystems/mountoptions
+Type: multiselect
+Choices-C: ${options}
+Choices: ${descriptions}
+# :sl2:
+_Description: Mount options:
+ Mount options can tune the behavior of the file system.
+
+Template: partman-basicfilesystems/text/noatime
+Type: text
+# :sl2:
+# Note to translators: Please keep your translations of this string below
+# a 65 columns limit (which means 65 characters in single-byte languages)
+_Description: noatime - do not update inode access times at each access
+
+Template: partman-basicfilesystems/text/relatime
+Type: text
+# :sl2:
+# Note to translators: Please keep your translations of this string below
+# a 65 columns limit (which means 65 characters in single-byte languages)
+_Description: relatime - update inode access times relative to modify time
+
+Template: partman-basicfilesystems/text/nodev
+Type: text
+# :sl2:
+# Note to translators: Please keep your translations of this string below
+# a 65 columns limit (which means 65 characters in single-byte languages)
+_Description: nodev - do not support character or block special devices
+
+Template: partman-basicfilesystems/text/nosuid
+Type: text
+# :sl2:
+# Note to translators: Please keep your translations of this string below
+# a 65 columns limit (which means 65 characters in single-byte languages)
+_Description: nosuid - ignore set-user-identifier or set-group-identifier bits
+
+Template: partman-basicfilesystems/text/noexec
+Type: text
+# :sl2:
+# Note to translators: Please keep your translations of this string below
+# a 65 columns limit (which means 65 characters in single-byte languages)
+_Description: noexec - do not allow execution of any binaries
+
+Template: partman-basicfilesystems/text/ro
+Type: text
+# :sl2:
+# Note to translators: Please keep your translations of this string below
+# a 65 columns limit (which means 65 characters in single-byte languages)
+_Description: ro - mount the file system read-only
+
+Template: partman-basicfilesystems/text/sync
+Type: text
+# :sl2:
+# Note to translators: Please keep your translations of this string below
+# a 65 columns limit (which means 65 characters in single-byte languages)
+_Description: sync - all input/output activities occur synchronously
+
+Template: partman-basicfilesystems/text/usrquota
+Type: text
+# :sl2:
+# Note to translators: Please keep your translations of this string below
+# a 65 columns limit (which means 65 characters in single-byte languages)
+_Description: usrquota - user disk quota accounting enabled
+
+Template: partman-basicfilesystems/text/grpquota
+Type: text
+# :sl2:
+# Note to translators: Please keep your translations of this string below
+# a 65 columns limit (which means 65 characters in single-byte languages)
+_Description: grpquota - group disk quota accounting enabled
+
+Template: partman-basicfilesystems/text/user_xattr
+Type: text
+# :sl2:
+# Note to translators: Please keep your translations of this string below
+# a 65 columns limit (which means 65 characters in single-byte languages)
+_Description: user_xattr - support user extended attributes
+
+Template: partman-basicfilesystems/text/quiet
+Type: text
+# :sl2:
+# Note to translators: Please keep your translations of this string below
+# a 65 columns limit (which means 65 characters in single-byte languages)
+_Description: quiet - changing owner and permissions does not return errors
+
+Template: partman-basicfilesystems/text/notail
+Type: text
+# :sl2:
+# Note to translators: Please keep your translations of this string below
+# a 65 columns limit (which means 65 characters in single-byte languages)
+_Description: notail - disable packing of files into the file system tree
+
+Template: partman/automount
+Type: boolean
+Default: false
+Description: for internal use; can be preseeded
+ Set to true to automount interesting-looking partitions under /media.

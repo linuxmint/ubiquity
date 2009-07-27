@@ -1,0 +1,30 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+finish(){
+	close_dialog
+	exit 0
+}
+
+for dev in $DEVICES/*; do
+	[ -d $dev ] || continue
+	cd $dev
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ $fs != free ] || continue
+		[ -f "$id/method" ] || continue
+		[ -f "$id/acting_filesystem" ] || continue
+		[ -f "$id/mountpoint" ] || continue
+		[ "$(cat $id/mountpoint)" = / ] || continue
+		[ -f "loop" ] || finish
+		loopfile=$(cat loop)		
+		loopdir=${loopfile%/*}
+		[ -n "$loopdir" ] || finish 
+		[ "$loopdir" != / ] || finish
+		[ -d "$loopdir/boot" ] || finish 
+		echo "$loopdir/boot" /boot none bind 0 0
+		finish
+	done
+	close_dialog
+done

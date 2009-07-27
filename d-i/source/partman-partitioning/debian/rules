@@ -1,0 +1,59 @@
+#!/usr/bin/make -f
+
+ARCH=$(shell dpkg-architecture -qDEB_HOST_ARCH)
+
+# Add ntfsprogs-udeb and ntfs-3g-udeb for arches that have recent versions
+# of windows. (ntfsprogs-udeb is still needed for ntfsresize.)
+# Perhaps the ntfs-3g-udeb dependency should be in partman-basicfilesystems
+# instead ...
+FS_DEPENDS=
+ifeq ($(ARCH), i386)
+FS_DEPENDS=ntfsprogs-udeb, ntfs-3g-udeb
+endif
+ifeq ($(ARCH), amd64)
+FS_DEPENDS=ntfsprogs-udeb, ntfs-3g-udeb
+endif
+ifeq ($(ARCH), ia64)
+FS_DEPENDS=ntfsprogs-udeb, ntfs-3g-udeb
+endif
+ifeq ($(ARCH), alpha)
+FS_DEPENDS=ntfsprogs-udeb, ntfs-3g-udeb
+endif
+ifeq ($(ARCH), lpia)
+FS_DEPENDS=ntfsprogs-udeb, ntfs-3g-udeb
+endif
+
+export PACKAGE = partman-partitioning
+
+build: 
+# Ye olde no-op.
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f `find . -name '*~'`
+	dh_clean
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k	
+	debian/install-rc storage_device
+	debian/install-rc active_partition
+	debian/install-rc free_space
+	debian/install-rc init.d
+	dh_install lib lib/partman
+
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+	dh_installdebconf
+	dh_fixperms
+	dh_installdeb
+	dh_gencontrol -- -Vfs:Depends="$(FS_DEPENDS)"
+	dh_builddeb
+
+binary-indep: build install
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install

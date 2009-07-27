@@ -1,0 +1,83 @@
+#!/bin/sh
+QUEUE=/var/lib/register-module
+BLACKLIST=0
+ADD_TO_INITRD=0
+TYPE=options
+PARAMS_ONLY=0
+ADD_PARAMS=1
+
+if [ "$1" = "-b" ]; then
+	BLACKLIST=1
+	shift 1
+fi
+if [ "$1" = "-i" ]; then
+	ADD_TO_INITRD=1
+	shift 1
+fi
+if [ "$1" = "-t" ]; then
+	TYPE=$2
+	shift 2
+fi
+if [ "$1" = "-p" ]; then
+	PARAMS_ONLY=1
+	shift 1
+fi
+if [ "$1" = "-a" ]; then
+	ADD_PARAMS=1
+	shift 1
+fi
+
+MODULE=$1
+shift
+PARAMS="$@"
+
+BLACKLISTFILE=$QUEUE/$MODULE.blacklist
+LOADFILE=$QUEUE/$MODULE.load
+INITRDFILE=$QUEUE/$MODULE.initrd
+PARAMFILE=$QUEUE/$MODULE.params
+
+if [ -d /etc/modprobe.d ] && [ ! -e /etc/modprobe.conf ]; then
+	MODPROBE_OPT=/etc/modprobe.d/local
+	MODPROBE_BL=/etc/modprobe.d/blacklist.local
+else
+	MODPROBE_OPT=/etc/modprobe.conf
+	MODPROBE_BL=/etc/modprobe.conf
+fi
+
+mkdir -p $QUEUE
+if [ "$BLACKLIST" = 1 ]; then
+	touch $BLACKLISTFILE
+	echo "blacklist $MODULE" >> $MODPROBE_BL
+	exit 0
+fi
+
+if [ "$PARAMS_ONLY" = 0 ]; then
+	if [ "$ADD_TO_INITRD" = 1 ]; then
+		touch $INITRDFILE
+	else
+		touch $LOADFILE
+	fi
+fi
+
+if [ -n "$PARAMS" ]; then
+	if [ -e "$PARAMFILE" ]; then
+		if [ "$ADD_PARAMS" = 1 ]; then
+			PARAMS="$(grep "^$TYPE:" $PARAMFILE 2>/dev/null | sed "s/^$TYPE:\(.*\)$/\1/") $PARAMS"
+		fi
+		grep -v "^$TYPE:" $PARAMFILE > $PARAMFILE.new
+		mv $PARAMFILE.new $PARAMFILE
+	fi
+	echo "$TYPE:$PARAMS" >> $PARAMFILE
+
+	if [ "$TYPE" = options ]; then
+		for file in /etc/modules.conf $MODPROBE_OPT; do
+			if [ -e "$file" ]; then
+				grep -v "options $MODULE " $file > $file.new
+				mv $file.new $file
+			else
+				touch $file
+			fi
+			echo "options $MODULE $PARAMS" >> $file
+		done
+	fi
+fi

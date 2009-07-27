@@ -1,0 +1,70 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+dev=$1
+num=$2
+id=$3
+size=$4
+type=$5
+fs=$6
+path=$7
+name=$8
+
+cd $dev
+
+mkdir -p $id
+
+if [ $fs = free ]; then
+	rm -f $id/method
+fi
+
+if [ ! -f $id/method ] || [ ! -f $id/use_filesystem ]; then
+	rm -f $id/acting_filesystem
+	exit 0
+fi
+
+if [ -f $id/filesystem ]; then
+	cp $id/filesystem $id/acting_filesystem
+else
+	rm -f $id/acting_filesystem
+fi
+
+open_dialog PARTITION_INFO $id
+read_line num id size type fs path name
+close_dialog
+
+acting_filesystem=''
+if [ -f $id/acting_filesystem ] && \
+   acting_filesystem=$(cat $id/acting_filesystem) && \
+   [ -f /lib/partman/parted_names/$acting_filesystem ] && \
+   new_fs=$(cat /lib/partman/parted_names/$acting_filesystem) && \
+   [ "$fs" != "$new_fs" ]; then
+	open_dialog CHANGE_FILE_SYSTEM $id $new_fs
+	close_dialog
+fi
+
+existing=no
+formatable=no
+
+for i in /lib/partman/valid_filesystems/*; do
+	[ -x $i ] || continue
+	if [ "$($i $dev $id existing)" = "$acting_filesystem" ]; then
+		existing=yes
+	fi
+	if [ "$($i $dev $id formatable)" = "$acting_filesystem" ]; then
+		formatable=yes
+	fi
+done
+
+if [ $existing = yes ]; then
+	> $dev/$id/existing
+else
+	rm -f $dev/$id/existing
+fi
+
+if [ $formatable = yes ]; then
+	> $dev/$id/formatable
+else
+	rm -f $dev/$id/formatable
+fi

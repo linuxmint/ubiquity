@@ -1,0 +1,178 @@
+#!/bin/sh
+
+# TODO: Incorporate capb backup.
+
+set -e
+. /usr/share/debconf/confmodule
+. /usr/share/migration-assistant/ma-script-utils
+
+if [ -z "$1" ]; then
+    mapath="/usr/bin"
+else
+    mapath="$1"
+fi
+
+OLDIFS="$IFS"
+NEWLINE='
+'
+
+IFS="$NEWLINE"
+tmp=
+for line in `os-prober`;
+do
+    dist=$(LC_ALL=C expr match "$line" '.*:\(.*\):.*:.*')
+    location=${line%%:*}
+    if [ -z "$tmp" ]; then
+        tmp="$dist ($location)"
+    else
+        tmp="$tmp, $dist ($location)"
+    fi
+done
+IFS="$OLDIFS"
+
+db_subst migration-assistant/partitions choices "$tmp"
+db_input high migration-assistant/partitions || true
+db_go || exit 10
+
+db_get migration-assistant/partitions || RET=
+IFS="$NEWLINE"
+selection=`echo "$RET" | sed -e 's/, /\n/g'`
+for choice in $selection; do # Microsoft Windows XP Professional (/dev/hda1)
+    IFS="$OLDIFS"
+    location=$(LC_ALL=C expr "$choice" : '.*(\(.*\))$') # /dev/hda1
+    IFS="$NEWLINE"
+    for line in `os-prober`; do
+        IFS="$OLDIFS"
+        loc="${line%%:*}"
+        if [ "$location" != "$loc" ]; then
+            continue
+        fi
+        log "setting ostype from: '$line'"
+        set_os_type "$line" || continue
+        log "got ostype of: '$ostype', mountpoint is: '$mountpoint'"
+
+        path="${loc#*/*/}" # hda1 or discs/disc0/part1
+        mount_os "$ostype" "$loc"
+        db_register migration-assistant/users migration-assistant/$path/users
+        db_subst migration-assistant/$path/users user-choices \
+            "$($mapath/ma-search-users "$ostype" "$mountpoint" 2>>/var/log/syslog)"
+        db_subst migration-assistant/$path/users os-type "$choice"
+
+        db_input high migration-assistant/$path/users || true
+        db_go || exit 10
+
+        db_get migration-assistant/$path/users || RET=
+        
+        user_selection=`echo "$RET" | sed -e 's/, /\n/g'`
+        IFS="$NEWLINE"
+        for usr in $user_selection; do
+            IFS="$OLDIFS"
+            itemsret=$($mapath/ma-search-items --path="$mountpoint" --ostype="$ostype" --user="$usr" 2>>/var/log/syslog) || \
+                (itemsret=; error "ma-search-items exited with an error for $usr.")
+            # FIXME: We should figure out if there are any items for each user
+            # before asking to import from the user.  Likewise, we should
+            # figure out if there are any users to import before asking to
+            # import from a partition.
+            if [ -z "$itemsret" ]; then
+                continue
+            fi
+            formatted_user=`echo "$usr" | sed -e 's/ /+/g'`
+            db_register migration-assistant/items migration-assistant/$path/$formatted_user/items
+            db_subst migration-assistant/$path/$formatted_user/items choices "$itemsret"
+            db_subst migration-assistant/$path/$formatted_user/items user "$usr"
+
+            # migration-assistant/discs/disc0/part1/Evan/items
+            db_input high migration-assistant/$path/$formatted_user/items || true
+            db_go || exit 10
+
+            db_register migration-assistant/user migration-assistant/$path/$formatted_user/user
+            # This prevents m-a from working right. change to choices
+            #db_set migration-assistant/$path/$formatted_user/user "$(echo "$usr" | tr '[A-Z]' '[a-z]')"
+            db_subst migration-assistant/$path/$formatted_user/user old-user "$usr"
+
+            while :; do
+                db_input high migration-assistant/$path/$formatted_user/user || true
+                db_go || exit 10
+                
+                db_get migration-assistant/$path/$formatted_user/user || RET=
+                new_user="$RET"
+                
+                if ! LC_ALL=C expr "$new_user" : '[a-z][-a-z0-9]*$' >/dev/null; then
+                    db_fset migration-assistant/$path/$formatted_user/user seen false
+                    db_fset migration-assistant/username-bad seen false
+                    db_subst migration-assistant/username-bad user "$new_user"
+                    db_input critical migration-assistant/username-bad
+                    continue
+                fi
+                
+                # TODO: Either copy this or depend on user-setup.
+                if grep -v '^#' /usr/lib/user-setup/reserved-usernames | \
+                   grep -q "^$new_user\$"; then
+                    db_fset migration-assistant/$path/$formatted_user/user seen false
+                    db_fset migration-assistant/username-reserved seen false
+                    db_subst migration-assistant/username-reserved user "$new_user"
+                    db_input critical migration-assistant/username-reserved
+                    continue
+                fi
+                break
+            done
+
+            # Only ask if the user doesn't match the one seeded for user-setup.
+            db_get passwd/username || RET=
+            if [ "$new_user" = "$RET" ]; then
+                continue
+            fi
+
+            # Password
+            db_register migration-assistant/password migration-assistant/new-user/$new_user/password
+            db_subst migration-assistant/new-user/$new_user/password user "$new_user"
+
+            db_register migration-assistant/password-again migration-assistant/new-user/$new_user/password-again
+            db_subst migration-assistant/new-user/$new_user/password-again user "$new_user"
+
+            while :; do
+                db_input high migration-assistant/new-user/$new_user/password || true
+                db_go || exit 10
+                db_get migration-assistant/new-user/$new_user/password || RET=
+                pass=$RET
+
+                db_input high migration-assistant/new-user/$new_user/password-again || true
+                db_go || exit 10
+                db_get migration-assistant/new-user/$new_user/password-again || RET=
+                pass2=$RET
+                
+                if [ -z "$pass2" ] || [ -z "$pass" ]; then
+                    db_set migration-assistant/new-user/$new_user/password ""
+                    db_set migration-assistant/new-user/$new_user/password-again ""
+                    db_fset migration-assistant/password-empty seen "false"
+                    db_input high migration-assistant/password-empty || true
+                    db_fset migration-assistant/new-user/$new_user/password seen "false"
+                    db_fset migration-assistant/new-user/$new_user/password-again seen "false"
+                    db_go || true
+                    continue
+                fi
+
+                if [ "$pass2" = "$pass" ]; then
+                    break
+                else
+                    db_set migration-assistant/new-user/$new_user/password ""
+                    db_set migration-assistant/new-user/$new_user/password-again ""
+                    db_fset migration-assistant/password-mismatch seen "false"
+                    db_input high migration-assistant/password-mismatch || true
+                    db_fset migration-assistant/new-user/$new_user/password seen "false"
+                    db_fset migration-assistant/new-user/$new_user/password-again seen "false"
+                    db_go || true
+                fi
+            done
+
+            # Full Name
+            db_register migration-assistant/fullname migration-assistant/new-user/$new_user/fullname
+            db_subst migration-assistant/new-user/$new_user/fullname user "$new_user"
+            db_input high migration-assistant/new-user/$new_user/fullname || true
+            db_go || exit 10
+        done
+        IFS="$OLDIFS"
+        unmount_os
+    done
+done
+# vim:ai:et:sts=4:tw=80:sw=4:

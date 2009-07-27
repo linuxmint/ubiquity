@@ -1,0 +1,68 @@
+#! /usr/bin/make -f
+
+PACKAGE=localechooser
+DATAPACKAGE=localechooser-data
+
+build: build-stamp
+build-stamp:
+	dh_testdir
+	$(MAKE)
+	touch build-stamp
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp
+	$(MAKE) clean
+	rm -rf debian/pobuild debian/iso-codes debian/short-tmp debian/locales
+	rm -rf debian/locales debian/sort-tmp
+	dh_clean
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs -i
+	dh_install -p$(PACKAGE) localechooser languagemap translation-check usr/bin
+	mkdir -p debian/$(PACKAGE)/DEBIAN
+	install -m0755 post-base-installer debian/$(PACKAGE)/usr/lib/post-base-installer.d/05localechooser
+	install -m0755 finish-install debian/$(PACKAGE)/usr/lib/finish-install.d/05localechooser
+	cat languagelist | grep -v "^#.*" | cut -d";" -f1,4- \
+		>debian/$(PACKAGE)/usr/share/localechooser/languagelist
+	chmod 0644 debian/$(PACKAGE)/usr/share/localechooser/languagelist
+	gzip -c debian/languagelist.data \
+		>debian/$(PACKAGE)/usr/share/localechooser/languagelist.data.gz
+	chmod 0644 debian/$(PACKAGE)/usr/share/localechooser/languagelist.data.gz
+	dh_installdirs -p$(PACKAGE) etc
+	# The following while we have no other way to get SUPPORTED
+	# Should become useless when we will have it
+	install -m644 /usr/share/i18n/SUPPORTED debian/$(PACKAGE)/usr/share/localechooser/SUPPORTED
+	install -m644 debian/short-tmp/shortlists debian/$(PACKAGE)/etc/shortlists
+	dh_install -p$(DATAPACKAGE) \
+		debian/$(PACKAGE)/usr/share/localechooser/languagelist \
+		debian/$(PACKAGE)/usr/share/localechooser/languagelist.data.gz \
+		regionmap debian/short-tmp/shortlists \
+		usr/share/localechooser
+
+binary-indep: build install
+	dh_testdir
+	dh_testroot
+	dh_installdocs -p$(DATAPACKAGE)
+	dh_installchangelogs -p$(DATAPACKAGE)
+	dh_installdebconf -i
+	# Sort countries and continents (including translations)
+	# MUST be after dh_installdebconf
+	./sort-templates
+	cp debian/localechooser.isinstallable debian/localechooser/DEBIAN/isinstallable
+	dh_strip -i
+	dh_compress -i
+	dh_fixperms -i
+	dh_installdeb -i
+	dh_shlibdeps -i
+	dh_gencontrol -i
+	dh_builddeb -i
+
+binary-arch: build install
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install

@@ -1,0 +1,19 @@
+#!/bin/sh -e
+. /usr/share/debconf/confmodule
+
+anna-install apt-mirror-setup || true
+
+if [ -f /etc/lsb-release ]; then
+	. /etc/lsb-release
+	if [ -n "$DISTRIB_CODENAME" ]; then
+		db_set mirror/suite "$DISTRIB_CODENAME"
+	fi
+fi
+
+choose-mirror
+
+# If a -support udeb is available for the selected release, install it
+# This will mostly be used to preserve backwards compatibility with stable
+if db_get mirror/codename && [ "$RET" ]; then
+       anna-install $RET-support || true
+fi

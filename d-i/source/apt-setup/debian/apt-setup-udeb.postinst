@@ -1,0 +1,24 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+# If we're installing from CD, then we won't need this sources.list until
+# nearly the end of pkgsel; the one generated during base system
+# installation will do just fine until then.
+if [ -f /cdrom/.disk/base_installable ]; then
+	cp -a /target/etc/apt/sources.list /target/etc/apt/sources.list.base
+fi
+
+apt-setup --log-output /target
+
+if [ -f /target/etc/apt/sources.list.base ]; then
+	logger -t apt-setup 'Using only basic sources for CD installation'
+	mv -f /target/etc/apt/sources.list \
+	      /target/etc/apt/sources.list.apt-setup
+	mv -f /target/etc/apt/sources.list.base /target/etc/apt/sources.list
+	in-target apt-get -o APT::Get::Download=false \
+			  -o APT::Get::List-Cleanup=false update
+fi
+
+exit 0

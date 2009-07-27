@@ -1,0 +1,256 @@
+#! /bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+if [ "$1" ]; then
+	export LANG=C # avoid locale errors from perl
+	ROOT="$1"
+	chroot=chroot
+	log='log-output -t user-setup'
+else
+	ROOT=
+	chroot=
+	log=
+fi
+
+. /usr/lib/user-setup/functions.sh
+
+# Set a password, via chpasswd.
+# Use a heredoc rather than echo, to avoid the password
+# showing in the process table. (However, this is normally
+# only called when first installing the system, when root has no
+# password at all, so that should be an unnecessary precaution).
+#
+# Pass in four arguments: the user, the password, 'true' if the
+# password has been pre-crypted (by preseeding), and a 'true' if
+# the home directory is encrypted
+setpassword () {
+	local USER PASSWD OPTS
+	USER="$1"
+	PASSWD="$2"
+	if [ "$3" = true ]; then
+		OPTS=-e
+	fi
+	$chroot $ROOT chpasswd $OPTS <<EOF
+$USER:$PASSWD
+EOF
+	if [ "$4" = true ]; then
+		local UNWRAPPED_PASSPHRASE_FILE WRAPPED_PASSPHRASE_FILE MOUNT_PASSPHRASE
+		UNWRAPPED_PASSPHRASE_FILE=/dev/shm/.ecryptfs-$USER
+		WRAPPED_PASSPHRASE_FILE=/home/$USER/.ecryptfs/wrapped-passphrase
+		MOUNT_PASSPHRASE=$($chroot $ROOT cat $UNWRAPPED_PASSPHRASE_FILE)
+		$chroot $ROOT ecryptfs-wrap-passphrase $WRAPPED_PASSPHRASE_FILE - <<EOF
+$MOUNT_PASSPHRASE
+$PASSWD
+EOF
+		$chroot $ROOT rm -f $UNWRAPPED_PASSPHRASE_FILE
+		$chroot $ROOT chown $USER:$USER $WRAPPED_PASSPHRASE_FILE
+	fi
+}
+
+# Enable/disable shadow passwords.
+db_get passwd/shadow
+if [ "$RET" = true ]; then
+	$log $chroot $ROOT shadowconfig on
+else
+	$log $chroot $ROOT shadowconfig off
+fi
+
+if ! root_password; then
+	# Was the root password preseeded encrypted?
+	if db_get passwd/root-password-crypted && [ "$RET" ]; then
+		# The root password was preseeded encrypted.
+		ROOT_PW="$RET"
+		PRECRYPTED=true
+	else
+		db_get passwd/root-password
+		ROOT_PW="$RET"
+		PRECRYPTED=false
+	fi
+	# Clear the root password from the database, and set the password.
+	db_set passwd/root-password-crypted ''
+	db_set passwd/root-password ''
+	db_set passwd/root-password-again ''
+	if [ "$ROOT_PW" ]; then
+		setpassword root "$ROOT_PW" "$PRECRYPTED"
+	fi
+	ROOT_PW=
+else
+	# Just in case, clear any preseeded root password from the database
+	# anyway.
+	db_set passwd/root-password-crypted ''
+	db_set passwd/root-password ''
+	db_set passwd/root-password-again ''
+fi
+
+db_get passwd/make-user
+if [ "$RET" = true ] && ! is_system_user; then
+	if db_get passwd/user-password-crypted && [ "$RET" ]; then
+		USER_PW="$RET"
+		USER_PW_CRYPTED=true
+	else
+		db_get passwd/user-password
+		USER_PW="$RET"
+		USER_PW_CRYPTED=false
+	fi
+
+	if db_get passwd/user-uid && [ "$RET" ]; then
+		if [ -x $ROOT/usr/sbin/adduser ]; then
+			UIDOPT="--uid $RET"
+		else
+			UIDOPT="-u $RET"
+		fi
+	else
+		UIDOPT=
+	fi
+
+	ENCRYPT_HOME="false"
+	ENCRYPT_HOME_OPT=
+	db_get user-setup/encrypt-home
+	if [ "$RET" = true ]; then
+		ENCRYPT_HOME="true"
+		ENCRYPT_HOME_OPT="--encrypt-home"
+		if type anna-install >/dev/null 2>&1 && [ -d /lib/debian-installer ]; then
+			ANNA_QUIET=1 DEBIAN_FRONTEND=none $log anna-install crypto-modules || true
+			depmod -a >/dev/null 2>&1 || true
+		fi
+		for module in aes cbc ecb; do
+			modprobe -q "$module" || true
+		done
+	fi
+
+
+	# Add the user to the database, using adduser in noninteractive
+	# mode.
+	db_get passwd/username
+	USER="$RET"
+	db_get passwd/user-fullname
+
+	HOME_EXISTED=
+	if [ -d "$ROOT/home/$USER" ]; then
+		HOME_EXISTED=1
+		# user-setup-ask shouldn't have allowed this, but for safety:
+		ENCRYPT_HOME="false"
+		ENCRYPT_HOME_OPT=
+	fi
+
+	if [ -n "$ENCRYPT_HOME_OPT" ]; then
+		$log $chroot $ROOT mount -t sysfs sysfs /sys
+		$log $chroot $ROOT mount -t tmpfs tmpfs /dev/shm
+	fi
+	if [ -x $ROOT/usr/sbin/adduser ]; then
+		$log $chroot $ROOT adduser --disabled-password --gecos "$RET" $UIDOPT $ENCRYPT_HOME_OPT "$USER" >/dev/null || true
+	else
+		$log $chroot $ROOT useradd -c "$RET" -m "$USER" $UIDOPT >/dev/null || true
+	fi
+
+	# Clear the user password from the database.
+	db_set passwd/user-password-crypted ''
+	db_set passwd/user-password ''
+	db_set passwd/user-password-again ''
+	setpassword "$USER" "$USER_PW" "$USER_PW_CRYPTED" "$ENCRYPT_HOME"
+	if [ -n "$ENCRYPT_HOME_OPT" ]; then
+		$log $chroot $ROOT umount /sys
+		$log $chroot $ROOT umount /dev/shm
+	fi
+
+	if [ "$HOME_EXISTED" ]; then
+		# The user's home directory already existed before we called
+		# adduser. This often means that a mount point under
+		# /home/$USER was selected in (and thus created by) partman,
+		# and the home directory may have ended up owned by root.
+		$log $chroot $ROOT chown "$USER:$USER" "/home/$USER" >/dev/null || true
+	fi
+
+	if [ -n "$USER" ]; then
+		for group in lpadmin sambashare; do
+			$log $chroot $ROOT addgroup --system $group >/dev/null 2>&1 || true
+		done
+		if type archdetect >/dev/null 2>&1; then
+			SUBARCH="$(archdetect)"
+			case $SUBARCH in
+				powerpc/ps3|powerpc/cell)
+					$log $chroot $ROOT addgroup --system spu >/dev/null 2>&1 || true
+					;;
+			esac
+		fi
+		db_get passwd/user-default-groups
+		for group in $RET; do
+			$log $chroot $ROOT adduser "$USER" $group >/dev/null 2>&1 || true
+		done
+ 
+ 		# Configure desktop auto-login if instructed by preseeding
+ 		db_get passwd/auto-login
+ 		if [ "$RET" = true ]; then
+			db_get passwd/auto-login-backup
+			BACKUP="${RET:+.$RET}"
+
+			# chroot needed to handle symlinks correctly
+			if $chroot $ROOT [ -f /etc/gdm/gdm-cdd.conf ]; then
+				GDMCONF=/etc/gdm/gdm-cdd.conf
+			else
+				GDMCONF=/etc/gdm/gdm.conf
+			fi
+	 
+			# chroot needed to handle symlinks correctly
+			if $chroot $ROOT [ -f "$GDMCONF" ]; then
+				# Configure GDM autologin
+				$log $chroot $ROOT sed -i$BACKUP \
+					-e "s/^AutomaticLoginEnable=.*\$/AutomaticLoginEnable=true/" \
+					-e "s/^AutomaticLogin=.*\$/AutomaticLogin=$USER/" \
+					-e "s/^TimedLoginEnable=.*\$/TimedLoginEnable=true/" \
+					-e "s/^TimedLogin=.*\$/TimedLogin=$USER/" \
+					-e "s/^TimedLoginDelay=.*\$/TimedLoginDelay=10/" \
+					"$GDMCONF"
+			fi
+	 
+			if $chroot $ROOT [ -f /etc/kde4/kdm/kdmrc ]; then
+				# Configure KDM autologin
+				$log $chroot $ROOT sed -i$BACKUP -r \
+					-e "s/^#?AutoLoginEnable=.*\$/AutoLoginEnable=true/" \
+					-e "s/^#?AutoLoginUser=.*\$/AutoLoginUser=$USER/" \
+					-e "s/^#?AutoReLogin=.*\$/AutoReLogin=true/" \
+					/etc/kde4/kdm/kdmrc
+			fi
+		fi
+	fi
+
+	db_get passwd/root-login
+	if [ "$RET" = false ] && [ -n "$USER" ]; then
+		# Ensure sudo is installed, and set up the user to be able
+		# to use it.
+		if [ ! -e $ROOT/etc/sudoers ]; then
+			# try to work in d-i and out; it's better to
+			# use apt-install in d-i
+			apt-install sudo 2>/dev/null || $log $chroot $ROOT apt-get -q -y install sudo || true
+		fi
+		if [ -e $ROOT/etc/sudoers ]; then
+			$log $chroot $ROOT addgroup --system admin >/dev/null 2>&1 || true
+			$log $chroot $ROOT adduser "$USER" admin >/dev/null 2>&1 || true
+			cat <<EOF >>$ROOT/etc/sudoers
+
+# Members of the admin group may gain root privileges
+%admin ALL=(ALL) ALL
+EOF
+		else
+			# sudo failed to install, system won't be usable
+			exit 1
+		fi
+		# Configure gksu to use sudo, via an alternative, if it's
+		# installed and the alternative is registered.
+		if $chroot $ROOT update-alternatives --display libgksu-gconf-defaults >/dev/null 2>&1; then
+			$log $chroot $ROOT update-alternatives --set libgksu-gconf-defaults /usr/share/libgksu/debian/gconf-defaults.libgksu-sudo
+			$log $chroot $ROOT update-gconf-defaults || true
+		fi
+	fi
+
+else
+	# Just in case, clear any preseeded user password from the database
+	# anyway.
+	db_set passwd/user-password-crypted ''
+	db_set passwd/user-password ''
+	db_set passwd/user-password-again ''
+fi
+
+exit 0

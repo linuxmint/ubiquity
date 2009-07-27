@@ -1,0 +1,29 @@
+#!/usr/bin/make -f
+
+#export DH_VERBOSE=1
+
+build:
+	dh_testdir
+
+clean:
+	dh_testdir
+	dh_testroot
+	dh_clean
+
+binary-arch: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+	dh_install
+	-find debian/yaboot-installer -name '.svn' -exec rm -rf {} \;
+	dh_installdebconf
+	dh_installdeb 
+	dh_gencontrol
+	dh_builddeb
+
+binary-indep: build
+
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary

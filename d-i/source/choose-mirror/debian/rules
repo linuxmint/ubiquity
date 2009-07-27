@@ -1,0 +1,51 @@
+#!/usr/bin/make -f
+
+build: build-stamp
+build-stamp:
+	dh_testdir
+	$(MAKE) small
+
+	touch build-stamp
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp
+	rm -rf debian/locales debian/sort-tmp
+	$(MAKE) clean Mirrors.masterlist
+	dh_clean debian/choose-mirror-bin.templates
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_install
+
+binary-indep: build install
+	dh_testdir
+	dh_testroot
+	dh_installdebconf -i
+	dh_compress -i
+	dh_fixperms -i
+	dh_installdeb -i
+	dh_shlibdeps -i
+	dh_gencontrol -i
+	dh_builddeb -i
+
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+	dh_installdebconf -a
+	# Sort mirror countries (including translations)
+	# MUST be after dh_installdebconf
+	./sort-templates
+	dh_strip -a
+	dh_compress -a
+	dh_fixperms -a
+	dh_installdeb -a
+	dh_shlibdeps -a
+	dh_gencontrol -a
+	dh_builddeb -a
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install

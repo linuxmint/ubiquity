@@ -1,0 +1,58 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+swap=false
+
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ "$fs" != free ] || continue
+		partitions="$partitions $id,$num"
+	done
+	close_dialog
+
+	for part in $partitions; do
+		id=${part%,*}
+		num=${part#*,}
+		[ -f $id/method ] || continue
+		method=$(cat $id/method)
+		if [ "$method" = swap ]; then
+			swap=:
+		fi
+		[ ! -f $id/format ] || continue
+		if [ "$method" = swap ]; then
+			log "Check the swap space in $dev/$id"
+			template=partman-basicfilesystems/progress_swap_checking
+			db_subst $template PARTITION "$num"
+			db_subst $template DEVICE $(humandev $(cat device))
+			name_progress_bar $template
+			open_dialog CHECK_FILE_SYSTEM $id
+			read_line status
+			close_dialog
+			if [ "$status" != good ]; then
+				db_subst partman-basicfilesystems/swap_check_failed PARTITION "$num"
+				db_subst partman-basicfilesystems/swap_check_failed DEVICE $(humandev $(cat device))
+				db_set partman-basicfilesystems/swap_check_failed true
+				db_input critical partman-basicfilesystems/swap_check_failed || true
+				db_go || true
+				db_get partman-basicfilesystems/swap_check_failed
+				if [ "$RET" = true ]; then
+					exit 1
+				fi
+			fi
+		fi
+	done
+done
+
+if ! $swap; then
+	db_input critical partman-basicfilesystems/no_swap || true
+	db_go || true
+	db_get partman-basicfilesystems/no_swap
+	if [ "$RET" = true ]; then
+		exit 1
+	fi
+fi

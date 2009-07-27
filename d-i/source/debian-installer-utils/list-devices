@@ -1,0 +1,108 @@
+#! /bin/sh -e
+TYPE="$1"
+
+case $TYPE in
+    maybe-floppy)
+	logger -t list-devices "deprecated parameter maybe-floppy"
+	TYPE=floppy
+	;;
+    cd|disk|partition|floppy|maybe-usb-floppy|usb-partition) ;;
+    *)
+	echo "Usage: $0 cd|disk|partition|floppy|maybe-usb-floppy|usb-partition" >&2
+	exit 2
+	;;
+esac
+
+if [ ! -d /sys/block ]; then
+	exit 0
+fi
+if type udevadm >/dev/null 2>&1; then
+	device_info () {
+		udevadm info -q "$1" -p "$2" 2>/dev/null
+	}
+elif type udevinfo >/dev/null 2>&1; then
+	device_info () {
+		udevinfo -q "$1" -p "$2" 2>/dev/null
+	}
+else
+	exit 0
+fi
+
+syspaths=
+scan_partition=false
+case $TYPE in
+    partition)
+	for x in /sys/block/*/*[0-9]; do
+		[ -d "$x" ] || continue
+		syspaths="${syspaths:+$syspaths }$x"
+	done
+	TYPE=disk
+	# Also allow misdetected USB devices
+	scan_partition=:
+	;;
+    usb-partition)
+	for x in /sys/block/*/*; do
+		[ -d "$x" ] || continue
+		syspaths="${syspaths:+$syspaths }$x"
+	done
+	;;
+    *)
+	for x in /sys/block/*; do
+		[ -d "$x" ] || continue
+		syspaths="${syspaths:+$syspaths }$x"
+	done
+	;;
+esac
+for x in $syspaths; do
+	devpath="${x#/sys}"
+	match=false
+	case $TYPE in
+	    floppy)
+		# TODO ugly special case for non-IDE floppies
+		case $devpath in
+		    /block/fd[0-9]*)
+			match=:
+			;;
+		esac
+		;;
+	esac
+	if ! $match && [ "$TYPE" = cd ]; then
+		if device_info env "$devpath" | grep -q '^ID_CDROM='; then
+			match=:
+		fi
+	fi
+	if ! $match; then
+		if device_info env "$devpath" | grep -q "^ID_TYPE=$TYPE"; then
+			match=:
+		fi
+	fi
+	if ! $match && [ "$TYPE" = disk ]; then
+		case $devpath in
+		    /block/cciss\!*|/block/ida\!*|/block/rd\!*|/block/mmcblk*)
+			match=:
+			;;
+		esac
+	fi
+	# Some USB sticks and CD drives are misdetected as floppy
+	# This allows to scan for those
+	if ! $match && ( $scan_partition || [ "$TYPE" = maybe-usb-floppy ] ); then
+		if device_info env "$devpath" | grep -q '^ID_BUS=usb' && \
+		   device_info env "$devpath" | grep -q '^ID_TYPE=floppy'; then
+			match=:
+		fi
+	fi
+	# Disk partitions, but only on USB drives
+	if ! $match && [ "$TYPE" = usb-partition ]; then
+		if device_info env "$devpath" | grep -q '^ID_BUS=usb' && \
+		   device_info env "$devpath" | grep -q '^ID_TYPE=disk'; then
+			match=:
+		fi
+	fi
+	if $match; then
+		if ! name="$(device_info name "$devpath")"; then
+			name="$(printf %s "${devpath##*/}" | \
+				sed 's,!,/,g')"
+		fi
+		echo "/dev/$name"
+	fi
+done

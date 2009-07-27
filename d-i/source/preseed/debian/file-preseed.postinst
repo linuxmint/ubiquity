@@ -1,0 +1,20 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+. /lib/preseed/preseed.sh
+
+# transitional kludge to deal with old path based locations
+db_get preseed/file
+[ "${RET#/floppy*}" != "$RET" ] && RET="floppy://${RET#/floppy}"
+[ "${RET#/*}" != "$RET" ] && RET="file://$RET"
+db_set preseed/file $RET
+
+preseed preseed/file
+preseed_command preseed/early_command
+
+# check if fetch-method/floppy has set a flag
+if [ -e /var/run/preseed-usedfloppy ]; then
+	umount /media || true
+	rm /var/run/preseed-usedfloppy
+fi

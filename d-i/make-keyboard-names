@@ -1,0 +1,65 @@
+#!/usr/bin/perl
+
+# Derived from console-setup/Keyboard/kbdnames-maker, by Anton Zinoviev.
+# Mangled to produce a Python module by Colin Watson.
+
+use warnings 'all';
+use strict;
+
+my $file;
+
+BEGIN {
+    if ($ARGV[0]) {
+	$file = $ARGV[0];
+    } else {
+	$file = 'd-i/source/console-setup/Keyboard/KeyboardNames.pl';
+    }
+    do "$file";
+}
+
+print "# -*- coding: UTF-8 -*-\n\n";
+print "# This file was automatically generated from:\n";
+print "#   $file\n";
+print "# Instead of editing this file, it is better to edit the original and\n";
+print "# regenerate this.\n\n";
+
+print "models = {\n";
+for my $model (sort keys %KeyboardNames::models) {
+    my $name = $KeyboardNames::models{$model};
+    (my $modelesc = $model) =~ s/'/\\'/;
+    print "    '$modelesc': '$name',\n";
+}
+print "}\n\n";
+print "models_rev = {}\n";
+print "models_rev.update(((v, k) for (k, v) in models.iteritems()))\n\n";
+
+my %layouts_rev;
+print "layouts = {\n";
+for my $layout (sort keys %KeyboardNames::layouts) {
+    my $name = $KeyboardNames::layouts{$layout};
+    $layouts_rev{$name} = $layout;
+    (my $layoutesc = $layout) =~ s/'/\\'/g;
+    print "    '$layoutesc': '$name',\n";
+}
+print "}\n\n";
+print "layouts_rev = {}\n";
+print "layouts_rev.update(((v, k) for (k, v) in layouts.iteritems()))\n\n";
+
+print "variants = {\n";
+for my $layout (sort keys %KeyboardNames::variants) {
+    my $desc = $layouts_rev{$layout};
+    print "    '$layout': {\n";
+    (my $layoutesc = $desc) =~ s/'/\\'/g;
+    print "        '$layoutesc': '',\n";
+    for my $variant (sort keys %{$KeyboardNames::variants{$layout}}) {
+	my $variantname = $KeyboardNames::variants{$layout}{$variant};
+	(my $variantesc = "$desc - $variant") =~ s/'/\\'/g;
+	print "        '$variantesc': '$variantname',\n";
+    }
+    print "    },\n";
+}
+print "}\n\n";
+print "variants_rev = {}\n";
+print "for layoutname in variants.keys():\n";
+print "    variants_rev[layoutname] = {}\n";
+print "    variants_rev[layoutname].update(((v, k) for (k, v) in variants_rev[layoutname].iteritems()))\n";

@@ -1,0 +1,27 @@
+#! /bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+db_capb backup
+
+/usr/lib/ubiquity/tzsetup/tzsetup
+
+# Reconfigure locale according to the selected country. We rely on
+# ubiquity/components/timezone.py having set debian-installer/country for
+# us.
+db_get debian-installer/country
+country="$RET"
+db_set mirror/country "$country"
+db_get debian-installer/locale
+newlocale="$(echo "$RET" | sed "s/_[A-Z][A-Z]*/_$country/")"
+if grep -q "^${newlocale%%[.@]*}[.@ ]" /usr/share/i18n/SUPPORTED; then
+	db_set debian-installer/locale "$newlocale"
+	db_fset debian-installer/locale seen true
+	# Let localechooser know that we're using the same language as
+	# before, so that it doesn't set a default country again.
+	db_fset localechooser/languagelist seen false
+	rm -f /var/lib/localechooser/preseeded
+	PATH="/usr/lib/ubiquity/localechooser:$PATH" \
+		OVERRIDE_SHOW_ALL_LANGUAGES=1 \
+		/usr/lib/ubiquity/localechooser/localechooser
+fi

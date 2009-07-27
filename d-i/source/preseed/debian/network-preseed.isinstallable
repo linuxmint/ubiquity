@@ -1,0 +1,14 @@
+#!/bin/sh
+. /usr/share/debconf/confmodule
+db_get preseed/url || exit 1
+if [ -n "$RET" ]; then
+	exit 0
+fi
+for file in /var/lib/dhcp/dhclient.leases /var/lib/dhcp3/dhclient.leases; do
+	if [ -r "$file" ]; then
+		if grep -q "filename.*://" "$file" ; then
+			exit 0
+		fi
+	fi
+done
+exit 1

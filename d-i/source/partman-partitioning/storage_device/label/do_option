@@ -1,0 +1,42 @@
+#!/bin/sh -e
+
+. /lib/partman/lib/base.sh
+. /lib/partman/lib/disk-label.sh
+
+dev="$2"
+cd $dev
+
+[ -f size ] || exit 1
+
+db_input critical partman-partitioning/confirm_new_label
+db_go || exit 0
+db_get partman-partitioning/confirm_new_label
+if [ "$RET" = false ]; then
+	db_reset partman-partitioning/confirm_new_label
+	exit 1
+fi
+db_reset partman-partitioning/confirm_new_label
+
+prepare_new_labels "$dev"
+create_new_label "$dev" ""
+
+partitions=''
+open_dialog PARTITIONS
+while { read_line num id size type fs path name; [ "$id" ]; }; do
+	partitions="$partitions $id"
+done
+close_dialog
+
+for id in $partitions; do
+	update_partition $dev $id
+done
+
+open_dialog GET_LABEL_TYPE
+read_line label_type
+close_dialog
+
+if [ "$label_type" = sun ]; then
+	backupdir=../../backup/$(basename $dev)
+	rm -rf "$backupdir"
+	cp -a . "$backupdir"
+fi

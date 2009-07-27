@@ -1,0 +1,57 @@
+The preseed_fetch script takes a source and destination address, and
+copies the specified file from the source to the destination.
+
+fetch-url from di-utils actually does the heavy lifting, with
+preseed_fetch only adding the relative path functionality.
+
+preseed_fetch accepts the same options (-r -c) as fetch-url which are
+documented in the debian-installer-utils source, in the README file.
+
+The source can be a fully qualified URL, an absolute path, or a relative path.
+
+If the source is not a full URL, the contents of /var/run/preseed.last_location
+is used to construct one before proceeding further.
+This is done as follows:
+
+  if the source is a relative path, the contents of preseed.last_location
+  is stripped of its last slash and beyond, and the relative path is
+  appended to it.
+
+  if the source starts with a /, and preseed.last_location does not
+  contain '/./' anywhere in it, the content of preseed.last_location is
+  truncated at the start of the path component, and the source is appended
+  to that.
+  If on the other hand, the content of preseed.last_location does contain
+  '/./', this is used as the point to truncate it at.  This allows a
+  chroot-style offset into the directory tree.
+
+Examples:
+
+source			last_location			actual source
+======			=============			=============
+http://foo.com/bar/baz	whatever			http://foo.com/bar/baz
+/local/path		http://foo.com/bar/baz		http://foo.com/local/path
+local/path		http://foo.com/bar/baz		http://foo.com/bar/local/path
+/local/path		http://foo.com/wibble/./bar/baz	http://foo.com/wibble/local/path
+/local/path		file:///bar/baz			file:///local/path
+
+Once the full URL is known, we select a method based on it, source its
+file, and execute the protocol_fetch function defined therein.
+
+As seen with the floppy method, if special processing is needed to ensure
+that the files are available, this can be done thus:
+
+floppy://foo/bar which mounts the floppy (to /media), then does a file copy
+from /media/foo/bar
+
+BTW the value of preseed/last_location defaults to file:///, which
+should ensure vaguely normal behaviour if it is somehow invoked before
+one of the preseed postinst scripts.  Once we get into preseeding via
+the preseed.sh script, it will get set to the most recently fetched
+preseed/include.  There are some slight wrinkles to this at present:
+
+  if you invoke preseed_fetch in a preseed/include_command you'll probably
+  have to specify a full path, or be very careful about the order that
+  things get done, because you'll probably be using the last_location
+  one older than you might expect (but using preseed_fetch in such a place
+  would be very naughty, so just don't :-)

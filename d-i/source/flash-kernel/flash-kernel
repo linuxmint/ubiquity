@@ -1,0 +1,515 @@
+#!/bin/sh
+
+# Copyright (C) 2006  Joey Hess  <joeyh@debian.org>
+# Copyright (C) 2006, 2007, 2008  Martin Michlmayr <tbm@cyrius.com>
+
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301,
+# USA.
+
+set -e
+
+error() {
+	echo "$@" >&2
+	exit 1
+}
+
+check_mtd() {
+	if [ ! -e /proc/mtd ]; then
+		error "/proc/mtd doesn't exist"
+	fi
+}
+
+mtdblock() {
+	grep "\"$1\"" /proc/mtd | cut -d: -f 1 | sed 's/mtd/\/dev\/mtdblock/'
+}
+
+check_dev_mtdblock() {
+	if [ ! -b "$1" ]; then
+		error "$1 is not a block device"
+	fi
+}
+
+mtdsize() {
+	size=$(grep "\"$1\"" /proc/mtd | cut -d " " -f 2)
+	printf "%d" 0x$size
+}
+
+check_subarch() {
+	if [ -n "$subarch" ] && [ "$subarch" != "$1" ]; then
+		echo "Kernel $kfile does not match your subarchitecture" >&2
+		echo "$1, therefore not writing it to flash." >&2
+		exit 0
+	fi
+}
+
+check_size() {
+	if [ $2 -gt $3 ]; then
+		error "The $1 doesn't fit in flash."
+	fi
+}
+
+check_fis() {
+	if ! fis -d "$1" -o "$2" -s "$3" list >/dev/null; then
+		error "fis list failed on device $1 at offset $2 with size $3"
+	fi
+}
+
+# returns addr, size, and entry in hex, space separated; e.g. for the kernel
+# partition, when fis list would return:
+#          kernel: addr = 0x00060000, size = 0x00400000, entry = 0x00100000, \
+#          length = 0x002144c0, cksum = 0xe9909335
+# this function outputs:
+# 00060000 00400000 00100000
+fis_info() {
+	LC_ALL=C fis -d "$1" -o "$2" -s "$3" list | sed -rn "s/^[[:space:]]*$4: addr = 0x([0-9a-f]{8}), size = 0x([0-9a-f]{8}), entry = 0x([0-9a-f]{8}), length = 0x[0-9a-f]{8}, cksum = 0x[0-9a-f]{8}\$/\1 \2 \3/p"
+}
+
+# pass fis_info output in args and outputs the decimal offset
+fis_offset() {
+	printf %d 0x$1
+}
+
+# pass fis_info output in args and outputs the decimal size
+fis_size() {
+	printf %d 0x$2
+}
+
+# pass fis_info output in args and outputs the decimal entry point
+fis_entry() {
+	printf %d 0x$3
+}
+
+
+# See http://www.nslu2-linux.org/wiki/Info/BootFlash -- the NSLU2 uses a
+# 16 byte MTD header, the first four bytes (big endian) give the length of
+# the remainder of the image, and the remaining bytes are zero.  Generate
+# this header.
+sercomm_header() {
+	perl -e 'print pack("N4", shift)' "$1"
+}
+
+nslu2_swap() {
+	if [ "$little_endian" ]; then
+		devio "<<"$1 "xp $,4"
+	else
+		cat $1
+	fi
+}
+
+# list of functions to call on cleanup
+cleanup_funcs=""
+cleanup() {
+	for f in $cleanup_funcs; do
+		$f
+	done
+}
+
+trap "cleanup" 0 HUP INT QUIT KILL SEGV PIPE TERM
+
+config="/etc/flash-kernel.conf"
+if [ -r "$config" ]; then
+    . "$config"
+fi
+
+machine=$(grep "^Hardware" /proc/cpuinfo | sed 's/Hardware\s*:\s*//')
+
+if [ "x$1" = "x--supported" ]; then
+	case "$machine" in
+		"Buffalo Linkstation Pro/Live")		exit 0 ;;
+		"Buffalo/Revogear Kurobox Pro")		exit 0 ;;
+		"D-Link DNS-323")			exit 0 ;;
+		"Freescale MX51 Babbage Board")		exit 0 ;;
+		"GLAN Tank")				exit 0 ;;
+		"HP Media Vault mv2120")		exit 0 ;;
+		"Linksys NSLU2")			exit 0 ;;
+		"QNAP TS-109/TS-209" | "QNAP TS-409")	exit 0 ;;
+		"Thecus N2100")				exit 0 ;;
+		*)					exit 1 ;;
+	esac
+fi
+
+if [ -n "$1" ]; then
+	kvers="$1"
+	kfile=/boot/vmlinuz-$kvers
+	ifile=/boot/initrd.img-$kvers
+	desc="Debian kernel $1"
+	idesc="Debian ramdisk $1"
+else
+	if [ -e /vmlinuz ]; then
+		kfile=/vmlinuz
+		ifile=/initrd.img
+	elif [ -e /boot/vmlinuz ]; then
+		kfile=/boot/vmlinuz
+		ifile=/boot/initrd.img
+	else
+		error "Cannot find a default kernel in /vmlinuz or /boot/vmlinuz"
+	fi
+	desc="Debian kernel"
+	idesc="Debian ramdisk"
+fi
+
+if [ ! -e $kfile ] || [ ! -e $ifile ]; then
+	error "Can't find $kfile and $ifile"
+fi
+kfilesize=$(wc -c $kfile | awk '{print $1}')
+ifilesize=$(wc -c $ifile | awk '{print $1}')
+
+# Extract the subarchitecture from the kernel name
+if [ -L "$kfile" ]; then
+	kfile=$(readlink -e "$kfile")
+fi
+subarch=$(echo "$kfile" | sed -e 's/.*-//')
+
+case "$machine" in
+	"Buffalo Linkstation Pro/Live" | "Buffalo/Revogear Kurobox Pro")
+		check_subarch "orion5x"
+		tmp=$(tempfile)
+		printf "Generating kernel u-boot image... " >&2
+		case "$machine" in
+			"Buffalo Linkstation Pro/Live")
+				# Set machine id 1585 (0x0631)
+				devio > $tmp 'wl 0xe3a01c06,4' 'wl 0xe3811031,4'
+			;;
+			"Buffalo/Revogear Kurobox Pro")
+				# Set machine id 1509 (0x05e5)
+				devio > $tmp 'wl 0xe3a01c05,4' 'wl 0xe38110e5,4'
+			;;
+		esac
+		cat $kfile >> $tmp
+		mkimage -A arm -O linux -T kernel -C none -a 0x00008000 \
+			-e 0x00008000 -n "$desc" -d $tmp $tmp.uboot >&2 1>/dev/null
+		echo "done." >&2
+		if [ -e /boot/uImage.buffalo ]; then
+			echo "Creating backup of /boot/uImage.buffalo." >&2
+			mv /boot/uImage.buffalo /boot/uImage.buffalo.bak
+		fi
+		echo "Creating new /boot/uImage.buffalo." >&2
+		mv $tmp.uboot /boot/uImage.buffalo
+		rm -f $tmp
+		printf "Generating initrd u-boot image... " >&2
+		mkimage -A arm -O linux -T ramdisk -C gzip -a 0x0 \
+			-e 0x0 -n "$idesc" -d $ifile $tmp.uboot >&2 1>/dev/null
+		echo "done." >&2
+		if [ -e /boot/initrd.buffalo ]; then
+			echo "Creating backup of /boot/initrd.buffalo." >&2
+			mv /boot/initrd.buffalo /boot/initrd.buffalo.bak
+		fi
+		echo "Creating new /boot/initrd.buffalo." >&2
+		mv $tmp.uboot /boot/initrd.buffalo
+	;;
+	"D-Link DNS-323")
+		check_subarch "orion5x"
+		check_mtd
+		imtd=$(mtdblock "File System")
+		if [ -z "$imtd" ]; then
+			error "Cannot find mtd partition 'File System'"
+		fi
+		check_dev_mtdblock "$imtd"
+		imtdsize=$(mtdsize "File System")
+		check_size "File System" $((ifilesize + 64)) $imtdsize
+		kmtd=$(mtdblock "Linux Kernel")
+		if [ -z "$kmtd" ]; then
+			error "Cannot find mtd partition 'Linux Kernel'"
+		fi
+		check_dev_mtdblock "$kmtd"
+		kmtdsize=$(mtdsize "Linux Kernel")
+		check_size "Linux Kernel" $(($kfilesize + 8 + 64)) $kmtdsize
+		printf "Generating kernel u-boot image... " >&2
+		tmp=$(tempfile)
+		# Set machine id 1542 (0x0606)
+		devio > $tmp 'wl 0xe3a01c06,4' 'wl 0xe3811006,4'
+		cat $kfile >> $tmp
+		mkimage -A arm -O linux -T kernel -C none -a 0x00008000 \
+			-e 0x00008000 -n "$desc" -d $tmp $tmp.uboot >&2 1>/dev/null
+		echo "done." >&2
+		printf "Flashing kernel... " >&2
+		cat $tmp.uboot > $kmtd || error "failed."
+		echo "done." >&2
+		rm -f $tmp.uboot $tmp
+		printf "Generating initramfs u-boot image... " >&2
+		mkimage -A arm -O linux -T ramdisk -C gzip -a 0x00800000 \
+			-e 0x00800000 -n "$idesc" -d $ifile $tmp.uboot >&2 1>/dev/null
+		printf "Flashing initramfs... " >&2
+		cat $tmp.uboot > $imtd || error "failed."
+		echo "done." >&2
+		rm -f $tmp.uboot
+	;;
+	"Freescale MX51 Babbage Board")
+		check_subarch "imx51"
+
+		for c in fis_dev fis_offset_hex fis_size_hex; do
+			if [ -z "`eval echo \$$c`" ]; then
+				error "$c not set in $config"
+			fi
+		done
+		check_dev_mtdblock "$fis_dev"
+		check_fis "$fis_dev" "$fis_offset_hex" "$fis_size_hex"
+
+		# check for an "initrd" entry
+		initrd="initrd"
+		ifisinfo=$(fis_info "$fis_dev" "$fis_offset_hex" "$fis_size_hex" "initrd")
+		# fallback on "initramfs"
+		if [ -z "$ifisinfo" ]; then
+			initrd="initramfs"
+			ifisinfo=$(fis_info "$fis_dev" "$fis_offset_hex" "$fis_size_hex" "$initrd")
+			if [ -z "$ifisinfo" ]; then
+				error "Cannot find FIS partition '$initrd'"
+			fi
+		fi
+		ifissize=$(fis_size $ifisinfo)
+		check_size "$initrd" $ifilesize $ifissize
+
+		kfisinfo=$(fis_info "$fis_dev" "$fis_offset_hex" "$fis_size_hex" "kernel")
+		if [ -z "$kfisinfo" ]; then
+			error "Cannot find FIS partition 'kernel'"
+		fi
+		kfissize=$(fis_size $kfisinfo)
+		check_size "kernel" $kfilesize $kfissize
+
+		kfisoffset=$(fis_offset $kfisinfo)
+		kfisentry=$(fis_entry $kfisinfo)
+		# the kernel is started at its load address so kfisram ==
+		# kfisentry
+		kfisram="$kfisentry"
+
+		ifisoffset=$(fis_offset $ifisinfo)
+		# not used
+		ifisentry=$(printf %d 0xffffffff)
+		# XXX hardcoded, should be read from RedBoot; but fis command
+		# currently doesn't return that info
+		ifisram=$(printf %d 0x1000000)
+
+		printf "Flashing kernel... " >&2
+		fis -d "$fis_dev" -o "$fis_offset_hex" -s "$fis_size_hex" create "kernel" -f $kfisoffset -l $kfissize -e $kfisentry -r $kfisram -c "$kfile" || error "FIS create failed."
+		dd if="$kfile" of="$fis_dev" bs=$kfisoffset seek=1 2>/dev/null || error "update failed."
+		echo "done." >&2
+
+		printf "Generating padded initramfs... " >&2
+		# padded initramfs; we need to use a temp file because of the
+		# fis command which needs to see a padded datalength
+		ipadded=""
+		# cleanup handler which removes the generated temp file when
+		# this script finished
+		cleanup_ipadded() {
+			if [ -n "$ipadded" ]; then
+				rm -f "$ipadded"
+			fi
+		}
+		cleanup_funcs="cleanup_ipadded $cleanup_funcs"
+		ipadded=$(mktemp -t flash-kernel.XXXXXXXXXX)
+		pad=$(expr $ifissize - $ifilesize)
+		(
+			cat $ifile
+			# pad with zeroes; this uses $pad mem, not very elegant
+			dd if=/dev/zero bs=$pad count=1 2>/dev/null
+		) | dd of="$ipadded" bs=4k 2>/dev/null || error "failed."
+		echo "done." >&2
+
+		printf "Flashing initramfs... " >&2
+		fis -d "$fis_dev" -o "$fis_offset_hex" -s "$fis_size_hex" create "$initrd" -f $ifisoffset -l $ifissize -e $ifisentry -r $ifisram -c "$ipadded" || error "FIS create failed."
+		dd if="$ipadded" of="$fis_dev" bs=$ifisoffset seek=1 2>/dev/null || error "failed."
+		echo "done." >&2
+	;;
+	"GLAN Tank")
+		rm -f /boot/initrd /boot/zImage
+		ln -s $(basename $ifile) /boot/initrd
+		(
+			# Set machine id 1100 (0x044c)
+			devio 'wl 0xe3a01c04,4' 'wl 0xe381104c,4'
+			cat $kfile
+		) > /boot/zImage
+	;;
+	"HP Media Vault mv2120")
+		check_subarch "orion5x"
+		tmp=$(tempfile)
+		printf "Generating kernel u-boot image... " >&2
+		# Set machine id 1693 (0x069d)
+		devio > $tmp 'wl 0xe3a01c06,4' 'wl 0xe381109d,4'
+		cat $kfile >> $tmp
+		mkimage -A arm -O linux -T multi -C none -n "$desc" -a 0x01000000 \
+			-e 0x01000000 -d $tmp:$ifile $tmp.uboot >&2 1>/dev/null
+		echo "done." >&2
+		if [ -e /boot/uImage ]; then
+			echo "Creating backup of /boot/uImage." >&2
+			mv /boot/uImage /boot/uImage.bak
+		fi
+		echo "Creating new /boot/uImage." >&2
+		mv $tmp.uboot /boot/uImage
+		rm -f $tmp
+	;;
+	"Linksys NSLU2")
+		check_subarch "ixp4xx"
+		case "$(dpkg --print-architecture)" in
+			arm|armel)
+				little_endian=1
+			;;
+			armeb)
+				little_endian=0
+			;;
+		esac
+		check_mtd
+		fismtd=$(mtdblock "FIS directory")
+		if [ -z "$fismtd" ]; then
+			error "Cannot find mtd FIS directory"
+		fi
+		kmtd=$(mtdblock Kernel)
+		if [ -z "$kmtd" ]; then
+			error "Cannot find mtd partition 'Kernel'"
+		fi
+		check_dev_mtdblock "$kmtd"
+		kmtdsize=$(mtdsize "Kernel")
+		check_size "kernel" $(($kfilesize + 16 + 16)) $kmtdsize
+		imtd=$(mtdblock Ramdisk)
+		if [ -z "$imtd" ]; then
+			error "Cannot find mtd partition 'Ramdisk'"
+		fi
+		check_dev_mtdblock "$imtd"
+		imtdsize=$(mtdsize "Ramdisk")
+		check_size "ramdisk" $(($ifilesize + 16)) $imtdsize
+		# The following devio magic parses the FIS directory to
+		# obtain the size, offset and name of each partition.  This
+		# used used to obtain the offset of the Kernel partition.
+		offset=$(echo "$(devio "<<$fismtd" '
+			<= $ 0x20000 -
+			L= 0x1000
+			$( 1
+				# 0xff byte in name[0] ends the partition table
+				$? @ 255 =
+				# output size base name
+				<= f15+
+				.= b 0xfffffff &
+				<= f4+
+				.= b
+				pf "%lu %lu "
+				<= f28-
+				cp 16
+				pn
+				<= f240+
+				L= L256-
+			$) L255>')" |
+			while read a b c; do
+				if [ "$c" = "Kernel" ]; then
+					echo $b
+				fi
+			done)
+		# The Kernel partition, starting at $offset, is divided into
+		# two areas at $boundary.  We therefore need to split the
+		# kernel into two and write them to flash with two Sercomm
+		# headers.
+		boundary=1441792 # 0x00160000
+		ksize1=$(expr $boundary - $offset - 16)
+		tmp=$(tempfile)
+		printf "Flashing kernel: " >&2
+		(
+			sercomm_header $(expr $kfilesize + 16)
+			dd if=$kfile of=$tmp bs=$ksize1 count=1 2>/dev/null
+			nslu2_swap $tmp
+			sercomm_header 131072
+			dd if=$kfile of=$tmp ibs=$ksize1 skip=1 2>/dev/null
+			nslu2_swap $tmp
+			rm -f $tmp
+		) > "$kmtd" || error "failed."
+		echo "done." >&2
+		printf "Flashing initramfs: " >&2
+		dd if=$ifile of=$tmp ibs=$(($imtdsize - 16)) conv=sync 2>/dev/null
+		(
+			sercomm_header $ifilesize
+			nslu2_swap $tmp
+			rm -f $tmp
+		) > $imtd || error "failed."
+		echo "done." >&2
+	;;
+	"QNAP TS-109/TS-209" | "QNAP TS-409")
+		check_subarch "orion5x"
+		check_mtd
+		imtd=$(mtdblock "RootFS1")
+		if [ -z "$imtd" ]; then
+			error "Cannot find mtd partition 'RootFS1'"
+		fi
+		check_dev_mtdblock "$imtd"
+		imtdsize=$(mtdsize "RootFS1")
+		check_size "RootFS1" $ifilesize $imtdsize
+		kmtd=$(mtdblock Kernel)
+		if [ -z "$kmtd" ]; then
+			error "Cannot find mtd partition 'Kernel'"
+		fi
+		check_dev_mtdblock "$kmtd"
+		kmtdsize=$(mtdsize "Kernel")
+		check_size "Kernel" $(($kfilesize + 8 + 64)) $kmtdsize
+		printf "Generating kernel u-boot image... " >&2
+		tmp=$(tempfile)
+		case "$machine" in
+			"QNAP TS-109/TS-209")
+				# Set machine id 1565 (0x061d)
+				devio > $tmp 'wl 0xe3a01c06,4' 'wl 0xe381101d,4'
+			;;
+			"QNAP TS-409")
+				# Set machine id 1601 (0x0641)
+				devio > $tmp 'wl 0xe3a01c06,4' 'wl 0xe3811041,4'
+			;;
+		esac
+		cat $kfile >> $tmp
+		mkimage -A arm -O linux -T kernel -C none -a 0x00008000 \
+			-e 0x00008000 -n "$desc" -d $tmp $tmp.uboot >&2 1>/dev/null
+		echo "done." >&2
+		printf "Flashing kernel... " >&2
+		cat $tmp.uboot > $kmtd || error "failed."
+		echo "done." >&2
+		rm -f $tmp.uboot $tmp
+		printf "Flashing initramfs... " >&2
+		pad=$(expr $imtdsize - $ifilesize)
+		(
+			cat $ifile
+			dd if=/dev/zero bs=$pad count=1 2>/dev/null
+		) > $imtd || error "failed."
+		echo "done." >&2
+	;;
+	"Thecus N2100")
+		check_subarch "iop32x"
+		check_mtd
+		imtd=$(mtdblock ramdisk)
+		if [ -z "$imtd" ]; then
+			error "Cannot find mtd partition 'ramdisk'"
+		fi
+		check_dev_mtdblock "$imtd"
+		imtdsize=$(mtdsize "ramdisk")
+		check_size "ramdisk" $ifilesize $imtdsize
+		kmtd=$(mtdblock kernel)
+		if [ -z "$kmtd" ]; then
+			error "Cannot find mtd partition 'kernel'"
+		fi
+		check_dev_mtdblock "$kmtd"
+		kmtdsize=$(mtdsize "kernel")
+		check_size "kernel" $(($kfilesize + 8)) $kmtdsize
+		printf "Flashing kernel... " >&2
+		(
+			# Set machine id 1101 (0x044d)
+			devio 'wl 0xe3a01c04,4' 'wl 0xe381104d,4'
+			cat $kfile
+		) > $kmtd || error "failed."
+		echo "done." >&2
+		printf "Flashing initramfs... " >&2
+		pad=$(expr $imtdsize - $ifilesize)
+		(
+			cat $ifile
+			dd if=/dev/zero bs=$pad count=1 2>/dev/null
+		) > $imtd || error "failed."
+		echo "done." >&2
+	;;
+	*)
+		error "Unsupported platform."
+	;;
+esac
+

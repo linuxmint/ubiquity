@@ -1,0 +1,49 @@
+#! /bin/sh
+set -e
+
+# Tests for partman's long integer <-> human representation conversions.
+
+export DEBIAN_HAS_FRONTEND=1
+export PARTMAN_TEST=1
+
+. ../lib/base.sh
+
+[ "$TEST_VERBOSE" ] || export TEST_VERBOSE=0
+
+testnum=1
+failures=0
+
+test_eq () {
+	if [ "$1" = "$2" ]; then
+		if [ "$TEST_VERBOSE" -ge 1 ]; then
+			echo "PASS $testnum '$1' = '$2'" >&2
+		fi
+	else
+		echo "FAIL $testnum '$1' != '$2'" >&2
+		failures="$(($failures + 1))"
+	fi
+	testnum="$(($testnum + 1))"
+}
+
+test_eq "$(longint2human 1)" '1.0 B'
+test_eq "$(longint2human 30)" '30.0 B'
+test_eq "$(longint2human 1049)" '1.0 kB'
+test_eq "$(longint2human 1050)" '1.1 kB'
+test_eq "$(longint2human 999999)" '1000.0 kB'
+test_eq "$(longint2human 1000000)" '1.0 MB'
+test_eq "$(longint2human 4294967296)" '4.3 GB'
+
+test_eq "$(human2longint 3.5)" 3500000
+test_eq "$(human2longint 2B)" 2
+test_eq "$(human2longint '3.9 b')" 3
+test_eq "$(human2longint '4294967296 B')" 4294967296
+test_eq "$(human2longint 2k)" 2000
+test_eq "$(human2longint '2 M')" 2000000
+test_eq "$(human2longint 20000KB)" 20000000
+test_eq "$(human2longint '500.7 TB')" 500700000000000
+
+if [ "$failures" != 0 ]; then
+	exit 1
+else
+	exit 0
+fi

@@ -1,0 +1,78 @@
+# Templates only needed by choose-mirror if http support is enabled.
+
+Template: mirror/http/countries
+Type: select
+# :sl1:
+_Choices: enter information manually
+#  Translators, you should put here the ISO 3166 code of a country
+#  which you know hosts at least one Ubuntu HTTP mirror. Please check
+#  that the country really has an Ubuntu HTTP mirror before putting a
+#  random value here
+#
+#  First check that the country you mention here is listed in
+#  http://cvs.debian.org/ *checkout* /webwml/english/mirror/Mirrors.masterlist?rev=HEAD\&cvsroot=webwml&content-type=text/plain
+#  (remove the spaces between "*" and "/")
+#
+#  BE CAREFUL to use the TWO LETTER ISO-3166 CODE and not anything else
+#  
+#  You do not need to translate what's between the square brackets
+#  You should even NOT put square brackets in translations:
+#  msgid "GB[ Default value for http]"
+#  msgstr "FR"
+# :sl1:
+_Default: GB[ Default value for http]
+# :sl1:
+_Description: Ubuntu archive mirror country:
+ The goal is to find a mirror of the Ubuntu archive that is close to you on the network -- be
+ aware that nearby countries, or even your own, may not be the best choice.
+
+Template: mirror/http/mirror
+Type: select
+Choices: ${mirrors}
+Default: CC.archive.ubuntu.com
+Default[armel]: ports.ubuntu.com
+Default[hppa]: ports.ubuntu.com
+Default[ia64]: ports.ubuntu.com
+Default[lpia]: ports.ubuntu.com
+Default[powerpc]: ports.ubuntu.com
+Default[sparc]: ports.ubuntu.com
+# :sl1:
+_Description: Ubuntu archive mirror:
+ Please select an Ubuntu archive mirror. You should use a mirror in
+ your country or region if you do not know which mirror has the best
+ Internet connection to you.
+ .
+ Usually, <your country code>.archive.ubuntu.com is a good choice.
+
+Template: mirror/http/hostname
+Type: string
+# :sl1:
+_Description: Ubuntu archive mirror hostname:
+ Please enter the hostname of the mirror from which Ubuntu will be downloaded.
+ .
+ An alternate port can be specified using the standard [hostname]:[port]
+ format.
+
+Template: mirror/http/directory
+Type: string
+Default: /ubuntu/
+Default[armel]: /ubuntu-ports/
+Default[hppa]: /ubuntu-ports/
+Default[ia64]: /ubuntu-ports/
+Default[lpia]: /ubuntu-ports/
+Default[powerpc]: /ubuntu-ports/
+Default[sparc]: /ubuntu-ports/
+# :sl2:
+_Description: Ubuntu archive mirror directory:
+ Please enter the directory in which the mirror of the Ubuntu archive is
+ located.
+
+Template: mirror/http/proxy
+Type: string
+# :sl1:
+_Description: HTTP proxy information (blank for none):
+ If you need to use a HTTP proxy to access the outside world, enter the
+ proxy information here. Otherwise, leave this blank.
+ .
+ The proxy information should be given in the standard form of
+ "http://[[user][:pass]@]host[:port]/".

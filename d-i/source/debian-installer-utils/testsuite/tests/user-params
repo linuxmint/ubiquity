@@ -1,0 +1,46 @@
+#! /bin/sh
+set -e
+
+export TESTSUITE=1
+TESTFILE=user-params.in
+trap 'rm -f "$TESTFILE"' 0 HUP INT QUIT TERM
+
+[ "$TEST_VERBOSE" ] || TEST_VERBOSE=0
+
+TESTS=0
+SUCCESSES=0
+TESTING=""
+
+while read line; do
+	if [ "$TESTING" ]; then
+		if [ "$RESULT" = "$line" ]; then
+			SUCCESSES=$(($SUCCESSES + 1))
+		elif [ $TEST_VERBOSE -ge 3 ]; then
+			echo "Test $TESTS: $INPUT"
+			echo "Expected: $line"
+			echo "Got     : $RESULT"
+		fi
+		TESTING=""
+	elif echo "$line" | egrep -q "^[[:space:]]*(#.*)?$"; then
+		continue
+	else
+		TESTS=$(($TESTS + 1))
+		TESTING=1
+		INPUT="$line"
+		echo "$INPUT" >$TESTFILE
+		RESULT="$(../../user-params | tr "\n" " " | sed "s/ $//")"
+	fi
+done <user-params.tests
+
+if [ "$TESTING" ]; then
+	echo "error: missing results line"
+	exit 1
+fi
+
+if [ $TEST_VERBOSE -ge 2 ]; then
+	echo "Result: $SUCCESSES out of $TESTS test cases were successful"
+fi
+if [ $SUCCESSES -ne $TESTS ]; then
+	exit 1
+fi
+exit 0

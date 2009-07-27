@@ -1,0 +1,23 @@
+Source: base-installer
+Section: debian-installer
+Priority: required
+Maintainer: Ubuntu Installer Team <ubuntu-installer@lists.ubuntu.com>
+XSBC-Original-Maintainer: Debian Install System Team <debian-boot@lists.debian.org>
+Uploaders: Petter Reinholdtsen <pere@debian.org>, Joey Hess <joeyh@debian.org>, Colin Watson <cjwatson@debian.org>, dann frazier <dannf@debian.org>, Frans Pop <fjp@debian.org>, Steve Langasek <vorlon@debian.org>
+Build-Depends: debhelper (>= 5.0.22), libdebconfclient0-dev (>= 0.46), libdebian-installer4-dev (>= 0.41)
+XS-Debian-Vcs-Svn: svn://svn.debian.org/d-i/trunk/packages/base-installer
+Vcs-Bzr: http://bazaar.launchpad.net/~ubuntu-core-dev/base-installer/ubuntu
+
+Package: base-installer
+XC-Package-Type: udeb
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}, di-utils-mapdevfs, di-utils (>= 1.48), rootskel (>= 1.19)
+Description: base system installation framework
+
+Package: bootstrap-base
+XC-Package-Type: udeb
+Architecture: any
+Depends: ${shlibs:Depends}, mounted-partitions, created-fstab, base-installer, debootstrap-udeb (>= 1.0.7), gpgv-udeb, ubuntu-keyring-udeb, archdetect
+Provides: kernel-installer, installed-base
+XB-Installer-Menu-Item: 6500
+Description: Install the base system

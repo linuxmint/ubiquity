@@ -1,0 +1,122 @@
+#!/usr/bin/perl
+# Builds templates with list of countries per continent (region)
+# and a template to select the continent.
+use strict;
+use warnings;
+
+# Parameters.
+my $iso3166tab=shift;
+my $regionmap=shift;
+my $outfile=shift;
+
+# These are the regions to use. The list should be sorted alphabetically.
+# There is no call to gettext for Antarctica as that is included in ISO-3166.
+my @known_regions = (
+	gettext("Africa"),
+	"Antarctica",
+	gettext("Asia"),
+	gettext("Atlantic Ocean"),
+	gettext("Caribbean"),
+	gettext("Central America"),
+	gettext("Europe"),
+	gettext("Indian Ocean"),
+	gettext("North America"),
+	gettext("Oceania"),
+	gettext("South America"),
+	gettext("other"),
+);
+
+my @regions;
+my %is_region;
+for (@known_regions) { $is_region{$_} = 1; }
+
+my %code2country;
+my %country2code;
+my %codes_listed;
+
+open (L, $iso3166tab) || die "$iso3166tab: $!";
+while (<L>) {
+	chomp;
+	my ($code, $country) = split(' ', $_, 2);
+	# Bubulle 5/25/2004 We should find a way to avoid enforcing ASCII here
+	if ($country !~ /^[-_A-Za-z0-9 !@#$%^&Z*()-_+={};:'",.<>?|]+$/) {
+		print STDERR "I: skipping country $country; not ASCII\n";
+		next;
+	}
+
+	# Escape commas
+	$country =~ s/,/\\,/g;
+	$code2country{$code}=$country;
+	$country2code{$country}=$code;
+	$codes_listed{$code}=0;
+}
+
+my %regions;
+open (R, $regionmap) || die "$regionmap: $!";
+while (<R>) {
+	chomp;
+	my ($code, $region) = split(' ', $_, 2);
+	if (exists $code2country{$code}) {
+		if ($is_region{$region}) {
+			push @{$regions{$region}}, $code2country{$code};
+			$codes_listed{$code}++;
+		} else {
+			print STDERR "E: country code '$code': region '$region' is not defined\n";
+			exit 1
+		}
+	} elsif ($code ne 'unlisted') {
+		print STDERR "I: skipping country code '$code': in $regionmap but not in $iso3166tab\n";
+	}
+}
+close R;
+
+# Add any unlisted countries to "other".
+foreach my $code (keys %codes_listed) {
+	if ($codes_listed{$code} == 0) {
+		push @{$regions{"other"}}, $code2country{$code};
+		print STDERR "W: unknown region for country $code: not listed in $regionmap\n";
+	}
+}
+
+open(TOUT, "> $outfile") || die "Unable to write $outfile";
+print TOUT "\n";
+
+foreach my $region (@known_regions) {
+	if (exists $regions{$region}) {
+		push @regions, $region;
+
+		my @countries;
+		my @codes;
+		foreach my $country (sort @{$regions{$region}}) {
+			push @countries, "$country";
+			push @codes, "$country2code{$country}";
+		}
+
+		my $tregion = $region;
+		$tregion =~ s/ /_/g;
+		print TOUT "Template: localechooser/countrylist/$tregion\n";
+		print TOUT "Type: select\n";
+		print TOUT "Choices-C: ", join(", ", @codes), "\n";
+		print TOUT "#flag:partial\n";
+		print TOUT "__Choices: ", join(", ", @countries), "\n";
+		print TOUT "_Description: ", gettext("Choose a country, territory or area:"), "\n";
+		print TOUT "\n";
+	} else {
+		print STDERR "I: skipping region $region: no associated countries in $regionmap\n";
+		delete $regions{$region};
+	}
+}
+
+print TOUT "Template: localechooser/continentlist\n";
+print TOUT "Type: select\n";
+print TOUT "#flag:partial\n";
+print TOUT "__Choices: ",  join(", ", @regions), "\n";
+print TOUT "_Description: ", gettext("Choose a continent or region:"), "\n";
+print TOUT " ", gettext("The continent or region in which the desired country is located."), "\n";
+
+close(TOUT) || warn;
+
+# Dummy.
+sub gettext {
+	return shift;
+}

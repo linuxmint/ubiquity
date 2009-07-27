@@ -1,0 +1,149 @@
+Template: yaboot-installer/progress
+Type: text
+# :sl4:
+_Description: Installing Yaboot
+
+Template: yaboot-installer/apt-install
+Type: text
+# :sl4:
+_Description: Installing Yaboot boot loader
+
+Template: yaboot-installer/apt-install-failed
+Type: boolean
+Default: true
+# :sl4:
+_Description: Yaboot installation failed.  Continue anyway?
+ The yaboot package failed to install into /target/.  Installing Yaboot
+ as a boot loader is a required step.  The install problem might however be
+ unrelated to Yaboot, so continuing the installation may be possible.
+
+Template: yaboot-installer/part
+Type: text
+# :sl4:
+_Description: Looking for bootstrap partitions
+
+Template: yaboot-installer/nopart
+Type: error
+# :sl4:
+_Description: No bootstrap partition found
+ No hard disks were found which have an "Apple_Bootstrap" partition. 
+ You must create an 819200-byte partition with type "Apple_Bootstrap".
+
+Template: yaboot-installer/root
+Type: text
+# :sl4:
+_Description: Looking for root partition
+
+Template: yaboot-installer/noroot
+Type: error
+# :sl4:
+_Description: No root partition found
+ No partition is mounted as your new root partition.
+ You must mount a root partition first.
+
+Template: yaboot-installer/os-probing
+Type: text
+# :sl4:
+_Description: Looking for other operating systems
+
+Template: yaboot-installer/bootdev
+Type: select
+Choices: ${DEVICES}
+Default: invaliddevice
+# :sl4:
+_Description: Device for boot loader installation:
+ Yaboot (the Linux boot loader) needs to be installed on a hard disk
+ partition in order for your system to be bootable.  Please choose
+ the destination partition from among these partitions that have the
+ bootable flag set.
+ .
+ Warning: this will erase all data on the selected partition!
+
+Template: yaboot-installer/conf
+Type: text
+# :sl4:
+_Description: Creating yaboot configuration
+
+Template: yaboot-installer/conferr
+Type: error
+# :sl4:
+_Description: Failed to create yaboot configuration
+ The creation of the main yaboot configuration file failed.
+ .
+ Check /var/log/syslog or see virtual console 4 for the details.
+ .
+ Warning: Your system may be unbootable!
+
+Template: yaboot-installer/ybin
+Type: text
+# :sl4:
+_Description: Installing yaboot into bootstrap partition
+
+Template: yaboot-installer/ybinerr
+Type: error
+# :sl4:
+_Description: Failed to install boot loader
+ The installation of the yaboot boot loader failed.
+ .
+ Check /var/log/syslog or see virtual console 4 for the details.
+ .
+ Warning: Your system may be unbootable!
+
+Template: yaboot-installer/success
+Type: note
+# :sl4:
+_Description: Successfully installed yaboot
+ The yaboot boot loader was successfully installed.
+ .
+ The new system is now ready to boot.
+
+Template: yaboot-installer/mounterr
+Type: error
+# :sl4:
+_Description: Failed to mount /target/proc
+ Mounting the proc file system on /target/proc failed.
+ .
+ Check /var/log/syslog or see virtual console 4 for the details.
+ .
+ Warning: Your system may be unbootable!
+
+Template: yaboot-installer/of_pegasos
+Type: note
+# :sl4:
+#flag:translate!:3,6
+_Description: Setting firmware variables for automatic boot
+ Some variables need to be set in the Genesi firmware in order for your
+ system to boot automatically.  At the end of the installation, the
+ system will reboot.  At the firmware prompt, set the following
+ firmware variables to enable auto-booting:
+ .
+  setenv boot-device ${OF_BOOT_DEVICE}
+  setenv boot-file ${OF_BOOT_FILE}
+  setenv auto-boot-timeout 5000
+  setenv auto-boot? true
+ .
+ You will only need to do this once.  Afterwards, enter the "boot" command
+ or reboot the system to proceed to your newly installed system.
+ .
+ Alternatively, you will be able to boot the kernel manually by entering,
+ at the firmware prompt:
+ .
+  ${BOOT}
+
+Template: debian-installer/yaboot-installer/title
+Type: text
+#  Main menu item
+# :sl4:
+_Description: Install yaboot on a hard disk
+
+Template: rescue/menu/yaboot-reinstall
+Type: text
+# Rescue menu item
+# :sl4:
+_Description: Reinstall yaboot boot loader
+
+Template: yaboot-installer/skip
+Type: boolean
+Default: false
+Description: for internal use; can be preseeded
+ Skip installing yaboot?

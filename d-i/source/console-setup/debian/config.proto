@@ -1,0 +1,2087 @@
+#!/bin/bash
+
+#     Copyright © 2005 Anton Zinoviev <anton@lml.bas.bg>
+
+#     This program is free software; you can redistribute it and/or modify
+#     it under the terms of the GNU General Public License as published by
+#     the Free Software Foundation; either version 2 of the License, or
+#     (at your option) any later version.
+
+#     This program is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU General Public License for more details.
+
+#     If you have not received a copy of the GNU General Public License
+#     along with this program, write to the Free Software Foundation, Inc.,
+#     59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+#                        ----------
+#                         CONTENTS
+#                        ----------
+#
+# 1. Initialise $fontsets, $charmaps and $kbdnames with the supported
+#    fontsets, charmaps, keyboard models, layouts and variants.  These
+#    lists can not be computed because the config script is invoked
+#    during the preconfiguration phase and the available fonts, ACM,
+#    etc. are not yet unpacked.
+#
+# 2. Function ask_debconf.  Ask user to choose amongst the options
+#    listed in $fontsets, $charmaps and $kbdnames.
+#
+# 3. Function guess_arch - detect the architecture and subarchitecture
+#
+# 4. Function available_fontsets - lists all fontfaces that can be
+#    used with $codeset.
+#
+# 5. Function available_fontsizes - lists all font sizes that can be
+#    used with the $codeset-$fontface combination.
+#
+# 6. Set $locale.  Set $default_codeset and $codeset_priority acording
+#    to $locale.
+#
+# 7. Set $default_layout and acording to $locale. default_variant=''
+#
+# 8. Set $default_charmap and $charmap_priority acording to $locale.
+#
+# 9. Set $arch.  Set $default_model and $model_priority acording to
+#    $arch.
+#
+# 10. Read /etc/default/console-setup and store values into debconf
+#     db.  Four very long case instructions in order to translate
+#     options like "grp:caps_toggle" to human-readable strings like
+#     "Caps Lock".
+#
+# 11. Ask the Debconf questions starting from STATE=1 and ending after
+#     STATE=9.  Again four long case instructions in STATE=4 to
+#     translate "Caps Lock" to "grp:caps_toggle".
+
+# This script would be simpler and faster if written in Perl but with
+# Shell it can be used in the Installer
+
+set -e
+
+. /usr/share/debconf/confmodule
+
+CONFIGFILE=/etc/default/console-setup
+
+## PACKAGE ## Will be replaced by assignment for $package
+
+# package=console-setup
+
+## FONTSETS ## Will be replaced by assignment for $fontsets:
+
+# fontsets='Arabic-Fixed15
+# Arabic-Fixed16
+# Arabic-vga14
+# ... 
+# Vietnamese-Fixed18
+# '
+
+## CHARMAPS ## Will be replaced by assignment for $charmaps:
+
+# charmaps='ARMSCII-8
+# CP1251
+# CP1255
+# ...
+# UTF-8'
+
+## KBDNAMES ## Will be replaced by assignment for $kbdnames:
+
+# kbdnames='model*logicdp*Logitech Cordless Desktop Pro
+# model*omnikey101*Northgate OmniKey 101
+# ...
+# layout*el*Greek
+# ...
+# variant*it*nodeadkeys*Eliminate dead keys'
+
+## CODESETS ##
+
+codesets='Arabic*. Arabic
+Armenian*# Armenian
+CyrKoi*# Cyrillic - KOI8-R and KOI8-U
+CyrAsia*# Cyrillic - non-Slavic languages
+CyrSlav*# Cyrillic - Slavic languages (also Bosnian and Serbian Latin)
+Ethiopian*. Ethiopic
+Georgian*# Georgian
+Greek*# Greek
+Hebrew*# Hebrew
+Lao*# Lao
+Lat15*# Latin1 and Latin5 - western Europe and Turkic languages
+Lat2*# Latin2 - central Europe and Romanian
+Lat38*# Latin3 and Latin8 - Chichewa; Esperanto; Irish; Maltese and Welsh
+Lat7*# Latin7 - Lithuanian; Latvian; Maori and Marshallese
+Vietnamese*. Latin - Vietnamese
+Thai*# Thai
+Uni1*. Combined - Latin; Slavic Cyrillic; Hebrew; basic Arabic
+Uni2*. Combined - Latin; Slavic Cyrillic; Greek
+Uni3*. Combined - Latin; Slavic and non-Slavic Cyrillic'
+
+db_capb backup
+CAPB="$RET"
+detect_keyboard=false
+case $CAPB in
+    *plugin-detect-keyboard*)
+	detect_keyboard=:
+	;;
+esac
+
+# Set default value for a question only if it is not seen by the user
+db_default () {
+    if \
+	[ -f $CONFIGFILE ] \
+	|| { db_fget $1 seen && [ "$RET" = false ]; }
+    then
+	db_set $1 "$2"
+    fi
+}
+
+# A high level function to ask questions about the keyboard model,
+# layout and variant
+ask_debconf () {
+    local template priority prefix default_code default_description choices
+
+    template=$1     # The template to ask
+    priority=$2     # The priority for the question
+    prefix=$3       # The prefix for $kbdnames
+    default_code=$4 # The default choice (optional)
+    choices=`echo "$kbdnames" | grep "^$prefix\*" | 
+        sed -e "s/^$prefix\*[^\*]*\*//" -e 's/,/\\\\,/g' | LC_ALL=C sort |
+        sed -e 's/$/,/'`
+    choices=`echo $choices | sed 's/, *$//'`
+
+    db_subst $template CHOICES "$choices"
+    default_description=`echo "$kbdnames" |  
+        grep "^$prefix\*${default_code}\*" |
+        sed -e "s/^$prefix\*${default_code}\*//"`
+    if [ -z "$default_description" ]; then
+	# Vor XkbVariant the empty string is usualy a sensible default
+	default_description=`echo "$kbdnames" |  
+            grep "^$prefix\*\*" |
+            sed -e "s/^$prefix\*\*//"`
+    fi
+    if [ -n "$default_description" ]; then
+	db_default $template "$default_description"
+    elif [ -n "$default_code" ]; then
+	# A default was requested, but we couldn't resolve it to a
+	# description, so we'd better ask.
+	priority=critical
+    fi
+
+    db_input $priority $template || true
+    db_go || return 255
+    db_get $template
+    RET=`echo "$kbdnames" | grep "^$prefix\*[^\*]*\*" |
+             sed 's/  */ /g' |
+             grep "\*$RET\$" |
+             sed -e "s/^$prefix\*\([^\*]*\)\*.*/\1/" `
+    return 0
+}
+
+# The guess arch code is taken from "console-data.conf"
+# (translated from Perl to shell)
+
+# SUBARCH	KEYMAP SET	DETECTION
+# m68k/atari	atari		"Model: Atari"
+# m68k/amiga	amiga		"Model: Amiga"
+# m68k/mac	mac		"Model: Macintosh"
+# m68k/mvme	pc		"Model: Motorola"
+# m68k/bvme	pc		"Model: BVME[46]000"
+# m68k/{sun,apollo,next,q40,hp300} Not supported by Debian
+
+# ppc/apus	amiga		"machine: Amiga"
+# ppc/chrp	pc,mac		"machine: CHRP"
+# ppc/pmac	mac		"machine: PowerMac|[Pp]ower[Bb]ook*|Power|iMac*|PowerMac1*"
+# ppc/prep	pc		"machine: PReP"
+# ppc/ps3	pc		"platform: PS3"
+# ppc/cell	pc		"platform: Cell"
+# ppc/{bbox,mbx,ppc64,82xx,8xx} Not yet supported by Debian
+
+# arm/*		pc		(refered to as 'arm' only)
+
+guess_arch () {
+    local arch subarch line
+
+    if which archdetect >/dev/null; then
+	archdetect
+	return 0
+    fi
+
+    arch=`dpkg --print-installation-architecture`
+    
+    if [ "$arch" = 'powerpc' -o "$arch" = 'm68k' ]; then
+	if [ "$arch" = powerpc ]; then
+	    line=`sed -n 's/^platform.*: *//p' /proc/cpuinfo`
+	    if [ "$line" = PS3 ] || [ "$line" = Cell ]; then
+		subarch=`echo $line|tr A-Z a-z`
+	    else
+		line=`sed -n 's/^machine.*: *//p' /proc/cpuinfo`
+		if [ "$line" = '' ]; then
+		    echo unknown
+		    return 0
+		fi
+		subarch=`echo $line|tr A-Z a-z`
+	    fi
+	elif [ "$arch" = m68k ]; then
+	    line=`sed -n 's/^Model.*: *//p' /proc/hardware`
+	    if [ "$line" = '' ]; then
+		echo unknown
+		return 0
+	    fi
+	    subarch=`echo $line|tr A-Z a-z`
+	fi
+	case "$subarch" in
+	    *amiga*)
+		subarch=amiga
+		;;
+	    *chrp*)
+		subarch=chrp
+		;;
+	    *prep*)
+		subarch=prep
+		;;
+	    *macintosh*|*powermac*|*powerbook*|*power*|*imac*|*powermac1*)
+		subarch=mac
+		;;
+	    *atari*)
+		subarch=atari
+		;;
+	    *motorola*)
+		subarch=mvme
+		;;
+	    *bvme*)
+		subarch=bvme
+		;;
+	    *)
+		subarch=`echo $subarch|sed  's/^\s*//'`
+		;;
+	esac
+	arch="$arch/$subarch"
+    fi
+    echo $arch
+    return 0
+}
+
+available_fontfaces () {
+    echo "$fontsets" | LC_ALL=C sort | \
+	grep "^$codeset-" | \
+	sed -e "s/^$codeset-//" \
+	    -e 's/[0-9][0-9]*x[0-9][0-9]*$//' \
+	    -e 's/[0-9]*$//' | \
+	uniq
+}
+
+available_fontsizes () {
+    echo "$fontsets" | LC_ALL=C sort | \
+	grep "^$codeset-$fontface[0-9]" | \
+	sed -e "s/^$codeset-$fontface//" | \
+	uniq
+}
+
+decode_codeset () {
+    pattern="^$(echo "$*" | sed 's/[^ #()0-9;A-Za-z-]/\\&/g')\\*"
+    echo "$codesets" | \
+	grep "$pattern" | \
+	sed 's/.*[*]//'
+}
+
+encode_codeset () {
+    pattern="\\*$(echo "$*" | sed 's/[^ #()0-9;A-Za-z-]/\\&/g')\$"
+    echo "$codesets" | \
+	grep "$pattern" | \
+	sed 's/[*].*//'
+}
+
+if which locale >/dev/null; then
+    eval `locale`
+fi
+
+if [ "$LC_CTYPE"  -a "$LC_CTYPE" != C ]; then
+    locale=$LC_CTYPE
+elif db_get debian-installer/locale && [ "$RET" ]; then
+    locale="$RET"
+else
+    locale=C
+fi
+
+case "$locale" in
+    *KOI8*|*koi8*)
+	default_codeset=CyrKoi
+	codeset_priority=low
+	;;
+    aa_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    af_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    am_*)
+	default_codeset=Ethiopic
+	codeset_priority=low
+	;;
+    an_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    ar_*)
+	default_codeset=Arabic
+	codeset_priority=low
+	;;
+    az_*)
+	default_codeset=Uni3
+	codeset_priority=low
+	;;
+    be_*)
+	default_codeset=CyrSlav
+	codeset_priority=low
+	;;
+    bg_*)
+	default_codeset=CyrSlav
+	codeset_priority=low
+	;;
+    bn_*)
+	default_codeset=unsupported
+	codeset_priority=low
+	;;
+    br_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    bs_*)
+	default_codeset=Uni3
+	codeset_priority=low
+	;;
+    byn_*)
+	default_codeset=Ethiopian
+	codeset_priority=low
+	;;
+    ca_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    cs_*)
+	default_codeset=Lat2
+	codeset_priority=low
+	;;
+    cy_*)
+	default_codeset=Lat38
+	codeset_priority=low
+	;;
+    da_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    de_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    el_*)
+	default_codeset=Greek
+	codeset_priority=low
+	;;
+    en_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    eo|eo.*|eo_*|eo\@*)
+	default_codeset=Lat38
+	codeset_priority=low
+	;;
+    es_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    et_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    eu_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    fa_*)
+	default_codeset=Arabic
+	codeset_priority=low
+	;;
+    fi_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    fo_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    fr_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    ga_*)
+	default_codeset=Lat38
+	codeset_priority=low
+	;;
+    gd_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    gez_*)
+	default_codeset=Ethiopian
+	codeset_priority=low
+	;;
+    gl_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    gu_*)
+	default_codeset=unsupported
+	codeset_priority=low
+	;;
+    gv_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    he_*)
+	default_codeset=Hebrew
+	codeset_priority=low
+	;;
+    hi_*)
+	default_codeset=unsupported
+	codeset_priority=low
+	;;
+    hr_*)
+	default_codeset=Lat2
+	codeset_priority=low
+	;;
+    hu_*)
+	default_codeset=Lat2
+	codeset_priority=low
+	;;
+    hy_*)
+	default_codeset=Armenian
+	codeset_priority=low
+	;;
+    id_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    is_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    it_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    iw_*)
+	default_codeset=Hebrew
+	codeset_priority=low
+	;;
+    ja_*)
+	default_codeset=unsupported
+	codeset_priority=low
+	;;
+    ka_*)
+	default_codeset=Georgian
+	codeset_priority=low
+	;;
+    kl_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    kn_*)
+	default_codeset=unsupported
+	codeset_priority=low
+	;;
+    ko_*)
+	default_codeset=unsupported
+	codeset_priority=low
+	;;
+    kw_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    lg_*)
+	default_codeset=Lat15 # TODO: This must be ISO-8859-10 (Latin6)
+	codeset_priority=low
+	;;
+    lo_*)
+	default_codeset=Lao
+	codeset_priority=low
+	;;
+    lt_*)
+	default_codeset=Lat7
+	codeset_priority=low
+	;;
+    lv_*)
+	default_codeset=Lat7
+	codeset_priority=low
+	;;
+    mi_*)
+	default_codeset=Lat7
+	codeset_priority=low
+	;;
+    mk_*)
+	default_codeset=CyrSlav
+	codeset_priority=low
+	;;
+    ml_*)
+	default_codeset=unsupported
+	codeset_priority=low
+	;;
+    mn_*)
+	default_codeset=CyrAsia
+	codeset_priority=low
+	;;
+    mr_*)
+	default_codeset=unsupported
+	codeset_priority=low
+	;;
+    ms_*)
+	default_codeset=Lat15 # TODO: Is this correct? (Malay language)
+	codeset_priority=low
+	;;
+    mt_*)
+	default_codeset=Lat38
+	codeset_priority=low
+	;;
+    nb_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    ne_*)
+	default_codeset=unsupported
+	codeset_priority=low
+	;;
+    nl_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    nn_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    oc_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    om_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    pa_*)
+	default_codeset=unsupported
+	codeset_priority=low
+	;;
+    pl_*)
+	default_codeset=Lat2
+	codeset_priority=low
+	;;
+    pt_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    ro_*)
+	default_codeset=Lat2
+	codeset_priority=low
+	;;
+    ru_*)
+	default_codeset=CyrSlav
+	codeset_priority=low
+	;;
+    se_*)
+	default_codeset=Uni1
+	codeset_priority=low
+	;;
+    sid_*)
+	default_codeset=Lat15 # TODO: Is this correct? (Sidama language)
+	codeset_priority=low
+	;;
+    sk_*)
+	default_codeset=Lat2
+	codeset_priority=low
+	;;
+    sl_*)
+	default_codeset=Lat2
+	codeset_priority=low
+	;;
+    so_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    sq_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    sr_*)
+	default_codeset=CyrSlav
+	codeset_priority=low
+	;;
+    st_*)
+	default_codeset=Lat15 # TODO: Is this correct? (Sotho language)
+	codeset_priority=low
+	;;
+    sv_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    ta_*)
+	default_codeset=unsupported
+	codeset_priority=low
+	;;
+    te_*)
+	default_codeset=unsupported
+	codeset_priority=low
+	;;
+    tg_*)
+	default_codeset=CyrAsia
+	codeset_priority=low
+	;;
+    th_*)
+	default_codeset=Thai
+	codeset_priority=low
+	;;
+    ti_*)
+	default_codeset=Ethiopian
+	codeset_priority=low
+	;;
+    tig_*)
+	default_codeset=Ethiopian
+	codeset_priority=low
+	;;
+    tl_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    tr_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    tt_*)
+	default_codeset=Lat15 # TODO: Is this correct? (Tatar language)
+	codeset_priority=low
+	;;
+    uk_*)
+	default_codeset=CyrSlav
+	codeset_priority=low
+	;;
+    ur_*)
+	default_codeset=Arabic
+	codeset_priority=low
+	;;
+    uz_*)
+	default_codeset=Lat15 # TODO: Is this correct? (Uzbek language)
+	codeset_priority=low
+	;;
+    uz_*\@cyrillic)
+	default_codeset=CyrAsia
+	codeset_priority=low
+	;;
+    vi_*)
+	default_codeset=Vietnamese
+	codeset_priority=low
+	;;
+    wa_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    xh_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    yi_*)
+	default_codeset=Hebrew
+	codeset_priority=low
+	;;
+    zh_*)
+	default_codeset=unsupported
+	codeset_priority=low
+	;;
+    zu_*)
+	default_codeset=Lat15
+	codeset_priority=low
+	;;
+    *)
+	default_codeset=Uni1
+	codeset_priority=high
+	;;
+esac
+if [ "$default_codeset" = unsupported ]; then
+    default_codeset=Uni1
+fi
+
+default_codeset="`decode_codeset $default_codeset`"
+if [ -z "$default_codeset" ]; then
+    default_codeset=Uni1
+    codeset_priority=high
+fi
+
+default_layout=''
+default_variant=''
+if [ -e /etc/console/boottime.kmap.gz ]; then
+    # Upgrade from pre-console-setup; we need to ask if autodetection fails.
+    layout_priority=critical
+else
+    # Probably a fresh installation. If the installation is being automated,
+    # then in the worst case selecting a "us" layout won't break the system,
+    # so drop the priority a little bit.
+    layout_priority=high
+fi
+case "$locale" in
+    # Keyboards for countries
+    *_AL*)
+	default_layout=al  # Albania
+	;;
+    *_AZ*)
+	default_layout=az  # Azerbaijan
+	;;
+    *_BD*)
+	default_layout=bd  # Bangladesh
+	;;
+    *_BE*)
+	default_layout=be  # Belgium
+	;;
+    *_BG*)
+	default_layout=bg  # Bulgaria
+	layout_priority=critical
+	;;
+    *_BR*)
+	default_layout=br  # Brazil
+	;;
+    *_BY*)
+	default_layout=by  # Belarus
+	;;
+    fr_CA*)
+	default_layout=ca  # Canada
+	;;
+    *_CA*)
+	default_layout=us  # U.S. English
+	;;
+    fr_CH*)
+	default_layout=ch  # Switzerland
+	default_variant=fr # French
+	;;
+    *_CH*)
+	default_layout=ch  # Switzerland
+	layout_priority=critical
+	;;
+    *_CZ*)
+	default_layout=cz  # Czechia
+	layout_priority=critical
+	;;
+    *_DK*)
+	default_layout=dk  # Denmark
+	;;
+    *_EE*)
+	default_layout=ee  # Estonia
+	;;
+    *_ES*)
+	default_layout=es  # Spain
+	;;
+    se_FI*)
+	default_layout=fi  # Finland
+	default_variant=smi # Northern Saami
+	;;
+    *_FI*)
+	default_layout=fi  # Finland
+	default_variant=fi # Finland
+	;;
+    *_GB*)
+	default_layout=gb  # United Kingdom
+	;;
+    *_HU*)
+	default_layout=hu  # Hungary
+	;;
+    *_IE*)
+	default_layout=ie  # Ireland
+	;;
+    *_IL*)
+	default_layout=il  # Israel
+	layout_priority=critical
+	;;
+    *_IR*)
+	default_layout=ir  # Iran
+	;;
+    *_IS*)
+	default_layout=is  # Iceland
+	;;
+    *_IT*)
+	default_layout=it  # Italy
+	;;
+    *_JP*)
+	default_layout=jp  # Japan
+	;;
+    *_LT*)
+	default_layout=lt  # Lithuania
+	layout_priority=critical
+	;;
+    *_LV*)
+	default_layout=lv  # Latvia
+	;;
+    *_MA*)
+	default_layout=ma  # Morocco
+	;;
+    *_MK*)
+	default_layout=mk  # Macedonia
+	;;
+# According to https://launchpad.net/bugs/129982, Dutch users prefer the US
+# keymap.
+    *_NL*)
+	default_layout=us  # Netherlands
+	default_variant=intl # International (with dead keys)
+	;;
+    *_MN*)
+	default_layout=mn  # Mongolia
+	;;
+    *_MT*)
+	default_layout=mt  # Malta
+	layout_priority=critical
+	;;
+    se_NO*)
+	default_layout=no  # Norway
+	default_variant=smi # Northern Saami
+	;;
+    *_NO*)
+	default_layout=no  # Norway (se_NO is not in this case)
+	;;
+    *_PL*)
+	default_layout=pl  # Poland
+	;;
+    *_PT*)
+	default_layout=pt  # Portugal
+	;;
+    *_RO*)
+	default_layout=ro  # Romania
+	;;
+    *_RU*)
+	default_layout=ru  # Russia
+	layout_priority=critical
+	;;
+    se_SE*)
+	default_layout=se  # Sweden
+	default_variant=smi # Northern Saami
+	;;
+    *_SK*)
+	default_layout=sk  # Slovakia
+	;;
+    *_SI*)
+	default_layout=si  # Slovenia
+	;;
+    *_TJ*)
+	default_layout=tj  # Tajikistan
+	;;
+    *_TH*)
+	default_layout=th  # Thailand
+	layout_priority=critical
+	;;
+    ku_TR*)
+	default_layout=tr  # Turkish
+	default_variant=ku # Kurdish, Latin Q
+	;;
+    *_TR*)
+	default_layout=tr  # Turkish
+	layout_priority=critical
+	;;
+    *_UA*)
+	default_layout=ua  # Ukraine
+	;;
+    en_US*)
+	default_layout=us  # U.S. English
+	;;
+# According to https://launchpad.net/bugs/191451, most keyboards in Vietnam
+# are in fact US keyboards.
+    *_VN*)
+	default_layout=us  # Vietnam
+	;;
+    # Keyboards for specific languages and international keyboards:
+    # TODO: Is the following list correct?
+    *_AR*|*_BO*|*_CL*|*_CO*|*_CR*|*_DO*|*_EC*|*_GT*|*_HN*|*_MX*|*_NI*|*_PA*|*_PE*|es_PR*|*_PY*|*_SV*|es_US*|*_UY*|*_VE*)
+	default_layout=latam # Latin American
+	;;
+    ar_*)
+	default_layout=ara # Arabic
+	;;
+    bs_*)
+	default_layout=ba  # Bosnia and Herzegovina
+	;;
+    de_*)
+	default_layout=de  # Germany
+	;;
+    el_*)
+	default_layout=gr  # Greece
+	;;
+    eo|eo.*|eo_*|eo\@*)
+	default_layout=epo  # Esperanto
+	;;
+    fr_*)
+	default_layout=fr  # France
+	default_variant=oss # Alternative
+	layout_priority=critical
+	;;
+    gu_*)
+	default_layout=in  # India
+	default_variant=guj # Gujarati
+	;;
+    hi_*)
+	default_layout=in  # India
+	default_variant=deva # Devanagari
+	;;
+    hr_*)
+	default_layout=hr  # Croatia
+	;;
+    hy_*)
+	default_layout=am  # Armenia
+	;;
+    ka_*)
+	default_layout=ge  # Georgia
+	layout_priority=critical
+	;;
+    kn_*)
+	default_layout=in  # India
+	default_variant=kan # Kannada
+	;;
+    lo_*)
+	default_layout=la  # Laos
+	;;
+    ml_*)
+	default_layout=in  # India
+	default_variant=mal # Malayalam
+	;;
+    pa_*)
+	default_layout=in  # India
+	default_variant=guru # Gurmukhi
+	;;
+    sr_ME*)
+	default_layout=me  # Montenegro
+	layout_priority=critical
+	;;
+    sr_*)
+	default_layout=rs  # Serbia
+	layout_priority=critical
+	;;
+    sv_*)
+	default_layout=se  # Sweden
+	default_variant=basic
+	;;
+    ta_*)
+	default_layout=in  # India
+	default_variant=tam # Tamil
+	;;
+    te_*)
+	default_layout=in  # India
+	default_variant=tel # Telugu
+	;;
+    zh_CN)
+	default_layout=cn  # China
+	;;
+    # Fallback
+    *)
+	default_layout=us
+	;;
+esac
+
+if \
+    [ -d /lib/debian-installer ] \
+    && db_get debian-installer/charmap \
+    && [ "$RET" ]
+then
+    default_charmap="$RET"
+elif [ "$locale" = C ]; then
+    default_charmap=UTF-8
+    charmap_priority=high
+elif which locale >/dev/null; then
+    default_charmap=`locale charmap`
+else
+    default_charmap=unknown
+fi
+if echo "$charmaps" | grep "$default_charmap" >/dev/null; then
+    charmap_priority=low
+else
+    default_charmap=UTF-8
+    charmap_priority=high
+fi
+
+arch=`guess_arch`
+
+case "$arch" in
+    alpha*)
+	default_model=pc105
+	model_priority=medium
+	;;
+    amd64*)
+	default_model=pc105
+	model_priority=medium
+	;;
+    arm*)
+	default_model=pc105
+	model_priority=medium
+	;;
+    i386*)
+	default_model=pc105
+	model_priority=medium
+	;;
+    ia64*)
+	default_model=pc105
+	model_priority=medium
+	;;
+    m68k/amiga)
+	default_model=amiga
+	model_priority=medium
+	;;
+    m68k/atari)
+	default_model=ataritt
+	model_priority=medium
+	;;
+    m68k/mac)
+	default_model=macintosh_old
+	model_priority=medium
+	;;
+    m68k/sun*)
+	default_model=sun4 # also sun5, pc105
+	model_priority=critical
+	;;
+    m68k/*vme*)
+	default_model=pc105
+	model_priority=medium
+	;;
+    mips*)
+	default_model=pc105
+	model_priority=medium
+	;;
+    powerpc/amiga)
+	default_model=amiga
+	model_priority=medium
+	;;
+    powerpc/apus)
+	default_model=amiga
+	model_priority=medium
+	;;
+    powerpc/chrp*)
+	default_model=pc105 # also macintosh_old and maybe amiga
+	model_priority=critical
+	;;
+    powerpc/mac)
+	default_model=pc105
+	model_priority=medium
+	;;
+    powerpc/pasemi)
+	default_model=pc105
+	model_priority=medium
+	;;
+    powerpc/powermac*)
+	default_model=pc105
+	model_priority=medium
+	;;
+    powerpc/prep)
+	default_model=pc105
+	model_priority=medium
+	;;
+    powerpc/ps3|powerpc/cell)
+	default_model=pc105
+	model_priority=medium
+	;;
+    sparc*)
+	default_model=pc105 # also sun4, sun5
+	model_priority=critical
+	;;
+    s390*)
+	default_model=pc105
+	model_priority=medium
+	;;
+    *)
+	default_model=pc105
+	model_priority=critical
+	;;
+esac    
+
+#######################################################################
+
+# Use the value of debian-installer/keymap to get better default
+# layout.  Lower the priority of the Debconf question to medium.
+
+# This is a desperation measure, but required for migration from
+# pre-console-setup systems without X installed. We just have to copy
+# the guesswork formerly done by xserver-xorg.config.
+
+if db_get debian-installer/keymap && [ "$RET" ]; then
+    di_keymap="${RET##mac-usb-}"
+    di_keymap="${di_keymap%%-latin1}"
+
+    XKBMODEL=''
+    XKBLAYOUT=''
+    XKBVARIANT=''
+    case "$di_keymap" in
+	be2) XKBLAYOUT="be";;
+	bg) XKBLAYOUT="bg"; XKBVARIANT="bds";;
+	br) XKBLAYOUT="us"; XKBVARIANT="intl"; XKBMODEL="pc104";;
+	br-abnt2) XKBLAYOUT="br"; XKBVARIANT="abnt2"; XKBMODEL="abnt2";;
+	by) XKBLAYOUT="by";;
+	cf) XKBLAYOUT="ca"; XKBVARIANT="fr";;
+	croat) XKBLAYOUT="hr";;
+	cz-lat2) XKBLAYOUT="cz";;
+	de-latin1-nodeadkeys) XKBLAYOUT="de"; XKBVARIANT="nodeadkeys";;
+	de) XKBLAYOUT="de";;
+	dvorak) XKBLAYOUT="us"; XKBVARIANT="dvorak"; XKBMODEL="pc104";;
+	dk) XKBLAYOUT="dk";;
+	es) XKBLAYOUT="es";;
+	et) XKBLAYOUT="ee";;
+	'fi') XKBLAYOUT="fi";;
+	fr-latin9) XKBLAYOUT="fr"; XKBVARIANT="latin9";;
+	fr_CH) XKBLAYOUT="ch"; XKBVARIANT="fr";;
+	fr) XKBLAYOUT="fr";;
+	hebrew) XKBLAYOUT="il";;
+	hu) XKBLAYOUT="hu";;
+	gb) XKBLAYOUT="gb";;
+	is) XKBLAYOUT="is";;
+	it) XKBLAYOUT="it";;
+	jp106) XKBLAYOUT="jp"; XKBVARIANT="kana"; XKBMODEL="jp106";;
+	la) XKBLAYOUT="latam";;
+	lt) XKBLAYOUT="lt";; 
+	lv-latin4) XKBLAYOUT="lv";;
+	mac-us-std) XKBLAYOUT="us";;
+	mac-de2-ext) XKBLAYOUT="de"; XKBVARIANT="nodeadkeys";;
+	mac-fr2-ext) XKBLAYOUT="fr";;
+	mac-fr3) XKBLAYOUT="fr";;
+	mac-es) XKBLAYOUT="es";;
+	mk) XKBLAYOUT="mk";;
+	nl) XKBLAYOUT="nl";;
+	no) XKBLAYOUT="no";;
+	pl) XKBLAYOUT="pl";;
+	pt) XKBLAYOUT="pt";;
+	ro) XKBLAYOUT="ro";;
+	ru) XKBLAYOUT="ru";;
+	se) XKBLAYOUT="se";;
+	sg) XKBLAYOUT="ch"; XKBVARIANT="de";;
+	sk-qwerty) XKBLAYOUT="sk"; XKBVARIANT="qwerty";;
+	slovene) XKBLAYOUT="si";;
+	sr-cy) XKBLAYOUT="rs";;
+	trf|trfu) XKBLAYOUT="tr"; XKBVARIANT="f";;
+	trq|trqu) XKBLAYOUT="tr";;
+	ua) XKBLAYOUT="ua";;
+	uk) XKBLAYOUT="gb";;
+	us) XKBLAYOUT="us"; XKBMODEL="pc104";;
+    esac
+
+    # Currently the following two lines are meaningless but stay here
+    # in case some wants to use the real XkbLayout and XkbVariant for
+    # the non-Latin layouts
+    XKBLAYOUT=${XKBLAYOUT#*,}
+    XKBVARIANT=${XKBVARIANT#*,}
+
+    case "$XKBLAYOUT" in
+	'')
+	    layout_priority=critical
+	    ;;
+	bg)
+	    # since there are two incompatible layouts and the console
+	    # provides only one of them
+	    default_layout="$XKBLAYOUT"
+	    default_variant="$XKBVARIANT"
+	    layout_priority=high
+	    ;;
+	*)
+	    if [ "$XKBMODEL" ]; then
+		default_model="$XKBMODEL"
+	    fi
+	    default_layout="$XKBLAYOUT"
+	    default_variant="$XKBVARIANT"
+	    layout_priority=medium
+	    ;;
+    esac
+fi
+    
+# Get defaults from debconf, to allow preseeding.
+if [ -d /lib/debian-installer ] || [ "$OVERRIDE_ALLOW_PRESEEDING" ]; then
+    if db_get console-setup/modelcode && [ "$RET" ]; then
+	default_model="$RET"
+    fi
+    if db_get console-setup/layoutcode && [ "$RET" ]; then
+	default_layout="$RET"
+	if db_fget console-setup/layoutcode seen && [ "$RET" = true ]; then
+	    layout_priority=medium
+	    db_set console-setup/ask_detect false
+	    db_fset console-setup/ask_detect seen true
+	fi
+    fi
+    if db_get console-setup/variantcode && [ "$RET" ]; then
+	default_variant="$RET"
+    fi
+    if db_get console-setup/optionscode && [ "$RET" ]; then
+	XKBOPTIONS="$RET"
+	got_xkboptions=yes
+    fi
+    if db_get console-setup/fontsize && [ "$RET" ]; then
+	db_set console-setup/fontsize-text "$RET"
+	db_set console-setup/fontsize-fb "$RET"
+    fi
+fi
+
+# Load the config file, if it exists.
+if [ -e $CONFIGFILE ]; then
+    . $CONFIGFILE || true
+    
+    got_full_config=yes
+    got_xkboptions=yes
+    model_priority=medium
+    layout_priority=medium
+    default_ttys="$ACTIVE_CONSOLES"
+    default_charmap="$CHARMAP"
+    default_fontface="$FONTFACE"
+    default_fontsize="$FONTSIZE"
+    default_model="$XKBMODEL"
+
+    default_codeset="`decode_codeset $CODESET`"
+    if [ -z "$default_codeset" ]; then
+	default_codeset=Uni1
+	codeset_priority=high
+    fi
+
+    migrate_layout () {
+	case "$1" in
+	    cs)
+		echo rs
+		;;
+	    *)
+		echo "$1"
+		;;
+	esac
+    }
+
+    migrate_variant () {
+	case "$1" in
+	    jp)
+		case "$2" in
+		    latin)
+			echo 106
+			;;
+		    jp106)
+			echo kana
+			;;
+		    *)
+			echo "$2"
+			;;
+		esac
+		;;
+	    *)
+		echo "$2"
+		;;
+	esac
+    }
+
+    # Migration
+    case "$XKBLAYOUT" in
+	*,*)
+	    layout1="${XKBLAYOUT%%,*}"
+	    layout2="${XKBLAYOUT#*,}"
+	    variant1="${XKBVARIANT%%,*}"
+	    variant2="${XKBVARIANT#*,}"
+	    XKBLAYOUT="$(migrate_layout "$layout1"),$(migrate_layout "$layout2")"
+	    XKBVARIANT="$(migrate_variant "$layout1" "$variant1"),$(migrate_variant "$layout2" "$variant2")"
+	    ;;
+	*)
+	    XKBLAYOUT="$(migrate_layout "$XKBLAYOUT")"
+	    XKBVARIANT="$(migrate_variant "$XKBLAYOUT" "$XKBVARIANT")"
+	    ;;
+    esac
+
+    case "$XKBLAYOUT" in
+	lt,lt)
+	    default_layout=${XKBLAYOUT%,*}
+	    default_variant="${XKBVARIANT%,*}"
+	    unsupported_layout=no
+	    ;;	    
+	# TODO: make s.t. to not forget to update this list
+	me,me|rs,rs|us,am|us,ara|us,ben|us,bd|us,bg|us,bt|us,by|us,deva|us,ge|us,gh|us,gr|us,guj|us,guru|us,il|us,in|us,ir|us,iku|jp,jp|us,jp|us,kan|us,kh|us,kz|us,la|us,lao|us,lk|us,lt|us,mk|us,mm|us,mn|us,mv|us,mal|us,ori|us,pk|us,ru|us,scc|us,sy|us,syr|us,tel|us,th|us,tj|us,tam|us,ua|us,uz)
+	    default_layout=${XKBLAYOUT#*,}
+	    default_variant="${XKBVARIANT#*,}"
+	    unsupported_layout=no
+	    ;;	    
+	*,*)
+	    unsupported_layout=yes
+	    ;;
+	*)
+	    default_layout="$XKBLAYOUT"
+	    default_variant="$XKBVARIANT"
+	    ;;
+    esac
+fi
+
+if [ "$got_xkboptions" = yes ]; then
+    default_toggle='No toggling'
+    default_switch='No temporary switch'
+    default_altgr='No AltGr key'
+    default_compose='No compose key'
+    for option in `echo $XKBOPTIONS | sed 's/,/ /g'`; do
+	case "$option" in
+	    compose:caps)
+		default_compose='Caps Lock';;
+	    compose:lwin)
+		default_compose='Left Logo key';;
+	    compose:menu)
+		default_compose='Menu key';;
+	    compose:ralt)
+		default_compose='Right Alt';;
+	    compose:rctrl)
+		default_compose='Right Control';;
+	    compose:rwin)
+		default_compose='Right Logo key';;
+	    grp:alt_caps_toggle)
+		default_toggle='Alt+Caps Lock';;
+	    grp:alt_shift_toggle)
+		default_toggle='Alt+Shift';;
+	    grp:caps_toggle)
+		default_toggle='Caps Lock';;
+	    grp:ctrl_alt_toggle)
+		default_toggle='Control+Alt';;
+	    grp:ctrl_shift_toggle)
+		default_toggle='Control+Shift';;
+	    grp:lalt_toggle)
+		default_toggle='Left Alt';;
+	    grp:lctrl_lshift_toggle)
+		default_toggle='Left Control+Left Shift';;
+	    grp:lctrl_toggle)
+		default_toggle='Left Control';;
+	    grp:lshift_toggle)
+		default_toggle='Left Shift';;
+	    grp:lswitch)
+		default_switch='Left Alt';;
+	    grp:lwin_switch)
+		default_switch='Left Logo key';;
+	    grp:lwin_toggle)
+		default_toggle='Left Logo key';;
+	    grp:menu_toggle)
+		default_toggle='Menu key';;
+	    grp:rctrl_toggle)
+		default_toggle='Right Control';;
+	    grp:rshift_toggle)
+		default_toggle='Right Shift';;
+	    grp:rwin_switch)
+		default_switch='Right Logo key';;
+	    grp:rwin_toggle)
+		default_toggle='Right Logo key';;
+	    grp:sclk_toggle)
+		default_toggle='Scroll Lock key';;
+	    grp:switch)
+		default_switch='Right Alt';;
+	    grp:toggle)
+		default_toggle='Right Alt';;
+	    grp:win_switch)
+		default_switch='Both Logo keys';;
+	    lv3:alt_switch)
+		default_altgr='Both Alt keys';;
+	    lv3:enter_switch)
+		default_altgr='Keypad Enter key';;
+	    lv3:lalt_switch)
+		default_altgr='Left Alt';;
+	    lv3:lwin_switch)
+		default_altgr='Left Logo key';;
+	    lv3:menu_switch)
+		default_altgr='Menu key';;
+	    lv3:ralt_switch)
+		default_altgr='Right Alt';;
+	    lv3:rwin_switch)
+		default_altgr='Right Logo key';;
+	    lv3:switch)
+		default_altgr='Right Control';;
+	    lv3:win_switch)
+		default_altgr='Both Logo keys';;
+	    grp_led:scroll)
+		;;
+	    *)
+		unsupported_layout=yes;;
+	esac
+    done
+fi
+
+if [ "$got_full_config" = yes ]; then
+    # Store values from config file into debconf db.
+    
+    db_set console-setup/ttys "$default_ttys"
+    db_set console-setup/charmap "$default_charmap"
+    db_set console-setup/codeset "$default_codeset"
+    db_set console-setup/fontface "$default_fontface"
+    db_set console-setup/fontsize-text "$default_fontsize"
+    db_set console-setup/fontsize-fb "$default_fontsize"
+    db_set console-setup/fontsize "$default_fontsize"
+fi
+if [ "$got_xkboptions" = yes ]; then
+    db_set console-setup/toggle "$default_toggle"
+    db_set console-setup/switch "$default_switch"
+    db_set console-setup/altgr "$default_altgr"
+    db_set console-setup/compose "$default_compose"
+fi
+
+#######################################################################
+
+STATE=1
+old_state=0
+while :; do
+    starting_state=$STATE
+    case "$STATE" in
+	1)
+	    if \
+		ask_debconf console-setup/model $model_priority \
+		    model $default_model
+	    then
+		db_set console-setup/modelcode "$RET"
+		STATE=$(($STATE + 1))
+	    else
+		STATE=$(($STATE - 1))
+	    fi
+	    ;;
+	2)
+	    db_get console-setup/modelcode
+	    if \
+		$detect_keyboard \
+		&& [ "$RET" != SKIP ] \
+		&& [ -e "/usr/share/console-setup-mini/$RET.tree" ]
+	    then
+		db_input high console-setup/ask_detect || true
+		if db_go; then
+		    STATE=$(($STATE + 1))
+		else
+		    STATE=$(($STATE - 1))
+		fi
+	    else
+		STATE=$(($STATE + $STATE - $old_state))
+	    fi
+	    ;;
+	3)
+	    db_get console-setup/modelcode
+	    model="$RET"
+	    if \
+		[ "$STATE" -ge "$old_state" ] \
+		&& $detect_keyboard \
+		&& [ "$model" != SKIP ] \
+		&& [ -e "/usr/share/console-setup-mini/$model.tree" ] \
+		&& db_get console-setup/ask_detect \
+		&& [ "$RET" = true ]
+	    then
+		db_subst console-setup/detect FILENAME \
+		    "/usr/share/console-setup-mini/$model.tree"
+		if db_input critical console-setup/detect && db_go; then
+		    db_get console-setup/detect
+		    detected_keyboard="$RET"
+		    # TODO: produce human-readable layout name
+		    db_subst console-setup/detected LAYOUT "$detected_keyboard"
+		    db_input high console-setup/detected || true
+		    if db_go; then
+			unsupported_layout=no
+			STATE=$(($STATE + 1))
+		    else
+			detected_keyboard=
+			STATE=$(($STATE - 1))
+		    fi
+		else
+		    STATE=$(($STATE - 1))
+		fi
+	    else
+		detected_keyboard=
+		STATE=$(($STATE + $STATE - $old_state))
+	    fi
+	    ;;
+	4)
+	    if [ "$detected_keyboard" ]; then
+		layout="${detected_keyboard%%:*}"
+		db_set console-setup/layoutcode "$layout"
+		# skip the question without making Debconf loop
+		STATE=$(( $STATE + $STATE - $old_state ))
+	    elif [ "$model" = SKIP ]; then
+		STATE=$(( $STATE + $STATE - $old_state ))
+	    elif [ "$unsupported_layout" = yes ]; then
+		if [ "$STATE" -ge "$old_state" ]; then
+		    # This is an error template, so debconf ignores the seen
+		    # flag. Make sure that it's only asked at most once per
+		    # package installation.
+		    if ! db_fget console-setup/dont_ask_layout asked_this_run || \
+		       [ "$RET" = false ]; then
+			db_input medium console-setup/dont_ask_layout || true
+			db_go || true
+			db_fset console-setup/dont_ask_layout asked_this_run true
+		    fi
+		    db_set console-setup/layoutcode "$XKBLAYOUT"
+		    STATE=$(($STATE + 1))
+		else
+		    STATE=$(($STATE - 1))
+		fi
+	    elif \
+		ask_debconf console-setup/layout "$layout_priority" \
+		    layout "$default_layout"
+	    then
+		layout="$RET"
+		STATE=$(($STATE + 1))
+	    else
+		STATE=$(($STATE - 1))
+	    fi
+	    ;;
+	5)
+	    adjust_layout=false
+	    if [ "$detected_keyboard" ]; then
+		case $detected_keyboard in
+		    *:*)
+			variant="${detected_keyboard#*:}"
+			;;
+		    *)
+			variant=
+			;;
+		esac
+		db_set console-setup/variantcode "$variant"
+		adjust_layout=:
+		# skip the question without making Debconf loop
+		STATE=$(( $STATE + $STATE - $old_state ))
+	    elif [ "$model" = SKIP ]; then
+		STATE=$(( $STATE + $STATE - $old_state ))
+	    elif [ "$unsupported_layout" = yes ]; then
+		db_set console-setup/variantcode "$XKBVARIANT"
+		# skip the question without making Debconf loop
+		STATE=$(( $STATE + $STATE - $old_state ))
+	    elif \
+		ask_debconf console-setup/variant "$layout_priority" \
+                    "variant\*${layout}" "$default_variant"
+	    then
+		variant="$RET"
+		adjust_layout=:
+		STATE=$(($STATE + 1))
+	    else
+		STATE=$(($STATE - 1))
+	    fi
+	    if $adjust_layout; then
+		case "$layout" in
+		    jp)
+			case "$variant" in
+			    106|common|OADG109A|nicola_f_bs)
+				latin=yes
+				real_layout=$layout
+				;;
+			    *)
+				latin=no
+				real_layout=jp,jp
+				;;
+			esac
+			;;
+		    lt)
+			latin=no
+			real_layout=lt,lt
+			;;
+		    me)
+			case "$variant" in
+			    basic|latin*)
+				latin=yes
+				real_layout=$layout
+				;;
+			    *)
+				latin=no
+				real_layout=me,me
+				;;
+			esac
+			;;
+		    rs)
+			case "$variant" in
+			    basic|latin*)
+				latin=yes
+				real_layout=$layout
+				;;
+			    *)
+				latin=no
+				real_layout=rs,rs
+				;;
+			esac
+			;;
+		    # TODO: make s.t. to not forget to update this list.  Don't
+		    # forget to update also the nonlatin list in kbdcompiler
+		    am|ara|ben|bd|bg|bt|by|deva|ge|gh|gr|guj|guru|il|in|ir|iku|kan|kh|kz|la|lao|lk|mk|mm|mn|mv|mal|ori|pk|ru|scc|sy|syr|tel|th|tj|tam|ua|uz)
+			latin=no
+			real_layout=us,$layout
+			;;
+		    *)
+			latin=yes
+			real_layout=$layout
+			;;
+		esac
+		db_set console-setup/layoutcode "$real_layout"
+		if [ "$latin" = yes ]; then
+		    db_set console-setup/variantcode "$variant"
+		elif [ "$real_layout" = lt,lt ]; then
+		    case "$variant" in
+			us)
+			    db_set console-setup/variantcode "us,"
+			    ;;
+			*)
+			    db_set console-setup/variantcode "$variant,us"
+			    ;;
+		    esac
+		elif [ "$real_layout" = jp,jp ]; then
+			    db_set console-setup/variantcode "106,$variant"
+		elif [ "$real_layout" = me,me ]; then
+		    case "$variant" in
+			cyrillicyz)
+			    db_set console-setup/variantcode \
+				"latinyz,$variant"
+			    ;;
+			cyrillicalternatequotes)
+			    db_set console-setup/variantcode \
+				"latinalternatequotes,$variant"
+			    ;;
+			*)
+			    db_set console-setup/variantcode \
+				"basic,$variant"
+			    ;;
+		    esac
+		elif [ "$real_layout" = rs,rs ]; then
+		    case "$variant" in
+			yz)
+			    db_set console-setup/variantcode \
+				"latinyz,$variant"
+			    ;;
+			alternatequotes)
+			    db_set console-setup/variantcode \
+				"latinalternatequotes,$variant"
+			    ;;
+			*)
+			    db_set console-setup/variantcode \
+				"latin,$variant"
+			    ;;
+		    esac
+		else
+		    db_set console-setup/variantcode ",$variant"
+		fi
+	    fi
+	    ;;
+	6)
+	    if [ "$unsupported_layout" = yes ]; then
+		db_set console-setup/optionscode "$XKBOPTIONS"
+		# skip the questions without making Debconf loop
+		STATE=$(( $STATE + $STATE - $old_state ))
+	    elif [ "$model" = SKIP ]; then
+		STATE=$(( $STATE + $STATE - $old_state ))
+	    else
+		if [ "$latin" = yes ]; then
+		    db_default console-setup/toggle 'No toggling'
+		    db_default console-setup/switch 'No temporary switch'
+		fi
+		db_beginblock
+		if [ "$latin" = no ]; then
+		    db_get console-setup/toggle
+		    if [ "$RET" = 'No toggling' ]; then
+			db_reset console-setup/toggle
+		    fi
+		    db_input high console-setup/toggle || true
+		    db_input medium console-setup/switch || true
+		fi
+		if [ ! -f $CONFIGFILE -a "$layout" = us ]; then
+		    if [ "$variant" = '' ]; then
+			# basic US keyboard doesn't use AltGr.
+			db_default console-setup/altgr 'No AltGr key'
+		    else
+			db_default console-setup/altgr 'Right Alt'
+		    fi
+		fi
+		db_input medium console-setup/altgr || true
+		db_input medium console-setup/compose || true
+		db_endblock
+
+		if db_go; then 
+		    STATE=$(($STATE + 1))
+		else
+		    STATE=$(($STATE - 1))
+		fi
+
+		db_get console-setup/toggle
+		case "$RET" in
+		    Caps\ Lock)
+		        caps_allocated=yes
+		        toggle=caps_toggle;;
+		    Right\ Alt)
+		        ralt_allocated=yes
+		        toggle=toggle;;
+		    Right\ Control)
+		        rctrl_allocated=yes
+		        toggle=rctrl_toggle;;
+		    Right\ Shift)
+		        rshift_allocated=yes
+		        toggle=rshift_toggle;;
+		    Right\ Logo?key)
+		        rwin_allocated=yes
+		        toggle=rwin_toggle;;
+		    Menu?key)
+			menu_allocated=yes
+			toggle=menu_toggle;;
+		    Alt+Shift)
+			toggle=alt_shift_toggle;;
+		    Control+Shift)
+			toggle=ctrl_shift_toggle;;
+		    Left\ Control+Left\ Shift)
+			toggle=lctrl_lshift_toggle;;
+		    Scroll\ Lock\ key)
+			toggle=sclk_toggle;;
+		    Alt+Caps\ Lock)
+			toggle=alt_caps_toggle;;
+		    Control+Alt)
+			toggle=ctrl_alt_toggle;;
+		    Left\ Alt)
+		        lalt_allocated=yes
+		        toggle=lalt_toggle;;
+		    Left\ Control)
+		        lctrl_allocated=yes
+		        toggle=lctrl_toggle;;
+		    Left\ Shift)
+		        lshift_allocated=yes
+		        toggle=lshift_toggle;;
+		    Left\ Logo?key)
+		        lwin_allocated=yes
+		        toggle=lwin_toggle;;
+		    No\ toggling)
+		        toggle='';;
+		    *)
+			echo Unknown toggle key option
+			exit 1
+			;;
+		esac
+		if [ "$toggle" ]; then
+		    toggle=grp:$toggle
+		fi
+		
+		db_get console-setup/switch
+		switch=''
+		case "$RET" in
+		    Right\ Alt)
+		        if [ "$ralt_allocated" != yes ]; then
+			    switch=switch
+			    ralt_allocated=yes
+		        fi;;
+		    Left\ Alt)
+		        if [ "$lalt_allocated" != yes ]; then
+			    switch=lswitch
+			    lalt_allocated=yes
+		        fi;;
+		    Right\ Logo?key)
+		        if [ "$rwin_allocated" != yes ]; then
+			    switch=rwin_switch
+			    rwin_allocated=yes
+		        fi;;
+		    Left\ Logo?key)
+		        if [ "$lwin_allocated" != yes ]; then
+			    switch=lwin_switch
+			    lwin_allocated=yes
+		        fi;;
+		    Both\ Logo?keys)
+		        if \
+			    [ "$rwin_allocated" != yes ] \
+			    && [ "$lwin_allocated" != yes ]
+			then
+			    switch=win_switch
+			    rwin_allocated=yes
+			    lwin_allocated=yes
+		        fi;;
+		    No\ temporary\ switch)
+		        switch='';;
+		    *)
+			echo Unknown switch key option
+			exit 1
+			;;
+		esac
+		if [ "$switch" ]; then
+		    switch=grp:$switch
+		fi
+		
+		db_get console-setup/altgr
+		altgr=''
+		case "$RET" in
+		    No?AltGr?key)
+			altgr='';;
+		    Right?Alt)
+			if [ "$ralt_allocated" != yes ]; then
+			    altgr=ralt_switch
+			    ralt_allocated=yes
+			fi;;
+		    Right?Control)
+			if [ "$rctrl_allocated" != yes ]; then
+			    altgr=switch
+			    rctrl_allocated=yes
+			fi;;
+		    Menu?key)
+			if [ "$menu_allocated" != yes ]; then
+			    altgr=menu_switch
+			    menu_allocated=yes
+			fi;;
+		    Keypad?Enter?key)
+			altgr=enter_switch;;
+		    Right?Logo?key)
+			if [ "$rwin_allocated" != yes ]; then
+			    altgr=rwin_switch
+			    rwin_allocated=yes
+			fi;;
+		    Left?Logo?key)
+			if [ "$lwin_allocated" != yes ]; then
+			    altgr=lwin_switch
+			    lwin_allocated=yes
+			fi;;
+		    Both?Logo?keys)
+			if \
+			    [ "$rwin_allocated" != yes ] \
+			    && [ "$lwin_allocated" != yes ]
+			then
+			    altgr=win_switch
+			    rwin_allocated=yes
+			    lwin_allocated=yes
+			fi;;
+		    Both?Alt?keys)
+			if \
+			    [ "$lalt_allocated" != yes ] \
+			    && [ "$ralt_allocated" != yes ]
+			then
+			    altgr=alt_switch
+			    ralt_allocated=yes
+			    lalt_allocated=yes
+			fi;;
+		    Left?Alt)
+			if [ "$lalt_allocated" != yes ]; then
+			    altgr=lalt_switch
+			    lalt_allocated=yes
+			fi;;
+		    *)
+			echo Unknown altgr key option
+			exit 1
+			;;
+		esac
+		if [ "$altgr" ]; then
+		    altgr=lv3:$altgr
+		fi
+
+		db_get console-setup/compose
+		compose=''
+		case "$RET" in
+		    No?compose?key)
+			compose='';;
+		    Right?Alt)
+			if [ "$ralt_allocated" != yes ]; then
+			    compose=ralt
+			    ralt_allocated=yes
+			fi;;
+		    Right?Logo?key)
+			if [ "$rwin_allocated" != yes ]; then
+			    compose=rwin
+			    rwin_allocated=yes
+			fi;;
+		    Left?Logo?key)
+			if [ "$lwin_allocated" != yes ]; then
+			    compose=lwin 
+			    lwin_allocated=yes
+			fi;;
+		    Right?Control)
+			if [ "$rctrl_allocated" != yes ]; then
+			    compose=rctrl 
+			    rctrl_allocated=yes
+			fi;;
+		    Menu?key)
+			if [ "$menu_allocated" != yes ]; then
+			    compose=menu
+			    menu_allocated=yes
+			fi;;
+		    Caps?Lock)
+			if [ "$caps_allocated" != yes ]; then
+			    compose=caps
+			    caps_allocated=yes
+			fi;;
+		    *)
+			echo Unknown compose key option
+			exit 1
+			;;
+		esac
+		if [ "$compose" ]; then
+		    compose=compose:$compose
+		fi
+		
+		case "$real_layout" in
+		    *,*)
+		        leds=grp_led:scroll;;
+		    *)
+			leds='';;
+		esac
+		
+		options=$(
+		    echo $toggle $switch $altgr $compose $leds \
+			| sed -e 's/^ *//' -e 's/ *$//' -e 's/  */,/g'
+		)
+		db_set console-setup/optionscode "$options"
+	    fi
+	    ;;		    
+	7)
+	    if [ "$package" = console-setup-mini ]; then
+		if [ "$STATE" -ge "$old_state" ]; then
+		    STATE=$(($STATE + 1))
+		else
+		    STATE=$(($STATE - 1))
+		fi
+		charmap=UTF-8
+	    else
+		# add commas
+		choices=`echo "$charmaps" | sed -e 's/$/,/g' | LC_ALL=C sort `
+		# remove newlines
+		choices=`echo $choices | sed -e 's/,$//' `
+		db_subst console-setup/charmap CHOICES "$choices"
+		db_default console-setup/charmap "$default_charmap"
+		db_input $charmap_priority console-setup/charmap || true
+		if db_go; then
+		    STATE=$(($STATE + 1))
+		else
+		    STATE=$(($STATE - 1))
+		fi
+		db_get console-setup/charmap
+		charmap=$RET
+	    fi
+	    ;;
+	8)
+	    # It shouldn't be possible for $default_codeset to be
+	    # empty, but just a precaution.
+	    if [ "$default_codeset" ]; then
+		db_default console-setup/codeset "$default_codeset"
+	    fi
+	    db_input $codeset_priority console-setup/codeset || true
+	    if db_go; then
+		db_get console-setup/codeset
+		codeset="`encode_codeset $RET`"
+		db_set console-setup/codesetcode "$codeset"
+		STATE=$(($STATE + 1))
+	    else
+		STATE=$(($STATE - 1))
+	    fi
+	    ;;
+	9)
+	    fontfaces=`available_fontfaces`
+	    # add commas
+	    choices=`echo "$fontfaces" | sed -e 's/$/,/g'`
+	    # remove newlines
+	    choices=`echo $choices | sed -e 's/,$//'`
+	    db_subst console-setup/fontface CHOICES "$choices"
+	    if [ -z "$default_fontface" ]; then
+		case "$codeset" in
+		    Arabic)
+			default_fontface=Fixed
+			;;
+		    Armenian)
+			default_fontface=Fixed
+			;;
+		    CyrAsia)
+			default_fontface=Fixed
+			;;
+		    CyrKoi)
+			default_fontface=VGA
+			;;
+		    CyrSlav)
+			default_fontface=VGA
+			;;
+		    Ethiopian)
+			default_fontface=Goha
+			;;
+		    Georgian)
+			default_fontface=Fixed
+			;;
+		    Greek)
+			default_fontface=Fixed
+			;;
+		    Hebrew)
+			default_fontface=Fixed
+			;;
+		    Lao)
+			default_fontface=Fixed
+			;;
+		    Lat15)
+			default_fontface=VGA
+			;;
+		    Lat2)
+			default_fontface=VGA
+			;;
+		    Lat38)
+			default_fontface=Fixed
+			;;
+		    Lat7)
+			default_fontface=VGA
+			;;
+		    Thai)
+			default_fontface=Fixed
+			;;
+		    Uni1)
+			default_fontface=Fixed
+			;;
+		    Uni2)
+			default_fontface=Fixed
+			;;
+		    Uni3)
+			default_fontface=Fixed
+			;;
+		    Vietnamese)
+			default_fontface=Fixed
+			;;
+		    *)
+			default_fontface=Fixed
+			;;
+		esac
+	    fi
+	    db_default console-setup/fontface "$default_fontface"
+	    db_input medium console-setup/fontface || true
+	    if db_go; then
+		STATE=$(($STATE + 1))
+	    else
+		STATE=$(($STATE - 1))
+	    fi
+	    db_get console-setup/fontface
+	    fontface=$RET
+	    ;;
+	10)
+	    fontsizes=`available_fontsizes`
+	    # add commas
+	    choices=`echo "$fontsizes" | sed -e 's/$/,/g' `
+	    # remove newlines
+	    choices=`echo $choices | sed -e 's/,$//'`
+	    if echo "$choices" | grep -q x; then
+		size_template=console-setup/fontsize-fb
+	    else
+		size_template=console-setup/fontsize-text
+	    fi
+	    db_subst $size_template CHOICES "$choices"
+	    db_input medium $size_template || true
+	    if db_go; then
+		STATE=$(($STATE + 1))
+	    else
+		STATE=$(($STATE - 1))
+	    fi
+	    db_get $size_template
+	    fontsize=$RET
+	    db_set console-setup/fontsize "$fontsize"
+	    ;;
+	11)
+	    db_input medium console-setup/ttys || true
+	    if db_go; then
+		STATE=$(($STATE + 1))
+	    else
+		STATE=$(($STATE - 1))
+	    fi
+	    db_get console-setup/ttys
+	    ttys=$RET
+	    ;;
+	*)
+	    break
+	    ;;
+    esac
+    old_state=$starting_state
+done
+
+if [ $STATE -eq 0 ]; then
+    exit 10
+else
+    # we don't do the following corrections during the state 2 or 3 of
+    # the loop because if the user backs up and selects another layout
+    # the keyboard model will be wrong.  We also want the combinations
+    # Brasilian layout on Japanese keyboard and Japanese layout on
+    # Brasilian keyboard to be possible.
+    db_get console-setup/modelcode
+    if [ "$RET" = "$default_model" ]; then
+	if [ "$layout" = br ]; then 
+	    model=abnt2
+	elif [ "$layout" = jp ]; then 
+	    model=jp106
+	fi
+	db_set console-setup/modelcode "$model"
+    fi
+fi

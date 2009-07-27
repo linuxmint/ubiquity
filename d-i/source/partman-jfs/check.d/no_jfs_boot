@@ -1,0 +1,40 @@
+#!/bin/sh
+# yaboot does not work with /boot on jfs. Detect and warn.
+if [ "`udpkg --print-architecture`" != powerpc ]; then
+	exit 0
+fi
+
+. /lib/partman/lib/base.sh
+
+get_jfs_root_boot () {
+	(for i in /lib/partman/fstab.d/*; do
+		[ -x "$i" ] || continue
+		$i
+	done) |
+	while read fs mp type options dump pass; do
+		if [ "$mp" = / ]; then
+			echo root_type=$type
+		elif [ "$mp" = /boot ]; then
+			echo boot_type=$type
+		fi
+	done
+}
+eval "$(get_jfs_root_boot)"
+
+if [ "$boot_type" = jfs ]; then
+	db_input critical partman-jfs/jfs_boot || true
+	db_go || exit 1
+	db_get partman-jfs/jfs_boot
+	if [ "$RET" = false ]; then
+		exit 1
+	fi
+fi
+
+if [ "$boot_type" = "" ] && [ "$root_type" = jfs ]; then
+	db_input critical partman-jfs/jfs_root || true
+	db_go || exit 1
+	db_get partman-jfs/jfs_root
+	if [ "$RET" = false ]; then
+		exit 1
+	fi
+fi

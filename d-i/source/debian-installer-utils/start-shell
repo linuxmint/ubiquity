@@ -1,0 +1,60 @@
+#! /bin/sh -e
+
+. /usr/share/debconf/confmodule
+
+TITLE_TEMPLATE="$1"
+shift
+COMMAND_LINE="$@"
+
+have_terminal_plugin () {
+	db_capb
+	set -- $RET
+	for cap; do
+		if [ "$cap" = plugin-terminal ]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
+show_unavailable_message () {
+	local workaround_template
+
+	workaround_template=debian-installer/workaround-$DEBIAN_FRONTEND
+	if ! db_metaget $workaround_template description; then
+		RET=""
+	fi
+	db_subst debian-installer/terminal-plugin-unavailable WORKAROUND "$RET"
+	db_fset debian-installer/terminal-plugin-unavailable seen false
+	db_input critical debian-installer/terminal-plugin-unavailable
+	db_go || true
+	db_capb backup
+}
+
+case $DEBIAN_FRONTEND in
+    text)
+	debconf-disconnect $COMMAND_LINE || true
+	;;
+    *)
+	if ! have_terminal_plugin; then
+		anna-install cdebconf-$DEBIAN_FRONTEND-terminal || true
+		if ! have_terminal_plugin; then
+			if [ "$DEBIAN_FRONTEND" = newt ]; then
+				debconf-disconnect $COMMAND_LINE || true
+				exit 0
+			fi
+			show_unavailable_message
+			exit 1
+		fi
+	fi
+	if ! db_metaget $TITLE_TEMPLATE description; then
+		db_metaget debian-installer/shell-plugin-default-title description
+	fi
+	db_subst debian-installer/shell-plugin TITLE "$RET"
+	db_subst debian-installer/shell-plugin COMMAND_LINE $COMMAND_LINE
+	db_fset debian-installer/shell-plugin seen false
+	db_input critical debian-installer/shell-plugin
+	db_go || true
+	db_capb backup
+	;;
+esac

@@ -1,0 +1,103 @@
+#!/bin/sh
+
+# This code is covered by the GNU General Public License (GPLv2 or higher)
+
+PREREQ=""
+
+prereqs() {
+	echo "$PREREQ"
+}
+
+pause_error() {
+	#exit 1 # won't work; initramfs-tools ignores hook script exit code
+	echo "" >&2
+	if [ "$DEBIAN_FRONTEND" = "noninteractive" ] ; then
+		echo "Unable to abort; system will probably be broken!" >&2
+	else
+		echo "Press Ctrl-C to abort build, or Enter to continue" >&2
+		read
+	fi
+}
+
+case $1 in
+prereqs)
+	prereqs
+	exit 0
+	;;
+esac
+
+. /usr/share/initramfs-tools/hook-functions
+
+# Only run on some machines
+machine=$(grep "^Hardware" /proc/cpuinfo | sed 's/Hardware\s*:\s*//')
+case "$machine" in
+	"Buffalo Linkstation Pro/Live" | "Buffalo/Revogear Kurobox Pro" | "D-Link DNS-323" | "GLAN Tank" | "HP Media Vault mv2120" | "Linksys NSLU2" | "QNAP TS-109/TS-209" | "QNAP TS-409" | "Thecus N2100")
+		# Pass the check and continue below
+	;;
+	*)
+		# If the machine is not listed, don't run this hook
+		exit 0
+	;;
+esac
+
+# Record the root filesystem device for use during boot
+rootdev=$(egrep '^[^# 	]+[ 	]+/[ 	]' /etc/fstab | awk '{print $1}') || true
+
+# Map LVM devices in the form of /dev/vg/lv to /dev/mapper/..., otherwise
+# initramfs won't initialize them.
+path=$(readlink -f $rootdev)
+if echo "$path" | grep -q "^/dev/mapper/"; then
+	rootdev=$path
+fi
+
+# Translate LABEL and UUID entries into a proper device name.
+if echo "$rootdev" | grep -q "="; then
+	a=$(echo "$rootdev" | cut -d "=" -f 1)
+	b=$(echo "$rootdev" | cut -d "=" -f 2- | sed -e 's/^"\(.*\)"$/\1/')
+	case "$a" in
+		LABEL)
+			c=$(echo "$b" | sed 's#/#\\x2f#g')
+			if [ -e /dev/disk/by-label/$c ]; then
+				rootdev="/dev/disk/by-label/$c"
+			else
+				echo "Label $b not found in /dev/disk/by-label" >&2
+			fi
+		;;
+		UUID)
+			rootdev=/dev/disk/by-uuid/$b
+			if [ ! -e $rootdev ]; then
+				echo "UUID $b doesn't exist in /dev/disk/by-uuid" >&2
+			fi
+		;;
+		*)
+			echo "/etc/fstab parse error; cannot recognize root $rootdev" >&2
+		;;
+	esac
+fi
+
+if [ ! -e "$rootdev" ]; then
+	rootdev=/dev/sda2
+	echo "Warning: /etc/fstab parse error; guessing that the root device is $rootdev" >&2
+	pause_error
+fi
+case "$machine" in
+	# The boot loader doesn't pass root= on the command line, so
+	# provide a default.
+	"Linksys NSLU2")
+		install -d $DESTDIR/conf/conf.d
+		echo "ROOT=\"$rootdev\"" > $DESTDIR/conf/conf.d/default_root
+	;;
+	# The boot loader passes a bogus root= (e.g. root=/dev/ram), so
+	# override the command line parameter.
+	"Buffalo Linkstation Pro/Live" | "Buffalo/Revogear Kurobox Pro" | "D-Link DNS-323" | "GLAN Tank" | "HP Media Vault mv2120" | "QNAP TS-109/TS-209" | "QNAP TS-409" | "Thecus N2100")
+		install -d $DESTDIR/conf
+		echo "ROOT=\"$rootdev\"" >> $DESTDIR/conf/param.conf
+	;;
+	# This shouldn't happen - only if a device from the case statement
+	# above wasn't added here.
+	*)
+		echo "Device $machine not supported.  Please file a bug." >&2
+		pause_error
+	;;
+esac
+

@@ -1,0 +1,46 @@
+#! /bin/sh
+set -e
+
+TESTS=0
+SUCCESSES=0
+
+[ "$TEST_VERBOSE" ] || export TEST_VERBOSE=1
+
+cd tests
+
+if [ $TEST_VERBOSE -eq 1 ]; then
+	echo "Running testsuite:"
+fi
+for test in *; do
+	if [ ! -x $test ]; then
+		continue
+	fi
+
+	if [ $TEST_VERBOSE -eq 1 ]; then
+		echo -n "- $test... "
+	elif [ $TEST_VERBOSE -ge 1 ]; then
+		echo Running tests for $test...
+	fi
+	TESTS=$(($TESTS + 1))
+	if eval "./$test"; then
+		if [ $TEST_VERBOSE -eq 1 ]; then
+			echo "OK."
+		fi
+		SUCCESSES=$(($SUCCESSES + 1))
+	else
+		if [ $TEST_VERBOSE -eq 1 ];then
+			echo "FAILED."
+		fi
+	fi
+	if [ $TEST_VERBOSE -ge 1 ]; then
+		echo
+	fi
+done
+
+if [ $TEST_VERBOSE -ge 1 ];then
+	echo "Overall result: $SUCCESSES out of $TESTS tests were successful"
+fi
+if [ $SUCCESSES -ne $TESTS ]; then
+	exit 1
+fi
+exit 0

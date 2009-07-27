@@ -1,0 +1,44 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+fs=$1
+dev=$2
+id=$3
+
+mkdir -p $dev/$id
+
+existing=no
+for j in $(
+		for i in /lib/partman/valid_filesystems/*; do
+			[ -x $i ] || continue
+			$i $dev $id existing
+		done
+	); do
+		if [ "$j" = "$fs" ]; then
+			existing=yes
+		fi
+done
+
+if [ $existing = yes ]; then
+	echo keep >$dev/$id/method
+	rm -f $dev/$id/format
+	> $dev/$id/use_filesystem
+else
+	echo format >$dev/$id/method
+	> $dev/$id/format
+	> $dev/$id/use_filesystem
+fi
+
+echo $fs >$dev/$id/filesystem
+
+if [ ! -d $dev/$id/options ]; then
+	mkdir $dev/$id/options
+	if [ -f /lib/partman/mountoptions/${fs}_defaults ]; then
+		for op in $(cat /lib/partman/mountoptions/${fs}_defaults); do
+			echo "$op" >"$dev/$id/options/$op"
+		done
+	fi
+fi
+
+update_partition $dev $id

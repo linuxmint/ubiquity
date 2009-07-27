@@ -1,0 +1,125 @@
+#!/bin/sh
+
+modprobe -q openprom > /dev/null 2>&1
+
+# no openprom support... suckage.
+if [ ! -e /dev/openprom ]; then
+	exit 1
+fi
+
+dev_to_obp() {
+	device=$1
+
+	if [ ! -e $device ] || [ -z "$device" ]; then
+		exit 1
+	fi
+
+	device=$(readlink -f $device)
+
+	# get the parent block device
+	block=$(echo $device | sed -e 's#/dev/##g' -e 's/[0-9]*//g')
+
+	# partition number
+	partnum=$(echo $device | sed -e 's#.*'$block'##g')
+
+	# scd and sg are special
+	if [ "$block" = "scd" ] || [ "$block" = "sg" ]; then
+		block=sr$partnum
+	fi
+
+	# convert partnum to letter
+	if [ -n "$partnum" ]; then
+		# convert to a letter
+		partalpha=$(printf ';\'$(($partnum + 140)))
+	fi
+
+	# expand the device and replace / with # for commodity.
+	syspath=$(readlink -f /sys/block/$block/device | sed -e 's/\//#/g')
+
+	# backup IFS
+	OLDIFS="${IFS}"
+
+	# export # as IFS (from above sed since we need to be able to print /)
+	export IFS="#"
+
+	# recursive loop into /sys and we update $path on each match.
+	# the last match is of course the closest to the device.
+	for i in $syspath; do
+		pathto="$pathto$i/"
+		if [ -e ${pathto}obppath ]; then
+			path=$(cat ${pathto}obppath)
+		fi
+		last="$i"
+	done
+
+	# reset IFS to default
+	export IFS=${OLDIFS}
+
+	# get what kind of media it is.
+	media=$(cat /sys/block/$block/device/media) 2>/dev/null || media=$(cat /sys/block/$block/device/type) 2>/dev/null 
+	case $media in
+		0|e) media=disk ;;
+		5) media=cdrom ;;
+	esac
+
+	if [ "$media" = "cdrom" ]; then
+		partalpha=;f
+	fi
+
+	if echo $path | grep -qE '(scsi|sas|sbus)'; then
+		target=$(echo $last | cut -d ":" -f 3)
+		lun=$(echo $last | cut -d ":" -f 4)
+		if echo $path | grep -q sbus; then
+			path="$path/sd@$target,$lun"
+		else
+			path="$path/disk@$target,$lun"
+		fi
+	elif echo $path | grep -q ide; then
+		slotalpha=$(echo $block | sed -e 's/.*hd//g' -e 's/.*sd//g')
+		slotnum="$(printf '%d' "'$slotalpha")"
+		slotnum="$(($slotnum - 97))"
+		path="$path/$media@$slotnum"
+	elif echo $path | grep -q qlc; then
+		target=$(echo $last | cut -d ":" -f 3)
+		lun=$(echo $last | cut -d ":" -f 4)
+		path="$path/fp@0,0/disk@$(($target + 1)),$lun"
+	elif echo $path | grep -q virtual-devices; then
+		media=disk
+		path="/virtual-devices/$(basename $path | sed -e 's/,.*//g')"
+	fi
+	echo $media $path \;$partnum $partalpha
+}
+
+find_obp_alias() {
+	media="$1"
+	path="$2"
+	partnum="$3"
+	partalpha="$4"
+
+	prtconf="$(prtconf -pv)"
+
+	# special case for sbus. kernel always reports /sbus@numbers/
+	# but OBP exports only /sbus/ if it's the only one detected
+	# on system.
+	if echo $path | grep -q sbus && [ -z "$(echo "$prtconf" | grep "$path" | grep -v boot | head -n 1 | cut -d ":" -f 1)" ]; then
+		path=$(echo /sbus/${path#/sbus*/})
+	fi
+
+	# special case SAS. kernel reports to us disk@$target,$lun but
+	# OBP can accept also disk@$target as valid alias
+	if echo $path | grep -q sas && [ -z "$(echo "$prtconf" | grep "$path" | grep -v boot | head -n 1 | cut -d ":" -f 1)" ]; then
+		path=$(echo $path | sed -e 's#,[0-9]$##g')
+	fi
+
+	alias="$(echo "$prtconf" | grep "$path" | grep -v boot | head -n 1 | cut -d ":" -f 1)"
+	obppath="$(echo "$prtconf" | grep "$alias:" | cut -d ":" -f 2 | sed -e "s#'##g")"
+	echo $alias $obppath $partnum $partalpha
+}
+
+obpdump="$(dev_to_obp $1)"
+
+if [ -n "$obpdump" ]; then
+	obpalias=$(find_obp_alias $obpdump)
+fi
+
+echo $obpalias

@@ -1,0 +1,49 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+file="$1"
+
+chroot=
+if [ "$ROOT" ]; then
+	chroot=chroot
+fi
+
+i=0
+while db_get "apt-setup/local$i/repository" && [ "$RET" ]; do
+	repository="${RET#deb }"
+	comment=
+	if db_get "apt-setup/local$i/comment"; then
+		comment="$RET"
+	fi
+	key=
+	if db_get "apt-setup/local$i/key"; then
+		key="$RET"
+	fi
+	echo >> $file
+	if [ -n "$comment" ]; then
+		echo "## $comment" >> $file
+	fi
+	echo "deb $repository" >> $file
+	# if true, add a line for deb-src
+	if db_get "apt-setup/local$i/source" && [ "$RET" = true ]; then
+		echo "deb-src $repository" >> $file
+	fi
+	if [ -n "$key" ]; then
+		# make wget use the proxy
+		protocol=${repository%%:*}
+		if db_get mirror/$protocol/proxy && [ "$RET" ]; then
+			proxy="$RET"
+			eval "export ${protocol}_proxy=$proxy"
+		fi
+		# fetch the key
+		wget "$key" -O "$ROOT/tmp/key$i.pub"
+		# add it to the keyring
+		$chroot $ROOT apt-key add "/tmp/key$i.pub"
+		rm -f "$ROOT/tmp/key$i.pub"
+	fi
+	i="$(($i + 1))"
+done
+
+exit 0

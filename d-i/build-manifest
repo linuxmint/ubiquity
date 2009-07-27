@@ -1,0 +1,9 @@
+#! /bin/sh
+set -e
+
+for src in source/*; do
+	[ -f "$src/debian/changelog" ] || continue
+	printf '%s ' "${src##*/}"
+	dpkg-parsechangelog -l"$src/debian/changelog" | \
+		sed -n -e '/^Version:/s/Version: //p'
+done | sort

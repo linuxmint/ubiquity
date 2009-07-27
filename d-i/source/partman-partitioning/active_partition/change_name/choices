@@ -1,0 +1,20 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+dev=$1
+id=$2
+cd $dev
+
+open_dialog  USES_NAMES
+read_line x
+close_dialog
+
+if [ "$x" = yes ]; then
+	open_dialog PARTITION_INFO $id
+	read_line x1 id x3 x4 x5 x6 old_name
+	close_dialog
+	db_metaget partman-partitioning/text/set_name description
+	printf "setname\t%s\${!TAB}%s\n" "${RET}" "$old_name"
+fi
+

@@ -1,0 +1,21 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd "$dev"
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		if [ -f "$id/method" ]; then
+			method=$(cat "$id/method")
+			if [ "$method" = format ]; then
+				echo keep >"$id/method"
+			fi
+		fi
+		if [ -f "$id/format" ]; then
+			rm -f "$id/format"
+		fi
+	done
+	close_dialog
+done

@@ -1,0 +1,138 @@
+Source: console-setup
+Section: utils
+Priority: optional
+Maintainer: Ubuntu Installer Team <ubuntu-installer@lists.ubuntu.com>
+XSBC-Original-Maintainer: Debian Install System Team <debian-boot@lists.debian.org>
+Uploaders: Anton Zinoviev <zinoviev@debian.org>, Christian Perrier <bubulle@debian.org>
+Build-Depends-Indep: perl, libxml-parser-perl, xkb-data (>= 0.9), keymapper (>= 0.5.3-7)
+Build-Depends: debhelper (>= 5), po-debconf
+Standards-Version: 3.7.3
+XS-Debian-Vcs-Svn: svn://svn.debian.org/d-i/trunk/packages/console-setup
+Vcs-Bzr: http://bazaar.launchpad.net/~ubuntu-core-dev/console-setup/ubuntu
+
+Package: console-setup
+Section: utils
+Architecture: all
+Recommends: kbd (>= 1.12-15) | console-tools (>= 1:0.2.3dbs-62ubuntu10)
+Depends: debconf (>= 0.5) | debconf-2.0, console-terminus (>= 4.26), xkb-data (>= 0.9), initramfs-tools (>= 0.85eubuntu12)
+Suggests: lsb-base (>= 3.0-6)
+Conflicts: lsb-core (<< 2.0-6), lsb (<< 2.0-6), lsb-base (<< 3.0-6)
+Description: Set up the font and the keyboard on the console
+ The package provides the Linux console with the same versatile
+ keyboard configuration that the X Window System uses.  As a result
+ there is no need to duplicate or change the keyboard files just to
+ make simple customisations such as the use of dead keys, the key
+ functioning as AltGr or Compose key, the key(s) to switch between
+ Latin and non-Latin mode, etc.
+ .
+ The package also contains console fonts supporting many of the
+ world's languages.  It provides an unified set of font faces - the
+ classic VGA, the simplistic Fixed, and the cleaned Terminus,
+ TerminusBold and TerminusBoldVGA.
+
+Package: console-setup-mini
+Section: utils
+Priority: extra
+Architecture: all
+Recommends: kbd | console-tools
+Depends: debconf (>= 0.5) | debconf-2.0
+Suggests: lsb-base (>= 3.0-6)
+Conflicts: console-setup, console-terminus, lsb-core (<< 2.0-6), lsb (<< 2.0-6), lsb-base (<< 3.0-6)
+Description: An experimental micro version of console-setup package
+ This package can be useful when Debian system is installed on
+ handhelds or other devices with small storage space.  It was created
+ as proof of concept for a method to implement versatile keyboard
+ configuration in the Debian installer.
+ .
+ This package supports only UTF-8.  The legacy 8-bit encodings are not
+ supported.
+
+Package: bdf2psf
+Architecture: all
+Section: utils
+Priority: optional
+Depends: perl
+Description: Font converter to generate console fonts from BDF source fonts
+ This is a command line converter that can be used in scripts to build
+ automatically console fonts from BDF sources.  The converter comes
+ with a collection of font encodings that cover many of the world
+ languages; notice that the font encoding (so called SFM) does not
+ need to follow the actually used encoding (so called ACM).  When the
+ source font does not define a glyph for a symbol in the font encoding
+ the glyph position in the console font is not wasted but used for
+ another symbol.
+ .
+ When deciding about the position in the font for a particular glyph,
+ the converter takes into account that in text video modes the video
+ adapter copies the 8th column of the glyph matrix of symbols
+ positioned in the pseudographic area to the 9th column.  In order to
+ create fonts for text video modes the width of the glyph matrix of
+ the source BDF font should be 7, 8 or 9 pixels, otherwise the
+ converter creates fonts suitable for framebuffer only.
+
+Package: console-setup-udeb
+Section: debian-installer
+Priority: extra
+Depends: console-setup-ekmap, console-setup-fonts-udeb, archdetect, cdebconf-udeb, kbd-udeb, cdebconf-newt-detect-keys
+Provides: keyboard-setup
+Architecture: all
+Description: Configure the keyboard
+ This is an experimental replacement of kbd-chooser.
+XC-Package-Type: udeb
+XB-Installer-Menu-Item: 1200
+
+Package: console-setup-amiga-ekmap
+Provides: console-setup-ekmap
+Section: debian-installer
+Priority: extra
+Architecture: all
+Description: Encoded keyboard layouts for amiga keyboards
+XC-Package-Type: udeb
+
+Package: console-setup-ataritt-ekmap
+Provides: console-setup-ekmap
+Section: debian-installer
+Priority: extra
+Architecture: all
+Description: Encoded keyboard layouts for ataritt keyboards
+XC-Package-Type: udeb
+
+Package: console-setup-macintoshold-ekmap
+Provides: console-setup-ekmap
+Section: debian-installer
+Priority: extra
+Architecture: all
+Description: Encoded keyboard layouts for macintoshold keyboards
+XC-Package-Type: udeb
+
+Package: console-setup-pc-ekmap
+Provides: console-setup-ekmap
+Section: debian-installer
+Priority: extra
+Architecture: all
+Description: Encoded keyboard layouts for pc keyboards
+XC-Package-Type: udeb
+
+Package: console-setup-sun4-ekmap
+Provides: console-setup-ekmap
+Section: debian-installer
+Priority: extra
+Architecture: all
+Description: Encoded keyboard layouts for sun4 keyboards
+XC-Package-Type: udeb
+
+Package: console-setup-sun5-ekmap
+Provides: console-setup-ekmap
+Section: debian-installer
+Priority: extra
+Architecture: all
+Description: Encoded keyboard layouts for sun5 keyboards
+XC-Package-Type: udeb
+
+Package: console-setup-fonts-udeb
+Section: debian-installer
+Priority: extra
+Architecture: all
+Description: Console fonts for Debian Installer
+XC-Package-Type: udeb
+

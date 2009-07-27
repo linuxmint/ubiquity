@@ -1,0 +1,57 @@
+#!/usr/bin/make -f
+# Copyright (C) 2004, 2006  Martin Michlmayr <tbm@cyrius.com>
+
+# Uncomment the following line to turn on verbose mode.
+#export DH_VERBOSE=1
+
+PACKAGE=flash-kernel
+
+pwd=$(shell pwd)
+
+TOPDIR := $(shell pwd)
+t=${TOPDIR}/debian/${PACKAGE}
+
+build: build-stamp
+
+build-stamp:
+	dh_testdir
+	touch build-stamp
+
+clean:
+	dh_testdir
+	dh_testroot
+	-rm build-stamp
+	dh_clean
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+	dh_installman flash-kernel.8
+	dh_install flash-kernel usr/sbin
+	dh_install -p flash-kernel initramfs-tools usr/share
+
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+	dh_installdocs -s
+	dh_install -s
+	dh_installman -s
+	dh_installchangelogs -s
+	dh_installdebconf -s
+	dh_compress -s
+	dh_fixperms -s
+	install -d debian/flash-kernel-installer/DEBIAN
+	cp debian/flash-kernel-installer.isinstallable debian/flash-kernel-installer/DEBIAN/isinstallable
+	dh_installdeb -s
+	dh_shlibdeps -s
+	dh_gencontrol -s
+	dh_md5sums -s
+	dh_builddeb -s
+
+binary-indep:
+	# do nothing
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install

@@ -1,0 +1,17 @@
+#!/bin/sh
+
+. /lib/preseed/preseed.sh
+
+# eat options starting with a -, so we can pass them on
+while expr "$1" : "-" >/dev/null; do
+	OPTS="$OPTS $1"
+	shift
+done
+
+src="$1"
+dst="$2"
+
+last=/var/run/preseed.last_location
+url=$(make_absolute_url "$src" "$(test -r $last && cat $last)")
+
+fetch-url $OPTS "$url" "$dst"

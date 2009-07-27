@@ -1,0 +1,89 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+file="$1"
+
+if [ ! -e /cdrom/.disk/cd_type ] || [ -d /hd-media ] || \
+   [ ! -e /var/lib/install-cd.id ]; then
+	exit 0
+fi
+# multi-arch CDs have cd_type 'non_complete'
+# KDE/Xfce CDs and multi-arch DVDs have '/single' postfix in cd_type
+cd_type=$(cat /cdrom/.disk/cd_type)
+if [ "$cd_type" != full_cd ] && [ "$cd_type" != dvd ]; then
+	exit 0
+fi
+
+get_label() {
+	$logoutput --pass-stdout $chroot $ROOT \
+		apt-cdrom ident | grep "^Stored label:" | \
+		sed "s/^[^:]*: //"
+}
+
+logoutput=""
+if [ "$CATCHLOG" ]; then
+	logoutput="log-output -t apt-setup"
+fi
+
+chroot=
+if [ "$ROOT" ]; then
+	chroot=chroot
+
+	# We can only change CDs if current CD is unmounted
+	$logoutput umount /cdrom || true
+fi
+
+tmp=$($chroot $ROOT tempfile)
+
+cd_label=$(tail -n1 /var/lib/install-cd.id)
+db_subst apt-setup/cdrom/set-first LABEL "$cd_label"
+db_input high apt-setup/cdrom/set-first || true
+if ! db_go; then
+	if [ "$ROOT" ]; then
+		load-install-cd "$ROOT"
+	fi
+	exit 10
+fi
+db_get apt-setup/cdrom/set-first
+
+while [ "$RET" = true ]; do
+	cd_label=$(get_label)
+	# Hmm. The greps could fail if a label contains regexp control chars...
+	if [ "$cd_label" ] && \
+	   (grep "^deb cdrom:\[$cd_label\]" $file || \
+	    grep "^deb cdrom:\[$cd_label\]" $ROOT/etc/apt/sources.list.new); then
+		template=apt-setup/cdrom/set-double
+		db_subst $template LABEL "$cd_label"
+	else
+		# apt-cdrom can be interactive, avoid that
+		if $logoutput $chroot $ROOT apt-cdrom add \
+		   -o Dir::Etc::SourceList=$tmp \
+		   </dev/null; then
+			cat $ROOT$tmp >> $file
+
+			# Label is assigned by apt-cdrom add, so get again
+			cd_label=$(get_label)
+			template=apt-setup/cdrom/set-next
+			db_subst $template LABEL "$cd_label"
+		else
+			template=apt-setup/cdrom/set-failed
+		fi
+		rm -f $ROOT$tmp $ROOT$tmp~
+	fi
+
+	db_input critical $template || true
+	if ! db_go; then
+		if [ "$ROOT" ]; then
+			load-install-cd "$ROOT"
+		fi
+		exit 10
+	fi
+	db_get $template
+done
+
+# Make sure the installation CD is loaded again
+if [ "$ROOT" ]; then
+	load-install-cd "$ROOT"
+fi

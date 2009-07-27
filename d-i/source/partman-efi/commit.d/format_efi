@@ -1,0 +1,69 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+ARCH="$(archdetect)"
+case $ARCH in
+    i386/*|amd64/*|lpia/*)
+	new_efi_fs=fat32
+	;;
+    *)
+	new_efi_fs=fat16
+	;;
+esac
+
+enable_swap
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ "$fs" != free ] || continue
+		partitions="$partitions $id,$num"
+	done
+	close_dialog
+ 
+	for part in $partitions; do
+		id=${part%,*}
+		num=${part#*,}
+		[ -f $id/method -a -f $id/format ] || continue
+		method=$(cat $id/method)
+		if [ "$method" = efi ]; then
+			if [ -f $id/formatted ] && \
+			   [ $id/formatted -nt $id/method ]; then
+				continue
+			fi
+			log "Try to format EFI $new_efi_fs fs in $dev/$id"
+			template=partman-basicfilesystems/progress_formatting
+			open_dialog PARTITION_INFO $id
+			read_line x1 x2 x3 x4 x5 device x6
+			close_dialog
+
+			RET=''
+			db_metaget  partman/filesystem_short/efi description || RET=''
+			[ "$RET" ] || RET=efi
+			db_subst $template TYPE "$RET"
+			db_subst $template PARTITION "$num"
+			db_subst $template DEVICE $(humandev $(cat device))
+			name_progress_bar $template
+			open_dialog CREATE_FILE_SYSTEM $id $new_efi_fs
+			read_line status
+			close_dialog
+			sync
+
+			if [ "$status" != OK ]; then
+				db_subst partman-basicfilesystems/create_failed TYPE efi
+				db_subst partman-basicfilesystems/create_failed PARTITION "$num"
+				db_subst partman-basicfilesystems/create_failed DEVICE $(humandev $(cat device))
+				db_input critical partman-basicfilesystems/create_failed || true
+				db_go || true
+				#disable_swap
+				exit 1
+			fi
+			>$id/formatted
+		fi
+	done
+done
+
+#disable_swap

@@ -1,0 +1,31 @@
+#! /bin/sh
+set -e
+
+MESSAGE='Automatic update of included source packages'
+
+./build-manifest > manifest
+
+# Has anything changed?
+cmp -s manifest.old manifest && exit 0
+
+TOPDIR=.
+if [ ! -e debian/changelog ]; then
+	TOPDIR=..
+	if [ ! -e ../debian/changelog ]; then
+		echo "cannot find debian/changelog" >&2
+		exit 1
+	fi
+fi
+
+sep=:
+for changed in $(sort -u manifest.old manifest | cut -d' ' -f1 | uniq -d); do
+	new="$(echo "$changed" | join -o 2.2 - manifest)"
+	MESSAGE="$MESSAGE$sep $changed $new"
+	sep=,
+done
+MESSAGE="$MESSAGE."
+
+echo "$MESSAGE"
+(cd $TOPDIR && dch -t -D UNRELEASED "$MESSAGE")
+
+rm -f manifest.old

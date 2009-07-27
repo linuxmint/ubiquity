@@ -1,0 +1,199 @@
+#!/bin/sh
+
+# This code is covered by the GNU General Public License (GPLv2 or higher)
+
+set -e
+
+. /usr/share/debconf/confmodule
+
+log() {
+	logger -t flash-kernel-installer "$@"
+}
+
+error() {
+	log "error: $@"
+	db_progress STOP
+	exit 1
+}
+
+findfs () {
+	mount | grep "on /target${1%/} " | cut -d' ' -f1
+}
+
+# Are we writing to flash or constructing an image on disk?
+write_to_flash() {
+	case "$machine" in
+		"Buffalo Linkstation Pro/Live" | "Buffalo/Revogear Kurobox Pro" | "GLAN Tank" | "HP Media Vault mv2120")
+			return 1
+		;;
+		*)
+			return 0
+		;;
+	esac
+}
+
+machine=$(grep "^Hardware" /proc/cpuinfo | sed 's/Hardware\s*:\s*//')
+
+if write_to_flash; then
+	db_progress START 0 3 flash-kernel-installer/progress
+else
+	db_progress START 0 3 flash-kernel-installer/progress_disk
+fi
+db_progress INFO flash-kernel-installer/prepare
+
+# Stop fsck from prompting the user for input since most users don't
+# have a serial console.
+sed -i "s/^FSCKFIX=no$/FSCKFIX=yes/" /target/etc/default/rcS || true
+
+if ! apt-install flash-kernel; then
+	error "apt-install flash-kernel failed"
+fi
+
+# Set up flash-kernel to run on kernel upgrades.
+if ! grep -q flash-kernel /target/etc/kernel-img.conf; then
+	echo "postinst_hook = flash-kernel" >> \
+		/target/etc/kernel-img.conf
+fi
+
+# Temporarily move flash-kernel out of the way so update-initramfs
+# won't call flash-kernel; otherwise we'd call it twice.
+mv /target/usr/sbin/flash-kernel /target/tmp/flash-kernel.$$
+
+db_progress STEP 1
+
+case "$machine" in
+	"Buffalo Linkstation Pro/Live" | "Buffalo/Revogear Kurobox Pro")
+		in-target update-initramfs -u || true
+		if ! apt-install uboot-mkimage; then
+			error "apt-install uboot-mkimage failed"
+		fi
+	;;
+	"D-Link DNS-323")
+		in-target update-initramfs -u || true
+		if ! apt-install uboot-mkimage; then
+			error "apt-install uboot-mkimage failed"
+		fi
+	;;
+	"Freescale MX51 Babbage Board")
+		if ! anna-install redboot-tools-udeb; then
+			error "anna-install redboot-tools-udeb failed"
+		fi
+		if ! apt-install redboot-tools; then
+			error "apt-install redboot-tools failed"
+		fi
+		# hardcoded defaults
+		fis_dev="/dev/mmcblk0"
+		fis_offset_hex="0x40000"
+		fis_size_hex="0x1F000"
+		# create flash-kernel.conf
+		echo "fis_dev=${fis_dev}" > /target/etc/flash-kernel.conf
+		echo "fis_offset_hex=${fis_offset_hex}" >> /target/etc/flash-kernel.conf
+		echo "fis_size_hex=${fis_size_hex}" >> /target/etc/flash-kernel.conf
+		# find fis configuration
+		ofst=$(LC_ALL=C fis -d "$fis_dev" -o $fis_offset_hex list | sed -rn "s/^[[:space:]]*RedBoot config: addr = (0x[0-9a-f]{8}), size = 0x[0-9a-f]{8}, entry = 0x[0-9a-f]{8}, length = 0x[0-9a-f]{8}, cksum = 0x[0-9a-f]{8}\$/\1/p")
+		if [ -z "$ofst" ]; then
+			error "could not find fis configuration on $fis_dev"
+		fi
+		# required to assemble redboot script
+		initrd_names="initrd initramfs"
+		for name in $initrd_names; do
+			if fis -d "$fis_dev" -o $fis_offset_hex list | grep -q "^[[:space:]]*$name:"; then
+		        initrd_name=$name
+		    fi
+		done
+		if [ -z "$initrd_name" ];then
+		    error "no fis partition with valid name for initramfs found"
+		fi
+		kernel_names="vmlinuz kernel"
+		for name in $kernel_names; do
+			if fis -d "$fis_dev" -o $fis_offset_hex list | grep -q "^[[:space:]]*$name:"; then
+		        kernel_name=$name
+		    fi
+		done
+		if [ -z "$kernel_name" ];then
+		    error "no fis partition with valid name for kernel found"
+		fi
+		load_initrd="fis load $initrd_name"
+		load_kernel="fis load $kernel_name"
+		# find target UUID
+		rootfs="$(findfs /)"
+		vol_id="$(PATH="/lib/udev:$PATH" vol_id -u "$rootfs")"
+		# assemble cmdline
+		cmdline="\"root=UUID=$vol_id ro quiet\""
+		script="$load_initrd\\$load_kernel\\exec -r 0x1000000 -s 0x00940000 -c $cmdline\\"
+		fconfig -w -s -d "$fis_dev" -o $ofst -n boot_script_data -x "$script"
+		in-target update-initramfs -u || true
+	;;
+	"GLAN Tank")
+		in-target update-initramfs -u || true
+	;;
+	"HP Media Vault mv2120")
+		if ! apt-install mv2120-utils; then
+			# mv2120-utils includes some initramfs-tools scripts
+			# that would be nice to have but which are not
+			# essential.
+			log "apt-install mv2120-utils failed"
+		fi
+		in-target update-initramfs -u || true
+		if ! apt-install uboot-mkimage; then
+			error "apt-install uboot-mkimage failed"
+		fi
+		# The firmware loads /boot/uImage from the first partition
+		# but uImage will be in / if a separate boot partition is
+		# used.  In this case, create a /boot/boot -> /boot symlink.
+		# Note that a partman check will make sure that /boot (if
+		# it exists) or / (if there's no separate /boot) are on the
+		# first partition.
+		rootfs=$(findfs /)
+		bootfs=$(findfs /boot)
+		if [ "$rootfs" != "$bootfs" ]; then
+			if [ ! -e /target/boot/boot ]; then
+				ln -s . /target/boot/boot
+			fi
+		fi
+	;;
+	"Linksys NSLU2")
+		if ! apt-install ixp4xx-firmware; then
+			# not fatal, firmware can be provided other ways
+			# and is not always needed
+			log "apt-install ixp4xx-firmware failed"
+		fi
+		# nslu2-utils will call update-initramfs -u to include the
+		# firmware and to run the hook from flash-kernel
+		if ! apt-install nslu2-utils; then
+			error "apt-install nslu2-utils failed"
+		fi
+		if ! apt-install apex-nslu2; then
+			error "apt-install apex-nslu2 failed"
+		fi
+	;;
+	"Thecus N2100" | "Thecus N4100")
+		in-target update-initramfs -u || true
+	;;
+	"QNAP TS-109/TS-209" | "QNAP TS-409")
+		in-target update-initramfs -u || true
+		if ! apt-install uboot-mkimage; then
+			error "apt-install uboot-mkimage failed"
+		fi
+	;;
+esac
+
+db_progress STEP 1
+if write_to_flash; then
+	db_progress INFO flash-kernel-installer/flashing
+else
+	db_progress INFO flash-kernel-installer/generating_image
+fi
+
+mv /target/tmp/flash-kernel.$$ /target/usr/sbin/flash-kernel
+
+# We need the udev /dev which has the MTD devices
+mount -o bind /dev /target/dev
+if ! in-target flash-kernel; then
+	umount /target/dev || true
+	error "flash-kernel failed"
+fi
+umount /target/dev || true
+
+db_progress STEP 1
+db_progress STOP

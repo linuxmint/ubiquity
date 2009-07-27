@@ -1,0 +1,143 @@
+#!/bin/sh
+
+[ -f /target/etc/fstab ] || exit 0
+
+MEDIA=/media # or MEDIA='' to make directories in /
+
+escape () {
+	printf %s "$1" | \
+		sed 's/\\/\\134/g; s/ /\\040/g; s/	/\\011/g; s/\n/\\012/g'
+}
+
+# dev, mountpoint, type, options, dump, pass
+addfstab () {
+	printf "%-15s %-15s %-7s %-15s %-7s %s\n" \
+		"$(escape "$1")" "$(escape "$2")" \
+		"$(escape "$3")" "$(escape "$4")" \
+		"$5" "$6" >> /target/etc/fstab
+}
+
+rm_dir_or_link () {
+	if [ -L "$1" ]; then
+		rm "$1"
+	elif [ -d "$1" ]; then
+		rmdir "$1"
+	fi
+}
+
+# category, file system, options, main device, other devices ...
+populate_media () {
+	local category fs options number mount_point
+	category=$1
+	fs=$2
+	options=$3
+	shift; shift; shift
+	mkdir -p /target$MEDIA
+	if [ "$1" ]; then
+		rm_dir_or_link /target${MEDIA}/${category}
+		ln -s ${category}0 /target${MEDIA}/${category}
+	fi
+	number=0
+	while [ "$1" ]; do
+		mount_point="${MEDIA}/${category}$number"
+		addfstab "$1" "$mount_point" "$fs" "$options" 0 0
+		rm_dir_or_link /target$mount_point
+		mkdir -p /target$mount_point
+		number=$(($number + 1))
+		shift
+	done
+}
+
+CDDEV=$(grep /cdrom /proc/mounts | cut -d ' ' -f 1 | grep -v ^/dev/loop)
+if [ -n "$CDDEV" ]; then
+	MAPCDDEV=$(mapdevfs $CDDEV)
+else
+	MAPCDDEV=''
+fi
+
+CDDEVICES=''
+for dev in $(list-devices cd); do
+	mapdev=$(mapdevfs $dev)
+	if [ -n "$mapdev" ] && [ "$mapdev" != "$MAPCDDEV" ]; then
+		CDDEVICES="$CDDEVICES $mapdev"
+	fi
+done
+if [ -n "$MAPCDDEV" ]; then
+	CDDEVICES="$MAPCDDEV $CDDEVICES" # first the mounted cdrom
+fi
+
+populate_media cdrom udf,iso9660 user,noauto,exec,utf8 $CDDEVICES
+# Compatability link to keep things working; etch is not migrated away
+# entirely from /cdrom.
+if [ -n "$CDDEVICES" ]; then
+	rm_dir_or_link /target/cdrom
+	ln -s media/cdrom /target/cdrom
+fi
+
+FDDEVICES=''
+for dev in $(list-devices floppy); do
+	mapdev=$(mapdevfs $dev)
+	if [ "$mapdev" ]; then
+		FDDEVICES="$FDDEVICES $mapdev"
+	fi
+done
+
+populate_media floppy auto rw,user,noauto,exec,utf8 $FDDEVICES
+
+# See if a usb storage device is plugged in right now. If so, assume it is
+# removable media unless the disk is already listed in the fstab.
+HD_MEDIA=$(grep /hd-media /proc/mounts | cut -d ' ' -f 1)
+if [ -n "$HD_MEDIA" ]; then
+	HD_MEDIA="$(mapdevfs $HD_MEDIA)"
+fi
+founddevs=
+if [ -d /sys/block ]; then
+	if type udevadm >/dev/null 2>&1; then
+		disk_containing () {
+			dirname "$(udevadm info -q path -n "$1")"
+		}
+		is_usb () {
+			udevadm info -q env -n "$1" | grep -q '^ID_BUS=usb$'
+		}
+	elif type udevinfo >/dev/null 2>&1; then
+		disk_containing () {
+			dirname "$(udevinfo -q path -n "$1")"
+		}
+		is_usb () {
+			udevinfo -q env -n "$1" | grep -q '^ID_BUS=usb$'
+		}
+	fi
+fi
+if type disk_containing >/dev/null 2>&1; then
+	partitions="$(list-devices partition)"
+	for dev in $partitions; do
+		is_usb "$dev" || continue
+		disk="$(disk_containing "$dev")"
+		for otherdev in $partitions; do
+			if [ "$(disk_containing "$otherdev")" = "$disk" ] && \
+			   grep -q "^$otherdev " /target/etc/fstab; then
+				continue 2
+			fi
+		done
+		mapdev="$(mapdevfs $dev)"
+		founddevs="${founddevs:+$founddevs }$mapdev"
+	done
+fi
+USBDEVICES=
+for dev in $founddevs; do
+	if [ -z "$USBDEVICES" ]; then
+		USBDEVICES="$dev"
+	else
+		if [ "$dev" != "$HD_MEDIA" ]; then
+			USBDEVICES="$USBDEVICES $dev"
+		else
+			# If installing from usb, list that device first
+			USBDEVICES="$dev $USBDEVICES"
+		fi
+	fi
+done
+
+# See https://launchpad.net/bugs/60552
+if [ "$USBDEVICES" ]; then
+	logger -t partman-target "USB automounting disabled (would have handled: $USBDEVICES)"
+fi

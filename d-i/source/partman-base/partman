@@ -1,0 +1,193 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+. /lib/partman/lib/commit.sh
+
+abort () {
+	if [ -f /var/run/parted_server.pid ]; then
+		stop_parted_server
+	fi
+	exit $1
+}
+
+# Implemented here instead of init.d because anna displays a progress bar
+# which conflicts with the init.d progress bar
+load_extra () {
+	local auto memreq_lvm memreq_crypto
+
+	if [ -f /var/lib/partman/loaded-extra ]; then
+		return 0
+	fi
+	>/var/lib/partman/loaded-extra
+
+	# Rough memory requirements in kB; could be made arch dependent
+	memreq_lvm=7500
+	memreq_crypto=11000	# 1MB more than limit in partman-crypto
+
+	auto=""
+	if [ -f /lib/partman/lib/auto-shared.sh ]; then
+		auto=1
+	fi
+
+	# partman-lvm is loaded first, then partman-crypto
+	if [ -f /lib/partman/lib/lvm-base.sh ]; then
+		:
+	elif [ $(memfree) -ge $memreq_lvm ]; then
+		if [ "$auto" ]; then
+			anna-install partman-auto-lvm
+		else
+			anna-install partman-lvm
+		fi
+	else
+		logger -t partman "Insufficient free memory to load LVM support"
+	fi
+	if [ -f /lib/partman/lib/crypto-base.sh ]; then
+		:
+	elif [ $(memfree) -ge $memreq_crypto ]; then
+		if [ "$auto" ]; then
+			anna-install partman-auto-crypto
+		else
+			anna-install partman-crypto
+		fi
+	else
+		logger -t partman "Insufficient free memory to load crypto support"
+	fi
+}
+
+###########################################################
+# Compute some constants in order to make things faster.
+###########################################################
+
+# Detect if Debconf can escape strings
+# non-empty means we can escape
+can_escape=''
+if type debconf-escape >/dev/null 2>&1; then
+	db_capb backup align
+	for cap in $RET; do
+		case $cap in
+			escape)	can_escape=yes ;;
+		esac
+	done
+fi
+export can_escape
+
+# The decimal separator (dot or comma)
+#db_metaget partman/text/deci description
+#deci="$RET"
+# The comma has special meaning for debconf.  Lets force dot until we
+# start using escaped strings.
+deci='.'
+export deci
+
+# work around bug #243373
+if [ "$TERM" = xterm ] || [ "$TERM" = bterm ]; then
+	debconf_select_lead="$NBSP"
+else
+	debconf_select_lead="> "
+fi
+export debconf_select_lead
+
+###########################################################
+
+
+# Commented due to #240145
+#if [ -e /var/lib/partman ]; then
+#	rm -rf /var/lib/partman
+#fi
+
+mkdir -p /var/lib/partman
+
+# Load additional components when sufficent memory is available
+load_extra
+
+# Make sure all modules are available
+# Should really be done whenever anna installs a kernel package
+depmod -a
+
+# We need to set the capabilities after anna-install
+db_capb backup align
+
+while true; do
+	initcount=$(ls /lib/partman/init.d/* | wc -l)
+	db_progress START 0 $initcount partman/progress/init/title
+
+	for s in /lib/partman/init.d/*; do
+		if [ -x $s ]; then
+			#logger -t partman "Running init.d/$s"
+
+			base=$(basename $s | sed 's/[0-9]*//')
+			# Not every init script has, or needs, its own progress
+			# template. Add them to slow init scripts only.
+			if ! db_progress INFO partman/progress/init/$base; then
+				db_progress INFO partman/progress/init/fallback
+			fi
+			if ! $s; then
+				db_progress STOP
+				abort 10
+			fi
+		fi
+		db_progress STEP 1
+	done
+	db_progress STOP
+
+	while true; do
+		for s in /lib/partman/display.d/*; do
+			if [ -x $s ]; then
+				#logger -t partman "Running display.d/$s"
+				$s || {
+					exitcode=$?
+					if [ $exitcode -eq 255 ]; then
+						abort 10 # back up to main menu
+					elif [ $exitcode -ge 128 ] && [ $exitcode -lt 192 ]; then
+						abort $exitcode # killed by signal
+					elif [ $exitcode -ge 100 ]; then
+						break # successful partitioning
+					else
+						continue 2
+					fi
+				}
+			fi
+		done
+
+		for s in /lib/partman/check.d/*; do
+			if [ -x $s ]; then
+				#logger -t partman "Running check.d/$s"
+				if ! $s; then
+					continue 2
+				fi
+			fi
+		done
+		if confirm_changes partman; then
+			break
+		fi
+	done
+
+	if [ "$PARTMAN_NO_COMMIT" ]; then
+		exit 0
+	fi
+
+	for s in /lib/partman/commit.d/*; do
+		if [ -x $s ]; then
+			#logger -t partman "Running commit.d/$s"
+			$s || continue 2
+		fi
+	done
+
+	for s in /lib/partman/finish.d/*; do
+		if [ -x $s ]; then
+			#logger -t partman "Running finish.d/$s"
+			$s || {
+				exitcode=$?
+				if [ "$exitcode" = 1 ]; then
+					continue 2
+				else
+					abort $exitcode
+				fi
+			}
+		fi
+	done
+
+	break
+done
+
+exit 0

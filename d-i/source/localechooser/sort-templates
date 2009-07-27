@@ -1,0 +1,70 @@
+#!/bin/sh
+
+[ -d debian/locales ] || mkdir debian/locales
+[ -d debian/sort-tmp ] || mkdir debian/sort-tmp
+cd debian/sort-tmp
+
+tplfile=../localechooser/DEBIAN/templates
+
+templates=$(grep -E "^Template: localechooser/(continent|country)list" $tplfile | \
+	cut -d" " -f2-)
+
+# The first template will take longer because of locale generation
+for template in $templates; do
+	echo "Sorting template '$template'..."
+	rm -f list.* sortedlist.*
+
+	sed -n -e "\%^Template: $template$%,\%^Description:%p" $tplfile |
+	perl -p -e '
+		chomp;
+		if (m/Choices-([^.]*)\.UTF-8:/) {
+			open (OUT, "> list.$1");
+			s/Choices-([^.]*)\.UTF-8: //;
+			# split on commas, except for backslash-escaped ones
+			@t = split(/(?<!\\), /);
+			my $cnt = 0;
+			foreach my $name (@t) {$cnt++; print OUT "$cnt $name\n";}
+			close OUT;
+		}
+		$_="";'
+
+	for file in list.*; do
+		[ -e "$file" ] || continue
+		[ $(cat "$file" | wc -l) -gt 1 ] || continue
+
+		lang=${file#list.}
+		unilang=$(grep "^$lang.* UTF-8" /usr/share/i18n/SUPPORTED | \
+			sed -e 's/[@. ].*//;q' )
+		if [ -z "$unilang" ]; then
+			echo "W: language '$lang' skipped: no UTF-8 variant found" >&2
+		else
+			if [ ! -d ../locales/$unilang.UTF-8 ]; then
+				localedef -c -f UTF-8 -i $unilang ../locales/$unilang.UTF-8
+			fi
+			LOCPATH=`pwd` LC_ALL=../locales/$unilang.UTF-8 \
+				sort -k 2.1 $file | sed -e 's/ .*/, /' | tr -d '\n' | \
+				sed -e "s/^/Indices-$lang.UTF-8: /" -e 's/, $//' \
+				>sorted$file
+			if [ -s sorted$file ]; then
+				echo "" >>sorted$file
+			else
+				rm -f sorted$file
+			fi
+		fi
+	done
+
+	# Now the template file must be patched: all sortedlist.* files have
+	# to be added to the current template.
+	if ls sorted* >/dev/null 2>&1; then
+		sed -e "\%$template$%{n;q;}" $tplfile >templates.tmp
+		cat sorted* >>templates.tmp
+		sed -e "\%$template$%!d;\%$template$%{:end;n;b end}" $tplfile | \
+			sed '1,2d' >> templates.tmp
+		mv templates.tmp  $tplfile
+	else
+		echo "I: nothing to be sorted"
+	fi
+done
+
+cd ../..
+rm -r debian/locales debian/sort-tmp

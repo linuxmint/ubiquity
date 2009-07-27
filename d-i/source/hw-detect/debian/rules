@@ -1,0 +1,53 @@
+#!/usr/bin/make -f
+
+build: test build-stamp
+build-stamp:
+	dh_testdir
+	$(MAKE)
+	grep -v '^#' devnames-static.txt | gzip -9c > devnames-static.gz
+	touch build-stamp
+
+test:
+	set -e; for sh in *.sh; do sh -n $$sh; done
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp devnames-static.gz
+	$(MAKE) clean
+	dh_clean
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+	$(foreach PACKAGE, $(shell dh_listpackages), \
+	  $(MAKE) install-$(PACKAGE) DESTDIR=$(CURDIR)/debian/$(PACKAGE);)
+	cp devnames-static.gz debian/ethdetect/etc/network/ 
+
+binary-indep: build install
+	dh_testdir
+	dh_testroot
+	dh_installdebconf -i
+	dh_compress -i
+	dh_fixperms -i
+	dh_installdeb -i
+	dh_shlibdeps -i
+	dh_gencontrol -i
+	dh_builddeb -i
+
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+	dh_installdebconf -a
+	dh_strip -a
+	dh_compress -a
+	dh_fixperms -a
+	dh_installdeb -a
+	dh_shlibdeps -a
+	dh_gencontrol -a
+	dh_builddeb -a
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install 

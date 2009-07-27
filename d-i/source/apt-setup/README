@@ -1,0 +1,50 @@
+apt-setup is used to generate an /etc/apt/sources.list for the installed
+system. It does this by creating a new sources.list file (commenting out
+the previous contents) and then running each program in
+/usr/lib/apt-setup/generators/ in turn (run-parts ordering). Each generator
+is passed the name of a temporary file that it can write sources.list lines
+(and comments) to.
+
+After the generator finishes writing the file, apt-setup-verify will be run
+on it to verify that each line of the sources works, and it will be
+added to the sources.list. Generators can also run apt-setup-verify
+themselves and do their own error recovery if it fails. apt-setup-verify
+tests each line of the file and comments out lines that do not work, and
+exits zero if all deb and deb-src lines in the file are ok, 30 if the
+verification process was canceled, and otherwise nonzero on error.
+
+Generators should add both "deb" lines and corresponding
+deb-src lines to the sources.list. apt-setup-verify will handle commenting
+out any deb-src lines for unavailable sources.
+
+Generators can ask configuration questions using debconf. To support
+backing up, generators should exit with the special return code of 10 if
+the user backs up from their first question. Each generator should provide
+a progress bar text template named apt-setup/progress/<generator>, where
+<generator> is the script's name with leading numbers removed. Anything
+after the first dot (if any) will also be removed when constructing the
+progress template name, so that different scripts that share the same
+purpose can easily be written.
+
+Generators can advance the progress bar from PROGRESS_FROM up to
+PROGRESS_TO, or it will be moved to the next step before the next
+generator is started.
+
+apt-setup-verify runs apt-get update inside debconf-apt-progress, to update
+the progress bar with apt progress information. By default the progress bar
+will not be moved. Use --from and --to options to override this. The values
+of these options will be used as start and end points for the progress bar;
+each source line to be tested will get an equal share. The resulting values
+are passed on to debconf-apt-progress.
+For example:
+	apt-setup-verify --from 1 --to 100 <file>
+
+Note that apt-setup and its generators may be run against some other system
+in a chroot (i.e., when installing Debian). If apt-setup is running this
+way, then ROOT will be set to the root of the chroot that it is acting on
+and all sources.list validation will occur inside the chroot.
+
+apt-setup is split into several udebs that contain different generators.
+These udebs are installed depending on the type of install; for a install
+from CD, cdrom-detect queues apt-cdrom-setup for install, for an install
+from the network, choose-mirror queues apt-mirror-setup, etc.

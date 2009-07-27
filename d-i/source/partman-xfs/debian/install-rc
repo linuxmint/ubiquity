@@ -1,0 +1,24 @@
+#!/bin/sh
+
+set -e
+
+# PACKAGE is exported from debian/rules
+partman=debian/${PACKAGE}/lib/partman
+
+install -d $partman/$1
+
+cp -r $1/* $partman/$1/
+
+# Remove any SVN dirs that were copied along
+rm -rf `find $partman/$1/ -name .svn`
+
+if [ -f $partman/$1/_numbers ]; then
+    numbers=$(cat $partman/$1/_numbers)
+    rm $partman/$1/_numbers
+    echo "$numbers" |
+    while read number name; do
+	set -e
+	mv $partman/$1/$name $partman/$1/${number}${name}
+    done
+fi
+

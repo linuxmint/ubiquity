@@ -1,0 +1,46 @@
+#! /bin/sh
+
+ARCH="$(dpkg --print-architecture)"
+SUBARCH="$(archdetect)"
+SUBARCH="${SUBARCH#*/}"
+CPUINFO=/proc/cpuinfo
+UNAME_R="$(uname -r)"
+KERNEL_MAJOR="$(echo "$UNAME_R" | cut -d . -f 1,2)"
+KERNEL_VERSION="$(echo "$UNAME_R" | cut -d - -f 1)"
+KERNEL_ABI="$(echo "$UNAME_R" | cut -d - -f 1,2)"
+MACHINE="$(uname -m)"
+NUMCPUS=
+
+if [ -f /usr/lib/ubiquity/base-installer/kernel.sh ]; then
+	. /usr/lib/ubiquity/base-installer/kernel.sh
+else
+	exit 0
+fi
+
+kernels="$(dpkg-query -f '${status} ${package}\n' -W linux-image-\* | \
+		grep '^install ok installed ' | cut -d' ' -f4 | xargs)"
+
+flavour="$(arch_get_kernel_flavour || true)"
+incompatible=
+for kernel in $kernels; do
+	if ! arch_check_usable_kernel "$kernel" "$flavour"; then
+		if [ "${kernel%-$UNAME_R}" != "$kernel" ]; then
+			echo 'Would try to remove running kernel;' \
+			     'bailing out for sanity' >&2
+			exit 0
+		fi
+		incompatible="${incompatible:+$incompatible }$kernel"
+	fi
+done
+
+if [ "$kernels" = "$incompatible" ]; then
+	# We must be wrong. After all, we got this far ...
+	echo 'No usable kernel found; assuming foreign package naming' >&2
+else
+	mkdir -p /var/lib/ubiquity
+	for kernel in $incompatible; do
+		echo "$kernel" >> /var/lib/ubiquity/remove-kernels
+	done
+fi
+
+exit 0

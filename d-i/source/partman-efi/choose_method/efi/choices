@@ -1,0 +1,17 @@
+#!/bin/sh
+
+. /usr/share/debconf/confmodule
+
+dev=$1
+id=$2
+
+# Probably some test is necessary:
+#if we should exit; then
+#	exit 0
+#fi
+
+[ -e /var/lib/partman/efi ] || exit 0
+
+db_metaget partman-efi/text/efi description
+
+printf "efi\t${RET}\n"

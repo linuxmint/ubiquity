@@ -1,0 +1,610 @@
+<!doctype debiandoc SYSTEM>
+
+<book>
+<title> The Hackers Guide for <tt>console-setup</tt> </title>
+<author>
+	<name>Anton Zinoviev</name><email>anton@lml.bas.bg</email>
+</author>
+
+<copyright>
+<copyrightsummary> &copy;&nbsp;2005 Anton Zinoviev </copyrightsummary>
+
+<p> This manual is free software; you may redistribute it and/or
+modify it under the terms of the GNU General Public License as
+published by the Free Software Foundation; either version&nbsp;2, or
+(at your option) any later version.
+
+<p> This is distributed in the hope that it will be useful, but
+<em>without any warranty</em>; without even the implied warranty of
+merchantability or fitness for a particular purpose.  See the GNU
+General Public License for more details.
+    
+<p> A copy of the GNU General Public License is available as
+<tt>/usr/share/common-licenses/GPL</tt> in the Debian GNU/Linux
+distribution or on the World Wide Web at the <url
+id="http://www.gnu.org/copyleft/gpl.html" name="GNU website">. You can
+also obtain it by writing to the Free Software Foundation, Inc.,
+51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
+
+</copyright>
+      
+<toc>
+    
+<chapt> Basic Structure
+
+<p> The main directory of the package contains a very simple
+<file>Makefile</file> &mdash; its main purpose is to invoke the
+sub-<file>Makefile</file>s in the directories <file>Fonts</file> and
+<file>Keyboard</file>.
+
+<sect> Fonts
+
+<p> Only 256 (or 512) glyphs can be used in the console fonts.  Because
+of that it is impossible to use one universal font suitable for all
+languages.  So we have to support different font collections for the
+different languages.
+
+<p> Maintaining many different font collections has some obious
+disadvantages.  First, the look of the console will depend on the
+character set.  Second, it is difficult to follow the quality and the
+purpose of so many different fonts.  The solution is to maintain
+common fonts in BDF format for all languages and translate them to
+many fonts in PSF format for the different character sets.
+
+<p> The new console fonts are named after the scheme
+<var>CHARSET</var>-<var>FONTFACE</var>.psf, <var>CHARSET</var> may be
+for example Arabic, CyrAsia or Lat38 (see <ref id="charsets">) and
+<var>FONTFACE</var> can be for example Fixed16.  The number in
+<var>FONTFACE</var> represents the number of scan lines in the font.
+
+<sect> Keyboard
+
+<p> The traditional approach for the keyboard support of Linux is not
+flexible enough.  All keyboard tables are fixed so even small
+customizations of the keyboard layouts require completely new keyboard
+definition.  As a result for many of the keyboard layouts there are
+many variants that differ only a bit.
+
+<p> Another disadvantage is that the keyboard mappings are not
+completely encoding independent.  The kernel does not have knowledge
+for all Unicode symbols and can not translate between Unicode and the
+legacy 8-bit encodings.
+
+<p> In order to circumvent we use the <prgn>ckbcomp</prgn> utility
+which is able to translate the keyboard definitions used in X Window
+to keyboard definitions suitable for loadkeys.  See <ref
+id="ckbcomp">.
+
+<p> The <prgn>compose_translator</prgn> program generates the compose
+sequences from the console.  Invocation:
+
+<example>
+./compose_translator --acm acm/<var>ENCODING</var>.acm locale/<var>X_ENCODING</var>/Compose
+</example>
+
+Here the file in the <file>acm</file> directory defines the encoding
+of the generated compose sequences and the file in the
+<file>locale</file> defines the compose sequences in X Window.  The
+<file>locale</file> directory is a copy of the X directory
+<file>/usr/X11R6/lib/X11/locale</file>.
+
+<sect> <prgn>describe_unicodes</prgn>
+
+<p> The main directory contains the utility
+<prgn>describe_unicodes</prgn>.  This utility is never invoked
+automatically.  Its purpose is to make files containing many Unicodes
+more human-readable.  The following transcript illustrates its usage:
+
+<example>
+$ cat foo
+U+FFFD U+003F
+U+2015 U+2014
+U+02C9 U+00AF
+$ ./describe_unicodes foo
+$ cat foo
+U+FFFD U+003F
+# U+FFFD:   REPLACEMENT CHARACTER
+# U+003F:   QUESTION MARK
+U+2015 U+2014
+# U+2015:   HORIZONTAL BAR
+# U+2014:   EM DASH
+U+02C9 U+00AF
+# U+02C9:   MODIFIER LETTER MACRON
+# U+00AF:   MACRON
+</example>
+
+<p> This utility is idempotent, i.e. you can use it as many times as
+necessary on one and the same file in order to update the comments.
+
+<chapt><prgn>bdf2psf</prgn>
+
+<p>The program <prgn>bdf2psf</prgn> translates BDF fonts to PSF
+format.  It accepts fonts with arbitrary size of the font matrix.  If
+the width of matrix of the source font is 7 or 9 pixels then it
+generates fonts with width of 8 pixels.
+
+<sect>Synopsis
+
+<p>
+<example>
+bdf2psf [--fb][--log <var>LOG</var>] <var>BDF</var>{+<var>BDF</var>} <var>EQUIV</var>{+<var>EQUIV</var>} <var>SYMB</var>{+[:]<var>SYMB</var>} <var>SIZE</var> <var>PSF</var> [<var>SFM</var>]
+</example>
+
+<p>Description of the options:
+
+<taglist>
+
+<tag><tt>--fb</tt>
+
+<item> Generate fonts for the framebuffer.  There are two important
+differences between the framebuffer and the text mode.  First, all
+fonts in text mode have to have matrix 8 pixels width.  They also have
+to have either 256 or 512 glyphs.  Second, in some text modes the
+hardware does some magic in order to use 8 pixels width fonts as if
+they were 9 pixels width.  In order to achieve this the video hardware
+copyes the 8th column in the 9th columnt of the glyphs with codes from
+0xC0 to 0xDF and from 0x1C0 to 0x1DF.  <prgn>Bdf2psf</prgn> is very
+careful when deciding where to place a particular glyph and as a
+result the encoding of the generated font is more or less arbitrary.
+
+<tag><tt>--log <var>LOG</var></tt>
+
+<item> Record in the file <file><var>LOG</var></file> any problems
+during the conversion.
+
+<tag><tt><var>BDF</var>{+<var>BDF</var>}</tt>
+
+<item> The source BDF font(s).  When a particular symbol is defined in
+more than one of the specified fonts then the first listed fonts take
+precedence.
+
+<tag><tt><var>EQUIV</var>{+<var>EQUIV</var>}</tt>
+
+<item> A list of files defining an equivalence relation between the
+glyphs.  See <ref id="equivalence">.
+
+<tag><tt><var>SYMB</var>{+[:]<var>SYMB</var>}</tt>
+
+<item> Generate PSF font for the character set described in the file
+<prgn><var>SYMB</var></prgn>.  If more than one character set is
+specified the PSF font will support all of them.  When there is no
+space for all character sets, the first in the list take precedence.
+When a colon before the character set is specified no warnings will be
+issued for symbols that could not be placed in the font.  See <ref
+id="charsets">.
+
+<tag> <tt><var>SIZE</var></tt>
+
+<item> The size of the PSF font.  Usually 256 or 512 glyphs.
+
+<tag> <tt><var>PSF</var></tt>
+
+<item> <prgn><var>PSF</var></prgn> is the name of the generated PSF
+font.  If a file with this name already exists it will be
+overwritten.
+
+<tag>  <tt><var>SFM</var></tt>
+
+<item> Save in the file <prgn><var>SFM</var></prgn> the SFM of the
+generated font.  This parameter is optional.
+
+</taglist>
+
+<sect id="charsets"> Character Sets
+
+<p> The encoding of the traditional console fonts follows the standard
+encoding of the different languages.  For example there are fonts for
+all variants of ISO 8859.  This is redundand, for example ISO 8859-1,
+ISO 8859-9 and ISO 8859-15 differ only by few characters.
+
+<p> In order to determine the minimal set of character sets a
+clustering algorithm was used.  The source code of <url
+id="http://proba" name="fontconfig"> contains lists of the characters
+that most languages require&mdash;one list per language.  We started
+with one character set per language and used the clustering algorithm
+in order to join the character sets to bigger.  The following
+character sets were the result of the algorithm:
+
+<taglist>
+
+<tag> <file>Arabic</file> (512 glyphs)
+
+<item> For Arabic, Kurdish in Iran, Pashto, Persian and Urdu.
+
+<tag> <file>Armenian</file>
+
+<item> For Armenian.
+
+<tag> <file>CyrAsia</file>
+
+<item> Suitable for some of the non-Slavic Cyrillic languages -
+   Abkhazia, Avaric, Azerbaijani, Bashkir, Buryat, Chechen, Chuvash,
+   Inupiaq (Eskimo), Kara-Kalpak, Kazakh, Kirgiz, Komi, Kumyk,
+   Kurdish, Lezghian, Mari (Cheremis), Mongolian, Ossetic, Selkup
+   (Ostyak- Samoyed), Tajik, Tatar, Turkmen, Tuvinian, Uzbek and
+   Yakut.
+
+<tag> <file>CyrKoi</file>
+
+<item> Covers entirely KOI8-R and KOI8-U.  Suitable for Russian and
+   Ukrainian.
+
+<tag> <file>CyrSlav</file>
+
+<item> Covers entirely ISO-8859-5 and CP1251.  Suitable for the Slavic
+   Cyrillic languages - Belarusian, Bulgarian, Macedonian, Russian,
+   Serbian and Ukrainian.  For Serbian both the Cyrillic and the Latin
+   alphabets are supported.
+
+<tag> <file>Ethiopian</file> (512 glyphs)
+
+<item> For Amharic, Ethiopic (Geez), Tigre and Tigrinya.
+
+<tag> <file>Georgian</file>
+
+<item> For Georgian.
+
+<tag> <file>Greek</file>
+
+<item> For Greek.
+
+<tag> <file>Hebrew</file>
+
+<item> For Hebrew and Yiddish.
+
+<tag> <file>Lao</file>
+
+<item> For Lao.
+
+<tag> <file>Lat15</file>
+
+<item> Covers entirely ISO-8859-1, ISO-8859-9 and ISO-8859-15.
+   Suitable for the so called Latin1 and Latin5 languages - Afar,
+   Afrikaans, Albanian, Aragonese, Asturian, Aymara, Basque, Bislama,
+   Breton, Chamorro, Danish, Dutch, English, Estonian, Faroese,
+   Fijian, Finnish, French, Frisian, Friulian, Galician, German, Hiri
+   Motu, Icelandic, Ido, Indonesian, Interlingua, Interlingue,
+   Italian, Low Saxon, Lule Sami, Luxembourgish, Malagasy, Manx
+   Gaelic, Norwegian Bokmal, Norwegian Nynorsk, Occitan, Oromo or
+   Galla, Portuguese, Rhaeto-Romance (Romansch), Scots Gaelic, Somali,
+   South Sami, Spanish, Swahili, Swedish, Tswana, Turkish, Volapuk,
+   Votic, Walloon, Xhosa, Yapese and Zulu.
+
+<tag> <file>Lat2</file>
+
+<item> Covers entirely ISO-8859-2.  The Euro sign and the Romanian
+   letters with comma below are also supported.  Suitable for the so
+   called Latin2 languages - Bosnian, Croatian, Czech, Hungarian,
+   Polish, Romanian, Slovak, Slovenian and Sorbian (lower and upper).
+
+<tag> <file>Lat38</file>
+
+<item> Covers entirely ISO-8859-3 and ISO-8859-14.  Suitable for
+   Chichewa Esperanto, Irish, Maltese and Welsh.
+
+<tag> <file>Lat7</file>
+
+<item> Covers entirely ISO-8859-13.  Suitable for Lithuanian, Latvian,
+   Maori and Marshallese.
+
+<tag> <file>Thai</file>
+
+<item> For Thai.
+
+<tag> <file>Uni1</file> (512 glyphs)
+
+<item> Supports most of the Latin languages, the Slavic Cyrillic
+   languages, Hebrew and barely Arabic.
+
+<tag> <file>Uni2</file> (512 glyphs)
+
+<item> Supports most of the Latin languages, the Slavic Cyrillic
+   languages and Greek.
+
+<tag> <file>Uni3</file> (512 glyphs)
+
+<item> Supports most of the Latin and Cyrillic languages.
+
+<tag> <file>Vietnamese</file> (512 glyphs)
+
+<item> For Vietnamese
+
+</taglist>
+
+<p> These character sets are described in files in the directory
+<file>Fonts/fontsets</file>.  These files list the unicodes of the
+symbols of the character set, one per line.  Comments starting with a
+sharp sign are also allowed.
+
+<p> There two more special character sets in the files
+<prgn>required.set</prgn> and <prgn>useful.set</prgn>.  The first of
+them lists the symbols that every console font is obligated to
+support.  There two classes of obligatory symbols&mdash;the ASCII
+symbols and the symbols from the so called alternate character set
+(see section "Line Graphics" of <manref name="terminfo" section="5">).
+Notice that in order to limit itself to the cp437 character set, the
+Linux console driver does some approximations of the symbols from the
+alternate character set.  For example it prints U+256A (BOX DRAWINGS
+VERTICAL SINGLE AND HORIZONTAL DOUBLE) instead of the not-equal sign.
+The file <prgn>required.set</prgn> lists the symbols used by the Linux
+console driver (i.e. U+256A instead of the not-equal sign).
+
+<p> In most cases there is more available space in the fonts than
+nacessary.  The spare codes are filled with the symbols from the
+<prgn>useful.set</prgn> special character set.  On the command line of
+<prgn>bdf2psf</prgn> a colon is used before the name of
+<prgn>useful.set</prgn> so no warnings are issued if there is no space
+in the font for some of these symbols.
+
+<sect id="equivalence">Equivalence files
+
+<p> The equivalence files define an equivalence relation between
+unicodes.  The sharp sign is used for comments, the empty lines are
+ignored.  All other lines should list two or more unicodes.  Only one
+glyph will be allocated in the PSF font for these unicodes.
+
+<p> Example:
+<example>
+U+2126 U+03A9
+# U+2126:   OHM SIGN
+# U+03A9:   GREEK CAPITAL LETTER OMEGA
+U+041D U+0048
+# U+041D:   CYRILLIC CAPITAL LETTER EN
+# U+0048:   LATIN CAPITAL LETTER H
+</example>
+
+This equivalence file says that U+2126 (the Ohm sign) and U+03A9
+(Omega) have the same look so only one glyph is enough for them.  And
+also U+041D (Cyrillic En) and U+0048 (Latin H) look the same.
+
+<p> Two equivalence files are
+used&mdash;<file>standard.equivalents</file> and
+<file>arabic.equivalents</file>.  The first is used for all fonts.
+The second is used only for the fonts with character set Uni1, its
+purpose is to reduce the number of the necessary glyphs for the Arabic
+letters at the cost of the font quality.
+
+<chapt> The Legacy Fonts
+
+<p> The traditionally used font collection for the Linux console is a
+demonstration for the big mess.  There are many different fonts and
+nobody in the world knew the exact purpose of all of them.  During the
+years new fonts were added, but old were almost newer removed.
+
+<p> Some of the fonts shared common typeface, i.e. they were
+differently encoded but the common glyphs were equal.  In total,
+however, there were too many different typefaces that generally differ
+one from another only a little.
+
+<p> In order to resolve this mess the old console fonts were converted
+to BDF format.
+
+<sect> Conversion from PSF to BDF
+
+<p> In order to reduce the total number of fonts, they were converted
+to BDF format.  During the conversion of the fonts, only one BDF font
+was generated for a group of fonts that share common typeface.
+Console fonts that didn't have embedded Unicode table were simply
+ignored.  The fonts <prgn>LatArCyrHeb*</prgn> were also ignored -
+partialy due to technical reasons and partialy because the other BDF
+fonts are better source for making Unicode console fonts.
+
+<p> The resulting BDF fonts are named after the scheme
+<prgn>legacy<var>NNp</var>.bdf</prgn>, where <var>NN</var> is 8, 10,
+12, 14, 16 or 19 (the number of scan lines of the font, i.e. the font
+matrix is 8x<var>NN</var>) and p is a, b, c, d, e,... and serves to
+ensure the uniqueness of the file names.  Some of the resulting BDF
+fonts were produced by only one source PSF font (for example only
+<prgn>iso06.f08.psf</prgn> was used to produce
+<prgn>legacy8d.bdf</prgn>) while for others it was possible to
+incorporate the glyphs from more than one PSF font (for example six
+different PSF fonts were used to produce <prgn>legacy16e.bdf</prgn>).
+
+<p> The following table documents the correspondence between the file
+names of the resulting BDF fonts and the names of the original PSF
+fonts:
+
+<example>
+legacy8a.bdf: cp857-8x8.psf iso01.f08.psf iso05.f08.psf iso07.f08.psf iso09.f08.psf
+legacy8b.bdf: Cyr_a8x8.psf koi8u_8x8.psf ruscii_8x8.psf
+legacy8c.bdf: iso02.f08.psf iso03.f08.psf iso04.f08.psf iso10.f08.psf
+legacy8d.bdf: iso06.f08.psf
+legacy8e.bdf: iso08.f08.psf
+legacy8f.bdf: lat0-08.psf lat9u-08.psf
+legacy8g.bdf: lat1-08.psf lat1u-08.psf lat9v-08.psf lat9w-08.psf
+legacy8h.bdf: lat2u-08.psf
+legacy8i.bdf: lat4-08.psf lat4a-08.psf lat4u-08.psf
+legacy10a.bdf: lat4-10.psf lat4a-10.psf lat4u-10.psf
+legacy10b.bdf: lat0-10.psf lat9u-10.psf
+legacy10c.bdf: lat1-10.psf lat1u-10.psf lat9v-10.psf lat9w-10.psf
+legacy10d.bdf: lat2u-10.psf
+legacy12a.bdf: lat0-12.psf lat9u-12.psf
+legacy12b.bdf: lat1-12.psf lat1u-12.psf lat9v-12.psf lat9w-12.psf
+legacy12c.bdf: lat2u-12.psf
+legacy12d.bdf: lat4-12.psf lat4a-12.psf lat4u-12.psf
+legacy14a.bdf: cp857-8x14.psf iso01.f14.psf iso05.f14.psf iso09.f14.psf
+legacy14b.bdf: Cyr_a8x14.psf
+legacy14c.bdf: koi8u_8x14.psf
+legacy14d.bdf: ruscii_8x14.psf
+legacy14e.bdf: iso02.f14.psf iso03.f14.psf iso04.f14.psf iso10.f14.psf
+legacy14f.bdf: iso06.f14.psf
+legacy14g.bdf: iso07.f14.psf
+legacy14h.bdf: iso08.f14.psf
+legacy14i.bdf: lat0-14.psf lat9u-14.psf
+legacy14j.bdf: lat1-14.psf lat1u-14.psf lat9v-14.psf lat9w-14.psf
+legacy14k.bdf: lat2u-14.psf
+legacy14l.bdf: lat4-14.psf lat4a-14.psf lat4u-14.psf
+legacy16a.bdf: cp857-8x16.psf iso01.f16.psf iso05.f16.psf iso07.f16.psf iso09.f16.psf
+legacy16b.bdf: Cyr_a8x16.psf koi8u_8x16.psf ruscii_8x16.psf
+legacy16c.bdf: default8x16.psf lat0-sun16.psf lat2-sun16.psf
+legacy16d.bdf: viscii10-8x16.psf
+legacy16e.bdf: iso02.f16.psf iso02g.psf iso03.f16.psf iso03g.psf iso04.f16.psf iso10.f16.psf lat2u-16.psf
+legacy16f.bdf: iso06.f16.psf
+legacy16g.bdf: iso08.f16.psf
+legacy16h.bdf: iso14.f16.psf
+legacy16i.bdf: lat0-16.psf lat9u-16.psf
+legacy16j.bdf: lat1-16.psf lat1u-16.psf
+legacy16k.bdf: lat4-16.psf lat4a-16.psf lat4u-16.psf
+legacy16l.bdf: lat9v-16.psf lat9w-16.psf
+legacy16m.bdf: lat4-16+.psf lat4a-16+.psf lat4u-16+.psf
+legacy19a.bdf: lat4-19.psf lat4a-19.psf lat4u-19.psf
+Goha12.bdf: Goha-12.psf
+Goha14.bdf: Goha-14.psf
+Goha16.bdf: Goha-16.psf
+GohaClasic12.bdf: GohaClasic-12.psf
+GohaClasic14.bdf: GohaClasic-14.psf
+GohaClasic16.bdf: GohaClasic-16.psf
+</example>
+
+<sect> Back Conversion&mdash;from BDF to PSF
+
+<p> Only one PSF font per combination of charset-size is generated
+from the legacy fonts.  This font is named after the scheme
+<var>CHARSET</var>-vga<var>SIZE</var>.psf.  For example
+<file>Greek-vga14.psf</file> is the legacy font for Greek character
+set and size 14.  The list of BDF fonts that is used to produce
+Greek-vga14.psf was determined as folows.
+
+<p> First, see which one of the legacy BDF fonts can provide as many
+glyphs for <file>Greek-vga14.psf</file> as possible.  This was
+<file>legacy14g.bdf</file> (produced from <prgn>iso07.f14.psf</prgn>).
+Then see which one of the other legacy BDF fonts provides as much
+glyphs for <file>Greek-vga14.psf</file> that <prgn>legacy14g</prgn>
+does not provide.  And so on.  The resulting lists are represented as
+<tt>Charset-legacy<var>SIZE</var>-<var>BDFS</var></tt> targets in the
+<prgn>Makefile</prgn>.  It is perfectly OK to handtune them.  For
+example if one decides that the look of <file>legacy16i.bdf</file> is
+superior it is OK to list <file>legacy16i.bdf</file> as primary font
+for <file>Lat15-vga16.psf</file> even though
+<file>legacy16c.bdf</file> provides more glyphs.
+
+<p> There is one exception to the previous paragraph: the wonderful
+font <prgn>UNI_VGA</prgn> of Dmitry Bolkhovityanov was always used as
+a primary font for the <prgn>vga16</prgn> fontface.
+
+<p> The targets <tt>VGA<var>SIZE</var>-CHARSET</tt> in the
+<prgn>Makefile</prgn> specify which charsets are suitable for a
+particular font size.  We see that for some of the sizes only the
+Lat15 and Lat2 charsets are supported by the traditional fonts.  The
+following charsets are completely unsupported by the traditional
+console fonts: Armenian, CyrAsia, Georgian, Lao, Thai and Vietnamese.
+
+<p> The Ethiopian fonts <file>Goha??.bdf</file> and
+<file>GohaClasic??.bdf</file> are not used as legacy fonts.  In all
+currently available non-console BDF fonts the Ethiopian letters are
+double-width and can not be used on the console.  Thats why these
+fonts are treated equaly to the other non-legacy BDF fonts.
+
+<chapt> The New Fonts
+
+<p> Even for the new PSF fonts it is not wise to use a single BDF
+source.  Many of the BDF fonts share a common look. For example the X
+font <prgn>fixed</prgn> was used by Roman Czyborra in order to create
+his <prgn>unifont.bdf</prgn>.  The same font was used also by
+Electronic Font Open Laboratory for their <prgn>h16.bdf</prgn> and by
+the former Electrotechnical Laboratory (now National Institute of
+Advanced Industrial Science Technology, Japan) for their
+<prgn>etl16-unicode.bdf</prgn> font.
+
+<p> The targets <tt><var>FONTFACE</var>-BDFS</tt> in the
+<prgn>Makefile</prgn> specify the BDF fonts to use in order to
+generate the PSF font fonts.  For example the combination
+"<tt>unifont.bdf</tt> + <tt>h16.bdf</tt> + <tt>etl16-unicode.bdf</tt>"
+is used for the Fixed16 font face.  The fonts listed first take
+precedence, so it is wise to list first the fonts which symbols look
+better and not the fonts with more symbols.
+
+<p> The <prgn>bdf</prgn> directory contains almost all free BDF fonts
+that can be used to generate console fonts.  Currently they allow to
+generate fonts from the following font faces: Fixed13, Fixed14,
+Fixed15, Fixed16, Fixed18, Fixed24x12, FixedBold13, FixedBold14,
+FixedBold15, FixedBold16, FixedBold18, FixedBold24x12, FixedOblique13,
+Terminus12x6, Terminus14, Terminus16, Terminus24x12, Terminus20x10,
+Terminus28x14, Terminus32x16, TerminusBold12x6, TerminusBold14,
+TerminusBold16, TerminusBold20x10, TerminusBold24x12,
+TerminusBold28x14, TerminusBold32x16, TerminusBoldVGA14,
+TerminusBoldVGA16, Courier13, Courier14, Courier15, Courier16,
+CourierBold13, CourierBold14, CourierBold15, Lucid12, Lucid13,
+Lucid15, Lucid16, Lucid22x12, Lucid29x16, LucidBold11, LucidBold13,
+LucidBold15, LucidBold16, LucidBold22x12, LucidBold29x16, Goha12,
+Goha14, Goha16, GohaClassic12, GohaClassic14 and GohaClassic16.
+
+<p> The targets in the <prgn>Makefile</prgn> are able to generate a
+PSF font for every <var>CHARSET</var>-<var>FONTFACE</var> combination.
+The <prgn>build</prgn> target however will generate fonts only for the
+"good" combinations.
+
+<p> First, the program <file>fontcodesets</file> is used to determine
+which charsets a particular font face supports.  The result is stored
+in the file <file>soft.Makefile</file> where the variable
+<prgn>PSF_FONTS</prgn> is defined and it is directly included in the
+main <prgn>Makefile</prgn>.  Use the target <prgn>soft.Makefile</prgn>
+in order to update this file (this doesn't happen automatically).
+
+<p> Second, some of the font faces are not generated because they do
+not look very attractive on the console (certainly the choice is a
+personal opinion).  Only the following font faces are approved:
+Fixed13, Fixed14, Fixed15, Fixed16, Fixed18, Terminus12x6, Terminus14,
+Terminus16, Terminus24x12, Terminus20x10, Terminus28x14,
+Terminus32x16, TerminusBold12x6, TerminusBold14, TerminusBold16,
+TerminusBold20x10, TerminusBold24x12, TerminusBold28x14,
+TerminusBold32x16, TerminusBoldVGA14, TerminusBoldVGA16, Goha12,
+Goha14, Goha16, GohaClassic12, GohaClassic14 and GohaClassic16.  See
+the <prgn>GOOD_PSF_FONTS</prgn> variable in the <prgn>Makefile</prgn>.
+
+<chapt id="ckbcomp"> The <prgn>ckbcomp</prgn> Utility
+
+<p> The <prgn>ckbcomp</prgn> accepts more or less the same arguments
+as the <prgn>setxkbmap</prgn> utility:
+
+<example>
+Usage: ckbcomp [args] [&lt;layout&gt; [&lt;variant&gt; [&lt;option&gt; ... ]]]
+Where legal args are:
+-?,-help            Print this message
+-charmap &lt;name&gt;         Specifies the encoding to use
+-I&lt;dir&gt;             Add &lt;dir&gt; to list of directories to be used
+-keycodes &lt;name&gt;    Specifies keycodes component name
+-symbols &lt;name&gt;     Specifies symbols component name
+-rules &lt;name&gt;       Name of rules file to use
+-model &lt;name&gt;       Specifies model used to choose component names
+-layout &lt;name&gt;      Specifies layout used to choose component names
+-variant &lt;name&gt;     Specifies layout variant used to choose component names
+-v[erbose] [&lt;lvl&gt;]  Sets verbosity (1..10).  Higher values yield
+                    more messages
+-option &lt;name&gt;      Adds an option used to choose component names
+</example>
+
+<p> The main difference is the <prgn>-charmap</prgn> parameter which
+specifies the encoding to use.  If the encoding is <var>ENC</var> then
+one of the following files should exist:
+
+<list>
+<item><file><var>ENC</var></file>
+<item><file><var>ENC</var>.gz</file>
+<item><file><var>ENC</var>.acm</file>
+<item><file><var>ENC</var>.acm.gz</file>
+<item><file> /usr/share/consoletrans/<var>ENC</var></file>
+<item><file>/usr/share/consoletrans/<var>ENC</var>.gz</file>
+<item><file>/usr/share/consoletrans/<var>ENC</var>.acm</file>
+<item><file>/usr/share/consoletrans/<var>ENC</var>.acm.gz</file>
+<item><file>acm/<var>ENC</var>.acm</file>
+</list>
+
+This file should define the so called Application Character Map for
+<var>ENC</var>.
+
+<p> The option <prgn>-I</prgn> add a directory to the list of
+directories where the X keyboard definitions are searched.  By default
+this directory list contains the following directories:
+
+<list>
+<item><file>/etc/console-setup/ckb</file>
+<item><file>/etc/X11/xkb</file>
+<item><file>/usr/X11R6/lib/X11/xkb</file>
+</list>
+
+</book>
+
+<!-- Local variables: -->
+<!-- coding: iso-8859-1 -->
+<!-- End: -->

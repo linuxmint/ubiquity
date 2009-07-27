@@ -1,0 +1,80 @@
+#! /bin/sh
+
+set -e
+
+ISO3166TAB=debian/iso_3166.tab
+SUPPORTED=/usr/share/i18n/SUPPORTED
+TAB="	"
+
+rm -rf debian/short-tmp
+rm -rf debian/locales
+mkdir debian/short-tmp
+mkdir debian/locales
+
+echo "Building short lists of countries..."
+for file in debian/po/*.po en.po; do
+	lang_variant=$(basename $file .po)
+	lang=$(echo "$lang_variant" | sed -e 's/_.*$//')
+	tabfile=debian/short-tmp/$lang_variant.tab
+
+	# Create TAB file for this language
+	# Only if iso-codes have some translations
+	if [ -f debian/iso-codes/$lang_variant.po ]; then
+		msgconv debian/iso-codes/$lang_variant.po -t UTF-8 --stringtable-output | \
+			tail -n +3 | \
+			sed -e 's/" = "/\t/' -e 's/^"//' -e 's/";$//' | \
+			awk '/^.+$/{print}' >$tabfile
+	fi
+
+	outfile=debian/short-tmp/$lang_variant.short
+	lastlocale=C
+	: >$outfile
+	for locale in $( (grep -e "^${lang}_" $SUPPORTED 2>/dev/null || true) | \
+			sed -e 's/[@. ].*//' | sort | uniq); do
+		if [ "$locale" = en_DK ] ; then
+			# Don't add Denmark to shortlist for English (per #276067)
+			continue
+		fi
+
+		code=$(echo "$locale" | sed -e 's/.*_//')
+		line=$(grep -e "^$code" $ISO3166TAB || true)
+		lastlocale=$locale
+		if [ "$line" ]; then
+			OLD_IFS="$IFS"
+			IFS='	'
+			set $line
+			IFS="$OLD_IFS"
+			if [ "$2" ]; then
+				if [ "$lang" != en ] ; then
+					translation=$( (grep "^$2$TAB" $tabfile 2>/dev/null || true) | sed -e 's/^.*\t//')
+					if [ "$translation" ]; then
+						printf '%s\t%s\t%s\n' "$1" "$translation" "$2" >>$outfile
+					else
+						printf '%s\t%s\t%s\n' "$1" "$2" "$2" >>$outfile
+					fi
+				else
+					printf '%s\t%s\t%s\n' "$1" "$2" "$2" >>$outfile
+				fi
+			fi
+		fi
+	done
+
+	if [ $(wc -l <$outfile) -le 1 ]; then
+		rm -f $outfile
+	else
+		echo $lang_variant
+		localedef -c -f UTF-8 -i $lastlocale debian/locales/$lastlocale.UTF-8
+		LOCPATH=`pwd` LC_ALL=debian/locales/$lastlocale.UTF-8 \
+			sort -k 2.1 $outfile >$outfile.tmp && \
+			mv $outfile.tmp $outfile
+	fi
+done
+
+# Create a file listing the countries that have shortlists
+SHORTLISTS=debian/short-tmp/shortlists
+: >$SHORTLISTS
+
+for file in debian/short-tmp/*.short; do
+	lang=$(basename $file .short)
+	echo "$lang" >>$SHORTLISTS
+done

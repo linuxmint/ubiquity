@@ -1,0 +1,39 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+dev=$1
+id=$2
+
+cd $dev
+
+valid_biosgrub=no
+open_dialog VALID_FLAGS $id
+while { read_line flag; [ "$flag" ]; }; do
+	if [ "$flag" = bios_grub ]; then
+		valid_biosgrub=yes
+	fi
+done
+close_dialog
+
+[ $valid_biosgrub = yes ] || exit 0
+
+biosgrub=no
+open_dialog GET_FLAGS $id
+while { read_line flag; [ "$flag" ]; }; do
+	if [ "$flag" = bios_grub ]; then
+		biosgrub=yes
+	fi
+done
+close_dialog
+
+db_metaget partman-partitioning/text/biosgrub description
+description=$(stralign -25 "$RET")
+
+if [ $biosgrub = yes ]; then
+	db_metaget partman-partitioning/text/on description
+	printf "nobiosgrub\t%s%s\n" "$description" "${RET}"
+else
+	db_metaget partman-partitioning/text/off description
+	printf "biosgrub\t%s%s\n" "$description" "${RET}"
+fi

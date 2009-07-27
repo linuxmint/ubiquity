@@ -1,0 +1,29 @@
+#!/bin/sh
+
+set -e
+
+# base-installer bind mounts /target/dev on /dev/.static/dev
+# unmount if mounted on same device as /target
+mp_stdev=$(grep -E '^[^ ]+ /dev/\.static/dev' /proc/mounts | cut -d" " -f1)
+if [ "$mp_stdev" ] && grep -q "^$mp_stdev /target" /proc/mounts; then
+	umount /dev/.static/dev
+fi
+
+cat /proc/mounts |
+	while read dev dir type options dump pass; do
+		echo $dir
+	done |
+	grep '^/target' |
+	sort |
+	{
+		# We miss the option -r of sort
+		dirs=''
+		while read dir; do
+		dirs="$dir
+$dirs"
+		done
+		echo -n "$dirs"
+	} |
+	while read dir; do
+		umount $dir
+	done

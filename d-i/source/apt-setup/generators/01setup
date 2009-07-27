@@ -1,0 +1,14 @@
+#!/bin/sh
+set -e
+
+file="$1"
+
+# add old file as comments
+sed 's/^/# /' < $ROOT/etc/apt/sources.list | sed 's/^# # */# /' > $file
+
+# start out with old configuration, if any
+if [ -e $ROOT/etc/apt/apt.conf ]; then
+	cp -a $ROOT/etc/apt/apt.conf $ROOT/etc/apt/apt.conf.new
+else
+	>$ROOT/etc/apt/apt.conf.new
+fi

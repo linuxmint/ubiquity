@@ -1,0 +1,73 @@
+#! /usr/bin/make -f
+
+ARCH = $(shell dpkg-architecture -qDEB_HOST_ARCH)
+
+build: build-stamp debian/templates.gen
+build-stamp:
+	dh_testdir
+ifeq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
+	$(MAKE) small
+else
+	$(MAKE) DEBUG=1
+endif
+	touch $@
+
+debian/templates.gen: debian/templates-arch
+	debian/templates-build.pl $(ARCH) < $< > $@
+	# give the new templates file the same mtime as the input file, so
+	# that po2debconf doesn't decide that it needs to run
+	# debconf-updatepo
+	touch -mr $< $@
+
+clean:
+	dh_testdir
+	rm -f build-stamp
+	$(MAKE) clean    
+	dh_clean debian/templates.gen
+
+test:
+	$(MAKE) -C kernel test
+
+binary-indep:
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	
+	dh_install library.sh usr/lib/base-installer
+	dh_installdirs usr/lib/finish-install.d
+	install -m755 finish-install debian/base-installer/usr/lib/finish-install.d/90base-installer
+	
+	dh_installdebconf -i -n
+	dh_strip -i
+	dh_compress -i
+	dh_fixperms -i
+	dh_installdeb -i
+	dh_shlibdeps -i
+	dh_gencontrol -i
+	dh_builddeb -i
+
+binary-arch: build test
+	dh_testdir
+	dh_testroot
+	
+	dh_install -p bootstrap-base run-debootstrap usr/sbin
+	dh_install -p bootstrap-base pkgdetails usr/lib/debootstrap
+	if [ -e "kernel/$(ARCH).sh" ]; then \
+		dh_installdirs -p bootstrap-base usr/lib/base-installer; \
+		install -m644 "kernel/$(ARCH).sh" \
+		              debian/bootstrap-base/usr/lib/base-installer/kernel.sh; \
+	fi
+	
+	dh_installdebconf -a -n
+	(echo ; cat debian/templates.gen) >> debian/bootstrap-base/DEBIAN/templates
+	cp debian/bootstrap-base.isinstallable debian/bootstrap-base/DEBIAN/isinstallable
+	dh_strip -a
+	dh_compress -a
+	dh_fixperms -a
+	dh_installdeb -a
+	dh_shlibdeps -a
+	dh_gencontrol -a
+	dh_builddeb -a
+
+binary: binary-indep binary-arch
+.PHONY: clean binary-indep binary-arch binary install

@@ -1,0 +1,427 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+
+<html>
+
+<head>
+
+<meta http-equiv="content-type" content="text/html; charset=iso-8859-1">
+
+<title>The Hackers Guide for console-setup - bdf2psf</title>
+
+</head>
+
+<body>
+
+<p><a name="ch2"></a></p>
+<hr>
+
+<p>
+[ <a href="ch1.html">previous</a> ]
+[ <a href="index.html#contents">Contents</a> ]
+[ <a href="ch1.html">1</a> ]
+[ 2 ]
+[ <a href="ch3.html">3</a> ]
+[ <a href="ch4.html">4</a> ]
+[ <a href="ch-ckbcomp.html">5</a> ]
+[ <a href="ch3.html">next</a> ]
+</p>
+
+<hr>
+
+<h1>
+The Hackers Guide for <samp>console-setup</samp>
+<br>Chapter 2 - <code>bdf2psf</code>
+</h1>
+
+<hr>
+
+<p>
+The program <code>bdf2psf</code> translates BDF fonts to PSF format.  It
+accepts fonts with arbitrary size of the font matrix.  If the width of matrix
+of the source font is 7 or 9 pixels then it generates fonts with width of 8
+pixels.
+</p>
+
+<hr>
+
+<h2><a name="s2.1"></a>2.1 Synopsis</h2>
+
+<pre>
+     bdf2psf [--fb][--log <var>LOG</var>] <var>BDF</var>{+<var>BDF</var>} <var>EQUIV</var>{+<var>EQUIV</var>} <var>SYMB</var>{+[:]<var>SYMB</var>} <var>SIZE</var> <var>PSF</var> [<var>SFM</var>]
+</pre>
+
+<p>
+Description of the options:
+</p>
+<dl>
+<dt><samp>--fb</samp></dt>
+<dd>
+<p>
+Generate fonts for the framebuffer.  There are two important differences
+between the framebuffer and the text mode.  First, all fonts in text mode have
+to have matrix 8 pixels width.  They also have to have either 256 or 512
+glyphs.  Second, in some text modes the hardware does some magic in order to
+use 8 pixels width fonts as if they were 9 pixels width.  In order to achieve
+this the video hardware copyes the 8th column in the 9th columnt of the glyphs
+with codes from 0xC0 to 0xDF and from 0x1C0 to 0x1DF.  <code>Bdf2psf</code> is
+very careful when deciding where to place a particular glyph and as a result
+the encoding of the generated font is more or less arbitrary.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><samp>--log <var>LOG</var></samp></dt>
+<dd>
+<p>
+Record in the file <code><var>LOG</var></code> any problems during the
+conversion.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><samp><var>BDF</var>{+<var>BDF</var>}</samp></dt>
+<dd>
+<p>
+The source BDF font(s).  When a particular symbol is defined in more than one
+of the specified fonts then the first listed fonts take precedence.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><samp><var>EQUIV</var>{+<var>EQUIV</var>}</samp></dt>
+<dd>
+<p>
+A list of files defining an equivalence relation between the glyphs.  See <a
+href="#s-equivalence">Equivalence files, Section 2.3</a>.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><samp><var>SYMB</var>{+[:]<var>SYMB</var>}</samp></dt>
+<dd>
+<p>
+Generate PSF font for the character set described in the file
+<code><var>SYMB</var></code>.  If more than one character set is specified the
+PSF font will support all of them.  When there is no space for all character
+sets, the first in the list take precedence.  When a colon before the character
+set is specified no warnings will be issued for symbols that could not be
+placed in the font.  See <a href="#s-charsets">Character Sets, Section 2.2</a>.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><samp><var>SIZE</var></samp></dt>
+<dd>
+<p>
+The size of the PSF font.  Usually 256 or 512 glyphs.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><samp><var>PSF</var></samp></dt>
+<dd>
+<p>
+<code><var>PSF</var></code> is the name of the generated PSF font.  If a file
+with this name already exists it will be overwritten.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><samp><var>SFM</var></samp></dt>
+<dd>
+<p>
+Save in the file <code><var>SFM</var></code> the SFM of the generated font.
+This parameter is optional.
+</p>
+</dd>
+</dl>
+
+<hr>
+
+<h2><a name="s-charsets"></a>2.2 Character Sets</h2>
+
+<p>
+The encoding of the traditional console fonts follows the standard encoding of
+the different languages.  For example there are fonts for all variants of ISO
+8859.  This is redundand, for example ISO 8859-1, ISO 8859-9 and ISO 8859-15
+differ only by few characters.
+</p>
+
+<p>
+In order to determine the minimal set of character sets a clustering algorithm
+was used.  The source code of <code><a
+href="http://proba">fontconfig</a></code> contains lists of the characters that
+most languages require&mdash;one list per language.  We started with one
+character set per language and used the clustering algorithm in order to join
+the character sets to bigger.  The following character sets were the result of
+the algorithm:
+</p>
+<dl>
+<dt><code>Arabic</code> (512 glyphs)</dt>
+<dd>
+<p>
+For Arabic, Kurdish in Iran, Pashto, Persian and Urdu.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><code>Armenian</code></dt>
+<dd>
+<p>
+For Armenian.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><code>CyrAsia</code></dt>
+<dd>
+<p>
+Suitable for some of the non-Slavic Cyrillic languages - Abkhazia, Avaric,
+Azerbaijani, Bashkir, Buryat, Chechen, Chuvash, Inupiaq (Eskimo), Kara-Kalpak,
+Kazakh, Kirgiz, Komi, Kumyk, Kurdish, Lezghian, Mari (Cheremis), Mongolian,
+Ossetic, Selkup (Ostyak- Samoyed), Tajik, Tatar, Turkmen, Tuvinian, Uzbek and
+Yakut.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><code>CyrKoi</code></dt>
+<dd>
+<p>
+Covers entirely KOI8-R and KOI8-U.  Suitable for Russian and Ukrainian.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><code>CyrSlav</code></dt>
+<dd>
+<p>
+Covers entirely ISO-8859-5 and CP1251.  Suitable for the Slavic Cyrillic
+languages - Belarusian, Bulgarian, Macedonian, Russian, Serbian and Ukrainian.
+For Serbian both the Cyrillic and the Latin alphabets are supported.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><code>Ethiopian</code> (512 glyphs)</dt>
+<dd>
+<p>
+For Amharic, Ethiopic (Geez), Tigre and Tigrinya.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><code>Georgian</code></dt>
+<dd>
+<p>
+For Georgian.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><code>Greek</code></dt>
+<dd>
+<p>
+For Greek.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><code>Hebrew</code></dt>
+<dd>
+<p>
+For Hebrew and Yiddish.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><code>Lao</code></dt>
+<dd>
+<p>
+For Lao.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><code>Lat15</code></dt>
+<dd>
+<p>
+Covers entirely ISO-8859-1, ISO-8859-9 and ISO-8859-15.  Suitable for the so
+called Latin1 and Latin5 languages - Afar, Afrikaans, Albanian, Aragonese,
+Asturian, Aymara, Basque, Bislama, Breton, Chamorro, Danish, Dutch, English,
+Estonian, Faroese, Fijian, Finnish, French, Frisian, Friulian, Galician,
+German, Hiri Motu, Icelandic, Ido, Indonesian, Interlingua, Interlingue,
+Italian, Low Saxon, Lule Sami, Luxembourgish, Malagasy, Manx Gaelic, Norwegian
+Bokmal, Norwegian Nynorsk, Occitan, Oromo or Galla, Portuguese, Rhaeto-Romance
+(Romansch), Scots Gaelic, Somali, South Sami, Spanish, Swahili, Swedish,
+Tswana, Turkish, Volapuk, Votic, Walloon, Xhosa, Yapese and Zulu.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><code>Lat2</code></dt>
+<dd>
+<p>
+Covers entirely ISO-8859-2.  The Euro sign and the Romanian letters with comma
+below are also supported.  Suitable for the so called Latin2 languages -
+Bosnian, Croatian, Czech, Hungarian, Polish, Romanian, Slovak, Slovenian and
+Sorbian (lower and upper).
+</p>
+</dd>
+</dl>
+<dl>
+<dt><code>Lat38</code></dt>
+<dd>
+<p>
+Covers entirely ISO-8859-3 and ISO-8859-14.  Suitable for Chichewa Esperanto,
+Irish, Maltese and Welsh.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><code>Lat7</code></dt>
+<dd>
+<p>
+Covers entirely ISO-8859-13.  Suitable for Lithuanian, Latvian, Maori and
+Marshallese.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><code>Thai</code></dt>
+<dd>
+<p>
+For Thai.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><code>Uni1</code> (512 glyphs)</dt>
+<dd>
+<p>
+Supports most of the Latin languages, the Slavic Cyrillic languages, Hebrew and
+barely Arabic.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><code>Uni2</code> (512 glyphs)</dt>
+<dd>
+<p>
+Supports most of the Latin languages, the Slavic Cyrillic languages and Greek.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><code>Uni3</code> (512 glyphs)</dt>
+<dd>
+<p>
+Supports most of the Latin and Cyrillic languages.
+</p>
+</dd>
+</dl>
+<dl>
+<dt><code>Vietnamese</code> (512 glyphs)</dt>
+<dd>
+<p>
+For Vietnamese
+</p>
+</dd>
+</dl>
+
+<p>
+These character sets are described in files in the directory
+<code>Fonts/fontsets</code>.  These files list the unicodes of the symbols of
+the character set, one per line.  Comments starting with a sharp sign are also
+allowed.
+</p>
+
+<p>
+There two more special character sets in the files <code>required.set</code>
+and <code>useful.set</code>.  The first of them lists the symbols that every
+console font is obligated to support.  There two classes of obligatory
+symbols&mdash;the ASCII symbols and the symbols from the so called alternate
+character set (see section &quot;Line Graphics&quot; of
+<code>terminfo(5)</code>).  Notice that in order to limit itself to the cp437
+character set, the Linux console driver does some approximations of the symbols
+from the alternate character set.  For example it prints U+256A (BOX DRAWINGS
+VERTICAL SINGLE AND HORIZONTAL DOUBLE) instead of the not-equal sign.  The file
+<code>required.set</code> lists the symbols used by the Linux console driver
+(i.e.  U+256A instead of the not-equal sign).
+</p>
+
+<p>
+In most cases there is more available space in the fonts than nacessary.  The
+spare codes are filled with the symbols from the <code>useful.set</code>
+special character set.  On the command line of <code>bdf2psf</code> a colon is
+used before the name of <code>useful.set</code> so no warnings are issued if
+there is no space in the font for some of these symbols.
+</p>
+
+<hr>
+
+<h2><a name="s-equivalence"></a>2.3 Equivalence files</h2>
+
+<p>
+The equivalence files define an equivalence relation between unicodes.  The
+sharp sign is used for comments, the empty lines are ignored.  All other lines
+should list two or more unicodes.  Only one glyph will be allocated in the PSF
+font for these unicodes.
+</p>
+
+<p>
+Example:
+</p>
+
+<pre>
+     U+2126 U+03A9
+     # U+2126:   OHM SIGN
+     # U+03A9:   GREEK CAPITAL LETTER OMEGA
+     U+041D U+0048
+     # U+041D:   CYRILLIC CAPITAL LETTER EN
+     # U+0048:   LATIN CAPITAL LETTER H
+</pre>
+
+<p>
+This equivalence file says that U+2126 (the Ohm sign) and U+03A9 (Omega) have
+the same look so only one glyph is enough for them.  And also U+041D (Cyrillic
+En) and U+0048 (Latin H) look the same.
+</p>
+
+<p>
+Two equivalence files are used&mdash;<code>standard.equivalents</code> and
+<code>arabic.equivalents</code>.  The first is used for all fonts.  The second
+is used only for the fonts with character set Uni1, its purpose is to reduce
+the number of the necessary glyphs for the Arabic letters at the cost of the
+font quality.
+</p>
+
+<hr>
+
+<p>
+[ <a href="ch1.html">previous</a> ]
+[ <a href="index.html#contents">Contents</a> ]
+[ <a href="ch1.html">1</a> ]
+[ 2 ]
+[ <a href="ch3.html">3</a> ]
+[ <a href="ch4.html">4</a> ]
+[ <a href="ch-ckbcomp.html">5</a> ]
+[ <a href="ch3.html">next</a> ]
+</p>
+
+<hr>
+
+<p>
+The Hackers Guide for <samp>console-setup</samp>
+</p>
+
+<address>
+Anton Zinoviev <code><a href="mailto:anton@lml.bas.bg">anton@lml.bas.bg</a></code><br>
+<br>
+</address>
+<hr>
+
+</body>
+
+</html>
+

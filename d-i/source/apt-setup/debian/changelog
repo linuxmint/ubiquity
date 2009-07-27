@@ -1,0 +1,1264 @@
+apt-setup (1:0.37ubuntu11) jaunty; urgency=low
+
+  * Make sure to exit services-select generator cleanly if
+    apt-setup/services-select is empty.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 27 Mar 2009 12:03:45 +0000
+
+apt-setup (1:0.37ubuntu10) jaunty; urgency=low
+
+  * Add Release files for jaunty.
+  * Allow preseeding apt-setup/partner to enable the partner repository;
+    requested by Brian Thomason.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 24 Feb 2009 18:17:19 +0000
+
+apt-setup (1:0.37ubuntu9) jaunty; urgency=low
+
+  * Use cdrom-detect/cdrom_fs when remounting the CD to ensure that we do so
+    using the same filesystem.
+  * Make sure apt-cdrom doesn't unmount the CD in the first place if cd_type
+    ends with /single (LP: #316618).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 14 Jan 2009 15:04:44 +0000
+
+apt-setup (1:0.37ubuntu8) jaunty; urgency=low
+
+  * Remove /var/lib/install-cd.id if cd_type ends with /single, to avoid
+    unnecessary problems remounting the CD (LP: #294365).
+  * Enable all network sources, including security updates, even if the
+    network is unconfigured (LP: #256098).
+  * Fix handling of universe and multiverse in -backports lines.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 09 Jan 2009 15:41:53 +0000
+
+apt-setup (1:0.37ubuntu7) jaunty; urgency=low
+
+  * Honour apt-setup/restricted, apt-setup/universe, and
+    apt-setup/multiverse when writing -backports lines (LP: #314462).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 08 Jan 2009 11:46:10 +0000
+
+apt-setup (1:0.37ubuntu6) intrepid; urgency=low
+
+  * Check to make sure the CD filesystem is iso9660 before remounting it
+    as such.  Do not write a CD identifier if we're not working with
+    iso9660 so pkgsel does not try to unmount such disks.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Mon, 20 Oct 2008 01:58:26 -0400
+
+apt-setup (1:0.37ubuntu5) intrepid; urgency=low
+
+  * Fix description of universe in generated sources.list: packages there
+    are expected to be under a free licence.
+  * Run 'apt-get update', without downloading package lists or cleaning up
+    old files, after moving the sources.list generated during base system
+    installation back into place (LP: #267884).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 09 Oct 2008 14:53:36 +0100
+
+apt-setup (1:0.37ubuntu4) intrepid; urgency=low
+
+  * Fix sense of OVERRIDE_BASE_INSTALLABLE test in cdrom generator
+    (LP: #264337).
+  * If OVERRIDE_LEAVE_CD_MOUNTED is set, don't unmount /cdrom; this is a bad
+    idea in a live CD environment!
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 06 Sep 2008 10:47:32 +0100
+
+apt-setup (1:0.37ubuntu3) intrepid; urgency=low
+
+  * Bail out cleanly from cdrom generator if /cdrom/.disk/info doesn't exist
+    or has zero size (LP: #245519).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 27 Jul 2008 00:05:58 +0100
+
+apt-setup (1:0.37ubuntu2) intrepid; urgency=low
+
+  * Initialise local variable 'file' so that apt-setup-verify doesn't get
+    excruciatingly confused when you pass file=/path on the kernel command
+    line.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 26 Jun 2008 18:45:38 +0100
+
+apt-setup (1:0.37ubuntu1) intrepid; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Install the Ubuntu mirror generator instead of Debian's.
+    - Set apt-setup/security_host to security.ubuntu.com, or
+      ports.ubuntu.com on ports architectures; adjust directory and
+      distribution to match.
+    - Add security sources for restricted, universe, and multiverse,
+      commented out unless the respective components are enabled. Disable
+      security generator checks for contrib and non-free.
+    - For CD installs, leave the sources.list created by apt-setup in
+      /etc/apt/sources.list.apt-setup, and restore the sources.list created
+      during base installation for the rest of the installation.
+    - Honour OVERRIDE_BASE_INSTALLABLE when checking
+      /cdrom/.disk/base_installable.
+    - Enable universe and multiverse by default.
+    - If either restricted or multiverse is enabled, add commented-out lines
+      for the partner archive.
+    - Reduce the mirror verification timeout to 10 seconds.
+    - Disable the volatile service for Ubuntu, and don't ask the
+      apt-setup/services-select question.
+    - Always disable the CD at the end of installation if any mirrors are
+      present, even if it's a complete CD.
+    - Pre-populate apt's lists directory with signed Release files for
+      archive.ubuntu.com (and mirrors) and security.ubuntu.com, to protect
+      against downgrade attacks right from initial installation.
+    - Run 'apt-get update' for all sources.list lines produced by a single
+      generator in one go, and don't comment out sources.list lines if it
+      fails.
+    - Make the path to security updates configurable, as well as the host.
+    - Remove restricted from cdrom entry if apt-setup/restricted is false.
+  * Add Release files for intrepid.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 17 Jun 2008 12:29:09 +0100
+
+apt-setup (1:0.37) unstable; urgency=low
+
+  [ Updated translations ]
+  * Basque (eu.po) by Iñaki Larrañaga Murgoitio
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Marathi (mr.po) by Sampada
+  * Dutch (nl.po) by Frans Pop
+  * Punjabi (Gurmukhi) (pa.po) by Amanpreet Singh Alam
+
+ -- Otavio Salvador <otavio@debian.org>  Wed, 07 May 2008 23:58:11 -0300
+
+apt-setup (1:0.36) unstable; urgency=low
+
+  * Don't scan the installation CD if it does not include base packages.
+  * Because of reported issues with accessing the CD in the /target environment
+    if it is already mounted in the D-I environment, base-installer has been
+    reverted to loop-mounting the installation CD. In order to still allow
+    CD-changing while avoiding these issues and keeping installs idempotent, we
+    now need to allow apt-cdrom to manage mounting/unmounting for all types of
+    CD images (except for hd-media installs). See: #474346, #475639.
+    Requires: base-installer (>= 1.90), pkgsel (>= 0.19), di-utils (>= 1.57).
+
+  [ Updated translations ]
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Marathi (mr.po)
+
+ -- Frans Pop <fjp@debian.org>  Mon, 28 Apr 2008 07:20:55 +0200
+
+apt-setup (1:0.35) unstable; urgency=low
+
+  * Remove code to work around the fact that base-installer loop-mounted the
+    installation CD on /target/cdrom.
+    Requires: base-installer (>= 1.89).
+  * 90services-select: don't fail if question is skipped. Closes: #466066.
+
+  [ Updated translations ]
+  * Amharic (am.po) by Tegegne Tefera
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Basque (eu.po) by Piarres Beobide
+  * Dutch (nl.po) by Frans Pop
+  * Panjabi (pa.po) by Amanpreet Singh Alam
+
+ -- Frans Pop <fjp@debian.org>  Mon, 24 Mar 2008 23:18:36 +0100
+
+apt-setup (1:0.34) unstable; urgency=low
+
+  [ Updated translations ]
+  * Catalan (ca.po) by Jordi Mallach
+  * Dzongkha (dz.po) by Jurmey Rabgay
+  * Finnish (fi.po) by Esko Arajärvi
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Kumar Appaiah
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Central Khmer (km.po) by Khoem Sokhem
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Nepali (ne.po) by Shyam Krishna Bal
+  * Panjabi (pa.po) by Amanpreet Singh Alam
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Slovenian (sl.po) by Matej Kovacic
+  * Turkish (tr.po) by Recai Oktaş
+  * Ukrainian (uk.po)
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 15 Feb 2008 07:40:58 -0200
+
+apt-setup (1:0.33) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Put apt downloading info in the progress bar.
+  * Allocate 100 steps on the progress bar for each generator,
+    and 100 steps for verifying each generated block.
+  * Export PROGRESS_FROM and PROGRESS_TO to generators, giving the
+    starting and ending progress bar position for that generator. This can
+    be used by generators that need an absolute progress bar position for
+    calling debconf-apt-progress.
+  * apt-setup-verify: Use debconf-apt-progress and add a way for generators
+    to specify how it should advance the progress bar.
+  * Allow the progress bar to be canceled.
+  * 50mirror: Call choose-mirror -n to avoid trashing the progress bar.
+  * Needs debconf 1.5.17.
+
+  [ Frans Pop ]
+  * debian/rules: move packaging rules from binary-arch to binary-indep.
+  * Adjust templates for mirror use to also cover installation from CD sets.
+  * Only ask to use a mirror at low priority if more that 8 CDs or 2 DVDs were
+    scanned.
+  * Language tasks fit on CD3/DVD1; don't warn about missing packages from
+    them unless necessary.
+  * Move templates for mirror use linked to installation from CD to apt-cdrom
+    as they can only be used when that is installed.
+  * Disable option to cancel progress bar as there are issues with it.
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Czech (cs.po) by Miroslav Kure
+  * German (de.po) by Jens Seidel
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hebrew (he.po) by Lior Kaplan
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Italian (it.po) by Stefano Canepa
+  * Japanese (ja.po) by Kenshi Muto
+  * Korean (ko.po) by Changwoo Ryu
+  * Kurdish (ku.po) by Amed Çeko Jiyan
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Latvian (lv.po) by Viesturs Zarins
+  * Norwegian Bokmål (nb.po) by Hans Fredrik Nordhaug
+  * Dutch (nl.po) by Frans Pop
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Panjabi (pa.po) by Amanpreet Singh Alam
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Romanian (ro.po) by Eddy Petrișor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Ivan Masár
+  * Swedish (sv.po) by Daniel Nylander
+  * Tamil (ta.po) by Dr.T.Vasudevan
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+
+ -- Frans Pop <fjp@debian.org>  Tue, 05 Feb 2008 00:17:21 +0100
+
+apt-setup (1:0.32) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Add support for CD/DVD sets during installation:
+    - rename generator 50cdrom to 40cdrom to make room for new generator
+    - add new generator 41cdset to support scanning additional CD/DVDs
+    - add script load-install-cd
+    To support CD/DVD changing, the installation CD/DVD needs to be unmounted
+    in the D-I environment during package installation, which means that e.g.
+    running anna-install to install udebs is no longer possible. Because of
+    this components/scripts also need make sure that the installation CD is
+    loaded and mounted again after package installation.
+    Components/scripts that can install packages in /target after apt-setup
+    has been run should either use apt-install, or create the correct
+    conditions themselves (as pkgsel does).
+    Requires apt (0.7.9) in testing for #448187 and #448521, and requires
+    pkgsel (1.16) and di-utils (1.50).
+  * Add myself as uploader.
+
+  [ Colin Watson ]
+  * Strip 'deb ' from the start of apt-setup/local*/repository, just in case
+    somebody copies and pastes from an existing sources.list; see also
+    #420894.
+
+  [ Updated translations ]
+  * Amharic (am.po) by tegegne tefera
+  * Dzongkha (dz.po) by Jurmey Rabgay
+  * Korean (ko.po) by Changwoo Ryu
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Malayalam (ml.po) by Praveen|പ്രവീണ്‍ A|എ
+  * Norwegian Bokmål (nb.po) by Hans Fredrik Nordhaug
+  * Panjabi (pa.po) by A S Alam
+  * Polish (pl.po) by Bartosz Fenski
+  * Slovak (sk.po) by Ivan Masár
+
+ -- Frans Pop <fjp@debian.org>  Sun, 06 Jan 2008 20:35:19 +0100
+
+apt-setup (1:0.31ubuntu8) hardy-proposed; urgency=low
+
+  * Remove restricted from cdrom entry if apt-setup/restricted is false
+    (LP: #220805).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 20 May 2008 22:24:39 +0200
+
+apt-setup (1:0.31ubuntu7) hardy; urgency=low
+
+  * Make the path to security updates configurable, as well as the host
+    (thanks, Scott Dier; LP: #51470).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 31 Mar 2008 05:31:16 +0100
+
+apt-setup (1:0.31ubuntu6) hardy; urgency=low
+
+  * Don't bother running 'apt-get update' after disabling cdrom entries in
+    sources.list; it can be slow and is unnecessary.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 27 Feb 2008 14:11:28 +0000
+
+apt-setup (1:0.31ubuntu5) hardy; urgency=low
+
+  * Run 'apt-get update' for all sources.list lines produced by a single
+    generator in one go, and don't comment out sources.list lines if it
+    fails (LP: #154095).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 11 Feb 2008 15:15:22 +0000
+
+apt-setup (1:0.31ubuntu4) hardy; urgency=low
+
+  * Use different pre-populated Release files for -proposed, -updates, and
+    -backports.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 11 Feb 2008 13:08:23 +0000
+
+apt-setup (1:0.31ubuntu3) hardy; urgency=low
+
+  * Add apt-setup/proposed question (never asked); if preseeded to true,
+    -proposed entries will be added to sources.list (LP: #181776).
+  * Pre-populate apt's lists directory with signed Release files for
+    archive.ubuntu.com (and mirrors) and security.ubuntu.com, to protect
+    against downgrade attacks right from initial installation.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 08 Feb 2008 13:01:59 +0000
+
+apt-setup (1:0.31ubuntu2) hardy; urgency=low
+
+  * Fix Debian-style sources.list line that crept back into the security
+    generator (thanks, Timo Aaltonen).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 11 Dec 2007 15:49:34 +0000
+
+apt-setup (1:0.31ubuntu1) hardy; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Install the Ubuntu mirror generator instead of Debian's.
+    - Set apt-setup/security_host to security.ubuntu.com, or
+      ports.ubuntu.com on ports architectures; adjust directory and
+      distribution to match.
+    - Add security sources for restricted, universe, and multiverse,
+      commented out unless the respective components are enabled. Disable
+      security generator checks for contrib and non-free.
+    - For CD installs, leave the sources.list created by apt-setup in
+      /etc/apt/sources.list.apt-setup, and restore the sources.list created
+      during base installation for the rest of the installation.
+    - Honour OVERRIDE_BASE_INSTALLABLE when checking
+      /cdrom/.disk/base_installable.
+    - Enable universe and multiverse by default.
+    - If either restricted or multiverse is enabled, add commented-out lines
+      for the partner archive.
+    - Reduce the mirror verification timeout to 10 seconds.
+  * Use archive.ubuntu.com as the default source mirror for ports
+    architectures.
+  * Disable the volatile service for Ubuntu, and don't ask the
+    apt-setup/services-select question.
+  * Always disable the CD at the end of installation if any mirrors are
+    present, even if it's a complete CD. These days it's more irritating
+    than not, and inserting the CD on a desktop system will produce a prompt
+    anyway.
+  * Default to not using a mirror if the user selected to not configure the
+    network in netcfg (copied from Debian mirror generator).
+  * Set Vcs-Bzr for Ubuntu.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 10 Dec 2007 16:32:52 +0000
+
+apt-setup (1:0.31) unstable; urgency=low
+
+  * Correct inverted test for CD sources, which caused it to skip verification
+    of mirrors.
+
+  [ Updated translations ]
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 02 Nov 2007 13:19:03 -0400
+
+apt-setup (1:0.30) unstable; urgency=low
+
+  [ Frans Pop ]
+  * apt-setup-verify: 'apt-get update' does not actually verify CD/DVD
+    sources, so skip those.
+  * 50cdrom: rewrite error handling as 'apt-get update' does not verify CDs
+    but 'apt-cdrom add' will return an error if it fails to identify a CD.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Hleb Rubanau
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Czech (cs.po) by Miroslav Kure
+  * Esperanto (eo.po) by Serge Leblanc
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hebrew (he.po) by Lior Kaplan
+  * Korean (ko.po) by Sunjae Park
+  * Dutch (nl.po) by Bart Cornelis
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Romanian (ro.po) by Eddy Petrișor
+  * Russian (ru.po) by Yuri Kozlov
+  * Swedish (sv.po) by Daniel Nylander
+  * Tamil (ta.po) by Dr.T.Vasudevan
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Otavio Salvador <otavio@debian.org>  Sat, 27 Oct 2007 11:45:54 -0200
+
+apt-setup (1:0.29) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Add back detection if user selected to not configure the network. That
+    check is unrelated to the loop discussed in #442891. Closes: #402645.
+  * Allow to continue without selecting a mirror when choose-mirror exits
+    non-zero. This allows a user to back out of mirror selection in the case
+    of a netinst install without a network being available while still
+    avoiding the "use a mirror" question for all netinst based installs.
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Swedish (sv.po) by Daniel Nylander
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+
+ -- Jérémy Bobbio <lunar@debian.org>  Thu, 27 Sep 2007 18:18:15 +0200
+
+apt-setup (1:0.28) unstable; urgency=low
+
+  * Revert detection of unconfigured network in netcfg as it cannot be done
+    reliably. Closes: #443831, reopens #402645.
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 24 Sep 2007 14:44:01 -0400
+
+apt-setup (1:0.27) unstable; urgency=low
+
+  * Notice if netcfg was skipped entirely (possibly due to there being no
+    network card), or never asked netcfg/dhcp_options, and behave same
+    as if the user selected to not configure the network in netcfg.
+    Closes: #442891
+
+  [ Updated translations ]
+  * Catalan (ca.po) by Jordi Mallach
+  * Hebrew (he.po) by Lior Kaplan
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Italian (it.po) by Stefano Canepa
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Peter Mann
+  * Thai (th.po) by Theppitak Karoonboonyanan
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 17 Sep 2007 17:34:55 -0400
+
+apt-setup (1:0.26) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Default to not using a mirror if the user selected to not configure the
+    network in netcfg. Mirrors for update services are added commented out
+    without testing for them. Closes: #402645.
+
+ -- Otavio Salvador <otavio@ossystems.com.br>  Mon, 20 Aug 2007 13:53:50 -0300
+
+apt-setup (1:0.25) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Fix inconsistency in template names that causes an error during install.
+
+  [ Updated translations ]
+  * Dutch (nl.po) by Bart Cornelis
+
+ -- Jérémy Bobbio <lunar@debian.org>  Sun, 12 Aug 2007 00:06:07 +0200
+
+apt-setup (1:0.24) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Remove old isinstallable file that was for sarge, we don't support sarge
+    installs anymore.
+  * Add support for updates from volatile.debian.org.
+  * Allow the user to select whether to add security and/or volatile updates.
+    The question is only asked at medium or low priority. Closes: #401432.
+  * For CD installs, ask more selectively whether to use a mirror or not. The
+    question is still mostly asked as even on DVDs some packages belonging to
+    tasks may be missing on the first image.
+    - businesscard: mirror will always be used
+    - netinst: default to true, ask only at medium priority
+    - full CD: default to true, ask at high priority
+    - DVD: default to false, ask at high priority
+    An explanation is displayed that is tailored to the type of CD image.
+  * Disable netinst CD image in sources.list in target before reboot if other
+    sources are present. Closes: #379067.
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bengali (bn.po) by Jamil Ahmed
+  * Czech (cs.po) by Miroslav Kure
+  * German (de.po) by Jens Seidel
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hebrew (he.po) by Lior Kaplan
+  * Japanese (ja.po) by Kenshi Muto
+  * Nepali (ne.po) by Nabin Gautam
+  * Dutch (nl.po) by Frans Pop
+  * Panjabi (pa.po) by A S Alam
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Russian (ru.po) by Yuri Kozlov
+  * Swedish (sv.po) by Daniel Nylander
+  * Tamil (ta.po) by Dr.T.Vasudevan
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 10 Aug 2007 17:32:29 -0300
+
+apt-setup (1:0.23) unstable; urgency=low
+
+  [ Otavio Salvador ]
+  * Replace 'base-installer' dependency by 'installed-base' virtual
+    package. Needs base-installer 1.81.
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 18 Jun 2007 22:15:29 +0100
+
+apt-setup (1:0.22) unstable; urgency=low
+
+  * 50mirror: default suite to codename, similar to what we already do for
+    network-based installs; choose-mirror will determine the actual suite
+    from the codename. Closes: #422442.
+
+  [ Updated translations ]
+  * Catalan (ca.po) by Jordi Mallach
+  * Esperanto (eo.po) by Serge Leblanc
+  * Basque (eu.po) by Piarres Beobide
+  * Romanian (ro.po) by Eddy Petrișor
+
+ -- Frans Pop <fjp@debian.org>  Mon, 21 May 2007 16:15:02 +0200
+
+apt-setup (1:0.21ubuntu4) gutsy; urgency=low
+
+  * Always verify the mirror, though with a shorter timeout than before (10
+    seconds). If we don't, then 'apt-get update' isn't called to download
+    indices, which means we are never able to download language packs from
+    the network.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 10 Oct 2007 18:16:15 +0100
+
+apt-setup (1:0.21ubuntu3) gutsy; urgency=low
+
+  * Rename the 'commercial' component to 'partner'.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 03 Sep 2007 18:10:33 +0100
+
+apt-setup (1:0.21ubuntu2) gutsy; urgency=low
+
+  * If either restricted or multiverse is enabled, add commented-out lines
+    for the commercial component (LP: #118002).
+  * Add -updates for universe and multiverse, if enabled.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 02 Aug 2007 11:20:05 +0100
+
+apt-setup (1:0.21ubuntu1) gutsy; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Install the Ubuntu mirror generator instead of Debian's.
+    - Set apt-setup/security_host to security.ubuntu.com, or
+      ports.ubuntu.com on ports architectures; adjust directory and
+      distribution to match.
+    - Add security sources for restricted, universe, and multiverse,
+      commented out unless the respective components are enabled. Disable
+      security generator checks for contrib and non-free.
+    - For CD installs, leave the sources.list created by apt-setup in
+      /etc/apt/sources.list.apt-setup, and restore the sources.list created
+      during base installation for the rest of the installation.
+    - Honour OVERRIDE_BASE_INSTALLABLE when deciding whether to run
+      choose-mirror.
+    - Don't bother validating network mirrors if the base system can be
+      installed from CD; apt's failure mode is sufficiently graceful
+      nowadays that we can let the user sort out problems after
+      installation.
+    - Enable universe and multiverse by default.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 29 Apr 2007 16:25:30 +0100
+
+apt-setup (1:0.21) unstable; urgency=low
+
+  * Multiply menu-item-numbers by 100.
+
+  [ Updated translations ]
+  * Esperanto (eo.po) by Serge Leblanc
+  * Basque (eu.po) by Piarres Beobide
+  * Norwegian Bokmål (nb.po) by Bjørn Steensrud
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 10 Apr 2007 14:26:40 -0400
+
+apt-setup (1:0.20) unstable; urgency=low
+
+  [ Updated translations ]
+  * Malayalam (ml.po) by Praveen A
+
+ -- Frans Pop <fjp@debian.org>  Tue, 27 Feb 2007 16:37:56 +0100
+
+apt-setup (1:0.19) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Improve regexp in 90security to not misfire if the mirror's name or path
+    contains "contrib" or "non-free".
+
+  [ Updated translations ]
+  * Hebrew (he.po) by Lior Kaplan
+
+ -- Frans Pop <fjp@debian.org>  Tue, 13 Feb 2007 23:23:00 +0100
+
+apt-setup (1:0.18) unstable; urgency=low
+
+  [ Updated translations ]
+  * Romanian (ro.po) by Eddy Petrișor
+
+ -- Frans Pop <fjp@debian.org>  Wed, 31 Jan 2007 11:18:40 +0100
+
+apt-setup (1:0.17) unstable; urgency=low
+
+  [ Christian Perrier ]
+  * Fix error in French translation. Closes: #400715.
+
+  [ Frans Pop ]
+  * Make wget respect proxy servers defined for local sources. Based on a
+    patch suggested by John Morrissey, for which thanks. Closes: #408297.
+  * Use log-output for commands that produce output if run in the installer.
+  * Consistently use http protocol when setting up security archive (ftp
+    reguires a different mirror directory and is thus not easy to support).
+  * Reduce timeout for testing security mirrors to 30 seconds. As security.d.o
+    currently has 3 IP addresses listed, and these are tried consecutively, the
+    total timeout will be 1.5 minutes (was 6 minutes). Closes: #393033.
+  * apt-setup-verify: reset IFS to avoid problems with option processing.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Belarusian (be.po) by Pavel Piatruk
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bosnian (bs.po) by Safir Secerovic
+  * Danish (da.po) by Claus Hindsgaul
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * Hebrew (he.po) by Lior Kaplan
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Kurdish (ku.po) by Amed Çeko Jiyan
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Malayalam (ml.po) by Praveen A
+  * Panjabi (pa.po) by A S Alam
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Slovak (sk.po) by Peter Mann
+  * Slovenian (sl.po) by Matej Kovačič
+  * Swedish (sv.po) by Daniel Nylander
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Turkish (tr.po) by Recai Oktaş
+
+ -- Frans Pop <fjp@debian.org>  Mon, 29 Jan 2007 21:43:32 +0100
+
+apt-setup (1:0.16ubuntu4) feisty; urgency=low
+
+  * Set Maintainer to ubuntu-installer@lists.ubuntu.com.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 16 Feb 2007 09:07:04 +0000
+
+apt-setup (1:0.16ubuntu3) feisty; urgency=low
+
+  * generators/90security: Add security sources for multiverse, commented
+    out unless multiverse is enabled (thanks, Timo Aaltonen; LP: #55509).
+  * debian/apt-mirror-setup.templates-ubuntu: Enable universe and multiverse
+    by default
+    (https://blueprints.launchpad.net/ubuntu/+spec/enabling-additional-components).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu,  8 Feb 2007 14:19:38 +0000
+
+apt-setup (1:0.16ubuntu2) feisty; urgency=low
+
+  * generators/90security: Disable check for contrib and non-free
+    (LP: #56009).
+  * generators/50mirror.ubuntu: Link to
+    http://help.ubuntu.com/community/UpgradeNotes for upgrade instructions
+    (LP: #69094).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 12 Dec 2006 15:06:11 +0000
+
+apt-setup (1:0.16ubuntu1) feisty; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Install the Ubuntu mirror generator instead of Debian's.
+    - Set apt-setup/security_host to security.ubuntu.com, or
+      ports.ubuntu.com on ports architectures; adjust directory and
+      distribution to match.
+    - Add security sources for restricted and universe, commented out unless
+      the respective components are enabled.
+    - For CD installs, leave the sources.list created by apt-setup in
+      /etc/apt/sources.list.apt-setup, and restore the sources.list created
+      during base installation for the rest of the installation.
+    - Honour OVERRIDE_BASE_INSTALLABLE when deciding whether to run
+      choose-mirror.
+    - Don't bother validating network mirrors if the base system can be
+      installed from CD; apt's failure mode is sufficiently graceful
+      nowadays that we can let the user sort out problems after
+      installation.
+  * Allow back up from use network mirror question in Ubuntu mirror
+    generator.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 31 Oct 2006 15:23:58 +0000
+
+apt-setup (1:0.16) unstable; urgency=low
+
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Belarusian (be.po) by Andrei Darashenka
+  * Bengali (bn.po) by Mahay Alam Khan (মাহে আলম খান)
+  * Danish (da.po) by Claus Hindsgaul
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Estonian (et.po) by Siim Põder
+  * Basque (eu.po) by Piarres Beobide
+  * Finnish (fi.po) by Tapio Lehtonen
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Nishant Sharma
+  * Croatian (hr.po) by Josip Rodin
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Italian (it.po) by Stefano Canepa
+  * Korean (ko.po) by Sunjae park
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Nepali (ne.po) by Shiva Prasad Pokharel
+  * Romanian (ro.po) by Eddy Petrișor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovenian (sl.po) by Jure Čuhalev
+  * Albanian (sq.po) by Elian Myftiu
+  * Tamil (ta.po) by Damodharan Rajalingam
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+
+ -- Frans Pop <fjp@debian.org>  Tue, 24 Oct 2006 13:48:32 +0200
+
+apt-setup (1:0.15) unstable; urgency=low
+
+  * Fix broken proxy setting code in 90security. Closes: #378868
+    Some systems installed before this fix will have Acquire::http::proxy "false"
+    set in apt.conf, which leads to breakage in some situations. Also, if a
+    proxy was set, it would not be written to the file.
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 17 Aug 2006 17:45:07 -0400
+
+apt-setup (1:0.14) unstable; urgency=low
+
+  * Make apt-setup idempotent by removing workfile on back up.
+  * Allow back up from use network mirror question.
+  * Make apt-setup-verify responsible for blank lines between sources lines
+    from different generators.
+  * Add Lintian override for standards-version.
+  * Add missing dependencies on debconf.
+
+  [ Updated translations ]
+  * Catalan (ca.po) by Jordi Mallach
+  * Greek, Modern (1453-) (el.po) by quad-nrg.net
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Icelandic (is.po) by David Steinn Geirsson
+  * Dutch (nl.po) by Bart Cornelis
+  * Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Frans Pop <fjp@debian.org>  Tue, 15 Aug 2006 02:22:07 +0200
+
+apt-setup (1:0.13) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Only use RET in security generator for data returned from debconf, to
+    avoid confusion.
+  * Fix mirror generators not to break if apt-setup/use_mirror isn't asked.
+
+  [ Updated translations ]
+  * Finnish (fi.po) by Tapio Lehtonen
+  * Panjabi (pa.po) by A S Alam
+  * Tagalog (tl.po) by Eric Pareja
+
+ -- Frans Pop <fjp@debian.org>  Tue, 25 Jul 2006 13:01:56 +0200
+
+apt-setup (1:0.12) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Port mirror generator changes from 1:0.11 to Ubuntu mirror generator.
+
+  [ Updated translations ]
+  * Dzongkha (dz.po) by Jurmey Rabgay
+  * Estonian (et.po) by Siim Põder
+  * Hungarian (hu.po) by SZERVÑC Attila
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Dutch (nl.po) by Bart Cornelis
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Polish (pl.po) by Bartosz Fenski
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Frans Pop <fjp@debian.org>  Thu, 13 Jul 2006 17:11:34 +0200
+
+apt-setup (1:0.11ubuntu5) edgy; urgency=low
+
+  * Don't bother validating network mirrors if the base system can be
+    installed from CD; apt's failure mode is sufficiently graceful nowadays
+    that we can let the user sort out problems after installation (closes:
+    Malone #14599, #35364).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 18 Oct 2006 18:47:47 +0100
+
+apt-setup (1:0.11ubuntu4) edgy; urgency=low
+
+  * Backport from trunk (Joey Hess):
+    - Fix broken proxy setting code in 90security. Closes: #378868
+      Some systems installed before this fix will have Acquire::http::proxy
+      "false" set in apt.conf, which leads to breakage in some situations.
+      Also, if a proxy was set, it would not be written to the file.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 30 Aug 2006 12:16:36 +0100
+
+apt-setup (1:0.11ubuntu3) edgy; urgency=low
+
+  * Honour OVERRIDE_BASE_INSTALLABLE when deciding whether to run
+    choose-mirror.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 27 Jul 2006 11:48:27 +0100
+
+apt-setup (1:0.11ubuntu2) edgy; urgency=low
+
+  * Fix mirror generators not to break if apt-setup/use_mirror isn't asked.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 19 Jul 2006 07:56:44 +0100
+
+apt-setup (1:0.11ubuntu1) edgy; urgency=low
+
+  * Resynchronise with Debian.
+  * Port mirror generator changes from 1:0.11 to Ubuntu mirror generator.
+  * Put base-installer dependency back to 1.49.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 28 Jun 2006 12:46:49 +0100
+
+apt-setup (1:0.11) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Make the use of a network mirror optional if the base system is
+    installable from CD.
+
+  [ Colin Watson ]
+  * Set $protocol in security generator so that proxy configuration works.
+
+  [ Joey Hess ]
+  * Move mirror use prompt code into mirror generator.
+  * Run choose-mirror with new -n switch so it does not mess with the existing
+    progress bar.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Bengali (bn.po) by Progga
+  * Catalan (ca.po) by Jordi Mallach
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Dzongkha (dz.po)
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hebrew (he.po) by Lior Kaplan
+  * Hungarian (hu.po) by SZERVÑC Attila
+  * Italian (it.po) by Stefano Canepa
+  * Japanese (ja.po) by Kenshi Muto
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Khmer (km.po) by Khoem Sokhem
+  * Korean (ko.po) by Sunjae park
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Malagasy (mg.po) by Jaonary Rabarisoa
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Bokmål, Norwegian (nb.po) by Bjørn Steensrud
+  * Nepali (ne.po) by Shiva Pokharel
+  * Dutch (nl.po) by Bart Cornelis
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+  * Romanian (ro.po) by Eddy Petrişor
+  * Russian (ru.po) by Yuri Kozlov
+  * Northern Sami (se.po) by Børre Gaup
+  * Slovak (sk.po) by Peter Mann
+  * Slovenian (sl.po) by Jure Čuhalev
+  * Albanian (sq.po) by Elian Myftiu
+  * Swedish (sv.po) by Daniel Nylander
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Tagalog (tl.po) by Eric Pareja
+  * Turkish (tr.po) by Recai Oktaş
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 15 Jun 2006 13:54:54 -0400
+
+apt-setup (1:0.10ubuntu2) dapper; urgency=low
+
+  * Backport from trunk:
+    - Set $protocol in security generator so that proxy configuration works.
+  * Use ports.ubuntu.com instead of security.ubuntu.com on ports
+    architectures (closes: Malone #39342).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 18 May 2006 00:15:34 +0100
+
+apt-setup (1:0.10ubuntu1) dapper; urgency=low
+
+  * Resynchronise with Debian (UVF exception approved by mdz).
+  * Drop base-installer dependency to 1.42ubuntu11 for
+    --ignore-time-conflict removal.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 25 Apr 2006 19:15:24 +0100
+
+apt-setup (1:0.10) unstable; urgency=low
+
+  [ Frans Pop ]
+  * When the security mirror cannot be reached, do not apt-setup-verify the
+    source lines again. This saves having to wait for two DNS timeouts.
+
+  [ Colin Watson ]
+  * Add multiverse component support to Ubuntu mirror generator (thanks,
+    Timo Aaltonen; closes: https://launchpad.net/bugs/29646).
+
+  [ Joey Hess ]
+  * Use cdrom/codename if mirror/codename is empty; part of the cdrom/codename
+    split.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Bulgarian (bg.po) by Ognyan Kulev
+  * Bosnian (bs.po) by Safir Secerovic
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Dzongkha (dz.po) by Sonam Rinchen
+  * Esperanto (eo.po) by Serge Leblanc
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hungarian (hu.po) by SZERVÑC Attila
+  * Italian (it.po) by Stefano Canepa
+  * Japanese (ja.po) by Kenshi Muto
+  * Khmer (km.po) by Leang Chumsoben
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Dutch (nl.po) by Bart Cornelis
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+  * Romanian (ro.po) by Eddy Petrişor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Peter Mann
+  * Swedish (sv.po) by Daniel Nylander
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Tagalog (tl.po) by Eric Pareja
+  * Turkish (tr.po) by Recai Oktaş
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+
+ -- Frans Pop <fjp@debian.org>  Wed, 19 Apr 2006 19:43:31 +0200
+
+apt-setup (1:0.9) unstable; urgency=low
+
+  * If no mirror hostname or directory are configured, avoid asking non-free
+    question or trying to set up a mirror. Useful for cases such as full CD
+    installs, where the user might choose to skip setting up a mirror.
+
+ -- Joey Hess <joeyh@debian.org>  Fri,  7 Apr 2006 17:39:58 -0400
+
+apt-setup (1:0.8) unstable; urgency=low
+
+  * Add support for preseeding local archives to be appended to
+    sources.list, based on a patch by Timo Aaltonen (closes: #348509).
+
+  [ Updated translations ]
+  * German (de.po) by Jens Seidel
+  * Irish (ga.po) by Kevin Patrick Scannell
+  * Khmer (km.po) by hok kakada
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 28 Mar 2006 17:14:50 +0100
+
+apt-setup (1:0.7) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Remove --ignore-time-conflict settings, set globally for the installer
+    by base-installer 1.49.
+
+  [ Frans Pop ]
+  * Add isinstallable file to skip apt setup when installing Sarge.
+
+  [ Updated translations ]
+  * Bosnian (bs.po) by Safir Secerovic
+  * Catalan (ca.po) by Jordi Mallach
+  * Welsh (cy.po) by Dafydd Harries
+  * Basque (eu.po) by Piarres Beobide
+  * Hindi (hi.po) by Nishant Sharma
+  * Khmer (km.po) by hok kakada
+  * Slovak (sk.po) by Peter Mann
+  * Swedish (sv.po) by Daniel Nylander
+
+ -- Frans Pop <fjp@debian.org>  Mon, 20 Mar 2006 18:30:54 +0100
+
+apt-setup (1:0.6) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Ignore time conflicts when running apt-get update, should fix later apt
+    brokenness for systems with clock issues.
+
+  [ Updated translations ]
+  * Basque (eu.po) by Piarres Beobide
+  * Finnish (fi.po) by Tapio Lehtonen
+  * Hungarian (hu.po) by SZERVÑC Attila
+  * Polish (pl.po) by Bartosz Fenski
+  * Slovak (sk.po) by Peter Mann
+  * Slovenian (sl.po) by Matej Kovačič
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Sun, 12 Feb 2006 18:18:48 +0000
+
+apt-setup (1:0.5) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Fix reversed logic for universe and backports in Ubuntu mirror
+    generator.
+  * Fix comment typo in Ubuntu mirror generator.
+
+  [ Frans Pop ]
+  * Change menu title to fit in better with rest of menu.
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Ognyan Kulev
+  * Catalan (ca.po) by Jordi Mallach
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * Finnish (fi.po) by Tapio Lehtonen
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Nishant Sharma
+  * Indonesian (id.po) by Parlin Imanuel Toh
+  * Italian (it.po) by Giuseppe Sacco
+  * Japanese (ja.po) by Kenshi Muto
+  * Korean (ko.po) by Sunjae park
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Malagasy (mg.po) by Jaonary Rabarisoa
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Bokmål, Norwegian (nb.po) by Bjørn Steensrud
+  * Dutch (nl.po) by Bart Cornelis
+  * Punjabi (India) (pa_IN.po) by Amanpreet Singh Alam
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Romanian (ro.po) by Eddy Petrişor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Peter Mann
+  * Slovenian (sl.po) by Jure Čuhalev
+  * Albanian (sq.po) by Elian Myftiu
+  * Swedish (sv.po) by Daniel Nylander
+  * Tagalog (tl.po) by Eric Pareja
+  * Turkish (tr.po) by Recai Oktaş
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Frans Pop <fjp@debian.org>  Mon, 23 Jan 2006 21:23:37 +0100
+
+apt-setup (1:0.4ubuntu6) dapper; urgency=low
+
+  * Make sure to move our sources.list aside only for CD installs, not
+    netboot, and log a message when we do so (closes: Malone #28462).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 24 Jan 2006 11:00:40 +0000
+
+apt-setup (1:0.4ubuntu5) dapper; urgency=low
+
+  * Fix comment typo in Ubuntu mirror generator (closes: Malone #29231).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 23 Jan 2006 15:14:17 +0000
+
+apt-setup (1:0.4ubuntu4) dapper; urgency=low
+
+  * https://bugzilla.ubuntu.com/show_bug.cgi?id=6390 returned with the
+    rewritten apt-setup. Apply this change from the previous implementation,
+    since it turns out to still be relevant:
+    - For CD installs, leave the sources.list created by apt-setup in
+      /etc/apt/sources.list.apt-setup, and restore the sources.list created
+      during base installation for the rest of the installation.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 13 Dec 2005 19:34:13 +0000
+
+apt-setup (1:0.4ubuntu3) dapper; urgency=low
+
+  * Add security sources for restricted and universe, commented out unless
+    the respective components are enabled.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri,  9 Dec 2005 12:38:55 +0000
+
+apt-setup (1:0.4ubuntu2) dapper; urgency=low
+
+  * Backport from trunk:
+    - Fix reversed logic for universe and backports in Ubuntu mirror
+      generator.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri,  9 Dec 2005 12:32:28 +0000
+
+apt-setup (1:0.4ubuntu1) dapper; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri,  9 Dec 2005 12:21:17 +0000
+
+apt-setup (1:0.4) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Use the codename for the release in sources.list instead of the suite.
+    Requires: cdrom-detect >=1.11; choose-mirror >=1.16; iso-scan >=1.10.
+    Closes: #313235
+
+  [ Colin Watson ]
+  * Make apt-setup-verify preserve blank lines.
+  * Avoid double slashes in sources.list mirror lines.
+
+ -- Colin Watson <cjwatson@debian.org>  Fri,  9 Dec 2005 12:09:30 +0000
+
+apt-setup (1:0.3) unstable; urgency=low
+
+  * Yet another case of an upload needed to update code to match a value from
+    a choices list that was changed by someone without checking for the code
+    that dependned on that value.
+
+  [ Updated translations ]
+  * Danish (da.po) by Claus Hindsgaul
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Italian (it.po) by Giuseppe Sacco
+  * Japanese (ja.po) by Kenshi Muto
+  * Korean (ko.po) by Sunjae park
+  * Malagasy (mg.po) by Jaonary Rabarisoa
+  * Dutch (nl.po) by Bart Cornelis
+  * Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+  * Romanian (ro.po) by Eddy Petrişor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Peter Mann
+  * Tagalog (tl.po) by Eric Pareja
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Joey Hess <joeyh@debian.org>  Mon,  5 Dec 2005 19:40:39 -0500
+
+apt-setup (1:0.2ubuntu3) dapper; urgency=low
+
+  * Include debian/apt-mirror-setup.templates-ubuntu in output
+    apt-mirror-setup templates file.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu,  1 Dec 2005 14:16:11 +0000
+
+apt-setup (1:0.2ubuntu2) dapper; urgency=low
+
+  * Fix sources.list entries for Ubuntu security.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 25 Nov 2005 14:29:25 +0000
+
+apt-setup (1:0.2ubuntu1) dapper; urgency=low
+
+  * Install the Ubuntu mirror generator instead of Debian's.
+  * Set apt-setup/security_host to security.ubuntu.com.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 20 Nov 2005 15:46:19 +0000
+
+apt-setup (1:0.2) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Add strings for Ubuntu mirror generator to translation infrastructure,
+    per http://lists.debian.org/debian-boot/2005/10/msg01407.html and
+    followups.
+  * Clarify apt-setup/universe description a bit.
+
+  [ Joey Hess ]
+  * If setting up a mirror fails, allow the user to retry or change their
+    mirror.
+  * If setting up a CD fails, let the user know there was a problem instead of
+    quietly continuing without a main apt source.
+  * Add a comment before commented out lines to make clear why they are
+    commented out.
+
+  [ Christian Perrier ]
+  * Break Choices in single components in templates
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Ognyan Kulev
+  * Bengali (bn.po) by Baishampayan Ghose
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hindi (hi.po) by Nishant Sharma
+  * Icelandic (is.po) by David Steinn Geirsson
+  * Italian (it.po) by Giuseppe Sacco
+  * Japanese (ja.po) by Kenshi Muto
+  * Korean (ko.po) by Sunjae park
+  * Bokmål, Norwegian (nb.po) by Bjørn Steensrud
+  * Dutch (nl.po) by Bart Cornelis
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Russian (ru.po) by Yuri Kozlov
+  * Swedish (sv.po) by Daniel Nylander
+  * Tagalog (tl.po) by Eric Pareja
+  * Turkish (tr.po) by Recai Oktaş
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 16 Nov 2005 17:31:02 -0500
+
+apt-setup (1:0.1) unstable; urgency=low
+
+  [ Joey Hess ]
+  * First release as a udeb broken out from base-config and rewritten.
+
+  * This means that apt mirror config uses d-i's mirror configs automatically.
+    Closes: #220269, #252121, #235980, #251007
+  * Issues with /dev/cdrom symlinks no longer apply, since that's taken
+    care of by d-i. Closes: #198759, #264375, #274615
+  * Issues with CD eject buttons no longer apply, since well, it currently
+    only supports loading in one CD. Closes: #215639, #215639, #240331
+    Closes: #333513
+    (TODO item exists for multiple CDs tho).
+  * Runs in the first stage so no issues with it running again and eating
+    configured sources or wanting to clear proxy settings.
+    Closes: #229048, #196625
+  * Will deal nicely with failure to reach security.debian.org.
+    Closes: #251413
+  * You can enter a mirror manually in choose-mirror and entry proxy info too.
+    Closes: #277481, #284794
+  * CD stuff works ok in noninteractive/preseeded modes. Closes: #282356
+  * Adds deb-src lines for everything, including security updates.
+    Closes: #269154.
+
+  [ Colin Watson ]
+  * Various small fixes.
+  * Call the main package apt-setup-udeb to allow for apt-setup.deb in the
+    future.
+  * Add translation infrastructure.
+  * Set epoch to supersede the base-config-based apt-setup-udeb in Ubuntu.
+  * Don't bother looking for security updates for unstable.
+  * Strip everything after the first dot from generator names when
+    constructing progress template names, to allow writing variants of a
+    generator with the same basic purpose as the original.
+  * Initial untested mirror generator for Ubuntu. Not added to translation
+    infrastructure yet, although the templates are there.
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 27 Oct 2005 18:29:39 -0400

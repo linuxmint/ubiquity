@@ -1,0 +1,61 @@
+#!/usr/bin/make -f
+
+build: build-stamp
+build-stamp:
+	dh_testdir
+	$(MAKE)
+	touch build-stamp
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp
+	$(MAKE) clean
+	dh_clean
+
+test:
+	$(MAKE) -C testsuite test
+
+install: build test
+
+binary-indep: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdebconf -i
+	dh_compress -i
+	dh_fixperms -i
+	for file in /usr/share/terminfo/a/ansi /usr/share/terminfo/l/linux \
+	  /usr/share/terminfo/v/vt102; do \
+		mkdir -p debian/di-utils-terminfo/`dirname $$file`; \
+		cp -pL $$file debian/di-utils-terminfo/$$file; \
+		chmod 644 debian/di-utils-terminfo/$$file; \
+	done
+	dh_installdeb -i
+	dh_gencontrol -i
+	dh_builddeb -i
+
+binary-arch: install
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_install -pdi-utils anna-install apt-install debconf-disconnect \
+			      debconf-get debconf-set fetch-url log-output \
+			      register-module search-path update-dev \
+			      user-params in-target list-devices bin
+	dh_install -pdi-utils chroot-setup.sh lib
+	dh_installdirs -pdi-utils usr/lib/post-base-installer.d
+	install register-module.post-base-installer debian/di-utils/usr/lib/post-base-installer.d/10register-module
+	dh_install -pdi-utils-mapdevfs mapdevfs bin
+	dh_link -p di-utils usr/lib/fetch-url/http usr/lib/fetch-url/ftp
+	dh_installdebconf -a
+	dh_compress -a
+	dh_fixperms -a
+	dh_strip -a
+	dh_installdeb -a
+	dh_shlibdeps -a
+	dh_gencontrol -a
+	dh_builddeb -a
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install

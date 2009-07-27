@@ -1,0 +1,27 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+dev=$1
+num=$2
+id=$3
+size=$4
+type=$5
+fs=$6
+path=$7
+name=$8
+
+cd $dev
+
+[ -f $id/method ] || exit 0
+method=$(cat $id/method)
+
+if [ "$method" = swap ]; then
+	RET=''
+	db_metaget partman/filesystem_short/linux-swap description || RET=''
+	printf "${RET:-swap}" >$id/visual_filesystem
+	printf "${RET:-swap}" >$id/visual_mountpoint
+
+	open_dialog CHANGE_FILE_SYSTEM $id linux-swap
+	close_dialog
+fi

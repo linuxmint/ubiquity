@@ -1,0 +1,20 @@
+#! /bin/sh -e
+# If possible, report the intended installation locale rather than the
+# current locale. Used by console-setup.
+# This must not be installed in /usr/lib/ubiquity/compat; debconf calls
+# locale itself, so a locale wrapper cannot source the debconf confmodule.
+
+. /usr/share/debconf/confmodule
+
+if db_get debian-installer/locale && [ "$RET" ]; then
+	LOCALE="$RET"
+fi
+
+TEXT="$(PATH=/usr/sbin:/usr/bin:/sbin:/bin locale "$@")"
+if [ "$LOCALE" ]; then
+	printf '%s\n' "$TEXT" | sed "s/=.*/=$LOCALE/"
+else
+	printf '%s\n' "$TEXT"
+fi
+
+exit 0

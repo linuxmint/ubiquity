@@ -1,0 +1,74 @@
+#!/bin/sh
+
+set -e
+. /usr/share/debconf/confmodule
+. /usr/share/migration-assistant/ma-script-utils
+OLDIFS="$IFS"
+NEWLINE='
+'
+
+if [ -z "$1" ]; then
+    mapath="/usr/bin"
+else
+    mapath="$1"
+fi
+
+
+db_get migration-assistant/partitions || exit 10
+IFS="$NEWLINE"
+selection=`echo "$RET" | sed -e 's/, /\n/g'`
+for choice in $selection; do # Microsoft Windows XP Professional (/dev/hda1)
+    IFS="$OLDIFS"
+    location=$(LC_ALL=C expr "$choice" : '.*(\(.*\))') # /dev/hda1
+    IFS="$NEWLINE"
+    for line in `os-prober`; do
+        IFS="$OLDIFS"
+        loc="${line%%:*}"
+        if [ "$location" != "$loc" ]; then
+            continue
+        fi
+        set_os_type "$line" || continue
+        path=${loc#*/*/}
+        mount_os "$ostype" "$loc"
+        db_get migration-assistant/$path/users || continue
+        IFS="$NEWLINE"
+        user_selection=`echo "$RET" | sed -e 's/, /\n/g'`
+        for usr in $user_selection; do
+            IFS="$OLDIFS"
+            formatted_user=`echo "$usr" | sed -e 's/ /+/g' | sed -e 's/,+/, /g'`
+            db_get migration-assistant/$path/$formatted_user/user || continue
+            new_user=$RET
+
+            if [ $(grep -c ^$new_user: $ROOT/etc/passwd) -eq 0 ]; then
+                log "creating user $new_user"
+                db_get migration-assistant/new-user/$new_user/password || continue
+                pass=$RET
+                db_get migration-assistant/new-user/$new_user/fullname || continue
+                fn=$RET
+                add_user "$new_user" "$fn" "$pass"
+            fi
+            
+            db_get migration-assistant/$path/$formatted_user/items || continue
+            log "importing: $RET"
+            IFS="$NEWLINE"
+            item_selection=`echo "$RET" | sed -e 's/, /\n/g'`
+            for itm in $item_selection; do
+                IFS="$OLDIFS"
+                itm=$(echo $itm | sed -e 's/ //g' | tr [A-Z] [a-z])
+                log-output -t migration-assistant $mapath/ma-import \
+                --target="$itm" \
+                --ostype="$ostype" \
+                --fromuser="$usr" \
+                --frompath="$mountpoint" \
+                --touser="$new_user" \
+                --topath="$ROOT" \
+                || error "importing $itm failed."
+                IFS="$NEWLINE"
+            done
+            IFS="$NEWLINE"
+        done
+        IFS="$OLDIFS"
+        unmount_os
+        IFS="$NEWLINE"
+    done
+done

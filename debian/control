@@ -1,0 +1,73 @@
+Source: ubiquity
+Section: admin
+Priority: optional
+Maintainer: Ubuntu Installer Team <ubuntu-installer@lists.ubuntu.com>
+Uploaders: Colin Watson <cjwatson@ubuntu.com>, Evan Dandrea <evand@ubuntu.com>
+Build-Depends: apt, dash, dctrl-tools, debconf (>= 0.5.0), debhelper (>= 5.0.37.3ubuntu2), dpkg-dev (>= 1.9.0), intltool (>= 0.40.0), intltool-debian (>= 0.30+20040212), iso-codes, isoquery, libart-2.0-dev, libdebconfclient0-dev (>= 0.68), libdebian-installer4-dev (>= 0.41), libglib2.0-dev, libgtk2.0-dev, libparted1.8-dev, libxml2-dev (>= 2.6.24), locales, po-debconf (>= 1.0), python-all-dev (>= 2.3.5-11), python-central (>= 0.5), python-gobject-dev (>= 2.15.1), python-gtk2-dev, tzdata, wget, xkb-data (>= 0.9)
+Standards-Version: 3.6.2.1
+XS-Python-Version: current, >= 2.4
+Vcs-Bzr: http://bazaar.launchpad.net/~ubuntu-installer/ubiquity/trunk
+
+Package: ubiquity
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, debconf (>= 1.4.72ubuntu5), ubiquity-frontend-${mangled-version}, ubiquity-artwork-${mangled-version}, laptop-detect, lsb-release, ubiquity-casper, python-apt (>= 0.6.16.2ubuntu4), ${console-setup-depends}, iso-codes, passwd, adduser, os-prober, rdate, ${partman-depends}, ecryptfs-utils
+Recommends: ${bootloader-recommends}
+Conflicts: ubuntu-express, espresso, espresso-utils, espresso-locale, espresso-keyboard-setup, espresso-kbd-chooser, espresso-timezone, user-setup (<< 0.05ubuntu6), partman, espresso-grub, espresso-yaboot
+Replaces: ubuntu-express, espresso, espresso-utils, espresso-locale, espresso-keyboard-setup, espresso-kbd-chooser, espresso-timezone, user-setup (<< 0.05ubuntu6), partman, espresso-grub, espresso-yaboot, ubiquity-frontend-gtk (<< 0.99.82)
+XB-Python-Version: ${python:Versions}
+Description: Ubuntu live CD installer
+ This is a simple live CD installer designed to integrate well with Debian-
+ and Ubuntu-based systems, and to reuse code from d-i for ease of
+ maintenance.
+ .
+ Installing this package on a normal system is unlikely to be useful.
+
+Package: ubiquity-ubuntu-artwork
+Architecture: all
+Conflicts: ubuntu-express-ubuntu-artwork, ubuntu-express-ubuntu-doc, espresso-ubuntu-artwork, espresso-ubuntu-doc, ubiquity-ubuntu-doc
+Replaces: ubuntu-express-ubuntu-artwork, ubuntu-express-ubuntu-doc, espresso-ubuntu-artwork, espresso-ubuntu-doc, ubiquity-ubuntu-doc
+Provides: ubiquity-artwork-${mangled-version}
+Description: Ubuntu artwork for Ubiquity live installer
+ This package provides Ubuntu-themed user interface artwork, help files, and
+ user interface text for the Ubiquity live CD installer.
+
+#Package: ubiquity-guadalinex-artwork
+#Architecture: all
+#Conflicts: ubuntu-express-guadalinex-artwork, ubuntu-express-guadalinex-doc, espresso-guadalinex-artwork, espresso-guadalinex-doc, ubiquity-guadalinex-doc
+#Replaces: ubuntu-express-guadalinex-artwork, ubuntu-express-guadalinex-doc, espresso-guadalinex-artwork, espresso-guadalinex-doc, ubiquity-guadalinex-doc
+#Provides: ubiquity-artwork-${mangled-version}
+#Description: Guadalinex artwork for Ubiquity live installer
+# This package provides Guadalinex-themed user interface artwork, help
+# files, and user interface text for the Ubiquity live CD installer.
+
+Package: ubiquity-frontend-gtk
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, ubiquity (= ${binary:Version}), python-glade2, python-gtk2 (>= 2.10), iso-codes, x-window-manager
+Recommends: gnome-system-tools
+Suggests: gnome-control-center
+Conflicts: ubuntu-express-frontend-gtk, espresso-frontend-gtk
+Replaces: ubuntu-express-frontend-gtk, espresso-frontend-gtk
+Provides: ubiquity-frontend-${mangled-version}
+XB-Python-Version: ${python:Versions}
+Description: GTK+ frontend for Ubiquity live installer
+ This package provides a GTK+-based user interface frontend for the Ubiquity
+ live CD installer.
+
+Package: ubiquity-frontend-kde
+Architecture: all
+Depends: ${misc:Depends}, ${python:Depends}, ubiquity (= ${binary:Version}), python-kde4, kde-window-manager, kdesudo | kdesudo-kde4
+Provides: ubiquity-frontend-${mangled-version}
+XB-Python-Version: ${python:Versions}
+Description: KDE frontend for Ubiquity live installer
+ This package provides a KDE-based user interface frontend for the Ubiquity
+ live CD installer.
+
+Package: ubiquity-frontend-mythbuntu
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, ubiquity (= ${binary:Version}), ubiquity-frontend-gtk (= ${binary:Version}), mythtv-common, python-mysqldb, expect, vnc4-common, lirc (>= 0.8.2-0ubuntu3), mythbuntu-common, python-xkit
+Provides: ubiquity-frontend-${mangled-version}
+XB-Python-Version: ${python:Versions}
+Description: Mythbuntu frontend for the Ubiquity live installer
+ This package provides a GTK+-based user interface frontend for the use
+ when performing a Mythbuntu installation.  The interface is derived
+ from the GTK frontend already available.

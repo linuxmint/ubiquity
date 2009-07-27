@@ -1,0 +1,59 @@
+#!/bin/sh
+
+# This script sets method "efi" for all fat16 partitions that have the boot
+# flag set.
+
+# Give the kernel a chance to create /proc/efi if appropriate.
+modprobe efivars >/dev/null 2>&1 || true
+
+if [ -d /proc/efi ] || [ -d /sys/firmware/efi ]; then
+	> /var/lib/partman/efi
+else
+	ARCH="$(archdetect)"
+	case $ARCH in
+	    i386/mac|amd64/mac)
+		# Intel Macs have an EFI partition, regardless of
+		# whether we're currently booted using BIOS
+		# compatibility or not (if we are, we won't be able to
+		# talk to EFI directly).
+		> /var/lib/partman/efi
+		;;
+	    *)
+		rm -f /var/lib/partman/efi
+		exit 0
+		;;
+	esac
+fi
+
+. /lib/partman/lib/base.sh
+
+for dev in /var/lib/partman/devices/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		if [ "$fs" = fat16 ]; then
+			partitions="$partitions $id"
+		elif [ "$fs" = fat32 ] && [ "$name" = "EFI System Partition" ]; then
+			partitions="$partitions $id"
+		fi
+	done
+	close_dialog
+
+	for id in $partitions; do
+	efi=no
+	open_dialog GET_FLAGS $id
+	while { read_line flag; [ "$flag" ]; }; do
+		if [ "$flag" = boot ]; then
+			efi=yes
+			# cannot break here
+		fi
+	done
+	close_dialog
+	if [ "$efi" = yes ]; then
+		mkdir -p $id
+		echo efi >$id/method
+	fi
+	done
+done

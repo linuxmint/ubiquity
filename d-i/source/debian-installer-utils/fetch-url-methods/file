@@ -1,0 +1,10 @@
+protocol_fetch() {
+	local FILE="${1#file://*}"
+	if [ ! -e "$FILE" ]; then
+		return 4
+	elif ! cp "$FILE" $2; then
+		return 1
+	else
+		return 0
+	fi
+}

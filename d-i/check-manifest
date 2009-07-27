@@ -1,0 +1,42 @@
+#! /bin/sh
+set -e
+
+code=0
+
+newline='
+'
+IFS_SAVE="$IFS"
+IFS="$newline"
+for line in $(cat manifest); do
+	IFS="$IFS_SAVE"
+	src="${line%% *}"
+	ver="${line#* }"
+	if [ ! -e "source/$src/debian/changelog" ]; then
+		cat >&2 <<EOF
+Source package $src missing!
+EOF
+		code=1
+		continue
+	fi
+	tree_ver="$(dpkg-parsechangelog -l"source/$src/debian/changelog" | \
+		sed -n -e '/^Version:/s/Version: //p')"
+	if [ "$ver" != "$tree_ver" ]; then
+		cat >&2 <<EOF
+Local copy of source package $src has version $tree_ver,
+but manifest has $ver!
+EOF
+		code=1
+		continue
+	fi
+	IFS="$newline"
+done
+IFS="$IFS_SAVE"
+
+if [ $code -ne 0 ]; then
+	cat >&2 <<EOF
+
+Run debian/rules update to refresh local copies of source packages.
+EOF
+fi
+
+exit $code

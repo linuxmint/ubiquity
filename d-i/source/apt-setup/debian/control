@@ -1,0 +1,30 @@
+Source: apt-setup
+Section: debian-installer
+Priority: extra
+Maintainer: Ubuntu Installer Team <ubuntu-installer@lists.ubuntu.com>
+XSBC-Original-Maintainer: Debian Install System Team <debian-boot@lists.debian.org>
+Uploaders: Joey Hess <joeyh@debian.org>, Frans Pop <fjp@debian.org>
+Build-Depends: debhelper (>= 4.2), dpkg-dev (>= 1.7.0), po-debconf (>= 0.5.0)
+XS-Debian-Vcs-Svn: svn://svn.debian.org/d-i/trunk/packages/apt-setup
+Vcs-Bzr: http://bazaar.launchpad.net/~ubuntu-core-dev/apt-setup/ubuntu
+
+Package: apt-setup-udeb
+XC-Package-Type: udeb
+Architecture: all
+Priority: standard
+XB-Installer-Menu-Item: 7000
+Depends: apt-mirror-setup, installed-base, ${misc:Depends}
+Description: Configure apt
+
+Package: apt-mirror-setup
+XC-Package-Type: udeb
+Architecture: all
+Depends: choose-mirror-bin, ${misc:Depends}
+Description: set up a mirror in sources.list
+
+Package: apt-cdrom-setup
+XC-Package-Type: udeb
+Architecture: all
+Provides: apt-mirror-setup
+Depends: cdrom-detect, ${misc:Depends}
+Description: set up a CD in sources.list

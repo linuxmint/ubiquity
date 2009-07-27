@@ -1,0 +1,43 @@
+#!/usr/bin/make -f
+PACKAGE=migration-assistant
+
+build: build-stamp
+
+build-stamp:
+	dh_testdir
+	$(MAKE)
+	touch build-stamp
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp
+	[ ! -f Makefile ] || $(MAKE) clean
+	dh_clean
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_install
+	dh_installdirs usr/lib/finish-install.d
+	install -m0755 debian/finish-install debian/$(PACKAGE)/usr/lib/finish-install.d/80migration-assistant
+	$(MAKE) install DESTDIR=$(CURDIR)/debian/$(PACKAGE)
+
+binary-indep: build install
+
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+	dh_installdebconf
+	dh_strip
+	dh_compress
+	dh_fixperms
+	cp debian/isinstallable debian/$(PACKAGE)/DEBIAN/isinstallable
+	dh_installdeb
+	dh_shlibdeps
+	dh_gencontrol
+	dh_builddeb
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install

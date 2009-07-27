@@ -1,0 +1,32 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+dev=$2
+id=$3
+
+cd $dev
+
+open_dialog DELETE_PARTITION $id
+close_dialog
+
+partitions=''
+numparts=1
+open_dialog PARTITIONS
+while { read_line num id size type fs path name; [ "$id" ]; }; do
+	partitions="$partitions $id"
+	numparts=$(($numparts + 1))
+done
+close_dialog
+
+db_progress START 0 $numparts partman/text/please_wait
+db_progress INFO partman-partitioning/new_state
+
+for id in $partitions; do
+	update_partition $dev $id
+	db_progress STEP 1
+done
+
+db_progress STOP
+
+exit 100

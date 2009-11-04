@@ -91,7 +91,7 @@ def find_grub_target():
 
 def grub_options():
     """ Generates a list of suitable targets for grub-installer
-        @return empty list or a list of ['/dev/sda1','Linux Mint 5 Elyssa'] """
+        @return empty list or a list of ['/dev/sda1','Ubuntu Hardy 8.04'] """
     regain_privileges()
     l = []
     oslist = {}

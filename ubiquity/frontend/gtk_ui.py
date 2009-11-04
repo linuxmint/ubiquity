@@ -163,10 +163,8 @@ class Wizard(BaseFrontend):
         self.returncode = 0
         self.partition_bars = {}
         # FIXME: Grab this from the GTK theme.
-        #self.release_color = 'D07316'
-        #self.auto_colors = ['3465a4', '73d216', 'f57900']
-        self.release_color = '87cf3e'
-        self.auto_colors = ['8b94ef', 'eeef2f', 'ef8b8b']
+        self.release_color = 'D07316'
+        self.auto_colors = ['3465a4', '73d216', 'f57900']
         self.dev_colors = {}
         self.segmented_bar_vbox = None
         self.format_warnings = {}

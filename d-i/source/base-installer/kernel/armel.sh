@@ -1,10 +1,10 @@
 arch_get_kernel_flavour () {
 	case "$SUBARCH" in
-	    imx51|iop32x|iop33x|ixp4xx|orion5x|versatile)
+	    dove|imx51|iop32x|iop33x|ixp4xx|kirkwood|orion5x|versatile)
 		echo "$SUBARCH"
 		return 0 ;;
 	    ads)
-		# NOTE: this kernel is not in Debian (sarge), but makes it
+		# NOTE: this kernel is not in Debian, but makes it
 		# easier to offer unofficial support from a private apt-archive
 		echo "ads"
 		return 0 ;;

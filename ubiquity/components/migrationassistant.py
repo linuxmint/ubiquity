@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
 # Copyright (C) 2006 Evan Dandrea <evand@ubuntu.com>.
 #
@@ -21,10 +21,19 @@ import sys
 import os
 import debconf
 
+from ubiquity.plugin import *
 from ubiquity.filteredcommand import FilteredCommand
 from ubiquity.misc import *
 
-class MigrationAssistant(FilteredCommand):
+NAME = 'migrationassistant'
+
+class PageGtk(PluginUI):
+    plugin_optional_widgets = 'stepMigrationAssistant'
+
+class PageNoninteractive(PluginUI):
+    pass
+
+class Page(FilteredCommand):
     def prepare(self):
         self.got_a_question = False
         questions = ['^migration-assistant/partitions',

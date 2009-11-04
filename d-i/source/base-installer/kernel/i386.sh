@@ -3,13 +3,19 @@ arch_get_kernel_flavour () {
 	FAMILY=`grep '^cpu family' "$CPUINFO" | head -n1 | cut -d: -f2`
 	MODEL=`grep '^model[[:space:]]*:' "$CPUINFO" | head -n1 | cut -d: -f2`
 
-	# Only offer bigmem is the system supports pae and the
+	# Only offer bigmem if the system supports PAE and the
 	# installer itself is already using a bigmem kernel.
 	if grep '^flags' "$CPUINFO" | grep -q pae ; then
 	    case "$KERNEL_FLAVOUR" in
-		686-bigmem*|server|xen) BIGMEM="-bigmem" ;;
+		686-bigmem*|generic-pae|xen) BIGMEM="-bigmem" ;;
 		*) BIGMEM="-may-bigmem" ;;
 	    esac
+	fi
+
+	# On systems with 3GB or more of RAM, PAE is needed to access it all.
+	if [ "x$BIGMEM" = "x-may-bigmem" ] && \
+	   [ "$MEMTOTAL" ] && [ "$MEMTOTAL" -gt 3145728 ]; then
+		BIGMEM="-bigmem"
 	fi
 
 	case "$VENDOR" in
@@ -68,9 +74,9 @@ arch_get_kernel_flavour () {
 arch_check_usable_kernel () {
 	if echo "$1" | grep -Eq -- "-386(-.*)?$"; then return 0; fi
 	if [ "$2" = 486 ]; then return 1; fi
-	if echo "$1" | grep -Eq -- "-(generic|virtual|rt)(-.*)?$"; then return 0; fi
+	if echo "$1" | grep -Eq -- "-(generic|virtual|rt)(-.*)?$" && ! echo "$1" | grep -Eq -- "-generic-pae(-.*)?$"; then return 0; fi
 	if [ "$2" = 586 ] || [ "$2" = 686 ]; then return 1; fi
-	if echo "$1" | grep -Eq -- "-(server|xen)(-.*)?$"; then return 0; fi
+	if echo "$1" | grep -Eq -- "-(generic-pae|xen)(-.*)?$"; then return 0; fi
 	if [ "$2" = 686-may-bigmem ] || [ "$2" = 686-bigmem ]; then return 1; fi
 
 	# default to usable in case of strangeness
@@ -84,10 +90,8 @@ arch_get_kernel () {
 	# See older versions of script for more flexible code structure
 	# that allows multiple levels of fallbacks
 	if [ "$1" = 686-bigmem ]; then
-		echo "linux-server"
-		echo "linux-image-server"
-		echo "linux-server-bigiron"
-		echo "linux-image-server-bigiron"
+		echo "linux-generic-pae"
+		echo "linux-image-generic-pae"
 		echo "linux-xen"
 		echo "linux-image-xen"
 	fi
@@ -100,10 +104,8 @@ arch_get_kernel () {
 		echo "linux-image-rt"
 	fi
 	if [ "$1" = 686-may-bigmem ]; then
-		echo "linux-server"
-		echo "linux-image-server"
-		echo "linux-server-bigiron"
-		echo "linux-image-server-bigiron"
+		echo "linux-generic-pae"
+		echo "linux-image-generic-pae"
 		echo "linux-xen"
 		echo "linux-image-xen"
 	fi

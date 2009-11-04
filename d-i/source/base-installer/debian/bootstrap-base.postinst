@@ -35,7 +35,7 @@ SUBARCH="${SUBARCH#*/}"
 export IT_LANG_OVERRIDE=C
 
 
-# See kernel/README for the architecture-specific functions expected here.
+# See kernel/README for the architecture-specific functions expected here
 if [ -f /usr/lib/base-installer/kernel.sh ]; then
 	. /usr/lib/base-installer/kernel.sh
 else
@@ -83,12 +83,14 @@ install_base_system () {
 
 	test -d $ETCDIR || mkdir -p $ETCDIR
 
+	local copied_fstab=
 	if [ -f /target/etc/fstab ] ; then
-		# programs in debootstrap may scrawl on the fstab,
-		# so make a backup to be restored later
-		copied_fstab=true
+		# programs in debootstrap may scrawl on the fstab and
+		# a configured fstab can cause problems, so make a backup
+		# to be restored later and create a dummy file instead
+		copied_fstab=1
 		cp /target/etc/fstab /target/etc/fstab.orig
-		echo "# UNCONFIGURED FSTAB FOR BASE SYSTEM" >> /target/etc/fstab
+		echo "# UNCONFIGURED FSTAB FOR BASE SYSTEM" >/target/etc/fstab
 	fi
 
 	if [ "$PROTOCOL" = "http" ]; then
@@ -102,6 +104,7 @@ install_base_system () {
 	# clean up after any past debootstrap run
 	rm -f /target/var/lib/apt/* 2>/dev/null || true
 
+	local debootstrap_failed=
 	if search-path cdebootstrap; then
 		cdebootstrap || debootstrap_failed=$?
 	else
@@ -112,20 +115,20 @@ install_base_system () {
 			${include} ${exclude} \
 			${keyring} \
 			${DISTRIBUTION} /target \
-			${DEBOOTSTRAP_SCRIPT} \
 			"$PROTOCOL://$MIRROR$DIRECTORY" \
+			${DEBOOTSTRAP_SCRIPT} \
 			|| debootstrap_failed=$?
 	fi
 
-	if [ true = "$copied_fstab" ] ; then
+	if [ "$copied_fstab" ]; then
 		mv /target/etc/fstab.orig /target/etc/fstab
 	fi
 
-	if [ "$debootstrap_failed" ] ; then
+	if [ "$debootstrap_failed" ]; then
 		exit_error base-installer/debootstrap-failed
 	fi
 
-	# Progress bar is now stepped to 100.
+	# Progress bar is now stepped to 100
 }
 
 waypoint 1	check_target

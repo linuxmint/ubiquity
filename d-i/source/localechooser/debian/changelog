@@ -1,3 +1,103 @@
+localechooser (2.12ubuntu2) karmic; urgency=low
+
+  * mktemplates.shortlist sometimes seems to hang in "sed -e 's/,/\\\\,/'"
+    when running in a UTF-8 locale. Work around this by forcing LC_ALL=C,
+    which we need to be able to operate in anyway for buildds.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 25 Jun 2009 20:20:52 +0100
+
+localechooser (2.12ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Add a localechooser-data package containing lists useful for packages
+      that create automatic installation scripts.
+    - Always support English, unless preseeded otherwise.
+    - Drop fallbacks for Norwegian Bokmål and Nynorsk.
+    - Simplify use of locale-gen using the new command-line argument
+      facility in Ubuntu's locales package.
+    - Add encoding field to languagelist file and use the full SUPPORTED
+      file rather than SUPPORTED-short.
+    - If the language question was already marked as seen and the answer
+      didn't change, then don't recalculate the locale.
+    - If OVERRIDE_SHOW_ALL_LANGUAGES is set in the environment, display all
+      languages regardless of frontend.
+    - Allow preseeding of debian-installer/language.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 25 Jun 2009 01:09:45 +0100
+
+localechooser (2.12) unstable; urgency=low
+
+  [ Christian Perrier ]
+  * Add commented entry for Kirghiz in languagelist
+  * Re-activate Estonian
+  * Switch to console-setup for all languages previously
+    using kbd
+
+  [ Frans Pop ]
+  * Drop support for the ppc64 architecture.
+
+  [ Colin Watson ]
+  * Explicitly use UTF-8 locales for Asturian and Breton.
+
+  [ Updated translations ]
+  * Asturian (ast.po) by Marcos Alvarez Costales
+  * Bengali (bn.po) by Md. Rezwan Shahid
+  * Estonian (et.po) by Mattias Põldaru
+  * Italian (it.po) by Milo Casagrande
+  * Slovak (sk.po) by Ivan Masár
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 13 Jun 2009 12:06:09 +0200
+
+localechooser (2.11ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Add a localechooser-data package containing lists useful for packages
+      that create automatic installation scripts.
+    - Always support English, unless preseeded otherwise.
+    - Drop fallbacks for Norwegian Bokmål and Nynorsk.
+    - Simplify use of locale-gen using the new command-line argument
+      facility in Ubuntu's locales package.
+    - Add encoding field to languagelist file and use the full SUPPORTED
+      file rather than SUPPORTED-short.
+    - If the language question was already marked as seen and the answer
+      didn't change, then don't recalculate the locale.
+    - If OVERRIDE_SHOW_ALL_LANGUAGES is set in the environment, display all
+      languages regardless of frontend.
+    - Allow preseeding of debian-installer/language.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 05 May 2009 10:14:04 +0100
+
+localechooser (2.11) unstable; urgency=low
+
+  * Add commented entry for Sinhala in languagelist
+  * Activate Asturian
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 07 Mar 2009 08:25:51 +0100
+
+localechooser (2.10) unstable; urgency=low
+
+  [ Christian Perrier ]
+  * Add commented entry for Breton in languagelist
+  * Add commented entry for Asturian in languagelist
+  * Activate Kazakh
+
+  [ Philip Hands ]
+  * in localechooser.isinstallable check if we're in an auto-install,
+    and if so that we have a preseed source.  If so, return false delaying
+    the locale configuration, but if the preseed source is missing, touch:
+      /var/run/preseed_unspecified_at_boot
+    in order to flag that we're not really doing a proper auto-install
+
+  [ Colin Watson ]
+  * Remove "COUTRYNAME" typo; this variable isn't used any more anyway.
+  * Merge from Ubuntu:
+    - Install kbd rather than console-tools. Remove configuration file
+      changes that: (a) modify a dpkg-handled conffile and so are policy
+      violations; (b) are partly composed of workarounds for console-tools
+      bugs not present in kbd; (c) are superseded by console-setup anyway.
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 28 Feb 2009 11:01:16 +0100
+
 localechooser (2.09ubuntu2) jaunty; urgency=low
 
   * Don't add en_US.UTF-8 to the supported language pack set if the locale

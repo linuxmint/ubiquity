@@ -57,10 +57,9 @@ saveline () {
 	fi
 }
 
-# Option to cancel an action does not currently work:
-# - application does not seem to always react to a cancel signal
-# - debconf-apt-progress does not exit with code 30 when cancelled
-# - even if it did, the exit code would be mangled by in-target
+# Cancellation may still have reliability problems:
+# - application does not seem to always react to a cancel signal?
+# - debconf-apt-progress sometimes fails to exit with code 30 when cancelled?
 # See also thread http://lists.debian.org/debian-boot/2008/01/msg00094.html
 valid () {
 	local line="$1"
@@ -95,8 +94,12 @@ valid () {
 # timeouts and so be significantly faster when the network is unavailable.
 tmp=$($chroot $ROOT tempfile)
 cat "$file" > $ROOT$tmp
-$logoutput $chroot $ROOT apt-get -o APT::Get::List-Cleanup=false \
-	-o Dir::Etc::sourcelist=$tmp $ASV_TIMEOUT update || true
+if [ "$PROGRESS" ]; then
+	DAP_OPTS="--dlwaypoint 100 --from $PROGRESS_FROM --to $PROGRESS_TO"
+fi
+$logoutput $intarget debconf-apt-progress --logstderr $DAP_OPTS -- \
+	apt-get -o APT::Get::List-Cleanup=false \
+		-o Dir::Etc::sourcelist=$tmp $ASV_TIMEOUT update || true
 rm -f $ROOT$tmp
 
 if [ "$PROGRESS" ]; then

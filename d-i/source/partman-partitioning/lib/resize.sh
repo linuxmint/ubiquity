@@ -52,6 +52,7 @@ get_ntfs_resize_range () {
 	open_dialog GET_VIRTUAL_RESIZE_RANGE $oldid
 	read_line minsize cursize maxsize
 	close_dialog
+	prefsize=$cursize
 	get_real_device
 	if [ "$bdev" ]; then
 		if ! do_ntfsresize -f -i $bdev; then
@@ -73,6 +74,7 @@ get_ext2_resize_range () {
 	open_dialog GET_VIRTUAL_RESIZE_RANGE $oldid
 	read_line minsize cursize maxsize
 	close_dialog
+	prefsize=$cursize
 	get_real_device
 	if [ "$bdev" ]; then
 		if ! tune2fs="$(tune2fs -l $bdev)"; then
@@ -98,6 +100,7 @@ get_resize_range () {
 	open_dialog GET_RESIZE_RANGE $oldid
 	read_line minsize cursize maxsize
 	close_dialog
+	prefsize=$cursize
 }
 
 human_resize_range () {
@@ -127,10 +130,8 @@ ask_for_size () {
 			db_subst partman-partitioning/new_size PERCENT "$minpercent%"
 			# Used by ubiquity to set accurate bounds on resize widgets.
 			db_subst partman-partitioning/new_size RAWMINSIZE "$minsize"
-			db_subst partman-partitioning/new_size RAWCURSIZE "$cursize"
+			db_subst partman-partitioning/new_size RAWPREFSIZE "$prefsize"
 			db_subst partman-partitioning/new_size RAWMAXSIZE "$maxsize"
-			# Used by ubiquity to determine the size of the resize bar.
-			db_subst partman-partitioning/new_size ORISIZE "$origsize"
 			db_subst partman-partitioning/new_size PATH "$path"
 			db_input critical partman-partitioning/new_size || $noninteractive
 			noninteractive="return 1"

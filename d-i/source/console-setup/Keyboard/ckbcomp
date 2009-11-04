@@ -19,6 +19,7 @@
 
 use warnings 'all';
 use strict;
+use locale;
 
 my $debug_flag = 1;
 sub debug {
@@ -97,20 +98,24 @@ while (@ARGV) {
 		die "$0: No more than one -model option is allowed\n";
 	    }
 	    $model = $ARGV[0];
+	    $model =~ s/[[:space:]]//g;
 	    shift @ARGV;
 	} elsif (/^layout$/) {
 	    if (@layouts) {
 		die "$0: No more than one -layout option is allowed\n";
 	    }
+	    $ARGV[0] =~ s/[[:space:]]//g;
 	    @layouts = split (/,/, $ARGV[0], -1);
 	    shift @ARGV;
 	} elsif (/^variant$/) {
 	    if (@variants) {
 		die "$0: No more than one -variant option is allowed\n";
 	    }
+	    $ARGV[0] =~ s/[[:space:]]//g;
 	    @variants = split (/,/, $ARGV[0], -1);
 	    shift @ARGV;
 	} elsif (/^option$/) {
+	    $ARGV[0] =~ s/[[:space:]]//g;
 	    @options = (@options, split (/,/, $ARGV[0], -1));
 	    shift @ARGV;
 	} elsif (/^help$|^-help$|^\?$/) {
@@ -139,11 +144,14 @@ EOT
 	}
     } else {
 	if (! @layouts) {
+	    $_ =~ s/[[:space:]]//g;
 	    @layouts = split (/,/, $_, -1);
 	} elsif (! @variants) {
+	    $_ =~ s/[[:space:]]//g;
 	    @variants = split (/,/, $_, -1);
 	    @variants = ('') if (! @variants);
 	} else {
+	    $_ =~ s/[[:space:]]//g;
 	    @options = (@options, split (/,/, $_, -1));
 	}
     }
@@ -160,6 +168,12 @@ my $arch = 'at'; # The name of a mapping between X key codes and kernel
                  # keycodes
 
 my %acmtable; # Unicode -> legacy code (defined only when -charmap is given)
+
+my $KEYMAP = ''; # This variable contains the generated keymap
+
+my $broken_caps = 0; # In unicode mode Caps_Lock doesn't work for non-ASCII
+                     # letters.  1 = the keymap contains non-ascii letters.
+                     # See http://bugzilla.kernel.org/show_bug.cgi?id=7746#c21
 
 my %keycodes_table; # x keysym -> x key code
 my %aliases;        # x keysym -> x keysym
@@ -190,7 +204,11 @@ my %kernel_modifiers = ('Shift' => 0x01,
 			'ShiftL' => 0x10,
 			'ShiftL_Lock' => 0x10,
 			'ShiftR' => 0x20,
-			'ShiftR_Lock' => 0x20);
+			'ShiftR_Lock' => 0x20,
+			'CtrlL' => 0x40,
+			'CtrlL_Lock' => 0x40,
+			'CtrlR' => 0x80,
+			'CtrlR_Lock' => 0x80);
 
 my @modifier_combinations = ('plain',
                              'shift',
@@ -256,12 +274,78 @@ my @modifier_combinations = ('plain',
                              'shiftr shiftl alt control shift',
                              'shiftr shiftl alt control altgr',
                              'shiftr shiftl alt control altgr shift',
+                             'ctrll',
+                             'ctrll shift',
+                             'ctrll altgr',
+                             'ctrll altgr shift',
+                             'ctrll control',
+                             'ctrll control shift',
+                             'ctrll control altgr',
+                             'ctrll control altgr shift',
+                             'ctrll alt',
+                             'ctrll alt shift',
+                             'ctrll alt altgr',
+                             'ctrll alt altgr shift',
+                             'ctrll alt control',
+                             'ctrll alt control shift',
+                             'ctrll alt control altgr',
+                             'ctrll alt control altgr shift',
+                             'ctrll shiftl',
+                             'ctrll shiftl shift',
+                             'ctrll shiftl altgr',
+                             'ctrll shiftl altgr shift',
+                             'ctrll shiftl control',
+                             'ctrll shiftl control shift',
+                             'ctrll shiftl control altgr',
+                             'ctrll shiftl control altgr shift',
+                             'ctrll shiftl alt',
+                             'ctrll shiftl alt shift',
+                             'ctrll shiftl alt altgr',
+                             'ctrll shiftl alt altgr shift',
+                             'ctrll shiftl alt control',
+                             'ctrll shiftl alt control shift',
+                             'ctrll shiftl alt control altgr',
+                             'ctrll shiftl alt control altgr shift',
+                             'ctrll shiftr',
+                             'ctrll shiftr shift',
+                             'ctrll shiftr altgr',
+                             'ctrll shiftr altgr shift',
+                             'ctrll shiftr control',
+                             'ctrll shiftr control shift',
+                             'ctrll shiftr control altgr',
+                             'ctrll shiftr control altgr shift',
+                             'ctrll shiftr alt',
+                             'ctrll shiftr alt shift',
+                             'ctrll shiftr alt altgr',
+                             'ctrll shiftr alt altgr shift',
+                             'ctrll shiftr alt control',
+                             'ctrll shiftr alt control shift',
+                             'ctrll shiftr alt control altgr',
+                             'ctrll shiftr alt control altgr shift',
+                             'ctrll shiftr shiftl',
+                             'ctrll shiftr shiftl shift',
+                             'ctrll shiftr shiftl altgr',
+                             'ctrll shiftr shiftl altgr shift',
+                             'ctrll shiftr shiftl control',
+                             'ctrll shiftr shiftl control shift',
+                             'ctrll shiftr shiftl control altgr',
+                             'ctrll shiftr shiftl control altgr shift',
+                             'ctrll shiftr shiftl alt',
+                             'ctrll shiftr shiftl alt shift',
+                             'ctrll shiftr shiftl alt altgr',
+                             'ctrll shiftr shiftl alt altgr shift',
+                             'ctrll shiftr shiftl alt control',
+                             'ctrll shiftr shiftl alt control shift',
+                             'ctrll shiftr shiftl alt control altgr',
+                             'ctrll shiftr shiftl alt control altgr shift',
 			    );
 
 # Some Unicodes cause the kernel/loadkeys to issue "Segmentation fault"
+# kbd 1.15-1 (deliberately) fails on anything in the range 0xf000..0xffff;
+# see http://bugs.debian.org/500116.
 my %forbidden;
 {
-    for my $i (0xfd00..0xfdff) {
+    for my $i (0xf000..0xffff) {
 	$forbidden{$i} = 1;
     }
 }
@@ -2081,18 +2165,18 @@ my %xkbsym_table = (
     'R15' => 'F35',
     'Terminate_Server' => 'VoidSymbol',
     'Pointer_EnableKeys' => 'VoidSymbol',
-    'XF86_Switch_VT_1' => 'VoidSymbol',
-    'XF86_Switch_VT_2' => 'VoidSymbol',
-    'XF86_Switch_VT_3' => 'VoidSymbol',
-    'XF86_Switch_VT_4' => 'VoidSymbol',
-    'XF86_Switch_VT_5' => 'VoidSymbol',
-    'XF86_Switch_VT_6' => 'VoidSymbol',
-    'XF86_Switch_VT_7' => 'VoidSymbol',
-    'XF86_Switch_VT_8' => 'VoidSymbol',
-    'XF86_Switch_VT_9' => 'VoidSymbol',
-    'XF86_Switch_VT_10' => 'VoidSymbol',
-    'XF86_Switch_VT_11' => 'VoidSymbol',
-    'XF86_Switch_VT_12' => 'VoidSymbol',
+    'XF86_Switch_VT_1' => 'Console_1',
+    'XF86_Switch_VT_2' => 'Console_2',
+    'XF86_Switch_VT_3' => 'Console_3',
+    'XF86_Switch_VT_4' => 'Console_4',
+    'XF86_Switch_VT_5' => 'Console_5',
+    'XF86_Switch_VT_6' => 'Console_6',
+    'XF86_Switch_VT_7' => 'Console_7',
+    'XF86_Switch_VT_8' => 'Console_8',
+    'XF86_Switch_VT_9' => 'Console_9',
+    'XF86_Switch_VT_10' => 'Console_10',
+    'XF86_Switch_VT_11' => 'Console_11',
+    'XF86_Switch_VT_12' => 'Console_12',
     'XF86_ClearGrab' => 'VoidSymbol',
     'XF86_Ungrab' => 'VoidSymbol',
     'XF86_Next_VMode' => 'VoidSymbol',
@@ -2104,6 +2188,16 @@ my %xkbsym_table = (
     'XF86AudioRaiseVolume' => 'VoidSymbol',
     'XF86AudioMute' => 'VoidSymbol',
     'XF86PowerOff' => 'VoidSymbol',
+    'braille_dot_1' => 'Brl_dot1',
+    'braille_dot_2' => 'Brl_dot2',
+    'braille_dot_3' => 'Brl_dot3',
+    'braille_dot_4' => 'Brl_dot4',
+    'braille_dot_5' => 'Brl_dot5',
+    'braille_dot_6' => 'Brl_dot6',
+    'braille_dot_7' => 'Brl_dot7',
+    'braille_dot_8' => 'Brl_dot8',
+    'braille_dot_9' => 'Brl_dot9',
+    'braille_dot_10' => 'Brl_dot10',
 # I do not know the Unicodes of these
     '0x1000' => 'VoidSymbol', # Special symbol for X or syntax error?
     '0x13a4' => 'VoidSymbol', # Special symbol for X or syntax error?
@@ -2120,16 +2214,6 @@ my %xkbsym_table = (
     'Kanji' => 'VoidSymbol', # Is this recognised by X ?
     'Hangul' => 'VoidSymbol', # Is this recognised by X ?
     'Hangul_Hanja' => 'VoidSymbol', # Is this recognised by X ?
-    'braille_dot_1' => 'VoidSymbol', # Is this recognised by X ?
-    'braille_dot_2' => 'VoidSymbol', # Is this recognised by X ?
-    'braille_dot_3' => 'VoidSymbol', # Is this recognised by X ?
-    'braille_dot_4' => 'VoidSymbol', # Is this recognised by X ?
-    'braille_dot_5' => 'VoidSymbol', # Is this recognised by X ?
-    'braille_dot_6' => 'VoidSymbol', # Is this recognised by X ?
-    'braille_dot_7' => 'VoidSymbol', # Is this recognised by X ?
-    'braille_dot_8' => 'VoidSymbol', # Is this recognised by X ?
-    'braille_dot_9' => 'VoidSymbol', # Is this recognised by X ?
-    'braille_dot_10' => 'VoidSymbol', # Is this recognised by X ?
 # XFree86 does not recognise these
     'SunAudioLowerVolume' => 'VoidSymbol',
     'SunAudioRaiseVolume' => 'VoidSymbol',
@@ -2547,15 +2631,6 @@ if ($charmap) {
 	}
     }
     close ACM;
-}
-
-# A hack to work around a bug in the kernel/loadkeys
-# Disabled for Ubuntu because the cure is worse than the disease:
-#   https://bugs.launchpad.net/ubuntu/+source/console-setup/+bug/69725
-# However, Turkish still needs this behaviour.
-if (! $acm && grep { $_ eq 'tr' } @layouts) {
-    $xkbsym_table{'Caps_Lock'} = 'Shift_Lock';
-    $xkbsym_table{'ISO_Lock'} = 'Shift_Lock';
 }
 
 ########### PARSING ###############################################
@@ -3106,7 +3181,7 @@ sub x_to_kernelsym {
 #	    warning "Forbidden Unicode \"U+$kernelkeysym\"\n";
 	    return 'VoidSymbol';
 	} else {
-	    if (chr($uni) =~ /\p{IsAlpha}/) {
+	    if (pack("U", $uni) =~ /\p{IsAlpha}/) {
 		my $legacy = uni_to_legacy ($uni);
 		if ($legacy ne 'VoidSymbol') {
 		    return '+'. $legacy;
@@ -3332,7 +3407,7 @@ sub flatten {
     }
     
     # Without this it would be possible to lock permanently
-    # the modifier key such as Control or Alt
+    # a modifier key such as Control or Alt
     for my $coord (0 .. 63) {
 	my $mask = $kernel_modifiers{$vector[$coord]};
 	if (defined $mask) {
@@ -3474,22 +3549,22 @@ sub flatten {
 	my $mainsym = $vector[$coord];
 	if ($mainsym =~ /^F([0-9]+)$/) {
 	    my $num = $1;
-	    $vector[$coord + 1] = 'F'. ($num + 10);
-	    $vector[$coord + 2] = 'F'. ($num + 40);
-	    $vector[$coord + 3] = 'F'. ($num + 50);
-	    $vector[$coord + 4] = 'F'. ($num + 20);
-	    $vector[$coord + 5] = 'F'. ($num + 30);
-	    $vector[$coord + 6] = 'F'. ($num + 60);
-	    $vector[$coord + 7] = 'F'. ($num + 70);
-	    $vector[$coord + 8] = 'Console_'. $num;
-	    $vector[$coord + 9] = 'Console_'. ($num + 10);
-	    $vector[$coord + 12] = 'Console_'. $num;
-	    $vector[$coord + 13] = 'Console_'. ($num + 10);
+	    $vector[$coord + 1] = 'F'. ($num + 12); # shift
+	    $vector[$coord + 2] = 'Console_'. ($num + 12); # altgr
+	    $vector[$coord + 3] = 'Console_'. ($num + 24); # altgr + shift
+	    $vector[$coord + 4] = 'F'. ($num + 24); # control
+	    $vector[$coord + 5] = 'F'. ($num + 36); # control + shift
+	    $vector[$coord + 6] = 'Console_'. ($num + 12); # control + altgr
+	    $vector[$coord + 7] = 'Console_'. ($num + 24); # control+altgr+shift
+	    $vector[$coord + 8] = 'Console_'. $num; # alt
+	    $vector[$coord + 9] = 'Console_'. ($num + 12); # alt + shift
+	    $vector[$coord + 12] = 'Console_'. $num; # control + alt
+	    $vector[$coord + 13] = 'Console_'. ($num + 12); # control+alt+shift
 	} elsif ($mainsym eq 'Scroll_Lock' || $mainsym eq 'Help') {
 	    $vector[$coord + 1] = 'Show_Memory';
 	    $vector[$coord + 2] = 'Show_Registers';
 	    $vector[$coord + 4] = 'Show_State';
-	    $vector[$coord + 8] = $mainsym; # or better 'Show_Registers' ?
+	    $vector[$coord + 8] = 'Show_Registers';
 	} elsif ($mainsym =~ /^KP_([0-9])$/) {
 	    my $num = $1;
 	    $vector[$coord + 2] = 'Hex_'. $num;
@@ -3521,6 +3596,8 @@ sub flatten {
 	    $vector[$coord + 8] = 'Decr_Console';
 	} elsif ($mainsym eq 'Right') {
 	    $vector[$coord + 8] = 'Incr_Console';
+	} elsif ($mainsym eq 'Up') {
+	    $vector[$coord + 8] = 'KeyboardSignal';
 	}
     }
     return @vector;
@@ -3540,14 +3617,36 @@ sub print_vector {
 		    ? "@vector[0, 1, 16, 17, 4, 20, 8, 24, 12, 28]"
 		    : "@vector[0, 1, 2, 3, 4, 6, 8, 10, 12, 14]");
 	$line =~ s/NoSymbol/VoidSymbol/g;
-	print "keycode $kernel_code = $line\n";
-    } elsif ($no_NoSymbol) {
-	print "keycode $kernel_code = @vector\n";
+	$KEYMAP .= "keycode $kernel_code = $line\n";
     } else {
+	my @capsvector = @vector;
 	for my $mask (0 .. 63) {
-	    if ($vector[$mask] ne 'NoSymbol') {
-		print "$modifier_combinations[$mask] keycode $kernel_code"
-		    ." = $vector[$mask]\n";
+	    if ($capsvector[$mask] =~ /^(\+?)U\+([0-9a-fA-F]+)$/) {
+		my $v = hex ($2);
+		my $l = ord (lc (pack ("U", $v)));
+		my $u = ord (uc (pack ("U", $v)));
+		my $c = ($v == $l ? $u : $l);
+		$capsvector[$mask] = $1 ."U+". sprintf ("%04x", $c);
+		if ($v != $c && $v gt 0x7f) {
+		    $broken_caps = 1;
+		}
+	    }
+	}
+	if ($no_NoSymbol) {
+	    $KEYMAP .= "keycode $kernel_code = @vector @capsvector\n";
+	} else {
+	    for my $mask (0 .. 63) {
+		if ($vector[$mask] ne 'NoSymbol') {
+		    $KEYMAP .= "$modifier_combinations[$mask]"
+			." keycode $kernel_code = $vector[$mask]\n";
+		    if ($modifier_combinations[$mask] =~ /plain/) {
+			$KEYMAP .= "ctrll"
+			    ." keycode $kernel_code = $capsvector[$mask]\n";
+		    } else {
+			$KEYMAP .= "ctrll $modifier_combinations[$mask]"
+			    ." keycode $kernel_code = $capsvector[$mask]\n";
+		    }
+		}
 	    }
 	}
     }
@@ -3688,18 +3787,14 @@ my %at_scancodes = (
 );
 
 if ($compact) {
-    print "keymaps 0-4,6,8,10,12,14\n";
+    $KEYMAP .= "keymaps 0-4,6,8,10,12,14\n";
 } else {
-    print "keymaps 0-63\n";
+    $KEYMAP .= "keymaps 0-127\n";
 }
 if ($arch eq 'at') {
     foreach my $key (sort {$a <=> $b} (keys %symbols_table)) {
 	my $kernel_code = $at_scancodes{$key};
-	if (! defined $kernel_code) {
-	    warning "Undefined kernel key code for $key\n";
-	    next;
-	}
-	next if ($kernel_code < 0);
+	next if (! defined $kernel_code || $kernel_code < 0);
  	if ($kernel_code == 84) {
  	    @vector = ('Last_Console') x 64;
  	} elsif ($kernel_code == 99) {
@@ -3730,10 +3825,10 @@ if ($arch eq 'at') {
 	@vector = flatten ($key);
 	print_vector $kernel_code;
     }
-    print <<EOT
+    $KEYMAP .= '\
 keycode 127 =
         shift   control keycode 127 = Boot
-EOT
+'
 } elsif ($arch eq 'ataritt') {
     foreach my $key (sort {$a <=> $b} (keys %symbols_table)) {
 	my $kernel_code = $key - 8;
@@ -3783,6 +3878,12 @@ EOT
 } else {
     die "$0: Unsupported keyboard type $arch\n";
 }
+
+if ($broken_caps) {
+    $KEYMAP =~ s/Caps_Lock/CtrlL_Lock/g;
+}
+
+print $KEYMAP;
 
 print "strings as usual\n";
 

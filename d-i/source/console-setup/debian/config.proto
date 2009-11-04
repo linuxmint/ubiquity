@@ -65,6 +65,29 @@ set -e
 
 CONFIGFILE=/etc/default/console-setup
 
+default_ttys=''
+default_charmap=''
+default_codeset=''
+default_fontface=''
+default_fontsize=''
+default_toggle=''
+default_switch=''
+default_altgr=''
+default_compose=''
+default_model=''
+default_layout=''
+default_variant=''
+ACTIVE_CONSOLES=''
+CHARMAP=''
+CODESET=''
+FONTFACE=''
+FONTSIZE=''
+XKBMODEL=''
+XKBLAYOUT=''
+XKBVARIANT=''
+XKBOPTIONS=''
+
+
 ## PACKAGE ## Will be replaced by assignment for $package
 
 # package=console-setup
@@ -126,13 +149,16 @@ case $CAPB in
 	;;
 esac
 
-# Set default value for a question only if it is not seen by the user
+# Set default value for a question only if it is not seen by the user and
+# the value is non-empty
 db_default () {
     if \
 	[ -f $CONFIGFILE ] \
 	|| { db_fget $1 seen && [ "$RET" = false ]; }
     then
-	db_set $1 "$2"
+	if [ "$2" ]; then
+	    db_set $1 "$2"
+	fi
     fi
 }
 
@@ -155,7 +181,7 @@ ask_debconf () {
         grep "^$prefix\*${default_code}\*" |
         sed -e "s/^$prefix\*${default_code}\*//"`
     if [ -z "$default_description" ]; then
-	# Vor XkbVariant the empty string is usualy a sensible default
+	# For XkbVariant the empty string is usualy a sensible default
 	default_description=`echo "$kbdnames" |  
             grep "^$prefix\*\*" |
             sed -e "s/^$prefix\*\*//"`
@@ -207,7 +233,7 @@ guess_arch () {
 	return 0
     fi
 
-    arch=`dpkg --print-installation-architecture`
+    arch=`dpkg --print-architecture`
     
     if [ "$arch" = 'powerpc' -o "$arch" = 'm68k' ]; then
 	if [ "$arch" = powerpc ]; then
@@ -327,6 +353,10 @@ case "$locale" in
 	;;
     ar_*)
 	default_codeset=Arabic
+	codeset_priority=low
+	;;
+    ast_*)
+	default_codeset=Lat15
 	codeset_priority=low
 	;;
     az_*)
@@ -775,6 +805,14 @@ case "$locale" in
     *_EE*)
 	default_layout=ee  # Estonia
 	;;
+    ast_ES*)
+	default_layout=es  # Spain
+	default_variant=ast # Asturian
+	;;
+    ca_ES*)
+	default_layout=es  # Spain
+	default_variant=cat # Catalan
+	;;
     *_ES*)
 	default_layout=es  # Spain
 	;;
@@ -1094,28 +1132,26 @@ case "$arch" in
 	;;
 esac    
 
-#######################################################################
+### READ THE DEFAULTS ##################################################
+
+XKBMODEL=''
+XKBLAYOUT=''
+XKBVARIANT=''
+XKBOPTIONS=''
 
 # Use the value of debian-installer/keymap to get better default
 # layout.  Lower the priority of the Debconf question to medium.
-
-# This is a desperation measure, but required for migration from
-# pre-console-setup systems without X installed. We just have to copy
-# the guesswork formerly done by xserver-xorg.config.
-
+# This guesswork is copied from xserver-xorg.config.
 if db_get debian-installer/keymap && [ "$RET" ]; then
     di_keymap="${RET##mac-usb-}"
     di_keymap="${di_keymap%%-latin1}"
 
-    XKBMODEL=''
-    XKBLAYOUT=''
-    XKBVARIANT=''
     case "$di_keymap" in
 	be2) XKBLAYOUT="be";;
-	bg) XKBLAYOUT="bg"; XKBVARIANT="bds";;
+	bg) XKBLAYOUT="us,bg";;
 	br) XKBLAYOUT="us"; XKBVARIANT="intl"; XKBMODEL="pc104";;
 	br-abnt2) XKBLAYOUT="br"; XKBVARIANT="abnt2"; XKBMODEL="abnt2";;
-	by) XKBLAYOUT="by";;
+	by) XKBLAYOUT="us,by";;
 	cf) XKBLAYOUT="ca"; XKBVARIANT="fr";;
 	croat) XKBLAYOUT="hr";;
 	cz-lat2) XKBLAYOUT="cz";;
@@ -1129,12 +1165,12 @@ if db_get debian-installer/keymap && [ "$RET" ]; then
 	fr-latin9) XKBLAYOUT="fr"; XKBVARIANT="latin9";;
 	fr_CH) XKBLAYOUT="ch"; XKBVARIANT="fr";;
 	fr) XKBLAYOUT="fr";;
-	hebrew) XKBLAYOUT="il";;
+	hebrew) XKBLAYOUT="us,il";;
 	hu) XKBLAYOUT="hu";;
 	gb) XKBLAYOUT="gb";;
 	is) XKBLAYOUT="is";;
 	it) XKBLAYOUT="it";;
-	jp106) XKBLAYOUT="jp"; XKBVARIANT="kana"; XKBMODEL="jp106";;
+	jp106) XKBLAYOUT="jp,jp"; XKBVARIANT=",kana"; XKBMODEL="jp106";;
 	la) XKBLAYOUT="latam";;
 	lt) XKBLAYOUT="lt";; 
 	lv-latin4) XKBLAYOUT="lv";;
@@ -1143,53 +1179,26 @@ if db_get debian-installer/keymap && [ "$RET" ]; then
 	mac-fr2-ext) XKBLAYOUT="fr";;
 	mac-fr3) XKBLAYOUT="fr";;
 	mac-es) XKBLAYOUT="es";;
-	mk) XKBLAYOUT="mk";;
+	mk) XKBLAYOUT="us,mk";;
 	nl) XKBLAYOUT="nl";;
 	no) XKBLAYOUT="no";;
 	pl) XKBLAYOUT="pl";;
 	pt) XKBLAYOUT="pt";;
 	ro) XKBLAYOUT="ro";;
-	ru) XKBLAYOUT="ru";;
+	ru) XKBLAYOUT="us,ru";;
 	se) XKBLAYOUT="se";;
 	sg) XKBLAYOUT="ch"; XKBVARIANT="de";;
 	sk-qwerty) XKBLAYOUT="sk"; XKBVARIANT="qwerty";;
 	slovene) XKBLAYOUT="si";;
-	sr-cy) XKBLAYOUT="rs";;
+	sr-cy) XKBLAYOUT="rs,rs"; XKBVARIANT="latin,basic" ;;
 	trf|trfu) XKBLAYOUT="tr"; XKBVARIANT="f";;
 	trq|trqu) XKBLAYOUT="tr";;
-	ua) XKBLAYOUT="ua";;
+	ua) XKBLAYOUT="us,ua";;
 	uk) XKBLAYOUT="gb";;
 	us) XKBLAYOUT="us"; XKBMODEL="pc104";;
     esac
-
-    # Currently the following two lines are meaningless but stay here
-    # in case some wants to use the real XkbLayout and XkbVariant for
-    # the non-Latin layouts
-    XKBLAYOUT=${XKBLAYOUT#*,}
-    XKBVARIANT=${XKBVARIANT#*,}
-
-    case "$XKBLAYOUT" in
-	'')
-	    layout_priority=critical
-	    ;;
-	bg)
-	    # since there are two incompatible layouts and the console
-	    # provides only one of them
-	    default_layout="$XKBLAYOUT"
-	    default_variant="$XKBVARIANT"
-	    layout_priority=high
-	    ;;
-	*)
-	    if [ "$XKBMODEL" ]; then
-		default_model="$XKBMODEL"
-	    fi
-	    default_layout="$XKBLAYOUT"
-	    default_variant="$XKBVARIANT"
-	    layout_priority=medium
-	    ;;
-    esac
 fi
-    
+
 # Get defaults from debconf, to allow preseeding.
 if [ -d /lib/debian-installer ] || [ "$OVERRIDE_ALLOW_PRESEEDING" ]; then
     if db_get console-setup/modelcode && [ "$RET" ]; then
@@ -1208,7 +1217,6 @@ if [ -d /lib/debian-installer ] || [ "$OVERRIDE_ALLOW_PRESEEDING" ]; then
     fi
     if db_get console-setup/optionscode && [ "$RET" ]; then
 	XKBOPTIONS="$RET"
-	got_xkboptions=yes
     fi
     if db_get console-setup/fontsize && [ "$RET" ]; then
 	db_set console-setup/fontsize-text "$RET"
@@ -1216,25 +1224,83 @@ if [ -d /lib/debian-installer ] || [ "$OVERRIDE_ALLOW_PRESEEDING" ]; then
     fi
 fi
 
+# Get default layout from xorg.conf if available
+if [ -f /etc/X11/xorg.conf ] && which awk >/dev/null; then
+    awk_expr='
+{
+    $0 = tolower($0);
+    sub("#.*","")
+    xkb = "";
+}
+
+/^[ \t]*section[ \t]+"inputdevice"/,/^[ \t]*endsection/ {
+    if ($1 == "option") {
+	if ($2 == "\"xkbmodel\"") {
+	    xkb = "XKBMODEL";
+	} else if ($2 == "\"xkblayout\"") {
+	    xkb = "XKBLAYOUT";
+	} else if ($2 == "\"xkbvariant\"") {
+	    xkb = "XKBVARIANT";
+	} else if ($2 == "\"xkboptions\"") {
+	    xkb = "XKBOPTIONS"; 
+	}
+	$1 = "";
+	$2 = "";
+    }
+}
+
+xkb != "" && /^[ \t]*\"[^"]+\"[ \t]*$/ {
+    sub("^[ \t]*\"", "");
+    sub("\".*", "");
+    gsub("[ \t]", "");
+    if ($1 !~ /[()]/) {
+	print xkb "=\"" $0 "\"";
+    } else {
+	if (xkb == "XKBLAYOUT" && $1 ~ /^[^()]+\([^()]+\)$/) {
+	    split($1, s, /[()]/);
+	    print "XKBLAYOUT=" s[1];
+	    print "XKBVARIANT=" s[2];
+	}
+    }
+}
+'
+    eval $(awk "$awk_expr" < /etc/X11/xorg.conf)
+fi
+
 # Load the config file, if it exists.
 if [ -e $CONFIGFILE ]; then
     . $CONFIGFILE || true
-    
-    got_full_config=yes
-    got_xkboptions=yes
-    model_priority=medium
-    layout_priority=medium
-    default_ttys="$ACTIVE_CONSOLES"
-    default_charmap="$CHARMAP"
-    default_fontface="$FONTFACE"
-    default_fontsize="$FONTSIZE"
-    default_model="$XKBMODEL"
+fi
 
+if [ "$ACTIVE_CONSOLES" ]; then
+    default_ttys="$ACTIVE_CONSOLES"
+fi
+if [ "$CHARMAP" ]; then
+    default_charmap="$CHARMAP"
+fi
+if [ "$FONTFACE" ]; then
+    default_fontface="$FONTFACE"
+fi
+if [ "$FONTSIZE" ]; then
+    default_fontsize="$FONTSIZE"
+fi
+if [ "$CODESET" ]; then
     default_codeset="`decode_codeset $CODESET`"
     if [ -z "$default_codeset" ]; then
 	default_codeset=Uni1
 	codeset_priority=high
     fi
+fi
+if [ "$XKBMODEL" ] ; then
+    model_priority=medium
+    default_model="$XKBMODEL"
+fi
+
+XKBLAYOUT=$(echo $XKBLAYOUT | sed 's/ *//g')
+XKBVARIANT=$(echo $XKBVARIANT | sed 's/ *//g')
+
+if [ "$XKBLAYOUT" ]; then
+    layout_priority=medium
 
     migrate_layout () {
 	case "$1" in
@@ -1286,15 +1352,25 @@ if [ -e $CONFIGFILE ]; then
 
     case "$XKBLAYOUT" in
 	lt,lt)
-	    default_layout=${XKBLAYOUT%,*}
+	    default_layout="${XKBLAYOUT%,*}"
 	    default_variant="${XKBVARIANT%,*}"
 	    unsupported_layout=no
-	    ;;	    
-	# TODO: make s.t. to not forget to update this list
-	me,me|rs,rs|us,am|us,ara|us,ben|us,bd|us,bg|us,bt|us,by|us,deva|us,ge|us,gh|us,gr|us,guj|us,guru|us,il|us,in|us,ir|us,iku|jp,jp|us,jp|us,kan|us,kh|us,kz|us,la|us,lao|us,lk|us,lt|us,mk|us,mm|us,mn|us,mv|us,mal|us,ori|us,pk|us,ru|us,scc|us,sy|us,syr|us,tel|us,th|us,tj|us,tam|us,ua|us,uz)
-	    default_layout=${XKBLAYOUT#*,}
+	    ;;
+	jp,jp|us,jp)
+	    # fix on upgrade for #526862
+	    default_layout="${XKBLAYOUT#*,}"
 	    default_variant="${XKBVARIANT#*,}"
 	    unsupported_layout=no
+	    ;;
+	# TODO: make s.t. to not forget to update this list
+	me,me|rs,rs|us,am|us,ara|us,ben|us,bd|us,bg|us,bt|us,by|us,deva|us,ge|us,gh|us,gr|us,guj|us,guru|us,il|us,in|us,ir|us,iku|us,kan|us,kh|us,kz|us,la|us,lao|us,lk|us,lt|us,mk|us,mm|us,mn|us,mv|us,mal|us,ori|us,pk|us,ru|us,scc|us,sy|us,syr|us,tel|us,th|us,tj|us,tam|us,ua|us,uz)
+	    if [ "${XKBVARIANT%,*}" = '' ]; then
+		default_layout="${XKBLAYOUT#*,}"
+		default_variant="${XKBVARIANT#*,}"
+		unsupported_layout=no
+	    else
+		unsupported_layout=yes
+	    fi
 	    ;;	    
 	*,*)
 	    unsupported_layout=yes
@@ -1306,7 +1382,13 @@ if [ -e $CONFIGFILE ]; then
     esac
 fi
 
-if [ "$got_xkboptions" = yes ]; then
+# since there are two completely different layouts 
+if [ "$default_layout" = bg -a -z "$default_variant" ]; then
+    default_variant=bds
+    layout_priority=high
+fi
+
+if [ "$XKBOPTIONS" ]; then
     default_toggle='No toggling'
     default_switch='No temporary switch'
     default_altgr='No AltGr key'
@@ -1388,28 +1470,24 @@ if [ "$got_xkboptions" = yes ]; then
 	    grp_led:scroll)
 		;;
 	    *)
-		unsupported_layout=yes;;
+		unsupported_options=yes
+		;;
 	esac
     done
 fi
 
-if [ "$got_full_config" = yes ]; then
-    # Store values from config file into debconf db.
-    
-    db_set console-setup/ttys "$default_ttys"
-    db_set console-setup/charmap "$default_charmap"
-    db_set console-setup/codeset "$default_codeset"
-    db_set console-setup/fontface "$default_fontface"
-    db_set console-setup/fontsize-text "$default_fontsize"
-    db_set console-setup/fontsize-fb "$default_fontsize"
-    db_set console-setup/fontsize "$default_fontsize"
-fi
-if [ "$got_xkboptions" = yes ]; then
-    db_set console-setup/toggle "$default_toggle"
-    db_set console-setup/switch "$default_switch"
-    db_set console-setup/altgr "$default_altgr"
-    db_set console-setup/compose "$default_compose"
-fi
+# Store some of the default values into debconf db.
+db_default console-setup/ttys "$default_ttys"
+db_default console-setup/charmap "$default_charmap"
+db_default console-setup/codeset "$default_codeset"
+db_default console-setup/fontface "$default_fontface"
+db_default console-setup/fontsize-text "$default_fontsize"
+db_default console-setup/fontsize-fb "$default_fontsize"
+db_default console-setup/fontsize "$default_fontsize"
+db_default console-setup/toggle "$default_toggle"
+db_default console-setup/switch "$default_switch"
+db_default console-setup/altgr "$default_altgr"
+db_default console-setup/compose "$default_compose"
 
 #######################################################################
 
@@ -1481,6 +1559,44 @@ while :; do
 	    fi
 	    ;;
 	4)
+	    if [ "$detected_keyboard" ] || [ "$model" = SKIP ]; then
+		STATE=$(( $STATE + $STATE - $old_state ))
+	    elif [ "$unsupported_layout" = yes ]; then
+		if [ -f /etc/default/console-setup ]; then
+		    db_reset console-setup/unsupported_config_layout || true
+		    db_fset console-setup/unsupported_config_layout seen false
+		    db_subst console-setup/unsupported_config_layout \
+			XKBLAYOUT "$XKBLAYOUT"
+		    db_input medium console-setup/unsupported_config_layout \
+			|| true
+		    if db_go; then 
+			STATE=$(($STATE + 1))
+		    else
+			STATE=$(($STATE - 1))
+		    fi
+		    db_get console-setup/unsupported_config_layout
+		else
+		    db_reset console-setup/unsupported_layout || true
+		    db_fset console-setup/unsupported_layout seen false
+		    db_subst console-setup/unsupported_layout \
+			XKBLAYOUT "$XKBLAYOUT"
+		    db_input medium console-setup/unsupported_layout || true
+		    if db_go; then 
+			STATE=$(($STATE + 1))
+		    else
+			STATE=$(($STATE - 1))
+		    fi
+		    db_get console-setup/unsupported_layout
+		fi
+		if [ "$RET" != true ]; then
+		    unsupported_layout=no
+		fi
+	    else
+		# skip the question without making Debconf loop
+		STATE=$(( $STATE + $STATE - $old_state ))
+	    fi
+	    ;;
+	5)
 	    if [ "$detected_keyboard" ]; then
 		layout="${detected_keyboard%%:*}"
 		db_set console-setup/layoutcode "$layout"
@@ -1489,21 +1605,9 @@ while :; do
 	    elif [ "$model" = SKIP ]; then
 		STATE=$(( $STATE + $STATE - $old_state ))
 	    elif [ "$unsupported_layout" = yes ]; then
-		if [ "$STATE" -ge "$old_state" ]; then
-		    # This is an error template, so debconf ignores the seen
-		    # flag. Make sure that it's only asked at most once per
-		    # package installation.
-		    if ! db_fget console-setup/dont_ask_layout asked_this_run || \
-		       [ "$RET" = false ]; then
-			db_input medium console-setup/dont_ask_layout || true
-			db_go || true
-			db_fset console-setup/dont_ask_layout asked_this_run true
-		    fi
-		    db_set console-setup/layoutcode "$XKBLAYOUT"
-		    STATE=$(($STATE + 1))
-		else
-		    STATE=$(($STATE - 1))
-		fi
+		db_set console-setup/layoutcode "$XKBLAYOUT"
+		# skip the question without making Debconf loop
+		STATE=$(( $STATE + $STATE - $old_state ))
 	    elif \
 		ask_debconf console-setup/layout "$layout_priority" \
 		    layout "$default_layout"
@@ -1514,7 +1618,7 @@ while :; do
 		STATE=$(($STATE - 1))
 	    fi
 	    ;;
-	5)
+	6)
 	    adjust_layout=false
 	    if [ "$detected_keyboard" ]; then
 		case $detected_keyboard in
@@ -1549,7 +1653,7 @@ while :; do
 		case "$layout" in
 		    jp)
 			case "$variant" in
-			    106|common|OADG109A|nicola_f_bs)
+			    106|common|OADG109A|nicola_f_bs|'')
 				latin=yes
 				real_layout=$layout
 				;;
@@ -1647,8 +1751,50 @@ while :; do
 		fi
 	    fi
 	    ;;
-	6)
-	    if [ "$unsupported_layout" = yes ]; then
+	7)
+	    if \
+		[ "$unsupported_layout" = no \
+		-a "$unsupported_options" = yes ]
+	    then
+		if [ -f /etc/default/console-setup ]; then
+		    db_reset console-setup/unsupported_config_options || true
+		    db_fset console-setup/unsupported_config_options seen false
+		    db_subst console-setup/unsupported_config_options \
+			XKBOPTIONS "$XKBOPTIONS"
+		    db_input medium console-setup/unsupported_config_options \
+			|| true
+		    if db_go; then 
+			STATE=$(($STATE + 1))
+		    else
+			STATE=$(($STATE - 1))
+		    fi
+		    db_get console-setup/unsupported_config_options
+		else
+		    db_reset console-setup/unsupported_options || true
+		    db_fset console-setup/unsupported_options seen false
+		    db_subst console-setup/unsupported_options \
+			XKBOPTIONS "$XKBOPTIONS"
+		    db_input medium console-setup/unsupported_options || true
+		    if db_go; then 
+			STATE=$(($STATE + 1))
+		    else
+			STATE=$(($STATE - 1))
+		    fi
+		    db_get console-setup/unsupported_options
+		fi
+		if [ "$RET" != true ]; then
+		    unsupported_options=no
+		fi
+	    else
+		# skip the question without making Debconf loop
+		STATE=$(( $STATE + $STATE - $old_state ))
+	    fi
+	    ;;
+	8)
+	    if \
+		[ "$unsupported_layout" = yes \
+		-o "$unsupported_options" = yes ]
+	    then
 		db_set console-setup/optionscode "$XKBOPTIONS"
 		# skip the questions without making Debconf loop
 		STATE=$(( $STATE + $STATE - $old_state ))
@@ -1906,7 +2052,7 @@ while :; do
 		db_set console-setup/optionscode "$options"
 	    fi
 	    ;;		    
-	7)
+	9)
 	    if [ "$package" = console-setup-mini ]; then
 		if [ "$STATE" -ge "$old_state" ]; then
 		    STATE=$(($STATE + 1))
@@ -1931,7 +2077,7 @@ while :; do
 		charmap=$RET
 	    fi
 	    ;;
-	8)
+	10)
 	    # It shouldn't be possible for $default_codeset to be
 	    # empty, but just a precaution.
 	    if [ "$default_codeset" ]; then
@@ -1947,7 +2093,7 @@ while :; do
 		STATE=$(($STATE - 1))
 	    fi
 	    ;;
-	9)
+	11)
 	    fontfaces=`available_fontfaces`
 	    # add commas
 	    choices=`echo "$fontfaces" | sed -e 's/$/,/g'`
@@ -1957,7 +2103,7 @@ while :; do
 	    if [ -z "$default_fontface" ]; then
 		case "$codeset" in
 		    Arabic)
-			default_fontface=Fixed
+			default_fontface=VGA
 			;;
 		    Armenian)
 			default_fontface=Fixed
@@ -1969,7 +2115,7 @@ while :; do
 			default_fontface=VGA
 			;;
 		    CyrSlav)
-			default_fontface=VGA
+			default_fontface=Fixed
 			;;
 		    Ethiopian)
 			default_fontface=Goha
@@ -1990,19 +2136,19 @@ while :; do
 			default_fontface=VGA
 			;;
 		    Lat2)
-			default_fontface=VGA
+			default_fontface=Fixed
 			;;
 		    Lat38)
 			default_fontface=Fixed
 			;;
 		    Lat7)
-			default_fontface=VGA
+			default_fontface=Fixed
 			;;
 		    Thai)
 			default_fontface=Fixed
 			;;
 		    Uni1)
-			default_fontface=Fixed
+			default_fontface=VGA
 			;;
 		    Uni2)
 			default_fontface=Fixed
@@ -2028,7 +2174,7 @@ while :; do
 	    db_get console-setup/fontface
 	    fontface=$RET
 	    ;;
-	10)
+	12)
 	    fontsizes=`available_fontsizes`
 	    # add commas
 	    choices=`echo "$fontsizes" | sed -e 's/$/,/g' `
@@ -2050,7 +2196,7 @@ while :; do
 	    fontsize=$RET
 	    db_set console-setup/fontsize "$fontsize"
 	    ;;
-	11)
+	13)
 	    db_input medium console-setup/ttys || true
 	    if db_go; then
 		STATE=$(($STATE + 1))
@@ -2078,10 +2224,9 @@ else
     db_get console-setup/modelcode
     if [ "$RET" = "$default_model" ]; then
 	if [ "$layout" = br ]; then 
-	    model=abnt2
+	    db_set console-setup/modelcode abnt2
 	elif [ "$layout" = jp ]; then 
-	    model=jp106
+	    db_set console-setup/modelcode jp106
 	fi
-	db_set console-setup/modelcode "$model"
     fi
 fi

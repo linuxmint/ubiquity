@@ -20,7 +20,7 @@ default_disk_label () {
 		fi;;
 	    arm|armeb|armel)
 		echo msdos;;
-	    amd64)
+	    amd64|kfreebsd-amd64)
 		case "$sub" in
 		    mac)
 			echo gpt;;
@@ -31,7 +31,7 @@ default_disk_label () {
 		echo msdos;;
 	    ia64)
 		echo gpt;;
-	    i386)
+	    i386|kfreebsd-i386)
 		case "$sub" in
 		    mac)
 			echo gpt;;

@@ -1,3 +1,63 @@
+clock-setup (0.98ubuntu3) karmic; urgency=low
+
+  * If we didn't manage to sync the clock to NTP, then don't set the
+    hardware clock. At best, all we'll be doing is writing back the value
+    present when d-i started plus d-i's run-time; at worst, we'll also
+    introduce a timezone error (LP: #440281).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 19 Oct 2009 01:06:47 +0100
+
+clock-setup (0.98ubuntu2) karmic; urgency=low
+
+  * Pass --utc or --localtime option to hwclock as appropriate, as well as
+    --noadjfile (LP: #423247).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 03 Sep 2009 21:23:59 +0100
+
+clock-setup (0.98ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Default to ntp.ubuntu.com for the NTP server.
+    - Ask the UTC question, defaulting to true, even if we appear to be the
+      only OS (unless clock-setup/utc-auto is preseeded to true).
+    - Add lpia to architecture list.
+    - Fix rdate-udeb dependency to include the epoch.
+    - Fix handling of progress bar cancellation.
+    - Apparently OpenSolaris keeps the hardware clock in local time
+      (surprisingly). Assume UTC=no if Solaris is detected.
+    - Check for the existence of /etc/adjtime before running sed over it,
+      given util-linux 2.14.2-1ubuntu4.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 15 Jun 2009 10:41:56 +0100
+
+clock-setup (0.98) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Merge from Ubuntu:
+    - Use 'update-dev --settle' rather than 'update-dev' after loading rtc
+      modules. Requires di-utils 1.66.
+
+  [ Frans Pop ]
+  * Remove myself as uploader.
+  * Drop support for the ppc64 architecture.
+
+  [ Updated translations ]
+  * Asturian (ast.po) by Marcos Alvarez Costales
+  * Bengali (bn.po) by Md. Rezwan Shahid
+  * German (de.po) by Jens Seidel
+  * Esperanto (eo.po) by Felipe Castro
+  * Estonian (et.po) by Mattias Põldaru
+  * Basque (eu.po) by pi
+  * Galician (gl.po) by Marce Villarino
+  * Hindi (hi.po) by Kumar Appaiah
+  * Italian (it.po) by Milo Casagrande
+  * Kazakh (kk.po) by daur88
+  * Malayalam (ml.po) by Praveen Arimbrathodiyil
+  * Marathi (mr.po) by Sampada
+  * Tagalog (tl.po) by Eric Pareja
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 11 Jun 2009 21:45:06 +0200
+
 clock-setup (0.97ubuntu3) jaunty; urgency=low
 
   * Use 'update-dev --settle' rather than 'update-dev' after loading rtc

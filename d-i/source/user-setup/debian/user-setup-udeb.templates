@@ -22,29 +22,6 @@ Type: string
 Default: adm cdrom dialout lpadmin plugdev sambashare
 Description: for internal use only
 
-# Allow preseeding whether to automatically log in the first created user
-Template: passwd/auto-login
-Type: boolean
-Default: false
-Description: for internal use only
-
-# Back up the pre-auto-login configuration files?
-Template: passwd/auto-login-backup
-Type: string
-Description: for internal use only
-
-# Allow preseeding whether to permit a blank password for created non-root user
-Template: user-setup/allow-password-empty
-Type: boolean
-Default: false
-Description: for internal use only
-
-# Allow preseeding whether to permit a weak password for created user
-Template: user-setup/allow-password-weak
-Type: boolean
-Default: false
-Description: for internal use only
-
 Template: passwd/root-login
 Type: boolean
 Default: false
@@ -65,6 +42,11 @@ _Description: Root password:
  .
  A good password will contain a mixture of letters, numbers and punctuation
  and should be changed at regular intervals.
+ .
+ The root user should not have an empty password. If you leave this
+ empty, the root account will be disabled and the system's initial user
+ account will be given the power to become root using the "sudo"
+ command.
  .
  Note that you will not be able to see the password as you type it.
 
@@ -151,13 +133,6 @@ _Description: Empty password
  You entered an empty password, which is not allowed.
  Please choose a non-empty password.
 
-Template: user-setup/password-weak
-Type: boolean
-# :sl2:
-_Description: Use weak password?
- You entered a password that consists of less than eight characters, which
- is considered too weak. You should choose a stronger password.
-
 Template: passwd/shadow
 Type: boolean
 Default: true
@@ -167,6 +142,24 @@ _Description: Enable shadow passwords?
  view even encrypted passwords. The passwords are stored in a separate file
  that can only be read by special programs. The use of shadow passwords
  is strongly recommended, except in a few cases such as NIS environments.
+
+Template: debian-installer/user-setup-udeb/title
+Type: title
+# :sl1:
+_Description: Set up users and passwords
+
+Template: finish-install/progress/user-setup
+Type: text
+# finish-install progress bar item
+# :sl1:
+_Description: Setting users and passwords...
+
+Template: user-setup/password-weak
+Type: boolean
+# :sl2:
+_Description: Use weak password?
+ You entered a password that consists of less than eight characters, which
+ is considered too weak. You should choose a stronger password.
 
 Template: user-setup/encrypt-home
 Type: boolean
@@ -179,14 +172,36 @@ _Description: Encrypt your home directory?
  The system will seamlessly mount your encrypted home directory each time
  you login and automatically unmount when you log out of all active sessions.
 
-Template: debian-installer/user-setup-udeb/title
-Type: title
-# :sl1:
-_Description: Set up users and passwords
+Template: user-setup/encrypt-home-failed
+Type: error
+# :sl2:
+_Description: Home directory encryption failed
+ The installer failed to set up home directory encryption. Your home
+ directory will be unencrypted after installation. This is probably a bug,
+ and you may wish to investigate and reinstall.
+ .
+ Check /var/log/syslog or see virtual console 4 for the details.
 
-Template: finish-install/progress/user-setup
-Type: text
-# finish-install progress bar item
-# :sl1:
-_Description: Setting users and passwords...
+# Allow preseeding whether to automatically log in the first created user
+Template: passwd/auto-login
+Type: boolean
+Default: false
+Description: for internal use only
+
+# Back up the pre-auto-login configuration files?
+Template: passwd/auto-login-backup
+Type: string
+Description: for internal use only
+
+# Allow preseeding whether to permit a blank password for created non-root user
+Template: user-setup/allow-password-empty
+Type: boolean
+Default: false
+Description: for internal use only
+
+# Allow preseeding whether to permit a weak password for created user
+Template: user-setup/allow-password-weak
+Type: boolean
+Default: false
+Description: for internal use only
 

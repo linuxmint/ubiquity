@@ -1,0 +1,45 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ "$fs" != free ] || continue
+		partitions="$partitions $id,$num"
+	done
+	close_dialog
+
+	for part in $partitions; do
+		id=${part%,*}
+		num=${part#*,}
+		[ -f $id/method -a ! -f $id/format \
+		  -a -f $id/acting_filesystem ] || continue
+		filesystem=$(cat $id/acting_filesystem)
+		case $filesystem in
+		    uboot)
+			log "Check the file system in $dev/$id"
+			db_subst partman-uboot/progress_checking PARTITION "$num"
+			db_subst partman-uboot/progress_checking DEVICE $(humandev $(cat device))
+			name_progress_bar partman-uboot/progress_checking
+			open_dialog CHECK_FILE_SYSTEM $id
+			read_line status
+			close_dialog
+			if [ "$status" != good ]; then
+				db_subst partman-uboot/check_failed PARTITION "$num"
+				db_subst partman-uboot/check_failed DEVICE $(humandev $(cat device))
+				db_set partman-uboot/check_failed true
+				db_input critical partman-uboot/check_failed || true
+				db_go || true
+				db_get partman-uboot/check_failed
+				if [ "$RET" = true ]; then
+					exit 1
+				fi
+			fi
+			;;
+		esac
+	done
+done

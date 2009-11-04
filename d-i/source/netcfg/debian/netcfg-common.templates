@@ -1,0 +1,274 @@
+Template: netcfg/use_dhcp
+Type: boolean
+Default: true
+# :sl1:
+_Description: Auto-configure network with DHCP?
+ Networking can either be configured by DHCP or by manually
+ entering all the information. If you choose to use DHCP and
+ the installer is unable to get a working configuration
+ from a DHCP server on your network, you will be given the
+ opportunity to configure your network manually after the attempt
+ to configure it by DHCP.
+
+Template: netcfg/get_domain
+Type: string
+# :sl1:
+_Description: Domain name:
+ The domain name is the part of your Internet address to the right of your
+ host name.  It is often something that ends in .com, .net, .edu, or .org. 
+ If you are setting up a home network, you can make something up, but make
+ sure you use the same domain name on all your computers.
+
+Template: netcfg/get_nameservers
+Type: string
+# :sl1:
+_Description: Name server addresses:
+ The name servers are used to look up host names on the network.
+ Please enter the IP addresses (not host names) of up to 3 name servers,
+ separated by spaces. Do not use commas. The first name server in the list
+ will be the first to be queried. If you don't want to use any name server,
+ just leave this field blank.
+
+Template: netcfg/choose_interface
+Type: select
+Choices: ${ifchoices}
+# :sl1:
+_Description: Primary network interface:
+ Your system has multiple network interfaces. Choose the one to use as
+ the primary network interface during the installation. If possible, the
+ first connected network interface found has been selected.
+
+Template: netcfg/wireless_essid
+Type: string
+# :sl1:
+_Description: Wireless ESSID for ${iface}:
+ ${iface} is a wireless network interface. Please enter the name (the ESSID)
+ of the wireless network you would like ${iface} to use. If you would like
+ to use any available network, leave this field blank.
+
+Template: netcfg/wireless_essid_again
+Type: string
+# :sl1:
+_Description: Wireless ESSID for ${iface}:
+ Attempting to find an available wireless network failed.
+ .
+ ${iface} is a wireless network interface. Please enter the name (the ESSID)
+ of the wireless network you would like ${iface} to use. To skip wireless
+ configuration and continue, leave this field blank.
+
+Template: netcfg/wireless_wep
+Type: string
+# :sl1:
+_Description: WEP key for wireless device ${iface}:
+ If applicable, please enter the WEP security key for the wireless
+ device ${iface}. There are two ways to do this:
+ .
+ If your WEP key is in the format 'nnnn-nnnn-nn', 'nn:nn:nn:nn:nn:nn:nn:nn',
+ or 'nnnnnnnn', where n is a number, just enter it as it is into this field.
+ .
+ If your WEP key is in the format of a passphrase, prefix it with 's:'
+ (without quotes).
+ .
+ Of course, if there is no WEP key for your wireless network, leave this
+ field blank.
+
+Template: netcfg/invalid_wep
+Type: error
+# :sl2:
+_Description: Invalid WEP key
+ The WEP key '${wepkey}' is invalid. Please refer to the instructions on
+ the next screen carefully on how to enter your WEP key correctly, and try
+ again.
+
+Template: netcfg/invalid_essid
+Type: error
+# :sl2:
+_Description: Invalid ESSID
+ The ESSID "${essid}" is invalid. ESSIDs may only be up to 32 characters,
+ but may contain all kinds of characters.
+
+Template: netcfg/get_hostname
+Type: string
+Default: ubuntu
+# :sl1:
+_Description: Hostname:
+ Please enter the hostname for this system.
+ .
+ The hostname is a single word that identifies your system to the network.
+ If you don't know what your hostname should be, consult your network
+ administrator. If you are setting up your own home network, you can make
+ something up here.
+
+Template: netcfg/invalid_hostname
+Type: error
+# :sl2:
+_Description: Invalid hostname
+ The name "${hostname}" is invalid.
+ .
+ A valid hostname may contain only the numbers 0-9, the lowercase letters a-z,
+ and the minus sign. It must be between 2 and 63 characters long, and may not
+ begin or end with a minus sign.
+
+Template: netcfg/error
+Type: error
+# :sl2:
+_Description: Error
+ An error occurred and the network configuration process has been aborted.
+ You may retry it from the installation main menu.
+
+Template: netcfg/no_interfaces
+Type: error
+# :sl2:
+_Description: No network interfaces detected
+ No network interfaces were found. The installation
+ system was unable to find a network device. 
+ .
+ You may need to load a specific module for your network card, if you have
+ one. For this, go back to the network hardware detection step.
+
+Template: netcfg/kill_switch_enabled
+Type: note
+# A "kill switch" is a physical switch found on some network cards that
+# disables the card.
+# :sl2:
+_Description: Kill switch enabled on ${iface}
+ ${iface} appears to have been disabled by means of a physical "kill
+ switch". If you intend to use this interface, please switch it on before
+ continuing.
+
+Template: netcfg/wireless_adhoc_managed
+Type: select
+Default: Infrastructure (Managed) network
+# :sl2:
+# Note to translators : Please keep your translations of each choice
+# below the 65 columns limit (which means 65 characters for most languages)
+# Choices MUST be separated by commas
+# You MUST use standard commas not special commas for your language
+# You MUST NOT use commas inside choices
+__Choices: Infrastructure (Managed) network, Ad-hoc network (Peer to peer)
+_Description: Type of wireless network:
+ Wireless networks are either managed or ad-hoc. If you use a real access
+ point of some sort, your network is Managed. If another computer is your
+ 'access point', then your network may be Ad-hoc.
+
+Template: netcfg/wifi_progress_title
+Type: text
+# :sl1:
+_Description: Wireless network configuration
+
+Template: netcfg/wifi_progress_info
+Type: text
+# :sl1:
+_Description: Searching for wireless access points...
+
+Template: netcfg/disable_dhcp
+Type: boolean
+Default: false
+Description: for internal use; can be preseeded
+ Set to true to force static network configuration
+
+Template: netcfg/internal-none
+Type: text
+# :sl2:
+_Description: <none>
+
+Template: netcfg/internal-wifi
+Type: text
+# :sl2:
+_Description: Wireless ethernet (802.11x)
+
+Template: netcfg/internal-wireless
+Type: text
+# :sl2:
+_Description: wireless
+
+Template: netcfg/internal-eth
+Type: text
+# :sl2:
+_Description: Ethernet
+
+Template: netcfg/internal-tr
+Type: text
+# :sl2:
+_Description: Token Ring
+
+Template: netcfg/internal-usb
+Type: text
+# :sl2:
+_Description: USB net
+
+Template: netcfg/internal-arc
+Type: text
+# Product name, not translatable.
+# :sl2:
+Description: Arcnet
+
+Template: netcfg/internal-slip
+Type: text
+# :sl2:
+_Description: Serial-line IP
+
+Template: netcfg/internal-plip
+Type: text
+# :sl2:
+_Description: Parallel-port IP
+
+Template: netcfg/internal-ppp
+Type: text
+# :sl2:
+_Description: Point-to-Point Protocol
+
+Template: netcfg/internal-sit
+Type: text
+# :sl2:
+_Description: IPv6-in-IPv4
+
+Template: netcfg/internal-ippp
+Type: text
+# :sl2:
+_Description: ISDN Point-to-Point Protocol
+
+Template: netcfg/internal-ctc
+Type: text
+# :sl2:
+_Description: Channel-to-channel
+
+Template: netcfg/internal-escon
+Type: text
+# :sl2:
+_Description: Real channel-to-channel
+
+Template: netcfg/internal-hsi
+Type: text
+# Product name, not translatable.
+Description: Hipersocket
+
+Template: netcfg/internal-iucv
+Type: text
+# :sl2:
+_Description: Inter-user communication vehicle
+
+Template: netcfg/internal-unknown-iface
+Type: text
+# :sl2:
+_Description: Unknown interface
+
+Template: base-installer/progress/netcfg
+Type: text
+# base-installer progress bar item
+# :sl1:
+_Description: Storing network settings...
+
+Template: debian-installer/netcfg/title
+Type: text
+#  Item in the main menu to select this package
+# :sl1:
+_Description: Configure the network
+
+Template: netcfg/network-manager
+Type: boolean
+Default: true
+Description: for internal use; can be preseeded
+ Set to false to prevent /etc/network/interfaces being adjusted for use by
+ network-manager. If you do this, network-manager will probably not work
+ correctly.

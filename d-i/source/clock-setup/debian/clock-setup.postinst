@@ -13,6 +13,7 @@ if ! db_go; then
 fi
 db_get clock-setup/ntp
 if [ "$RET" = true ]; then
+	db_set clock-setup/ntp false # until we know that it worked
 	db_get netcfg/dhcp_ntp_servers
 	if [ -n "$RET" ]; then
 		# If DHCP provides multiple servers, ignore all but the first
@@ -50,6 +51,7 @@ if [ "$RET" = true ]; then
 			    'rdate: adjust'*)
 				log "$line"
 				# success
+				db_set clock-setup/ntp true <&4
 				db_progress set 30 <&4 || true
 				;;
 			    *)

@@ -26,26 +26,53 @@ fi
 # password has been pre-crypted (by preseeding), and a 'true' if
 # the home directory is encrypted
 setpassword () {
-	local USER PASSWD OPTS
+	local USER PASSWD PAM_SET_PWD
 	USER="$1"
 	PASSWD="$2"
-	if [ "$3" = true ]; then
-		OPTS=-e
-	fi
-	$chroot $ROOT chpasswd $OPTS <<EOF
+
+	local VERSION=$($chroot $ROOT dpkg-query -W -f '${Version}\n' passwd)
+	PAM_SET_PWD=false
+	if $chroot $ROOT dpkg --compare-versions "$VERSION" ge "1:4.1.4-1"; then
+		# support for versions with PAM support (Squeeze)
+		PAM_SET_PWD=true
+		if [ "$3" = true ]; then
+			$chroot $ROOT usermod --password=$PASSWD $USER
+		else
+			$chroot $ROOT chpasswd <<EOF
 $USER:$PASSWD
 EOF
-	if [ "$4" = true ]; then
+		fi
+	else
+		# compatibility support for versions without PAM support (Lenny)
+		local OPTS
+		if [ "$3" = true ]; then
+			OPTS=-e
+		else
+			OPTS=-m
+		fi
+		$chroot $ROOT chpasswd $OPTS <<EOF
+$USER:$PASSWD
+EOF
+	fi
+	# If the password was set using PAM, pam_ecryptfs will handle the initial
+	# passphrase wrapping.  Otherwise, we need this hack...
+	if [ "$4" = true ] && [ "$PAM_SET_PWD" = false ]; then
 		local UNWRAPPED_PASSPHRASE_FILE WRAPPED_PASSPHRASE_FILE MOUNT_PASSPHRASE
 		UNWRAPPED_PASSPHRASE_FILE=/dev/shm/.ecryptfs-$USER
-		WRAPPED_PASSPHRASE_FILE=/home/$USER/.ecryptfs/wrapped-passphrase
-		MOUNT_PASSPHRASE=$($chroot $ROOT cat $UNWRAPPED_PASSPHRASE_FILE)
-		$chroot $ROOT ecryptfs-wrap-passphrase $WRAPPED_PASSPHRASE_FILE - <<EOF
+		if [ -e "$UNWRAPPED_PASSPHRASE_FILE" ]; then
+			WRAPPED_PASSPHRASE_FILE=/home/$USER/.ecryptfs/wrapped-passphrase
+			MOUNT_PASSPHRASE=$($chroot $ROOT cat $UNWRAPPED_PASSPHRASE_FILE)
+			$chroot $ROOT ecryptfs-wrap-passphrase $WRAPPED_PASSPHRASE_FILE - <<EOF
 $MOUNT_PASSPHRASE
 $PASSWD
 EOF
-		$chroot $ROOT rm -f $UNWRAPPED_PASSPHRASE_FILE
-		$chroot $ROOT chown $USER:$USER $WRAPPED_PASSPHRASE_FILE
+			$chroot $ROOT rm -f $UNWRAPPED_PASSPHRASE_FILE
+			$chroot $ROOT chown $USER:$USER $WRAPPED_PASSPHRASE_FILE
+		else
+			echo "$UNWRAPPED_PASSPHRASE_FILE does not exist, but should!" >&2
+			db_input critical user-setup/encrypt-home-failed || true
+			db_go || true
+		fi
 	fi
 }
 
@@ -72,9 +99,9 @@ if ! root_password; then
 	db_set passwd/root-password-crypted ''
 	db_set passwd/root-password ''
 	db_set passwd/root-password-again ''
-	#if [ "$ROOT_PW" ]; then
-		#setpassword root "$ROOT_PW" "$PRECRYPTED"
-	#fi
+	if [ "$ROOT_PW" ]; then
+		setpassword root "$ROOT_PW" "$PRECRYPTED"
+	fi
 	ROOT_PW=
 else
 	# Just in case, clear any preseeded root password from the database
@@ -118,6 +145,30 @@ if [ "$RET" = true ] && ! is_system_user; then
 		for module in aes cbc ecb; do
 			modprobe -q "$module" || true
 		done
+		
+		umountproc=false
+		umountdev=false
+		if [ ! -e $ROOT/proc/cmdline ]; then
+			$log $chroot $ROOT mount -t proc proc /proc
+			umountproc=:
+		fi
+		if [ ! -e $ROOT/dev/null ]; then
+			mount --bind /dev $ROOT/dev
+			umountdev=:
+		fi
+		if ! $log $chroot $ROOT ecryptfs-setup-swap -f -n; then
+			echo "ecryptfs-setup-swap failed." >&2
+			db_input critical user-setup/encrypt-home-failed || true
+			db_go || true
+			ENCRYPT_HOME="false"
+			ENCRYPT_HOME_OPT=
+		fi
+		if $umountproc; then
+			$log $chroot $ROOT umount /proc
+		fi
+		if $umountdev; then
+			umount $ROOT/dev
+		fi
 	fi
 
 
@@ -135,8 +186,12 @@ if [ "$RET" = true ] && ! is_system_user; then
 		ENCRYPT_HOME_OPT=
 	fi
 
+	umountsys=false
 	if [ -n "$ENCRYPT_HOME_OPT" ]; then
-		$log $chroot $ROOT mount -t sysfs sysfs /sys
+		if [ ! -e $ROOT/sys/kernel ]; then
+			$log $chroot $ROOT mount -t sysfs sysfs /sys
+			umountsys=:
+		fi
 		$log $chroot $ROOT mount -t tmpfs tmpfs /dev/shm
 	fi
 	if [ -x $ROOT/usr/sbin/adduser ]; then
@@ -150,9 +205,10 @@ if [ "$RET" = true ] && ! is_system_user; then
 	db_set passwd/user-password ''
 	db_set passwd/user-password-again ''
 	setpassword "$USER" "$USER_PW" "$USER_PW_CRYPTED" "$ENCRYPT_HOME"
-	setpassword root "$USER_PW" "$USER_PW_CRYPTED"
 	if [ -n "$ENCRYPT_HOME_OPT" ]; then
-		$log $chroot $ROOT umount /sys
+		if $umountsys; then
+			$log $chroot $ROOT umount /sys
+		fi
 		$log $chroot $ROOT umount /dev/shm
 	fi
 
@@ -187,23 +243,19 @@ if [ "$RET" = true ] && ! is_system_user; then
 			db_get passwd/auto-login-backup
 			BACKUP="${RET:+.$RET}"
 
-			# chroot needed to handle symlinks correctly
-			if $chroot $ROOT [ -f /etc/gdm/gdm-cdd.conf ]; then
-				GDMCONF=/etc/gdm/gdm-cdd.conf
-			else
-				GDMCONF=/etc/gdm/gdm.conf
-			fi
-	 
-			# chroot needed to handle symlinks correctly
-			if $chroot $ROOT [ -f "$GDMCONF" ]; then
+			if [ -d "$ROOT/etc/gdm" ]; then
 				# Configure GDM autologin
-				$log $chroot $ROOT sed -i$BACKUP \
-					-e "s/^AutomaticLoginEnable=.*\$/AutomaticLoginEnable=true/" \
-					-e "s/^AutomaticLogin=.*\$/AutomaticLogin=$USER/" \
-					-e "s/^TimedLoginEnable=.*\$/TimedLoginEnable=true/" \
-					-e "s/^TimedLogin=.*\$/TimedLogin=$USER/" \
-					-e "s/^TimedLoginDelay=.*\$/TimedLoginDelay=10/" \
-					"$GDMCONF"
+				if [ -e "$ROOT/etc/gdm/custom.conf" ] && [ "$BACKUP" ]; then
+					mv "$ROOT/etc/gdm/custom.conf" "$ROOT/etc/gdm/custom.conf$BACKUP"
+				fi
+				cat > $ROOT/etc/gdm/custom.conf <<EOF
+[daemon]
+AutomaticLoginEnable=true
+AutomaticLogin=$USER
+TimedLoginEnable=true
+TimedLogin=$USER
+TimedLoginDelay=10
+EOF
 			fi
 	 
 			if $chroot $ROOT [ -f /etc/kde4/kdm/kdmrc ]; then
@@ -244,6 +296,25 @@ EOF
 			$log $chroot $ROOT update-alternatives --set libgksu-gconf-defaults /usr/share/libgksu/debian/gconf-defaults.libgksu-sudo
 			$log $chroot $ROOT update-gconf-defaults || true
 		fi
+	else
+		# Configure gksu to use su, via an alternative, if it's
+		# installed and the alternative is registered.
+		if $chroot $ROOT update-alternatives --display libgksu-gconf-defaults >/dev/null 2>&1; then
+			$log $chroot $ROOT update-alternatives --set libgksu-gconf-defaults /usr/share/libgksu/debian/gconf-defaults.libgksu-su
+			$log $chroot $ROOT update-gconf-defaults || true
+		fi
+	fi
+	if [ -n "$ENCRYPT_HOME_OPT" ] && [ -e $ROOT/etc/crypttab ]; then
+		# Zero out all encrypted swap partitions.  It is assumed that
+		# passwords are not used beyond this point in the install.
+		# cryptswap0 /dev/sda5 /dev/urandom swap,cipher=aes-cbc-essiv:sha256
+		while read name device source options; do
+			if echo "$options" | grep -q "swap"; then
+				if swapoff $device; then
+					dd if=/dev/zero of=$device 2>/dev/null || true
+				fi
+			fi
+		done < $ROOT/etc/crypttab
 	fi
 
 else

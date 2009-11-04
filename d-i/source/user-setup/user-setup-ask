@@ -71,10 +71,7 @@ while :; do
 				db_get passwd/root-password
 				ROOT_PW="$RET"
 				if [ -z "$ROOT_PW" ]; then
-					db_fset user-setup/password-empty seen false
-					db_input critical user-setup/password-empty
-					db_fset passwd/root-password seen false
-					db_fset passwd/root-password-again seen false
+					db_set passwd/root-login false
 					STATE=1
 					continue
 				elif password_is_weak "$ROOT_PW"; then
@@ -156,7 +153,7 @@ while :; do
 			# Verify the user name, loop with message if bad.
 			db_get passwd/username
 			USER="$RET"
-			if ! LC_ALL=C expr "$USER" : '[a-z][-a-z0-9]*$' >/dev/null; then
+			if ! LC_ALL=C expr "$USER" : '[a-z][-a-z0-9_]*$' >/dev/null; then
 				db_fset passwd/username seen false
 				db_fset passwd/username-bad seen false
 				db_input critical passwd/username-bad
@@ -255,6 +252,7 @@ while :; do
 		if [ "$ecryptfs_in_use" ] || \
 		   (db_get user-setup/encrypt-home && [ "$RET" = true ]); then
 			apt-install ecryptfs-utils 2>/dev/null
+			apt-install cryptsetup 2>/dev/null
 		fi
 		;;
 	    *)

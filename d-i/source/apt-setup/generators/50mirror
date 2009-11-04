@@ -114,6 +114,7 @@ if [ -e /cdrom/.disk/base_installable ] || [ "$OVERRIDE_BASE_INSTALLABLE" ]; the
 	while true; do
 		RET=0
 		choose-mirror -n || RET=$?	# no progress bar
+		db_capb backup progresscancel
 		if [ $RET -eq 0 ]; then
 			break
 		elif [ $RET -eq 10 ]; then
@@ -226,6 +227,7 @@ while [ ! "$done" ]; do
 		db_get apt-setup/mirror/error
 		if [ "$RET" = "Change mirror" ]; then
 			choose-mirror -n || true
+			db_capb backup progresscancel
 		elif [ "$RET" = Ignore ]; then
 			exit 1
 		fi

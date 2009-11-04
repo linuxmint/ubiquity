@@ -15,8 +15,9 @@ import ubiquity.frontend
 import pwd
 
 from ubiquity import osextras
+from ubiquity.casper import get_casper
 
-background = '/usr/share/backgrounds/LinuxMint.png'
+background = '/usr/share/backgrounds/warty-final-ubuntu.png'
 
 class XStartupError(EnvironmentError):
     pass
@@ -25,29 +26,12 @@ class MissingProgramError(EnvironmentError):
     pass
 
 class DM:
-    def __init__(self, vt, display):
+    def __init__(self, vt, display, default_username):
         self.vt = vt
         self.display = display
         self.server_started = False
 
-        fp = open('/etc/casper.conf', 'r')
-        try:
-            for line in fp:
-                if line.startswith('#'):
-                    continue
-                line = line.split()
-                if not line:
-                    continue
-                if line[0] == 'export':
-                    w = line[1].split('=')
-                    if w[0] == 'USERNAME':
-                        self.username = w[1].strip('"')
-        except IOError:
-            import syslog
-            syslog.syslog('Unable to determine the username from /etc/casper.conf, using the default.')
-            self.username = 'mint'
-        finally:
-            fp.close()
+        self.username = get_casper('USERNAME', default_username)
         self.uid, self.gid = pwd.getpwnam(self.username)[2:4]
         self.homedir = pwd.getpwnam(self.username)[5]
         self.uid = int(self.uid)
@@ -227,14 +211,21 @@ class DM:
         greeter = subprocess.Popen(program, stdin=null, stdout=logfile, stderr=logfile)
         ret = greeter.wait()
 
-        def sigalrm_handler(signum, frame):
-            os.kill(wm.pid, signal.SIGKILL)
-            for extra in extras:
-                os.kill(extra.pid, signal.SIGKILL)
+        def kill_if_exists(pid, signum):
+            try:
+                os.kill(pid, signum)
+            except OSError, e:
+                if e.errno != errno.ESRCH:
+                    raise
 
-        os.kill(wm.pid, signal.SIGTERM)
+        def sigalrm_handler(signum, frame):
+            kill_if_exists(wm.pid, signal.SIGKILL)
+            for extra in extras:
+                kill_if_exists(extra.pid, signal.SIGKILL)
+
+        kill_if_exists(wm.pid, signal.SIGTERM)
         for extra in extras:
-            os.kill(extra.pid, signal.SIGTERM)
+            kill_if_exists(extra.pid, signal.SIGTERM)
         if gconfd_running:
             subprocess.call(['gconftool-2', '--shutdown'],
                             stdin=null, stdout=logfile, stderr=logfile,
@@ -255,7 +246,7 @@ class DM:
                     raise
             processes -= done
         signal.alarm(0)
-        os.kill(server.pid, signal.SIGTERM)
+        kill_if_exists(server.pid, signal.SIGTERM)
         server.wait()
 
         if ret is not None and ret >= 0:
@@ -263,13 +254,13 @@ class DM:
         else:
             return 1
 
-if len(sys.argv) < 3:
-    sys.stderr.write('Usage: ubiquity-dm <vt[1-N]> <:[0-N]> <program> [<arguments>]\n')
+if len(sys.argv) < 4:
+    sys.stderr.write('Usage: %s <vt[1-N]> <:[0-N]> <username> <program> [<arguments>]\n' % sys.argv[0])
     sys.exit(1)
 
-vt, display = sys.argv[1:3]
+vt, display, username = sys.argv[1:4]
 try:
-    dm = DM(vt, display)
+    dm = DM(vt, display, username)
 except XStartupError:
     sys.exit(1)
 proc = None
@@ -277,7 +268,7 @@ if dm.frontend == 'gtk_ui' or dm.frontend == 'mythbuntu_ui':
     proc = ['/etc/init.d/gdm', 'start']
 elif dm.frontend == 'kde_ui':
     proc = ['/etc/init.d/kdm', 'start']
-ret = dm.run(*sys.argv[3:])
+ret = dm.run(*sys.argv[4:])
 if proc:
     subprocess.Popen(proc)
 sys.exit(ret)

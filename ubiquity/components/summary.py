@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
 # Copyright (C) 2006, 2007, 2008 Canonical Ltd.
 # Written by Colin Watson <cjwatson@ubuntu.com>.
@@ -23,10 +23,23 @@ import subprocess
 
 import debconf
 
+from ubiquity.plugin import *
 from ubiquity.parted_server import PartedServer
 from ubiquity.misc import *
+from ubiquity.casper import get_casper
 
 from ubiquity.filteredcommand import FilteredCommand
+
+NAME = 'summary'
+
+class PageGtk(PluginUI):
+    plugin_is_install = True
+    plugin_widgets = 'stepReady'
+
+class PageKde(PluginUI):
+    plugin_is_install = True
+    plugin_widgets = 'stepReady'
+    plugin_breadcrumb = 'ubiquity/text/breadcrumb_summary'
 
 def installing_from_disk():
     cdromfs = ''
@@ -78,7 +91,7 @@ def find_grub_target():
 
 def grub_options():
     """ Generates a list of suitable targets for grub-installer
-        @return empty list or a list of ['/dev/sda1','Linux Mint 5 Elyssa'] """
+        @return empty list or a list of ['/dev/sda1','Ubuntu Hardy 8.04'] """
     regain_privileges()
     l = []
     oslist = {}
@@ -124,7 +137,10 @@ def grub_options():
 
 def will_be_installed(pkg):
     try:
-        manifest = open('/cdrom/casper/filesystem.manifest-desktop')
+        casper_path = os.path.join(
+            '/cdrom', get_casper('LIVE_MEDIA_PATH', 'casper').lstrip('/'))
+        manifest = open(os.path.join(casper_path,
+                                     'filesystem.manifest-desktop'))
         try:
             for line in manifest:
                 if line.strip() == '' or line.startswith('#'):
@@ -136,10 +152,7 @@ def will_be_installed(pkg):
     except IOError:
         return True
 
-class Summary(FilteredCommand):
-    def __init__(self, frontend):
-        FilteredCommand.__init__(self, frontend)
-
+class Page(FilteredCommand):
     def prepare(self):
         return ('/usr/share/ubiquity/summary', ['^ubiquity/summary.*'])
 

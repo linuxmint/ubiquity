@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
 # Copyright (C) 2006, 2007 Canonical Ltd.
 # Written by Colin Watson <cjwatson@ubuntu.com>.
@@ -21,6 +21,8 @@ import os
 import datetime
 import time
 import xml.dom.minidom
+import md5 # should be hashlib once we depend on >=2.5
+import sys
 
 
 TZ_DATA_FILE = '/usr/share/zoneinfo/zone.tab'
@@ -166,12 +168,21 @@ class Location(object):
         else:
             self.human_country = self.country
         self.zone = bits[2]
+        self.human_zone = self.zone.replace('_', ' ').split('/')[-1]
         if len(bits) > 3:
             self.comment = bits[3]
         else:
             self.comment = None
         self.latitude = _parse_position(latitude, 2)
         self.longitude = _parse_position(longitude, 3)
+
+        # Grab md5sum of the timezone file for later comparison
+        try:
+            tz_file = file(os.path.join('/usr/share/zoneinfo', self.zone) ,'rb')
+            self.md5sum = md5.md5(tz_file.read()).digest()
+            tz_file.close()
+        except IOError, e:
+            self.md5sum = None
 
         try:
             today = datetime.datetime.today()
@@ -197,7 +208,42 @@ class _Database(object):
                 continue
             self.locations.append(Location(line, iso3166))
         tzdata.close()
-        self.locations.sort(cmp, lambda location: location.zone)
+
+        # Build mappings from timezone->location and country->locations
+        self.cc_to_locs = {}
+        self.tz_to_loc = {}
+        for loc in self.locations:
+            self.tz_to_loc[loc.zone] = loc
+            if loc.country in self.cc_to_locs:
+                self.cc_to_locs[loc.country] += [loc]
+            else:
+                self.cc_to_locs[loc.country] = [loc]
+
+    def get_loc(self, tz):
+        # Sometimes we'll encounter timezones that aren't really
+        # city-zones, like "US/Eastern" or "Mexico/General".  So first,
+        # we check if the timezone is known.  If it isn't, we search for
+        # one with the same md5sum and make a reference to it
+        try:
+            return self.tz_to_loc[tz]
+        except:
+            try:
+                tz_file = file(os.path.join('/usr/share/zoneinfo', tz) ,'rb')
+                md5sum = md5.md5(tz_file.read()).digest()
+                tz_file.close()
+
+                for loc in self.locations:
+                    if md5sum == loc.md5sum:
+                        self.tz_to_loc[tz] = loc
+                        return loc
+            except IOError, e:
+                pass
+
+            # If not found, oh well, just warn and move on.
+            print >> sys.stderr, 'Could not understand timezone', tz
+            self.tz_to_loc[tz] = None # save it for the future
+            return None
+
 
 _database = None
 

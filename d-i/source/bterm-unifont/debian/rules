@@ -1,0 +1,29 @@
+#!/usr/bin/make -f
+
+build: unifont.bgf
+unifont.bgf:
+	dh_testdir
+	bdftobogl -b /usr/src/unifont.bdf > unifont.bgf
+
+clean:
+	dh_testdir
+	dh_clean unifont.bgf
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+
+binary-arch: unifont.bgf install
+	dh_testdir
+	dh_testroot
+	dh_installdeb
+	dh_install unifont.bgf lib
+	dh_gencontrol
+	dh_builddeb
+	
+binary-indep:
+
+binary: binary-indep binary-arch
+
+.PHONY: build clean binary-indep binary-arch binary install

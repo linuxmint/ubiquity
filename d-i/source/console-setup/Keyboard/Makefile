@@ -11,7 +11,7 @@ build-mini : $(gziped_ekmaps) pc105.tree
 %.gz : %
 	gzip -9 <$< >$@
 
-%.ekmap : 
+%.ekmap : MyKeyboardNames.pl
 	./kbdcompiler $(@:%.ekmap=%) MyKeyboardNames.pl $(xkbdir) >$@
 
 %.tree : %.ekmap.gz keymaptree.use MyKeyboardNames.pl

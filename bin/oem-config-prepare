@@ -1,0 +1,80 @@
+#! /bin/sh
+set -e
+
+# Try to detect which frontend will be used by looking for a frontend
+# module.
+frontend=
+for f in gtk_ui kde_ui debconf_ui; do
+	if [ -f "/usr/lib/ubiquity/ubiquity/frontend/$f.py" ]; then
+		frontend="$f"
+		break
+	fi
+done
+
+if [ "$(id -u)" = 0 ]; then
+	# no privilege escalation required
+	:
+else
+	case $frontend in
+		gtk_ui)
+			exec gksudo --desktop /usr/share/applications/oem-config-prepare-gtk.desktop -- "$0" "$@"
+			;;
+		kde_ui)
+                        echo kde_ui
+			kdesu=
+			#kdesudo seems to have issues with this, so default to the original kdesu
+			if [ -x /usr/lib/kde4/libexec/kdesu.distrib ]; then
+			        kdesu=/usr/lib/kde4/libexec/kdesu.distrib
+			elif [ -x /usr/lib/kde4/libexec/kdesu ]; then
+			        kdesu=/usr/lib/kde4/libexec/kdesu
+			fi
+			if [ "$kdesu" ]; then
+				exec $kdesu -- "$0" "$@"
+			else
+				exec sudo "$0" "$@"
+			fi
+			;;
+		*)
+			exec sudo "$0" "$@"
+			;;
+	esac
+fi
+
+quiet=
+if [ "$1" = --quiet ]; then
+	quiet=1
+	shift
+fi
+
+# Machine-specific, so remove in case this system is going to be cloned.
+# These will be regenerated on the first boot.
+rm -f /etc/udev/rules.d/70-persistent-cd.rules \
+      /etc/udev/rules.d/70-persistent-net.rules
+
+# Potentially sensitive.
+rm -f /home/oem/.ssh/known_hosts
+
+update-rc.d oem-config start 29 2 3 4 5 .
+touch /var/lib/oem-config/run
+
+if [ -z "$quiet" ]; then
+	MESSAGE='oem-config will run the next time the system boots.'
+	case $frontend in
+		gtk_ui)
+			if [ "$DISPLAY" ] && type zenity >/dev/null 2>&1; then
+				zenity --title oem-config-prepare --info --text \
+					"$MESSAGE"
+				exit 0
+			fi
+			;;
+		kde_ui)
+			if [ "$DISPLAY" ] && type kdialog >/dev/null 2>&1; then
+				kdialog --title oem-config-prepare --msgbox "$MESSAGE"
+				exit 0
+			fi
+			;;
+	esac
+	echo "$MESSAGE"
+fi
+
+exit 0

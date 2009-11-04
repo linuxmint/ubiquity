@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 #
 # «gtk_ui» - GTK user interface
 #
@@ -43,59 +43,54 @@ import signal
 import xml.sax.saxutils
 import gettext
 
+import dbus
 import pygtk
+import gtk
 pygtk.require('2.0')
 import pango
+import warnings
+warnings.filterwarnings('ignore', 'error opening config file', pango.Warning)
 import gobject
-import gtk.glade
+gobject.threads_init()
+import glib
 
 import debconf
 
 from ubiquity import filteredcommand, gconftool, i18n, osextras, validation, \
-                     timezone_map, segmented_bar, wrap_label
+                     segmented_bar, wrap_label
 from ubiquity.misc import *
-from ubiquity.components import console_setup, language, timezone, usersetup, \
+from ubiquity.plugin import Plugin
+from ubiquity.components import usersetup, \
                                 partman, partman_commit, \
-                                summary, install, migrationassistant
-import ubiquity.emap
-import ubiquity.tz
+                                install, migrationassistant
 import ubiquity.progressposition
+import ubiquity.frontend.base
 from ubiquity.frontend.base import BaseFrontend
 
 # Define global path
 PATH = '/usr/share/ubiquity'
 
-# Define glade path
-GLADEDIR = os.path.join(PATH, 'glade')
+# Define ui path
+UIDIR = os.path.join(PATH, 'gtk')
 
 # Define locale path
 LOCALEDIR = "/usr/share/locale"
 
-BREADCRUMB_STEPS = {
-    "stepLanguage": 1,
-    "stepLocation": 2,
-    "stepKeyboardConf": 3,
-    "stepPartAuto": 4,
-    "stepPartAdvanced": 4,
-    "stepUserInfo": 5,
-    "stepMigrationAssistant": 6,
-    "stepReady": 7
-}
-BREADCRUMB_MAX_STEP = 7
-
-# Define what pages of the UI we want to load.  Note that most of these pages
-# are required for the install to complete successfully.
-SUBPAGES = [
-    "stepWelcome",
-    "stepLanguage",
-    "stepLocation",
-    "stepKeyboardConf",
-    "stepPartAuto",
-    "stepPartAdvanced",
-    "stepUserInfo",
-    "stepMigrationAssistant",
-    "stepReady"
-]
+class Controller(ubiquity.frontend.base.Controller):
+    def translate(self, lang=None, just_me=True, reget=False):
+        if lang:
+            self._wizard.locale = lang
+        self._wizard.translate_pages(lang, just_me, reget)
+    def allow_go_forward(self, allowed):
+        self._wizard.allow_go_forward(allowed)
+    def allow_go_backward(self, allowed):
+        self._wizard.allow_go_backward(allowed)
+    def go_forward(self):
+        self._wizard.next.activate()
+    def go_backward(self):
+        self._wizard.back.activate()
+    def go_to_page(self, widget):
+        self._wizard.set_current_page(self._wizard.steps.page_num(widget))
 
 class Wizard(BaseFrontend):
 
@@ -103,26 +98,30 @@ class Wizard(BaseFrontend):
         def add_subpage(self, steps, name):
             """Inserts a subpage into the notebook.  This assumes the file
             shares the same base name as the page you are looking for."""
-            gladefile = GLADEDIR + '/' + name + '.glade'
-            gladexml = gtk.glade.XML(gladefile, name)
-            widget = gladexml.get_widget(name)
-            steps.append_page(widget)
-            add_widgets(self, gladexml)
-            gladexml.signal_autoconnect(self)
+            widget = None
+            uifile = UIDIR + '/' + name + '.ui'
+            if os.path.exists(uifile):
+                self.builder.add_from_file(uifile)
+                widget = self.builder.get_object(name)
+                steps.append_page(widget)
+            else:
+                print >>sys.stderr, 'Could not find ui file %s' % name
+            return widget
 
-        def add_widgets(self, glade):
-            """Makes all widgets callable by the toplevel."""
-            for widget in glade.get_widget_prefix(""):
-                self.all_widgets.add(widget)
-                setattr(self, widget.get_name(), widget)
-                # We generally want labels to be selectable so that people can
-                # easily report problems in them
-                # (https://launchpad.net/bugs/41618), but GTK+ likes to put
-                # selectable labels in the focus chain, and I can't seem to turn
-                # this off in glade and have it stick. Accordingly, make sure
-                # labels are unfocusable here.
-                if isinstance(widget, gtk.Label):
-                    widget.set_property('can-focus', False)
+        def add_widget(self, widget):
+            """Make a widget callable by the toplevel."""
+            if not isinstance(widget, gtk.Widget):
+                return
+            self.all_widgets.add(widget)
+            setattr(self, widget.get_name(), widget)
+            # We generally want labels to be selectable so that people can
+            # easily report problems in them
+            # (https://launchpad.net/bugs/41618), but GTK+ likes to put
+            # selectable labels in the focus chain, and I can't seem to turn
+            # this off in glade and have it stick. Accordingly, make sure
+            # labels are unfocusable here.
+            if isinstance(widget, gtk.Label):
+                widget.set_property('can-focus', False)
 
         BaseFrontend.__init__(self, distro)
 
@@ -133,16 +132,11 @@ class Wizard(BaseFrontend):
         self.all_widgets = set()
         self.gconf_previous = {}
         self.thunar_previous = {}
-        self.language_questions = ('live_installer',
-                                   'welcome_heading_label', 'welcome_text_label',
-                                   'oem_id_label',
-                                   'release_notes_label', 'release_notes_url',
-                                   'step_label',
+        self.language_questions = ('live_installer', 'step_label',
                                    'quit', 'back', 'next',
                                    'warning_dialog', 'warning_dialog_label',
                                    'cancelbutton', 'exitbutton')
         self.current_page = None
-        self.first_seen_page = None
         self.backup = None
         self.allowed_change_step = True
         self.allowed_go_backward = True
@@ -155,7 +149,7 @@ class Wizard(BaseFrontend):
         self.autopartition_extras = {}
         self.resize_min_size = None
         self.resize_max_size = None
-        self.resize_orig_size = None
+        self.resize_pref_size = None
         self.resize_path = ''
         self.new_size_scale = None
         self.ma_choices = []
@@ -169,22 +163,20 @@ class Wizard(BaseFrontend):
         self.returncode = 0
         self.partition_bars = {}
         # FIXME: Grab this from the GTK theme.
-	self.release_color = '87cf3e'
-	self.auto_colors = ['8b94ef', 'eeef2f', 'ef8b8b']
-	#self.release_color = 'D07316'
-	#self.auto_colors = ['3465a4', '73d216', 'f57900']
+        self.release_color = 'D07316'
+        self.auto_colors = ['3465a4', '73d216', 'f57900']
         self.dev_colors = {}
         self.segmented_bar_vbox = None
         self.format_warnings = {}
         self.format_warning = None
         self.format_warning_align = None
+        self.history = []
+        self.builder = gtk.Builder()
 
         self.laptop = execute("laptop-detect")
 
         # set default language
-        dbfilter = language.Language(self, self.debconf_communicator())
-        dbfilter.cleanup()
-        dbfilter.db.shutdown()
+        self.locale = i18n.reset_locale()
 
         gobject.timeout_add(30000, self.poke_screensaver)
 
@@ -198,27 +190,78 @@ class Wizard(BaseFrontend):
                                               'ubiquity.png')
 
         # load the main interface
-        self.glade = gtk.glade.XML('%s/ubiquity.glade' % GLADEDIR)
-        add_widgets(self, self.glade)
+        self.builder.add_from_file('%s/ubiquity.ui' % UIDIR)
 
-        steps = self.glade.get_widget("steps")
-        for page in SUBPAGES:
-            add_subpage(self, steps, page)
+        self.pages = []
+        self.pagesindex = 0
+        self.pageslen = 0
+        self.user_pageslen = 0
+        steps = self.builder.get_object("steps")
+        for mod in self.modules:
+            if hasattr(mod.module, 'PageGtk'):
+                mod.ui_class = mod.module.PageGtk
+                mod.controller = Controller(self)
+                mod.ui = mod.ui_class(mod.controller)
+                widgets = mod.ui.get('plugin_widgets')
+                optional_widgets = mod.ui.get('plugin_optional_widgets')
+                if widgets or optional_widgets:
+                    def fill_out(widget_list):
+                        rv = []
+                        if not isinstance(widget_list, list):
+                            widget_list = [widget_list]
+                        for w in widget_list:
+                            if not w: continue
+                            if isinstance(w, str):
+                                w = add_subpage(self, steps, w)
+                            else:
+                                steps.append_page(w)
+                            rv.append(w)
+                        return rv
+                    mod.widgets = fill_out(widgets)
+                    mod.optional_widgets = fill_out(optional_widgets)
+                    mod.all_widgets = mod.widgets + mod.optional_widgets
+                    self.user_pageslen += len(mod.widgets)
+                    self.pageslen += 1
+                    self.pages.append(mod)
 
-        if 'UBIQUITY_MIGRATION_ASSISTANT' in os.environ:
-            self.pages = [language.Language, timezone.Timezone,
-                console_setup.ConsoleSetup, partman.Partman,
-                usersetup.UserSetup, migrationassistant.MigrationAssistant,
-                summary.Summary]
-        else:
-            self.pages = [language.Language, timezone.Timezone,
-                console_setup.ConsoleSetup, partman.Partman,
-                usersetup.UserSetup, summary.Summary]
+        self.toplevels = set()
+        for widget in self.builder.get_objects():
+            add_widget(self, widget)
+            if isinstance(widget, gtk.Window):
+                self.toplevels.add(widget)
+        self.builder.connect_signals(self)
 
         self.translate_widgets()
 
         self.customize_installer()
 
+
+    def all_children(self, parent):
+        if isinstance(parent, gtk.Container):
+            def recurse(x, y):
+                return x + self.all_children(y)
+            rv = reduce(recurse, parent.get_children(), [parent])
+            return rv
+        else:
+            return [parent]
+
+    def translate_pages(self, lang=None, just_current=True, reget=False):
+        if just_current:
+            pages = [self.pages[self.pagesindex]]
+        else:
+            pages = self.pages
+        widgets = []
+        for p in pages:
+            prefix = p.ui.get('plugin_prefix')
+            for w in p.all_widgets:
+                for c in self.all_children(w):
+                    widgets.append((c, prefix))
+        if not just_current:
+            for toplevel in self.toplevels:
+                if toplevel.name != 'live_installer':
+                    for c in self.all_children(toplevel):
+                        widgets.append((c, None))
+        self.translate_widgets(lang=lang, widgets=widgets, reget=reget)
 
     def excepthook(self, exctype, excvalue, exctb):
         """Crash handler."""
@@ -343,17 +386,14 @@ class Wizard(BaseFrontend):
             dialog = gtk.MessageDialog(self.live_installer, gtk.DIALOG_MODAL,
                                        gtk.MESSAGE_ERROR, gtk.BUTTONS_CLOSE,
                                        title)
+            dialog.set_has_separator(False)
             dialog.run()
             sys.exit(1)
 
         self.disable_volume_manager()
 
         # show interface
-        got_intro = self.show_intro()
         self.allow_change_step(True)
-
-        # Declare SignalHandler
-        self.glade.signal_autoconnect(self)
 
         # Some signals need to be connected by hand so that we have the
         # handler ids.
@@ -362,62 +402,40 @@ class Wizard(BaseFrontend):
         self.hostname_changed_id = self.hostname.connect(
             'changed', self.on_hostname_changed)
 
-        self.pagesindex = 0
-        pageslen = len(self.pages)
-
         if 'UBIQUITY_AUTOMATIC' in os.environ:
-            got_intro = False
-            self.debconf_progress_start(0, pageslen,
+            self.debconf_progress_start(0, self.pageslen,
                 self.get_string('ubiquity/install/checking'))
             self.refresh()
 
-        # Start the interface
-        if got_intro:
-            global BREADCRUMB_STEPS, BREADCRUMB_MAX_STEP
-            for step in BREADCRUMB_STEPS:
-                BREADCRUMB_STEPS[step] += 1
-            BREADCRUMB_STEPS["stepWelcome"] = 1
-            BREADCRUMB_MAX_STEP += 1
-            first_step = self.stepWelcome
-        else:
-            first_step = self.stepLanguage
-        self.set_current_page(self.steps.page_num(first_step))
-        if got_intro:
-            # intro_label was the only focusable widget, but got can-focus
-            # removed, so we end up with no input focus and thus pressing
-            # Enter doesn't activate the default widget. Work around this.
-            self.next.grab_focus()
-        else:
-            # Similarly, the Quit button seems to end up with focus by
-            # default, but we'd rather a navigable widget had it.
-            self.language_treeview.grab_focus()
+        self.set_current_page(0)
 
-        if not 'UBIQUITY_MIGRATION_ASSISTANT' in os.environ:
-            self.steps.remove_page(self.steps.page_num(self.stepMigrationAssistant))
-            for step in BREADCRUMB_STEPS:
-                if (BREADCRUMB_STEPS[step] >
-                    BREADCRUMB_STEPS["stepMigrationAssistant"]):
-                    BREADCRUMB_STEPS[step] -= 1
-            BREADCRUMB_MAX_STEP -= 1
-
-        if got_intro:
-            gtk.main()
-
-        while(self.pagesindex < pageslen):
+        while(self.pagesindex < self.pageslen):
             if self.current_page == None:
                 break
 
-            old_dbfilter = self.dbfilter
-            self.dbfilter = self.pages[self.pagesindex](self)
+            if not self.pages[self.pagesindex].filter_class:
+                # This page is just a UI page
+                self.dbfilter = None
+                self.dbfilter_status = None
+                if self.set_page(self.pages[self.pagesindex].module.NAME):
+                    self.run_main_loop()
+            else:
+                old_dbfilter = self.dbfilter
+                if issubclass(self.pages[self.pagesindex].filter_class, Plugin):
+                    ui = self.pages[self.pagesindex].ui
+                else:
+                    ui = None
+                self.dbfilter = self.pages[self.pagesindex].filter_class(self, ui=ui)
 
-            self.prepare_page()
+                # Non-debconf steps are no longer possible as the interface is now
+                # driven by whether there is a question to ask.
+                if self.dbfilter is not None and self.dbfilter != old_dbfilter:
+                    self.allow_change_step(False)
+                    glib.idle_add(lambda: self.dbfilter.start(auto_process=True))
 
-            # Non-debconf steps are no longer possible as the interface is now
-            # driven by whether there is a question to ask.
-            if self.dbfilter is not None and self.dbfilter != old_dbfilter:
-                self.allow_change_step(False)
-                self.dbfilter.start(auto_process=True)
-            gtk.main()
+                self.pages[self.pagesindex].controller.dbfilter = self.dbfilter
+                gtk.main()
+                self.pages[self.pagesindex].controller.dbfilter = None
 
             if self.backup or self.dbfilter_handle_status():
                 if self.installing:
@@ -431,10 +449,7 @@ class Wizard(BaseFrontend):
                         self.debconf_progress_step(1)
                         self.refresh()
                 if self.backup:
-                    if self.pagesindex > 0:
-                        step = self.step_name(self.steps.get_current_page())
-                        if not step == 'stepPartAdvanced':
-                            self.pagesindex = self.pagesindex - 1
+                    self.pagesindex = self.pop_history()
 
             while gtk.events_pending():
                 gtk.main_iteration()
@@ -442,7 +457,7 @@ class Wizard(BaseFrontend):
             # needed to be here for --automatic as there might not be any
             # current page in the event all of the questions have been
             # preseeded.
-            if self.pagesindex == pageslen:
+            if self.pagesindex == self.pageslen:
                 # Ready to install
                 self.live_installer.hide()
                 self.current_page = None
@@ -450,6 +465,26 @@ class Wizard(BaseFrontend):
                 self.progress_loop()
         return self.returncode
 
+
+    def win_size_req(self, widget, req):
+        s = widget.get_screen()
+        m = s.get_monitor_geometry(0)
+        w = -1
+        h = -1
+
+        # What's the size of the WM border?
+        total_frame = widget.window.get_frame_extents()
+        (cur_x, cur_y, cur_w, cur_h, depth) = widget.window.get_geometry()
+        wm_w = total_frame.width - cur_w
+        wm_h = total_frame.height - cur_h
+
+        if req.width > m.width - wm_w:
+            w = m.width - wm_w
+        if req.height > m.height - wm_h:
+            h = m.height - wm_h
+
+        widget.set_size_request(w, h)
+        widget.resize(w, h)
 
     def customize_installer(self):
         """Initial UI setup."""
@@ -473,15 +508,11 @@ class Wizard(BaseFrontend):
 
         if 'UBIQUITY_ONLY' in os.environ:
             self.live_installer.fullscreen()
+        else:
+            self.live_installer.connect('size-request', self.win_size_req)
 
         if self.oem_config:
             self.live_installer.set_title(self.get_string('oem_config_title'))
-            self.oem_id_vbox.show()
-            try:
-                self.oem_id_entry.set_text(
-                    self.debconf_operation('get', 'oem-config/id'))
-            except debconf.DebconfError:
-                pass
             self.fullname.set_text('OEM Configuration (temporary user)')
             self.fullname.set_editable(False)
             self.fullname.set_sensitive(False)
@@ -497,131 +528,51 @@ class Wizard(BaseFrontend):
             self.login_vbox.hide()
             # The UserSetup component takes care of preseeding passwd/user-uid.
             execute_root('apt-install', 'oem-config-gtk')
+        elif self.oem_user_config:
+            self.live_installer.set_title(self.get_string('oem_user_config_title'))
+            self.live_installer.set_icon_name("preferences-system")
+            self.live_installer.window.set_functions(gtk.gdk.FUNC_RESIZE | gtk.gdk.FUNC_MOVE)
+            self.quit.hide()
+            self.hostname_vbox.hide()
 
         if not 'UBIQUITY_AUTOMATIC' in os.environ:
             self.live_installer.show()
         self.allow_change_step(False)
 
-        try:
-            release_notes = open('/cdrom/.disk/release_notes_url')
-            self.release_notes_url.set_uri(
-                release_notes.read().rstrip('\n'))
-            release_notes.close()
-        except (KeyboardInterrupt, SystemExit):
-            raise
-        except:
-            self.release_notes_vbox.hide()
         gtk.link_button_set_uri_hook(self.link_button_browser)
 
-        if 'UBIQUITY_OLD_TZMAP' in os.environ:
-            self.tzmap = TimezoneMap(self)
-            self.tzmap.tzmap.show()
-        else:
-            self.tzdb = ubiquity.tz.Database()
-            self.tzmap = timezone_map.TimezoneMap(self.tzdb, '/usr/share/ubiquity/pixmaps/timezone')
-            self.tzmap.connect('city-selected', self.select_city)
-            self.timezone_map_window.add(self.tzmap)
-            self.setup_timezone_page()
-            self.tzmap.show()
-
-        self.action_bar = segmented_bar.SegmentedBarSlider()
-        self.action_bar.h_padding = self.action_bar.bar_height / 2
-        sw = gtk.ScrolledWindow()
-        sw.add_with_viewport(self.action_bar)
-        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_NEVER)
-        sw.child.set_shadow_type(gtk.SHADOW_NONE)
-        sw.show_all()
-        self.action_bar_eb.add(sw)
+        if hasattr(self, 'action_bar_eb'):
+            self.action_bar = segmented_bar.SegmentedBarSlider()
+            self.action_bar.h_padding = self.action_bar.bar_height / 2
+            sw = gtk.ScrolledWindow()
+            sw.add_with_viewport(self.action_bar)
+            sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_NEVER)
+            sw.child.set_shadow_type(gtk.SHADOW_NONE)
+            sw.show_all()
+            self.action_bar_eb.add(sw)
         
-        self.before_bar = segmented_bar.SegmentedBar()
-        self.before_bar.h_padding = self.before_bar.bar_height / 2
-        sw = gtk.ScrolledWindow()
-        sw.add_with_viewport(self.before_bar)
-        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_NEVER)
-        sw.child.set_shadow_type(gtk.SHADOW_NONE)
-        sw.show_all()
-        self.before_bar_eb.add(sw)
+        if hasattr(self, 'before_bar_eb'):
+            self.before_bar = segmented_bar.SegmentedBar()
+            self.before_bar.h_padding = self.before_bar.bar_height / 2
+            sw = gtk.ScrolledWindow()
+            sw.add_with_viewport(self.before_bar)
+            sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_NEVER)
+            sw.child.set_shadow_type(gtk.SHADOW_NONE)
+            sw.show_all()
+            self.before_bar_eb.add(sw)
+
+        self.partition_create_mount_combo.child.set_activates_default(True)
+        self.partition_edit_mount_combo.child.set_activates_default(True)
 
         if 'UBIQUITY_DEBUG' in os.environ:
             self.password_debug_warning_label.show()
 
-        self.previous_partitioning_page = \
-            self.steps.page_num(self.stepPartAuto)
+        if hasattr(self, 'stepPartAuto'):
+            self.previous_partitioning_page = \
+                self.steps.page_num(self.stepPartAuto)
 
         # set initial bottom bar status
         self.allow_go_backward(False)
-
-    def setup_timezone_page(self):
-
-        renderer = gtk.CellRendererText()
-        self.timezone_zone_combo.pack_start(renderer, True)
-        self.timezone_zone_combo.add_attribute(renderer, 'text', 0)
-        list_store = gtk.ListStore(gobject.TYPE_STRING)
-        self.timezone_zone_combo.set_model(list_store)
-        self.timezone_zone_combo.connect('changed', self.zone_combo_selection_changed)
-        self.timezone_city_combo.connect('changed', self.city_combo_selection_changed)
-
-        renderer = gtk.CellRendererText()
-        self.timezone_city_combo.pack_start(renderer, True)
-        self.timezone_city_combo.add_attribute(renderer, 'text', 0)
-        city_store = gtk.ListStore(gobject.TYPE_STRING)
-        self.timezone_city_combo.set_model(city_store)
-        
-        self.regions = {}
-        for location in self.tzdb.locations:
-            region, city = location.zone.replace('_', ' ').split('/', 1)
-            if region in self.regions:
-                self.regions[region].append(city)
-            else:
-                self.regions[region] = [city]
-
-        r = self.regions.keys()
-        r.sort()
-        for region in r:
-            list_store.append([region])
-
-    def zone_combo_selection_changed(self, widget):
-        i = self.timezone_zone_combo.get_active()
-        m = self.timezone_zone_combo.get_model()
-        region = m[i][0]
-        
-        m = self.timezone_city_combo.get_model()
-        m.clear()
-        for city in self.regions[region]:
-            m.append([city])
-
-    def city_combo_selection_changed(self, widget):
-        i = self.timezone_zone_combo.get_active()
-        m = self.timezone_zone_combo.get_model()
-        region = m[i][0]
-        
-        i = self.timezone_city_combo.get_active()
-        if i < 0:
-            # There's no selection yet.
-            return
-        m = self.timezone_city_combo.get_model()
-        city = m[i][0].replace(' ', '_')
-        city = region + '/' + city
-        self.tzmap.select_city(city)
-
-    def select_city(self, widget, city):
-        region, city = city.replace('_', ' ').split('/', 1)
-        m = self.timezone_zone_combo.get_model()
-        iterator = m.get_iter_first()
-        while iterator:
-            if m[iterator][0] == region:
-                self.timezone_zone_combo.set_active_iter(iterator)
-                break
-            iterator = m.iter_next(iterator)
-        
-        m = self.timezone_city_combo.get_model()
-        iterator = m.get_iter_first()
-        while iterator:
-            if m[iterator][0] == city:
-                self.timezone_city_combo.set_active_iter(iterator)
-                break
-            iterator = m.iter_next(iterator)
-
 
     def poke_screensaver(self):
         """Attempt to make sure that the screensaver doesn't kick in."""
@@ -655,52 +606,68 @@ class Wizard(BaseFrontend):
 
         domain = self.distro + '-installer'
         gettext.bindtextdomain(domain, LOCALEDIR)
-        gtk.glade.bindtextdomain(domain, LOCALEDIR )
-        gtk.glade.textdomain(domain)
+        self.builder.set_translation_domain(domain)
         gettext.textdomain(domain)
         gettext.install(domain, LOCALEDIR, unicode=1)
 
 
-    def translate_widgets(self):
-        if self.locale is None:
+    # widgets is a set of (widget, prefix) pairs
+    def translate_widgets(self, lang=None, widgets=None, reget=True):
+        if lang is None:
+            lang = self.locale
+        if widgets is None:
+            widgets = [(x, None) for x in self.all_widgets]
+        if lang is None:
             languages = []
         else:
-            languages = [self.locale]
-        core_names = ['ubiquity/text/%s' % q for q in self.language_questions]
-        core_names.append('ubiquity/text/oem_config_title')
-        for stock_item in ('cancel', 'close', 'go-back', 'go-forward',
-                           'ok', 'quit'):
-            core_names.append('ubiquity/imported/%s' % stock_item)
-        i18n.get_translations(languages=languages, core_names=core_names)
+            languages = [lang]
 
-        for widget in self.all_widgets:
-            self.translate_widget(widget, self.locale)
+        if reget:
+            core_names = ['ubiquity/text/%s' % q for q in self.language_questions]
+            core_names.append('ubiquity/text/oem_config_title')
+            core_names.append('ubiquity/text/oem_user_config_title')
+            for stock_item in ('cancel', 'close', 'go-back', 'go-forward',
+                                'ok', 'quit'):
+                core_names.append('ubiquity/imported/%s' % stock_item)
+            prefixes = []
+            for p in self.pages:
+                prefix = p.ui.get('plugin_prefix')
+                if not prefix:
+                    prefix = 'ubiquity/text'
+                if p.ui.get('plugin_is_language'):
+                    children = reduce(lambda x,y: x + self.all_children(y), p.all_widgets, [])
+                    core_names.extend([prefix+'/'+c.get_name() for c in children])
+                prefixes.append(prefix)
+            i18n.get_translations(languages=languages, core_names=core_names, extra_prefixes=prefixes)
 
-        self.partition_button_undo.set_label(
-            self.get_string('partman/text/undo_everything'))
+        # We always translate always-visible widgets
+        for q in self.language_questions:
+            if hasattr(self, q):
+                widgets.append((getattr(self, q), None))
 
-    def translate_widget(self, widget, lang):
+        for widget in widgets:
+            self.translate_widget(widget[0], lang=lang, prefix=widget[1])
+
+    def translate_widget(self, widget, lang=None, prefix=None):
         if isinstance(widget, gtk.Button) and widget.get_use_stock():
             widget.set_label(widget.get_label())
 
-        text = self.get_string(widget.get_name(), lang)
+        text = self.get_string(widget.get_name(), lang, prefix)
         if text is None:
             return
         name = widget.get_name()
 
         if isinstance(widget, gtk.Label):
             if name == 'step_label':
-                global BREADCRUMB_STEPS, BREADCRUMB_MAX_STEP
-                curstep = '?'
-                if self.current_page is not None:
-                    current_name = self.step_name(self.current_page)
-                    if current_name in BREADCRUMB_STEPS:
-                        curstep = str(BREADCRUMB_STEPS[current_name])
-                text = text.replace('${INDEX}', curstep)
-                text = text.replace('${TOTAL}', str(BREADCRUMB_MAX_STEP))
+                text = text.replace('${INDEX}', str(min(self.user_pageslen, max(1, len(self.history)))))
+                text = text.replace('${TOTAL}', str(self.user_pageslen))
+            elif name == 'welcome_text_label' and self.oem_user_config:
+                text = self.get_string('welcome_text_oem_user_label', lang)
             widget.set_text(text)
 
-            # Ideally, these attributes would be in the glade file somehow ...
+            # Ideally, these attributes would be in the ui file (and can be if
+            # we bump required gtk+ to 2.16), but as long as we support glade
+            # files, we can't make the change.
             textlen = len(text.encode("UTF-8"))
             if 'heading_label' in name:
                 attrs = pango.AttrList()
@@ -722,7 +689,7 @@ class Wizard(BaseFrontend):
             # reference to the button image.
             tempref = widget.get_image()
 
-            question = i18n.map_widget_name(widget.get_name())
+            question = i18n.map_widget_name(prefix, widget.get_name())
             widget.set_label(text)
             
             # Workaround for radio button labels disappearing on second
@@ -736,8 +703,11 @@ class Wizard(BaseFrontend):
                     'gtk-%s' % stock_id, gtk.ICON_SIZE_BUTTON))
 
         elif isinstance(widget, gtk.Window):
-            if name == 'live_installer' and self.oem_config:
-                text = self.get_string('oem_config_title', lang)
+            if name == 'live_installer':
+                if self.oem_config:
+                    text = self.get_string('oem_config_title', lang)
+                elif self.oem_user_config:
+                    text = self.get_string('oem_user_config_title', lang)
             widget.set_title(text)
 
 
@@ -803,6 +773,7 @@ class Wizard(BaseFrontend):
                             (gtk.STOCK_QUIT, gtk.RESPONSE_CLOSE,
                              'Continue anyway', 1,
                              'Try again', 2))
+        dialog.set_has_separator(False)
         self.dbfilter_status = None
         label = gtk.Label(text)
         label.set_line_wrap(True)
@@ -818,29 +789,53 @@ class Wizard(BaseFrontend):
             self.quit_installer()
         else:
             step = self.step_name(self.steps.get_current_page())
-            if step.startswith("stepPart"):
+            if step == "partman":
                 print('dbfilter_handle_status stepPart')
                 self.set_current_page(self.steps.page_num(self.stepPartAuto))
             return False
 
 
-    def show_intro(self):
-        """Show some introductory text, if available."""
-
-        intro = os.path.join(PATH, 'intro.txt')
-
-        if os.path.isfile(intro):
-            intro_file = open(intro)
-            self.intro_label.set_markup(intro_file.read().rstrip('\n'))
-            intro_file.close()
-            return True
-        else:
-            return False
-
-
     def step_name(self, step_index):
+        w = self.steps.get_nth_page(step_index)
+        for p in self.pages:
+            if w in p.all_widgets:
+                return p.module.NAME
+        return None
+
+    def page_name(self, step_index):
         return self.steps.get_nth_page(step_index).get_name()
 
+    def add_history(self, page, widget):
+        history_entry = (page, widget)
+        if self.history:
+            # We may have either jumped backward or forward over pages.
+            # Correct history in that case
+            new_index = self.pages.index(page)
+            old_index = self.pages.index(self.history[-1][0])
+            # First, pop if needed
+            if new_index < old_index:
+                while self.history[-1][0] != page and len(self.history) > 1:
+                    self.pop_history()
+            # Now push fake history if needed
+            i = old_index + 1
+            while i < new_index:
+                for w in self.pages[i].widgets: # add 1 for each always-on widgets
+                    self.history.append((self.pages[i], None))
+                i += 1
+
+            if history_entry == self.history[-1]:
+                return # Don't add the page if it's a dup
+            if widget in page.optional_widgets:
+                self.user_pageslen += 1
+        self.history.append(history_entry)
+
+    def pop_history(self):
+        if len(self.history) < 2:
+            return self.pagesindex
+        old_entry = self.history.pop()
+        if old_entry[1] in old_entry[0].optional_widgets:
+            self.user_pageslen -= 1
+        return self.pages.index(self.history[-1][0])
 
     def set_page(self, n):
         self.run_automation_error_cmd()
@@ -849,35 +844,54 @@ class Wizard(BaseFrontend):
         # migration-assistant.
         self.backup = False
         self.live_installer.show()
-        if n == 'Language':
-            cur = self.stepLanguage
-        elif n == 'ConsoleSetup':
-            cur = self.stepKeyboardConf
-        elif n == 'Timezone':
-            cur = self.stepLocation
-        elif n == 'Partman':
-            # Rather than try to guess which partman page we should be on,
-            # we leave that decision to set_autopartitioning_choices and
-            # update_partman.
-            return
-        elif n == 'UserSetup':
-            cur = self.stepUserInfo
-        elif n == 'Summary':
-            cur = self.stepReady
-            self.next.set_label(self.get_string('install_button'))
-        elif n == 'MigrationAssistant':
-            cur = self.stepMigrationAssistant
-        else:
-            print >>sys.stderr, 'No page found for %s' % n
-            return
+        cur = None
+        is_install = False
+        for page in self.pages:
+            if page.module.NAME == n:
+                # Now ask ui class which page we want to be showing right now
+                if hasattr(page.ui, 'plugin_get_current_page'):
+                    cur = page.ui.call('plugin_get_current_page')
+                    if isinstance(cur, str) and hasattr(self, cur):
+                        cur = getattr(self, cur) # for not-yet-plugins
+                elif page.widgets:
+                    cur = page.widgets[0]
+                elif page.optional_widgets:
+                    cur = page.optional_widgets[0]
+                if cur:
+                    cur.show()
+                    is_install = page.ui.get('plugin_is_install')
+                    break
+        if not cur:
+            return False
 
-        self.set_current_page(self.steps.page_num(cur))
-        if not self.first_seen_page:
-            self.first_seen_page = n
-        if self.first_seen_page == self.pages[self.pagesindex].__name__:
+        if is_install:
+            self.next.set_label(self.get_string('install_button'))
+
+        num = self.steps.page_num(cur)
+        if num < 0:
+            print >>sys.stderr, 'Invalid page found for %s: %s' % (n, str(cur))
+            return False
+
+        self.add_history(page, cur)
+        self.set_current_page(num)
+        if self.pagesindex == 0:
             self.allow_go_backward(False)
         elif 'UBIQUITY_AUTOMATIC' not in os.environ:
             self.allow_go_backward(True)
+
+        # Make sure that something reasonable has the focus.  If the first
+        # focusable item is a label or a button (often, the welcome text label
+        # and the quit button), set the focus to the next button.
+        if not self.live_installer.get_focus():
+            self.live_installer.child_focus(gtk.DIR_TAB_FORWARD)
+        focus = self.live_installer.get_focus()
+        if focus:
+            if focus.__class__ == gtk.Label:
+                focus.select_region(-1, -1) # when it got focus, whole text was selected
+                self.next.grab_focus()
+            elif focus.__class__ == gtk.Button:
+                self.next.grab_focus()
+        return True
 
     def set_current_page(self, current):
         if self.steps.get_current_page() == current:
@@ -895,19 +909,47 @@ class Wizard(BaseFrontend):
 
         syslog.syslog('progress_loop()')
 
-        self.current_page = None
+        self.current_page = None    
+
+        lang = self.locale.split('_')[0]
+        slides = '/usr/share/ubiquity-slideshow/slides/index.html'
+        s = self.live_installer.get_screen()
+        sh = s.get_height()
+        sw = s.get_width()
+        fail = None
+        if os.path.exists(slides):
+            slides = 'file://%s#locale=%s' % (slides, lang)
+            if sh >= 600 and sw >= 800:
+                try:
+                    import webkit
+                    webview = webkit.WebView()
+                    webview.open(slides)
+                    self.slideshow_frame.add(webview)
+                    webview.set_size_request(700, 420)
+                    webview.connect('new-window-policy-decision-requested',
+                                    self.on_slideshow_link_clicked)
+                    self.slideshow_frame.show_all()
+                except ImportError:
+                    fail = 'Webkit not present.'
+            else:
+                fail = 'Display < 800x600 (%sx%s).' % (sw, sh)
+        else:
+            fail = 'No slides present for %s.' % lang
+        if fail:
+            syslog.syslog('Not displaying the slideshow: %s' % fail)
 
         self.debconf_progress_start(
             0, 100, self.get_string('ubiquity/install/title'))
         self.debconf_progress_region(0, 15)
 
-        dbfilter = partman_commit.PartmanCommit(self)
-        if dbfilter.run_command(auto_process=True) != 0:
-            while self.progress_position.depth() != 0:
-                self.debconf_progress_stop()
-            self.debconf_progress_window.hide()
-            self.return_to_partitioning()
-            return
+        if not self.oem_user_config:
+            dbfilter = partman_commit.PartmanCommit(self)
+            if dbfilter.run_command(auto_process=True) != 0:
+                while self.progress_position.depth() != 0:
+                    self.debconf_progress_stop()
+                self.debconf_progress_window.hide()
+                self.return_to_partitioning()
+                return
 
         # No return to partitioning from now on
         self.installing_no_return = True
@@ -944,7 +986,9 @@ class Wizard(BaseFrontend):
         self.installing = False
 
         self.run_success_cmd()
-        if not self.get_reboot_seen():
+        if self.oem_user_config:
+            self.quit_installer()
+        elif not self.get_reboot_seen():
             if 'UBIQUITY_ONLY' in os.environ:
                 txt = self.get_string('ubiquity/finished_restart_only')
                 self.finished_label.set_label(txt)
@@ -964,32 +1008,32 @@ class Wizard(BaseFrontend):
     def do_reboot(self):
         """Callback for main program to actually reboot the machine."""
 
-        if (os.path.exists("/usr/lib/ubiquity/gdm-signal") and
-            os.path.exists("/usr/bin/gnome-session-save") and
-            'DESKTOP_SESSION' in os.environ):
-            execute("/usr/lib/ubiquity/gdm-signal", "--reboot")
-            if 'SUDO_UID' in os.environ:
-                user = '#%d' % int(os.environ['SUDO_UID'])
-            else:
-                user = 'mint'
-            execute("sudo", "-u", user, "-H",
-                    "gnome-session-save", "--kill", "--silent")
+        try:
+            session = dbus.Bus.get_session()
+            gnome_session = session.name_has_owner('org.gnome.SessionManager')
+        except dbus.exceptions.DBusException:
+            gnome_session = False
+
+        if gnome_session:
+            manager = session.get_object('org.gnome.SessionManager',
+                                         '/org/gnome/SessionManager')
+            manager.RequestReboot()
         else:
-            execute("reboot")
+            execute_root("reboot")
 
 
-    def quit_installer(self):
+    def quit_installer(self, *args):
         """quit installer cleanly."""
 
         # exiting from application
         self.current_page = None
         if self.dbfilter is not None:
             self.dbfilter.cancel_handler()
-        if gtk.main_level() > 0:
-            gtk.main_quit()
+        self.quit_main_loop()
 
 
     # Callbacks
+
     def on_quit_clicked(self, widget):
         self.warning_dialog.show()
         response = self.warning_dialog.run()
@@ -1008,7 +1052,7 @@ class Wizard(BaseFrontend):
 
     def info_loop(self, widget):
         """check if all entries from Identification screen are filled. Callback
-        defined in glade file."""
+        defined in ui file."""
 
         if (self.username_changed_id is None or
             self.hostname_changed_id is None):
@@ -1029,7 +1073,7 @@ class Wizard(BaseFrontend):
             else:
                 hostname_suffix = '-desktop'
             self.hostname.handler_block(self.hostname_changed_id)
-            self.hostname.set_text(widget.get_text() + hostname_suffix)
+            self.hostname.set_text(widget.get_text().strip() + hostname_suffix)
             self.hostname.handler_unblock(self.hostname_changed_id)
 
         complete = True
@@ -1056,7 +1100,7 @@ class Wizard(BaseFrontend):
 
         self.allow_change_step(False)
 
-        step = self.step_name(self.steps.get_current_page())
+        step = self.page_name(self.steps.get_current_page())
 
         # Beware that 'step' is the step we're leaving, not the one we're
         # entering. At present it's a little awkward to define actions that
@@ -1074,64 +1118,22 @@ class Wizard(BaseFrontend):
             self.dbfilter.ok_handler()
             # expect recursive main loops to be exited and
             # debconffilter_done() to be called when the filter exits
-        elif gtk.main_level() > 0:
-            gtk.main_quit()
-
-        if not self.live_installer.get_focus():
-            self.live_installer.child_focus(gtk.DIR_TAB_FORWARD)
-
-    def on_keyboardlayoutview_row_activated(self, treeview, path, view_column):
-        self.next.activate()
-
-    def on_keyboard_layout_selected(self, start_editing, *args):
-        if isinstance(self.dbfilter, console_setup.ConsoleSetup):
-            layout = self.get_keyboard()
-            if layout is not None:
-                self.current_layout = layout
-                self.dbfilter.change_layout(layout)
-
-    def on_keyboardvariantview_row_activated(self, treeview, path,
-                                             view_column):
-        self.next.activate()
-
-    def on_keyboard_variant_selected(self, start_editing, *args):
-        if isinstance(self.dbfilter, console_setup.ConsoleSetup):
-            layout = self.get_keyboard()
-            variant = self.get_keyboard_variant()
-            if layout is not None and variant is not None:
-                self.dbfilter.apply_keyboard(layout, variant)
-
-    def prepare_page(self):
-        """Set up the frontend in preparation for running a step."""
-
-        # Note that self.current_page et al have not been updated for the
-        # new page yet, so we have to check self.dbfilter.
-
-        if isinstance(self.dbfilter, console_setup.ConsoleSetup):
-            self.default_keyboard_layout = None
-            self.default_keyboard_variant = None
+        else:
+            self.quit_main_loop()
 
     def process_step(self):
         """Process and validate the results of this step."""
 
         # setting actual step
         step_num = self.steps.get_current_page()
-        step = self.step_name(step_num)
+        step = self.page_name(step_num)
         syslog.syslog('Step_before = %s' % step)
 
         if step.startswith("stepPart"):
             self.previous_partitioning_page = step_num
-
-        elif step == "stepLanguage":
-            self.translate_widgets()
-            # FIXME: needed anymore now that we're doing dbfilter first?
-            #self.allow_go_forward(self.get_timezone() is not None)
         # Automatic partitioning
-        elif step == "stepPartAuto":
+        if step == "stepPartAuto":
             self.process_autopartitioning()
-        # Advanced partitioning
-        elif step == "stepPartAdvanced":
-            self.info_loop(None)
         # Identification
         elif step == "stepUserInfo":
             self.process_identification()
@@ -1201,62 +1203,40 @@ class Wizard(BaseFrontend):
         # Setting actual step
         step = self.step_name(self.steps.get_current_page())
 
-        if step == "stepReady":
+        if step == "summary":
             self.next.set_label("gtk-go-forward")
-            self.translate_widget(self.next, self.locale)
+            self.translate_widget(self.next)
 
         if self.dbfilter is not None:
             self.dbfilter.cancel_handler()
             # expect recursive main loops to be exited and
             # debconffilter_done() to be called when the filter exits
-        elif gtk.main_level() > 0:
-            gtk.main_quit()
-
-        if not self.live_installer.get_focus():
-            self.live_installer.child_focus(gtk.DIR_TAB_FORWARD)
-
-
-    def selected_language (self, selection):
-        (model, iterator) = selection.get_selected()
-        if iterator is not None:
-            value = unicode(model.get_value(iterator, 0))
-            return self.language_choice_map[value][1]
         else:
-            return ''
+            self.quit_main_loop()
 
+
+    def on_slideshow_link_clicked(self, view, frame, req, action, decision):
+        uri = req.get_uri()
+        decision.ignore()
+        subprocess.Popen(['sensible-browser', uri],
+                         close_fds=True, preexec_fn=drop_all_privileges)
+        return True
 
     def link_button_browser (self, button, uri):
-        selection = self.language_treeview.get_selection()
-        lang = self.selected_language(selection)
+        lang = self.locale
         lang = lang.split('.')[0] # strip encoding
         uri = uri.replace('${LANG}', lang)
         subprocess.Popen(['sensible-browser', uri],
                          close_fds=True, preexec_fn=drop_all_privileges)
 
 
-    def on_language_treeview_row_activated (self, treeview, path, view_column):
-        self.next.activate()
-
-    def on_language_treeview_selection_changed (self, selection):
-        lang = self.selected_language(selection)
-        if lang:
-            # strip encoding; we use UTF-8 internally no matter what
-            lang = lang.split('.')[0].lower()
-            for widget in self.language_questions:
-                self.translate_widget(getattr(self, widget), lang)
-
     def on_steps_switch_page (self, foo, bar, current):
+        if self.step_name(current) == 'usersetup':
+            # Disable the forward button if nothing has been entered on the
+            # usersetup page yet.
+            self.info_loop(None)
         self.current_page = current
-        # If we're on the language page, then we may not know the correct
-        # language yet.  But we still want to update the page number if the
-        # user hit back, so call on_language_treeview_selection_changed and if
-        # we have a language selection, the interface will be translated
-        # properly.
-        if self.step_name(current) != 'stepLanguage':
-            self.translate_widget(self.step_label, self.locale)
-        else:
-            selection = self.language_treeview.get_selection()
-            self.on_language_treeview_selection_changed(selection)
+        self.translate_widget(self.step_label)
         syslog.syslog('switched to page %s' % self.step_name(current))
 
     def on_extra_combo_changed (self, widget):
@@ -1288,11 +1268,11 @@ class Wizard(BaseFrontend):
 
         if widget.get_active():
             self.action_bar.remove_all()
-            self.action_bar.resize = -1
             if choice == self.manual_choice:
                 self.action_bar.add_segment_rgb(self.manual_choice, -1, \
                     self.release_color)
             elif choice == self.resize_choice:
+                self.action_bar.set_device(self.resize_path)
                 for k in self.disk_layout:
                     for p in self.disk_layout[k]:
                         if self.resize_path == p[0]:
@@ -1301,6 +1281,7 @@ class Wizard(BaseFrontend):
                             self.create_bar(k, type=choice)
                             return
             elif choice == self.biggest_free_choice:
+                self.action_bar.set_device(None)
                 for k in self.disk_layout:
                     for p in self.disk_layout[k]:
                         if self.biggest_free_id == p[2]:
@@ -1410,173 +1391,11 @@ class Wizard(BaseFrontend):
 
     def debconffilter_done (self, dbfilter):
         if BaseFrontend.debconffilter_done(self, dbfilter):
-            if gtk.main_level() > 0:
-                gtk.main_quit()
+            self.quit_main_loop()
             return True
         else:
             return False
 
-
-    def set_language_choices (self, choices, choice_map):
-        BaseFrontend.set_language_choices(self, choices, choice_map)
-        if len(self.language_treeview.get_columns()) < 1:
-            column = gtk.TreeViewColumn(None, gtk.CellRendererText(), text=0)
-            column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-            self.language_treeview.append_column(column)
-            selection = self.language_treeview.get_selection()
-            selection.connect('changed',
-                              self.on_language_treeview_selection_changed)
-        list_store = gtk.ListStore(gobject.TYPE_STRING)
-        self.language_treeview.set_model(list_store)
-        for choice in choices:
-            list_store.append([choice])
-
-
-    def set_language (self, language):
-        model = self.language_treeview.get_model()
-        iterator = model.iter_children(None)
-        while iterator is not None:
-            if unicode(model.get_value(iterator, 0)) == language:
-                path = model.get_path(iterator)
-                self.language_treeview.get_selection().select_path(path)
-                self.language_treeview.scroll_to_cell(
-                    path, use_align=True, row_align=0.5)
-                break
-            iterator = model.iter_next(iterator)
-
-
-    def get_language (self):
-        selection = self.language_treeview.get_selection()
-        (model, iterator) = selection.get_selected()
-        if iterator is None:
-            return 'C'
-        else:
-            value = unicode(model.get_value(iterator, 0))
-            return self.language_choice_map[value][1]
-
-
-    def get_oem_id (self):
-        return self.oem_id_entry.get_text()
-
-
-    def set_timezone (self, timezone):
-        self.select_city(None, timezone)
-
-    def get_timezone (self):
-        i = self.timezone_zone_combo.get_active()
-        m = self.timezone_zone_combo.get_model()
-        region = m[i][0]
-        
-        i = self.timezone_city_combo.get_active()
-        m = self.timezone_city_combo.get_model()
-        city = m[i][0].replace(' ', '_')
-        city = region + '/' + city
-        return city
-    
-    def set_keyboard_choices(self, choices):
-        layouts = gtk.ListStore(gobject.TYPE_STRING)
-        self.keyboardlayoutview.set_model(layouts)
-        for v in sorted(choices):
-            layouts.append([v])
-
-        if len(self.keyboardlayoutview.get_columns()) < 1:
-            column = gtk.TreeViewColumn("Layout", gtk.CellRendererText(), text=0)
-            column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-            self.keyboardlayoutview.append_column(column)
-            selection = self.keyboardlayoutview.get_selection()
-            selection.connect('changed',
-                              self.on_keyboard_layout_selected)
-
-        if self.current_layout is not None:
-            self.set_keyboard(self.current_layout)
-
-    def set_keyboard (self, layout):
-        if self.default_keyboard_layout is None:
-            self.default_keyboard_layout = layout
-        BaseFrontend.set_keyboard(self, layout)
-        model = self.keyboardlayoutview.get_model()
-        if model is None:
-            return
-        iterator = model.iter_children(None)
-        while iterator is not None:
-            if unicode(model.get_value(iterator, 0)) == layout:
-                path = model.get_path(iterator)
-                self.keyboardlayoutview.get_selection().select_path(path)
-                self.keyboardlayoutview.scroll_to_cell(
-                    path, use_align=True, row_align=0.5)
-                break
-            iterator = model.iter_next(iterator)
-
-    def get_keyboard (self):
-        if self.suggested_keymap.get_active():
-            return unicode(self.default_keyboard_layout)
-        selection = self.keyboardlayoutview.get_selection()
-        (model, iterator) = selection.get_selected()
-        if iterator is None:
-            return None
-        else:
-            return unicode(model.get_value(iterator, 0))
-
-    def set_keyboard_variant_choices(self, choices):
-        variants = gtk.ListStore(gobject.TYPE_STRING)
-        self.keyboardvariantview.set_model(variants)
-        for v in sorted(choices):
-            variants.append([v])
-
-        if len(self.keyboardvariantview.get_columns()) < 1:
-            column = gtk.TreeViewColumn("Variant", gtk.CellRendererText(), text=0)
-            column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-            self.keyboardvariantview.append_column(column)
-            selection = self.keyboardvariantview.get_selection()
-            selection.connect('changed',
-                              self.on_keyboard_variant_selected)
-
-    def set_keyboard_variant (self, variant):
-        if self.default_keyboard_variant is None:
-            self.default_keyboard_variant = variant
-        # Make sure the "suggested option" is selected, otherwise this will
-        # change every time the user selects a new keyboard in the manual
-        # choice selection boxes.
-        if self.suggested_keymap.get_active():
-            self.suggested_keymap_label.set_property('label', variant)
-            self.suggested_keymap.toggled()
-        model = self.keyboardvariantview.get_model()
-        if model is None:
-            return
-        iterator = model.iter_children(None)
-        while iterator is not None:
-            if unicode(model.get_value(iterator, 0)) == variant:
-                path = model.get_path(iterator)
-                self.keyboardvariantview.get_selection().select_path(path)
-                self.keyboardvariantview.scroll_to_cell(
-                    path, use_align=True, row_align=0.5)
-                break
-            iterator = model.iter_next(iterator)
-
-    def get_keyboard_variant (self):
-        if self.suggested_keymap.get_active():
-            return unicode(self.default_keyboard_variant)
-        selection = self.keyboardvariantview.get_selection()
-        (model, iterator) = selection.get_selected()
-        if iterator is None:
-            return None
-        else:
-            return unicode(model.get_value(iterator, 0))
-
-    def on_suggested_keymap_toggled (self, widget):
-        if self.suggested_keymap.get_active():
-            self.keyboard_layout_hbox.set_sensitive(False)
-            if isinstance(self.dbfilter, console_setup.ConsoleSetup):
-                if (self.default_keyboard_layout is not None and
-                    self.default_keyboard_variant is not None):
-                    self.current_layout = self.default_keyboard_layout
-                    self.dbfilter.change_layout(self.default_keyboard_layout)
-                    self.dbfilter.apply_keyboard(self.default_keyboard_layout,
-                                                 self.default_keyboard_variant)
-
-        else:
-            self.keyboard_layout_hbox.set_sensitive(True)
-        
     def set_disk_layout(self, layout):
         self.disk_layout = layout
 
@@ -1606,7 +1425,8 @@ class Wizard(BaseFrontend):
             if type == self.biggest_free_choice and part[2] == self.biggest_free_id:
                 b.add_segment_rgb(get_release_name(), size, self.release_color)
             elif dev == 'free':
-                b.add_segment_rgb("Free Space", size, b.remainder_color)
+                s = self.get_string('ubiquity/text/partition_free_space')
+                b.add_segment_rgb(s, size, b.remainder_color)
             else:
                 if dev in self.dev_colors:
                     c = self.dev_colors[dev]
@@ -1653,12 +1473,11 @@ class Wizard(BaseFrontend):
 
         if resize_choice in choices:
             self.resize_min_size, self.resize_max_size, \
-                self.resize_orig_size, self.resize_path = \
+                self.resize_pref_size, self.resize_path = \
                     extra_options[resize_choice]
-            self.action_bar.set_part_size(self.resize_orig_size)
+            self.action_bar.set_part_size(self.resize_pref_size)
             self.action_bar.set_min(self.resize_min_size)
             self.action_bar.set_max(self.resize_max_size)
-            self.action_bar.set_device(self.resize_path)
         if biggest_free_choice in choices:
             self.biggest_free_id = extra_options[biggest_free_choice]
 
@@ -1693,12 +1512,21 @@ class Wizard(BaseFrontend):
                     a.hide()
                     self.format_warning_align = a
                     label = gtk.Label()
+                    label.set_line_wrap(True)
+                    def wrap_fix(widget, allocation):
+                        # FIXME evand 2009-10-19: This is horrendous, but it's
+                        # all we have until the extended layout branch of GTK+
+                        # gets merged (bgo #101968).  The major side effect is
+                        # that you cannot shrink the window, even after you've
+                        # grown it.
+                        widget.set_size_request(allocation.width, -1)
+                    label.connect('size-allocate', wrap_fix)
                     self.format_warning = label
                     hbox = gtk.HBox(spacing=6)
                     img = gtk.Image()
                     img.set_from_icon_name('gtk-dialog-warning', gtk.ICON_SIZE_BUTTON)
                     hbox.pack_start(img, expand=False, fill=False)
-                    hbox.pack_start(label, expand=False, fill=False)
+                    hbox.pack_start(label, expand=True, fill=True)
                     a.add(hbox)
                     vbox.add(a)
                     
@@ -1708,6 +1536,7 @@ class Wizard(BaseFrontend):
                 self.autopartition_choices_vbox.pack_start(alignment,
                                                    expand=False, fill=False)
                 self.autopartition_extras[choice] = alignment
+                alignment.set_sensitive(False)
             button.connect('toggled', self.on_autopartition_toggled, extra_combo)
 
         if firstbutton is not None:
@@ -1783,7 +1612,7 @@ class Wizard(BaseFrontend):
 
     def partman_column_mountpoint (self, column, cell, model, iterator):
         partition = model[iterator][1]
-        if isinstance(self.dbfilter, partman.Partman):
+        if isinstance(self.dbfilter, partman.Page):
             mountpoint = self.dbfilter.get_current_mountpoint(partition)
             if mountpoint is None:
                 mountpoint = ''
@@ -1809,7 +1638,7 @@ class Wizard(BaseFrontend):
     def partman_column_format_toggled (self, cell, path, user_data):
         if not self.allowed_change_step:
             return
-        if not isinstance(self.dbfilter, partman.Partman):
+        if not isinstance(self.dbfilter, partman.Page):
             return
         model = user_data
         devpart = model[path][0]
@@ -1845,7 +1674,7 @@ class Wizard(BaseFrontend):
     def partman_popup (self, widget, event):
         if not self.allowed_change_step:
             return
-        if not isinstance(self.dbfilter, partman.Partman):
+        if not isinstance(self.dbfilter, partman.Page):
             return
 
         model, iterator = widget.get_selection().get_selected()
@@ -1885,7 +1714,7 @@ class Wizard(BaseFrontend):
         if partition_list_menu.get_children():
             partition_list_menu.append(gtk.SeparatorMenuItem())
         undo_item = gtk.MenuItem(
-            self.get_string('partman/text/undo_everything'))
+            self.get_string('partition_button_undo'))
         undo_item.connect('activate', self.on_partition_list_undo_activate)
         partition_list_menu.append(undo_item)
         partition_list_menu.show_all()
@@ -1901,7 +1730,7 @@ class Wizard(BaseFrontend):
     def partman_create_dialog (self, devpart, partition):
         if not self.allowed_change_step:
             return
-        if not isinstance(self.dbfilter, partman.Partman):
+        if not isinstance(self.dbfilter, partman.Page):
             return
 
         self.partition_create_dialog.show_all()
@@ -1942,7 +1771,7 @@ class Wizard(BaseFrontend):
         self.partition_create_use_combo.add_attribute(renderer, 'text', 2)
         list_store = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING,
                                    gobject.TYPE_STRING)
-        for method, name, description in self.dbfilter.create_use_as():
+        for method, name, description in self.dbfilter.create_use_as(devpart):
             list_store.append([method, name, description])
         self.partition_create_use_combo.set_model(list_store)
         if list_store.get_iter_first():
@@ -1960,7 +1789,7 @@ class Wizard(BaseFrontend):
         self.partition_create_dialog.hide()
 
         if (response == gtk.RESPONSE_OK and
-            isinstance(self.dbfilter, partman.Partman)):
+            isinstance(self.dbfilter, partman.Page)):
             if partition['parted']['type'] == 'primary':
                 prilog = partman.PARTITION_TYPE_PRIMARY
             elif partition['parted']['type'] == 'logical':
@@ -2001,7 +1830,7 @@ class Wizard(BaseFrontend):
             self.partition_create_mount_combo.set_sensitive(False)
         else:
             self.partition_create_mount_combo.set_sensitive(True)
-            if isinstance(self.dbfilter, partman.Partman):
+            if isinstance(self.dbfilter, partman.Page):
                 mount_model = self.partition_create_mount_combo.get_model()
                 if mount_model is not None:
                     fs = model[iterator][1]
@@ -2013,7 +1842,7 @@ class Wizard(BaseFrontend):
     def partman_edit_dialog (self, devpart, partition):
         if not self.allowed_change_step:
             return
-        if not isinstance(self.dbfilter, partman.Partman):
+        if not isinstance(self.dbfilter, partman.Page):
             return
 
         self.partition_edit_dialog.show_all()
@@ -2095,7 +1924,7 @@ class Wizard(BaseFrontend):
         self.partition_edit_dialog.hide()
 
         if (response == gtk.RESPONSE_OK and
-            isinstance(self.dbfilter, partman.Partman)):
+            isinstance(self.dbfilter, partman.Page)):
             size = None
             if current_size is not None:
                 size = str(self.partition_edit_size_spinbutton.get_value())
@@ -2136,8 +1965,8 @@ class Wizard(BaseFrontend):
         # If the selected method isn't a filesystem, then selecting a mount
         # point makes no sense. TODO cjwatson 2007-01-31: Unfortunately we
         # have to hardcode the list of known filesystems here.
-        known_filesystems = ('ext3', 'ext4', 'ext2', 'reiserfs', 'jfs', 'xfs',
-                             'fat16', 'fat32', 'ntfs')
+        known_filesystems = ('ext4', 'ext3', 'ext2', 'reiserfs', 'jfs', 'xfs',
+                             'fat16', 'fat32', 'ntfs', 'uboot')
         if iterator is None or model[iterator][0] not in known_filesystems:
             self.partition_edit_mount_combo.child.set_text('')
             self.partition_edit_mount_combo.set_sensitive(False)
@@ -2145,7 +1974,7 @@ class Wizard(BaseFrontend):
         else:
             self.partition_edit_mount_combo.set_sensitive(True)
             self.partition_edit_format_checkbutton.set_sensitive(True)
-            if isinstance(self.dbfilter, partman.Partman):
+            if isinstance(self.dbfilter, partman.Page):
                 mount_model = self.partition_edit_mount_combo.get_model()
                 if mount_model is not None:
                     fs = model[iterator][0]
@@ -2170,7 +1999,7 @@ class Wizard(BaseFrontend):
             return False
 
         if event.keyval == gtk.keysyms.Delete:
-            if not isinstance(self.dbfilter, partman.Partman):
+            if not isinstance(self.dbfilter, partman.Page):
                 return False
             devpart, partition = self.partition_list_get_selection()
             for action in self.dbfilter.get_actions(devpart, partition):
@@ -2189,7 +2018,7 @@ class Wizard(BaseFrontend):
         self.partition_button_new.set_sensitive(False)
         self.partition_button_edit.set_sensitive(False)
         self.partition_button_delete.set_sensitive(False)
-        if not isinstance(self.dbfilter, partman.Partman):
+        if not isinstance(self.dbfilter, partman.Page):
             return
 
         model, iterator = selection.get_selected()
@@ -2236,7 +2065,7 @@ class Wizard(BaseFrontend):
                 if otherpart['dev'] == partition['dev'] and 'id' in otherpart:
                     break
             else:
-                if not isinstance(self.dbfilter, partman.Partman):
+                if not isinstance(self.dbfilter, partman.Page):
                     return
                 self.allow_change_step(False)
                 self.dbfilter.create_label(devpart)
@@ -2259,7 +2088,7 @@ class Wizard(BaseFrontend):
     def on_partition_list_new_label_activate (self, widget):
         if not self.allowed_change_step:
             return
-        if not isinstance(self.dbfilter, partman.Partman):
+        if not isinstance(self.dbfilter, partman.Page):
             return
         self.allow_change_step(False)
         devpart, partition = self.partition_list_get_selection()
@@ -2276,7 +2105,7 @@ class Wizard(BaseFrontend):
     def on_partition_list_delete_activate (self, widget):
         if not self.allowed_change_step:
             return
-        if not isinstance(self.dbfilter, partman.Partman):
+        if not isinstance(self.dbfilter, partman.Page):
             return
         self.allow_change_step(False)
         devpart, partition = self.partition_list_get_selection()
@@ -2285,7 +2114,7 @@ class Wizard(BaseFrontend):
     def on_partition_list_undo_activate (self, widget):
         if not self.allowed_change_step:
             return
-        if not isinstance(self.dbfilter, partman.Partman):
+        if not isinstance(self.dbfilter, partman.Page):
             return
         self.allow_change_step(False)
         self.dbfilter.undo()
@@ -2561,8 +2390,6 @@ class Wizard(BaseFrontend):
         return self.login_auto.get_active()
 
     def set_encrypt_home(self, value):
-        if value:
-            self.login_encrypt.show()
         self.login_encrypt.set_active(value)
 
     def get_encrypt_home(self):
@@ -2683,13 +2510,18 @@ class Wizard(BaseFrontend):
 
         if self.installing and not self.installing_no_return:
             # Go back to the partitioner and try again.
+            self.slideshow_frame.hide()
             self.live_installer.show()
-            # FIXME: ugh, can't hardcode this.
-            self.pagesindex = 3
-            self.dbfilter = partman.Partman(self)
+            self.pagesindex = -1
+            for page in self.pages:
+                if page.module.NAME == 'partman':
+                    self.pagesindex = self.pages.index(page)
+                    break
+            if self.pagesindex == -1: return
+            self.dbfilter = partman.Page(self)
             self.set_current_page(self.previous_partitioning_page)
             self.next.set_label("gtk-go-forward")
-            self.translate_widget(self.next, self.locale)
+            self.translate_widget(self.next)
             self.backup = True
             self.installing = False
 
@@ -2709,6 +2541,7 @@ class Wizard(BaseFrontend):
             msg = title
         dialog = gtk.MessageDialog(transient, gtk.DIALOG_MODAL,
                                    gtk.MESSAGE_ERROR, gtk.BUTTONS_OK, msg)
+        dialog.set_has_separator(False)
         dialog.set_title(title)
         dialog.run()
         self.allow_change_step(saved_allowed_change_step)
@@ -2742,6 +2575,7 @@ class Wizard(BaseFrontend):
             text = str(text)
             buttons.extend((text, len(buttons) / 2 + 1))
         dialog = gtk.Dialog(title, transient, gtk.DIALOG_MODAL, tuple(buttons))
+        dialog.set_has_separator(False)
         vbox = gtk.VBox()
         vbox.set_border_width(5)
         label = gtk.Label(msg)
@@ -2772,257 +2606,29 @@ class Wizard(BaseFrontend):
 
 
     # Return control to the next level up.
+    pending_quits = 0
     def quit_main_loop (self):
-        if gtk.main_level() > 0:
-            gtk.main_quit()
-
-
-# Much of this timezone map widget is a rough translation of
-# gnome-system-tools/src/time/tz-map.c. Thanks to Hans Petter Jansson
-# <hpj@ximian.com> for that.
-
-NORMAL_RGBA = 0xc070a0ffL
-HOVER_RGBA = 0xffff60ffL
-SELECTED_1_RGBA = 0xff60e0ffL
-SELECTED_2_RGBA = 0x000000ffL
-
-class TimezoneMap(object):
-    def __init__(self, frontend):
-        self.frontend = frontend
-        self.tzdb = ubiquity.tz.Database()
-        self.tzmap = ubiquity.emap.EMap()
-        self.update_timeout = None
-        self.point_selected = None
-        self.point_hover = None
-        self.location_selected = None
-
-        self.tzmap.set_smooth_zoom(False)
-        zoom_in_file = os.path.join(PATH, 'pixmaps', 'zoom-in.png')
-        if os.path.exists(zoom_in_file):
-            display = self.frontend.live_installer.get_display()
-            pixbuf = gtk.gdk.pixbuf_new_from_file(zoom_in_file)
-            self.cursor_zoom_in = gtk.gdk.Cursor(display, pixbuf, 10, 10)
-        else:
-            self.cursor_zoom_in = None
-
-        self.tzmap.add_events(gtk.gdk.LEAVE_NOTIFY_MASK |
-                              gtk.gdk.VISIBILITY_NOTIFY_MASK)
-
-        self.frontend.timezone_map_window.add(self.tzmap)
-
-        timezone_city_combo = self.frontend.timezone_city_combo
-
-        renderer = gtk.CellRendererText()
-        timezone_city_combo.pack_start(renderer, True)
-        timezone_city_combo.add_attribute(renderer, 'text', 0)
-        list_store = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
-        timezone_city_combo.set_model(list_store)
-
-        prev_continent = ''
-        for location in self.tzdb.locations:
-            self.tzmap.add_point("", location.longitude, location.latitude,
-                                 NORMAL_RGBA)
-            zone_bits = location.zone.split('/')
-            if len(zone_bits) == 1:
-                continue
-            continent = zone_bits[0]
-            if continent != prev_continent:
-                list_store.append(['', None])
-                list_store.append(["--- %s ---" % continent, None])
-                prev_continent = continent
-            human_zone = '/'.join(zone_bits[1:]).replace('_', ' ')
-            list_store.append([human_zone, location.zone])
-
-        self.tzmap.connect("map-event", self.mapped)
-        self.tzmap.connect("unmap-event", self.unmapped)
-        self.tzmap.connect("motion-notify-event", self.motion)
-        self.tzmap.connect("button-press-event", self.button_pressed)
-        self.tzmap.connect("leave-notify-event", self.out_map)
-
-        timezone_city_combo.connect("changed", self.city_changed)
-
-    def set_city_text(self, name):
-        model = self.frontend.timezone_city_combo.get_model()
-        iterator = model.get_iter_first()
-        while iterator is not None:
-            location = model.get_value(iterator, 1)
-            if location == name:
-                self.frontend.timezone_city_combo.set_active_iter(iterator)
-                break
-            iterator = model.iter_next(iterator)
-
-    def set_zone_text(self, location):
-        offset = location.utc_offset
-        if offset >= datetime.timedelta(0):
-            minuteoffset = int(offset.seconds / 60)
-        else:
-            minuteoffset = int(offset.seconds / 60 - 1440)
-        if location.zone_letters == 'GMT':
-            text = location.zone_letters
-        else:
-            text = "%s (GMT%+d:%02d)" % (location.zone_letters,
-                                         minuteoffset / 60, minuteoffset % 60)
-        self.frontend.timezone_zone_text.set_text(text)
-        translations = gettext.translation('iso_3166',
-                                           languages=[self.frontend.locale],
-                                           fallback=True)
-        self.frontend.timezone_country_text.set_text(
-            translations.ugettext(location.human_country))
-        self.update_current_time()
-
-    def update_current_time(self):
-        if self.location_selected is not None:
-            try:
-                now = datetime.datetime.now(self.location_selected.info)
-                self.frontend.timezone_time_text.set_text(now.strftime('%X'))
-            except ValueError:
-                # Some versions of Python have problems with clocks set
-                # before the epoch (http://python.org/sf/1646728).
-                self.frontend.timezone_time_text.set_text('<clock error>')
-
-    def set_tz_from_name(self, name):
-        (longitude, latitude) = (0.0, 0.0)
-
-        for location in self.tzdb.locations:
-            if location.zone == name:
-                (longitude, latitude) = (location.longitude, location.latitude)
-                break
-        else:
-            return
-
-        if self.point_selected is not None:
-            self.tzmap.point_set_color_rgba(self.point_selected, NORMAL_RGBA)
-
-        self.point_selected = self.tzmap.get_closest_point(longitude, latitude,
-                                                           False)
-
-        self.location_selected = location
-        self.set_city_text(self.location_selected.zone)
-        self.set_zone_text(self.location_selected)
-        self.frontend.allow_go_forward(True)
-
-    def city_changed(self, widget):
-        iterator = widget.get_active_iter()
-        if iterator is not None:
-            model = widget.get_model()
-            location = model.get_value(iterator, 1)
-            if location is not None:
-                self.set_tz_from_name(location)
-
-    def get_selected_tz_name(self):
-        if self.location_selected is not None:
-            return self.location_selected.zone
-        else:
-            return None
-
-    def location_from_point(self, point):
-        if point is None:
-            return None
-
-        (longitude, latitude) = point.get_location()
-
-        best_location = None
-        best_distance = None
-        for location in self.tzdb.locations:
-            if (abs(location.longitude - longitude) <= 1.0 and
-                abs(location.latitude - latitude) <= 1.0):
-                distance = ((location.longitude - longitude) ** 2 +
-                            (location.latitude - latitude) ** 2) ** 0.5
-                if best_distance is None or distance < best_distance:
-                    best_location = location
-                    best_distance = distance
-
-        return best_location
-
-    def timeout(self):
-        self.update_current_time()
-
-        if self.point_selected is None:
-            return True
-
-        if self.point_selected.get_color_rgba() == SELECTED_1_RGBA:
-            self.tzmap.point_set_color_rgba(self.point_selected,
-                                            SELECTED_2_RGBA)
-        else:
-            self.tzmap.point_set_color_rgba(self.point_selected,
-                                            SELECTED_1_RGBA)
-
-        return True
-
-    def mapped(self, widget, event):
-        if self.update_timeout is None:
-            self.update_timeout = gobject.timeout_add(100, self.timeout)
-
-    def unmapped(self, widget, event):
-        if self.update_timeout is not None:
-            gobject.source_remove(self.update_timeout)
-            self.update_timeout = None
-
-    def motion(self, widget, event):
-        if self.tzmap.get_magnification() <= 1.0:
-            if self.cursor_zoom_in is not None:
-                self.frontend.live_installer.window.set_cursor(
-                    self.cursor_zoom_in)
-        else:
-            self.frontend.live_installer.window.set_cursor(None)
-
-            (longitude, latitude) = self.tzmap.window_to_world(event.x,
-                                                               event.y)
-
-            if (self.point_hover is not None and
-                self.point_hover != self.point_selected):
-                self.tzmap.point_set_color_rgba(self.point_hover, NORMAL_RGBA)
-
-            self.point_hover = self.tzmap.get_closest_point(longitude,
-                                                            latitude, True)
-
-            if self.point_hover != self.point_selected:
-                self.tzmap.point_set_color_rgba(self.point_hover, HOVER_RGBA)
-
-        return True
-
-    def out_map(self, widget, event):
-        if event.mode != gtk.gdk.CROSSING_NORMAL:
+        # We quit in an idle function, because successive calls to
+        # main_quit will do nothing if the main loop hasn't had time to
+        # quit.  So we stagger calls to make sure that if this function
+        # is called multiple times (nested loops), it works as expected.
+        def quit_decrement():
+            # Defensively guard against negative pending
+            self.pending_quits = max(0, self.pending_quits - 1)
+            return False
+        def idle_quit():
+            if self.pending_quits > 1:
+                gtk.quit_add(0, quit_quit)
+            if gtk.main_level() > 0:
+                gtk.main_quit()
+            return quit_decrement()
+        def quit_quit():
+            # Wait until we're actually out of this main loop
+            glib.idle_add(idle_quit)
             return False
 
-        if (self.point_hover is not None and
-            self.point_hover != self.point_selected):
-            self.tzmap.point_set_color_rgba(self.point_hover, NORMAL_RGBA)
-
-        self.point_hover = None
-
-        self.frontend.live_installer.window.set_cursor(None)
-
-        return True
-
-    def button_pressed(self, widget, event):
-        (longitude, latitude) = self.tzmap.window_to_world(event.x, event.y)
-
-        if event.button != 1:
-            self.tzmap.zoom_out()
-            if self.cursor_zoom_in is not None:
-                self.frontend.live_installer.window.set_cursor(
-                    self.cursor_zoom_in)
-        elif self.tzmap.get_magnification() <= 1.0:
-            self.tzmap.zoom_to_location(longitude, latitude)
-            if self.cursor_zoom_in is not None:
-                self.frontend.live_installer.window.set_cursor(None)
-        else:
-            if self.point_selected is not None:
-                self.tzmap.point_set_color_rgba(self.point_selected,
-                                                NORMAL_RGBA)
-            self.point_selected = self.point_hover
-
-            new_location_selected = \
-                self.location_from_point(self.point_selected)
-            if new_location_selected is not None:
-                old_city = self.get_selected_tz_name()
-                if old_city is None or old_city != new_location_selected.zone:
-                    self.set_city_text(new_location_selected.zone)
-                    self.set_zone_text(new_location_selected)
-            self.location_selected = new_location_selected
-            self.frontend.allow_go_forward(self.location_selected is not None)
-
-        return True
+        if self.pending_quits == 0:
+            quit_quit()
+        self.pending_quits += 1
 
 # vim:ai:et:sts=4:tw=80:sw=4:

@@ -1,9 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
 SUBDIRS = desktop pixmaps po
-if PYGOBJECT_CODEGEN
-  SUBDIRS += src
-endif
 
 ACLOCAL_AMFLAGS = -I m4
 

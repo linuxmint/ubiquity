@@ -2,6 +2,9 @@
 
 set -e
 . /usr/share/debconf/confmodule
+if [ -e /lib/partman/lib/iscsi-base.sh ]; then
+	. /lib/partman/lib/iscsi-base.sh
+fi
 #set -x
 
 if [ "$(uname)" != Linux ]; then
@@ -117,14 +120,42 @@ if ! hw-detect disk-detect/detect_progress_title; then
 	log "hw-detect exited nonzero"
 fi
 
+# Compatibility with old iSCSI preseeding
+db_get open-iscsi/targets || RET=
+if [ "$RET" ]; then
+	if ! pidof iscsid >/dev/null; then
+		iscsi-start
+	fi
+	for portal in $RET; do
+		iscsi_discovery "$portal" -l
+	done
+fi
+
+# New-style preseeding
+if db_fget partman-iscsi/login/address seen && [ "$RET" = true ] && \
+   db_get partman-iscsi/login/address && [ "$RET" ]; then
+	if ! pidof iscsid >/dev/null; then
+		iscsi-start
+	fi
+	iscsi_login
+fi
+
 while ! disk_found; do
+	CHOICES_C=""
 	CHOICES=""
-	for mod in $(list_disk_modules | sort); do
+	if type iscsi_login >/dev/null 2>&1; then
+		CHOICES_C="${CHOICES_C:+$CHOICES_C, }iscsi"
+		db_metaget disk-detect/iscsi_choice description
+		CHOICES="${CHOICES:+$CHOICES, }$RET"
+	fi
+	for mod in $(list_disk_modules | grep -v iscsi | sort); do
+		CHOICES_C="${CHOICES_C:+$CHOICES_C, }$mod"
 		CHOICES="${CHOICES:+$CHOICES, }$mod"
 	done
 
 	if [ -n "$CHOICES" ]; then
 		db_capb backup
+		db_subst disk-detect/module_select CHOICES-C "$CHOICES_C"
 		db_subst disk-detect/module_select CHOICES "$CHOICES"
 		db_input high disk-detect/module_select || [ $? -eq 30 ]
 		if ! db_go; then
@@ -133,9 +164,15 @@ while ! disk_found; do
 		db_capb
 
 		db_get disk-detect/module_select
-		if [ "$RET" = "continue with no disk drive" ]; then
+		if [ "$RET" = continue ]; then
 			exit 0
-		elif [ "$RET" != "none of the above" ]; then
+		elif [ "$RET" = iscsi ]; then
+			if ! pidof iscsid >/dev/null; then
+				iscsi-start
+			fi
+			iscsi_login
+			continue
+		elif [ "$RET" != none ]; then
 			module="$RET"
 			if [ -n "$module" ] && is_not_loaded "$module" ; then
 				register-module "$module"
@@ -175,8 +212,7 @@ if anna-install dmraid-udeb; then
 		module_probe dm-mod || true
 	fi
 
-	if dmraid -c -s >/dev/null 2>&1 && \
-	   [ "$(dmraid -c -s | tr A-Z a-z)" != "no raid disks" ]; then
+	if dmraid -c -s >/dev/null 2>&1; then
 		logger -t disk-detect "Serial ATA RAID disk(s) detected."
 		# Ask the user whether they want to activate dmraid devices.
 		db_input high disk-detect/activate_dmraid || true
@@ -188,21 +224,16 @@ if anna-install dmraid-udeb; then
 			mkdir -p /var/lib/disk-detect
 			touch /var/lib/disk-detect/activate_dmraid
 			logger -t disk-detect "Enabling dmraid support."
-			# Activate only those arrays which have all disks present.
+			# Activate only those arrays which have all disks
+			# present.
 			for dev in $(dmraid -r -c); do
 				[ -e "$dev" ] || continue
-				log-output -t disk-detect dmraid-activate $(basename $dev)
+				log-output -t disk-detect dmraid-activate "$(basename "$dev")"
 			done
 		fi
 	else
 		logger -t disk-detect "No Serial ATA RAID disks detected"
 	fi
-fi
-
-# Activate support for iSCSI
-db_get disk-detect/iscsi/enable
-if [ "$RET" = true ]; then
-	anna-install open-iscsi-udeb
 fi
 
 # Activate support for DM Multipath

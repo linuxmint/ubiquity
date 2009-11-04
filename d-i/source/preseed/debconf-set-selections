@@ -1,6 +1,11 @@
 #!/bin/sh
 set -e
 
+OLDIFS="$IFS"
+CR=$(echo -en "\r")
+NL="
+"
+
 export DEBIAN_FRONTEND=none
 . /usr/share/debconf/confmodule
 . /lib/preseed/preseed.sh
@@ -31,13 +36,7 @@ rest_line() {
 	fi
 }
 
-OLDIFS="$IFS"
-NEWLINE="
-"
-IFS="$NEWLINE"
-CR=$(echo -en "\r")
-SPACE=$(echo -en "[ \t]")
-
+IFS="$NL"
 multiline=""
 # TODO: this squashes \r elsewhere in the line too
 for line in $(grep -v '^#\|^[[:space:]]*$' "$file" | sed "s/$CR//g"); do
@@ -92,5 +91,4 @@ for line in $(grep -v '^#\|^[[:space:]]*$' "$file" | sed "s/$CR//g"); do
 			db_fset "$var" seen true
 		fi
 	fi
-	IFS="$NEWLINE"
 done

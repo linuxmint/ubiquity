@@ -32,7 +32,7 @@ clean:
 	rm -f *.o
 	rm -f archdetect
 
-install: install-hw-detect install-ethdetect install-disk-detect install-archdetect install-archdetect-deb
+install: install-hw-detect install-ethdetect install-disk-detect install-driver-injection-disk-detect install-archdetect install-archdetect-deb
 
 install-hw-detect: hw-detect.sh
 	$(INSTALL) -d $(bindir)
@@ -46,11 +46,11 @@ ifeq ($(DEB_HOST_ARCH_OS),linux)
 	$(INSTALL) firmware.agent $(udevlibdir)
 	$(INSTALL) check-missing-firmware.sh $(bindir)/check-missing-firmware
 	$(INSTALL) -d $(postbaseinstallerdir)
-	$(INSTALL) post-base-installer $(postbaseinstallerdir)/50hw-detect
+	$(INSTALL) hw-detect.post-base-installer.d/* $(postbaseinstallerdir)
 	$(INSTALL) -d $(hpdir)/net
 	$(INSTALL) net-hotplug.sh $(hpdir)/net/hw-detect.hotplug
 	$(INSTALL) -d $(fidir)
-	$(INSTALL) hw-detect.finish-install $(fidir)/30hw-detect
+	$(INSTALL) hw-detect.finish-install.d/* $(fidir)
 ifeq ($(DEB_HOST_ARCH),powerpc)
 	$(INSTALL) discover-mac-io.sh $(bindir)/discover-mac-io
 	$(INSTALL) discover-ibm.sh $(bindir)/discover-ibm
@@ -71,6 +71,10 @@ install-ethdetect: ethdetect.sh
 install-disk-detect: disk-detect.sh
 	$(INSTALL) -d $(bindir)
 	$(INSTALL) disk-detect.sh $(bindir)/disk-detect
+
+install-driver-injection-disk-detect: driver-injection-disk.sh
+	$(INSTALL) -d $(bindir)
+	$(INSTALL) driver-injection-disk.sh $(bindir)/driver-injection-disk
 
 install-archdetect: archdetect
 	$(INSTALL) -d $(bindir)

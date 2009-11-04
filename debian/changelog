@@ -1,27 +1,894 @@
-ubiquity (1.12.12-1mint3) gloria; urgency=low
+ubiquity (2.0.6) karmic; urgency=low
 
-  * user-setup-apply --> Assign same password to root (calls to setpassword()) (again.. had to remove an empty if/fi block)
+  * Automatic update of included source packages: partman-basicmethods
+    43ubuntu2, partman-target 64ubuntu5.
 
- -- Clement Lefebvre <root@linuxmint.com>  Mon, 27 Apr 2009 21:07:00 +0000
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 27 Oct 2009 15:20:11 +0000
 
-ubiquity (1.12.12-1mint2) gloria; urgency=low
+ubiquity (2.0.5) karmic; urgency=low
 
-  * user-setup-apply --> Assign same password to root (calls to setpassword())
+  [ Evan Dandrea ]
+  * Do not fail if linux-generic-pae is not in the package cache.
+    Thanks Colin Watson (LP: #461377).
+  * Really don't run oem-config again.  Thanks Colin Watson
+    (LP: #461546).
+  * Fix broken reference in the apport hook (LP: #461757).
+  * Add noninteractive pages for user-setup and migrationassistant as
+    well.
+  * Automatic update of included source packages: user-setup
+    1.27ubuntu11.
 
- -- Clement Lefebvre <root@linuxmint.com>  Mon, 27 Apr 2009 19:52:00 +0000
+  [ Colin Watson ]
+  * Run partman in the noninteractive frontend (otherwise we try to install
+    to the live CD root!).
+  * Explicitly print noninteractive output to the console (as the Python
+    debconf module redirects sys.stdout to sys.stderr which ends up in
+    /var/log/installer/debug).
 
-ubiquity (1.12.12-1mint1) gloria; urgency=low
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 27 Oct 2009 13:21:40 +0000
 
-  * Changed ubiquity.png
-  * /usr/share/ubiquity/install.py --> changed ubuntu to mint for default domain
-  * /usr/share/ubiquity/install.py --> remove call to configure_apt
-  * /usr/lib/ubiquity/ubiquity/frontend/gtk_ui.py (user ubuntu changed to Mint, various references to Ubuntu --> Mint)
-  * /usr/bin/ubiquity-dm (ubuntu --> mint and background --> /usr/share/backgrounds/LinuxMint.png)
-  * /usr/lib/ubiquity/ubiquity/components/summary.py (ref to Hardy changed to Elyssa)
-  * /usr/share/ubiquity/glade/stepPartAuto.glade ("Where do you want to put Ubuntu?" --> "Where do you want to put Linux Mint?")
-  * overwrote /usr/share/grub-installer/grub-installer with Merlwiz' version
+ubiquity (2.0.4) karmic; urgency=low
 
- -- Clement Lefebvre <root@linuxmint.com>  Sat, 25 Apr 2009 18:17:00 +0000
+  [ Evan Dandrea ]
+  * Do not install the live CD kernel in the target system when using
+    PAE (LP: #413135).
+  * Properly set the kernel version in the main install process when
+    using PAE so that symlinks get created for the kernel and initramfs.
+  * Automatic update of included source packages: partman-base
+    133ubuntu4.
+  * Automatic update of included source packages: grub-installer
+    1.43ubuntu8, partman-basicmethods 43ubuntu1.
+
+  [ Colin Watson ]
+  * Change apport hook to prefer syslog, partman, and casper.log from
+    /var/log/installer/ if they exist there, to support bug-filing after
+    installation.
+  * Don't set the "incomplete language support" note if only gimp-help-* is
+    missing, since it's far too big to fit on CDs (LP: #452516).
+  * Furthermore, always consider English as "complete enough". The packages
+    that are missing from an installation from the Ubuntu desktop CD are not
+    critical for a reasonable user experience.
+  * Make use of check-language-support -a if pkgsel/language-packs is ALL,
+    since that's orders of magnitude faster (LP: #458333).
+  * Keep language-support-$LL installed if it happens to be in the live
+    filesystem, since there's no point spending time removing it; but don't
+    install it if it isn't in the live filesystem (LP: #458333).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Sat, 24 Oct 2009 14:55:26 +0100
+
+ubiquity (2.0.3) karmic; urgency=low
+
+  [ Colin Watson ]
+  * Use new check-language-support --show-installed option added in
+    language-selector 0.4.16, so that we can arrange to keep language
+    support packages installed that are already present in the live
+    filesystem.
+
+  [ Mario Limonciello ]
+  * Pass the debug parameters to ubiquity even if running in noninteractive
+    mode.
+  * Don't provide the old init scripts, even under a temporary name anymore.
+    - It appears that there is a race condition that can exist between when
+      the upstart'ified version and the initscript version start that may cause
+      only-ubiquity and automatic-ubiquity to (poorly) fail. (LP: #457858)    
+    - All login managers in use (gdm and kdm) have converted to upstart now.
+
+  [ Evan Dandrea ]
+  * Calculate the amount of available memory in check-kernels (LP: #413135).
+  * Automatic update of included source packages: grub-installer
+    1.43ubuntu7.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Fri, 23 Oct 2009 08:11:00 +0100
+
+ubiquity (2.0.2) karmic; urgency=low
+
+  [ Evan Dandrea ]
+  * Properly set the size of the partition to be created upon resizing
+    in the KDE frontend (LP: #455580).
+  * Hide the encrypt home radio button in the KDE frontend when in oem-config
+    mode (LP: #455479).
+
+  [ Colin Watson ]
+  * KDE frontend: Fix incorrect error message when the slideshow doesn't
+    exist.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 20 Oct 2009 16:09:07 +0100
+
+ubiquity (2.0.1) karmic; urgency=low
+
+  [ Evan Dandrea ]
+  * Check to see whether X crashed or ubiquity crashed before attempting
+    to bail into the noninteractive frontend from only-ubiquity mode
+    (LP: #444901).
+  * Wrap the format warning label while working around GTK+ label layout
+    problems (LP: #364617).
+
+  [ Colin Watson ]
+  * Rewrite X_LOADTEMPLATEFILE commands in case they refer to template files
+    in the /target chroot (LP: #452118).
+  * Install -generic-pae kernels if necessary; this requires some custom
+    hacks since -generic-pae isn't in the live filesystem (LP: #413135).
+  * Don't do kernel installation/removal in oem-config.
+  * Skip partition_too_small check during Wubi installs, as Wubi does some
+    of its own checks and the delay imposed by this check looks particularly
+    weird in Wubi. This may or may not be the cause of apparent hangs
+    towards the end of partitioning, but I suspect that it will at least get
+    rid of some conflated reports and make testing quicker.
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: clock-setup 0.98ubuntu3,
+    flash-kernel 2.13ubuntu13, grub-installer 1.43ubuntu6, partman-auto
+    89ubuntu2, partman-target 64ubuntu4.
+
+  [ Mario Limonciello ]
+  * Mythbuntu: Don't allow "removing" LIRC as it's not supported with install.
+
+  [ Roman Shtylman ]
+  * Fixed India timezone map (LP: #453009) 
+
+  [ Michael Casadevall ]
+  * Added support for partman-uboot in ubiquity (LP: #455713)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 20 Oct 2009 01:20:06 +0100
+
+ubiquity (2.0.0) karmic; urgency=low
+
+  [ Colin Watson ]
+  * Bump to a stable version number series for Ubuntu 9.10.
+
+    The main reason for the version bump was because we incorporated
+    oem-config and needed to jump past its version numbers, but really
+    Ubiquity 2.0.0 is quite different from Ubiquity 1.0.0 despite most of
+    the changes being gradual and incremental. 3.5 years and nearly 5000
+    lines of changelog entries later, we have several active developers,
+    lots more translations, apport integration, a new partitioner,
+    migration-assistant, automation, Mythbuntu and noninteractive frontends,
+    Wubi, reinstallation without reformatting, a new timezone map,
+    accessibility, many UI improvements, a slideshow, plugin support, and
+    much more. Here's to version 3!
+
+  * Install kernel headers to match the kernel (LP: #413135).
+  * Recommend dmraid to ensure consistent behaviour across Ubuntu flavours
+    (it was already present on the Ubuntu desktop CD, but e.g. not on
+    Kubuntu).
+  * If dmraid devices are active, then create
+    /var/lib/disk-detect/activate_dmraid so that partman will exclude slave
+    devices, and ensure that dmraid is installed in the target (LP: #90235).
+  * Use check-language-support if available to select language support
+    packages (LP: #434173).
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: base-installer
+    1.102ubuntu2, hw-detect 1.72ubuntu5.
+
+  [ Jonathan Riddell ]
+  * ubi-intro.py: detect kubuntu-netbook-intro.txt if it exists and use
+    that as warning for Kubuntu Netbook Edition
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 14 Oct 2009 23:57:40 +0100
+
+ubiquity (1.99.31) karmic; urgency=low
+
+  [ Evan Dandrea ]
+  * Handle DATA commands in debconffilter.  Support PROGRESS in the apt-
+    setup component (LP: #445385).
+
+  [ Colin Watson ]
+  * Automatic update of included source packages: debian-installer-utils
+    1.70ubuntu2, partman-target 64ubuntu3.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 07 Oct 2009 22:49:30 +0100
+
+ubiquity (1.99.30) karmic; urgency=low
+
+  * Automatic update of included source packages: partman-base 133ubuntu3,
+    partman-basicfilesystems 63ubuntu2.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 06 Oct 2009 22:47:19 +0100
+
+ubiquity (1.99.29) karmic; urgency=low
+
+  [ Colin Watson ]
+  * Use a separate PROGRESS REGION for each install plugin (LP: #438979).
+  * GTK frontend:
+    - When switching language, translate other top-level widgets (dialogs)
+      and their children, as well as the main notebook pages (LP: #441622).
+  * Install a dummy initctl similar to the dummy start-stop-daemon while
+    doing anything that might install or remove packages in the target
+    system, so that attempts to control Upstart jobs won't do anything.
+  * Stop Upstart jobs when switching to runlevel 0 or 6, which I think fixes
+    repeated respawns on shutdown (LP: #432140).
+  * Save /var/log/installer/debug to the target system if it exists.
+  * In the auto-resize bar, use the preferred partition size requested by
+    partman-auto/partman-partitioning, rather than hardcoding the maximum
+    size or making up our own (LP: #421407).
+  * Update imported translations from gtk+2.0 2.18.1-1ubuntu1 (adds Asturian
+    and Bengali).
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: apt-setup 1:0.41ubuntu2,
+    console-setup 1.34ubuntu4, flash-kernel 2.13ubuntu12, grub-installer
+    1.43ubuntu5, partman-partitioning 72ubuntu2, partman-target 64ubuntu2.
+
+  [ Evan Dandrea ]
+  * Port fix for return_to_partitioning from the GTK+ frontend to the
+    KDE frontend (LP: #439184).
+  * Explicitly depend on reiserfsprogs so that we don't have to add it
+    to every live seed (LP: #431976).
+  * Write /cdrom/.disk/info to /var/log/installer/media-info
+    (LP: #364649).
+
+  [ Roman Shtylman ]
+  * Limit width of side breadcumbs in kde for long translation text. 
+    Using elided text where needed (LP: #438918)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 06 Oct 2009 18:39:54 +0100
+
+ubiquity (1.99.28) karmic; urgency=low
+
+  * Automatic update of included source packages: partman-auto-loop
+    0ubuntu18.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 29 Sep 2009 22:15:58 +0100
+
+ubiquity (1.99.27) karmic; urgency=low
+
+  * Emit starting-dm in the ubiquity and oem-config upstart jobs.
+    Thanks Colin Watson!
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 29 Sep 2009 16:05:31 +0100
+
+ubiquity (1.99.26) karmic; urgency=low
+
+  * Disable the intro message in preparation for Ubuntu 9.10 beta.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 28 Sep 2009 22:36:21 +0100
+
+ubiquity (1.99.25) karmic; urgency=low
+
+  * d-i/get-sources: Clear Dir::Etc::sourceparts, so that any local
+    /etc/apt/sources.list.d/ isn't used.
+  * Cope with the possibility that /etc/init.d/usplash may not exist, in
+    anticipation of usplash switching to Upstart jobs.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 28 Sep 2009 13:11:44 +0100
+
+ubiquity (1.99.24) karmic; urgency=low
+
+  * Reorganise clock handling. The system wall clock is now set as early as
+    possible, and not reset after partitioning; and the timezone and
+    hardware clock configuration are now changed in the live filesystem root
+    as well as in /target (LP: #431786).
+  * Update translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 27 Sep 2009 17:50:22 +0100
+
+ubiquity (1.99.23) karmic; urgency=low
+
+  [ Evan Dandrea ]
+  * Add missing definition of self.controller for the noninteractive
+    page in the language plugin.
+
+  [ Colin Watson ]
+  * Use an explicit state file to determine whether oem-config runs, since
+    with Upstart it's no longer straightforward to just add/remove rc*.d
+    symlinks (LP: #432180).
+  * We already avoid copy-blacklisting files in packages that have a prerm,
+    since they might require non-trivial work before removing their files.
+    Now also avoid copy-blacklisting files in dependencies of such packages,
+    as otherwise we risk leaving programs in the target system for a while
+    that don't have their library dependencies satisfied, causing confusion
+    when other programs try to use them (LP: #436613).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 25 Sep 2009 14:59:33 +0100
+
+ubiquity (1.99.22) karmic; urgency=low
+
+  [ Michael Terry ]
+  * gtk: Don't assume there will be a country shortlist for the selected
+    language.  Fixes the lack of a default zone for Polish.  LP: #425011
+  * kde: Let back/forward/quit buttons activate when highlighted and the
+    user presses Enter.  Part of bug #46600
+
+  [ Evan Dandrea ]
+  * Suppress Pango warning about not being able to open /root/.pangorc.
+  * Use the page name instead of the new step name when considering both
+    partitioning pages.
+  * Fix broken conditional statement that prevented
+    process_autopartitioning and info_loop from being called.
+  * Disable the forward button for the usersetup page when coming from
+    both the automatic and manual partitioning pages, rather than just
+    the latter.
+  * Open a browser window when links are clicked on in the slideshow
+    (LP: #432145).
+  * Automatic update of included source packages: base-installer
+    1.102ubuntu1, flash-kernel 2.13ubuntu11, grub-installer 1.43ubuntu3,
+    partman-partitioning 72ubuntu1.
+
+  [ Roman Shtylman ]
+  * Fixed vertical spacer on keyboard page
+  * Removed underline from keyboard buttons
+  * Added ability to view shifted keys on keyboard display 
+
+  [ Colin Watson ]
+  * Mount /sys while running grub-installer, since os-prober needs to look
+    in /sys/block (LP: #430141).
+  * Install new dmi-available-memory program from base-installer
+    1.101ubuntu5.
+  * Don't respawn Upstart jobs on exit status 1.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Thu, 24 Sep 2009 09:40:12 -0700
+
+ubiquity (1.99.21) karmic; urgency=low
+
+  * Install the init script (under a new, temporary name) as well as the
+    Upstart job, in order that flavours whose display managers haven't yet
+    converted to Upstart can still work. Take pains to ensure that only one
+    of these runs.
+  * Fix ubiquity's Upstart job to actually check whether it should run
+    ubiquity (thanks, Mario Limonciello).
+  * Build-depend on dh-di 3 to pick up fix affecting manual partitioning.
+  * Tolerate LANG not being set yet in get_string (LP: #431048).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 17 Sep 2009 00:35:04 +0100
+
+ubiquity (1.99.20) karmic; urgency=low
+
+  [ Michael Terry ]
+  * kde: Fix crasher when in the advanced partition page by adding a
+    missing function.  LP: #430413
+
+  [ Colin Watson ]
+  * Add Upstart jobs for ubiquity and oem-config (LP: #430607).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Wed, 16 Sep 2009 21:35:28 +0100
+
+ubiquity (1.99.19) karmic; urgency=low
+
+  [ Oliver Grawert ]
+  * make sure /target/dev is properly bind mounted and unmounted in
+    chroot_setup() and chroot_cleanup() so postinst triggers that require
+    certain devices will find them (LP: #422101)
+
+  [ Michael Casadevall ]
+  * Add support for installing dove bootloader (LP: #409238)
+
+  [ Michael Terry ]
+  * Make sure the LANG environment variable is always set (LP: #429994)
+  * kde: Fix a crasher when using oem-config (don't reference step labels
+    that don't exist)
+
+  [ Colin Watson ]
+  * Automatic update of included source packages: flash-kernel 2.13ubuntu10,
+    grub-installer 1.43ubuntu1, partman-auto-loop 0ubuntu17.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 15 Sep 2009 23:47:02 +0100
+
+ubiquity (1.99.18) karmic; urgency=low
+
+  [ Evan Dandrea ]
+  * Do not provide an inaccurate remaining time estimate for the file copy
+    process (LP: #199834).  Thanks rugby471!
+  * Call reboot as root.  Thanks Mario Limonciello!
+  * Don't let the user proceed past the timezone page until a selection has
+    been made (LP 425011).
+  * Automatic update of included source packages: partman-auto
+    89ubuntu1, partman-partitioning 71ubuntu1.
+
+  [ Michael Terry ]
+  * Add a default oem-config post-install hook that restarts HAL.  This lets
+    HAL pick up any keyboard changes we made.  LP: #395625
+
+  [ Colin Watson ]
+  * More packaging simplifications: move dh_clean arguments to debian/clean;
+    remove old $(BUILDDIR) cruft; move architecture-specific
+    build-dependencies to debian/control, which dpkg has supported for quite
+    a while; use dh-di for partman scripts.
+  * Update translations from Launchpad.
+  * Fix method name to allow page changing in partitioner (LP: #427347).
+  * Fix oem-config crash if the KDE frontend is detected, due to trying to
+    delete UBIQUITY_MIGRATION_ASSISTANT from the environment when it's not
+    there (LP: #414854).
+  * Stop ubiquity-dm crashing if a process it's trying to kill doesn't exist
+    (LP: #423700).
+
+  [ Jonathan Riddell ]
+  * Update path to kdesu in ubiquity-wrapper
+
+ -- Evan Dandrea <evand@ubuntu.com>  Fri, 11 Sep 2009 19:26:50 +0100
+
+ubiquity (1.99.17) karmic; urgency=low
+
+  [ Colin Watson ]
+  * Add support for the biosgrub partman method, to be added in
+    partman-partitioning 71.
+
+  [ Mario Limonciello ]
+  * Use the usplash init script to stop usplash in the oem-config init script
+    It seems to do a better job, and prevents a black screen on boot with some
+    drivers that aren't as usplash friendly. (LP: #403021)
+
+  [ Evan Dandrea ]
+  * Merged Michael Terry's plugins branch (LP: #419989).  See
+    http://wiki.ubuntu.com/Ubiquity/Plugins for instructions on writing
+    new plugins.
+  * Automatic update of included source packages: clock-setup
+    0.98ubuntu2.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Mon, 07 Sep 2009 09:44:29 +0100
+
+ubiquity (1.99.16) karmic; urgency=low
+
+  * Go back to using /var/log/oem-config.log for oem-config logging; it's
+    convenient and less confusing to have that in a separate file, rather
+    than /var/log/installer/debug.
+  * Be more explicit in logs when ubiquity is being run as oem-config.
+  * Don't warn about missing (as opposed to present-but-unreadable)
+    /etc/casper.conf.
+  * Don't try to copy installation logs when running as oem-config.
+  * Fix setting of TARGET when ubiquity is running as oem-config.
+  * Stop the po directory's mostlyclean target from removing ubiquity.pot.
+    We want to keep this file in the source package.
+  * Import tempfile, to stop start_debconf crashing.
+  * Automatic update of included source packages: grub-installer
+    1.42ubuntu2.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 02 Sep 2009 14:32:02 +0100
+
+ubiquity (1.99.15) karmic; urgency=low
+
+  [ Mario Limonciello ]
+  * Mythbuntu frontend:
+    - Fix a crash caused by two GtkCellRendererText's having the same
+      id.  A recent upload of gtk is less forgiving of this error.
+      (LP: #422621)
+    - Reconfigure mysql-server-5.1 rather than 5.0 since 5.1 is what's
+      now in main.
+  * Automatic update of included source packages: console-setup
+    1.34ubuntu2, grub-installer 1.42ubuntu1, partman-auto 87ubuntu3,
+    partman-base 133ubuntu2, partman-target 62ubuntu2, user-setup
+    1.27ubuntu10.
+
+  [ Colin Watson ]
+  * Re-enable encrypted home option; apparently all the dependencies are in
+    place now.
+
+ -- Mario Limonciello <mario_limonciello@dell.com>  Tue, 01 Sep 2009 12:44:48 -0500
+
+ubiquity (1.99.14) karmic; urgency=low
+
+  [ Roman Shtylman ]
+  * Fix for (LP: #419142), could not reproduce so just moved the size 
+    display to the same line as % display
+
+  [ Mario Limonciello ]
+  * Look for language during the progress loop even if no slides are
+    available as the error message is dependent upon it.
+
+ -- Mario Limonciello <Mario_Limonciello@dell.com>  Mon, 31 Aug 2009 10:15:29 -0500
+
+ubiquity (1.99.13) karmic; urgency=low
+
+  [ Colin Watson ]
+  * Update translations from Launchpad.
+  * Upgrade to Automake 1.11.
+  * Recent versions of intltool need GETTEXT_PACKAGE. It's great that that
+    new requirement was documented nice and clearly. Oh, wait ...
+  * Update desktop translation files against new source text; all languages
+    need some retranslation work.
+  * Update imported translations from gtk+2.0 2.17.7-0ubuntu3.
+
+  [ Roman Shtylman ]
+  * fix for (LP: #413159). Acceptable for feature freeze, but still needs 
+   work and further review
+  * fix for (LP: #420226)
+
+  [ Evan Dandrea ]
+  * Fixes to the slideshow code.
+  * Automatic update of included source packages: flash-kernel
+    2.13ubuntu9, hw-detect 1.72ubuntu4.
+
+  [ Michael Terry ]
+  * Add Venezuela timezone (UTC-4.30)
+  * gtk: Start cycling through cities on the second click, not the third
+  * gtk: Don't have clicks on Texas use a Mexican timezone by default
+    LP: #371509 
+
+ -- Evan Dandrea <evand@ubuntu.com>  Sat, 29 Aug 2009 13:22:52 +0100
+
+ubiquity (1.99.12) karmic; urgency=low
+
+  [ Colin Watson ]
+  * Ensure that /usr/share/applications and /usr/share/applications/kde
+    exist in oem-config-gtk and oem-config-gtk respectively, and remove the
+    .desktop files installed there on removal (LP: #417255).
+
+  [ Evan Dandrea ]
+  * Automatic update of included source packages: base-installer
+    1.101ubuntu4, user-setup 1.27ubuntu9.
+
+  [ Roman Shtylman ]
+  * Added support for encrypted home/swap login in kde installer 
+
+ -- Roman Shtylman <shtylman@gmail.com>  Mon, 24 Aug 2009 22:06:45 -0400
+
+ubiquity (1.99.11) karmic; urgency=low
+
+  [ Evan Dandrea ]
+  * Rename ubiquity.dirs.* to ubiquity.dirs-* to avoid dh_installdirs using
+    the files as overrides.
+
+  [ Roman Shtylman ]
+  * Merged ~cr3/ubiquity/bug-417417 with fix for (LP: #417417) 
+
+ -- Roman Shtylman <shtylman@gmail.com>  Sun, 23 Aug 2009 09:17:56 -0400
+
+ubiquity (1.99.10) karmic; urgency=low
+
+  [ Michael Terry ]
+  * gtk: Remove separators from hand-crafted dialogs
+
+  [ Evan Dandrea ]
+  * Fix code around the debhelper 7 migration to build on ARM again.
+    Thanks Loïc Minier!
+
+ -- Evan Dandrea <evand@ubuntu.com>  Fri, 21 Aug 2009 09:56:44 +0100
+
+ubiquity (1.99.9) karmic; urgency=low
+
+  * Automatic update of included source packages: user-setup
+    1.27ubuntu8.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Wed, 19 Aug 2009 17:47:10 +0100
+
+ubiquity (1.99.8) karmic; urgency=low
+
+  * Adjust the way the locale is passed to ubiquity-slideshow-ubuntu.
+  * Depend on cryptsetup for encrypted home directory support.
+  * Automatic update of included source packages: user-setup
+    1.27ubuntu7.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 18 Aug 2009 13:15:29 +0100
+
+ubiquity (1.99.7) karmic; urgency=low
+
+  [ Mario Limonciello ]
+  * mythbuntu_ui:
+    - Hide step_label during the last step just prior to reboot. (LP: #412823)
+    - Add a GtkCellRendererText and ListStore to drivers step.  The previous
+      conversion from glade->gtkbuilder appears to have not done for us.
+    - Link to the gtkbuilder remote file from mythbuntu-common.
+    - Fix broken MySQL service by mythbuntu-common changes.
+  * gtk:
+     - Drop logic to support glade files.
+  * Drop depends on python-glade2
+
+  [ Colin Watson ]
+  * Upgrade to debhelper v7. There's still some fairly significant ugliness
+    in our debian/rules, but this is a slight improvement.
+
+  [ Michael Terry ]
+  * kde: Enable timezone translation
+  * gtk: Remove separators from dialogs
+  * gtk: Convert glade files to GtkBuilder files (LP: #403542), which required
+    a minimum gtk+ version bump to 2.12
+  * Add menu icons for oem-config-prepare*.desktop (LP: #412832)
+
+  [ Harald Sitter ]
+  * Install the KDE desktop file to applications/kde4/ to prevent it from showing
+    up as KDE 3 application in KRunner (happens when stored in applications/kde/)
+
+  [ Roman Shtylman ]
+  * kde: fix text overflow/clipping on user info page when presented with errors
+   (LP: #413127)
+
+  [ Evan Dandrea ]
+  * Use "Require my password" rather than "Require a password" for the
+    sake of clarity.  Thanks Matthew Paul Thomas.
+  * Reset the internal pointer to the segment to be resized when
+    clearing the contents of the segmented bar in the GTK frontend
+    (LP: #386982).  Thanks Eitan Isaacson!
+
+ -- Mario Limonciello <superm1@ubuntu.com>  Tue, 18 Aug 2009 00:27:47 -0500
+
+ubiquity (1.99.6) karmic; urgency=low
+
+  [ Michael Terry ]
+  * kde: Fix crash in timezone map when default country is US or Canada,
+    broken by recent translation support. (LP: #412589)
+
+  [ Evan Dandrea ]
+  * 'as' is not supported in Python 2.5.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Wed, 12 Aug 2009 17:13:39 +0100
+
+ubiquity (1.99.5) karmic; urgency=low
+
+  [ Mario Limonciello ]
+  * When performing a Mythbuntu install w/ NVIDIA graphics, don't use the xorg
+    conf from the livefs as a base as it's nonexistent now. (LP: #411221)
+  * Properly process the output of apt-cache when pkgsel/language-packs is
+    preseeded to ALL.
+  * Automatic update of included source packages: grub-installer
+    1.40ubuntu2, hw-detect 1.72ubuntu3.
+
+  [ Michael Terry ]
+  * Sort language list with pyicu
+  * gtk: Translate timezones with pyicu
+
+ -- Mario Limonciello <superm1@ubuntu.com>  Tue, 11 Aug 2009 10:13:55 -0500
+
+ubiquity (1.99.4) karmic; urgency=low
+
+  [ Evan Dandrea ]
+  * Correct erroneously inverted test for the slideshow slides.  Thanks
+    Roman Shtylman.
+
+  [ Roman Shtylman ]
+  * migrated to custom progress dialog to support slideshow slides
+  * added support for slideshow
+  * fixed bug with going backwards on partition screen
+
+  [ Mario Limonciello ]
+  * For automatic mode, don't use an unreferenced local variable.
+  * When generating the blacklist, if OEM mode is enabled, explicitly call
+    out ubiquity to be on the list of packages to keep files from. Prevents 
+    issues with oem-config missing files after reboot. (LP: #409648)
+  * Automatic update of included source packages: partman-base
+    133ubuntu1, partman-partitioning 69ubuntu1.
+
+  [ Colin Watson ]
+  * Rename debian/po to debian/real-po and put a symlink in place, so that
+    Launchpad Translations will be able to import our translation files.
+
+ -- Mario Limonciello <mario_limonciello@dell.com>  Fri, 07 Aug 2009 15:59:48 -0500
+
+ubiquity (1.99.3) karmic; urgency=low
+
+  [ Colin Watson ]
+  * Filter out Help: from d-i's debconf templates, since Perl debconf
+    doesn't know about that yet (LP: #402969).
+
+  [ Roman Shtylman ]
+  * new files for themeing kde gui 
+  * started work on moving over to the new theme/app.ui file
+  * new theme is in place and a simple install can be performed
+
+  [ Evan Dandrea ]
+  * Automatic update of included source packages: grub-installer
+    1.40ubuntu1, user-setup 1.27ubuntu6.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Wed, 29 Jul 2009 22:21:06 +0100
+
+ubiquity (1.99.2) karmic; urgency=low
+
+  [ Mario Limonciello ]
+  * Correct a minor spacing typo in oem-config-firstboot.
+
+  [ Michael Terry ]
+  * Fix -q behavior when X is not running, thereby fixing oem-config-firstboot
+  * gtk: initialize gobject threads for webkit
+
+  [ Martin Pitt ]
+  * Automatic update of included source packages: user-setup
+    1.27ubuntu5. This fixes autologin configuration. (LP: #402707)
+
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Wed, 22 Jul 2009 07:28:22 +0200
+
+ubiquity (1.99.1) karmic; urgency=low
+
+  [ Colin Watson ]
+  * Use dh_lintian.
+  * Restore autologin-disabling code from oem-config, corrected to work with
+    new gdm (LP: #395861).
+
+  [ Evan Dandrea ]
+  * Add support for ubiquity-slideshow.
+  * Debconf GET returns the default value if no value is set on a
+    question.  As an undesirable default is set for netcfg/get_hostname,
+    check the seen flag to see if the value returned by GET was inputted
+    by the user (LP: #401919).
+  * Do not try to run Migration Assistant for the KDE frontend.
+  * Automatic update of included source packages: partman-base
+    132ubuntu1, partman-target 62ubuntu1.
+
+  [ Mario Limonciello ]
+  * Divert the ubiquity-gtkui.desktop file when oem-config is installed as
+    oem-config now depends on ubiquity.
+
+  [ Michael Terry ]
+  * GTK frontend: Remove horizontal separator at bottom, and let timezone
+    map fill its allocated space
+  * GTK frontend: Have all buttons set use_underline to True. LP: #399005
+  * noninteractive frontend: Don't tell debconf the translated name of the
+    chosen language, but rather the language code.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 21 Jul 2009 17:43:37 +0100
+
+ubiquity (1.99.0) karmic; urgency=low
+
+  [ Michael Terry ]
+  * Merge oem-config code into ubiquity.
+    - Adds several new binary packages (oem-config, oem-config-gtk,
+      oem-config-kde, oem-config-debconf, oem-config-check, and
+      oem-config-udeb).
+    - Various architectural changes as well, including support in various
+      places for running in 'oem user config' mode.  Which is when the user is
+      configuring an already-installed system after opening it (i.e. when run
+      as the binary 'oem-config'.
+    - Baby-step support for preseeding different page sequences.
+  * Automatic update of included source packages: debian-installer-utils
+    1.70ubuntu1, user-setup 1.27ubuntu4.
+
+  [ Evan Dandrea ]
+  * Remove code to account for last-good-boot in oem-config-firstboot as
+    the former has been abandoned.
+  * Add a RELEASE marker in the desktop file to be substituted for the
+    release name and version by casper (LP: #154506).
+  * Automatic update of included source packages: grub-installer
+    1.39ubuntu1, partman-auto 87ubuntu1.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Wed, 15 Jul 2009 15:06:57 +0100
+
+ubiquity (1.13.8) karmic; urgency=low
+
+  [ Evan Dandrea ]
+  * Elaborate on the purpose of timezone selection in the heading, to
+    better assist those confused about the need to select a city.  Thanks
+    Colin Watson.
+
+  [ Mario Limonciello ]
+  * Check that the home directory actually exists before running os.listdir
+    on it in the select_ecryptfs function. (LP: #394338)
+
+  [ Colin Watson ]
+  * Clarify that "use the entire disk" really does mean erasing everything
+    on it (thanks, Jason Spiro; LP: #94382).
+  * Match up chroot_cleanup start-stop-daemon conditionals with
+    chroot_setup, to avoid failing if the target filesystem didn't contain
+    /sbin/start-stop-daemon for some reason (LP: #394669).
+  * Fix manifest file handling, broken in 1.13.5 (LP: #395195).
+  * Automatic update of included source packages: debian-installer-utils
+    1.70ubuntu1, partconf 1.32, user-setup 1.27ubuntu4.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 08 Jul 2009 17:27:36 +0100
+
+ubiquity (1.13.7) karmic; urgency=low
+
+  * GTK frontend:
+    - Stop importing ubiquity.emap (LP: #393175).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 01 Jul 2009 01:01:04 +0100
+
+ubiquity (1.13.6) karmic; urgency=low
+
+  * Fix syntax error in install.py (LP: #392424).
+  * Add sanity-check on clean to stop trivial syntax errors like this being
+    uploaded again.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 26 Jun 2009 18:06:27 +0100
+
+ubiquity (1.13.5) karmic; urgency=low
+
+  * Factor out /etc/casper.conf parsing from ubiquity-dm to a separate
+    Python module, with a few corner-case bugs fixed along the way.
+  * Honour LIVE_MEDIA_PATH in /etc/casper.conf when looking for files
+    normally found under /cdrom/casper.
+  * Keep ecryptfs-utils installed if it's already in use by users on an
+    existing /home (LP: #361627). This duplicates code from user-setup, but
+    necessarily so since /target isn't yet mounted when user-setup-ask runs
+    in ubiquity.
+  * GTK frontend:
+    - Remove support for old timezone map.
+    - Use a D-Bus call to gnome-session rather than the old gdm-signal code
+      we copied from powermanagement-interface. We need to depend on
+      python-dbus for this, but on the upside ubiquity-frontend-gtk becomes
+      architecture-independent.
+  * Automatic update of included source packages: apt-setup 1:0.41ubuntu1,
+    base-installer 1.101ubuntu2, choose-mirror 2.29ubuntu1, clock-setup
+    0.98ubuntu1, debian-installer-utils 1.69ubuntu1, grub-installer
+    1.38ubuntu1, localechooser 2.12ubuntu2, partconf 1.31, partman-auto
+    86ubuntu1, partman-base 131ubuntu1, partman-basicfilesystems 63ubuntu1,
+    partman-basicmethods 43, partman-efi 20ubuntu1, partman-ext3 58ubuntu1,
+    partman-jfs 30, partman-partitioning 68ubuntu1, partman-reiserfs 45,
+    partman-target 60ubuntu1, partman-xfs 44, preseed 1.42ubuntu1,
+    silo-installer 1.16ubuntu1, tzsetup 1:0.25ubuntu1, user-setup
+    1.27ubuntu1, yaboot-installer 1.1.15ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 26 Jun 2009 05:58:13 +0100
+
+ubiquity (1.13.4) karmic; urgency=low
+
+  * Automatic update of included source packages: grub-installer
+    1.37ubuntu3.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 12 Jun 2009 21:48:34 +0100
+
+ubiquity (1.13.3) karmic; urgency=low
+
+  * Recommend grub-pc | grub rather than the other way round, since GRUB 2
+    is now the default.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 10 Jun 2009 17:39:50 +0100
+
+ubiquity (1.13.2) karmic; urgency=low
+
+  [ Mario Limonciello ]
+  * Update location of Mythbuntu symlinked glade file for changes in
+    new mythbuntu-common.
+  * Update location of Mythbuntu example configuration files for changes
+    in mythbuntu-common.
+
+  [ Colin Watson ]
+  * If devkit-disks is available, use that for desktop storage locking
+    rather than hal-lock.
+  * Automatic update of included source packages: grub-installer
+    1.37ubuntu2.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 08 Jun 2009 22:17:06 +0100
+
+ubiquity (1.13.1) karmic; urgency=low
+
+  [ Mario Limonciello ]
+  * Drop custom recipe for Mythbuntu as XFS will no longer be necessary
+    for recordings with switching to ext4.
+
+  [ Colin Watson ]
+  * Add support for setting pkgsel/language-packs to "ALL", to install
+    everything available on the installation media (LP: #371470).
+  * Install block-attr from debian-installer-utils 1.68.
+  * Fix the intro message to have the correct release version and date.
+  * Various minor adjustments to cope with ext4 now being the default
+    filesystem.
+  * Use block-attr rather than vol_id.
+  * Automatic update of included source packages: base-installer
+    1.99ubuntu2, debian-installer-utils 1.68ubuntu1, flash-kernel
+    2.13ubuntu8, hw-detect 1.72ubuntu1, partman-base 129ubuntu8,
+    partman-ext3 56ubuntu3, partman-target 59ubuntu2, silo-installer
+    1.15ubuntu2, user-setup 1.26ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 04 Jun 2009 23:56:01 +0100
+
+ubiquity (1.13.0) karmic; urgency=low
+
+  [ Mario Limonciello ]
+  * Mythbuntu Frontend:
+    - Explicitly allow the user to progress when the graphics driver is
+      selected.  For Wubi installs that contain an NVIDIA or AMD graphics
+      card, the installer would be stuck on this page because of being in
+      automatic mode.  This page is not shown on Non-NVIDIA or AMD systems.
+    - Be more specific about packages that are removed in role selection.
+      Unfortunately prior to this fix, choosing a Frontend role for example
+      was not cleaning up mysql, apache, or mythtv-backend (completely 
+      defeating the purpose of a frontend role).
+
+  [ Evan Dandrea ]
+  * Initially set the extra autopartition options to an insensitive
+    state (LP: #362914).
+  * Properly reset the 'after' partition bar when switching between 'use
+    the largest continuous free space' and 'install them side by side'
+    (LP: #364181).
+  * Add translation support for the "Free Space" string in the GTK frontend
+    partition bars (LP: #365490).
+  * Re-enable the alpha intro message.
+  * Provide better labels for the partition buttons (LP: #336764).
+  * Move the ubiquity icon into the ubiquity-ubuntu-artwork package
+    (LP: #322174).
+
+  [ Colin Watson ]
+  * Strip whitespace from username (LP: #358656).
+  * GTK frontend:
+    - Fix return value from get_keyboard/get_keyboard_variant if the stored
+      default layout/variant is None (LP: #364539).
+    - Make create/edit partition mount combo box activate the window default
+      (LP: #364564).
+    - Widen password entry boxes a bit (LP: #364499).
+  * Update imported translations from gtk+2.0 2.16.1-0ubuntu3.
+  * Automatic update of included source packages: apt-setup 1:0.40ubuntu1,
+    base-installer 1.99ubuntu1, choose-mirror 2.28ubuntu2, console-setup
+    1.34ubuntu1, debian-installer-utils 1.67ubuntu1, grub-installer
+    1.37ubuntu1, localechooser 2.11ubuntu1, partman-auto 85ubuntu1,
+    partman-newworld 21, partman-target 59ubuntu1.
+  * Adjust for changes in console-setup 1.34ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 11 May 2009 11:22:35 +0100
 
 ubiquity (1.12.12) jaunty; urgency=low
 

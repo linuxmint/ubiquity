@@ -222,6 +222,39 @@ ask_user () {
 	return 0
 }
 
+ask_active_partition () {
+	local dev=$1
+	local id=$2
+	local num=$3
+	local RET
+
+	db_subst partman/active_partition DEVICE "$(humandev $(cat device))"
+	db_subst partman/active_partition PARTITION "$num"
+
+	if [ -f $id/detected_filesystem ]; then
+		local filesystem=$(cat $id/detected_filesystem)
+		RET=''
+		db_metaget partman/filesystem_long/"$filesystem" description || RET=''
+		if [ "$RET" ]; then
+			filesystem="$RET"
+		fi
+		db_subst partman/text/there_is_detected FILESYSTEM "$filesystem"
+		db_metaget partman/text/there_is_detected description
+	else
+		db_metaget partman/text/none_detected description
+	fi
+	db_subst partman/active_partition OTHERINFO "${RET}"
+
+	if [ -f $id/detected_filesystem ] && [ -f $id/format ]; then
+		db_metaget partman/text/destroyed description
+		db_subst partman/active_partition DESTROYED "${RET}"
+	else
+		db_subst partman/active_partition DESTROYED ''
+	fi
+
+	ask_user /lib/partman/active_partition "$dev" "$id" || return $?
+}
+
 partition_tree_choices () {
 	local IFS
 	for dev in $DEVICES/*; do
@@ -1090,6 +1123,39 @@ partman_unlock_unit() {
 	done
 	cd "$cwd"
 }
+
+partman_list_allowed() {
+	local allowed_func=$1
+	local IFS
+	local partitions
+	local freenum=1
+	for dev in $DEVICES/*; do
+		[ -d $dev ] || continue
+		cd $dev
+
+		open_dialog PARTITIONS
+		partitions="$(read_paragraph)"
+		close_dialog
+
+		local id size fs path
+		IFS="$TAB"
+		echo "$partitions" |
+		while { read x1 id size x4 fs path x7; [ "$id" ]; }; do
+			restore_ifs
+			if $allowed_func "$dev" "$id"; then
+				if [ "$fs" = free ]; then
+					printf "%s\t%s\t%s\t%s free #%d\n" "$dev" "$id" "$size" "$(mapdevfs "$(cat "$dev/device")")" "$freenum"
+					freenum="$(($freenum + 1))"
+				else
+					printf "%s\t%s\t%s\t%s\n" "$dev" "$id" "$size" "$(mapdevfs "$path")"
+				fi
+			fi
+			IFS="$TAB"
+		done
+		restore_ifs
+	done
+}
+
 
 [ "$PARTMAN_TEST" ] || log '*******************************************************'
 

@@ -14,7 +14,7 @@ convert_to_uuid() {
 			then
 				:
 			elif [ -b "$root" ]; then
-				uuid=$(/lib/udev/vol_id -u "$root" || true)
+				uuid=$(block-attr --uuid "$root" || true)
 				if [ -n "$uuid" ]; then
 					root="/dev/disk/by-uuid/$uuid"
 				fi
@@ -25,7 +25,7 @@ convert_to_uuid() {
 }
 
 findfs () {
-        check=$(mount | grep "on /target${1%/} " | cut -d' ' -f1)
+        check=$(mount | grep "on /target${1%/} " | tail -n1 | cut -d' ' -f1)
         if [ -n "$check" ]; then
 		mapdevfs $check
 	fi

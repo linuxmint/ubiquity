@@ -331,7 +331,6 @@ lsb_extract () {
 # Reset all variables
 LANGUAGE=""
 COUNTRY=""
-COUTRYNAME=""
 LOCALE=""
 
 # debconf/language is an alias for debian-installer/language
@@ -400,7 +399,7 @@ while :; do
 		# Disabled because of #470258: template is set to true too early
 		if false && \
 		   db_get debconf/translations-dropped && [ "$RET" = true ]; then
-			db_fget $langname_template seen
+			db_fget $tpl_languagelist seen
 			if [ "$RET" != true ]; then
 				sel_language=""
 				db_input high localechooser/translation/no-select || true

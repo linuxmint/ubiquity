@@ -1,3 +1,198 @@
+base-installer (1.102ubuntu2) karmic; urgency=low
+
+  * Install kernel headers to match the kernel (LP: #413135). This may be
+    overridden by setting base-installer/kernel/headers to false.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 13 Oct 2009 20:47:08 +0100
+
+base-installer (1.102ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian (STANZAS addition fixes LP: #435376).
+    Remaining changes:
+    - Use and depend on the Ubuntu keyring.
+    - Enable the restricted component by default, unless
+      apt-setup/restricted is preseeded to false.
+    - Set up the default sources.list to look in -updates and -security (the
+      latter from apt-setup/security_host) as well as the unadorned suite;
+      also -proposed if apt-setup/proposed is true.
+    - Use Ubuntu kernel image names.
+    - Allow preseeding base-installer/kernel/override-image to force a given
+      kernel to be used.
+    - Install busybox-initramfs rather than busybox.
+    - Revert Joey's patch to call base-installer.d hooks after running
+      debootstrap, which broke console-setup's expectation of being able to
+      insert its configuration file into /target before console-setup is
+      installed by debootstrap.
+    - Add armel/imx51 and armel/dove subarchitectures.
+    - Prefer PAE kernels on machines with >3GB of RAM.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 23 Sep 2009 16:47:35 +0100
+
+base-installer (1.102) unstable; urgency=low
+
+  [ Frans Pop ]
+  * s390: also exclude -s390x-tape kernels during kernel selection.
+  * Temporarily replace the /etc/fstab in target by a real dummy file to
+    closer match what debootstrap does internally. It avoids a problem
+    installing Lenny when the fstab contains UUIDs instead of device names.
+    Closes: #539744.
+  * Bump debhelper compatibility to version 6.
+
+  [ Colin Watson ]
+  * Add STANZAS subcommand to pkgdetails, to be used by debootstrap 1.0.16.
+
+  [ Updated translations ]
+  * Basque (eu.po) by Piarres Beobide
+  * Hindi (hi.po)
+  * Italian (it.po) by Milo Casagrande
+
+ -- Frans Pop <fjp@debian.org>  Tue, 04 Aug 2009 20:13:45 +0200
+
+base-installer (1.101ubuntu5) karmic; urgency=low
+
+  * Use DMI information if possible to determine memory size (LP: #413135).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 23 Sep 2009 16:24:16 +0100
+
+base-installer (1.101ubuntu4) karmic; urgency=low
+
+  * Prefer PAE kernels on machines with >3GB of RAM (LP: #413135).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 24 Aug 2009 13:26:20 +0100
+
+base-installer (1.101ubuntu3) karmic; urgency=low
+
+  * Added support for the Marvell dove SoC (LP: #409238)
+
+ -- Michael Casadevall <mcasadevall@ubuntu.com>  Mon, 24 Aug 2009 12:30:29 +0100
+
+base-installer (1.101ubuntu2) karmic; urgency=low
+
+  * Adjust for new PAE kernel package naming on i386.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 25 Jun 2009 16:25:00 +0100
+
+base-installer (1.101ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Use and depend on the Ubuntu keyring.
+    - Enable the restricted component by default, unless
+      apt-setup/restricted is preseeded to false.
+    - Set up the default sources.list to look in -updates and -security (the
+      latter from apt-setup/security_host) as well as the unadorned suite;
+      also -proposed if apt-setup/proposed is true.
+    - Use Ubuntu kernel image names.
+    - Allow preseeding base-installer/kernel/override-image to force a given
+      kernel to be used.
+    - Install busybox-initramfs rather than busybox.
+    - Revert Joey's patch to call base-installer.d hooks after running
+      debootstrap, which broke console-setup's expectation of being able to
+      insert its configuration file into /target before console-setup is
+      installed by debootstrap.
+    - Add armel/imx51 subarchitecture.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 15 Jun 2009 17:25:16 +0100
+
+base-installer (1.101) unstable; urgency=low
+
+  * Fix reversed script and mirror arguments to run-debootstrap (thanks,
+    Peter Miller; LP: #377814). This was apparently broken ever since the
+    facility to use a specific script was first introduced in base-installer
+    1.89!
+
+ -- Colin Watson <cjwatson@debian.org>  Wed, 10 Jun 2009 01:08:10 +0100
+
+base-installer (1.100) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Drop support for the ppc64 architecture.
+
+  [ Colin Watson ]
+  * Merge from Ubuntu:
+    - Silently skip non-existent devices in /proc/swaps (LP: #290947).
+    - Write out the resume partition as a UUID if possible.
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Md. Rezwan Shahid
+  * Estonian (et.po) by Mattias Põldaru
+  * Slovak (sk.po) by Ivan Masár
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 02 Jun 2009 13:56:52 +0100
+
+base-installer (1.99ubuntu2) karmic; urgency=low
+
+  * Use block-attr from di-utils 1.68.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 12 May 2009 17:31:26 +0100
+
+base-installer (1.99ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Use and depend on the Ubuntu keyring.
+    - Enable the restricted component by default, unless
+      apt-setup/restricted is preseeded to false.
+    - Set up the default sources.list to look in -updates and -security (the
+      latter from apt-setup/security_host) as well as the unadorned suite;
+      also -proposed if apt-setup/proposed is true.
+    - Use Ubuntu kernel image names.
+    - Allow preseeding base-installer/kernel/override-image to force a given
+      kernel to be used.
+    - Write out the resume partition as a UUID if possible.
+    - Install busybox-initramfs rather than busybox.
+    - Revert Joey's patch to call base-installer.d hooks after running
+      debootstrap, which broke console-setup's expectation of being able to
+      insert its configuration file into /target before console-setup is
+      installed by debootstrap.
+    - Add armel/imx51 subarchitecture.
+    - Silently skip non-existent devices in /proc/swaps.
+  * Use -ia64 kernel across the board on ia64.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 29 Apr 2009 16:51:19 +0100
+
+base-installer (1.99) unstable; urgency=low
+
+  [ Ian Campbell ]
+  * Use -686 kernels for CentaurHauls processors again (effectively
+    undoing r55059). According to 464962 the kernel has been fixed since
+    2.6.26-8. Closes: #504095
+
+  [ Colin Watson ]
+  * Merge from Ubuntu:
+    - If base-installer/use_unclean_target is asked, emit a warning to the
+      logs so that we know about it when diagnosing problems.
+    - Never select /dev/ramzswap* (compcache) as a hibernation target.
+    - Check dmraid's exit code rather than parsing its output.
+  * Fix hppa kernel selection: "64?" and "(64)?" are not the same thing in
+    regular expressions!
+  * Add armel/qemu-versatilepb test; cpuinfo supplied by Oliver Grawert.
+
+  [ Christian Perrier ]
+  * Correct an error in the Spanish translation. Closes: #510310
+
+  [ Jens Seidel ]
+  * Minor correction in German translation.  Closes: #512828.
+
+  [ Martin Michlmayr ]
+  * Add support for Marvell's Kirkwood platform.
+  * Remove support for the old arm port.
+
+  [ Updated translations ]
+  * (ast.po) by Marcos Alvarez Costales
+  * German (de.po) by Jens Seidel
+  * Esperanto (eo.po) by Felipe Castro
+  * Basque (eu.po) by Piarres Beobide
+  * Galician (gl.po) by marce villarino
+  * Hindi (hi.po) by Kumar Appaiah
+  * Italian (it.po) by Milo Casagrande
+  * Kazakh (kk.po) by Dauren Sarsenov
+  * Malayalam (ml.po) by Praveen Arimbrathodiyil
+  * Marathi (mr.po) by Sampada
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Tagalog (tl.po) by Eric Pareja
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Fri, 27 Mar 2009 18:00:30 +0100
+
 base-installer (1.98ubuntu7) jaunty; urgency=low
 
   * Add linux-lpia to kernel_update_list metapackage ordering hack
@@ -74,7 +269,7 @@ base-installer (1.98) unstable; urgency=low
   [ Colin Watson ]
   * Add support for AMD CPU families 16 (Phenom) and 17 (Griffin/Puma) on
     i386 (thanks, Roger Mach and Soren Hansen).
-  
+
   [ Updated translations ]
   * Belarusian (be.po) by Pavel Piatruk
   * Bengali (bn.po) by Mahay Alam Khan (মাহে আলম খান)
@@ -1889,8 +2084,8 @@ base-installer (1.31) unstable; urgency=low
   [ Joey Hess ]
   * Turn link_in_boot back off for i386 and on for amd64 as well, as
     lilo-installer doesn't work wit it. Closes: #329994
-  
-  * Updated translations: 
+
+  * Updated translations:
     - Catalan (ca.po) by Guillem Jover
     - Danish (da.po) by Claus Hindsgaul
     - Lithuanian (lt.po) by Kęstutis Biliūnas
@@ -1910,7 +2105,7 @@ base-installer (1.30) unstable; urgency=low
   * Deal with similar issues on amd64.
   * Fix name of base-installer/kernel/linux/link_in_boot. Closes: #329391
 
-  * Updated translations: 
+  * Updated translations:
     - Greek, Modern (1453-) (el.po) by Greek Translation Team
     - Galician (gl.po) by Jacobo Tarrio
     - Dutch (nl.po) by Frans Pop
@@ -1923,7 +2118,7 @@ base-installer (1.29) unstable; urgency=low
   * Correct postinst code to look for kernel-image and linux-image
     packages (solution proposed by ths).
 
-  * Updated translations: 
+  * Updated translations:
     - Basque (eu.po) by Piarres Beobide
 
  -- Joey Hess <joeyh@debian.org>  Thu, 15 Sep 2005 13:18:08 -0400
@@ -1941,7 +2136,7 @@ base-installer (1.28) unstable; urgency=low
   * Note that amd64, hppa, etc are still preferring the old
     linux-image packages in arch_get_kernel and should be updated.
 
-  * Updated translations: 
+  * Updated translations:
     - Basque (eu.po) by Piarres Beobide
     - Italian (it.po) by Giuseppe Sacco
     - Kurdish (ku.po) by Erdal Ronahi
@@ -1957,7 +2152,7 @@ base-installer (1.27) unstable; urgency=low
 
   * Set KERNEL in the case where we continue w/o installing a kernel.
 
-  * Updated translations: 
+  * Updated translations:
     - Czech (cs.po) by Miroslav Kure
     - Danish (da.po) by Claus Hindsgaul
     - Spanish (es.po) by Javier Fernández-Sanguino Peña
@@ -2000,7 +2195,7 @@ base-installer (1.25) unstable; urgency=low
   * Add a test case for an ADS VGX board.
   * Update test suite to not fail powerpc after Sven's changes above.
 
-  * Updated translations: 
+  * Updated translations:
     - Danish (da.po) by Claus Hindsgaul
     - French (fr.po) by Christian Perrier
     - Italian (it.po) by Stefano Canepa
@@ -2034,7 +2229,7 @@ base-installer (1.23) unstable; urgency=low
   * Turn off link_in_boot for amd64 to be same as i386.
   * Parameterise NUMCPUS so the test suite can work.
 
-  * Updated translations: 
+  * Updated translations:
     - Catalan (ca.po) by Guillem Jover
     - Czech (cs.po) by Miroslav Kure
     - Danish (da.po) by Claus Hindsgaul
@@ -2079,8 +2274,8 @@ base-installer (1.21) unstable; urgency=low
 
   [ Joey Hess ]
   * Switch i386 to 2.6.11. (Fallback only though.)
-  
-  * Updated translations: 
+
+  * Updated translations:
     - Bulgarian (bg.po) by Ognyan Kulev
     - Czech (cs.po) by Miroslav Kure
     - Danish (da.po) by Claus Hindsgaul
@@ -2184,7 +2379,7 @@ base-installer (1.20) unstable; urgency=low
       functions.
   * Christian Perrier
     - Minor change to templates: s/Release signed/Release file signed
-  * Updated translations: 
+  * Updated translations:
     - Bulgarian (bg.po) by Ognyan Kulev
     - Catalan (ca.po) by Guillem Jover
     - Czech (cs.po) by Miroslav Kure
@@ -2614,7 +2809,7 @@ base-installer (1.12) unstable; urgency=low
 
 base-installer (1.11) unstable; urgency=low
 
-  * Updated translations: 
+  * Updated translations:
     - Welsh (cy.po) by Dafydd Harries
     - Hebrew (he.po) by Lior Kaplan
     - Traditional Chinese (zh_TW.po) by Tetralet
@@ -2636,7 +2831,7 @@ base-installer (1.09) unstable; urgency=low
 
   * Joey Hess
     - Turn off backup capability while asking about install to unclean target.
-  * Updated translations: 
+  * Updated translations:
     - Czech (cs.po) by Miroslav Kure
     - Greek, Modern (1453-) (el.po) by Greek Translation Team
     - French (fr.po) by French Team
@@ -2662,7 +2857,7 @@ base-installer (1.08) unstable; urgency=low
   * Frederik Schüler
     - Updated base-installer postinst for amd64 to install new em64t flavours
       on intel boxen.
-  * Updated translations: 
+  * Updated translations:
     - Bulgarian (bg.po) by Ognyan Kulev
     - Greek, Modern (1453-) (el.po) by Greek Translation Team
     - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
@@ -2695,7 +2890,7 @@ base-installer (1.06) unstable; urgency=low
     - Moved powerpc kernels to 2.6.8/2.4.27.
   * Colin Watson
     - Add guard against overflow of progress bar sections.
-  * Updated translations: 
+  * Updated translations:
     - German (de.po) by Dennis Stampfer
     - Greek, Modern (1453-) (el.po) by Greek Translation Team
     - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
@@ -2721,7 +2916,7 @@ base-installer (1.05) unstable; urgency=low
       user mail about hotplug and so on. Closes: #269804
   * Bastian Blank
     - Use version of running kernel on s390.
-  * Updated translations: 
+  * Updated translations:
     - Arabic (ar.po) by Ossama M. Khayat
     - Bulgarian (bg.po) by Ognyan Kulev
     - Bosnian (bs.po) by Safir Šećerović
@@ -2788,7 +2983,7 @@ base-installer (1.02) unstable; urgency=low
   * Thomas Poindessous
     - Fix the selection of x86 2.6 kernel. There are no more 2.6-586tsc
       and 2.6-k6 kernels. Closes: #257411
-  * Updated translations: 
+  * Updated translations:
     - German (de.po) by Dennis Stampfer
 
  -- Joey Hess <joeyh@debian.org>  Wed,  4 Aug 2004 14:51:14 -0400
@@ -2807,7 +3002,7 @@ base-installer (1.00) unstable; urgency=low
     - Add a kernel for mips/r5k-ip32; even though it is not in Debian,
       this makes it easier to support this sub-arch through an
       unofficial apt archive.
-  * Updated translations: 
+  * Updated translations:
     - Arabic (ar.po) by Abdulaziz Al-Arfaj
     - Danish (da.po) by Frederik Dannemare
     - German (de.po) by Dennis Stampfer
@@ -2828,7 +3023,7 @@ base-installer (0.093) unstable; urgency=low
     - add ia64 smp detection support
   * Thiemo Seufer
     - Don't hardcode the kernel version for mips, mipsel.
-  * Updated translations: 
+  * Updated translations:
     - Arabic (ar.po) by Abdulaziz Al-Arfaj
     - Bosnian (bs.po) by Safir Šećerović
     - Croatian (hr.po) by Kruno
@@ -3012,7 +3207,7 @@ base-installer (0.087) unstable; urgency=low
 
   * Otavio Salvador
     - Add hook to be called before debootstrap is run.
-  * Updated translations: 
+  * Updated translations:
     - Czech (cs.po) by Miroslav Kure
     - Danish (da.po) by Claus Hindsgaul
     - Greek (el.po) by George Papamichelakis
@@ -3108,7 +3303,7 @@ base-installer (0.082) unstable; urgency=low
       languagechooser. (Closes: #244019)
   * Colin Watson
     - Bump powerpc 2.6 to 2.6.6.
-  * Updated translations: 
+  * Updated translations:
     - Basque (eu.po) by Piarres Beobide Egaña
     - Polish (pl.po) by Bartosz Fenski
 
@@ -3176,16 +3371,16 @@ base-installer (0.071) unstable; urgency=low
   * Joshua Kwan
     - Bump to 2.4.26 for sparc and re-enable SMP kernels for sparc32.
     - Add self to Uploaders.
-  * Updated translations: 
+  * Updated translations:
     - vi (vi.po) by VÅ© Quang Trung
-      
+
  -- Joshua Kwan <joshk@triplehelix.org>  Sat, 24 Apr 2004 22:37:17 -0700
 
 base-installer (0.070) unstable; urgency=low
 
   * Colin Watson
     - Try to install 2.6 kernels on powerpc if d-i is running on 2.6.
-  * Updated translations: 
+  * Updated translations:
     - Bokmal, Norwegian (nb.po) by Bjørn Steensrud
     - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
     - Polish (pl.po) by Bartosz Fenski
@@ -3200,7 +3395,7 @@ base-installer (0.069) unstable; urgency=low
     - Check for debian-installer/kernel/image-2.6 before looking in
       debian-installer/kernel/image when getting the default kernel image
       if running on 2.6.
-  * Updated translations: 
+  * Updated translations:
     - Russian (ru.po) by Dmitry Beloglazov
 
  -- Joey Hess <joeyh@debian.org>  Wed, 21 Apr 2004 15:11:54 -0400
@@ -3222,7 +3417,7 @@ base-installer (0.068) unstable; urgency=low
     - Clean up and add more logging to make it easier to find out why
       and when base-installer fails.
     - Do not fail to install if package iso-codes is unavailable.
-  * Updated translations: 
+  * Updated translations:
     - Hebrew (he.po) by Lior Kaplan
     - Indonesian (id.po) by Parlin Imanuel Toh
     - Russian (ru.po) by Dmitry Beloglazov
@@ -3234,7 +3429,7 @@ base-installer (0.067) unstable; urgency=low
 
   * Joey Hess
     - /proc/bus/pccard/drivers is a file, not a directory.
-  * Updated translations: 
+  * Updated translations:
     - Gallegan (gl.po) by Héctor Fernández López.
     - Romanian (ro.po) by Eddy Petrisor
 
@@ -3244,7 +3439,7 @@ base-installer (0.066) unstable; urgency=low
 
   * Sven Luther
     - Modified the oldworld pmac to chose the -powerpc kernel instead
-      of the -powerpc-small one. 
+      of the -powerpc-small one.
 
  -- Sven Luther <luther@debian.org>  Fri,  2 Apr 2004 14:12:19 +0200
 
@@ -3277,7 +3472,7 @@ base-installer (0.064) unstable; urgency=low
       /proc/bus/pccard/drivers (same test that hw-detect uses to install
       pcmcia-cs).
     - Add backup support.
-  * Updated translations: 
+  * Updated translations:
     - Bosnian (bs.po) by Safir Šećerović
     - Welsh (cy.po) by Dafydd Harries
     - Hebrew (he.po) by Lior Kaplan
@@ -3373,7 +3568,7 @@ base-installer (0.056) unstable; urgency=low
 
   * Stephen R. Marenka
     - Added proxy support for get_mirror_info.
-    - Make pick_kernel default to same version as current running 
+    - Make pick_kernel default to same version as current running
       kernel, when possible.
 
   * Translations :
@@ -3408,9 +3603,9 @@ base-installer (0.056) unstable; urgency=low
     - Elian Myftiu
       - Updated Albanian translation (sq.po)
     - Bart Cornelis
-      - Updated Dutch translation (nl.po) 
+      - Updated Dutch translation (nl.po)
     - Javier Fernandez-Sanguino
-      - Updated Spanish translation (es.po) 
+      - Updated Spanish translation (es.po)
     - Ming Hua
       - Updated Traditional Chinese translation (zh_TW.po), by Tetralet
     - Jure Cuhalev
@@ -3679,7 +3874,7 @@ base-installer (0.043) unstable; urgency=low
   * Steinar H. Gunderson
     - Updated Norwegian translation (nb.po).
   * Kęstutis Biliūnas
-    - Updated Lithuanian translation (lt.po).    
+    - Updated Lithuanian translation (lt.po).
   * Miroslav Kure
     - Updated Czech translation (cs.po).
   * Thiemo Seufer
@@ -3877,7 +4072,7 @@ base-installer (0.034) unstable; urgency=low
     - Initial Czech translation.
   * Bart Cornelis
     - Updated dutch translation (nl.po)
-  * Build this version against libdebian-installer4 
+  * Build this version against libdebian-installer4
 
  -- Sebastian Ley <ley@debian.org>  Thu,  9 Oct 2003 16:45:37 +0200
 
@@ -4235,7 +4430,7 @@ base-installer (0.006) unstable; urgency=low
     was added to the end.  This caused lots of grief, which should now be
     fixed.
   * Fix path to base_{include,exclude} files.
-  
+
  -- Tollef Fog Heen <tfheen@debian.org>  Wed,  3 Jul 2002 22:57:23 +0200
 
 base-installer (0.005) unstable; urgency=low

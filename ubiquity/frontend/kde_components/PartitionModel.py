@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
 import syslog
 
@@ -190,7 +190,7 @@ class TreeItem:
 
     def partman_column_mountpoint(self):
         partition = self.itemData[1]
-        if isinstance(self.ubiquity.dbfilter, partman.Partman):
+        if isinstance(self.ubiquity.dbfilter, partman.Page):
             mountpoint = self.ubiquity.dbfilter.get_current_mountpoint(partition)
             if mountpoint is None:
                 mountpoint = ''
@@ -227,7 +227,7 @@ class TreeItem:
     def partman_column_format_toggled(self, value):
         if not self.ubiquity.allowed_change_step:
             return
-        if not isinstance(self.ubiquity.dbfilter, partman.Partman):
+        if not isinstance(self.ubiquity.dbfilter, partman.Page):
             return
         #model = user_data
         #devpart = model[path][0]

@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
 # Copyright (C) 2006, 2007 Canonical Ltd.
 # Written by Colin Watson <cjwatson@ubuntu.com>.
@@ -17,13 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-
-import ubiquity.components.summary
-class Summary(ubiquity.components.summary.Summary):
-    """This class is used for populating the Mythbuntu summary page
-       using a custom script"""
-    def prepare(self):
-        return ('/usr/share/ubiquity/mythbuntu_summary', ['^mythbuntu/summary.*'])
 
 import ubiquity.components.install
 class Install(ubiquity.components.install.Install):

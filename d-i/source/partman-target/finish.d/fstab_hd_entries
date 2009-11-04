@@ -31,7 +31,7 @@ fstab=$(
 	sort |
 	while read mp fs type options dump pass; do
 		case "$fs" in
-		    (/dev/disk/*|/dev/fd[0-9]*|/dev/mapper/*_crypt)
+		    (/dev/disk/*|/dev/fd[0-9]*|/dev/mapper/*)
 			addfstab "$(mapdevfs $fs)" "${mp}" "$type" "$options" "$dump" "$pass"
 			;;
 		    (/*)
@@ -50,12 +50,12 @@ fstab=$(
 				    (*)		desc="$type" ;;
 				esac
 				if [ "$style" = label ] && \
-				   label="$(PATH="/lib/udev:$PATH" vol_id -l $fs)" && \
+				   label="$(block-attr --label $fs)" && \
 				   [ "$label" ]; then
 					printf "# %s was on %s during installation\n" "$desc" "$(mapdevfs $fs)"
 					addfstab "LABEL=$label" "${mp}" "$type" "$options" "$dump" "$pass"
 				elif ([ "$style" = label ] || [ "$style" = uuid ]) && \
-				     uuid="$(PATH="/lib/udev:$PATH" vol_id -u $fs)" && \
+				     uuid="$(block-attr --uuid $fs)" && \
 				     [ "$uuid" ]; then
 					printf "# %s was on %s during installation\n" "$desc" "$(mapdevfs $fs)"
 					addfstab "UUID=$uuid" "${mp}" "$type" "$options" "$dump" "$pass"

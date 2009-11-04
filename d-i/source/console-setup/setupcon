@@ -66,7 +66,7 @@ Sets up the font and the keyboard on Linux console.
       --force          do not check whether we are on the console
   -v, --verbose        explain what is being doing, try it if s.t. goes wrong
       --save           copy the font and the ACM in /etc/console-setup,
-                         update /etc/console-setup/boottime.kmap.gz
+                         update /etc/console-setup/cached.kmap.gz
       --save-only      only save; don't setup keyboard/font immediately
                          (implies --force)
   -h, --help           display this help and exit
@@ -152,56 +152,26 @@ fi
 #-----------------------#
 
 if [ "$keyboard_only" != yes ] && [ "$ACTIVE_CONSOLES" ]; then
-    for console in $ACTIVE_CONSOLES; do
-	[ -w $console ] || continue
-	# Setup unicode/non-unicode mode
-	if [ "$save_only" != yes ]; then
+    # Setup unicode/non-unicode mode
+    if [ "$save_only" != yes ]; then
+	for console in $ACTIVE_CONSOLES; do
+	    [ -w $console ] || continue
 	    if [ "$CHARMAP" = UTF-8 ] || [ -z "$ACM$CHARMAP" ]; then
-		/bin/echo -n -e '\033%G' >$console
+		printf '\033%%G' >$console
 	    else
-		/bin/echo -n -e '\033%@' >$console
+		printf '\033%%@' >$console
 	    fi
-	fi
-
-	# Load the font
-	if [ ! -f "$FONT" ]; then
-	    for dir in \
-		/etc/console-setup \
-		/usr/local/share/consolefonts \
-		/usr/share/consolefonts
-	    do
-	      if [ -f "$dir/$CODESET-$FONTFACE$FONTSIZE.psf.gz" ]; then
-		  FONT="$dir/$CODESET-$FONTFACE$FONTSIZE.psf.gz"
-		  case "$FONTSIZE" in
-		      *x*)
-			  bigfont=yes
-			  ;;
-		      *)
-			  bigfont=no
-			  ;;
-		  esac
-		  break
-	      fi
-	    done
-	fi
-	if [ -f "$FONT" ]; then
-	    if \
-		[ "$save" = yes ] \
-		&& [ "${FONT%/*}" != /etc/console-setup ]
-	    then
-		cp "$FONT" /etc/console-setup/
-	    fi
-	else
-	    if which ckbcomp-mini >/dev/null; then
-		FONT=$(echo `ls /usr/share/consolefonts/$CODESET-*.psf.gz \
-                                 2>/dev/null`)
-		FONT=${FONT%% *}
-		if [ -z "$FONT" ]; then
-		    FONT="$CODESET-$FONTFACE$FONTSIZE.psf.gz"
-		fi
-	    else
-		FONT="$CODESET-$FONTFACE$FONTSIZE.psf.gz"
-	    fi
+	done
+    fi
+    
+    # Load the font
+    if [ -z "$FONT" ]; then
+	if which ckbcomp-mini >/dev/null; then
+	    FONT=$(echo `ls /usr/share/consolefonts/$CODESET-*.psf.gz \
+                2>/dev/null`)
+	    FONT=${FONT%% *}
+	elif [ "$FONTFACE" ] && [ "$FONTSIZE" ]; then
+	    FONT="$CODESET-$FONTFACE$FONTSIZE.psf.gz"
 	    case "$FONTSIZE" in
 		*x*)
 		    bigfont=yes
@@ -211,48 +181,86 @@ if [ "$keyboard_only" != yes ] && [ "$ACTIVE_CONSOLES" ]; then
 		    ;;
 	    esac
 	fi
-	if [ "$save_only" != yes ]; then
+    fi
+    LOADFONTS=''
+    for f in $FONT; do
+	if [ -f "$f" ]; then
+	    LOADFONTS="$LOADFONTS $f"
+	    else
+	    for dir in \
+		/usr/local/share/consolefonts \
+		/usr/share/consolefonts \
+		/etc/console-setup \
+		FONT_IS_MISSING
+	    do
+		if [ -f "$dir/${f##*/}" ]; then
+		    LOADFONTS="$LOADFONTS $dir/${f##*/}"
+		    break
+		fi
+		if [ "$dir" = FONT_IS_MISSING ]; then
+		    echo setupcon: Warning: the font ${f##*/} does not exists! >&2
+		fi
+	    done
+	fi
+    done
+    
+    for f in $LOADFONTS; do
+	if \
+	    [ "$save" = yes ] \
+	    && [ "${f%/*}" != /etc/console-setup ]
+	then
+	    cp "$f" /etc/console-setup/
+	fi
+    done
+    
+    
+    if [ "$save_only" != yes ] && [ "$LOADFONTS" ]; then
+	for console in $ACTIVE_CONSOLES; do
+	    [ -w $console ] || continue
 	    if which consolechars >/dev/null; then
 		if [ "$bigfont" = yes ]; then
 		    echo "setupcon: The consolechars utility from the console-setup font can load only fonts with 8 pixel width matrix.  Please install the setfont utility from the kbd package." >&2
 		fi
-		eval consolechars -v --tty=$console -f "$FONT" $verbose
+		eval consolechars -v --tty=$console -f $LOADFONTS $verbose
 	    elif which setfont >/dev/null; then
-		eval setfont -v -C $console "$FONT" $verbose
+		eval setfont -v -C $console $LOADFONTS $verbose
 	    fi
-	fi
-
-	# Load the ACM
-	if [ ! -f "$ACM" ]; then
-	    for dir in \
-		/etc/console-setup \
-		/usr/local/share/consoletrans \
-		/usr/share/consoletrans
-	    do
-	      if [ -f "$dir/$CHARMAP.acm.gz" ]; then
-		  ACM="$dir/$CHARMAP.acm.gz"
-		  break
-	      fi
-	    done
-	fi
-	if [ -f "$ACM" ]; then
-	    if \
-		[ "$save" = yes ] \
-		&& [ "${ACM%/*}" != /etc/console-setup ]
-	    then
-		cp "$ACM" /etc/console-setup/
+	done
+    fi
+    
+    # Load the ACM
+    if [ ! -f "$ACM" ]; then
+	for dir in \
+	    /usr/local/share/consoletrans \
+	    /usr/share/consoletrans \
+	    /etc/console-setup 
+	do
+	    if [ -f "$dir/$CHARMAP.acm.gz" ]; then
+		ACM="$dir/$CHARMAP.acm.gz"
+		break
 	    fi
-	else
-	    ACM="$CHARMAP.acm.gz"
+	done
+    fi
+    if [ -f "$ACM" ]; then
+	if \
+	    [ "$save" = yes ] \
+	    && [ "${ACM%/*}" != /etc/console-setup ]
+	then
+	    cp "$ACM" /etc/console-setup/
 	fi
-	if [ "$save_only" != yes ] && [ "$CHARMAP" != UTF-8 ]; then
+    else
+	ACM="$CHARMAP.acm.gz"
+    fi
+    if [ "$save_only" != yes ] && [ "$CHARMAP" != UTF-8 ]; then
+	for console in $ACTIVE_CONSOLES; do
+	    [ -w $console ] || continue
 	    if which consolechars >/dev/null; then
 		eval consolechars -v --tty=$console --acm "$ACM" $verbose
 	    elif which setfont >/dev/null; then
 		eval setfont -v -C $console -m "$ACM" $verbose
 	    fi	    
-	fi
-    done
+	done
+    fi
 fi
 
 #-----------------------#
@@ -303,14 +311,30 @@ if [ "$font_only" != yes ] && [ "$ACTIVE_CONSOLES" ]; then
 		rules_option=''
 	    fi
 
+	    if \
+		[ "$VARIANT" = '' ] \
+		&& which gzip >/dev/null \
+		&& [ -d /usr/share/X11/xkb ] # /usr is mounted
+	    then
+		if \
+		    [ ! -f /etc/console-setup/cached.kmap.gz ] \
+		    || [ /etc/console-setup/cached.kmap.gz \
+		           -ot /etc/default/console-setup ]
+		then
+		    ckbcomp $acm_option $rules_option -model "$XKBMODEL" \
+			"$XKBLAYOUT" "$XKBVARIANT" "$XKBOPTIONS" \
+			| gzip -9 >/etc/console-setup/cached.kmap.gz
+		fi
+	    fi
+
 	    if [ "$save_only" != yes ]; then
 		if \
 		    [ "$VARIANT" = '' ] && [ "$CONFIG" != "$USER_CONFIG" ] \
-		    && [ -f /etc/console-setup/boottime.kmap.gz ] \
-		    && [ ! /etc/console-setup/boottime.kmap.gz \
+		    && [ -f /etc/console-setup/cached.kmap.gz ] \
+		    && [ ! /etc/console-setup/cached.kmap.gz \
 		           -ot /etc/default/console-setup ]
 		then
-		    eval loadkeys /etc/console-setup/boottime.kmap.gz $verbose
+		    eval loadkeys /etc/console-setup/cached.kmap.gz $verbose
 		else
 		    ckbcomp $acm_option $rules_option -model "$XKBMODEL" \
 			"$XKBLAYOUT" "$XKBVARIANT" "$XKBOPTIONS" \
@@ -320,11 +344,11 @@ if [ "$font_only" != yes ] && [ "$ACTIVE_CONSOLES" ]; then
 	    if which gzip >/dev/null && [ "$save" = yes ]; then
 		ckbcomp $acm_option $rules_option -model "$XKBMODEL" \
 		    "$XKBLAYOUT" "$XKBVARIANT" "$XKBOPTIONS" \
-		    | gzip -9 >/etc/console-setup/boottime.kmap.gz
+		    | gzip -9 >/etc/console-setup/cached.kmap.gz
 	    fi
 	elif [ "$save_only" != yes ] && \
-	     [ -f /etc/console-setup/boottime.kmap.gz ]; then
-	    eval loadkeys /etc/console-setup/boottime.kmap.gz $verbose
+	     [ -f /etc/console-setup/cached.kmap.gz ]; then
+	    eval loadkeys /etc/console-setup/cached.kmap.gz $verbose
 	fi
     fi
 fi

@@ -53,7 +53,7 @@ bail_out() {
 save_label() {
 	local ident
 
-	if ! ident="$($logoutput --pass-stdout $chroot $ROOT apt-cdrom ident)"; then
+	if ! ident="$($logoutput_pass $chroot $ROOT apt-cdrom ident)"; then
 		bail_out
 	fi
 	echo "$ident" | grep "^Identifying" | cut -d" " -f2 \
@@ -63,8 +63,10 @@ save_label() {
 }
 
 logoutput=""
+logoutput_pass=""
 if [ "$CATCHLOG" ]; then
 	logoutput="log-output -t apt-setup"
+	logoutput_pass="$logoutput --pass-stdout"
 fi
 
 chroot=

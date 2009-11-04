@@ -1,3 +1,290 @@
+partman-target (64ubuntu5) karmic; urgency=low
+
+  * Fix clearing of subdirectories of /usr and /var (LP: #461698).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 27 Oct 2009 15:14:57 +0000
+
+partman-target (64ubuntu4) karmic; urgency=low
+
+  * Don't preseed nonexistent passwd/user-gid.  Guard against setting a
+    UID of 0 when /home is a separate partition (LP: #442998).
+  * Don't touch /usr/src, /var/local, and /usr/local when clearing
+    partitions.  Account for them existing in / (LP: #431993).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Fri, 16 Oct 2009 17:00:15 +0100
+
+partman-target (64ubuntu3) karmic; urgency=low
+
+  * Merge debian/partman-target.install into debian/install, as otherwise
+    critical files in /lib/partman/choose_method don't get installed
+    (LP: #444804).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 07 Oct 2009 10:12:25 +0100
+
+partman-target (64ubuntu2) karmic; urgency=low
+
+  * Do not ever set the UID and GID for the to-be-created user to 0 in
+    clear_partitions (LP: #442998).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Mon, 05 Oct 2009 13:17:08 +0100
+
+partman-target (64ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Disable automatic mounting of USB removable devices.
+    - Mount CD-ROMs and floppies with 'exec' and 'utf8'.
+    - Use the path of the file associated with a loop device in /etc/fstab,
+      rather than the filesystem's UUID or the loop device path.
+    - Always set the loop option for loop devices.
+    - Remove critical system files from the existing filesystem before
+      installing.
+    - Preserve the UID and GID of the initial user, if possible.  Requires a
+      patch to user-setup.
+    - Rather than pretending that partitions have no longer been formatted
+      after the partitioner is complete, reset their intended state from
+      "format the partition" to "keep and use the existing data". This still
+      solves the original problem reported in Debian bug #256090 while also
+      stopping partitions from being needlessly reformatted if you go back to
+      the partitioner after base system installation and then forward again.
+    - Don't clear partitions or complain about them not being formatted if
+      they've already been formatted by a previous partitioner run.
+    - Recommend blkid rather than vol_id in /etc/fstab.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 04 Oct 2009 21:38:11 +0100
+
+partman-target (64) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Upgrade to debhelper v7.
+
+  [ Max Vozeler ]
+  * Revert change that used LABEL in fstab if configured by the user. 
+    Labels have non-obvious problems that make them unsuitable for use 
+    as device specifiers in fstab. (http://launchpad.net/bugs/347817)
+
+  [ Updated translations ]
+  * Amharic (am.po) by Tegegne Tefera
+  * Asturian (ast.po) by Marcos Antonio Alvarez Costales
+  * Korean (ko.po) by Changwoo Ryu
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Turkish (tr.po) by Mert Dirik
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Colin Watson <cjwatson@debian.org>  Wed, 23 Sep 2009 10:44:31 +0100
+
+partman-target (63) unstable; urgency=low
+
+  * Use /dev/mapper/ paths instead of UUID to refer to device 
+    mapper devices in /etc/fstab.
+  * Use LABEL rather than UUID for entries in /etc/fstab if the 
+    label was explicitly configured by the user.
+  * Add myself to uploaders.
+
+  [ Updated translations ]
+  * Czech (cs.po) by Miroslav Kure
+  * Italian (it.po) by Milo Casagrande
+
+ -- Max Vozeler <xam@debian.org>  Thu, 13 Aug 2009 02:35:24 +0200
+
+partman-target (62ubuntu2) karmic; urgency=low
+
+  * Update translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 01 Sep 2009 13:27:00 +0100
+
+partman-target (62ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Disable automatic mounting of USB removable devices.
+    - Mount CD-ROMs and floppies with 'exec' and 'utf8'.
+    - Use the path of the file associated with a loop device in /etc/fstab,
+      rather than the filesystem's UUID or the loop device path.
+    - Always set the loop option for loop devices.
+    - Remove critical system files from the existing filesystem before
+      installing.
+    - Preserve the UID and GID of the initial user, if possible.  Requires a
+      patch to user-setup.
+    - Rather than pretending that partitions have no longer been formatted
+      after the partitioner is complete, reset their intended state from
+      "format the partition" to "keep and use the existing data". This still
+      solves the original problem reported in Debian bug #256090 while also
+      stopping partitions from being needlessly reformatted if you go back to
+      the partitioner after base system installation and then forward again.
+    - Don't clear partitions or complain about them not being formatted if
+      they've already been formatted by a previous partitioner run.
+    - Recommend blkid rather than vol_id in /etc/fstab.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 16 Jul 2009 21:38:30 +0100
+
+partman-target (62) unstable; urgency=low
+
+  * Re-upload, this time with properly up-to-date translations from
+    Subversion.
+
+  [ Updated translations ]
+  * German (de.po) by Holger Wansing
+  * Hindi (hi.po)
+  * Italian (it.po) by Milo Casagrande
+
+ -- Colin Watson <cjwatson@debian.org>  Thu, 16 Jul 2009 21:22:03 +0100
+
+partman-target (61) unstable; urgency=low
+
+  * Merge from Ubuntu:
+    - Fix disk_containing function to use its argument rather than relying
+      on $dev.
+    - /media must be on the root file system (although subdirectories may be
+      mounted separately), since the installer relies on being able to mount
+      things like /media/cdrom during installation. Check this (LP: #16871).
+  * Convert choose_partition help menu option to a debconf Help: field.
+
+  [ Updated translations ]
+  * Finnish (fi.po) by Esko Arajärvi
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Colin Watson <cjwatson@debian.org>  Thu, 16 Jul 2009 20:00:49 +0100
+
+partman-target (60ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Disable automatic mounting of USB removable devices.
+    - Mount CD-ROMs and floppies with 'exec' and 'utf8'.
+    - Use the path of the file associated with a loop device in /etc/fstab,
+      rather than the filesystem's UUID or the loop device path.
+    - Always set the loop option for loop devices.
+    - Remove critical system files from the existing filesystem before
+      installing.
+    - Preserve the UID and GID of the initial user, if possible.  Requires a
+      patch to user-setup.
+    - Check that /media is on the root file system, since the installer
+      relies on being able to mount things like /media/cdrom during
+      installation.
+    - Fix disk_containing function to use its argument rather than relying
+      on $dev.
+    - Rather than pretending that partitions have no longer been formatted
+      after the partitioner is complete, reset their intended state from
+      "format the partition" to "keep and use the existing data". This still
+      solves the original problem reported in Debian bug #256090 while also
+      stopping partitions from being needlessly reformatted if you go back to
+      the partitioner after base system installation and then forward again.
+    - Don't clear partitions or complain about them not being formatted if
+      they've already been formatted by a previous partitioner run.
+    - Recommend blkid rather than vol_id in /etc/fstab.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 16 Jun 2009 11:25:53 +0100
+
+partman-target (60) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Merge from Ubuntu:
+    - Escape spaces, tabs, newlines, and backslashes in fstab according to
+      the procedure described in getmntent(3) (LP: #38224).
+    - Issue an error message if two file systems are assigned the same label
+      (LP: #320872).
+    - Revamp filesystem mounting. We now default to using UUID= fstab syntax
+      for all partitions if a UUID is available; this is controllable by
+      preseeding partman/mount_style (choices: traditional, label, uuid).
+      Add a comment above each label or UUID fstab entry to indicate the
+      corresponding device at install time (closes: #225802).
+  * Don't display the Back button while checking partitioning and displaying
+    errors as a result, since we ignore backup there anyway (closes:
+    #368294).
+  * Fix proper_mountpoints check to cope with mountpoints containing commas.
+  * Use block-attr from di-utils 1.68.
+
+  [ Max Vozeler ]
+  * Use udevadm instead of udevinfo if available (closes: #530904).
+
+  [ Updated translations ]
+  * Asturian (ast.po) by Marcos Alvarez Costales
+  * Belarusian (be.po) by Pavel Piatruk
+  * Bengali (bn.po) by Md. Rezwan Shahid
+  * Czech (cs.po) by Miroslav Kure
+  * Greek (el.po) by Emmanuel Galatoulas
+  * Esperanto (eo.po) by Felipe Castro
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Estonian (et.po) by Mattias Põldaru
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by marce villarino
+  * Hindi (hi.po) by Kumar Appaiah
+  * Italian (it.po) by Milo Casagrande
+  * Japanese (ja.po) by Kenshi Muto
+  * Kazakh (kk.po) by Dauren Sarsenov
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Malayalam (ml.po) by Praveen Arimbrathodiyil
+  * Marathi (mr.po) by Sampada
+  * Norwegian Bokmal (nb.po) by Hans Fredrik Nordhaug
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Romanian (ro.po) by Eddy Petrișor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Ivan Masár
+  * Swedish (sv.po) by Daniel Nylander
+  * Tagalog (tl.po) by Eric Pareja
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Simplified Chinese (zh_CN.po) by Deng Xiyue
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 02 Jun 2009 13:51:22 +0100
+
+partman-target (59ubuntu2) karmic; urgency=low
+
+  * Use block-attr from di-utils 1.68.
+  * Recommend blkid rather than vol_id in /etc/fstab.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 12 May 2009 17:37:37 +0100
+
+partman-target (59ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Use UUID= fstab syntax for all partitions if a UUID is available, and
+      add a comment above each UUID to indicate the corresponding device at
+      install time.
+    - Disable automatic mounting of USB removable devices.
+    - Don't use UUIDs in fstab for those device types that volumeid.postinst
+      refuses to convert.
+    - Mount CD-ROMs and floppies with 'exec'.
+    - Use the path of the file associated with a loop device in /etc/fstab,
+      rather than the filesystem's UUID or the loop device path.
+    - Always set the loop option for loop devices.
+    - Remove critical system files from the existing filesystem before
+      installing.
+    - Preserve the UID and GID of the initial user, if possible.  Requires a
+      patch to user-setup.
+    - Mount CD-ROMs and floppies with the "utf8" option by default.
+    - Check that /media is on the root file system, since the installer
+      relies on being able to mount things like /media/cdrom during
+      installation.
+    - Expand comment above each UUID-mounted partition, based on a suggestion
+      by Daniel Pocock in Debian #509378.
+    - Add a note about 'vol_id --uuid' to the top of /etc/fstab.
+    - Fix disk_containing function to use its argument rather than relying
+      on $dev.
+    - Fix use of udevinfo rather than udevadm info when checking if a disk is
+      USB.
+    - Escape spaces, tabs, newlines, and backslashes in fstab according to
+      the procedure described in getmntent(3).
+    - Issue an error message if two file systems are assigned the same
+      label.
+    - Improve fstab comments for partitions without mount points (e.g. swap).
+    - Rather than pretending that partitions have no longer been formatted
+      after the partitioner is complete, reset their intended state from
+      "format the partition" to "keep and use the existing data". This still
+      solves the original problem reported in Debian bug #256090 while also
+      stopping partitions from being needlessly reformatted if you go back to
+      the partitioner after base system installation and then forward again.
+    - Don't clear partitions or complain about them not being formatted if
+      they've already been formatted by a previous partitioner run.
+    - Introduce partman/mount_style (choices: traditional, label, uuid) to
+      allow controlling how filesystems are mounted. Default this to uuid.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Mon, 04 May 2009 08:23:02 -0700
+
+partman-target (59) unstable; urgency=high
+
+  * Rebuild with fixed Danish translation
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 09 Jan 2009 07:53:05 +0100
+
 partman-target (58ubuntu7) jaunty; urgency=low
 
   * Update Ubuntu-specific strings from Launchpad.

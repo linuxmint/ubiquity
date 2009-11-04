@@ -1,0 +1,9 @@
+#! /bin/sh -e
+
+export DEBIAN_FRONTEND=none
+. /usr/share/debconf/confmodule
+
+db_get oem-config/enable
+if [ "$RET" = true ]; then
+	anna-install oem-config-udeb
+fi

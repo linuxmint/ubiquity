@@ -211,16 +211,11 @@ create_new_partition () {
 	if [ "$id" ]; then
 		while true; do
 			set +e
-			device="$(humandev $(cat device))"
-			db_subst partman/active_partition DEVICE "$device"
-			db_subst partman/active_partition PARTITION "$num"
-			db_metaget partman/text/none_detected description
-			db_subst partman/active_partition OTHERINFO "${RET}"
-			ask_user /lib/partman/active_partition "$dev" "$id"
-			exitcode="$?"
-			if [ "$exitcode" -ge 128 ] && [ "$exitcode" -lt 192 ]; then
-				exit "$exitcode" # killed by signal
-			elif [ "$exitcode" -ge 100 ]; then
+			local code=0
+			ask_active_partition "$dev" "$id" "$num" || code=$?
+			if [ "$code" -ge 128 ] && [ "$code" -lt 192 ]; then
+				exit "$code" # killed by signal
+			elif [ "$code" -ge 100 ]; then
 				break
 			fi
 			set -e

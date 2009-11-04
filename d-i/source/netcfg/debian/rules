@@ -1,0 +1,71 @@
+#!/usr/bin/make -f
+
+PACKAGES	= $(shell dh_listpackages -s)
+DHCP_PACKAGES	= netcfg 
+
+build: build-stamp
+build-stamp:
+	dh_testdir
+
+	# Add here commands to compile the package.
+	$(MAKE)
+
+	touch build-stamp
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp
+
+	# Add here commands to clean up after the build process.
+	$(MAKE) clean
+
+	dh_clean
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs -A usr/lib/base-installer.d usr/lib/finish-install.d etc/network bin
+	# Install files that are the same in all packages
+	$(foreach PACKAGE, $(PACKAGES), \
+		install -m 755 $(PACKAGE) debian/$(PACKAGE)/bin/netcfg; \
+		install -m 755 base-installer debian/$(PACKAGE)/usr/lib/base-installer.d/40netcfg; \
+		install -m 755 finish-install debian/$(PACKAGE)/usr/lib/finish-install.d/55netcfg; \
+		ln -sf netcfg debian/$(PACKAGE)/bin/ptom; )
+	# Install files that are in all DHCP packages
+	$(foreach PACKAGE, $(DHCP_PACKAGES), \
+		mkdir -p debian/$(PACKAGE)/etc/dhcp debian/$(PACKAGE)/etc/dhcp3; \
+		mkdir -p debian/$(PACKAGE)/var/dhcp ; \
+		install -m 755 killall.sh debian/$(PACKAGE)/bin/killall.sh)
+
+
+# Build architecture-independent files here.
+binary-indep: build install
+# We have nothing to do by default.
+
+# Build architecture-dependent files here.
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+
+	dh_installdebconf
+
+	(echo ; po2debconf debian/netcfg-common.templates ) \
+	   >> debian/netcfg-static/DEBIAN/templates	
+	(echo ; po2debconf debian/netcfg-common.templates )\
+	   >> debian/netcfg/DEBIAN/templates	
+	(echo ; po2debconf debian/netcfg-dhcp.templates )\
+	   >> debian/netcfg/DEBIAN/templates	
+	(echo ; po2debconf debian/netcfg-static.templates )\
+	   >> debian/netcfg/DEBIAN/templates	
+	dh_strip -s
+	dh_compress -s
+	dh_fixperms -s
+	dh_installdeb -s
+	dh_shlibdeps -s
+	dh_gencontrol -s
+	dh_builddeb -s
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install

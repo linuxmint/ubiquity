@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 #
 # Copyright (C) 2006, 2007, 2008, 2009 Canonical Ltd.
 #
@@ -25,6 +25,7 @@
 
 import sys
 
+from PyQt4 import *
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
@@ -53,14 +54,17 @@ class Partition:
 class PartitionsBar(QWidget):
     InfoColor = '#333333'
     
+    ## signals
+    partitionResized = QtCore.pyqtSignal(['PyQt_PyObject', 'PyQt_PyObject'])
+    
     """ a widget to graphically show disk partitions. """
     def __init__(self, parent = None):
         QWidget.__init__(self, parent)
         self.partitions = []
-        self.bar_height = 28 #should be a multiple of 2
+        self.bar_height = 20 #should be a multiple of 2
         self.diskSize = 0
         self.radius = 4
-        self.setMinimumHeight(self.bar_height*2 + 30)
+        self.setMinimumHeight(self.bar_height + 40)
         self.setMinimumWidth(500)
         sizePolicy = self.sizePolicy()
         sizePolicy.setVerticalStretch(10)
@@ -74,12 +78,16 @@ class PartitionsBar(QWidget):
     def paintEvent(self, qPaintEvent):
         painter = QPainter(self);
         
+        #used for drawing sunken frame
+        sunkenFrameStyle = QStyleOptionFrame()
+        sunkenFrameStyle.state = QStyle.State_Sunken
+        
         h = self.bar_height
         h_2 = self.bar_height/2
         effective_width = self.width() - 1
         
         path = QPainterPath()
-        path.addRoundedRect(2, 2, self.width()-4, h-4, self.radius, self.radius)
+        path.addRoundedRect(1, 1, self.width()-2, h-2, self.radius, self.radius)
         
         part_offset = 0
         label_offset = 0
@@ -148,8 +156,8 @@ class PartitionsBar(QWidget):
                 
                 texts = []
                 texts.append(name)
-                texts.append("%.01f%%" % (float(p.size) / self.diskSize * 100))
-                texts.append("%s" % format_size(p.size))
+                texts.append("%.01f%% (%s)" % (float(p.size) / self.diskSize * 100, format_size(p.size)))
+                #texts.append("%s" % format_size(p.size))
                 
                 nameFont = QFont("arial", 10)
                 infoFont = QFont("arial", 8)
@@ -165,18 +173,15 @@ class PartitionsBar(QWidget):
                     painter.setPen(QColor(PartitionsBar.InfoColor))
                     width = max(width, textSize.width())
                 
-                #label square
-                painter.setRenderHint(QPainter.Antialiasing, True)
                 painter.setPen(Qt.NoPen)
-                painter.setBrush(pal.color(QPalette.Shadow))
-                labelRectShadow = QPainterPath()
-                labelRectShadow.addRoundedRect(label_offset+1, labelY - 2+1, 13, 13, 4, 4)
-                painter.drawPath(labelRectShadow)                
-                
                 painter.setBrush(mid)
                 labelRect = QPainterPath()
-                labelRect.addRoundedRect(label_offset, labelY - 2, 13, 13, 4, 4)
+                labelRect.addRoundedRect(label_offset+1, labelY - 3, 13, 13, 4, 4)
                 painter.drawPath(labelRect)
+                
+                sunkenFrameStyle.rect = QRect(label_offset, labelY-4, 15, 15)
+                self.style().drawPrimitive(QStyle.PE_Frame, sunkenFrameStyle, painter, self)
+                self.style().drawPrimitive(QStyle.PE_Frame, sunkenFrameStyle, painter, self)
                 
                 label_offset += width + 40
             
@@ -187,55 +192,10 @@ class PartitionsBar(QWidget):
             #increment the partition offset
             part_offset += pix_size
         
-        #draw the overlay frame using oxygen style
-        #TODO redo this...I don't like it
-        '''o = QStyleOptionFrame()
-        o.rect = QRect(0, 0, self.width(), h)
-        o.state = QStyle.State_Sunken
-        self.style().drawPrimitive(QStyle.PE_Frame, o, painter, self)'''
-        
-        pp = QPainterPath()
-        pp.moveTo(2, h)
-        pp.lineTo(2, 4)
-        pp.lineTo(4, 2)
-        pp.lineTo(self.width()-4, 2)
-        pp.lineTo(self.width()-2, 4)
-        pp.lineTo(self.width()-2, h)
-        
-        painter.setClipPath(path)
-        
-        painter.setRenderHint(QPainter.Antialiasing, True)
-        
-        pp = QPainterPath()
-        pp.addRoundedRect(2,2, self.width()-4, h+5, 4, 4)
-        
-        pp2 = QPainterPath()
-        pp2.addRoundedRect(3,3, self.width()-6, h-4, 4, 4)
-        
-        pp3 = QPainterPath()
-        pp3.addRoundedRect(4,4, self.width()-8, h-6, 3, 3)
-        
-        c = QColor(Qt.black)
-        c.setAlphaF(.4)
-        
-        pen = QPen(c)
-        pen.setWidth(2)
-        painter.setPen(pen)
-        painter.setBrush(Qt.NoBrush)
-        
-        painter.drawPath(pp)
-        
-        c.setAlphaF(.25)
-        pen.setColor(c)
-        painter.setPen(pen)
-        painter.drawPath(pp2)
-        
-        c.setAlphaF(.1)
-        pen.setColor(c)
-        painter.setPen(pen)
-        painter.drawPath(pp3)
-        
-        painter.setClipPath(path)
+        #draw twice to give the border shadow more definition
+        sunkenFrameStyle.rect = QRect(0, 0, self.width(), h)
+        self.style().drawPrimitive(QStyle.PE_Frame, sunkenFrameStyle, painter, self)
+        self.style().drawPrimitive(QStyle.PE_Frame, sunkenFrameStyle, painter, self)
         
         if self.resize_part and resize_handle_x:
             # draw a resize handle
@@ -288,7 +248,7 @@ class PartitionsBar(QWidget):
             
         self.partitions.append(partition)
         
-    def setResizePartition(self, path, minsize, maxsize, origsize, new_label):
+    def setResizePartition(self, path, minsize, maxsize, prefsize, new_label):
         part = None
         index = 0
         for p in self.partitions:
@@ -300,16 +260,16 @@ class PartitionsBar(QWidget):
         if not part:
             return
         
-        new_size = maxsize
-        part.size = new_size
+        new_size = part.size - prefsize
+        part.size = prefsize
         part.minsize = minsize
         part.maxsize = maxsize
-        part.origsize = origsize
+        part.prefsize = prefsize
         self.resize_part = part
         
         if part.next == None or part.next.index != -1:
             #if our resize partition is at the end or the next one is not free space
-            p = Partition(origsize - new_size, 0, 'auto', 'Kubuntu')
+            p = Partition(new_size, 0, 'auto', 'Kubuntu')
             p.next = part.next
             part.next = p
             
@@ -318,7 +278,7 @@ class PartitionsBar(QWidget):
         else:
             #we had a next partition that was free space, use that
             #set the size of the next partition accordingly
-            part.next.size += origsize - part.size
+            part.next.size += new_size
         
         # need mouse tracking to be able to change the cursor
         self.setMouseTracking(True)
@@ -356,7 +316,7 @@ class PartitionsBar(QWidget):
                 mx = self.resize_part.maxsize
             
             #chagne the partition sizes
-            span = self.resize_part.origsize
+            span = self.resize_part.prefsize
             percent = mx / float(span)
             oldsize = self.resize_part.size
             self.resize_part.size = int(round(span * percent))
@@ -370,8 +330,7 @@ class PartitionsBar(QWidget):
             assert t == self.diskSize
             
             #using PyQt object to avoid wrapping the size otherwise qt truncates to 32bit int
-            self.emit(SIGNAL("partitionResized(PyQt_PyObject, PyQt_PyObject)"), 
-                self.resize_part.path, self.resize_part.size)
+            self.partitionResized.emit(self.resize_part.path, self.resize_part.size)
             
             #finally redraw
             self.update()

@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
 # Copyright (C) 2005 Junta de Andalucía
 # Copyright (C) 2005, 2006, 2007, 2008 Canonical Ltd.
@@ -27,8 +27,45 @@ import subprocess
 import debconf
 from ubiquity.debconfcommunicator import DebconfCommunicator
 from ubiquity.misc import drop_privileges
-
+from ubiquity.components import usersetup, \
+                                partman, partman_commit, \
+                                summary, install, migrationassistant
 from ubiquity import i18n
+from ubiquity import plugin_manager
+
+# Pages that may be loaded. Interpretation is up to the frontend, but it is
+# strongly recommended to keep the page identifiers the same.
+PAGE_COMPONENTS = {
+    'Partman' : partman,
+    'UserInfo' : usersetup,
+    'MigrationAssistant' : migrationassistant,
+    'Ready' : summary,
+}
+
+class Controller:
+    def __init__(self, wizard):
+        self._wizard = wizard
+        self.dbfilter = None
+        self.oem_config = wizard.oem_config
+        self.oem_user_config = wizard.oem_user_config
+    def translate(self, lang=None, just_me=True, reget=False):
+        pass
+    def allow_go_forward(self, allowed):
+        pass
+    def allow_go_backward(self, allowed):
+        pass
+    def go_forward(self):
+        pass
+    def go_backward(self):
+        pass
+
+class Component:
+    def __init__(self):
+        self.module = None
+        self.controller = None
+        self.filter_class = None
+        self.ui_class = None
+        self.ui = None
 
 class BaseFrontend:
     """Abstract ubiquity frontend.
@@ -43,15 +80,14 @@ class BaseFrontend:
     def __init__(self, distro):
         """Frontend initialisation."""
         self.distro = distro
-        self.locale = None
         self.dbfilter = None
         self.dbfilter_status = None
-        self.current_layout = None
         self.resize_choice = None
         self.manual_choice = None
         self.summary_device = None
         self.grub_en = None
         self.popcon = None
+        self.locale = None
         self.http_proxy_host = None
         self.http_proxy_port = 8080
 
@@ -76,11 +112,10 @@ class BaseFrontend:
                     del os.environ['UBIQUITY_MIGRATION_ASSISTANT']
         except debconf.DebconfError:
             pass
-        
-        try:
-            self.oem_id = db.get('oem-config/id')
-        except debconf.DebconfError:
-            self.oem_id = ''
+
+        self.oem_user_config = False
+        if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
+          self.oem_user_config = True
 
         if self.oem_config:
             try:
@@ -109,6 +144,35 @@ class BaseFrontend:
         except debconf.DebconfError:
             pass
 
+        # These step lists are the steps that aren't yet converted to plugins.
+        # We just hardcode them here, but they will eventually be dynamic.
+        if self.oem_user_config:
+            steps = ['UserInfo']
+        else:
+            steps = ['Partman', 'UserInfo', 'MigrationAssistant', 'Ready']
+        modules = []
+        for step in steps:
+            if step == 'MigrationAssistant' and \
+                'UBIQUITY_MIGRATION_ASSISTANT' not in os.environ:
+                continue
+            page_module = PAGE_COMPONENTS[step]
+            if page_module is not None:
+                modules.append(page_module)
+
+        # Load plugins
+        plugins = plugin_manager.load_plugins()
+        modules = plugin_manager.order_plugins(plugins, modules)
+        self.modules = []
+        for mod in modules:
+            comp = Component()
+            comp.module = mod
+            if hasattr(mod, 'Page'):
+                comp.filter_class = mod.Page
+            self.modules.append(comp)
+
+        if not self.modules:
+            raise ValueError, 'No valid steps.'
+
         if 'SUDO_USER' in os.environ:
             os.environ['SCIM_USER'] = os.environ['SUDO_USER']
             os.environ['SCIM_HOME'] = os.path.expanduser(
@@ -125,11 +189,13 @@ class BaseFrontend:
         """Main entry point."""
         self._abstract('run')
 
-    def get_string(self, name, lang=None):
+    def get_string(self, name, lang=None, prefix=None):
         """Get the string name in the given lang or a default."""
         if lang is None:
             lang = self.locale
-        return i18n.get_string(name, lang)
+        if lang is None and 'LANG' in os.environ:
+            lang = os.environ['LANG']
+        return i18n.get_string(name, lang, prefix)
 
     def watch_debconf_fd(self, from_debconf, process_input):
         """Event loop interface to debconffilter.
@@ -154,7 +220,7 @@ class BaseFrontend:
             name = 'None'
             self.dbfilter_status = None
         else:
-            name = dbfilter.__class__.__name__
+            name = dbfilter.__module__
             if dbfilter.status:
                 self.dbfilter_status = (name, dbfilter.status)
             else:
@@ -162,7 +228,7 @@ class BaseFrontend:
         if self.dbfilter is None:
             currentname = 'None'
         else:
-            currentname = self.dbfilter.__class__.__name__
+            currentname = self.dbfilter.__module__
         syslog.syslog(syslog.LOG_DEBUG,
                       "debconffilter_done: %s (current: %s)" %
                       (name, currentname))
@@ -259,59 +325,6 @@ class BaseFrontend:
 
     # Interfaces with various components. If a given component is not used
     # then its abstract methods may safely be left unimplemented.
-
-    # ubiquity.components.language
-
-    def set_language_choices(self, choices, choice_map):
-        """Called with language choices and a map to localised names."""
-        self.language_choice_map = dict(choice_map)
-
-    def set_language(self, language):
-        """Set the current selected language."""
-        pass
-
-    def get_language(self):
-        """Get the current selected language."""
-        self._abstract('get_language')
-
-    def get_oem_id(self):
-        """Get a unique identifier for this batch of installations."""
-        return self.oem_id
-
-    # ubiquity.components.timezone
-
-    def set_timezone(self, timezone):
-        """Set the current selected timezone."""
-        pass
-
-    def get_timezone(self):
-        """Get the current selected timezone."""
-        self._abstract('get_timezone')
-
-    # ubiquity.components.console_setup
-
-    def set_keyboard_choices(self, choices):
-        """Set the available keyboard layout choices."""
-        pass
-
-    def set_keyboard(self, layout):
-        """Set the current keyboard layout."""
-        self.current_layout = layout
-
-    def get_keyboard(self):
-        """Get the current keyboard layout."""
-        self._abstract('get_keyboard')
-
-    def set_keyboard_variant_choices(self, choices):
-        """Set the available keyboard variant choices."""
-        pass
-
-    def set_keyboard_variant(self, variant):
-        """Set the current keyboard variant."""
-        pass
-
-    def get_keyboard_variant(self):
-        self._abstract('get_keyboard_variant')
 
     # ubiquity.components.partman
 

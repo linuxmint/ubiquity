@@ -1,3 +1,12 @@
+# These templates have been reviewed by the debian-l10n-english
+# team
+#
+# If modifications/additions/rewording are needed, please ask
+# debian-l10n-english@lists.debian.org for advice.
+#
+# Even minor modifications require translation updates and such
+# changes should be coordinated with translators and reviewers.
+
 Template: debian-installer/console-setup/title
 Type: text
 # Main menu item. Please keep below 55 columns
@@ -7,7 +16,9 @@ Template: console-setup/codeset
 Type: select
 __Choices: . Arabic, # Armenian, # Cyrillic - KOI8-R and KOI8-U, # Cyrillic - non-Slavic languages, # Cyrillic - Slavic languages (also Bosnian and Serbian Latin), . Ethiopic, # Georgian, # Greek, # Hebrew, # Lao, # Latin1 and Latin5 - western Europe and Turkic languages, # Latin2 - central Europe and Romanian, # Latin3 and Latin8 - Chichewa; Esperanto; Irish; Maltese and Welsh, # Latin7 - Lithuanian; Latvian; Maori and Marshallese, . Latin - Vietnamese, # Thai, . Combined - Latin; Slavic Cyrillic; Hebrew; basic Arabic, . Combined - Latin; Slavic Cyrillic; Greek, . Combined - Latin; Slavic and non-Slavic Cyrillic
 Default: . Combined - Latin; Slavic Cyrillic; Hebrew; basic Arabic
-_Description: Set of characters that should be supported by the console font:
+_Description: Character set to support:
+ Please choose the character set that should be supported by the console font.
+ .
  If you don't use a framebuffer, the choices that start with "." will
  reduce the number of available colors on the console.
 
@@ -26,16 +37,50 @@ Template: console-setup/variant
 Type: select
 Choices: ${CHOICES}
 _Description: Keyboard layout:
- There is more than one keyboard layout with the origin you selected.
- Please select the layout matching your keyboard.
+ There is more than one possible keyboard layout with the origin you selected.
+ Please select the layout matching the keyboard for this machine.
 
-Template: console-setup/dont_ask_layout
-Type: error
-_Description: Unsupported settings in configuration file
- The configuration file /etc/default/console-setup specifies a keyboard
- layout and variant that are not supported by the configuration
- program.  Because of that, no questions about the keyboard layout will
- be asked and your current configuration will be preserved.
+Template: console-setup/unsupported_config_layout
+Type: boolean
+Default: true
+_Description: Keep unsupported settings in configuration file?
+ The configuration file /etc/default/console-setup specifies a
+ keyboard layout (${XKBLAYOUT}), which is not supported
+ by the configuration program.
+ .
+ Please choose whether you want to keep it. If you choose this option,
+ no questions about the keyboard layout
+ will be asked and the current configuration will be preserved.
+
+Template: console-setup/unsupported_layout
+Type: boolean
+Default: true
+_Description: Keep default keyboard layout (${XKBLAYOUT})?
+ The default value for the keyboard layout is based on the currently
+ defined language/region and the settings in /etc/X11/xorg.conf. This
+ default value is ${XKBLAYOUT}, which is not supported
+ by the configuration program.
+ .
+ Please choose whether you want to keep it. If you choose this option,
+ no questions about the keyboard layout
+ will be asked.
+
+Template: console-setup/unsupported_config_options
+Type: boolean
+Default: true
+_Description: Keep unsupported options (${XKBOPTIONS})?
+ The configuration file /etc/default/console-setup specifies options
+ for the keyboard layout (${XKBOPTIONS}) that are not
+ supported by the configuration program.
+
+Template: console-setup/unsupported_options
+Type: boolean
+Default: true
+_Description: Keep unsupported options (${XKBOPTIONS})?
+ The default value for the options of the keyboard layout is based on
+ the currently defined language/region and the settings in /etc/X11/xorg.conf.
+ This default value is ${XKBOPTIONS}, which is not supported
+ by the configuration program.
 
 Template: console-setup/fontface
 Type: select
@@ -45,49 +90,46 @@ Default: Fixed
 # lists.  If you decide to use formatted lists then keep the lines
 # relatively short.
 _Description: Font for the console:
- Please choose the font face you would like to use on Linux console.
+ "VGA" has a traditional appearance and has medium coverage of
+ international scripts. "Fixed" has a simplistic appearance and has
+ better coverage of international scripts. "Terminus" may help to
+ reduce eye fatigue, though some symbols have a similar aspect which
+ may be a problem for programmers.
  .
-  - VGA has a traditional appearance and has medium coverage
-    of international scripts;
-  - Fixed has a simplistic appearance and has better coverage
-    of international scripts;
-  - Terminus is aimed to reduce eye fatigue, though some symbols
-    have a similar aspect which may be a problem for programmers.
- .
- If you prefer a bold version of the Terminus font, then choose
- TerminusBold if you use a framebuffer, otherwise TerminusBoldVGA.
+ If you prefer a bold version of the Terminus font, choose either
+ TerminusBold (if you use a framebuffer) or TerminusBoldVGA (otherwise).
 
 Template: console-setup/fontsize-text
 Type: select
 Choices: ${CHOICES}
 Default: 16
 _Description: Font size:
- Please select the size of the font for the Linux console.  For
- reference, the font your computer starts with has size 16.
+ Please select the size of the font for the Linux console. For
+ reference, the font used when the computer boots has size 16.
 
 Template: console-setup/fontsize-fb
 Type: select
 Choices: ${CHOICES}
 Default: 16
 _Description: Font size:
- Please select the size of the font for the Linux console.  When the
- size is represented as a plain number then the corresponding font can
- be used with all console drivers and the number measures the height
- of the symbols (in number of scan lines).  Otherwise the size has the
- format HEIGHTxWIDTH and the corresponding fonts can be used only if
- you use framebuffer and the kbd console package (console-tools
- doesn't work for such fonts).  Currently these fonts cannot be used
- if the framebuffer you use is based on the RadeonFB kernel module.
+ Please select the size of the font for the Linux console.
+ Simple integers corresponding to fonts can
+ be used with all console drivers. The number then represents the
+ font height (number of scan lines). Alternatively, the font may
+ be represented as HEIGHTxWIDTH; however, such font specifications
+ require the kbd console package (not console-tools) plus
+ framebuffer (and the RadeonFB kernel driver for framebuffer does
+ not support them either).
  .
- You can use the height of the fonts in order to figure out the real
- size of the symbols on the console.  For reference, the font your
- computer starts with has height 16.
+ Font heights can be useful for figuring out the real
+ size of the symbols on the console. For
+ reference, the font used when the computer boots has size 16.
 
 Template: console-setup/charmap
 Type: select
 Choices: ${CHOICES}
 Default: UTF-8
-_Description: Encoding on the console:
+_Description: Encoding to use on the console:
 
 Template: console-setup/ttys
 Type: string
@@ -97,7 +139,7 @@ _Description: Virtual consoles in use:
  Unix filename wildcards are allowed (*, ? and [...]).
  .
  If you are unsure, then use the default /dev/tty[1-6] which stands for six
- virtual consoles. If you use devfs, then enter /dev/vc/[1-6] instead.
+ virtual consoles.
 
 Template: console-setup/toggle
 Type: select
@@ -105,30 +147,28 @@ __Choices: Caps Lock, Right Alt, Right Control, Right Shift, Right Logo key, Men
 Default: Alt+Shift
 _Description: Method for toggling between national and Latin mode:
  You will need a way to toggle the keyboard between the national
- layout and the standard Latin layout.  Several options are available.
+ layout and the standard Latin layout.
  .
- The most ergonomic choices seem to be the right Alt and the Caps Lock keys
+ Right Alt or Caps Lock keys are often chosen for ergonomic reasons
  (in the latter case, use the combination Shift+Caps Lock for normal Caps
- toggle).  Another popular choice is the Alt+Shift combination; note
- however that in this case the combination Alt+Shift (or Control+Shift if
- you choose it) will lose its usual meaning in Emacs and other programs
- using it.
+ toggle). Alt+Shift is also a popular combination; it will
+ however lose its usual behavior in Emacs and other programs
+ that use it for specific needs.
  .
- Note that the listed keys are not present on all keyboards.
+ Not all listed keys are present on all keyboards.
 
 Template: console-setup/switch
 Type: select
 __Choices: No temporary switch, Both Logo keys, Right Alt, Right Logo key, Left Alt, Left Logo key
 Default: No temporary switch
 _Description: Method for temporarily toggling between national and Latin input:
- Sometimes the keyboard is in national mode and you want to type only a few
- Latin letters. In this case it may be desirable to have a key for
- temporarily switching between national and Latin symbols.  While this key
- is pressed in national mode, the keyboard types Latin letters.  Conversely,
- when the keyboard is in Latin mode and this key is pressed, the keyboard
- will type national letters.
+ When the keyboard is in national mode and one wants to type only a few
+ Latin letters, it might be more appropriate to switch temporarily to
+ Latin mode. The keyboard remains in that mode as long as the chosen key is
+ kept pressed. That key may also be used to input national letters when
+ the keyboard is in Latin mode.
  .
- If you don't like this feature, choose the option "No temporary switch".
+ You can disable this feature by choosing "No temporary switch".
 
 Template: console-setup/altgr
 Type: select
@@ -137,10 +177,8 @@ Default: Right Alt
 _Description: AltGr key replacement:
  With some keyboard layouts, AltGr is a modifier key used to input
  some characters, primarily ones that are unusual for the language of the
- keyboard layout, such as foreign currency symbols and accented letters. 
- If a key has a third symbol on it (on the front vertical face or the
- bottom right of the key top, sometimes in a different color), then AltGr
- is often the means of eliciting that symbol.
+ keyboard layout, such as foreign currency symbols and accented letters.
+ These are often printed as an extra symbol on keys.
 
 Template: console-setup/compose
 Type: select
@@ -153,7 +191,7 @@ _Description: Compose key:
  .
  On the text console the Compose key does not work in Unicode mode. If not
  in Unicode mode, regardless of what you choose here, you can always also
- use the Alt+period combination as a Compose key.
+ use the Control+period combination as a Compose key.
 
 Template: console-setup/ask_detect
 Type: boolean

@@ -1,0 +1,85 @@
+Template: netcfg/dhcp_hostname
+Type: string
+# :sl1:
+_Description: DHCP hostname:
+ You may need to supply a DHCP host name. If you are using
+ a cable modem, you might need to specify an account number here.
+ .
+ Most other users can just leave this blank.
+
+Template: netcfg/dhcp_progress
+Type: text
+# :sl1:
+_Description: Configuring the network with DHCP
+
+Template: netcfg/dhcp_progress_note
+Type: text
+# :sl1:
+_Description: This may take some time.
+
+Template: netcfg/dhcp_success_note
+Type: text
+# :sl1:
+_Description: Network autoconfiguration has succeeded
+
+Template: netcfg/no_dhcp_client
+Type: error
+# :sl2:
+_Description: No DHCP client found
+ No DHCP client was found. This package requires pump or dhcp-client.
+ .
+ The DHCP configuration process has been aborted.
+
+Template: netcfg/dhcp_options
+Type: select
+# :sl1:
+# Note to translators : Please keep your translation
+# below a 65 columns limit (which means 65 characters 
+# in single-byte languages)
+#flag:translate!:4
+__Choices: Retry network autoconfiguration, Retry network autoconfiguration with a DHCP hostname, Configure network manually, ${wifireconf}, Do not configure the network at this time
+Default: Configure network manually
+# :sl1:
+_Description: Network configuration method:
+ From here you can choose to retry DHCP network autoconfiguration
+ (which may succeed if your DHCP server takes a long time to respond)
+ or to configure the network manually. Some DHCP servers require
+ a DHCP hostname to be sent by the client, so you can also choose
+ to retry DHCP network autoconfiguration with a hostname that you
+ provide.
+
+Template: netcfg/dhcp_failed
+Type: note
+# :sl1:
+_Description: Network autoconfiguration failed
+ Your network is probably not using the DHCP protocol. Alternatively, the
+ DHCP server may be slow or some network hardware is not working properly.
+
+Template: netcfg/no_default_route
+Type: boolean
+# :sl2:
+_Description: Continue without a default route?
+ The network autoconfiguration was successful. However, no default route
+ was set: the system does not know how to communicate with hosts on the
+ Internet. This will make it impossible to continue with the installation
+ unless you have the first installation CD-ROM, a 'Netinst' CD-ROM, or
+ packages available on the local network.
+ .
+ If you are unsure, you should not continue without a default route:
+ contact your local network administrator about this problem.
+
+Template: netcfg/internal-wifireconf
+Type: text
+# :sl1:
+_Description: Reconfigure the wireless network
+
+Template: netcfg/dhcp_timeout
+Type: text
+Description: for internal use; can be preseeded
+ Timeout for trying DHCP
+Default: 30
+
+Template: netcfg/dhcp_ntp_servers
+Type: text
+Description: for internal use
+ NTP servers provided by DHCP

@@ -133,6 +133,7 @@ if [ "x$1" = "x--supported" ]; then
 		"Freescale MX51 Babbage Board")		exit 0 ;;
 		"GLAN Tank")				exit 0 ;;
 		"HP Media Vault mv2120")		exit 0 ;;
+		"Marvell DB-MV88F6781-BP Development Board") exit 0 ;;
 		"Linksys NSLU2")			exit 0 ;;
 		"QNAP TS-109/TS-209" | "QNAP TS-409")	exit 0 ;;
 		"Thecus N2100")				exit 0 ;;
@@ -144,8 +145,8 @@ if [ -n "$1" ]; then
 	kvers="$1"
 	kfile=/boot/vmlinuz-$kvers
 	ifile=/boot/initrd.img-$kvers
-	desc="Debian kernel $1"
-	idesc="Debian ramdisk $1"
+	desc="Ubuntu kernel $1"
+	idesc="Ubuntu ramdisk $1"
 else
 	if [ -e /vmlinuz ]; then
 		kfile=/vmlinuz
@@ -430,6 +431,93 @@ case "$machine" in
 			rm -f $tmp
 		) > $imtd || error "failed."
 		echo "done." >&2
+	;;
+	"Marvell DB-MV88F6781-BP Development Board")
+		check_subarch "dove"
+		tmp=$(tempfile)
+		uboot_kernel_load_addr=0x00200000
+		uboot_initramfs_load_addr=0x01100000
+		script_load_addr=0x1000
+
+		printf "Generating kernel u-boot image... " >&2
+		cat $kfile >> $tmp
+		mkimage -A arm -O linux -T kernel -C none -n "$desc" -a 0x00008000 \
+			-e 0x00008000 -d $tmp $tmp.uboot >&2 1>/dev/null
+		echo "done." >&2
+		if [ -e /boot/uImage ]; then
+			echo "Creating backup of /boot/uImage." >&2
+			mv /boot/uImage /boot/uImage.bak
+		fi
+		echo "Creating new /boot/uImage." >&2
+		mv $tmp.uboot /boot/uImage
+		rm -f $tmp
+		printf "Generating initrd u-boot image... " >&2
+		mkimage -A arm -O linux -T ramdisk -C gzip -a 0x0 \
+			-e 0x0 -n "$idesc" -d "$ifile" "$tmp.uboot" >&2 1>/dev/null
+		echo "done." >&2
+		if [ -e /boot/uInitrd ]; then
+			echo "Creating backup of /boot/uInitrd." >&2
+			mv /boot/uInitrd /boot/uInitrd.bak
+		fi
+		echo "Creating new /boot/uInitrd." >&2
+		mv "$tmp.uboot" /boot/uInitrd
+		rm -f "$tmp.uboot"
+		printf "Generating new u-boot boot script..." >&2
+		# The UUID will come from the flash-kernel config file
+		cat >"$tmp.boot.script" <<EOF
+echo Starting Ubuntu...
+if test -n \${fs} && test -n \${interface} && test -n \${device} && test -n \${prefix}; then
+	\${fs}load \${interface} \${device} $uboot_kernel_load_addr \${prefix}uImage
+	\${fs}load \${interface} \${device} $uboot_initramfs_load_addr \${prefix}uInitrd
+	setenv bootargs $rootfs ro quiet splash
+	bootm $uboot_kernel_load_addr $uboot_initramfs_load_addr
+fi
+
+echo boot information not recieved from u-boot, scanning for startup device
+
+if test -e \${reinitalize_devices}; then
+	usb start;
+	ide reset;
+fi
+
+for i in usb ide; do 
+	for j in 0 1; do
+		for l in / /boot/; do
+			for m in fat ext2; do
+				setenv interface \$i;
+				setenv device \$j;
+				setenv prefix \$l;
+				setenv fs \$m;
+
+				echo Scanning \${fs} \${interface} \${device} on prefix \${prefix} ...;
+
+				# This "if" avoids loading an old image but
+				# doesn't work in stock u-boot 1.3.4 and is
+				# only fixed in Canonical u-boot from October
+				# 1st or later
+
+				if \${fs}load \${interface} \${device} $script_load_addr \${prefix}boot.scr; then
+					if imi $script_load_addr; then
+						echo boot.scr found! Executing ...;
+						autoscr $script_load_addr;
+					fi;
+				fi
+			done;
+		done;
+	done;
+done
+echo No boot device found.;
+EOF
+		mkimage -A arm -T script -C none -n "Ubuntu boot script" -d "$tmp.boot.script" \
+			"$tmp.boot.scr" >&2 1>/dev/null
+		echo "done." >&2
+		if [ -e /boot/boot.scr ]; then
+			echo "Creating backup of /boot/boot.scr." >&2
+			mv /boot/boot.scr /boot/boot.scr.bak
+		fi
+		echo "Creating new /boot/boot.scr." >&2
+		mv "$tmp.boot.scr" /boot/boot.scr
+		rm -f "$tmp.boot.script" "$tmp.boot.scr"
 	;;
 	"QNAP TS-109/TS-209" | "QNAP TS-409")
 		check_subarch "orion5x"

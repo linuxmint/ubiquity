@@ -460,6 +460,16 @@ index_of_name(const char *name)
         return i;
 }
 
+/* Mangle fstype to abstract changes in parted code */
+void
+mangle_fstype_name(char **fstype)
+{
+        if (!strcasecmp(*fstype, "linux-swap")) {
+                free(*fstype);
+                *fstype = strdup("linux-swap(v1)");
+        }
+}
+
 /* Return the PedDevice of `name'. */
 PedDevice *
 device_named(const char *name)
@@ -973,8 +983,11 @@ partition_info(PedDisk *disk, PedPartition *part)
                 fs = "extended";
         else if (NULL == (part->fs_type))
                 fs = "unknown";
+        else if (0 == strncmp(part->fs_type->name, "linux-swap", 10))
+                fs = "linux-swap";
         else
                 fs = part->fs_type->name;
+
         if (0 == strcmp(disk->type->name, "loop")) {
                 path = strdup(disk->dev->path);
 /*         } else if (0 == strcmp(disk->type->name, "dvh")) { */
@@ -1661,7 +1674,10 @@ command_get_file_system()
                 if (fstype == NULL) {
                         oprintf("none\n");
                 } else {
-                        oprintf("%s\n", fstype->name);
+                        if (0 == strncmp(part->fs_type->name, "linux-swap", 10))
+                                oprintf("linux-swap\n");
+                        else
+                                oprintf("%s\n", fstype->name);
                 }
                 free(id);
                 activate_exception_handler();
@@ -1688,6 +1704,9 @@ command_change_file_system()
                 critical_error("Partition not found: %s", id);
         }
         free(id);
+
+        mangle_fstype_name(&s_fstype);
+
         fstype = ped_file_system_type_get(s_fstype);
         if (fstype == NULL) {
                 log("Filesystem %s not found, let's see if it is a flag",
@@ -1766,6 +1785,9 @@ command_create_file_system()
         if (part == NULL)
                 critical_error("No such partition: %s", id);
         free(id);
+
+        mangle_fstype_name(&s_fstype);
+
         fstype = ped_file_system_type_get(s_fstype);
         if (fstype == NULL)
                 critical_error("Bad file system type: %s", s_fstype);
@@ -1857,6 +1879,8 @@ command_new_partition()
                 critical_error("Bad partition type: %s", s_type);
         log("requested partition with type %s", s_type);
         free(s_type);
+
+        mangle_fstype_name(&s_fs_type);
 
         fs_type = ped_file_system_type_get(s_fs_type);
         if (fs_type == NULL)
@@ -2299,6 +2323,7 @@ main_loop()
                 if (1 != iscanf("%as", &str))
                         critical_error("No data in infifo.");
                 log("Read command: %s", str);
+                /* Keep partman-command in sync with changes here. */
                 if (!strcasecmp(str, "QUIT"))
                         command_quit();
                 else if (!strcasecmp(str, "OPEN"))

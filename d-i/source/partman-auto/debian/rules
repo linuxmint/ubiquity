@@ -1,54 +1,23 @@
-#!/usr/bin/make -f
-
-export PACKAGE = partman-auto
+#! /usr/bin/make -f
+%:
+	dh --with d-i $@
 
 ARCH=$(shell dpkg-architecture -qDEB_HOST_ARCH)
 
-build:
+ifeq (,$(wildcard recipes-$(ARCH)))
+DI_NUMBERS := recipes
+else
+DI_NUMBERS := recipes-$(ARCH)
+endif
+DI_NUMBERS += $(wildcard recipes-$(ARCH)-*)
 
-clean:
-	dh_testdir
-	dh_testroot
-	dh_clean
+override_dh_di_numbers:
+	dh_di_numbers $(DI_NUMBERS) lib/partman
 
-install: build
-	dh_testdir
-	dh_testroot
-	dh_clean -k
-	dh_install autopartition bin
-	dh_install perform_recipe bin
-	dh_install lib lib/partman
-	if [ -d recipes-$(ARCH) ]; then \
-		debian/install-rc recipes-$(ARCH); \
-	else \
-		debian/install-rc recipes; \
-	fi
-	for sub in recipes-$(ARCH)-*; do \
-		if [ -d "$$sub" ]; then \
-			debian/install-rc $$sub; \
-		fi; \
-	done
 ifeq ($(ARCH),powerpc)
+override_dh_link:
 	# temporary hack until chrp_rs6k goes away entirely
 	rm -rf debian/partman-auto/lib/partman/recipes-powerpc-chrp_rs6k
 	dh_link lib/partman/recipes-powerpc-chrp_ibm \
 		lib/partman/recipes-powerpc-chrp_rs6k
 endif
-	debian/install-rc choose_partition
-	debian/install-rc free_space
-	debian/install-rc automatically_partition
-	debian/install-rc display.d
-
-binary-arch: build install
-	dh_testdir
-	dh_testroot
-	dh_installdebconf
-	dh_fixperms
-	dh_installdeb
-	dh_gencontrol
-	dh_builddeb
-
-binary-indep: build install
-
-binary: binary-indep binary-arch
-.PHONY: build clean binary-indep binary-arch binary install

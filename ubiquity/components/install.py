@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
 # Copyright (C) 2006, 2007, 2008 Canonical Ltd.
 # Author(s):
@@ -47,7 +47,9 @@ class Install(FilteredCommand):
         install_bootloader_seen = self.db.fget('ubiquity/install_bootloader',
                                                'seen')
         if not (automatic_mode and install_bootloader_seen):
-            if self.frontend.get_grub() is not None:
+            if self.frontend.oem_user_config:
+                self.preseed_bool('ubiquity/install_bootloader', False)
+            elif self.frontend.get_grub() is not None:
                 self.preseed_bool('ubiquity/install_bootloader', self.frontend.get_grub())
             else:
                 self.preseed_bool('ubiquity/install_bootloader', True)
@@ -71,7 +73,6 @@ class Install(FilteredCommand):
 
         if self.frontend.oem_config:
             self.preseed('oem-config/enable', 'true')
-            self.preseed('oem-config/id', self.frontend.get_oem_id())
 
         # for clock-setup
         self.preseed('netcfg/dhcp_ntp_servers', '', seen=False)

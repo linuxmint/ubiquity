@@ -151,7 +151,7 @@ get_partition_info(struct partition *p, PedPartition *part, PedDevice *dev, bool
     if (PART_SIZE_BYTES(dev, part) > 0)
         p->size = PART_SIZE_BYTES(dev, part);
     if (!ignore_fs_type && part->fs_type != NULL) {
-        if (strcmp(part->fs_type->name, "linux-swap") == 0)
+        if (strncmp(part->fs_type->name, "linux-swap", 10) == 0)
             p->fstype = strdup("swap");
         else
             p->fstype = strdup(part->fs_type->name);

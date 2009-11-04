@@ -35,8 +35,11 @@ def main():
         inner = ['/usr/lib/ubiquity/bin/ubiquity']
         inner.extend(newargv)
 
-        # Lock HAL's storage subsystem.
-        if osextras.find_on_path('hal-lock'):
+        # Lock HAL's storage subsystem (or DeviceKit-disks).
+        if osextras.find_on_path('devkit-disks'):
+            toexec.extend(['devkit-disks', '--inhibit', '--'])
+            toexec.extend(inner)
+        elif osextras.find_on_path('hal-lock'):
             toexec.extend(['hal-lock',
                            '--interface', 'org.freedesktop.Hal.Device.Storage',
                            '--exclusive', '--run'])
@@ -70,8 +73,8 @@ def main():
                 kdesu = 'kdesu'
             elif osextras.find_on_path('kdesudo'):
                 kdesu = 'kdesudo'
-            elif os.path.exists('/usr/lib/kde4/bin/kdesudo'):
-                kdesu = '/usr/lib/kde4/bin/kdesudo'
+            elif os.path.exists('/usr/lib/kde4/libexec/kdesu'):
+                kdesu = '/usr/lib/kde4/libexec/kdesu'
             if kdesu:
                 toexec = [kdesu, '--nonewdcop', '--']
             else:

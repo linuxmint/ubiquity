@@ -1,3 +1,104 @@
+hw-detect (1.72ubuntu5) karmic; urgency=low
+
+  * Fix db_fget arguments when checking for partman-iscsi preseeding.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 14 Oct 2009 20:51:53 +0100
+
+hw-detect (1.72ubuntu4) karmic; urgency=low
+
+  [ Colin Watson ]
+  * Drop disk-detect/iscsi/enable template, which is no longer used.
+  * Don't install mouseemu on Intel Mac desktops (LP: #251830).
+
+  [ Mario Limonciello ]
+  * Add support for Dell Driver Injection disk v1, an integrated flash media based 
+    solution for adding in drivers after OS launches.  This feature will be on 
+    upcoming Dell servers. (LP: #341526)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 28 Aug 2009 09:59:27 +0100
+
+hw-detect (1.72ubuntu3) karmic; urgency=low
+
+  * Support preseeding of partman-iscsi/login/address.
+  * Don't call 'anna-install open-iscsi-udeb' if the iSCSI login choice is
+    selected; partman-iscsi must already be installed for this choice to be
+    offered, and it depends on open-iscsi-udeb already.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 10 Aug 2009 18:05:43 +0100
+
+hw-detect (1.72ubuntu2) karmic; urgency=low
+
+  * Default iSCSI configuration to true, and stop installing open-iscsi-udeb
+    unconditionally here; partman-iscsi will take care of that. Instead,
+    offer iSCSI targets as a choice if partman-iscsi is available and no
+    disk devices are found, and implement compatibility with old-style
+    open-iscsi/targets preseeding (LP: #237460).
+  * Stop installing acpi, acpid, and acpi-support-base if acpi is available.
+    Most of these are going away and desktop facilities should take care of
+    whatever's left.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 10 Aug 2009 13:24:35 +0100
+
+hw-detect (1.72ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Remove FireWire Ethernet support.
+    - Register lp module on i386 and amd64.
+    - Exit zero if you continue all the way through ethdetect's errors about
+      having no network interfaces.
+    - Register rtc module on amd64.
+    - Drop priorities of a couple of ethdetect questions to medium.
+    - Install mouseemu on systems likely to have single-button mice (i.e.
+      Macs), but not powerpc64 since that causes an oops in the input layer.
+    - On powerpc/ps3 systems, load ps3rom, ps3disk, and ps3_gelic, and add
+      snd_ps3 to /etc/modules.
+    - Install elfspe2 on Cell (powerpc/ps3 and powerpc/cell) platforms.
+    - Add hooks for iSCSI support.
+    - disk-detect.sh: Do not check the kernel command line for any option
+      to enable dmraid support. If functional dmraid arrays are found, the
+      user will be asked if they wish to activate them.
+    - Make dmraid logging a bit neater.
+    - 'dmraid -c -s' changed its output format; cope with both old and new.
+    - Reinstate snd-powermac for i2s-a devices since apparently the lock-up
+      has been fixed.
+    - Remove dm-emc from the multipath modules, since it's gone since
+      2.6.27.
+    - Improve checks for dm-* drivers being present to avoid relying on them
+      being built as modules.
+    - Install libc6-vfp on armel systems where the vfp word is found in the
+      /proc/cpuinfo features.
+  * Don't use 'grep -w' in VFP-detection code, since busybox doesn't
+    implement it (LP: #359915).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 02 Jun 2009 17:14:06 +0100
+
+hw-detect (1.72) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Ask the correct parameters question if modprobe fails.
+  * Cope with dm-mod being built-in (e.g. custom kernels).
+  * Merge from Ubuntu:
+    - Check dmraid's exit code rather than parsing its output.
+    - Use 'update-dev --settle' rather than 'update-dev' after loading
+      modules (although not after installing new module packages, which may
+      still require a trigger). Requires di-utils 1.66.
+    - Activate only non-degraded dmraid arrays (thanks, Luke Yelavich;
+      closes: #499482).
+
+  [ Frans Pop ]
+  * Install usbutils based on presence of /sys/bus/usb.
+
+  [ Javier Fernández-Sanguino Peña ]
+  * Fix Spanish translation. Closes: #510304
+
+  [ Frans Pop ]
+  * Remove myself as uploader.
+  * Move hook scripts to directories to simplify including them.
+  * hppa: starting with kernel 2.6.29 modules for devices on the parisc bus
+    should be loaded automatically.
+
+ -- Frans Pop <fjp@debian.org>  Fri, 08 May 2009 07:45:48 +0200
+
 hw-detect (1.71ubuntu6) jaunty; urgency=low
 
   [ Loic Minier ]

@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
 # Copyright (C) 2005, 2006, 2007, 2008 Canonical Ltd.
 # Written by Colin Watson <cjwatson@ubuntu.com>.
@@ -59,6 +59,7 @@ valid_commands = {
     'BEGINBLOCK': 0,
     'CAPB': None,
     'CLEAR': 0,
+    'DATA': 3,
     'ENDBLOCK': 0,
     'FGET': 2,
     'FSET': 3,
@@ -290,6 +291,10 @@ class DebconfFilter:
                 self.debug('filter', 'widget found for', question)
                 widget.set(question, value)
 
+        if command == 'DATA':
+            self.reply(0, 'OK', log=True)
+            return True
+
         if command == 'SUBST' and len(params) >= 3:
             (question, key) = params[0:2]
             value = ' '.join(params[2:])
@@ -388,6 +393,15 @@ class DebconfFilter:
 
         if command == 'STOP':
             return True
+
+        if command == 'X_LOADTEMPLATEFILE' and len(params) >= 1:
+            # The template file we've been asked to load might actually be
+            # in the /target chroot rather than in the root filesystem. If
+            # so, rewrite the command.
+            if params[0].startswith('/'):
+                target_template = os.path.join('/target', params[0][1:])
+                if os.path.exists(target_template):
+                    params[0] = target_template
 
         try:
             if not self.escaping:

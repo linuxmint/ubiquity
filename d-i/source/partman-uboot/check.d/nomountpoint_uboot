@@ -1,0 +1,37 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ "$fs" != free ] || continue
+		partitions="$partitions $id,$num"
+	done
+	close_dialog
+
+	for part in $partitions; do
+		id=${part%,*}
+		num=${part#*,}
+		[ -f $id/method ] || continue
+		[ -f $id/acting_filesystem ] || continue
+		filesystem=$(cat $id/acting_filesystem)
+		case "$filesystem" in
+		    uboot)
+			[ ! -f "$id/mountpoint" ] || continue
+			db_subst partman-uboot/no_mount_point PARTITION "$num"
+			db_subst partman-uboot/no_mount_point FILESYSTEM "$filesystem"
+			db_subst partman-uboot/no_mount_point DEVICE $(humandev $(cat device))
+			db_input critical partman-uboot/no_mount_point || true
+			db_go || exit 1
+			db_get partman-uboot/no_mount_point
+			if [ "$RET" = true ]; then
+				exit 1
+			fi
+			;;
+		esac
+	done
+done

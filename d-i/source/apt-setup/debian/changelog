@@ -1,3 +1,215 @@
+apt-setup (1:0.41ubuntu2) karmic; urgency=low
+
+  * Use debconf-apt-progress for our Ubuntu-specific all-in-one-go 'apt-get
+    update' run.
+  * Re-enable progress bar cancellation. Thanks to debian-installer-utils
+    1.70 and fixes in debconf, it all seems to work fine now (LP: #172879).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 01 Oct 2009 23:15:04 +0100
+
+apt-setup (1:0.41ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Install the Ubuntu mirror generator instead of Debian's.
+    - Set apt-setup/security_host to security.ubuntu.com, or
+      ports.ubuntu.com on ports architectures; adjust directory and
+      distribution to match.
+    - Add security sources for restricted, universe, and multiverse,
+      commented out unless the respective components are enabled. Disable
+      security generator checks for contrib and non-free.
+    - For CD installs, leave the sources.list created by apt-setup in
+      /etc/apt/sources.list.apt-setup, and restore the sources.list created
+      during base installation for the rest of the installation.
+    - Honour OVERRIDE_BASE_INSTALLABLE when checking
+      /cdrom/.disk/base_installable.
+    - Enable universe and multiverse by default.
+    - If either restricted or multiverse is enabled, add commented-out lines
+      for the partner archive.
+    - Reduce the mirror verification timeout to 10 seconds.
+    - Disable the volatile service for Ubuntu, and don't ask the
+      apt-setup/services-select question.
+    - Always disable the CD at the end of installation if any mirrors are
+      present, even if it's a complete CD.
+    - Pre-populate apt's lists directory with signed Release files for
+      archive.ubuntu.com (and mirrors) and security.ubuntu.com, to protect
+      against downgrade attacks right from initial installation.
+    - Run 'apt-get update' for all sources.list lines produced by a single
+      generator in one go, and don't comment out sources.list lines if it
+      fails.
+    - Make the path to security updates configurable, as well as the host.
+    - Remove restricted from cdrom entry if apt-setup/restricted is false.
+    - Add Release files for intrepid and jaunty.
+    - Allow preseeding apt-setup/partner to enable the partner repository.
+    - Use cdrom-detect/cdrom_fs when remounting the CD to ensure that we do
+      so using the same filesystem.
+    - Make sure apt-cdrom doesn't unmount the CD if cd_type ends with
+      /single.
+    - Enable all network sources, including security updates, even if the
+      network is unconfigured.
+    - Fix handling of universe and multiverse in -backports lines.
+    - Honour apt-setup/restricted, apt-setup/universe, and
+      apt-setup/multiverse when writing -backports lines.
+    - Check to make sure the CD filesystem is iso9660 before remounting it
+      as such.  Do not write a CD identifier if we're not working with
+      iso9660 so pkgsel does not try to unmount such disks.
+    - Fix description of universe in generated sources.list: packages there
+      are expected to be under a free licence.
+    - Run 'apt-get update', without downloading package lists or cleaning up
+      old files, after moving the sources.list generated during base system
+      installation back into place.
+    - If OVERRIDE_LEAVE_CD_MOUNTED is set, don't unmount /cdrom; this is a
+      bad idea in a live CD environment!
+    - Bail out cleanly from cdrom generator if /cdrom/.disk/info doesn't
+      exist or has zero size.
+  * Add Release files for karmic.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 24 Jun 2009 18:05:27 +0100
+
+apt-setup (1:0.41) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Merge from Ubuntu:
+    - Make sure to exit services-select generator cleanly if
+      apt-setup/services-select is empty.
+
+  [ Updated translations ]
+  *  (ast.po) by Marcos Alvarez Costales
+  * Bengali (bn.po) by Md. Rezwan Shahid
+  * Esperanto (eo.po) by Felipe Castro
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Estonian (et.po) by Mattias Põldaru
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by marce villarino
+  * Hindi (hi.po) by Kumar Appaiah
+  * Italian (it.po) by Milo Casagrande
+  * Kazakh (kk.po) by daur88
+  * Malayalam (ml.po) by Praveen Arimbrathodiyil
+  * Marathi (mr.po) by Sampada
+  * Slovak (sk.po) by Ivan Masár
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Tagalog (tl.po) by Eric Pareja
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 11 Jun 2009 21:31:24 +0200
+
+apt-setup (1:0.40ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Install the Ubuntu mirror generator instead of Debian's.
+    - Set apt-setup/security_host to security.ubuntu.com, or
+      ports.ubuntu.com on ports architectures; adjust directory and
+      distribution to match.
+    - Add security sources for restricted, universe, and multiverse,
+      commented out unless the respective components are enabled. Disable
+      security generator checks for contrib and non-free.
+    - For CD installs, leave the sources.list created by apt-setup in
+      /etc/apt/sources.list.apt-setup, and restore the sources.list created
+      during base installation for the rest of the installation.
+    - Honour OVERRIDE_BASE_INSTALLABLE when checking
+      /cdrom/.disk/base_installable.
+    - Enable universe and multiverse by default.
+    - If either restricted or multiverse is enabled, add commented-out lines
+      for the partner archive.
+    - Reduce the mirror verification timeout to 10 seconds.
+    - Disable the volatile service for Ubuntu, and don't ask the
+      apt-setup/services-select question.
+    - Always disable the CD at the end of installation if any mirrors are
+      present, even if it's a complete CD.
+    - Pre-populate apt's lists directory with signed Release files for
+      archive.ubuntu.com (and mirrors) and security.ubuntu.com, to protect
+      against downgrade attacks right from initial installation.
+    - Run 'apt-get update' for all sources.list lines produced by a single
+      generator in one go, and don't comment out sources.list lines if it
+      fails.
+    - Make the path to security updates configurable, as well as the host.
+    - Remove restricted from cdrom entry if apt-setup/restricted is false.
+    - Add Release files for intrepid and jaunty.
+    - Make sure to exit services-select generator cleanly if
+      apt-setup/services-select is empty.
+    - Allow preseeding apt-setup/partner to enable the partner repository.
+    - Use cdrom-detect/cdrom_fs when remounting the CD to ensure that we do
+      so using the same filesystem.
+    - Make sure apt-cdrom doesn't unmount the CD if cd_type ends with
+      /single.
+    - Enable all network sources, including security updates, even if the
+      network is unconfigured.
+    - Fix handling of universe and multiverse in -backports lines.
+    - Honour apt-setup/restricted, apt-setup/universe, and
+      apt-setup/multiverse when writing -backports lines.
+    - Check to make sure the CD filesystem is iso9660 before remounting it
+      as such.  Do not write a CD identifier if we're not working with
+      iso9660 so pkgsel does not try to unmount such disks.
+    - Fix description of universe in generated sources.list: packages there
+      are expected to be under a free licence.
+    - Run 'apt-get update', without downloading package lists or cleaning up
+      old files, after moving the sources.list generated during base system
+      installation back into place.
+    - If OVERRIDE_LEAVE_CD_MOUNTED is set, don't unmount /cdrom; this is a
+      bad idea in a live CD environment!
+    - Bail out cleanly from cdrom generator if /cdrom/.disk/info doesn't
+      exist or has zero size.
+  * Dropped changes, merged in Debian:
+    - Initialise local variable 'file' so that apt-setup-verify doesn't get
+      excruciatingly confused when you pass file=/path on the kernel command
+      line.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Mon, 04 May 2009 06:41:55 -0700
+
+apt-setup (1:0.40) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Fix the cdrom generator in the case where log-output is not being used.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Belarusian (be.po) by Pavel Piatruk
+  * Bengali (bn.po) by Mahay Alam Khan (মাহে আলম খান)
+  * Bosnian (bs.po) by Armin Besirovic
+  * Welsh (cy.po) by Jonathan Price
+  * Danish (da.po)
+  * Greek, Modern (1453-) (el.po)
+  * Esperanto (eo.po) by Felipe Castro
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * French (fr.po) by Christian Perrier
+  * Croatian (hr.po) by Josip Rodin
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Latvian (lv.po) by Peteris Krisjanis
+  * Macedonian (mk.po) by Arangel Angov
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Russian (ru.po) by Yuri Kozlov
+  * Serbian (sr.po) by Veselin Mijušković
+  * Ukrainian (uk.po) by Євгеній Мещеряков
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+  * Simplified Chinese (zh_CN.po) by Deng Xiyue
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Otavio Salvador <otavio@debian.org>  Sun, 21 Sep 2008 21:46:24 -0300
+
+apt-setup (1:0.38) unstable; urgency=high
+
+  [ Colin Watson ]
+  * Initialise local variable 'file' so that apt-setup-verify doesn't get
+    excruciatingly confused when you pass file=/path on the kernel command
+    line.
+
+  [ Frans Pop ]
+  * Fix CD-changing for etch installs. The Etch version of apt-cdrom does not
+    always automatically unmount the CD, so we need to do that ourselves.
+  * Setting urgency to high as this fix is needed for the etchnhalf netinst.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Pavel Piatruk
+  * Basque (eu.po) by Iñaki Larrañaga Murgoitio
+  * Italian (it.po) by Milo Casagrande
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Tagalog (tl.po) by Eric Pareja
+  * Turkish (tr.po) by Mert Dirik
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+
+ -- Frans Pop <fjp@debian.org>  Mon, 28 Jul 2008 00:44:12 +0200
+
 apt-setup (1:0.37ubuntu11) jaunty; urgency=low
 
   * Make sure to exit services-select generator cleanly if

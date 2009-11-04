@@ -63,12 +63,21 @@ if [ "$RET" = true ]; then
 	if [ -e "$adjtimefile" ]; then
 		sed -i -e 's:^LOCAL:UTC:' $adjtimefile
 	fi
+	UTC='--utc'
 else
 	sed -i -e 's:^UTC="yes":UTC="no":' -e 's:^UTC=yes:UTC=no:' $rcsfile
 	if [ -e "$adjtimefile" ]; then
 		sed -i -e 's:^UTC:LOCAL:' $adjtimefile
 	fi
+	UTC='--localtime'
 fi
+
+# If we didn't manage to sync the clock to NTP, then there is no point in
+# setting the hardware clock. At best, all we'll be doing is writing back
+# the value present when d-i started plus d-i's run-time; at worst, we'll
+# also introduce a timezone error.
+db_get clock-setup/ntp
+[ "$RET" = true ] || exit 0
 
 anna-install rtc-modules || true
 
@@ -99,7 +108,7 @@ cleanup () {
 }
 
 db_progress INFO clock-setup/progress/hwclock
-log-output -t clock-setup chroot /target hwclock --systohc --debug &
+log-output -t clock-setup chroot /target hwclock --systohc --debug --noadjfile $UTC &
 pid="$!"
 count=0
 

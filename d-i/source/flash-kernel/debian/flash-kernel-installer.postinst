@@ -23,7 +23,7 @@ findfs () {
 # Are we writing to flash or constructing an image on disk?
 write_to_flash() {
 	case "$machine" in
-		"Buffalo Linkstation Pro/Live" | "Buffalo/Revogear Kurobox Pro" | "GLAN Tank" | "HP Media Vault mv2120")
+		"Buffalo Linkstation Pro/Live" | "Buffalo/Revogear Kurobox Pro" | "GLAN Tank" | "HP Media Vault mv2120" | "Marvell DB-MV88F6781-BP Development Board")
 			return 1
 		;;
 		*)
@@ -117,9 +117,9 @@ case "$machine" in
 		load_kernel="fis load $kernel_name"
 		# find target UUID
 		rootfs="$(findfs /)"
-		vol_id="$(PATH="/lib/udev:$PATH" vol_id -u "$rootfs")"
+		uuid="$(block-attr --uuid "$rootfs")"
 		# assemble cmdline
-		cmdline="\"root=UUID=$vol_id ro quiet\""
+		cmdline="\"root=UUID=$uuid ro quiet splash\""
 		script="$load_initrd\\$load_kernel\\exec -r 0x1000000 -s 0x00940000 -c $cmdline\\"
 		fconfig -w -s -d "$fis_dev" -o $ofst -n boot_script_data -x "$script"
 		in-target update-initramfs -u || true
@@ -166,6 +166,17 @@ case "$machine" in
 		if ! apt-install apex-nslu2; then
 			error "apt-install apex-nslu2 failed"
 		fi
+	;;
+	"Marvell DB-MV88F6781-BP Development Board")
+		in-target update-initramfs -u || true
+		if ! apt-install uboot-mkimage; then
+			error "apt-install uboot-mkimage failed"
+		fi
+
+		# Add the rootfs to the flash-kernel.conf file
+		rootfs=$(findfs /)
+		uuid="$(block-attr --uuid "$rootfs")"
+		echo "rootfs='root=UUID=$uuid'" > /target/etc/flash-kernel.conf
 	;;
 	"Thecus N2100" | "Thecus N4100")
 		in-target update-initramfs -u || true

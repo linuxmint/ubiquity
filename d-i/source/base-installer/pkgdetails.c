@@ -142,6 +142,67 @@ static void dopkgmirrorpkgs(int uniq, char *mirror, char *pkgsfile,
     }
 }
 
+static void oom_die(void)
+{
+    fprintf(stderr, "Out of memory!\n");
+    exit(1);
+}
+
+static void dopkgstanzas(char *pkgsfile, char **pkgs, int pkgc)
+{
+    char buf[MAX_LINE];
+    char *accum;
+    size_t accum_size = 0, accum_alloc = MAX_LINE * 2;
+    char cur_pkg[MAX_LINE];
+    FILE *f;
+
+    accum = malloc(accum_alloc);
+    if (!accum)
+        oom_die();
+
+    f = fopen(pkgsfile, "r");
+    if (f == NULL) {
+        perror(pkgsfile);
+        free(accum);
+        exit(1);
+    }
+    while (fgets(buf, sizeof(buf), f)) {
+        if (*buf) {
+	    size_t len = strlen(buf);
+            if (accum_size + len + 1 > accum_alloc) {
+                accum_alloc = (accum_size + len + 1) * 2;
+                accum = realloc(accum, accum_alloc);
+                if (!accum)
+                    oom_die();
+            }
+            strcpy(accum + accum_size, buf);
+	    accum_size += len;
+        }
+        if (*buf && buf[strlen(buf)-1] == '\n') buf[strlen(buf)-1] = '\0';
+        if (strncasecmp(buf, "Package:", 8) == 0) {
+            fieldcpy(cur_pkg, buf);
+        } else if (!*buf) {
+            int i;
+            for (i = 0; i < pkgc; i++) {
+                if (!pkgs[i]) continue;
+                if (strcmp(cur_pkg, pkgs[i]) == 0) {
+                    fputs(accum, stdout);
+		    if (accum[accum_size - 1] != '\n')
+			fputs("\n\n", stdout);
+		    else if (accum[accum_size - 2] != '\n')
+			fputc('\n', stdout);
+                    break;
+                }
+            }
+            *accum = '\0';
+            accum_size = 0;
+        }
+    }
+    fclose(f);
+
+    free(accum);
+}
+
 static int dotranslatewgetpercent(int low, int high, int end, char *str) {
     int ch;
     int val, lastval;
@@ -198,11 +259,19 @@ int main(int argc, char *argv[]) {
 	}
 	dopkgmirrorpkgs(0, argv[3], argv[4], argv[2], argv+i, argc-i);
 	exit(0);
+    } else if (argc >= 4 && strcmp(argv[1], "STANZAS") == 0) {
+	int i;
+	for (i = 3; argc - i > MAX_PKGS; i += MAX_PKGS) {
+	    dopkgstanzas(argv[2], argv+i, MAX_PKGS);
+	}
+	dopkgstanzas(argv[2], argv+i, argc-i);
+	exit(0);
     } else {
         fprintf(stderr, "usage: %s PKGS mirror packagesfile pkgs..\n", argv[0]);
         fprintf(stderr, "   or: %s FIELD field mirror packagesfile pkgs..\n", 
                 argv[0]);
         fprintf(stderr, "   or: %s GETDEPS packagesfile pkgs..\n", argv[0]);
+        fprintf(stderr, "   or: %s STANZAS packagesfile pkgs..\n", argv[0]);
 	fprintf(stderr, "   or: %s WGET%% low high end reason\n", argv[0]);
         exit(1);
     }

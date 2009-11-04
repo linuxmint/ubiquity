@@ -1,0 +1,58 @@
+#! /bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+# We need to duplicate this code because localechooser has the right to
+# assume that its later scripts are only run once, but oem-config doesn't
+# have that luxury.
+
+db_get debian-installer/locale
+LOCALE="$RET"
+
+db_get debian-installer/language
+LANGLIST="$RET"
+
+db_get localechooser/supported-locales
+EXTRAS="$(echo "$RET" | sed 's/,//g')"
+
+if [ -e /etc/environment ]; then
+	sed -i "s,^LANG=.*,LANG=\"$LOCALE\"," /etc/environment
+fi
+if grep -qs "^LANG=" /etc/default/locale; then
+	sed -i "s,^LANG=.*,LANG=\"$LOCALE\"," /etc/default/locale
+else
+	echo "LANG=\"$LOCALE\"" >> /etc/default/locale
+fi
+# We set LANGUAGE only if the languagelist is a list of
+# languages with alternatives. Otherwise, setting it is useless
+if echo "$LANGLIST" | grep -q ":"; then
+	# Adjust /etc/environment if LANGUAGE is already set, but otherwise
+	# leave it alone.
+	if grep -q "^LANGUAGE=" /etc/environment; then
+		sed -i "s,^LANGUAGE=.*,LANGUAGE=\"$LANGLIST\"," /etc/environment
+	fi
+	if grep -q "^LANGUAGE=" /etc/default/locale; then
+		sed -i "s,^LANGUAGE=.*,LANGUAGE=\"$LANGLIST\"," /etc/default/locale
+	else
+		echo "LANGUAGE=\"$LANGLIST\"" >> /etc/default/locale
+	fi
+else
+	if [ -e /etc/environment ]; then
+		sed -i "/^LANGUAGE=/d" /etc/environment
+	fi
+	if [ -e /etc/default/locale ]; then
+		sed -i "/^LANGUAGE=/d" /etc/default/locale
+	fi
+fi
+
+if [ -e /etc/default/gdm ]; then
+	sed -i "s,^#*LANG=.*,LANG=$LOCALE,g" /etc/default/gdm
+fi
+
+LANGCODE="${LOCALE%%_*}"
+LANGCODE="${LANGCODE%%.*}"
+LANGCODE="${LANGCODE%%@*}"
+/usr/share/locales/install-language-pack "$LANGCODE" '' || true
+
+# TODO: kbd/cyr handling?

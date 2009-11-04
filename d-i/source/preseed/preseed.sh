@@ -67,6 +67,7 @@ preseed_location () {
 	rm -f $tmp
 
 	log "successfully loaded preseed file from $location"
+	[ -e /var/run/delay_choosers ] && rm /var/run/delay_choosers
 	local last_location="$location"
 	
 	while true ; do
@@ -140,4 +141,16 @@ preseed () {
 		
 		preseed_location "$loc" "$sum"
 	done
+}
+
+# Check for DHCP filename preseeding
+dhcp_preseed_url () {
+for file in /var/lib/dhcp/dhclient.leases /var/lib/dhcp3/dhclient.leases; do
+	if [ -r "$file" ]; then
+		FN="$(sed -n -e '/filename/s/.*"\(.*\)"./\1/p' $file)"
+		if echo "$FN" | grep -q "://" ; then
+			echo "$FN"
+		fi
+	fi
+done
 }

@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
 # Copyright (C) 2005, 2006, 2007, 2008 Canonical Ltd.
 # Written by Colin Watson <cjwatson@ubuntu.com>.
@@ -17,19 +17,37 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+from ubiquity.plugin import *
 from ubiquity.filteredcommand import FilteredCommand
 import debconf
 
-class UserSetup(FilteredCommand):
-    def prepare(self):
+NAME = 'usersetup'
+
+class PageGtk(PluginUI):
+    plugin_widgets = 'stepUserInfo'
+
+class PageKde(PluginUI):
+    plugin_widgets = 'stepUserInfo'
+    plugin_breadcrumb = 'ubiquity/text/breadcrumb_user'
+
+class PageDebconf(PluginUI):
+    plugin_title = 'ubiquity/text/userinfo_heading_label'
+
+class PageNoninteractive(PluginUI):
+    pass
+
+class Page(FilteredCommand):
+    def prepare(self, unfiltered=False):
         if self.frontend.get_hostname() == '':
             try:
-                hostname = self.db.get('netcfg/get_hostname')
-                domain = self.db.get('netcfg/get_domain')
-                if hostname and domain:
-                    hostname = '%s.%s' % (hostname, domain)
-                if hostname != '':
-                    self.frontend.set_hostname(hostname)
+                seen = self.db.fget('netcfg/get_hostname', 'seen') == 'true'
+                if seen:
+                    hostname = self.db.get('netcfg/get_hostname')
+                    domain = self.db.get('netcfg/get_domain')
+                    if hostname and domain:
+                        hostname = '%s.%s' % (hostname, domain)
+                    if hostname != '':
+                        self.frontend.set_hostname(hostname)
             except debconf.DebconfError:
                 pass
         if self.frontend.get_fullname() == '':
@@ -64,8 +82,13 @@ class UserSetup(FilteredCommand):
                      '^passwd/user-password$', '^passwd/user-password-again$',
                      '^user-setup/password-weak$',
                      'ERROR']
-        return (['/usr/lib/ubiquity/user-setup/user-setup-ask', '/target'],
-                questions)
+        if self.frontend.oem_user_config:
+            environ = {'OVERRIDE_SYSTEM_USER': '1'}
+            return (['/usr/lib/ubiquity/user-setup/user-setup-ask-oem'],
+                    questions, environ)
+        else:
+            return (['/usr/lib/ubiquity/user-setup/user-setup-ask', '/target'],
+                    questions)
 
     def set(self, question, value):
         if question == 'passwd/username':
@@ -96,7 +119,7 @@ class UserSetup(FilteredCommand):
 
     def ok_handler(self):
         fullname = self.frontend.get_fullname()
-        username = self.frontend.get_username()
+        username = self.frontend.get_username().strip()
         password = self.frontend.get_password()
         password_confirm = self.frontend.get_verified_password()
         auto_login = self.frontend.get_auto_login()

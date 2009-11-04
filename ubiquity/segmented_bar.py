@@ -584,6 +584,7 @@ class SegmentedBarSlider(SegmentedBar):
 
     def set_device(self, device):
         self.device = device
+        self.resize = -1
 
     def add_segment_rgb(self, title, percent, rgb_color):
         SegmentedBar.add_segment_rgb(self, title, percent, rgb_color)
@@ -598,9 +599,18 @@ class SegmentedBarSlider(SegmentedBar):
         # matter if the min_size is set after the segments are added.
         if self.resize != -1 and len(self.segments) > self.resize + 1:
             sum = self.segments[self.resize].size + self.segments[self.resize + 1].size
-            self.segments[self.resize].set_size(self.max_size)
-            self.segments[self.resize + 1].set_size(sum - self.max_size)
+            self.segments[self.resize].set_size(self.part_size)
+            self.segments[self.resize + 1].set_size(sum - self.part_size)
             self.queue_draw()
+
+    def remove_segment(self, title):
+        SegmentedBar.remove_segment(self, title)
+        if self.resize > len(self.segments) - 1:
+            self.resize = -1
+
+    def remove_all(self):
+        SegmentedBar.remove_all(self)
+        self.resize = -1
 
     def motion_notify_event(self, widget, event):
         if event.is_hint:

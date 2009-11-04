@@ -2,6 +2,8 @@
 update_mtab() {
 	[ "$ROOT" ] || return 0
 
+	[ ! -h /etc/mtab ] || return 0
+
 	mtab=$ROOT/etc/mtab
 	grep "$ROOT" /proc/mounts | (
 	while read devpath mountpoint fstype options n1 n2 ; do

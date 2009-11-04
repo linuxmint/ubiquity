@@ -5,7 +5,7 @@ arch_get_kernel_flavour () {
 
 arch_check_usable_kernel () {
 	case "$1" in
-	    *-s390-tape)
+	    *-s390-tape|*-s390x-tape)
 		# Bastian Blank says: "-s390-tape is only a kernel
 		# image without any logic and modules"
 		return 1 ;;

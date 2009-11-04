@@ -17,3 +17,9 @@ update: templates.pot
 		msgmerge -q "$$p" templates.pot | \
 		msgattrib --translated --no-fuzzy --no-obsolete -o "$$b" -; \
 	done
+
+stats:
+	for p in *.po; do \
+		printf '%s: ' "$$(basename "$$p" .po)"; \
+		msgfmt --statistics -o /dev/null "$$p"; \
+	done

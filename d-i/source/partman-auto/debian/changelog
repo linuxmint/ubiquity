@@ -1,3 +1,201 @@
+partman-auto (89ubuntu2) karmic; urgency=low
+
+  * Change armel+dove automatic partitioning to use the uboot pseudo-filesystem
+    instead of ext2. (LP: #455713)
+
+ -- Michael Casadevall <mcasadevall@ubuntu.com>  Tue, 20 Oct 2009 00:05:50 +0100
+
+partman-auto (89ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Adjust default partition sizes for Ubuntu.
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Offer resize_use_free autopartitioning method.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+    - Drop the bootable flag from i386/amd64 recipes; it can break existing
+      Windows installations when autopartitioning only free space rather
+      than a whole disk.
+    - Remove explicit $primary{ } specifiers from standard recipes. We only
+      need them to be primary if no other primary partitions exist already.
+    - Make biggest_free respect the selection made in partman-auto/disk.
+    - Exclude devices containing the installation medium from automatic
+      partitioning.
+    - Add armel/dove recipes.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 09 Sep 2009 09:54:55 +0100
+
+partman-auto (89) unstable; urgency=low
+
+  * Upgrade to debhelper v7.
+  * Add a biosgrub partition to default recipes, used only if the disk label
+    is GPT (closes: #491376). Requires partman-partitioning 71. Thanks to
+    Otavio Salvador for reviewing this.
+
+  [ Updated translations ]
+  * Korean (ko.po) by Changwoo Ryu
+  * Russian (ru.po) by Yuri Kozlov
+
+ -- Colin Watson <cjwatson@debian.org>  Mon, 07 Sep 2009 12:09:20 +0100
+
+partman-auto (88) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Move "Guided partitioning" above "Configure software RAID"; it seems
+    more natural at the top of the choose_partition menu.
+
+  [ Aurelien Jarno ]
+  * Recognize ufs as an allowed partition type.
+  * Depends on partman-ext3 on Linux only and on partman-ufs on kFreeBSD only
+    (iow on the default filesystem).
+
+  [ Updated translations ]
+  * Basque (eu.po) by Piarres Beobide
+  * Italian (it.po) by Milo Casagrande
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sat, 22 Aug 2009 18:48:18 +0200
+
+partman-auto (87ubuntu3) karmic; urgency=low
+
+  * Added dove partman-auto support; dove is almost identical to kirkwood as
+    it's a uboot based SoC and requires a dedicated boot partition. /boot as
+    an ext2 partition may be replaced in the near future with a uboot
+    partition type similar to how EFI is currently implemented for ia64.
+    - Defaults for the /boot partition are 128M min, 256M max.
+
+ -- Michael Casadevall <mcasadevall@ubuntu.com>  Tue, 01 Sep 2009 15:15:31 +0100
+
+partman-auto (87ubuntu2) karmic; urgency=low
+
+  * Update translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 01 Sep 2009 13:18:39 +0100
+
+partman-auto (87ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Adjust default partition sizes for Ubuntu.
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Offer resize_use_free autopartitioning method.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+    - Drop the bootable flag from i386/amd64 recipes; it can break existing
+      Windows installations when autopartitioning only free space rather
+      than a whole disk.
+    - Remove explicit $primary{ } specifiers from standard recipes. We only
+      need them to be primary if no other primary partitions exist already.
+    - Make biggest_free respect the selection made in partman-auto/disk.
+    - Exclude devices containing the installation medium from automatic
+      partitioning.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 14 Jul 2009 23:08:15 +0100
+
+partman-auto (87) unstable; urgency=low
+
+  * Add support for writing sizes as a number plus a percentage of RAM, e.g.
+    "2000+50%". This is useful when doing automatic partitioning with the
+    expectation of creating swap files.
+  * If we're creating primary partitions and find that we've reached the end
+    of the recipe, use "full" rather than "beginning" as the place passed to
+    NEW_PARTITION, thereby avoiding rounding problems and matching the
+    process for creating logical partitions (closes: #516347, LP: #287571).
+
+  [ Updated translations ]
+  * Hindi (hi.po)
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 14 Jul 2009 14:35:51 +0100
+
+partman-auto (86ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Adjust default partition sizes for Ubuntu.
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Offer resize_use_free autopartitioning method.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+    - Drop the bootable flag from i386/amd64 recipes; it can break existing
+      Windows installations when autopartitioning only free space rather
+      than a whole disk.
+    - Remove explicit $primary{ } specifiers from standard recipes. We only
+      need them to be primary if no other primary partitions exist already.
+    - Make biggest_free respect the selection made in partman-auto/disk.
+    - Exclude devices containing the installation medium from automatic
+      partitioning.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 15 Jun 2009 17:37:51 +0100
+
+partman-auto (86) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Merge from Ubuntu:
+    - Only ensure that there is at least one primary partition after
+      autopartitioning on partition tables that use extended partitions.
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Md. Rezwan Shahid
+  * Estonian (et.po) by Mattias Põldaru
+  * Slovak (sk.po) by Ivan Masár
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 12 Jun 2009 07:03:33 +0200
+
+partman-auto (85ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Adjust default partition sizes for Ubuntu.
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Offer resize_use_free autopartitioning method.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+    - Drop the bootable flag from i386/amd64 recipes; it can break existing
+      Windows installations when autopartitioning only free space rather
+      than a whole disk.
+    - Remove explicit $primary{ } specifiers from standard recipes. We only
+      need them to be primary if no other primary partitions exist already.
+    - Make biggest_free respect the selection made in partman-auto/disk.
+    - Exclude devices containing the installation medium from automatic
+      partitioning.
+  * Drop relatime from autopartitioning recipes; it's the default in Linux
+    2.6.30.
+  * Only ensure that there is at least one primary partition after
+    autopartitioning on partition tables that use extended partitions.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 29 Apr 2009 12:24:26 +0100
+
+partman-auto (85) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Merge from Ubuntu:
+    - Add ext4 support.
+    - Add support for $default_filesystem as the partition type in a recipe,
+      and $default_filesystem{ } as an internal specifier. These are
+      equivalent to FS and filesystem{ FS } respectively, where FS is the
+      value of partman/default_filesystem. Requires partman-base 129.
+    - Exit straight away if a called script is killed by a signal.
+
+  [ Frans Pop ]
+  * Remove myself as uploader.
+
+  [ Martin Michlmayr ]
+  * Remove recipes for the old arm port.
+  * Use the same recipes on Marvell Kirkwood as on Orion.
+
+  [ Updated translations ]
+  * Basque (eu.po) by Piarres Beobide
+  * Galician (gl.po) by Marce Villarino
+  * Hindi (hi.po) by Kumar Appaiah
+  * Italian (it.po) by Milo Casagrande
+  * Kazakh (kk.po) by daur88
+  * Malayalam (ml.po) by Praveen Arimbrathodiyil
+  * Slovak (sk.po) by Ivan Masár
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Tagalog (tl.po) by Eric Pareja
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Fri, 03 Apr 2009 15:58:56 +0200
+
 partman-auto (84ubuntu4) jaunty; urgency=low
 
   * Add another 300MB to the amount of space we require to be left by
@@ -52,7 +250,7 @@ partman-auto (84) unstable; urgency=low
     for e.g. the /emul directory.
   * Use "-1" instead of "1000000000" to indicate unlimited partition size in
     partman recipes. This avoids an error when setting up LVM on disks larger
-    than 1GB. See: #510544.
+    than 1TB. See: #510544.
 
  -- Frans Pop <fjp@debian.org>  Mon, 12 Jan 2009 22:12:55 +0100
 

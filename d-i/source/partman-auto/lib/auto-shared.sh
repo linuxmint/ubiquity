@@ -55,6 +55,14 @@ ensure_primary() {
 
 	cd $dev
 
+	open_dialog USES_EXTENDED
+	read_line uses_extended
+	close_dialog
+	if [ "$uses_extended" = no ]; then
+		# No need for this on this partition table type
+		return
+	fi
+
 	open_dialog PARTITIONS
 	local have_primary=
 	local id type
@@ -91,7 +99,11 @@ create_primary_partitions() {
 	      echo $scheme | grep -q '\$primary{'; do
 		pull_primary
 		set -- $primary
-		open_dialog NEW_PARTITION primary $4 $free_space beginning ${1}000001
+		if [ -z "$scheme_rest" ]; then
+			open_dialog NEW_PARTITION primary $4 $free_space full ${1}000001
+		else
+			open_dialog NEW_PARTITION primary $4 $free_space beginning ${1}000001
+		fi
 		read_line num id size type fs path name
 		close_dialog
 		if [ -z "$id" ]; then

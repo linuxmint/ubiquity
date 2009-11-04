@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 #
 # «mythbuntu-ui» - Mythbuntu user interface
 #
@@ -54,51 +54,17 @@ from mythbuntu_common.mysql import MySQLHandler
 from mythbuntu_common.dictionaries import *
 
 #Mythbuntu ubiquity imports
-from ubiquity.components import mythbuntu, mythbuntu_install
+from ubiquity.components import mythbuntu_install
 
 #Ubiquity imports
 from ubiquity.misc import *
 import ubiquity.frontend.gtk_ui as ParentFrontend
 ParentFrontend.install = mythbuntu_install
-ParentFrontend.summary = mythbuntu_install
-
-VIDEOPAGE="mythbuntu_stepDrivers"
-
-MYTHPAGES = [
-    "mythbuntu_stepCustomInstallType",
-    "mythbuntu_stepServices",
-    "tab_remote_control",
-    VIDEOPAGE,
-    "mythbuntu_stepPasswords",
-    "mythbuntu_stepBackendSetup"
-]
 
 class Wizard(ParentFrontend.Wizard):
 
 #Overriden Methods
     def __init__(self, distro):
-        #Remove migration assistant
-        if 'UBIQUITY_MIGRATION_ASSISTANT' in os.environ:
-            del os.environ['UBIQUITY_MIGRATION_ASSISTANT']
-        place=ParentFrontend.BREADCRUMB_STEPS["stepReady"]
-
-        #Max steps
-        ParentFrontend.BREADCRUMB_MAX_STEP = place + len(MYTHPAGES)
-
-        #update location of summary page
-        ParentFrontend.BREADCRUMB_STEPS["stepReady"]=place+len(MYTHPAGES)-1
-
-        #Add in final page
-        final_page=MYTHPAGES.pop()
-        ParentFrontend.BREADCRUMB_STEPS[final_page]=place+len(MYTHPAGES)+1
-        ParentFrontend.SUBPAGES.append(final_page)
-
-        #Add in individual mythpages pages
-        for string in MYTHPAGES:
-            ParentFrontend.BREADCRUMB_STEPS[string]=place
-            ParentFrontend.SUBPAGES.insert(len(ParentFrontend.SUBPAGES)-2,string)
-            place+=1
-
         ParentFrontend.Wizard.__init__(self,distro)
 
     def customize_installer(self):
@@ -108,14 +74,8 @@ class Wizard(ParentFrontend.Wizard):
         self.set_auto_login(True)
         self.login_encrypt.set_sensitive(False)
 
-        #Remove their summary page.  ours is better
-        self.pages.pop()
-
-        #Insert all of our pages
-        for page in [mythbuntu.MythbuntuInstallType, mythbuntu.MythbuntuServices,
-            mythbuntu.MythbuntuRemote, mythbuntu.MythbuntuDrivers,
-            mythbuntu.MythbuntuPasswords, mythbuntu_install.Summary]:
-            self.pages.append(page)
+        #we aren't allowed to remove lirc right now
+        self.remote_control_support.hide()
 
         #Prepopulate some dynamic pages
         self.populate_lirc()
@@ -128,37 +88,32 @@ class Wizard(ParentFrontend.Wizard):
     def run_success_cmd(self):
         """Runs mythbuntu post post install GUI step"""
         if not 'UBIQUITY_AUTOMATIC' in os.environ and self.get_installtype() != "Frontend":
-            self.live_installer.show()
-            self.installing = False
-            self.steps.next_page()
-            self.back.hide()
-            self.quit.hide()
-            self.next.set_label("Finish")
-            gtk.main()
-            self.live_installer.hide()
+            # Ideally, this next bit (showing the backend-setup page) would
+            # be fixed by re-architecting gtk_ui to run the install step after
+            # the first 'is_install' plugin and just naturally ask for the rest
+            # of the plugins afterward.
+            for page in self.pages:
+                if page.module.NAME == 'myth-backend-setup':
+                    pagenum = self.steps.page_num(page.optional_widgets[0])
+                    self.set_current_page(pagenum)
+                    self.live_installer.show()
+                    self.installing = False
+                    self.back.hide()
+                    self.quit.hide()
+                    self.next.set_label("Finish")
+                    self.step_label.set_text("")
+                    gtk.main()
+                    self.live_installer.hide()
+                    break
         ParentFrontend.Wizard.run_success_cmd(self)
 
     def set_page(self, n):
-        if n == 'MythbuntuRemote':
-            cur = self.tab_remote_control
-        elif n == 'MythbuntuDrivers':
-            cur = self.mythbuntu_stepDrivers
-        elif n == 'MythbuntuInstallType':
-            cur = self.mythbuntu_stepCustomInstallType
-        elif n == 'MythbuntuPasswords':
-            cur = self.mythbuntu_stepPasswords
+        if n == 'myth-passwords':
             if "Master" not in self.get_installtype():
                 self.allow_go_forward(False)
-        elif n == 'MythbuntuServices':
-            cur = self.mythbuntu_stepServices
+        elif n == 'myth-services':
             self.vnc_option_hbox.set_sensitive(len(self.get_password()) >= 6)
-        else:
-            ParentFrontend.Wizard.set_page(self,n)
-            return
-        self.run_automation_error_cmd()
-        self.backup = False
-        self.live_installer.show()
-        self.set_current_page(self.steps.page_num(cur))
+        return ParentFrontend.Wizard.set_page(self,n)
 
 ####################
 #Helper Functions  #
@@ -191,14 +146,6 @@ class Wizard(ParentFrontend.Wizard):
             self.video_driver.set_active(len(dictionary))
             self.tvoutstandard.set_active(0)
             self.tvouttype.set_active(0)
-        else:
-            for step in ParentFrontend.BREADCRUMB_STEPS:
-                if (ParentFrontend.BREADCRUMB_STEPS[step] >
-                    ParentFrontend.BREADCRUMB_STEPS[VIDEOPAGE]):
-                    ParentFrontend.BREADCRUMB_STEPS[step] -= 1
-            ParentFrontend.BREADCRUMB_MAX_STEP -= 1
-            self.steps.remove_page(self.steps.page_num(self.mythbuntu_stepDrivers))
-            self.pages.remove(mythbuntu.MythbuntuDrivers)
 
     def populate_mysql(self):
         """Puts a new random mysql password into the UI for each run
@@ -249,7 +196,7 @@ class Wizard(ParentFrontend.Wizard):
 
     def set_service(self,name,value):
         """Preseeds the status of a service"""
-        lists = [get_services_dictionary(self)]
+        lists = [get_services_dictionary(self,self.enablemysql)]
         self._preseed_list(lists,name,value)
 
     def set_driver(self,name,value):
@@ -345,7 +292,7 @@ class Wizard(ParentFrontend.Wizard):
 
     def get_services(self):
         """Returns the status of all installable services"""
-        return self._build_static_list([get_services_dictionary(self)])
+        return self._build_static_list([get_services_dictionary(self,self.enablemysql)])
 
     def get_drivers(self):
         video_drivers=get_graphics_dictionary()
@@ -401,6 +348,7 @@ class Wizard(ParentFrontend.Wizard):
         """Called whenever the modify video driver option is toggled or its kids"""
         drivers=get_graphics_dictionary()
         if (widget is not None and widget.get_name() == 'video_driver'):
+            self.allow_go_forward(True)
             type = widget.get_active()
             if (type < len(drivers)):
                 self.tvout_vbox.set_sensitive(True)

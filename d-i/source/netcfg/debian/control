@@ -1,0 +1,33 @@
+Source: netcfg
+Section: debian-installer
+Priority: optional
+Maintainer: Ubuntu Installer Team <ubuntu-installer@lists.ubuntu.com>
+XSBC-Original-Maintainer: Debian Install System Team <debian-boot@lists.debian.org>
+Uploaders: Joey Hess <joeyh@debian.org>, Colin Watson <cjwatson@debian.org>, Christian Perrier <bubulle@debian.org>
+Build-Depends: debhelper (>= 6.0.0), dpkg-dev (>= 1.9.0), libdebconfclient0-dev (>= 0.46), libdebian-installer4-dev (>= 0.41), po-debconf (>= 0.5.0), libiw-dev (>= 27+28pre9)
+XS-Debian-Vcs-Svn: svn://svn.debian.org/d-i/trunk/packages/netcfg
+Vcs-Bzr: http://bazaar.launchpad.net/~ubuntu-core-dev/netcfg/ubuntu
+
+Package: netcfg
+XC-Package-Type: udeb
+Architecture: i386 sparc alpha m68k arm armel armeb powerpc mips mipsel hppa ia64 amd64 lpia
+Depends: ${shlibs:Depends}, ${misc:Depends}, dhcp3-client-udeb (>= 3.1.0-2), ethernet-card-detection
+Provides: configured-network
+XB-Installer-Menu-Item: 1800
+Description: Configure the network
+ To install additional installer components or the Debian Base System over
+ the network, you need to configure the network in the installer. This 
+ component will first try to configure your network with DHCP and ask 
+ you for static network configuration if this fails. The configured 
+ network settings will be copied to your newly installed system.
+
+Package: netcfg-static
+XC-Package-Type: udeb
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ethernet-card-detection
+Provides: configured-network
+XB-Installer-Menu-Item: 1800
+Description: Configure a static network
+ If you have information such as IP address, netmask, gateway, then you will be
+ able to configure a static network.  If you don't know this information, you
+ should ask your system administrator, or look at configuration via DHCP.

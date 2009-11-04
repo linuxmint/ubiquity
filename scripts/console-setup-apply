@@ -1,12 +1,17 @@
 #! /bin/sh
 set -e
 
-. /usr/share/debconf/confmodule
+if [ -n "$UBIQUITY_OEM_USER_CONFIG" ]; then
+    setupcon --save-only
+    update-initramfs -u >&2
+else
+    . /usr/share/debconf/confmodule
 
-mkdir -p /target/etc/default
-cp -a /etc/default/console-setup /target/etc/default/
-chroot /target setupcon --save-only
+    mkdir -p /target/etc/default
+    cp -a /etc/default/console-setup /target/etc/default/
+    chroot /target setupcon --save-only
 
-apt-install console-setup || true
+    apt-install console-setup || true
+fi
 
 exit 0

@@ -55,11 +55,6 @@ password_is_empty () {
 	if [ "$RET" = true ]; then
 		return 1 # don't consider this as empty if explicitly allowed
 	fi
-	# check old name too
-	db_get passwd/allow-password-empty
-	if [ "$RET" = true ]; then
-		return 1
-	fi
 	[ -z "$1" ]
 }
 

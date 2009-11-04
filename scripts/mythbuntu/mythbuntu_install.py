@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
 # Copyright (C) 2005 Javier Carranza and others for Guadalinex
 # Copyright (C) 2005, 2006, 2007, 2008, 2009 Canonical Ltd.
@@ -152,7 +152,7 @@ class Install(ParentInstall):
             self.chrex('mount', '-t', 'proc', 'proc', '/proc')
 
             #Setup database
-            self.reconfigure('mysql-server-5.0')
+            self.reconfigure('mysql-server-5.1')
             self.reconfigure('mythtv-database')
 
             #Cleanup
@@ -211,9 +211,9 @@ class Install(ParentInstall):
         #Services
         self.db.progress('INFO', 'ubiquity/install/services')
         if self.db.get('mythbuntu/samba') == 'true':
-            shutil.copy('/usr/share/mythbuntu-common/examples/smb.conf.dist',self.target + '/etc/samba/smb.conf')
+            shutil.copy('/usr/share/mythbuntu/examples/smb.conf.dist',self.target + '/etc/samba/smb.conf')
         if self.db.get('mythbuntu/nfs-kernel-server') == 'true':
-            shutil.copy('/usr/share/mythbuntu-common/examples/exports.dist',self.target + '/etc/exports')
+            shutil.copy('/usr/share/mythbuntu/examples/exports.dist',self.target + '/etc/exports')
         if self.db.get('mythbuntu/openssh-server') == 'true':
             for file in ['ssh_host_dsa_key','ssh_host_dsa_key.pub','ssh_host_rsa_key','ssh_host_rsa_key.pub']:
                 os.remove(self.target + '/etc/ssh/' + file)
@@ -305,7 +305,7 @@ bind-address=0.0.0.0"""
 
     def enable_nvidia(self,type,format):
         """Enables an NVIDIA graphics driver using XKit"""
-        xorg_conf=XKit.xutils.XUtils("/etc/X11/xorg.conf")
+        xorg_conf=XKit.xutils.XUtils()
 
         extra_conf_options={'NoLogo': '1',
                            'DPI': '100x100',
@@ -360,8 +360,14 @@ bind-address=0.0.0.0"""
         #now take care of mythbuntu specifics
         packages=set()
         ## system role
+        if 'Backend' not in self.type:
+            packages.add('libnet-upnp-perl') #causes mythtv-backend to be removed
+            packages.add('php5-common')      #causes mythweb to be removed
+            packages.add('libaprutil1')      #causes apache2 to be removed
         if 'Slave' in self.type or self.type == 'Frontend':
-            packages.add('mythtv-backend-master')
+            packages.add('ntp')              #causes mythtv-backend-master to go
+            packages.add('mythtv-database')
+            packages.add('mysql-server-core-5.1')
         if 'Frontend' not in self.type:
             packages.add('mythtv-frontend')
         ## services that are installed by default

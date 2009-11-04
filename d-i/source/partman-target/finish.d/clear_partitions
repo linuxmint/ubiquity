@@ -45,9 +45,19 @@ for part in $partitions; do
 	path="${part#*,}"
 	if [ "$mp" = "/" ]; then
 		mount $path $tmp || failed
-		for x in bin dev etc lib lib32 lib64 proc sbin usr var sys; do
+		for x in bin dev etc lib lib32 lib64 proc sbin sys; do
 			[ -e "$tmp/$x" ] && (rm -rf "$tmp/$x" &&
 			logger -t clear_partitions "Removing $x from / ($path)." ||
+			failed)
+		done
+		for x in "$tmp/usr/"* "$tmp/var/"*; do
+			case "$x" in
+				$tmp/usr/local|$tmp/usr/src|$tmp/var/local)
+				continue
+				;;
+			esac
+			[ -e "$x" ] && (rm -rf "$x" &&
+			logger -t clear_partitions "Removing ${x#$tmp/} from / ($path)." ||
 			failed)
 		done
 		for x in $tmp/initrd* $tmp/vmlinuz*; do
@@ -64,8 +74,10 @@ for part in $partitions; do
 		db_get passwd/username || true
 		username="$RET"
 		if [ -n "$username" ] && [ -d "$tmp/home/$username" ]; then
-			db_set passwd/user-uid "$(stat -c %u "$tmp/home/$username")" || true
-			db_set passwd/user-gid "$(stat -c %g "$tmp/home/$username")" || true
+			uid="$(stat -c %u "$tmp/home/$username")"
+			if [ -n "$uid" ] && [ "$uid" != 0 ]; then
+				db_set passwd/user-uid "$uid" || true
+			fi
 		fi
 		umount $tmp
 	elif [ "$mp" = "/home" ]; then
@@ -74,14 +86,19 @@ for part in $partitions; do
 		db_get passwd/username || true
 		username="$RET"
 		if [ -n "$username" ] && [ -d "$tmp/$username" ]; then
-			db_set passwd/user-uid "$(stat -c %u "$tmp/$username")" || true
-			db_set passwd/user-gid "$(stat -c %g "$tmp/$username")" || true
+			uid="$(stat -c %u "$tmp/$username")"
+			if [ -n "$uid" ] && [ "$uid" != 0 ]; then
+				db_set passwd/user-uid "$uid" || true
+			fi
 		fi
 		umount $tmp
-	elif echo "$mp" | egrep -q "^/usr/local" || echo "$mp" | egrep -q "^/var/local"; then
-		logger -t clear_partitions "Skipping $mp ($path)."
-		continue
 	else
+		case "$mp" in
+			/usr/local|/usr/local/*|/var/local|/var/local/*|/usr/src|/usr/src/*)
+			logger -t clear_partitions "Skipping $mp ($path)."
+			continue
+			;;
+		esac
 		for x in bin dev etc lib lib32 lib64 proc sbin usr var sys; do
 			if echo "$mp" | egrep -q "^/$x(\$|/)"; then
 				mount $path $tmp || failed

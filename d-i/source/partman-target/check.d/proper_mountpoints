@@ -20,8 +20,10 @@ no_root () {
 		fi
 	done
 
+	db_capb align
 	db_input critical partman-target/no_root || true
 	db_go || true
+	db_capb backup align
 	exit 1
 }
 
@@ -44,13 +46,15 @@ same_mountpoints () {
 	oldmp=' '
 	for x in $mountpoints; do
 		mp=${x%,*}
-		fs=${x#*,}
+		fs=${x##*,}
 		if [ "$mp" = "$oldmp" ]; then
 			db_subst partman-target/same_mountpoint PART1 $(humandev $oldfs)
 			db_subst partman-target/same_mountpoint PART2 $(humandev $fs)
 			db_subst partman-target/same_mountpoint MOUNTPOINT "$mp"
+			db_capb align
 			db_input critical partman-target/same_mountpoint || true
 			db_go || true
+			db_capb backup align
 			exit 1
 		else
 			oldmp="$mp"
@@ -75,8 +79,10 @@ must_be_on_root () {
 		case $mp in
 		    /bin|/etc|/lib*|/media|/sbin)
 			db_subst partman-target/must_be_on_root MOUNTPOINT "$mp"
+			db_capb align
 			db_input critical partman-target/must_be_on_root || true
 			db_go || true
+			db_capb backup align
 			exit 1
 		esac
 	done

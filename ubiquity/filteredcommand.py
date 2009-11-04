@@ -1,5 +1,5 @@
 #! /usr/bin/python
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
 # Copyright (C) 2005, 2006, 2007, 2008 Canonical Ltd.
 # Written by Colin Watson <cjwatson@ubuntu.com>.
@@ -42,14 +42,20 @@ DEBCONF_IO_OUT = 2
 DEBCONF_IO_ERR = 4
 DEBCONF_IO_HUP = 8
 
-class FilteredCommand(object):
-    def __init__(self, frontend, db=None):
-        self.frontend = frontend
-        # db does not normally need to be specified.
-        self.db = db
-        self.done = False
-        self.current_question = None
-        self.succeeded = False
+class UntrustedBase(object):
+    def get(self, attr):
+        '''Safely gets an attribute.  If it doesn't exist, returns None'''
+        if hasattr(self, attr):
+            return getattr(self, attr)
+        else:
+            return None
+
+    def call(self, method, *args, **kwargs):
+        '''Safely calls a member.  If it doesn't exist, returns None'''
+        if hasattr(self, method):
+            return getattr(self, method)(*args, **kwargs)
+        else:
+            return None
 
     @classmethod
     def debug_enabled(self):
@@ -65,11 +71,26 @@ class FilteredCommand(object):
             message = fmt % args
             print >>sys.stderr, '%s %s: %s' % (time_str, PACKAGE, message)
 
+class FilteredCommand(UntrustedBase):
+    def __init__(self, frontend, db=None, ui=None):
+        self.frontend = frontend # ubiquity-wide UI
+        self.ui = ui # page-specific UI
+        # db does not normally need to be specified.
+        self.db = db
+        self.done = False
+        self.current_question = None
+        self.succeeded = False
+        self.dbfilter = None
+
     def start(self, auto_process=False):
         self.status = None
         self.db = DebconfCommunicator(PACKAGE, cloexec=True)
+        self.ui_loop_level = 0
         prep = self.prepare()
-        self.command = ['log-output', '-t', 'ubiquity', '--pass-stdout']
+        if prep is None:
+            self.run(None, None)
+            return
+        self.command = ['log-output', '-t', PACKAGE, '--pass-stdout']
         if isinstance(prep[0], types.StringTypes):
             self.command.append(prep[0])
         else:
@@ -79,8 +100,6 @@ class FilteredCommand(object):
             env = prep[2]
         else:
             env = {}
-
-        self.ui_loop_level = 0
 
         self.debug("Starting up '%s' for %s.%s", self.command,
                    self.__class__.__module__, self.__class__.__name__)
@@ -127,19 +146,19 @@ class FilteredCommand(object):
 
         self.cleanup()
 
-        self.db.shutdown()
-
         return ret
 
     def cleanup(self):
-        pass
+        self.db.shutdown()
 
     def run_command(self, auto_process=False):
         # TODO cjwatson 2006-02-25: Hack to allow _apply functions to be run
         # from within the debconffiltered Config class.
         if self.frontend is None:
             prep = self.prepare()
-            self.command = ['log-output', '-t', 'ubiquity', '--pass-stdout']
+            if prep is None:
+                return
+            self.command = ['log-output', '-t', PACKAGE, '--pass-stdout']
             if isinstance(prep[0], types.StringTypes):
                 self.command.append(prep[0])
             else:
@@ -176,6 +195,42 @@ class FilteredCommand(object):
                 pass
             self.status = self.wait()
         return self.status
+
+    def run_unfiltered(self):
+        """This may only be called under the control of a debconf frontend."""
+
+        self.status = None
+
+        prep = self.prepare(unfiltered=True)
+        self.command = prep[0]
+        if len(prep) > 2:
+            env = prep[2]
+        else:
+            env = {}
+
+        self.debug("Starting up '%s' unfiltered for %s.%s", self.command,
+                   self.__class__.__module__, self.__class__.__name__)
+
+        def subprocess_setup():
+            os.environ['HOME'] = '/root'
+            os.environ['LC_COLLATE'] = 'C'
+            for key, value in env.iteritems():
+                os.environ[key] = value
+            # Python installs a SIGPIPE handler by default. This is bad for
+            # non-Python subprocesses, which need SIGPIPE set to the default
+            # action.
+            signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+
+        misc.regain_privileges()
+        ret = subprocess.call(self.command, preexec_fn=subprocess_setup)
+        misc.drop_privileges()
+        if ret != 0:
+            # TODO: error message if ret != 10
+            self.debug("%s exited with code %d", self.command, ret)
+
+        self.cleanup()
+
+        return ret
 
     def process_input(self, source, condition):
         if source != self.dbfilter.subout_fd:
@@ -323,6 +378,10 @@ class FilteredCommand(object):
         self.succeeded = True
         self.done = True
         self.exit_ui_loops()
+        if self.dbfilter is None:
+            # This is really a dummy dbfilter.  Let's exit for real now
+            self.frontend.debconffilter_done(self)
+            self.cleanup()
 
     # User selected Cancel, Back, or similar. Subclasses should override
     # this to send user-entered information back to debconf (perhaps using
@@ -333,6 +392,10 @@ class FilteredCommand(object):
         self.succeeded = False
         self.done = True
         self.exit_ui_loops()
+        if self.dbfilter is None:
+            # This is really a dummy dbfilter.  Let's exit for real now
+            self.frontend.debconffilter_done(self)
+            self.cleanup()
 
     def error(self, priority, question):
         self.succeeded = False
@@ -354,8 +417,8 @@ class FilteredCommand(object):
         self.current_question = question
         if not self.done:
             self.succeeded = False
-            n = self.__class__.__name__
-            self.frontend.set_page(n)
+            mod = __import__(self.__module__, fromlist=['NAME'])
+            self.frontend.set_page(mod.NAME)
             self.enter_ui_loop()
         return self.succeeded
 

@@ -75,35 +75,11 @@ else
 	    *)
 		while true; do
 			set +e
-			device="$(humandev $(cat device))"
-			db_subst partman/active_partition DEVICE "$device"
-			db_subst partman/active_partition PARTITION "$num"
-			if [ -f  $id/detected_filesystem ]; then
-				filesystem=$(cat $id/detected_filesystem)
-				RET=''
-				db_metaget partman/filesystem_long/"$filesystem" description || RET=''
-				if [ "$RET" ]; then
-					filesystem="$RET"
-				fi
-				db_subst partman/text/there_is_detected FILESYSTEM "$filesystem"
-				db_metaget partman/text/there_is_detected description
-			else
-				db_metaget partman/text/none_detected description
-			fi
-			db_subst partman/active_partition OTHERINFO "${RET}"
-
-			if [ -f $id/detected_filesystem ] && [ -f $id/format ]; then
-				db_metaget partman/text/destroyed description
-				db_subst partman/active_partition DESTROYED "${RET}"
-			else
-				db_subst partman/active_partition DESTROYED ''
-			fi
-
-			ask_user /lib/partman/active_partition "$dev" "$id"
-			exitcode="$?"
-			if [ "$exitcode" -ge 128 ] && [ "$exitcode" -lt 192 ]; then
-				exit "$exitcode" # killed by signal
-			elif [ "$exitcode" -ge 100 ]; then
+			local code=0
+			ask_active_partition "$dev" "$id" "$num" || code=$?
+			if [ "$code" -ge 128 ] && [ "$code" -lt 192 ]; then
+				exit "$code" # killed by signal
+			elif [ "$code" -ge 100 ]; then
 				break
 			fi
 			set -e

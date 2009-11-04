@@ -5,8 +5,6 @@
 
 export DH_OPTIONS
 
-BUILDDIR=$(CURDIR)/debian/build
-
 VERSION := $(shell dpkg-parsechangelog | awk '/^Version:/ { print $$2 }')
 EXPECTED_AC_VERSION := $(shell echo "$(VERSION)" | cut -d. -f1,2)
 AC_VERSION := $(shell grep -w '^AC_INIT' configure.ac | cut -d' ' -f2 | \
@@ -18,48 +16,8 @@ $(warning Version $(VERSION) in debian/changelog does not match $(AC_VERSION) in
 endif
 
 DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
-DEB_HOST_ARCH_CPU ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_CPU 2>/dev/null)
-
-# Take account of old dpkg-architecture output.
-ifeq ($(DEB_HOST_ARCH_CPU),)
-  DEB_HOST_ARCH_CPU := $(shell dpkg-architecture -qDEB_HOST_GNU_CPU)
-  ifeq ($(DEB_HOST_ARCH_CPU),x86_64)
-    DEB_HOST_ARCH_CPU := amd64
-  endif
-  # lpia is a little weird.
-  ifeq ($(DEB_HOST_ARCH_CPU),i686)
-    DEB_HOST_ARCH_CPU := lpia
-  endif
-endif
-
-PYTHON := $(shell pyversions -r)
-
-ifneq (,$(findstring :$(DEB_HOST_ARCH_CPU):,:amd64:i386:lpia:))
-  bootloader-recommends := grub | grub-pc
-else
-ifeq ($(DEB_HOST_ARCH),armel)
-  bootloader-recommends := flash-kernel
-else
-ifeq ($(DEB_HOST_ARCH),powerpc)
-  bootloader-recommends := yaboot, hfsutils
-else
-ifeq ($(DEB_HOST_ARCH),sparc)
-  bootloader-recommends := silo
-endif
-endif
-endif
-endif
-
-ifneq (,$(findstring :$(DEB_HOST_ARCH_CPU):,:alpha:amd64:i386:ia64:lpia:))
-  partman-depends := ntfsprogs
-endif
 
 console-setup-depends := console-setup (>= $(shell cd d-i/source/console-setup && dpkg-parsechangelog | awk '/Version:/ {print $$2}'))
-
-ifeq (,$(strip $(foreach dir,$(subst :, ,$(PATH)),$(wildcard $(dir)/pygobject-codegen-2.0))))
-$(warning pygobject-codegen-2.0 missing; disabling GTK frontend)
-export UBIQUITY_NO_GTK := 1
-endif
 
 update:
 	$(MAKE) -C d-i update
@@ -72,29 +30,22 @@ build: build-stamp
 build-stamp:
 	dh_testdir
 
-	PYTHON=$(PYTHON) ./configure --prefix=/usr
-	$(MAKE)
+	dh_auto_configure
+	dh_auto_build
 	$(MAKE) -C d-i build
-
-	mkdir -p $(BUILDDIR)/ubuntu
-	mkdir -p $(BUILDDIR)/guadalinex
 
 	touch build-stamp
 
 clean:
 	dh_testdir
 	dh_testroot
-	rm -fr build-stamp $(BUILDDIR) ubiquity/frontend/liveinstaller.py \
-		ubiquity/frontend/crashdialog.py
+	# Sanity-check before upload.
+	find -name debian -prune -o -name \*.py -print | xargs py_compilefiles
 	find -type f \( -name \*.pyc -o -name \*.pyo \) -print0 | xargs -0r rm -f
-	rm -f po/.intltool-merge-cache po/stamp-po
 
 	$(MAKE) -C d-i clean
-	[ ! -f Makefile ] || $(MAKE) distclean
-
-	dh_clean debian/ubiquity.install \
-		 d-i/source/console-setup/Keyboard/MyKeyboardNames.pl \
-		 ubiquity/keyboard_names.py
+	dh_auto_clean
+	dh_clean
 
 	$(MAKE) -C d-i check
 
@@ -109,15 +60,17 @@ install: DH_OPTIONS=
 install: build ubiquity/keyboard_names.py
 	dh_testdir
 	dh_testroot
-	dh_clean -k
-	dh_installdirs -A
+	dh_prep
+	cp debian/ubiquity.dirs-any debian/ubiquity.dirs
+ifneq (,$(wildcard debian/ubiquity.dirs-$(DEB_HOST_ARCH)))
+	cat debian/ubiquity.dirs-$(DEB_HOST_ARCH) >> debian/ubiquity.dirs
+endif
+	dh_installdirs
 
 	# For the meantime, nearly everything automake wants to install is
 	# part of the GTK frontend.
 ifndef UBIQUITY_NO_GTK
-	$(MAKE) install DESTDIR=$(CURDIR)/debian/ubiquity-frontend-gtk \
-		pythondir=\$${prefix}/lib/ubiquity \
-		pyexecdir=\$${prefix}/lib/ubiquity
+	$(MAKE) install DESTDIR=$(CURDIR)/debian/ubiquity-frontend-gtk
 	rm -rf debian/ubiquity-frontend-gtk/usr/share/applications \
 		debian/ubiquity-frontend-gtk/usr/share/ubiquity/pixmaps
 endif
@@ -128,21 +81,21 @@ ifneq (,$(wildcard debian/ubiquity.install-$(DEB_HOST_ARCH)))
 	cat debian/ubiquity.install-$(DEB_HOST_ARCH) >> debian/ubiquity.install
 endif
 ifdef UBIQUITY_NO_GTK
-	dh_install -Nubiquity-frontend-gtk
+	dh_install -Nubiquity-frontend-gtk -Noem-config-gtk
 else
 ifdef UBIQUITY_NO_KDE
-	dh_install -Nubiquity-frontend-kde
+	dh_install -Nubiquity-frontend-kde -Noem-config-kde
 else
 	dh_install
 endif
 endif
+	dh_di_numbers
 
 	# Bits of manual installation that can't be done by dh_install
 	
 	# Get rid of duplicate mythbuntu scripts and move some mythbuntu stuff around
 	mv debian/ubiquity-frontend-mythbuntu/usr/share/applications/ubiquity-mythbuntu.desktop debian/ubiquity-frontend-mythbuntu/usr/share/applications/ubiquity-gtkui.desktop
 	mv debian/ubiquity-frontend-mythbuntu/usr/share/pixmaps/ubiquity-mythbuntu.png debian/ubiquity-frontend-mythbuntu/usr/share/pixmaps/ubiquity.png
-	mv debian/ubiquity-frontend-mythbuntu/lib/partman/recipes/mythbuntu.recipe debian/ubiquity-frontend-mythbuntu/lib/partman/recipes/30atomic
 	rm -rf debian/ubiquity/usr/share/ubiquity/mythbuntu
 
 	install bin/ubiquity-wrapper debian/ubiquity/usr/bin/ubiquity
@@ -159,13 +112,11 @@ endif
 		install -m644 d-i/source/base-installer/kernel/$(DEB_HOST_ARCH).sh \
 			debian/ubiquity/usr/lib/ubiquity/base-installer/kernel.sh; \
 	fi
-	# tzsetup is called by clock-setup now, but we handle tzsetup earlier.
-	sed 's,^tzsetup,,' \
-		d-i/source/clock-setup/debian/clock-setup.postinst \
-		> debian/ubiquity/usr/lib/ubiquity/clock-setup/clock-setup
-	chmod +x debian/ubiquity/usr/lib/ubiquity/clock-setup/clock-setup
-	install d-i/source/clock-setup/finish-install.d/10clock-setup \
-		debian/ubiquity/usr/lib/ubiquity/clock-setup/finish-install
+	install d-i/source/clock-setup/debian/clock-setup.postinst \
+		debian/ubiquity/usr/lib/ubiquity/clock-setup/clock-setup
+	sed -e '/^rcsfile=/ { s/.*/exit 0/; q }' \
+		d-i/source/clock-setup/finish-install.d/10clock-setup \
+		> debian/ubiquity/usr/lib/ubiquity/clock-setup/finish-install
 	chmod +x debian/ubiquity/usr/lib/ubiquity/clock-setup/finish-install
 	sed -e 's,/usr/share/console-setup-mini/console-setup.config,/var/lib/dpkg/info/console-setup.config,g' \
 	    -e 's,^\([[:space:]]*\)update-initramfs,\1: update-initramfs,' \
@@ -192,9 +143,16 @@ endif
 		debian/ubiquity/usr/lib/ubiquity/localechooser/
 	install d-i/source/tzsetup/post-base-installer.d/*tzsetup \
 		debian/ubiquity/usr/lib/ubiquity/tzsetup/post-base-installer
+	sed -e 's,/target/,/,g;s,/target,/,g' \
+		debian/ubiquity/usr/lib/ubiquity/tzsetup/post-base-installer \
+		> debian/oem-config/usr/lib/ubiquity/tzsetup/post-base-installer-oem
+	chmod +x debian/oem-config/usr/lib/ubiquity/tzsetup/post-base-installer-oem
 	sed -i -e 's,db_input medium tzsetup/selected,db_input high tzsetup/selected,' \
 	       -e 's,/usr/share/tzsetup/tzmap,/usr/lib/ubiquity/tzsetup/tzmap,g' \
 		debian/ubiquity/usr/lib/ubiquity/tzsetup/tzsetup
+	cp debian/ubiquity/usr/lib/ubiquity/user-setup/reserved-usernames \
+		debian/ubiquity/usr/lib/ubiquity/user-setup/reserved-usernames-oem
+	echo oem >> debian/ubiquity/usr/lib/ubiquity/user-setup/reserved-usernames-oem
 	set -e; for x in user-setup user-setup-ask user-setup-apply; do \
 		sed -e 's,/usr/lib/user-setup,/usr/lib/ubiquity/user-setup,g' \
 		    -e 's,/bin/sh,/bin/bash,g' \
@@ -202,16 +160,23 @@ endif
 			> debian/ubiquity/usr/lib/ubiquity/user-setup/$$x; \
 		chmod +x debian/ubiquity/usr/lib/ubiquity/user-setup/$$x; \
 	done
+	sed -i -e 's,db_input high user-setup/encrypt-home,db_input medium user-setup/encrypt-home,' \
+		debian/ubiquity/usr/lib/ubiquity/user-setup/user-setup-ask
+	sed -e 's,reserved-usernames,reserved-usernames-oem,g' \
+		debian/ubiquity/usr/lib/ubiquity/user-setup/user-setup-ask \
+		> debian/ubiquity/usr/lib/ubiquity/user-setup/user-setup-ask-oem
+	chmod +x debian/ubiquity/usr/lib/ubiquity/user-setup/user-setup-ask-oem
+	sed -e 's,/target/,/,g;s,/target,/,g' \
+		d-i/source/debian-installer-utils/register-module.post-base-installer \
+		> debian/oem-config/usr/lib/ubiquity/debian-installer-utils/register-module.post-base-installer-oem
+	chmod +x debian/oem-config/usr/lib/ubiquity/debian-installer-utils/register-module.post-base-installer-oem
 ifeq ($(DEB_HOST_ARCH),armel)
-	dh_installdirs -pubiquity usr/lib/ubiquity/flash-kernel
 	install d-i/source/flash-kernel/debian/flash-kernel-installer.postinst \
 		debian/ubiquity/usr/lib/ubiquity/flash-kernel/flash-kernel-installer
 endif
 ifeq ($(DEB_HOST_ARCH),powerpc)
-	dh_installdirs -pubiquity usr/lib/ubiquity/kboot-installer
 	install d-i/source/kboot-installer/debian/postinst \
 		debian/ubiquity/usr/lib/ubiquity/kboot-installer/kboot-installer
-	dh_installdirs -pubiquity usr/lib/ubiquity/yaboot-installer
 	install d-i/source/yaboot-installer/debian/postinst \
 		debian/ubiquity/usr/lib/ubiquity/yaboot-installer/yaboot-installer
 endif
@@ -225,23 +190,32 @@ endif
 		cp desktop/hi$${size}-app-ubiquity.png debian/ubiquity-frontend-kde/usr/share/icons/hicolor/$${size}x$${size}/apps/ubiquity.png; \
 	done
 
-# Build architecture-independent files here.
-ifdef UBIQUITY_NO_KDE
-binary-indep: DH_OPTIONS=-i -Nubiquity-frontend-kde
-else
-binary-indep: DH_OPTIONS=-i
+BINARY_INDEP_OPTIONS := -i
+ifdef UBIQUITY_NO_GTK
+BINARY_INDEP_OPTIONS += -Nubiquity-frontend-gtk -Noem-config-gtk
 endif
+ifdef UBIQUITY_NO_KDE
+BINARY_INDEP_OPTIONS += -Nubiquity-frontend-kde -Noem-config-kde
+endif
+
+# Build architecture-independent files here.
+binary-indep: DH_OPTIONS=$(BINARY_INDEP_OPTIONS)
 binary-indep: install
 	dh_testdir
 	dh_testroot
 	dh_installchangelogs
 	dh_installdocs
 	dh_installdebconf
+	# oem-config
+	dh_installinit -n --name=oem-config
+	dh_installman
+	dh_lintian
 	dh_link
 	dh_strip
 	dh_compress
 	dh_fixperms
-	DH_OPTIONS= dh_pycentral -pubiquity-frontend-kde \
+	DH_OPTIONS= dh_pycentral -pubiquity-frontend-gtk \
+				 -pubiquity-frontend-kde \
 				 -pubiquity-frontend-mythbuntu
 	dh_installdeb
 	dh_shlibdeps
@@ -250,11 +224,7 @@ binary-indep: install
 	dh_builddeb
 
 # Build architecture-dependent files here.
-ifdef UBIQUITY_NO_GTK
-binary-arch: DH_OPTIONS=-a -Nubiquity-frontend-gtk
-else
 binary-arch: DH_OPTIONS=-a
-endif
 binary-arch: install
 	dh_testdir
 	dh_testroot
@@ -274,8 +244,9 @@ binary-arch: install
 	fi
 	grep-dctrl -v -FTemplate base-installer/ d-i/templates \
 		>> debian/ubiquity/DEBIAN/templates
-	dh_installinit --no-start -- start 29 2 3 4 5 .
-	dh_installman doc/ubiquity.8
+	# ubiquity
+	dh_installinit --no-start --name=ubiquity
+	dh_installman
 	dh_link
 	dh_strip
 	dh_compress
@@ -283,7 +254,7 @@ binary-arch: install
 	dh_pycentral
 	dh_installdeb
 	dh_shlibdeps
-	dh_gencontrol -- -V'console-setup-depends=$(console-setup-depends)' -V'partman-depends=$(partman-depends)' -V'bootloader-recommends=$(bootloader-recommends)' -Vmangled-version='$(MANGLED_VERSION)'
+	dh_gencontrol -- -V'console-setup-depends=$(console-setup-depends)' -Vmangled-version='$(MANGLED_VERSION)'
 	dh_md5sums
 	dh_builddeb
 

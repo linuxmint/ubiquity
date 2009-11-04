@@ -1,0 +1,34 @@
+#! /bin/sh
+
+# Set method "biosgrub" for all partitions that have the bios_grub flag set.
+
+. /lib/partman/lib/base.sh
+
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd "$dev"
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		if [ "$fs" != free ]; then
+			partitions="$partitions $id"
+		fi
+	done
+	close_dialog
+
+	for id in $partitions; do
+		biosgrub=no
+		open_dialog GET_FLAGS $id
+		while { read_line flag; [ "$flag" ]; }; do
+			if [ "$flag" = bios_grub ]; then
+				biosgrub=yes
+				# cannot break here
+			fi
+		done
+		close_dialog
+		if [ "$biosgrub" = yes ]; then
+			mkdir -p $id
+			echo biosgrub >$id/method
+		fi
+	done
+done

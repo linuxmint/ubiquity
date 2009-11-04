@@ -77,6 +77,7 @@ serial="$(get_serial_console)"
 
 ## This is copied from update-grub; we've requested that it be moved
 ## to a utility or shell library
+## TODO: replace this with grub-probe
 device_map=$ROOT/boot/grub/device.map
 
 # Usage: convert os_device
@@ -140,8 +141,8 @@ convert () {
 
 	# Adjust the device map to add a SATA RAID array.
 	if [ "$frtype" = "sataraid" ] && type dmraid >/dev/null 2>&1; then
-		temp_map=/target/tmp/sataraid.map
-		echo quit | chroot /target /usr/sbin/grub --batch --device-map=/tmp/sataraid.map >/dev/null 2>&1
+		temp_map=$ROOT/tmp/sataraid.map
+		echo quit | $chroot $ROOT /usr/sbin/grub --batch --device-map=/tmp/sataraid.map >/dev/null 2>&1
 
 		# Dmraid -r seems to list disks in reverse order to how they
 		# are detected by the kernel.
@@ -171,14 +172,14 @@ convert () {
 		# GRUB's syntax
 		case "$host_os" in
 		    linux*)
-			echo "$tmp_drive" | sed "s%)$%,`expr $tmp_part - 1`)%"
+			echo "$tmp_drive" | sed "s%)$%,`expr $tmp_part - $partition_offset`)%"
 			;;
 		    gnu*)
 			if echo $tmp_part | grep "^s" >/dev/null; then
 				tmp_pc_slice=$(echo $tmp_part | \
 					sed "s%s\([0-9]*\)[a-g]*$%\1%")
 				tmp_drive=$(echo "$tmp_drive" | \
-					sed "s%)%,\`expr "$tmp_pc_slice" - 1\`)%")
+					sed "s%)%,\`expr "$tmp_pc_slice" - $partition_offset\`)%")
 				fi
 			if echo $tmp_part | grep "[a-g]$" >/dev/null; then
 				tmp_bsd_partition=$(echo "$tmp_part" | \
@@ -193,7 +194,7 @@ convert () {
 				tmp_pc_slice=$(echo $tmp_part | \
 					sed "s%s\([0-9]*\)[a-h]*$%\1%")
 				tmp_drive=$(echo "$tmp_drive" | \
-					sed "s%)%,\`expr "$tmp_pc_slice" - 1\`)%")
+					sed "s%)%,\`expr "$tmp_pc_slice" - $partition_offset\`)%")
 			fi
 			if echo $tmp_part | grep "[a-h]$" >/dev/null; then
 				tmp_bsd_partition=$(echo "$tmp_part" | \
@@ -239,20 +240,32 @@ hurd_convert () {
 
 # Run update-grub in $ROOT
 update_grub () {
+	# TODO cjwatson 2009-10-21: just use in-target?
 	umountproc=false
+	umountsys=false
 	if [ ! -e $ROOT/proc/cmdline ]; then
 		$chroot $ROOT mount /proc
 		umountproc=:
 	fi
-	if ! log-output -t grub-installer $chroot $ROOT update-grub -y ; then
-		error "Running 'update-grub -y' failed." 1>&2
+	if [ ! -d $ROOT/sys/devices ]; then
+		$chroot $ROOT mount -t sysfs sysfs /sys
+		umountsys=:
+	fi
+	if ! log-output -t grub-installer $chroot $ROOT $update_grub; then
+		error "Running '$update_grub' failed." 1>&2
 		db_input critical grub-installer/update-grub-failed || [ $? -eq 30 ]
 		db_go || true
 		db_progress STOP
+		if $umountsys; then
+			$chroot $ROOT umount /sys
+		fi
 		if $umountproc; then
 			$chroot $ROOT umount /proc
 		fi
 		exit 1
+	fi
+	if $umountsys; then
+		$chroot $ROOT umount /sys
 	fi
 	if $umountproc; then
 		$chroot $ROOT umount /proc
@@ -260,11 +273,11 @@ update_grub () {
 }
 
 findfs () {
-	mount | grep "on $ROOT${1%/} " | cut -d' ' -f1
+	mount | grep "on $ROOT${1%/} " | tail -n1 | cut -d' ' -f1
 }
 
 findfstype () {
-	mount | grep "on $ROOT${1%/} " | cut -d' ' -f5
+	mount | grep "on $ROOT${1%/} " | tail -n1 | cut -d' ' -f5
 }
 
 is_removable () {
@@ -322,7 +335,7 @@ esac
 rootfs_nodevfs=$(mapdevfs $rootfs)
 bootfs_nodevfs=$(mapdevfs $bootfs)
 prefix=$(echo "$bootfs" | \
-  sed 's:\(/dev/\(cciss\|ida\)/c[0-9]d[0-9][0-9]*\|/dev/mmcblk[0-9]\|/dev/[a-z]\+\).*:\1:')
+  sed 's:\(/dev/\(cciss\|ida\|rs\)/c[0-9]d[0-9][0-9]*\|/dev/mmcblk[0-9]\|/dev/\(ad\|da\)[0-9]\+\|/dev/[a-z]\+\).*:\1:')
 
 case $prefix in
     /dev/md)
@@ -334,11 +347,11 @@ case $prefix in
     /dev/loop)
 	disc_offered_devfs="$bootfs"
 	;;
-    /dev/[hsv]d[a-z]|/dev/xvd[a-z]|/dev/cciss/c[0-9]d[0-9]*|/dev/ida/c[0-9]d[0-9]*|/dev/mmcblk[0-9])
+    /dev/[hsv]d[a-z]|/dev/xvd[a-z]|/dev/cciss/c[0-9]d[0-9]*|/dev/ida/c[0-9]d[0-9]*|/dev/rs/c[0-9]d[0-9]*|/dev/mmcblk[0-9]|/dev/ad[0-9]*|/dev/da[0-9]*)
 	disc_offered_devfs="$prefix"
 	;;
     *)
-	disc_offered_devfs=$(echo "$bootfs_devfs" | sed "s:\(.*\)/.*:\1/disc:")
+	disc_offered_devfs=$(echo "$bootfs_nodevfs" | sed "s:\(.*\)/.*:\1/disc:")
 	;;
 esac
 disc_offered=$(mapdevfs "$disc_offered_devfs")
@@ -352,16 +365,17 @@ frdev=""
 if [ "$found" = "0" ] && type dmraid >/dev/null 2>&1 && \
    dmraid -s -c >/dev/null 2>&1 && \
    db_get disk-detect/activate_dmraid && [ "$RET" = true ]; then
-	for frdisk in $(dmraid -s -c | grep -iv "No RAID disks"); do
+	for frdisk in $(dmraid -s -c); do
 		if echo "$disc_offered" | grep -q "/$frdisk[0-9]\+"; then
 			frdev=/dev/mapper/$frdisk
 			frbootpart=${disc_offered#$frdev}
-			frgrubroot=$(($frbootpart - 1))
+			frgrubroot=$frbootpart
 			frtype=sataraid
 			found=1
 			break
 		fi
 	done
+	[ "$found" = "1" ] || frdisk=
 fi
 # Check if the boot file system is on multipath
 if [ "$found" = "0" ] && type multipath >/dev/null 2>&1; then
@@ -371,18 +385,26 @@ if [ "$found" = "0" ] && type multipath >/dev/null 2>&1; then
 			grep -q "^/dev/mapper/${frdisk}-part[0-9]\+"; then
 			frdev=/dev/mapper/$frdisk
 			frbootpart=${disc_offered#$frdev}
-			frgrubroot=$((${frbootpart#-part} - 1))
+			frgrubroot=${frbootpart#-part}
 			frtype=multipath
 			found=1
 			break
 		fi
 	done
-	if [ "$frdisk" ]; then
+	if [ "$found" = "1" ]; then
 		# Create the device nodes for grub:
 		apt-install dmsetup
 		$chroot $ROOT mount /proc
 		$chroot $ROOT dmsetup mknodes
+	else
+		frdisk=
 	fi
+elif type lvdisplay >/dev/null 2>&1 && \
+     (lvdisplay "$disc_offered" | grep -q 'LV Name' 2>/dev/null || \
+      [ -e "$(dirname "$disc_offered")/control" ]); then
+	# Don't set frdev/frdisk here, otherwise you'll end up in different
+	# code paths below ...
+	frtype=lvm
 fi
 # Check if the boot file system is on an mdadm device
 if [ "$found" = "0" ] && type mdadm >/dev/null 2>&1; then
@@ -421,19 +443,24 @@ case $ARCH in
 	# On PC/BIOS, default to GRUB Legacy
 	grub_package="grub"
 	;;
+    kfreebsd-i386/*|kfreebsd-amd64/*)
+	grub_package="grub-pc"
+	;;
     powerpc/*)
-	grub_package="grub-of"
+	grub_package="grub-ieee1275"
 	;;
 esac
 
-case "$bootfstype:$bootfslabel:$grub_package" in
-    *:loop:*)
-	# Serial ATA RAID partition, currently only grub is supported
+case "$frtype:$bootfstype:$bootfslabel:$grub_package" in
+    sataraid:*:*:*|multipath:*:*:*)
+	# Serial ATA RAID partition or multipath, currently only grub is
+	# supported
 	: ;;
-    *:gpt:*)
-	# Ubuntu's grub package supports GPT, although Debian's doesn't.
-	: ;;
-    *:*:grub)
+    lvm:*:*:*)
+	# Booting from LVM requires grub2
+	grub_package="grub-pc"
+	;;
+    *:*:*:grub)
 	db_input low grub-installer/grub2_instead_of_grub_legacy || [ $? -eq 30 ]
 	db_go || true
 	db_get grub-installer/grub2_instead_of_grub_legacy
@@ -441,7 +468,11 @@ case "$bootfstype:$bootfslabel:$grub_package" in
 		grub_package="grub-pc"
 	fi
 	;;
-    *:*:*)
+    *:ufs:*:*)
+	# Booting from UFS requires grub2
+	grub_package="grub-pc"
+	;;
+    *:*:*:*)
 	db_subst grub-installer/grub_not_mature_on_this_platform ARCH $ARCH
 	db_input low grub-installer/grub_not_mature_on_this_platform || [ $? -eq 30 ]
 	db_go || true
@@ -456,10 +487,15 @@ case $grub_package in
     grub)
 	grub_version="grub"
 	menu_file="menu.lst"
+	update_grub="update-grub -y"
+	partition_offset=1
+	frgrubroot=$(($frgrubroot - 1))
 	;;
     *)
 	grub_version="grub2"
 	menu_file="grub.cfg"
+	update_grub="update-grub"
+	partition_offset=0
 	;;
 esac
 
@@ -471,6 +507,51 @@ if [ "$(uname -s | tr '[A-Z]' '[a-z]')" = "linux" ]; then
 	[ -n "$bootremovable" ] || bootremovable="$(is_removable /)"
 fi
 
+user_params=$(user-params) || true
+defopt_params=""
+kopt_params=""
+got_quiet=""
+got_splash=""
+for u_param in $user_params; do
+	case "$u_param" in
+	    quiet)
+		got_quiet=1
+		defopt_params=${defopt_params:+$defopt_params }$u_param ;;
+	    splash)
+		got_splash=1
+		if db_get debian-installer/framebuffer && [ "$RET" = true ]; then
+			defopt_params=${defopt_params:+$defopt_params }$u_param
+		fi
+		;;
+	    *)
+		kopt_params=${kopt_params:+$kopt_params }$u_param ;;
+	esac
+done
+if [ "$grub_version" = grub2 ]; then
+	# Add user parameters to the menu file; some options are only added
+	# to the default entry for a kernel instead of all entries.
+	# We have to duplicate grub2's default for
+	# GRUB_CMDLINE_LINUX_DEFAULT here.
+	if [ -z "$got_splash" ] && \
+	   db_get debian-installer/framebuffer && [ "$RET" = true ]; then
+		defopt_params="splash${defopt_params:+ $defopt_params}"
+	fi
+	if [ -z "$got_quiet" ]; then
+		defopt_params="quiet${defopt_params:+ $defopt_params}"
+	fi
+	# (quoting to deconfuse vim)
+	$chroot $ROOT 'debconf-set-selections' <<EOF
+$grub_package grub2/linux_cmdline string $kopt_params
+$grub_package grub2/linux_cmdline_default string $defopt_params
+EOF
+fi
+if [ "$grub_package" = grub-pc ]; then
+	# Empty this for now to stop it being asked. We'll fix this up later.
+	$chroot $ROOT 'debconf-set-selections' <<EOF
+$grub_package grub-pc/install_devices multiselect
+EOF
+fi
+
 db_progress START 0 6 grub-installer/progress/title
 
 db_subst grub-installer/progress/step_install GRUB "$grub_version"
@@ -479,25 +560,31 @@ db_progress INFO grub-installer/progress/step_install
 # apt-install passes --no-remove to apt, but grub{,2} conflict each other, so
 # we need to purge them first to support users who try grub2 and then switch
 # to grub legacy, or vice-versa
-#case "$grub_package" in
-#   grub)
-#	log-output -t grub-installer $chroot $ROOT dpkg -P grub-pc
-#	;;
-#   grub-pc)
-#	log-output -t grub-installer $chroot $ROOT dpkg -P grub
-#	;;
-#esac
+case "$grub_package" in
+    grub)
+	log-output -t grub-installer $chroot $ROOT dpkg -P grub-pc
+	;;
+    grub-pc)
+	log-output -t grub-installer $chroot $ROOT dpkg -P grub grub-legacy
+	# os-prober is only a Recommends so isn't installed by apt-install,
+	# but in Ubuntu we make sure it's installed since it does a better
+	# job than the otheros script.
+	apt-install os-prober || true
+	;;
+esac
 
-#if ! apt-install $grub_package ; then
-#	db_progress STOP
-#	info "Calling 'apt-install $grub_package' failed"
-#	db_subst grub-installer/apt-install-failed GRUB "$grub_package"
-#	db_input critical grub-installer/apt-install-failed || true
-#	if ! db_go; then
-#		exit 10 # back up to menu
-#	fi
-#	exit 1
-#fi
+if ! apt-install $grub_package ; then
+	db_progress STOP
+	info "Calling 'apt-install $grub_package' failed"
+	db_subst grub-installer/apt-install-failed GRUB "$grub_package"
+	db_input critical grub-installer/apt-install-failed || true
+	if ! db_go; then
+		exit 10 # back up to menu
+	fi
+	exit 1
+fi
+
+grub_debian_version="$($chroot $ROOT dpkg-query -W -f '${Version}' $grub_package)"
 
 if [ "$frtype" = multipath ]; then
 	$chroot $ROOT umount /proc
@@ -574,7 +661,7 @@ fi
 
 if [ "$frdev" ] && [ "$frtype" != "sataraid" ]; then
 	if [ -e $ROOT$frdev ] && [ -e $ROOT$frdev$frbootpart ] && \
-	   [ $frgrubroot -ge 0 ]; then
+	   [ $frgrubroot -ge $((1 - $partition_offset)) ]; then
 		db_subst grub-installer/$frtype GRUBROOT $ROOT$frdev$frbootpart
 		q=grub-installer/$frtype
 	else
@@ -584,6 +671,7 @@ if [ "$frdev" ] && [ "$frtype" != "sataraid" ]; then
 	fi
 fi
 
+default_bootdev='(hd0)'
 # Set a sensible default boot device as hd0 does not make sense when
 # installing from a removable disk.  We have to be specific here and not always
 # set the installation target to the disk that /boot resides on because we
@@ -600,6 +688,32 @@ if [ -n "$cdfs" ] && [ "$cdfs" != "iso9660" ]; then
 		db_set grub-installer/bootdev "$disk"
 		state=2
 	fi
+elif [ "$grub_version" = grub2 ] && [ "$frtype" = mdadm ]; then
+	# Check whether any of the RAIDed devices is a partition, and if so
+	# install to the corresponding disk instead, as GRUB 2 doesn't like
+	# installing to a RAID device composed of partitions.
+	# TODO: This duplicates some pretty horrible code from above. This
+	# should at least be turned into a function or something ...
+	disks=
+	use_disks=
+	for frdisk_one in $frdisk_list; do
+		prefix=$(echo "$frdisk_one" | \
+		  sed 's:\(/dev/\(cciss\|ida\|rs\)/c[0-9]d[0-9][0-9]*\|/dev/mmcblk[0-9]\|/dev/\(ad\|da\)[0-9]\+\|/dev/[a-z]\+\).*:\1:')
+		disks="${disks:+$disks }$prefix"
+		case $prefix in
+		    /dev/[hsv]d[a-z]|/dev/xvd[a-z]|/dev/cciss/c[0-9]d[0-9]*|/dev/ida/c[0-9]d[0-9]*|/dev/rs/c[0-9]d[0-9]*|/dev/mmcblk[0-9]|/dev/ad[0-9]*|/dev/da[0-9]*)
+			if [ "$prefix" != "$frdisk_one" ]; then
+				use_disks=1
+			fi
+			;;
+		esac
+	done
+	if [ "$use_disks" ]; then
+		default_bootdev="$disks"
+	else
+		default_bootdev="$bootfs_nodevfs"
+	fi
+	db_set grub-installer/bootdev "$default_bootdev"
 fi
 
 db_progress STEP 1
@@ -607,6 +721,13 @@ db_progress INFO grub-installer/progress/step_bootdev
 
 while : ; do
 	if [ "$state" = 1 ]; then
+		if [ "$frdev" ]; then
+			# If /boot is on SATA RAID/multipath, then there's
+			# only one possible answer; we don't support device
+			# selection yet. This is pretty nasty.
+			db_set $q true || true
+			db_fset $q seen true || true
+		fi
 		db_input $priority $q || true
 		if ! db_go; then
 			# back up to menu
@@ -622,7 +743,7 @@ while : ; do
 					echo "(hd0) $bootremovable" > "$device_map"
 				fi
 			else
-				bootdev="(hd0)"
+				bootdev="$default_bootdev"
 			fi
 			break
 		else
@@ -660,8 +781,8 @@ done
 
 if db_get grub-installer/bootdev_directory && [ "$RET" ]; then
 	bootdev=
-	if ! [ -f "$device_map" ]; then
-		echo quit | grub --batch --device-map="$device_map" >/dev/null 2>&1
+	if [ "$grub_version" = grub ] && ! [ -f "$device_map" ]; then
+		echo quit | $chroot $ROOT /usr/sbin/grub --batch --device-map="${device_map#$ROOT}" >/dev/null 2>&1
 	fi
 fi
 
@@ -688,7 +809,7 @@ quit
 EOF
 }
 
-if [ -z "$frdisk" ]; then
+if [ -z "$frdisk" ] || [ "$grub_version" = grub2 ]; then
 
 	# Install grub on each space separated disk in the list
 	bootdevs="$bootdev"
@@ -765,6 +886,13 @@ else
 		write_grub
 	fi
 
+fi
+
+if [ "$grub_package" = grub-pc ]; then
+	# Do the same thing on upgrades.
+	$chroot $ROOT 'debconf-set-selections' <<EOF
+$grub_package grub-pc/install_devices multiselect $bootdevs
+EOF
 fi
 
 # Split a device name into a disk device name and a partition number, if
@@ -851,11 +979,19 @@ make_active_partition () {
 			done
 		fi
 
-		if [ "$bootpart" ]; then
+		while [ "$bootpart" ]; do
 			echo -n "I: Setting partition $bootpart of $bootdisk to active..." >&2
-			sfdisk -A"$bootpart" "$bootdisk"
-			echo "done." >&2
-		fi
+			if sfdisk -A"$bootpart" "$bootdisk"; then
+				echo "done." >&2
+				break
+			elif [ "$bootpart" -lt 4 ]; then
+				echo "failed; trying next primary partition" >&2
+				bootpart="$(($bootpart + 1))"
+			else
+				echo "failed; run out of primary partitions to try. Hope your BIOS doesn't mind there being no active partition!" >&2
+				break
+			fi
+		done
 	fi
 }
 
@@ -954,55 +1090,45 @@ if [ "$grub_version" = "grub" ] ; then
 	fi 
 fi
 
-# Add user parameters to menu.list; some options are only added to the
-# default entry for a kernel instead of all entries
-user_params=$(user-params) || true
-defopt_params=""
-kopt_params=""
 bootdev_directory=""
 hide_menu=""
-for u_param in $user_params; do
-	case "$u_param" in
-	    quiet)
-		defopt_params=${defopt_params:+$defopt_params }$u_param ;;
-	    splash)
-		if db_get debian-installer/framebuffer && [ "$RET" = true ]; then
-			defopt_params=${defopt_params:+$defopt_params }$u_param
-		fi
-		;;
-	    *)
-		kopt_params=${kopt_params:+$kopt_params }$u_param ;;
-	esac
-done
-if [ "$defopt_params" ]; then
-	sed -i "s!^\(# defoptions=.*\)!\1 $defopt_params!" $ROOT/boot/grub/$menu_file
-fi
-if [ "$kopt_params" ]; then
-	sed -i "s!^\(# kopt=.*\)!\1 $kopt_params!" $ROOT/boot/grub/$menu_file
-fi
 if db_get grub-installer/bootdev_directory && [ "$RET" ]; then
 	bootdev_directory="$RET"
 	# Be careful to deal with either UUID-style or non-UUID-style groot.
 	# grub4dos doesn't recognise UUIDs yet.
 	sed -i "s:^\(# groot=\)[^(].*:\1():; s:^\(# groot=([^)]*)\).*:\1$bootdev_directory:" $ROOT/boot/grub/$menu_file
-	sed -i "s:^# groot=(hd.*:# groot=()$RET:" $ROOT/boot/grub/$menu_file
-	need_update_grub=1
 	hide_menu=1
 fi
-# In either case, update the Debian kernel entries
-if [ "$user_params" ] || [ "$bootdev_directory" ]; then
-	update_grub
-fi
-if [ "$need_update_grub" ]; then
-	update_grub # again, to add new options to all the Debian kernel entries
+if [ "$grub_version" = grub ]; then
+	# Add user parameters to menu.lst; some options are only added to
+	# the default entry for a kernel instead of all entries. We can't do
+	# this in the same place as the grub2 case because we need the menu
+	# file to exist.
+	if [ "$defopt_params" ]; then
+		sed -i "s!^\(# defoptions=.*\)!\1 $defopt_params!" $ROOT/boot/grub/$menu_file
+	fi
+	if [ "$kopt_params" ]; then
+		sed -i "s!^\(# kopt=.*\)!\1 $kopt_params!" $ROOT/boot/grub/$menu_file
+	fi
+	# In either case, update the Debian kernel entries
+	if [ "$user_params" ] || [ "$bootdev_directory" ]; then
+		update_grub
+	fi
 fi
 
 if [ -z "$hide_menu" ] && [ -s /tmp/os-probed ]; then
 	# Other operating systems are installed, so show the menu by default
 	# and raise the timeout.
-	sed -i 's/^hiddenmenu[[:space:]]*$/#hiddenmenu/;
-		s/^\(timeout[[:space:]][[:space:]]*\).*/\110/' \
-		$ROOT/boot/grub/menu.lst
+	if [ "$grub_version" = grub ]; then
+		sed -i 's/^hiddenmenu[[:space:]]*$/#hiddenmenu/;
+			s/^\(timeout[[:space:]][[:space:]]*\).*/\110/' \
+			$ROOT/boot/grub/menu.lst
+	else
+		sed -i 's/^GRUB_HIDDEN_TIMEOUT=.*/#&/;
+			s/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=10/' \
+			$ROOT/etc/default/grub
+		update_grub # propagate to grub.cfg
+	fi
 fi
 
 if [ "$serial" ] ; then
@@ -1036,6 +1162,12 @@ fi
 tmpfile=/tmp/menu.lst.extras
 OLDIFS="$IFS"
 IFS="$newline"
+
+no_floppy=""
+if $chroot $ROOT dpkg --compare-versions $grub_debian_version ge 1.96+20090609-1 ; then
+	no_floppy="--no-floppy"
+fi
+
 for os in $(cat /tmp/os-probed); do
 	IFS="$OLDIFS"
 	title=$(echo "$os" | cut -d: -f2)
@@ -1108,19 +1240,21 @@ IFS="$OLDIFS"
 rm -f /tmp/os-probed
 
 if [ -s $tmpfile ] ; then
-	grub_write_divider
 	case $grub_version in
 	    grub)
+		grub_write_divider
 		cat $tmpfile >> $ROOT/boot/grub/$menu_file
 		;;
 	    grub2)
-		cat > $ROOT/etc/grub.d/30_otheros << EOF
+		if ! $chroot $ROOT which os-prober >/dev/null 2>&1; then
+			cat > $ROOT/etc/grub.d/30_otheros << EOF
 #!/bin/sh
 exec tail -n +3 \$0
 EOF
-		cat $tmpfile >> $ROOT/etc/grub.d/30_otheros
-		chmod +x $ROOT/etc/grub.d/30_otheros
-		update_grub # propagate 30_otheros to grub.cfg
+			cat $tmpfile >> $ROOT/etc/grub.d/30_otheros
+			chmod +x $ROOT/etc/grub.d/30_otheros
+			update_grub # propagate 30_otheros to grub.cfg
+		fi
 		;;
 	esac
 	rm -f $tmpfile
@@ -1129,7 +1263,9 @@ fi
 db_progress STEP 1
 db_progress INFO grub-installer/progress/step_update_etc
 
-sed -i 's/do_bootloader = yes/do_bootloader = no/' $ROOT/etc/kernel-img.conf
+if [ -e $ROOT/etc/kernel-img.conf ] ; then
+	sed -i 's/do_bootloader = yes/do_bootloader = no/' $ROOT/etc/kernel-img.conf
+fi
 if [ -z "$(grep update-grub $ROOT/etc/kernel-img.conf)" ]; then
 	(
 		echo "postinst_hook = update-grub"

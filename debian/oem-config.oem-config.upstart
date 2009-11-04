@@ -1,0 +1,39 @@
+# oem-config - End-user configuration after initial OEM installation
+#
+# Run on the first boot after shipping to the end user to reconfigure the
+# system for them; removes itself thereafter.
+
+description	"End-user configuration after initial OEM installation"
+author		"Ubuntu Installer Team <ubuntu-installer@lists.ubuntu.com>"
+
+start on (starting gdm
+	  or starting kdm
+	  or starting xdm)
+stop on runlevel [06]
+
+emits starting-dm
+
+task
+normal exit 0 1
+
+console output
+
+script
+    [ -f /var/lib/oem-config/run ]
+    type oem-config-firstboot >/dev/null 2>&1 || exit 0
+
+    >/var/run/oem-config.upstarted
+
+    debug=
+    for x in $(cat /proc/cmdline); do
+	case $x in
+	    debug-oem-config)
+		debug=--debug
+		;;
+	esac
+    done
+
+    initctl emit starting-dm DM=oem-config-dm
+
+    exec oem-config-firstboot $debug
+end script

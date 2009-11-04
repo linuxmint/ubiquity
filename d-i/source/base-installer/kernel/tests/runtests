@@ -23,8 +23,8 @@ verbose () {
 run_test () {
 	TEST="$1"
 
-	unset SUBARCH CPUINFO FLAVOUR KERNEL_26 USABLE UNUSABLE \
-		|| true
+	unset SUBARCH CPUINFO MACHINE MEMTOTAL FLAVOUR KERNEL_26 \
+		USABLE UNUSABLE || true
 	NUMCPUS=1
 	MAJORS=2.6
 
@@ -41,6 +41,9 @@ run_test () {
 				;;
 			machine)
 				MACHINE="$value"
+				;;
+			memtotal)
+				MEMTOTAL="$value"
 				;;
 			majors)
 				MAJORS="$value"
@@ -65,7 +68,7 @@ run_test () {
 		esac
 	done < "$TEST"
 
-	export ARCH SUBARCH CPUINFO NUMCPUS MACHINE
+	export ARCH SUBARCH CPUINFO NUMCPUS MACHINE MEMTOTAL
 	export MAJORS FLAVOUR KERNEL_26
 	export USABLE UNUSABLE
 

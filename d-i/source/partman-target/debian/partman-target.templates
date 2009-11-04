@@ -94,6 +94,7 @@ Type: select
 Choices-C: ${CHOICES}
 Choices: ${DESCRIPTIONS}
 _Description: How to use this partition:
+Help: partman-target/help
 
 Template: partman-target/text/method
 Type: text
@@ -104,26 +105,6 @@ Template: partman-target/text/get_help
 Type: text
 # :sl1:
 _Description: Help on partitioning
-
-Template: partman-target/clear_partitions_failed
-Type: error
-_Description: Failed to remove conflicting files
- The installer needs to remove operating system files from the install target,
- but was unable to do so.  The install cannot continue.
-
-Template: partman-target/clear_partitions_progress
-Type: text
-_Description: Removing conflicting operating system files...
-
-Template: ubiquity/partman-system-unformatted
-Type: boolean
-_Description: Do you want to return to the partitioner?
- The file system on ${PARTITION} assigned to ${MOUNTPOINT} has not been marked
- for formatting.  Directories containing system files (/etc, /lib, /usr, /var,
- ...) that already exist under any defined mountpoint will be deleted during the
- install.
- .
- Please ensure that you have backed up any critical data before installing.
 
 Template: partman/mount_style
 Type: select
@@ -146,3 +127,23 @@ Description: for internal use; can be preseeded
  .
  Devices with stable names, such as LVM logical volumes, will continue to
  use their traditional names rather than UUIDs.
+
+Template: partman-target/clear_partitions_failed
+Type: error
+_Description: Failed to remove conflicting files
+ The installer needs to remove operating system files from the install target,
+ but was unable to do so.  The install cannot continue.
+
+Template: partman-target/clear_partitions_progress
+Type: text
+_Description: Removing conflicting operating system files...
+
+Template: ubiquity/partman-system-unformatted
+Type: boolean
+_Description: Do you want to return to the partitioner?
+ The file system on ${PARTITION} assigned to ${MOUNTPOINT} has not been marked
+ for formatting.  Directories containing system files (/etc, /lib, /usr, /var,
+ ...) that already exist under any defined mountpoint will be deleted during the
+ install.
+ .
+ Please ensure that you have backed up any critical data before installing.

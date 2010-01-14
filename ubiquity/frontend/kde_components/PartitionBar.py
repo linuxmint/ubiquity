@@ -269,7 +269,7 @@ class PartitionsBar(QWidget):
         
         if part.next == None or part.next.index != -1:
             #if our resize partition is at the end or the next one is not free space
-            p = Partition(new_size, 0, 'auto', 'Kubuntu')
+            p = Partition(new_size, 0, 'auto', 'Linux Mint')
             p.next = part.next
             part.next = p
             
@@ -367,7 +367,7 @@ if __name__ == "__main__":
     
     partBar.addPartition('', 57511125504, 1, 'ext4', '/dev/sdb1')
     partBar.addPartition('', 2500452864, 5, 'linux-swap', '/dev/sdb5')
-    partBar.setResizePartition('/dev/sdb1', 230989824, 55143440896, 57511125504, 'Kubuntu')
+    partBar.setResizePartition('/dev/sdb1', 230989824, 55143440896, 57511125504, 'Linux Mint')
     
     wid.show()
     

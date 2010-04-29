@@ -244,7 +244,7 @@ class PageGtk(PageBase):
                     elif len(l) > 1:
                         l = ', '.join(l)
                     txt = self.controller.get_string('ubiquity/text/part_format_warning')
-                    txt = txt.replace('${RELEASE}', get_release_name())
+                    txt = txt.replace('${RELEASE}', "Linux Mint")
                     txt = txt.replace('${SYSTEMS}', l)
                     self.format_warnings[extra] = txt
 
@@ -271,7 +271,7 @@ class PageGtk(PageBase):
             self.autopartition_choices_vbox.remove(child)
 
         text = self.controller.get_string('ubiquity/text/part_auto_choices_label')
-        text = text.replace('${RELEASE}', get_release_name())
+        text = text.replace('${RELEASE}', "Linux Mint")
         self.part_auto_choices_label.set_text(text)
 
         firstbutton = None

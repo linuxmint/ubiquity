@@ -281,7 +281,7 @@ class PageGtk(PageBase):
                            self.ready_text_label,
                            self.alpha_warning_label):
                 text = i18n.get_string(gtk.Buildable.get_name(widget), lang)
-                text = text.replace('${RELEASE}', release_name)
+                text = text.replace('${RELEASE}', "Linux Mint")
                 text = text.replace('${MEDIUM}', install_medium)
                 widget.set_label(text)
 
@@ -475,7 +475,7 @@ class PageKde(PageBase):
                            self.page.ready_text_label,
                            self.page.alpha_warning_label):
                 text = widget.text()
-                text = text.replace('${RELEASE}', release_name)
+                text = text.replace('${RELEASE}', "Linux Mint")
                 text = text.replace('${MEDIUM}', install_medium)
                 widget.setText(text)
                 

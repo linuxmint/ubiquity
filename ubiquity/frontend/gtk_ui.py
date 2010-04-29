@@ -1395,7 +1395,7 @@ class Wizard(BaseFrontend):
 
     def bootloader_dialog (self, current_device):
         l = self.skip_label.get_label()
-        l = l.replace('${RELEASE}', get_release_name())
+        l = l.replace('${RELEASE}', "Linux Mint")
         self.skip_label.set_label(l)
         self.grub_new_device_entry.child.set_text(current_device)
         self.grub_new_device_entry.child.grab_focus()

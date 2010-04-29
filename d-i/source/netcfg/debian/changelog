@@ -1,3 +1,71 @@
+netcfg (1.51ubuntu2) lucid; urgency=low
+
+  * Rebuild against libiw30.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 01 Mar 2010 17:47:09 +0000
+
+netcfg (1.51ubuntu1) lucid; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Drop priority of netcfg/get_domain to medium for non-static
+      configurations.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Call /usr/lib/network-manager/ifblacklist_migrate.sh from
+      finish-install if present, so that 'auto dhcp' interfaces are disabled
+      if network-manager is in use. May be preseeded away with
+      netcfg/network-manager.
+    - Bump the DHCP timeout to 30 seconds.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Thu, 12 Nov 2009 03:39:44 -0800
+
+netcfg (1.51) unstable; urgency=low
+
+  [ Luca Favatella ]
+  * /var/run/stab is Linux PCMCIA specific; provide a stub implementation of
+    find_in_stab for non-Linux systems.
+  * Don't build-dep on libiw-dev on kfreebsd-{i386,amd64}.
+  * Add kfreebsd-{i386,amd64} architectures.
+
+  [ Aurelien Jarno ]
+  * Use kernel independent code to determine loopback interfaces.
+  * Simplify detection of up interfaces.
+  * Don't detect interfaces twice or more.
+  * Sort interfaces by name.
+  * Port ethtool-lite to GNU/kFreeBSD, and default to unkwown status if
+    not on GNU/Linux or GNU/kFreeBSD.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Tue, 21 Jul 2009 23:17:11 +0200
+
+netcfg (1.50) unstable; urgency=low
+
+  [ Christian Perrier ]
+  * No longer add ff02::3 to /etc/hosts
+    Thanks to Marco d'Itri for the proposed change
+    Closes: #533384
+
+  [ Luca Favatella ]
+  * If wireless is disabled, don't build and link wireless related stuff.
+  * Disable by default wireless on non-linux architectures.
+  * Inverse the logic about building without wireless support (WIRELESS=0).
+  * Substitute Linux-specific code in get_all_ifs() using getifaddrs().
+
+  [ Colin Watson ]
+  * check_kill_switch is Linux-specific; provide a stub implementation for
+    non-Linux systems.
+
+  [ Otavio Salvador ]
+  * Refactor dhcp.c code to use an argument list instead of an string.
+  * Add support for udhcpc. This was based on Luk Claes but changed to
+    avoid dropping support for dhclient, dhclient3 and pump for now.
+
+  [ Updated translations ]
+    * Hindi (hi.po)
+    * Italian (it.po) by Milo Casagrande
+
+ -- Otavio Salvador <otavio@debian.org>  Sun, 19 Jul 2009 15:02:44 -0300
+
 netcfg (1.49ubuntu1) karmic; urgency=low
 
   * Resynchronise with Debian. Remaining changes:

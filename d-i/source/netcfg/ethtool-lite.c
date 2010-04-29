@@ -18,6 +18,8 @@
 # define UNKNOWN 1
 #endif
 
+#if defined(__linux__)
+
 #ifndef ETHTOOL_GLINK
 # define ETHTOOL_GLINK 0x0000000a
 #endif
@@ -32,21 +34,23 @@ struct ethtool_value
 	u_int32_t data;
 };
 
+#elif defined(__FreeBSD_kernel__)
+
+#include <net/if_media.h>
+
+#endif
+
 #ifdef TEST
 int main(int argc, char** argv)
 #else
 int ethtool_lite (char * iface)
 #endif
 {
-	struct ethtool_value edata;
-	struct ifreq ifr;
 #ifdef TEST
 	char* iface;
 #endif
 	int fd = socket(AF_INET, SOCK_DGRAM, 0);
 
-	memset (&edata, 0, sizeof(struct ethtool_value));
-	
 	if (fd < 0)
 	{
 		di_warning("could not open control socket\n");
@@ -62,6 +66,11 @@ int ethtool_lite (char * iface)
 	iface = argv[1];
 #endif
 	
+#if defined(__linux__)
+	struct ethtool_value edata;
+	struct ifreq ifr;
+
+	memset (&edata, 0, sizeof(struct ethtool_value));
 	edata.cmd = ETHTOOL_GLINK;
 	ifr.ifr_data = (char *)&edata;
 	strncpy (ifr.ifr_name, iface, IFNAMSIZ);
@@ -104,5 +113,29 @@ int ethtool_lite (char * iface)
 	}
 
 	di_warning("MII ioctl failed for %s\n", iface);
+
+#elif defined(__FreeBSD_kernel__)
+	struct ifmediareq ifmr;
+
+	memset(&ifmr, 0, sizeof(ifmr));
+	strncpy(ifmr.ifm_name, iface, sizeof(ifmr.ifm_name));
+
+	if (ioctl(fd, SIOCGIFMEDIA, (caddr_t)&ifmr) < 0) {
+		di_warning("SIOCGIFMEDIA ioctl on %s failed\n", iface);
+		return UNKNOWN;
+	}
+
+	if (ifmr.ifm_status & IFM_AVALID) {
+		if (ifmr.ifm_status & IFM_ACTIVE) {
+			di_info("%s is connected.\n", iface);
+			return CONNECTED;
+		} else {
+			di_info("%s is disconnected.\n", iface);
+			return DISCONNECTED;
+		}
+	}
+
+	di_warning("couldn't determine status for %s\n", iface);
+#endif
 	return UNKNOWN;
 }

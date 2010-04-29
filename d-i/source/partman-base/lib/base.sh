@@ -138,15 +138,21 @@ debconf_select () {
 	fi
 	keys=""
 	descriptions=""
+	case $PARTMAN_SNOOP in
+		?*)
+			echo "$choices" | sed "h; s/.*$TAB//; s/ *\$//g; s/^ /$debconf_select_lead/g; x; s/$TAB.*//; G; s/\\n/$TAB/; s/^$TAB\$//" >> /var/lib/partman/snoop
+			;;
+	esac
+	# Use the hold space carefully here to allow us to make some
+	# substitutions on only the RHS (description).
+	choices="$(echo "$choices" | sed "h; s/.*$TAB//; s/ *\$//g; s/^ /$debconf_select_lead/g; s/,/\\\\,/g; s/^ /\\\\ /; x; s/$TAB.*//; G; s/\\n/$TAB/; s/^$TAB\$//")"
 	IFS="$NL"
 	for x in $choices; do
-		local key plugin option
+		local key plugin
 		restore_ifs
 		key="${x%$TAB*}"
 		keys="${keys:+${keys}, }$key"
-		descriptions="${descriptions:+${descriptions}, }$(
-			echo "${x#*$TAB}" |
-			sed "s/ *\$//g; s/^ /$debconf_select_lead/g; s/,/\\\\,/g; s/^ /\\\\ /")"
+		descriptions="${descriptions:+${descriptions}, }${x#*$TAB}"
 
 		# If the question was asked via ask_user, this allow preseeding
 		# by using the name of the plugin responsible for the answer.
@@ -157,12 +163,6 @@ debconf_select () {
 				default="$key"
 			fi
 		fi
-		option=$(echo "${x#*$TAB}" | sed "s/ *\$//g; s/^ /$debconf_select_lead/g")
-		case $PARTMAN_SNOOP in
-			?*)
-				echo "$key$TAB$option" >> /var/lib/partman/snoop
-				;;
-		esac
 	done
 	# You can preseed questions asked through this function by using
 	# the key (the part before the tab).
@@ -193,6 +193,10 @@ ask_user () {
 		default=""
 	fi
 	choices=$(
+		if [ -e $dir/no_show_choices ]; then
+			printf "dummy__________dummy$TAB\n"
+			exit 0
+		fi
 		local skip_divider=1
 		for plugin in $dir/*; do
 			[ -d $plugin ] || continue
@@ -259,7 +263,11 @@ partition_tree_choices () {
 	local IFS
 	for dev in $DEVICES/*; do
 		[ -d $dev ] || continue
-		printf "%s//\t%s\n" $dev "$(device_name $dev)" # GETTEXT?
+		if [ -e "$dev/partition_tree_cache" ]; then
+			cat "$dev/partition_tree_cache"
+			continue
+		fi
+		printf "%s//\t%s\n" $dev "$(device_name $dev)" >"$dev/partition_tree_cache" # GETTEXT?
 		cd $dev
 
 		open_dialog PARTITIONS
@@ -271,8 +279,9 @@ partition_tree_choices () {
 		while { read num id size type fs path name; [ "$id" ]; }; do
 			part=${dev}/$id
 			[ -f $part/view ] || continue
-			printf "%s//%s\t%s\n" "$dev" "$id" $(cat $part/view)
+			printf "%s//%s\t%s\n" "$dev" "$id" $(cat $part/view) >>partition_tree_cache
 		done
+		cat partition_tree_cache
 		restore_ifs
 	done
 }
@@ -440,6 +449,7 @@ update_partition () {
 	read_line part
 	close_dialog
 	[ "$part" ] || return 0
+	rm -f partition_tree_cache
 	for u in /lib/partman/update.d/*; do
 		[ -x "$u" ] || continue
 		$u $1 $part
@@ -672,7 +682,9 @@ is_multipath_part () {
 
 # TODO: this should not be global
 humandev () {
-    local host bus target part lun idenum targtype scsinum linux wwid
+    local device disk drive host bus target part line controller lun
+    local idenum scsinum targtype linux kfreebsd mapping vglv vg lv wwid
+    local dev discipline frdisk type rtype desc n
     case "$1" in
 	/dev/ide/host*/bus[01]/target[01]/lun0/disc)
 	    host=`echo $1 | sed 's,/dev/ide/host\(.*\)/bus.*/target[01]/lun0/disc,\1,'`
@@ -819,19 +831,19 @@ humandev () {
 	    if [ "$host" = host ] ; then
 	       line=`echo "$line" | sed 's,target\([0-9]*\)/\([a-z]*\)\(.*\),\1 \2 \3,'`
 	       lun=`echo  "$line" | cut -d" " -f1`
-	       disc=`echo "$line" | cut -d" " -f2`
+	       disk=`echo "$line" | cut -d" " -f2`
 	       part=`echo "$line" | cut -d" " -f3`
 	    else
 	       line=`echo "$line" | sed 's,disc\([0-9]*\)/\([a-z]*\)\(.*\),\1 \2 \3,'`
 	       lun=`echo  "$line" | cut -d" " -f1`
 	       controller=$(($lun / 16))
 	       lun=$(($lun % 16))
-	       disc=`echo "$line" | cut -d" " -f2`
+	       disk=`echo "$line" | cut -d" " -f2`
 	       part=`echo "$line" | cut -d" " -f3`
 	    fi
 	    linux=$(mapdevfs $1)
 	    linux=${linux#/dev/}
-	    if [ "$disc" = disc ] ; then
+	    if [ "$disk" = disc ] ; then
 	       db_metaget partman/text/scsi_disk description
 	       printf "$RET" ".CCISS" "-" ${controller} ${lun} ${linux}
 	    else
@@ -895,8 +907,7 @@ humandev () {
 			case "$1" in
 			    /dev/mapper/$frdisk)
 				type=sataraid
-				superset=${device%_*}
-				desc=$(dmraid -s -c -c "$superset")
+				desc=$(dmraid -s -c -c "$device")
 				rtype=$(echo "$desc" | cut -d: -f4)
 				db_metaget partman/text/dmraid_volume description
 				printf "$RET" $device $rtype
@@ -974,6 +985,36 @@ humandev () {
 	    db_metaget partman/text/virtual_partition description
 	    printf "$RET" "$drive" "$part" "$linux"
 	    ;;
+	/dev/ad[0-9]*[sp][0-9]*)
+	    drive=$(echo $1 | sed 's,/dev/ad\([0-9]\+\).*,\1,')
+	    drive=$(($drive + 1))
+	    part=$(echo $1 | sed 's,/dev/ad[0-9]\+[sp]\([0-9]\+\).*,\1,')
+	    kfreebsd=${1#/dev/}
+	    db_metaget partman/text/ata_partition description
+	    printf "$RET" "$drive" "$part" "$kfreebsd"
+	    ;;
+	/dev/ad[0-9]*)
+	    drive=$(echo $1 | sed 's,/dev/ad\([0-9]\+\).*,\1,')
+	    drive=$(($drive + 1))
+	    kfreebsd=${1#/dev/}
+	    db_metaget partman/text/ata_disk description
+	    printf "$RET" "$drive" "$kfreebsd"
+	    ;;
+	/dev/da[0-9]*[sp][0-9]*)
+	    drive=$(echo $1 | sed 's,/dev/da\([0-9]\+\).*,\1,')
+	    drive=$(($drive + 1))
+	    part=$(echo $1 | sed 's,/dev/da[0-9]\+[sp]\([0-9]\+\).*,\1,')
+	    kfreebsd=${1#/dev/}
+	    db_metaget partman/text/scsi_simple_partition description
+	    printf "$RET" "$drive" "$part" "$kfreebsd"
+	    ;;
+	/dev/da[0-9]*)
+	    drive=$(echo $1 | sed 's,/dev/da\([0-9]\+\).*,\1,')
+	    drive=$(($drive + 1))
+	    kfreebsd=${1#/dev/}
+	    db_metaget partman/text/scsi_simple_disk description
+	    printf "$RET" "$drive" "$kfreebsd"
+	    ;;
 	*)
 	    # Check if it's an LVM1 device
 	    vg=`echo "$1" | sed -e 's,/dev/\([^/]\+\).*,\1,'`
@@ -1036,12 +1077,24 @@ enable_swap () {
 }
 
 disable_swap () {
+    local dev=$1
+    local id=$2
+
     [ -f /proc/swaps ] || return 0
-    if [ "$1" ] && [ -d "$1" ]; then
-	local path device dev
-	dev="$1"
+
+    if [ "$dev" ] && [ -d "$dev" ]; then
+	local device
 	cd $dev
-	device=$(cat device)
+	if [ "$id" ] && [ -d "$id" ]; then
+	    open_dialog PARTITION_INFO "$id"
+	    read_line x1 x2 x3 x4 x5 device x7
+	    close_dialog
+	    # Add space to ensure we won't match substrings.
+	    device="$device "
+	else
+	    device=$(cat device)
+	fi
+
 	grep "^$device" /proc/swaps \
 	    | while read path x; do
 		  swapoff $path

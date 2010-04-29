@@ -1,0 +1,9 @@
+#! /bin/sh
+set -e
+
+if grep -q " device-mapper$" /proc/misc; then
+	if type dmraid >/dev/null 2>&1 &&
+	   dmraid -s -c >/dev/null 2>&1; then
+		apt-install dmraid
+	fi
+fi

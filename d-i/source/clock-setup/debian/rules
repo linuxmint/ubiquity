@@ -1,31 +1,20 @@
-#!/usr/bin/make -f
+#! /usr/bin/make -f
+%:
+	dh $@
 
-build:
+ARCH=$(shell dpkg-architecture -qDEB_HOST_ARCH)
 
-clean:
-	dh_testdir
-	dh_testroot
-	dh_clean
+RDATE_DEPENDS =
+ifneq ($(ARCH), s390)
+RDATE_DEPENDS = configured-network, rdate-udeb
+endif
 
-install: build
-	dh_testdir
-	dh_testroot
-	dh_clean -k
+override_dh_install:
+	dh_install
+# On s390 we're not allowed to change the system clock
+ifneq ($(ARCH), s390)
 	dh_install finish-install.d usr/lib
+endif
 
-binary-arch: build install
-	dh_testdir
-	dh_testroot
-	dh_installdebconf
-	dh_installchangelogs
-	dh_compress
-	dh_fixperms
-	dh_installdeb
-	dh_gencontrol
-	dh_md5sums
-	dh_builddeb
-
-binary-indep: build install
-
-binary: binary-indep binary-arch
-.PHONY: build clean binary-indep binary-arch binary install
+override_dh_gencontrol:
+	dh_gencontrol -- -Vrdate:Depends="$(RDATE_DEPENDS)"

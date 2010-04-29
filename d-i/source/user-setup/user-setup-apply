@@ -99,9 +99,9 @@ if ! root_password; then
 	db_set passwd/root-password-crypted ''
 	db_set passwd/root-password ''
 	db_set passwd/root-password-again ''
-	#if [ "$ROOT_PW" ]; then
-	#	setpassword root "$ROOT_PW" "$PRECRYPTED"
-	#fi
+	if [ "$ROOT_PW" ]; then
+		setpassword root "$ROOT_PW" "$PRECRYPTED"
+	fi
 	ROOT_PW=
 else
 	# Just in case, clear any preseeded root password from the database
@@ -152,7 +152,7 @@ if [ "$RET" = true ] && ! is_system_user; then
 			$log $chroot $ROOT mount -t proc proc /proc
 			umountproc=:
 		fi
-		if [ ! -e $ROOT/dev/null ]; then
+		if ! grep -qE '^[^ ]+ /dev' $ROOT/proc/mounts; then
 			mount --bind /dev $ROOT/dev
 			umountdev=:
 		fi
@@ -205,7 +205,6 @@ if [ "$RET" = true ] && ! is_system_user; then
 	db_set passwd/user-password ''
 	db_set passwd/user-password-again ''
 	setpassword "$USER" "$USER_PW" "$USER_PW_CRYPTED" "$ENCRYPT_HOME"
-	setpassword root "$USER_PW" "$USER_PW_CRYPTED"
 	if [ -n "$ENCRYPT_HOME_OPT" ]; then
 		if $umountsys; then
 			$log $chroot $ROOT umount /sys
@@ -246,17 +245,26 @@ if [ "$RET" = true ] && ! is_system_user; then
 
 			if [ -d "$ROOT/etc/gdm" ]; then
 				# Configure GDM autologin
-				if [ -e "$ROOT/etc/gdm/custom.conf" ] && [ "$BACKUP" ]; then
-					mv "$ROOT/etc/gdm/custom.conf" "$ROOT/etc/gdm/custom.conf$BACKUP"
+				GDMCustomFile=$ROOT/etc/gdm/custom.conf
+				if [ -e "$GDMCustomFile" ] && [ "$BACKUP" ]; then
+					cp "$GDMCustomFile" "${GDMCustomFile}$BACKUP"
 				fi
-				cat > $ROOT/etc/gdm/custom.conf <<EOF
-[daemon]
-AutomaticLoginEnable=true
-AutomaticLogin=$USER
-TimedLoginEnable=true
-TimedLogin=$USER
-TimedLoginDelay=10
-EOF
+				AutologinParameters="AutomaticLoginEnable=true\n\
+AutomaticLogin=$USER\n\
+TimedLoginEnable=true\n\
+TimedLogin=$USER\n\
+TimedLoginDelay=10"
+
+				# Prevent from updating if parameters already present (persistent usb key)
+				if ! `grep -qs "AutomaticLogin=$USER" $GDMCustomFile` ; then
+					if [ -e "$GDMCustomFile" ]; then
+						sed -i '/\(Automatic\|Timed\)Login/d' $GDMCustomFile
+					fi
+					if ! `grep -qs '\[daemon\]' $GDMCustomFile` ; then
+						echo '[daemon]' >> $GDMCustomFile
+					fi
+					sed -i "s/\[daemon\]/\[daemon\]\n$AutologinParameters/" $GDMCustomFile
+				fi
 			fi
 	 
 			if $chroot $ROOT [ -f /etc/kde4/kdm/kdmrc ]; then
@@ -309,6 +317,10 @@ EOF
 		# Zero out all encrypted swap partitions.  It is assumed that
 		# passwords are not used beyond this point in the install.
 		# cryptswap0 /dev/sda5 /dev/urandom swap,cipher=aes-cbc-essiv:sha256
+		# Ideally we would set up a new progress bar here, but we're
+		# inside finish-install's and cdebconf doesn't support nested
+		# progress bars.
+		db_progress INFO user-setup/progress/wipe-swap
 		while read name device source options; do
 			if echo "$options" | grep -q "swap"; then
 				if swapoff $device; then

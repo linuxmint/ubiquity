@@ -363,9 +363,14 @@ static int choose_mirror(void) {
 
 		countryarchive=malloc(strlen(country) +
 				      strlen(".archive.ubuntu.com") + 1);
-		for (i = 0; country[i]; ++i)
-			countryarchive[i] = tolower((unsigned char) country[i]);
-		strcpy(countryarchive + i, ".archive.ubuntu.com");
+		if (debconf_get(debconf, "debian-installer/locale") == 0 &&
+		    debconf->value != NULL && strcmp(debconf->value, "C") == 0)
+			strcpy(countryarchive, "archive.ubuntu.com");
+		else {
+			for (i = 0; country[i]; ++i)
+				countryarchive[i] = tolower((unsigned char) country[i]);
+			strcpy(countryarchive + i, ".archive.ubuntu.com");
+		}
 
 		/* Prompt for mirror in selected country. */
 		list=debconf_list(mirrors_in(country));
@@ -375,7 +380,7 @@ static int choose_mirror(void) {
 		    debconf_fget(debconf, mir, "seen") != 0 ||
 		    strcmp(debconf->value, "true") != 0)
 			if (mirror_root(countryarchive))
-			    debconf_set(debconf, mir, countryarchive);
+				debconf_set(debconf, mir, countryarchive);
 		free(list);
 		free(countryarchive);
 

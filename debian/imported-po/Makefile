@@ -9,12 +9,16 @@ update: templates.pot
 		echo "Set GTK_PO to the location of a current GTK+ po/ directory." >&2; \
 		exit 1; \
 	fi
+	if [ -z "$(PANEL_PO)" ]; then \
+		echo "Set PANEL_PO to the location of a current gnome-panel po/ directory." >&2; \
+		exit 1; \
+	fi
 	rm -f *.po
 	for p in $(GTK_PO)/*.po; do \
 		[ -f "$$p" ] || continue; \
 		b="$$(basename "$$p")"; \
 		[ -f "../po/$$b" ] || continue; \
-		msgmerge -q "$$p" templates.pot | \
+		msgmerge -q "$$p" -C "$$PANEL_PO/$$b" templates.pot | \
 		msgattrib --translated --no-fuzzy --no-obsolete -o "$$b" -; \
 	done
 

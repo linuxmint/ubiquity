@@ -47,6 +47,7 @@ fi
 # Fallback in case the file wasn't provided by locales, or the format
 # changed.
 if [ ! -e "$DESTFILE" ] || ! grep -q '^LANG=' $DESTFILE; then
+	mkdir -p "${DESTFILE%/*}"
 	echo "LANG=\"$LOCALE\"" >> $DESTFILE
 	if echo "$LANGLIST" | grep -q ":"; then
 		echo "LANGUAGE=\"$LANGLIST\"" >> $DESTFILE

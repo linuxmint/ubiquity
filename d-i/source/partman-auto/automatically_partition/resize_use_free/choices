@@ -4,6 +4,14 @@
 . /lib/partman/lib/resize.sh
 . /lib/partman/lib/auto-shared.sh
 
+ARCH="$(archdetect)"
+case $ARCH in
+    armel/*)
+	# Dual-booting on ARM is difficult for casual users
+	exit 0
+	;;
+esac
+
 bestfree=0
 bestpart=none
 bestpath=none
@@ -140,7 +148,7 @@ scan_disk () {
 			if [ "$virtual" = yes ]; then
 				get_resize_range
 			else
-				get_ext2_resize_range
+				get_real_resize_range "$oldid" "$fs" || continue
 			fi
 			if [ "$cursize" ] && [ "$minsize" ]; then
 				thisfree="$(expr "$cursize" - "$minsize")"
@@ -160,7 +168,7 @@ scan_disk () {
 			if [ "$virtual" = yes ]; then
 				get_resize_range
 			else
-				get_ntfs_resize_range
+				get_real_resize_range "$oldid" "$fs" || continue
 			fi
 			if [ "$cursize" ] && [ "$minsize" ]; then
 				thisfree="$(expr "$cursize" - "$minsize")"

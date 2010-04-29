@@ -28,6 +28,7 @@ sys.path.insert(0, '/usr/lib/ubiquity')
 
 from ubiquity import misc
 from ubiquity import im_switch
+from ubiquity import osextras
 
 VERSION = '@VERSION@'
 TARGET = '/target'
@@ -60,6 +61,36 @@ def open_terminal():
     # TODO: more careful architecture handling
 
     import debconf
+
+    # Start a new session and start a controlling terminal. Approach loosely
+    # borrowed from util-linux.
+
+    if 'UBIQUITY_CTTY' not in os.environ:
+        os.environ['UBIQUITY_CTTY'] = '1'
+
+        import termios
+
+        try:
+            os.setsid()
+        except OSError:
+            pass
+
+        ttyn = os.ttyname(0)
+        tty = os.open(ttyn, os.O_RDWR | os.O_NONBLOCK)
+        flags = fcntl.fcntl(tty, fcntl.F_GETFL)
+        fcntl.fcntl(tty, fcntl.F_SETFL, flags)
+        # Leave stderr alone in the following; it's already redirected to
+        # our log file.
+        for i in range(tty):
+            if i != 2:
+                os.close(i)
+        for i in range(2):
+            if tty != i:
+                os.dup2(tty, i)
+        if tty >= 3:
+            os.close(tty)
+
+        fcntl.ioctl(0, termios.TIOCSCTTY, 1)
 
     if 'UBIQUITY_BTERM' not in os.environ:
         os.environ['UBIQUITY_BTERM'] = '1'
@@ -128,37 +159,6 @@ def open_terminal():
                 bterm_args.extend(sys.argv)
                 os.execvp('bterm', bterm_args)
 
-    # Start a new session and start a controlling terminal. Approach loosely
-    # borrowed from util-linux.
-
-    if 'UBIQUITY_CTTY' not in os.environ:
-        os.environ['UBIQUITY_CTTY'] = '1'
-
-        import fcntl
-        import termios
-
-        try:
-            os.setsid()
-        except OSError:
-            pass
-
-        ttyn = os.ttyname(0)
-        tty = os.open(ttyn, os.O_RDWR | os.O_NONBLOCK)
-        flags = fcntl.fcntl(tty, fcntl.F_GETFL)
-        fcntl.fcntl(tty, fcntl.F_SETFL, flags)
-        # Leave stderr alone in the following; it's already redirected to
-        # our log file.
-        for i in range(tty):
-            if i != 2:
-                os.close(i)
-        for i in range(2):
-            if tty != i:
-                os.dup2(tty, i)
-        if tty >= 3:
-            os.close(tty)
-
-        fcntl.ioctl(0, termios.TIOCSCTTY, 1)
-
 def start_debconf():
     """debconf_ui needs to run within a debconf frontend."""
 
@@ -166,10 +166,7 @@ def start_debconf():
         # debconf already started, so just clean up the configuration file
         # if any (debconf has already read it by now).
         if 'DEBCONF_SYSTEMRC' in os.environ:
-            try:
-                os.unlink(os.environ['DEBCONF_SYSTEMRC'])
-            except OSError:
-                pass
+            osextras.unlink_force(os.environ['DEBCONF_SYSTEMRC'])
         return
 
     print >>sys.stderr, "debconf_ui selected; starting debconf frontend"
@@ -205,13 +202,13 @@ def start_debconf():
 
 def install(frontend=None, query=False):
     '''install(frontend=None) -> none
-    
+
     Get the type of frontend to use and load the module for that.
-    If frontend is None, defaults to the first of mythbuntu_ui, 
+    If frontend is None, defaults to the first of
     gtk_ui, kde_ui, and debconf_ui that exists.
     '''
     if frontend is None:
-        frontends = ['mythbuntu_ui', 'gtk_ui', 'kde_ui', 'debconf_ui']
+        frontends = ['gtk_ui', 'kde_ui', 'debconf_ui']
     else:
         frontends = [frontend]
     chosen = None
@@ -243,20 +240,76 @@ def install(frontend=None, query=False):
         open_terminal()
         start_debconf()
     ret = wizard.run()
+    wizard.stop_debconf()
+    if ret != 10 and 'UBIQUITY_GREETER' in os.environ:
+        import traceback
+        try:
+            apply_keyboard()
+        except:
+            traceback.print_exc()
     copy_debconf()
     unmount_target()
     if ret == 10:
         wizard.do_reboot()
+
+@misc.raise_privileges
+def apply_keyboard():
+    '''Set the keyboard layout to the default layout for the language selected.
+    If a user wants a different layout, they can be reasonably expected to
+    change it in System -> Preferences -> Keyboard.'''
+    
+    # Mostly taken from ubi-console-setup.
+    
+    # We need to get rid of /etc/default/console-setup, or console-setup
+    # will think it's already configured and behave differently. Try to
+    # save the old file for interest's sake, but it's not a big deal if
+    # we can't.
+    osextras.unlink_force('/etc/default/console-setup.pre-ubiquity')
+    try:
+        os.rename('/etc/default/console-setup',
+                  '/etc/default/console-setup.pre-ubiquity')
+    except OSError:
+        osextras.unlink_force('/etc/default/console-setup')
+
+    import debconf
+    dccomm = subprocess.Popen(['debconf-communicate',
+                               '-fnoninteractive', 'ubiquity'],
+                              stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE, close_fds=True)
+    try:
+        dc = debconf.Debconf(read=dccomm.stdout, write=dccomm.stdin)
+        try:
+            # Make sure debconf doesn't do anything with crazy "preseeded"
+            # answers to these questions. If you want to preseed these, use the
+            # *code variants.
+            dc.fset('console-setup/layout', 'seen', 'false')
+            dc.fset('console-setup/variant', 'seen', 'false')
+            dc.fset('console-setup/model', 'seen', 'false')
+            dc.fset('console-setup/codeset', 'seen', 'false')
+        except debconf.DebconfError:
+            return
+    finally:
+        dccomm.stdin.close()
+        dccomm.wait()
+    
+    # Accept all the defaults, given the preseeded language.
+    child_env = dict(os.environ)
+    child_env['OVERRIDE_ALLOW_PRESEEDING'] = '1'
+    subprocess.call(['dpkg-reconfigure', '-fnoninteractive', 'console-setup'],
+                    env=child_env)
+    misc.execute('setupcon', '--save-only')
+    # Reprocess /lib/udev/rules.d/64-xorg-xkb.rules
+    misc.execute('udevadm', 'trigger', '--subsystem-match=input',
+                 '--action=change')
+    misc.execute('udevadm', 'settle')
 
 def copy_debconf():
     """Copy a few important questions into the installed system."""
     if not TARGET:
         return
     targetdb = TARGET + '/var/cache/debconf/config.dat'
-    # xserver-xorg is temporary, pending a rework of bullet-proof-x; but
-    # note that xserver-xorg/config/inputdevice/keyboard/* is still needed
-    for q in ('^console-setup/','^xserver-xorg/'):
-        misc.execute('debconf-copydb', 'configdb', 'targetdb', '-p', q,
+    for q in ('^console-setup/', '^oem-config/'):
+        misc.execute_root('debconf-copydb', 'configdb', 'targetdb', '-p', q,
                      '--config=Name:targetdb', '--config=Driver:File',
                      '--config=Filename:%s' % targetdb)
 
@@ -273,7 +326,7 @@ def unmount_target():
     paths.sort()
     paths.reverse()
     for path in paths:
-        misc.execute('umount', path)
+        misc.execute_root('umount', path)
 
 def prepend_path(directory):
     if 'PATH' in os.environ and os.environ['PATH'] != '':
@@ -283,10 +336,7 @@ def prepend_path(directory):
 
 def release_lock():
     global lock
-    try:
-        os.unlink(LOCKFILE)
-    except OSError:
-        pass
+    osextras.unlink_force(LOCKFILE)
     if lock is not None:
         lock.close()
         lock = None
@@ -354,6 +404,9 @@ def main(oem_config):
                       'better suit a minimal environment.')
     parser.add_option('-q', '--query', dest='query', action='store_true',
                       help='find out which frontend will be used by default')
+    parser.add_option('-g', '--greeter', dest='greeter', action='store_true',
+                      help='allow the user to leave the installer and enter ' \
+                      'a live desktop (for the initial boot).')
     (options, args) = parser.parse_args()
 
     if options.debug:
@@ -375,6 +428,9 @@ def main(oem_config):
     if options.migration_assistant:
         os.environ['UBIQUITY_MIGRATION_ASSISTANT'] = '1'
 
+    if options.greeter:
+        os.environ['UBIQUITY_GREETER'] = '1'
+
     if options.only:
         os.environ['UBIQUITY_ONLY'] = '1'
 
@@ -385,8 +441,12 @@ def main(oem_config):
 
     acquire_lock()
 
-    if not os.path.exists('/var/log/installer'):
+    try:
         os.makedirs('/var/log/installer')
+    except OSError, e:
+        # be happy if someone already created the path
+        if e.errno != errno.EEXIST:
+            raise
     syslog.openlog('ubiquity', syslog.LOG_NOWAIT | syslog.LOG_PID)
 
     if oem_config:
@@ -401,7 +461,7 @@ def main(oem_config):
         if 'UBIQUITY_DEBUG_CORE' not in os.environ:
             os.environ['UBIQUITY_DEBUG_CORE'] = '1'
         if 'DEBCONF_DEBUG' not in os.environ:
-            os.environ['DEBCONF_DEBUG'] = 'developer|filter'
+            os.environ['DEBCONF_DEBUG'] = 'developer'
     # The frontend should take care of displaying a helpful message if
     # we are being run without root privileges.
     if not (options.query and args and args[0] == 'noninteractive'):
@@ -410,7 +470,8 @@ def main(oem_config):
                 logfile = '/var/log/oem-config.log'
             else:
                 logfile = '/var/log/installer/debug'
-            log = os.open(logfile, os.O_WRONLY | os.O_CREAT | os.O_APPEND)
+            log = os.open(logfile, os.O_WRONLY | os.O_CREAT | os.O_APPEND,
+                          0644)
             os.dup2(log, 2)
             os.close(log)
             sys.stderr = os.fdopen(2, 'a', 1)
@@ -428,12 +489,18 @@ def main(oem_config):
         if options.automatic:
             os.environ['UBIQUITY_DEBUG_CORE'] = '1'
 
+    # Initialise cdebconf if necessary, to work around
+    # http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=451130.
+    if options.cdebconf:
+        for package in ('ubiquity', 'console-setup'):
+            subprocess.call(['debconf-loadtemplate', package,
+                             '/var/lib/dpkg/info/%s.templates' % package])
+
     # Clean up old state.
-    for name in ('apt-installed', 'apt-install-direct', 'remove-kernels'):
-        path = os.path.join('/var/lib/ubiquity', name)
-        if os.path.exists(path):
-            os.unlink(path)
+    for name in ('apt-installed', 'apt-install-direct', 'remove-kernels', 'apt-removed'):
+        osextras.unlink_force(os.path.join('/var/lib/ubiquity', name))
     shutil.rmtree("/var/lib/partman", ignore_errors=True)
+    misc.remove_os_prober_cache()
 
     if oem_config and not options.query:
         disable_autologin()

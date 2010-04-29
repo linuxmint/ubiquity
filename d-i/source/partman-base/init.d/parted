@@ -3,7 +3,6 @@
 set -e
 
 . /lib/partman/lib/base.sh
-. /usr/share/debconf/confmodule
 
 ORIG_IFS="$IFS"
 
@@ -47,7 +46,8 @@ part_of_multipath() {
 
 if [ ! -f /var/run/parted_server.pid ]; then
 	mkdir -p /var/run
-	parted_server
+	db_get partman/alignment
+	PARTMAN_ALIGNMENT="$RET" parted_server
 	RET=$?
 	if [ $RET != 0 ]; then
 		# TODO: How do we signal we couldn't start parted_server properly?

@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = desktop pixmaps po
+SUBDIRS = desktop pixmaps po ubiquity
 
 ACLOCAL_AMFLAGS = -I m4
 

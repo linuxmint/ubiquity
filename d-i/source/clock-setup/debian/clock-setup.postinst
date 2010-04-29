@@ -7,13 +7,19 @@ log() {
 	logger -t clock-setup "$@"
 }
 
+# On s390 we're not allowed to change the system clock; just run tzsetup
+case "$(archdetect)" in
+    s390/*)
+	tzsetup
+	exit 0 ;;
+esac
+
 db_input medium clock-setup/ntp || true
 if ! db_go; then
 	exit 10 # back to main menu
 fi
 db_get clock-setup/ntp
 if [ "$RET" = true ]; then
-	db_set clock-setup/ntp false # until we know that it worked
 	db_get netcfg/dhcp_ntp_servers
 	if [ -n "$RET" ]; then
 		# If DHCP provides multiple servers, ignore all but the first
@@ -26,6 +32,13 @@ if [ "$RET" = true ]; then
 	fi
 	db_get clock-setup/ntp-server
 	server="$RET"
+
+	# Workaround for rdate failing if current date is before
+	# the epoch (1-1-1970); see #502336
+	case "$(archdetect)" in
+	    kfreebsd*) : ;;
+	    *) log-output -t clock-setup set-date-epoch ;;
+	esac
 
 	db_capb progresscancel
 	db_progress START 0 30 clock-setup/progress/title
@@ -51,8 +64,8 @@ if [ "$RET" = true ]; then
 			    'rdate: adjust'*)
 				log "$line"
 				# success
-				db_set clock-setup/ntp true <&4
 				db_progress set 30 <&4 || true
+				db_set clock-setup/system-time-changed true <&4
 				;;
 			    *)
 				log "$line"

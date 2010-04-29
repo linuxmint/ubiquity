@@ -39,9 +39,9 @@ case "$1" in
         # keyboard-setup isn't a daemon
         ;;
     start|force-reload|restart|reload)
-	# If usplash is running, then the console will be in raw mode and
+	# If plymouth is running, then the console may be in raw mode and
 	# loadkeys will do confusing things to the keymap, so don't try.
-	if ! pidof usplash >/dev/null; then
+	if ! type plymouth >/dev/null || ! plymouth --ping; then
 	    log_action_begin_msg "Setting preliminary keymap"
 	    if setupcon -k --force; then
 		log_action_end_msg 0

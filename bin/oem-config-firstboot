@@ -23,7 +23,7 @@ for q in passwd/user-fullname passwd/username; do
 done | debconf-communicate oem-config >/dev/null
 # Remove the oem-config-prepare menu item.
 rm -f /usr/share/applications/oem-config-prepare-gtk.desktop \
-      /usr/share/applications/kde/oem-config-prepare-kde.desktop
+      /usr/share/applications/kde4/oem-config-prepare-kde.desktop
 # Adjust fontconfig configuration, if possible.
 if type fontconfig-voodoo >/dev/null 2>&1; then
 	RET="$(echo GET debian-installer/locale | debconf-communicate)"
@@ -31,6 +31,12 @@ if type fontconfig-voodoo >/dev/null 2>&1; then
 		LC_ALL="${RET#* }" fontconfig-voodoo --auto --force --quiet \
 			|| true
 	fi
+fi
+# Run a command just before starting oem-config.
+RET="$(echo GET oem-config/early_command | debconf-communicate)" || true
+if [ "${RET%% *}" = 0 ]; then
+	command="${RET#* }"
+	log-output sh -c "$command" || true
 fi
 
 # TODO: will this work for X-based frontends when X isn't up yet?
@@ -48,21 +54,17 @@ fi
 for try in $(seq 1 $TRY); do
 	CODE=0
 	if [ "$FRONTEND" = debconf_ui ]; then
-		LANG=en_US.UTF-8 \
-		/usr/sbin/oem-config $DEBUG --only 2>>/var/log/oem-config.log \
+		plymouth quit || true
+		LANG=en_US.UTF-8 FRONTEND="$FRONTEND" \
+		/usr/sbin/oem-config-wrapper $DEBUG --only \
+			2>>/var/log/oem-config.log \
 			|| CODE=$?
 	else
+		FRONTEND="$FRONTEND" \
 		/usr/bin/ubiquity-dm vt7 :0 root \
-			/usr/sbin/oem-config $DEBUG --only || CODE=$?
+			/usr/sbin/oem-config-wrapper $DEBUG --only || CODE=$?
 	fi
 	if [ "$CODE" -eq 0 ]; then
-		# Don't run again.
-		rm -f /var/lib/oem-config/run
-		update-rc.d -f oem-config remove >>/var/log/oem-config.log 2>&1
-		# Remove the temporary OEM configuration user, if possible.
-		if getent passwd oem >/dev/null; then
-			deluser --quiet --remove-home oem || true
-		fi
 		exit 0
 	elif [ "$CODE" -eq 10 ]; then
 		cat <<EOF
@@ -110,7 +112,10 @@ EOF
 
 	# Don't run again.
 	rm -f /var/lib/oem-config/run
-	update-rc.d -f oem-config remove >>/var/log/oem-config.log 2>&1
+	RET="$(echo GET oem-config/remove | debconf-communicate)"
+	if [ "${RET#* }" = true ]; then
+		apt-get -y purge ubiquity >>/var/log/oem-config.log 2>&1
+	fi
 
 	reboot
 fi

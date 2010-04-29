@@ -13,7 +13,9 @@
 
 #define DEVNAMES	"/etc/network/devnames"
 #define DEVHOTPLUG	"/etc/network/devhotplug"
+#ifdef __linux__
 #define STAB		"/var/run/stab"
+#endif
 
 #define _GNU_SOURCE
 
@@ -38,8 +40,7 @@
 "fe00::0 ip6-localnet\n" \
 "ff00::0 ip6-mcastprefix\n" \
 "ff02::1 ip6-allnodes\n" \
-"ff02::2 ip6-allrouters\n" \
-"ff02::3 ip6-allhosts\n"
+"ff02::2 ip6-allrouters\n"
 
 typedef enum { NOT_ASKED = 30, GO_BACK } response_t;
 typedef enum { DHCP, STATIC, DUNNO } method_t;

@@ -26,6 +26,11 @@ import subprocess
 from ubiquity import osextras
 from ubiquity import misc
 
+# I think it's clearer to keep our 'set' method, and it doesn't cause a
+# builtin-shadowing problem in practice unless you use 'from
+# ubiquity.gconftool import set' (so don't do that).
+__pychecker__ = 'no-shadowbuiltin'
+
 _cached_gconftool_exists = None
 def _gconftool_exists():
     global _cached_gconftool_exists
@@ -90,3 +95,34 @@ def unset(key):
 
     subprocess.call(['gconftool-2', '--unset', key],
                     preexec_fn=misc.drop_all_privileges)
+
+def _dir_exists(key):
+    if not _gconftool_exists():
+        return False
+
+    subp = subprocess.Popen(['gconftool-2', '--config-source', _gconf_dir(),
+                             '--dir-exists=%s' % key],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            preexec_fn=misc.drop_all_privileges)
+    subp.communicate()
+    if subp.returncode != 0:
+        return False
+    else:
+        return True
+
+def dump(key, f):
+    '''Dump the contents of a gconf tree to a file.'''
+    # This is fairly specific to the network configuration copying.  If we ever
+    # need to do something with the data in Python or need to write the file as
+    # root, this function should be modified.
+
+    if not _dir_exists(key):
+        return False
+    with open(f, 'w') as fp:
+        subp = subprocess.Popen(['gconftool-2', '--config-source', _gconf_dir(),
+                                 '--dump', key],
+                                stdout=fp, stderr=subprocess.PIPE,
+                                preexec_fn=misc.drop_all_privileges)
+        subp.communicate()
+    return True
+

@@ -5,16 +5,18 @@
 confirm_changes () {
 	local dev part partitions num id size type fs path name filesystem
 	local x template partdesc partitems items formatted_previously
-	local device dmtype
+	local device dmtype backupdev overwrite fulltemplate
 	template="$1"
 
 	# Compute the changes we are going to do
 	partitems=''
 	items=''
 	formatted_previously=no
+	overwrite=no
 	for dev in $DEVICES/*; do
 		[ -d "$dev" ] || continue
 		cd $dev
+		backupdev="/var/lib/partman/backup/${dev#$DEVICES/}"
 
 		open_dialog IS_CHANGED
 		read_line x
@@ -31,6 +33,19 @@ confirm_changes () {
 			partitions="$partitions $id,$num"
 		done
 		close_dialog
+
+		# Check for deleted partitions that had a filesystem
+		for part in "$backupdev"/*; do
+			[ -d "$part" ] || continue
+			case $partitions in
+			    *" ${part#$backupdev/}",*)
+				continue ;;
+			esac
+			if [ -e "$part/detected_filesystem" ] && \
+			   [ "$(cat "$part/detected_filesystem")" != linux-swap ]; then
+				overwrite=yes
+			fi
+		done
 
 		for part in $partitions; do
 			id=${part%,*}
@@ -50,6 +65,10 @@ confirm_changes () {
 				formatted_previously=yes
 				continue
 			}
+			if [ -f "$backupdev/$id/detected_filesystem" ] && \
+			   [ "$(cat "$backupdev/$id/detected_filesystem")" != linux-swap ]; then
+				overwrite=yes
+			fi
 			filesystem=$(cat $id/visual_filesystem)
 
 			partdesc=""
@@ -97,17 +116,22 @@ $partitems"
 			x="$partitems
 $items"
 		fi
-		maybe_escape "$x" db_subst $template/confirm ITEMS
+		if [ "$overwrite" = yes ]; then
+			fulltemplate="$template/confirm"
+		else
+			fulltemplate="$template/confirm_nooverwrite"
+		fi
+		maybe_escape "$x" db_subst $fulltemplate ITEMS
 		db_capb align
-		db_input critical $template/confirm
+		db_input critical $fulltemplate
 		db_go || true
 		db_capb backup align
-		db_get $template/confirm
+		db_get $fulltemplate
 		if [ "$RET" = false ]; then
-			db_reset $template/confirm
+			db_reset $fulltemplate
 			return 1
 		else
-			db_reset $template/confirm
+			db_reset $fulltemplate
 			return 0
 		fi
 	else

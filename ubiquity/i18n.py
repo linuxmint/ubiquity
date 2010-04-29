@@ -23,7 +23,6 @@ import codecs
 import os
 import locale
 import sys
-from ubiquity.debconfcommunicator import DebconfCommunicator
 from ubiquity import misc, im_switch
 
 _supported_locales = None
@@ -42,15 +41,10 @@ def get_supported_locales():
 
 
 # if 'just_country' is True, only the country is changing
-def reset_locale(just_country=False):
-    db = DebconfCommunicator('ubiquity', cloexec=True)
-    di_locale = None
-    try:
-        di_locale = db.get('debian-installer/locale')
-        if di_locale not in get_supported_locales():
-            di_locale = db.get('debian-installer/fallbacklocale')
-    finally:
-        db.shutdown()
+def reset_locale(frontend, just_country=False):
+    di_locale = frontend.db.get('debian-installer/locale')
+    if di_locale not in get_supported_locales():
+        di_locale = frontend.db.get('debian-installer/fallbacklocale')
     if not di_locale:
         # TODO cjwatson 2006-07-17: maybe fetch
         # languagechooser/language-name and set a language based on
@@ -72,7 +66,7 @@ def reset_locale(just_country=False):
 
 _strip_context_re = None
 
-def strip_context(question, string):
+def strip_context(unused_question, string):
     # po-debconf context
     global _strip_context_re
     if _strip_context_re is None:
@@ -111,15 +105,14 @@ def get_translations(languages=None, core_names=[], extra_prefixes=[]):
 
         _translations = {}
         devnull = open('/dev/null', 'w')
-        # necessary?
-        def subprocess_setup():
-            misc.regain_privileges()
         db = subprocess.Popen(
             ['debconf-copydb', 'templatedb', 'pipe',
              '--config=Name:pipe', '--config=Driver:Pipe',
              '--config=InFd:none',
              '--pattern=^(%s)' % prefixes],
-            stdout=subprocess.PIPE, stderr=devnull, preexec_fn=subprocess_setup)
+            stdout=subprocess.PIPE, stderr=devnull,
+            # necessary?
+            preexec_fn=misc.regain_privileges)
         question = None
         descriptions = {}
         fieldsplitter = re.compile(r':\s*')
@@ -167,7 +160,8 @@ def get_translations(languages=None, core_names=[], extra_prefixes=[]):
                     # TODO cjwatson 2006-09-04: a bit of a hack to get the
                     # description and extended description separately ...
                     if question in ('grub-installer/bootdev',
-                                    'partman-newworld/no_newworld'):
+                                    'partman-newworld/no_newworld',
+                                    'ubiquity/text/error_updating_installer'):
                         descriptions["extended:%s" % lang] = \
                             value.replace('\\n', '\n')
 
@@ -259,5 +253,98 @@ def ascii_transliterate(exc):
         return u'', exc.start + 1
 
 codecs.register_error('ascii_transliterate', ascii_transliterate)
+
+
+# Returns a tuple of (current language, sorted choices, display map).
+def get_languages(current_language_index=-1, only_installable=False):
+    import gzip
+    import PyICU
+
+    current_language = "English"
+
+    if only_installable:
+        from apt.cache import Cache
+        cache = Cache()
+
+    languagelist = gzip.open('/usr/lib/ubiquity/localechooser/languagelist.data.gz')
+    language_display_map = {}
+    i = 0
+    for line in languagelist:
+        line = unicode(line, 'utf-8')
+        if line == '' or line == '\n':
+            continue
+        code, name, trans = line.strip(u'\n').split(u':')[1:]
+        if code in ('dz', 'km'):
+            i += 1
+            continue
+
+        if only_installable and code != 'C':
+            pkg_name = 'language-pack-%s' % code
+            #special case these
+            if pkg_name.endswith('_CN'):
+                pkg_name = 'language-pack-zh-hans'
+            elif pkg_name.endswith('_TW'):
+                pkg_name = 'language-pack-zh-hant'
+            elif pkg_name.endswith('_NO'):
+                pkg_name = pkg_name.split('_NO')[0]
+            elif pkg_name.endswith('_BR'):
+                pkg_name = pkg_name.split('_BR')[0]
+            try:
+                pkg = cache[pkg_name]
+                if not (pkg.installed or pkg.candidate):
+                    i += 1
+                    continue
+            except KeyError:
+                i += 1
+                continue
+
+        language_display_map[trans] = (name, code)
+        if i == current_language_index:
+            current_language = trans
+        i += 1
+    languagelist.close()
+
+    if only_installable:
+        del cache
+
+    try:
+        # Note that we always collate with the 'C' locale.  This is far
+        # from ideal.  But proper collation always requires a specific
+        # language for its collation rules (languages frequently have
+        # custom sorting).  This at least gives us common sorting rules,
+        # like stripping accents.
+        collator = PyICU.Collator.createInstance(PyICU.Locale('C'))
+    except:
+        collator = None
+
+    def compare_choice(x):
+        if language_display_map[x][1] == 'C':
+            return None # place C first
+        if collator:
+            try:
+                return collator.getCollationKey(x).getByteArray()
+            except:
+                pass
+        # Else sort by unicode code point, which isn't ideal either,
+        # but also has the virtue of sorting like-glyphs together
+        return x
+
+    sorted_choices = sorted(language_display_map, key=compare_choice)
+
+    return current_language, sorted_choices, language_display_map
+
+def default_locales():
+    languagelist = open('/usr/lib/ubiquity/localechooser/languagelist')
+    defaults = {}
+    for line in languagelist:
+        line = unicode(line, 'utf-8')
+        if line == '' or line == '\n':
+            continue
+        bits = line.strip(u'\n').split(u';')
+        code = bits[0]
+        locale = bits[4]
+        defaults[code] = locale
+    languagelist.close()
+    return defaults
 
 # vim:ai:et:sts=4:tw=80:sw=4:

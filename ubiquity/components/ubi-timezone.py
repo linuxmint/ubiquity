@@ -38,6 +38,7 @@ class PageGtk(PluginUI):
         try:
             import gtk
             builder = gtk.Builder()
+            self.controller.add_builder(builder)
             builder.add_from_file('/usr/share/ubiquity/gtk/stepLocation.ui')
             builder.connect_signals(self)
             self.page = builder.get_object('stepLocation')
@@ -50,6 +51,14 @@ class PageGtk(PluginUI):
             self.page = None
         self.plugin_widgets = self.page
 
+    def plugin_translate(self, lang):
+        c = self.controller
+        if c.get_string('ubiquity/imported/time-format', lang) == '12-hour':
+            fmt = c.get_string('ubiquity/imported/12-hour', lang)
+        else:
+            fmt = c.get_string('ubiquity/imported/24-hour', lang)
+        self.tzmap.set_time_format(fmt)
+
     def set_timezone(self, timezone):
         self.fill_timezone_boxes()
         self.select_city(None, timezone)
@@ -59,10 +68,9 @@ class PageGtk(PluginUI):
         m = self.city_combo.get_model()
         return m[i][1]
 
+    @only_this_page
     def fill_timezone_boxes(self):
         m = self.region_combo.get_model()
-        if m.get_iter_first():
-            return
         tz = self.controller.dbfilter
 
         # Regions are a translated shortlist of regions, followed by full list
@@ -77,15 +85,18 @@ class PageGtk(PluginUI):
         for pair in region_pairs:
             m.append(pair)
 
+    @only_this_page
     def select_country(self, country):
         def country_is_in_region(country, region):
             if not region: return False
             return country in self.controller.dbfilter.get_countries_for_region(region)
 
         m = self.region_combo.get_model()
-        iterator = self.region_combo.get_active()
-        got_country = m[iterator][1] == country or \
-                      country_is_in_region(country, m[iterator][2])
+        iterator = self.region_combo.get_active_iter()
+        got_country = False
+        if iterator:
+            got_country = m[iterator][1] == country or \
+                          country_is_in_region(country, m[iterator][2])
         if not got_country:
             iterator = m.get_iter_first()
             while iterator:
@@ -96,7 +107,7 @@ class PageGtk(PluginUI):
                     break
                 iterator = m.iter_next(iterator)
 
-    def select_city(self, widget, city):
+    def select_city(self, unused_widget, city):
         loc = self.tzdb.get_loc(city)
         if not loc:
             return
@@ -125,23 +136,83 @@ class PageGtk(PluginUI):
         def is_separator(m, i):
             return m[i][0] is None
 
+        self.timeout_id = 0
+
+        # Don't hit on_entry_changed for every key press.
+        def queue_entry_changed(e, widget):
+            self.controller.allow_go_forward(False)
+            if self.timeout_id:
+                gobject.source_remove(self.timeout_id)
+            self.timeout_id = gobject.timeout_add(300, on_entry_changed, e, widget)
+
+        def on_entry_changed(e, widget):
+            text = e.get_text().lower()
+            if not text:
+                self.controller.allow_go_forward(False)
+                return
+            m = widget.get_model()
+            iterator = m.get_iter_first()
+            while iterator:
+                country = m.get_value(iterator,0)
+                if country is not None:
+                    country = country.lower()
+                    if text == country or country.find('(%s)' % text) != -1:
+                        widget.set_active_iter(iterator)
+                        self.controller.allow_go_forward(True)
+                        return
+                iterator = m.iter_next(iterator)
+            self.controller.allow_go_forward(False)
+
         renderer = gtk.CellRendererText()
         self.region_combo.pack_start(renderer, True)
-        self.region_combo.add_attribute(renderer, 'text', 0)
+        self.region_combo.set_text_column(0)
         list_store = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
         self.region_combo.set_model(list_store)
         self.region_combo.set_row_separator_func(is_separator)
 
+        completion = gtk.EntryCompletion()
+        entry = self.region_combo.child
+        entry.connect('changed', queue_entry_changed, self.region_combo)
+        entry.set_completion(completion)
+        completion.set_model(list_store)
+        completion.set_text_column(0)
+        completion.set_inline_completion(True)
+        completion.set_inline_selection(True)
+
         renderer = gtk.CellRendererText()
         self.city_combo.pack_start(renderer, True)
-        self.city_combo.add_attribute(renderer, 'text', 0)
+        self.city_combo.set_text_column(0)
         city_store = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
         self.city_combo.set_model(city_store)
 
+        completion = gtk.EntryCompletion()
+        entry = self.city_combo.child
+        entry.set_completion(completion)
+        entry.connect('changed', queue_entry_changed, self.city_combo)
+        completion.set_model(city_store)
+        completion.set_text_column(0)
+        completion.set_inline_completion(True)
+        completion.set_inline_selection(True)
+
+        def match_func(completion, key, iter):
+            m = completion.get_model()
+            text = m.get_value(iter, 0)
+            if not text:
+                return False
+            text = text.lower()
+            key = key.lower()
+            if text.startswith(key) or text.find('(' + key) != -1:
+                return True
+            else:
+                return False
+
+        completion.set_match_func(match_func)
+
+    @only_this_page
     def on_region_combo_changed(self, *args):
         i = self.region_combo.get_active()
         m = self.region_combo.get_model()
-        if i is None:
+        if i is None or i < 0:
             return
         if m[i][1]:
             countries = [m[i][1]]
@@ -182,21 +253,22 @@ class PageKde(PluginUI):
         self.controller = controller
         try:
             from PyQt4 import uic
-            from PyQt4.QtGui import QVBoxLayout
-            from PyQt4.QtCore import SIGNAL
             from ubiquity.frontend.kde_components.Timezone import TimezoneMap
+
             self.page = uic.loadUi('/usr/share/ubiquity/qt/stepLocation.ui')
             self.tzmap = TimezoneMap(self.page.map_frame)
             self.page.map_frame.layout().addWidget(self.tzmap)
-            self.SIGNAL = SIGNAL
-            self.tzmap.connect(self.tzmap, self.SIGNAL("zoneChanged"), self.mapZoneChanged)
+
+            self.tzmap.zoneChanged.connect(self.mapZoneChanged)
             self.page.timezone_zone_combo.currentIndexChanged[int].connect(self.regionChanged)
             self.page.timezone_city_combo.currentIndexChanged[int].connect(self.cityChanged)
         except Exception, e:
             self.debug('Could not create timezone page: %s', e)
             self.page = None
+
         self.plugin_widgets = self.page
 
+    @only_this_page
     def refresh_timezones(self):
         lang = os.environ['LANG'].split('_', 1)[0]
         shortlist = self.controller.dbfilter.build_shortlist_region_pairs(lang)
@@ -209,6 +281,7 @@ class PageKde(PluginUI):
         for pair in longlist:
             self.page.timezone_zone_combo.addItem(pair[0], pair[2])
 
+    @only_this_page
     def populateCities(self, regionIndex):
         self.page.timezone_city_combo.clear()
 
@@ -229,13 +302,16 @@ class PageKde(PluginUI):
         return len(countries) == 1 and self.controller.dbfilter.get_default_for_region(countries[0])
 
     # called when the region(zone) combo changes
+    @only_this_page
     def regionChanged(self, regionIndex):
         if self.controller.dbfilter is None:
             return
 
-        self.page.timezone_city_combo.currentIndexChanged[int].disconnect(self.cityChanged)
+        self.page.timezone_city_combo.blockSignals(True)
+        #self.page.timezone_city_combo.currentIndexChanged[int].disconnect(self.cityChanged)
         default = self.populateCities(regionIndex)
-        self.page.timezone_city_combo.currentIndexChanged[int].connect(self.cityChanged)
+        self.page.timezone_city_combo.blockSignals(False)
+        #self.page.timezone_city_combo.currentIndexChanged[int].connect(self.cityChanged)
 
         if default:
             self.tzmap.set_timezone(default)
@@ -245,13 +321,14 @@ class PageKde(PluginUI):
     # called when the city combo changes
     def cityChanged(self, cityindex):
         zone = str(self.page.timezone_city_combo.itemData(cityindex).toPyObject())
-        self.tzmap.disconnect(self.tzmap, self.SIGNAL("zoneChanged"), self.mapZoneChanged)
+        self.tzmap.zoneChanged.disconnect(self.mapZoneChanged)
         self.tzmap.set_timezone(zone)
-        self.tzmap.connect(self.tzmap, self.SIGNAL("zoneChanged"), self.mapZoneChanged)
+        self.tzmap.zoneChanged.connect(self.mapZoneChanged)
 
+    @only_this_page
     def mapZoneChanged(self, loc, zone):
-        self.page.timezone_zone_combo.currentIndexChanged[int].disconnect(self.regionChanged)
-        self.page.timezone_city_combo.currentIndexChanged[int].disconnect(self.cityChanged)
+        self.page.timezone_zone_combo.blockSignals(True)
+        self.page.timezone_city_combo.blockSignals(True)
 
         for i in range(self.page.timezone_zone_combo.count()):
             code = str(self.page.timezone_zone_combo.itemData(i).toPyObject())
@@ -270,8 +347,8 @@ class PageKde(PluginUI):
                 self.cityChanged(i)
                 break
 
-        self.page.timezone_zone_combo.currentIndexChanged[int].connect(self.regionChanged)
-        self.page.timezone_city_combo.currentIndexChanged[int].connect(self.cityChanged)
+        self.page.timezone_zone_combo.blockSignals(False)
+        self.page.timezone_city_combo.blockSignals(False)
 
     def set_timezone (self, timezone):
         self.refresh_timezones()
@@ -301,7 +378,7 @@ class Page(Plugin):
             # In unfiltered mode, localechooser is responsible for selecting
             # the country, so there's no need to repeat the job here.
             env['TZSETUP_NO_LOCALECHOOSER'] = '1'
-            return ([clock_script], ['PROGRESS'], env)
+            return ([clock_script], ['CAPB', 'PROGRESS'], env)
 
         self.timezones = []
         self.regions = {}
@@ -323,11 +400,18 @@ class Page(Plugin):
             except debconf.DebconfError:
                 pass
         self.preseed('tzsetup/selected', 'false')
-        questions = ['^time/zone$', 'PROGRESS']
+        questions = ['^time/zone$', '^tzsetup/detected$', 'CAPB', 'PROGRESS']
         return ([clock_script], questions, env)
 
+    def capb(self, capabilities):
+        self.frontend.debconf_progress_cancellable(
+            'progresscancel' in capabilities)
+
     def run(self, priority, question):
-        if question == 'time/zone':
+        if question == 'tzsetup/detected':
+            zone = self.db.get('time/zone')
+            self.ui.set_timezone(zone)
+        elif question == 'time/zone':
             if self.multiple:
                 # Work around a debconf bug: REGISTER does not appear to
                 # give a newly-registered question the same default as the
@@ -374,8 +458,8 @@ class Page(Plugin):
         continents = self.choices_display_map('localechooser/continentlist')
         names, codes = zip(*continents.items())
         codes = [c.replace(' ', '_') for c in codes]
-        
-        nones = [None for key in continents]
+
+        nones = [None for _ in continents]
         pairs = zip(names, nones, codes)
         pairs.sort(key=self.collation_key)
         return pairs
@@ -390,7 +474,7 @@ class Page(Plugin):
                     del shortlist[pair[0]]
                     break
             names, codes = zip(*shortlist.items())
-            nones = [None for key in names]
+            nones = [None for _ in names]
             shortlist = zip(names, codes, nones)
             shortlist.sort(key=self.collation_key)
             return shortlist
@@ -403,12 +487,12 @@ class Page(Plugin):
             shortlist = self.build_shortlist_timezone_pairs(country_codes[0])
         else:
             shortlist = []
-        
+
         longlist = []
         for country_code in country_codes:
             longlist += self.build_longlist_timezone_pairs(country_code, sort=False)
         longlist.sort(key=self.collation_key)
-        
+
         # There may be duplicate entries in the shortlist and longlist.
         # Basically, the shortlist is most useful when there are non-city
         # timezones that may be more familiar to denizens of that country.
@@ -423,7 +507,7 @@ class Page(Plugin):
                 if short_item[1] == long_item[1]:
                     shortlist.remove(short_item)
                     break
-        
+
         return (shortlist, longlist)
 
     def build_shortlist_timezone_pairs(self, country_code):
@@ -436,7 +520,7 @@ class Page(Plugin):
             shortlist = shortlist.items()
             shortlist.sort(key=self.collation_key)
             return shortlist
-        except debconf.DebconfError, e:
+        except debconf.DebconfError:
             return []
 
     def get_country_name(self, country):
@@ -522,9 +606,6 @@ class Page(Plugin):
     def build_longlist_timezone_pairs_by_continent(self, continent):
         if 'LANG' not in os.environ:
             return [] # ?
-        locale = os.environ['LANG'].rsplit('.', 1)[0]
-        tz_format = PyICU.SimpleDateFormat('VVVV', PyICU.Locale(locale))
-        now = time.time()*1000
         rv = []
         try:
             regions = self.choices_untranslated('localechooser/countrylist/%s' % continent)
@@ -549,7 +630,7 @@ class Page(Plugin):
 
     def cleanup(self):
         Plugin.cleanup(self)
-        i18n.reset_locale(just_country=True)
+        i18n.reset_locale(self.frontend, just_country=True)
 
 class Install(InstallPlugin):
     def prepare(self, unfiltered=False):

@@ -1,3 +1,114 @@
+apt-setup (1:0.42ubuntu3) lucid; urgency=low
+
+  * Mount /proc, /sys, and /dev in the target system if necessary when
+    running apt-cdrom (LP: #527641).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 05 Mar 2010 15:07:27 +0000
+
+apt-setup (1:0.42ubuntu2) lucid; urgency=low
+
+  * Remove Release files for old releases.
+  * Backport from trunk:
+    - Guard against future multiple-CD handling changes in apt.  If multiple
+      CDs are inserted then any one can satisfy a media-change request.  We
+      don't yet deal with multiple CDs everywhere, but at least we won't
+      break when 'apt-cdrom ident' starts returning multiple labels.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 02 Feb 2010 12:41:13 -0800
+
+apt-setup (1:0.42ubuntu1) lucid; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Install the Ubuntu mirror generator instead of Debian's.
+    - Set apt-setup/security_host to security.ubuntu.com, or
+      ports.ubuntu.com on ports architectures; adjust directory and
+      distribution to match.
+    - Add security sources for restricted, universe, and multiverse,
+      commented out unless the respective components are enabled. Disable
+      security generator checks for contrib and non-free.
+    - For CD installs, leave the sources.list created by apt-setup in
+      /etc/apt/sources.list.apt-setup, and restore the sources.list created
+      during base installation for the rest of the installation.
+    - Honour OVERRIDE_BASE_INSTALLABLE when checking
+      /cdrom/.disk/base_installable.
+    - Reduce the mirror verification timeout to 10 seconds.
+    - Disable the volatile service for Ubuntu, and don't ask the
+      apt-setup/services-select question.
+    - Always disable the CD at the end of installation if any mirrors are
+      present, even if it's a complete CD.
+    - Pre-populate apt's lists directory with signed Release files for
+      archive.ubuntu.com (and mirrors) and security.ubuntu.com, to protect
+      against downgrade attacks right from initial installation.
+    - Run 'apt-get update' for all sources.list lines produced by a single
+      generator in one go, and don't comment out sources.list lines if it
+      fails.
+    - Make the path to security updates configurable, as well as the host.
+    - Remove restricted from cdrom entry if apt-setup/restricted is false.
+    - Add Release files for intrepid and jaunty.
+    - Allow preseeding apt-setup/partner to enable the partner repository.
+    - Use cdrom-detect/cdrom_fs when remounting the CD to ensure that we do
+      so using the same filesystem.
+    - Make sure apt-cdrom doesn't unmount the CD if cd_type ends with
+      /single.
+    - Enable all network sources, including security updates, even if the
+      network is unconfigured.
+    - Fix handling of universe and multiverse in -backports lines.
+    - Honour apt-setup/restricted, apt-setup/universe, and
+      apt-setup/multiverse when writing -backports lines.
+    - Check to make sure the CD filesystem is iso9660 before remounting it
+      as such.  Do not write a CD identifier if we're not working with
+      iso9660 so pkgsel does not try to unmount such disks.
+    - Fix description of universe in generated sources.list: packages there
+      are expected to be under a free licence.
+    - Run 'apt-get update', without downloading package lists or cleaning up
+      old files, after moving the sources.list generated during base system
+      installation back into place.
+    - If OVERRIDE_LEAVE_CD_MOUNTED is set, don't unmount /cdrom; this is a
+      bad idea in a live CD environment!
+    - Bail out cleanly from cdrom generator if /cdrom/.disk/info doesn't
+      exist or has zero size.
+    - Re-enable progress bar cancellation.
+  * Add Release files for lucid.
+  * Increase the mirror verification timeout to 30 seconds, now that this
+    operation is cancellable. Some people (hi, Ara) seem to have trouble
+    getting mirror responses in 10 seconds.
+  * Correctly disable progresscancel on exiting apt-setup (LP: #462005).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 09 Nov 2009 11:46:22 +0000
+
+apt-setup (1:0.42) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Merge from Ubuntu:
+    - Enable universe and multiverse by default for Ubuntu installs.
+    - For Ubuntu installs, if either restricted or multiverse is enabled,
+      add commented-out lines for the partner archive.
+    - Use archive.ubuntu.com as the default source mirror for Ubuntu ports
+      architectures.
+    - Add apt-setup/proposed question (never asked); if preseeded to true
+      for Ubuntu installs, -proposed entries will be added to sources.list
+      (LP: #181776).
+  * Adjust cancellation comment in apt-setup-verify: in-target preserves
+    exit codes as of debian-installer-utils 1.70.
+  * Use fetch-url instead of wget in local generator, making it possible to
+    use file:// URLs.
+
+  [ Updated translations ]
+  * Asturian (ast.po) by Marcos Alvarez Costales
+  * German (de.po) by Holger Wansing
+  * Esperanto (eo.po) by Felipe Castro
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Hindi (hi.po)
+  * Italian (it.po) by Milo Casagrande
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Ivan Masár
+  * Turkish (tr.po) by Mert Dirik
+  * Simplified Chinese (zh_CN.po) by Deng Xiyue
+       
+ -- Otavio Salvador <otavio@ossystems.com.br>  Tue, 21 Jul 2009 12:13:34 -0300
+
 apt-setup (1:0.41ubuntu2) karmic; urgency=low
 
   * Use debconf-apt-progress for our Ubuntu-specific all-in-one-go 'apt-get

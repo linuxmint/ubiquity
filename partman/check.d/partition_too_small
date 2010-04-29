@@ -41,7 +41,7 @@ for part in $parts; do
 	mountpoint="${part%,*}"
 	size="${part#*,}"
 	if [ "$mountpoint" = "/" ]; then
-		rofssize="$(du -s --block-size=1 /rofs | cut -f1)"
+		rofssize="$(cat /cdrom/casper/filesystem.size)"
 		rootrofssize="$rofssize"
 		rootsize="$size"
 	else
@@ -54,7 +54,7 @@ for part in $parts; do
 			rofssize="$(expr $rofssize \* 12 / 10)"
 		fi
 		if ! longint_le $rofssize $size ; then
-			partitions="${partitions:+$partitions, }$mountpoint $rofssize"
+			partitions="${partitions:+$partitions, }$mountpoint $(longint2human $rofssize)"
 		fi
 
 		# Make sure that no parent of $mountpoint has been added to
@@ -83,7 +83,7 @@ done
 if [ -n "$rootrofssize" ]; then
     rofs=$(expr $rootrofssize - $rofssum + $rootfudge)
     if ! longint_le $rofs $rootsize ; then
-        partitions="/ $rofs${partitions:+, $partitions}"
+        partitions="/ $(longint2human $rofs)${partitions:+, $partitions}"
     fi
 fi
 

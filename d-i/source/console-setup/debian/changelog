@@ -1,3 +1,100 @@
+console-setup (1.34ubuntu15) lucid; urgency=low
+
+  * Make /usr/share/initramfs-tools/scripts/panic/console_setup executable.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 23 Apr 2010 23:23:50 +0100
+
+console-setup (1.34ubuntu14) lucid; urgency=low
+
+  * Update Ubuntu-specific translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 15 Apr 2010 00:08:23 +0100
+
+console-setup (1.34ubuntu13) lucid; urgency=low
+
+  * Remove iconv transliteration.  We don't use non-UTF-8 locales, and
+    it breaks ubiquity as we haven't generated the configured locale by
+    the time we hit console-setup (LP: #542310).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Fri, 26 Mar 2010 12:50:50 +0000
+
+console-setup (1.34ubuntu12) lucid; urgency=low
+
+  * console-setup-tty: Only call setfont once, for both font and ACM.
+  * Don't try to call update-rc.d if it doesn't exist, such as in d-i
+    (LP: #540835).
+  * Don't gzip font or ACM files in /etc/console-setup/.  The space saving
+    is negligible, and it's more efficient not to need to uncompress them at
+    boot time.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 19 Mar 2010 11:08:58 +0000
+
+console-setup (1.34ubuntu11) lucid; urgency=low
+
+  * Move boot tasks to a combination of two udev rules and a single Upstart
+    job, ensuring that they're run at points when we are able to satisfy the
+    constraints on the relevant ioctls.  This may not work optimally with
+    vgacon, but you have to go to special effort to use that with Ubuntu
+    now, and it at least shouldn't break (LP: #524439).
+  * Set default layout for Guernsey, Jersey, and the Isle of Man to gb
+    (LP: #533003).
+  * Fix incorrect FONT and ACM tests in initramfs script.
+  * Depend on kbd (>= 1.15-1ubuntu3) for a valuable loadkeys improvement.
+    This was previously a recommends, but the udev rule won't work without
+    kbd or console-tools anyway, I'm not really interested in supporting a
+    system without either installed, and console-tools is thoroughly
+    obsolete now.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 13 Mar 2010 12:56:30 +0000
+
+console-setup (1.34ubuntu10) lucid; urgency=low
+
+  * debian/console-setup.console-setup.init,
+    debian/console-setup.keyboard-setup.init: Replace the usplash detection
+    code with Plymouth detection code, since the same problem applies. 
+
+ -- Scott James Remnant <scott@ubuntu.com>  Wed, 17 Feb 2010 13:14:32 +0000
+
+console-setup (1.34ubuntu9) lucid; urgency=low
+
+  * Generate a locale locally for translating keyboard names in
+    kbnames-maker.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Thu, 04 Feb 2010 15:48:25 -0800
+
+console-setup (1.34ubuntu8) lucid; urgency=low
+
+  * Put kbdnames.gz in console-setup-udeb as well.
+  * Don't filter out models from kbdnames as we still ask the model
+    question.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Wed, 27 Jan 2010 17:22:19 +0000
+
+console-setup (1.34ubuntu7) lucid; urgency=low
+
+  * Merge support for translated keyboard names from Debian.
+  * Update ckb/rules/base.xml to point at the new location.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Wed, 20 Jan 2010 15:22:34 +0000
+
+console-setup (1.34ubuntu6) lucid; urgency=low
+
+  * debian/console-setup.initramfs-hook: There's no harm having the hook
+    run in the non-framebuffer case, it just copies things into the
+    initramfs which may be useful.
+  * debian/rules: That means we can copy the hook into scripts/panic as
+    well (stripping the OPTION from it), so when we need a shell, we'll
+    load the keymap.
+
+ -- Scott James Remnant <scott@ubuntu.com>  Fri, 18 Dec 2009 14:56:03 +0000
+
+console-setup (1.34ubuntu5) lucid; urgency=low
+
+  * We don't need the initramfs hooks if the initramfs doesn't load the
+    framebuffer or splash screen.
+
+ -- Scott James Remnant <scott@ubuntu.com>  Tue, 15 Dec 2009 14:56:59 +0000
+
 console-setup (1.34ubuntu4) karmic; urgency=low
 
   * Fix backports of Asturian and Catalan changes in 1.34ubuntu3.

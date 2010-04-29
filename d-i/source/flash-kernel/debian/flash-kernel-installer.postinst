@@ -178,6 +178,24 @@ case "$machine" in
 		uuid="$(block-attr --uuid "$rootfs")"
 		echo "rootfs='root=UUID=$uuid'" > /target/etc/flash-kernel.conf
 	;;
+	"OMAP3 Beagle Board")
+		if ! apt-install uboot-mkimage; then
+			error "apt-install uboot-mkimage failed"
+		fi
+		if ! apt-install uboot-envtools; then
+			error "apt-install uboot-envtools failed"
+		fi
+		rootfs=$(findfs /)
+		uuid="$(block-attr --uuid "$rootfs")"
+		cmdline="root=UUID=$uuid ro quiet splash vram=12M omapfb.mode=dvi:1280x720MR-16@60 fixrtc"
+		bootcmd="nand read 80000000 280000 400000;nand read 81600000 680000 1000000;bootm 80000000 81600000"
+		# create a default config for uboot-envtools
+		echo "/dev/mtd2 0x0000 0x20000 0x20000" > /target/etc/fw_env.config
+		# set proper NAND boot defaults
+		in-target fw_setenv bootcmd "${bootcmd}"
+		in-target fw_setenv bootargs "${cmdline}"
+		in-target fw_setenv bootdelay 3
+    ;;
 	"Thecus N2100" | "Thecus N4100")
 		in-target update-initramfs -u || true
 	;;

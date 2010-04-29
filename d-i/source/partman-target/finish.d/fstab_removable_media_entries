@@ -48,32 +48,6 @@ populate_media () {
 	done
 }
 
-CDDEV=$(grep /cdrom /proc/mounts | cut -d ' ' -f 1 | grep -v ^/dev/loop)
-if [ -n "$CDDEV" ]; then
-	MAPCDDEV=$(mapdevfs $CDDEV)
-else
-	MAPCDDEV=''
-fi
-
-CDDEVICES=''
-for dev in $(list-devices cd); do
-	mapdev=$(mapdevfs $dev)
-	if [ -n "$mapdev" ] && [ "$mapdev" != "$MAPCDDEV" ]; then
-		CDDEVICES="$CDDEVICES $mapdev"
-	fi
-done
-if [ -n "$MAPCDDEV" ]; then
-	CDDEVICES="$MAPCDDEV $CDDEVICES" # first the mounted cdrom
-fi
-
-populate_media cdrom udf,iso9660 user,noauto,exec,utf8 $CDDEVICES
-# Compatability link to keep things working; etch is not migrated away
-# entirely from /cdrom.
-if [ -n "$CDDEVICES" ]; then
-	rm_dir_or_link /target/cdrom
-	ln -s media/cdrom /target/cdrom
-fi
-
 FDDEVICES=''
 for dev in $(list-devices floppy); do
 	mapdev=$(mapdevfs $dev)
@@ -83,60 +57,3 @@ for dev in $(list-devices floppy); do
 done
 
 populate_media floppy auto rw,user,noauto,exec,utf8 $FDDEVICES
-
-# See if a usb storage device is plugged in right now. If so, assume it is
-# removable media unless the disk is already listed in the fstab.
-HD_MEDIA=$(grep /hd-media /proc/mounts | cut -d ' ' -f 1)
-if [ -n "$HD_MEDIA" ]; then
-	HD_MEDIA="$(mapdevfs $HD_MEDIA)"
-fi
-founddevs=
-if [ -d /sys/block ]; then
-	if type udevadm >/dev/null 2>&1; then
-		device_info () {
-			udevadm info "$@"
-		}
-	elif type udevinfo >/dev/null 2>&1; then
-		device_info () {
-			udevinfo "$@"
-		}
-	fi
-fi
-if type device_info >/dev/null 2>&1; then
-	disk_containing () {
-		dirname "$(device_info -q path -n "$1")"
-	}
-	partitions="$(list-devices partition)"
-	for dev in $partitions; do
-		if ! device_info -q env -n "$dev" | grep -q '^ID_BUS=usb$'; then
-			continue
-		fi
-		disk="$(disk_containing "$dev")"
-		for otherdev in $partitions; do
-			if [ "$(disk_containing "$otherdev")" = "$disk" ] && \
-			   grep -q "^$otherdev " /target/etc/fstab; then
-				continue 2
-			fi
-		done
-		mapdev="$(mapdevfs $dev)"
-		founddevs="${founddevs:+$founddevs }$mapdev"
-	done
-fi
-USBDEVICES=
-for dev in $founddevs; do
-	if [ -z "$USBDEVICES" ]; then
-		USBDEVICES="$dev"
-	else
-		if [ "$dev" != "$HD_MEDIA" ]; then
-			USBDEVICES="$USBDEVICES $dev"
-		else
-			# If installing from usb, list that device first
-			USBDEVICES="$dev $USBDEVICES"
-		fi
-	fi
-done
-
-# See https://launchpad.net/bugs/60552
-if [ "$USBDEVICES" ]; then
-	logger -t partman-target "USB automounting disabled (would have handled: $USBDEVICES)"
-fi

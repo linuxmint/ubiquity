@@ -1,0 +1,12 @@
+#! /bin/sh
+# A caching version of os-prober.
+set -e
+
+cache=/var/lib/ubiquity/os-prober-cache
+if [ ! -e "$cache" ]; then
+	mkdir -p "${cache%/*}"
+	PATH=/usr/sbin:/sbin:/usr/bin:/bin os-prober >"$cache"
+fi
+cat "$cache"
+
+exit 0

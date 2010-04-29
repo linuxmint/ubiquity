@@ -96,3 +96,26 @@ _Description: Go back to the menu and correct this problem?
  the partition will be used as is.  This means that you may not be able
  to boot from your hard disk.
 
+Template: partman-ext3/bad_alignment
+Type: boolean
+# :sl2:
+_Description: Do you want to return to the partitioning menu?
+ The partition ${PARTITION} assigned to ${MOUNTPOINT} starts at an offset of
+ ${OFFSET} bytes from the minimum alignment for this disk, which may lead to
+ very poor performance.
+ .
+ Since you are formatting this partition, you should correct this problem
+ now by realigning the partition, as it will be difficult to change later.
+ To do this, go back to the main partitioning menu, delete the partition,
+ and recreate it in the same position with the same settings. This will
+ cause the partition to start at a point best suited for this disk.
+
+Template: partman-ext3/lazy_itable_init
+Type: boolean
+Default: false
+Description: for internal use; can be preseeded
+ Pass '-E lazy_itable_init' to mkfs.  This is currently unsafe when used on
+ previously-used areas of disk, since e2fsck can then get confused with
+ inodes from previous filesystems, so it's off by default; but it can make
+ filesystem initialisation much faster on large disks.
+

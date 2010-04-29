@@ -1,3 +1,301 @@
+partman-base (139ubuntu6) lucid; urgency=low
+
+  * Don't apply optimal alignment to extended partitions (LP: #558382).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 20 Apr 2010 15:46:47 +0100
+
+partman-base (139ubuntu5) lucid; urgency=low
+
+  * Update Ubuntu-specific translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 15 Apr 2010 00:43:54 +0100
+
+partman-base (139ubuntu4) lucid; urgency=low
+
+  * Ignore free space smaller than the grain size of the partition creation
+    constraint, rather than only free space smaller than a cylinder.
+  * Allow preseeding partman/alignment to "cylinder", "minimal", or
+    "optimal"; "cylinder" restores old alignment behaviour for the benefit
+    of those with crotchety BIOSes, while "optimal" is the default.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 12 Apr 2010 11:42:58 +0100
+
+partman-base (139ubuntu3) lucid; urgency=low
+
+  * parted 2.1 changed the semantics of ped_disk_clobber: it now zeroes out
+    the first few and last few sectors of the disk, regardless of whether
+    there appears to be a valid partition table on it.  Unfortunately, this
+    means that creating a filesystem on a whole disk device and then calling
+    ped_disk_commit_to_dev zeroes the filesystem header we just created.  To
+    avoid this, call ped_disk_commit_to_dev only if the partition doesn't
+    start at sector zero (LP: #539324, #549260).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 29 Mar 2010 21:55:02 +0100
+
+partman-base (139ubuntu2) lucid; urgency=low
+
+  * Always leave a small gap at the end of the disk (except on device-mapper
+    devices), to avoid confusing mdadm by leaving the MD 0.90 superblock at
+    the end of the disk as well as the end of a partition (LP: #527401).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 26 Mar 2010 11:32:01 +0000
+
+partman-base (139ubuntu1) lucid; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Ubiquity integration: If PARTMAN_NO_COMMIT is set, then exit rather
+      than running commit.d and finish.d scripts; add a partman-commit
+      script; dump extra information to /var/lib/partman/snoop if
+      PARTMAN_SNOOP is set; check for per-menu 'no_show_choices' file in
+      ask_user and don't reshow the menu if it exists.
+    - Don't skip over dmraid devices if the user chooses not to activate
+      them.
+    - If the only thing mounted on a disk is the installation medium and it
+      uses more or less the whole disk, then silently exclude that disk; if
+      the installation medium is mounted but doesn't use the whole disk,
+      issue a warning that partitioning may be difficult; if anything else
+      is mounted, offer to unmount it. partman/filter_mounted=false disables
+      this.
+    - Use ext4 as the default filesystem for new partitions.
+    - Use linux-swap(v1) instead of linux-swap(new) to reflect changes to
+      parted.
+    - Build with -O2 on powerpc to avoid a suspected toolchain bug.
+    - Build against parted 2.2.
+    - Apply optimal alignment constraints to new partitions, or when
+      maximising an extended partition.  Tell libparted not to use cylinder
+      alignment.
+    - Add an ALIGNMENT_OFFSET command which can be used to detect whether a
+      partition is misaligned.
+  * Don't warn about data loss on formatted/removed partitions when there
+    are no such partitions (LP: #151266).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 19 Mar 2010 15:13:27 +0000
+
+partman-base (139) unstable; urgency=low
+
+  * base.sh: consistently use 'disk' as variable in humandev().
+
+  [ Updated translations ]
+  * Amharic (am.po) by tegegne tefera
+  * Hebrew (he.po) by Omer Zak
+  * Slovenian (sl.po) by Vanja Cvelbar
+
+ -- Frans Pop <fjp@debian.org>  Sun, 07 Mar 2010 22:16:33 +0100
+
+partman-base (138ubuntu4) lucid; urgency=low
+
+  * Don't source /usr/share/debconf/confmodule in init.d/parted;
+    /lib/partman/lib/base.sh will always source it for us.
+  * Tell libparted not to use cylinder alignment (LP: #539456).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 17 Mar 2010 00:21:07 +0000
+
+partman-base (138ubuntu3) lucid; urgency=low
+
+  * Apply optimal alignment constraints to new partitions, or when
+    maximising an extended partition (LP: #530071).
+  * Add an ALIGNMENT_OFFSET command which can be used to detect whether a
+    partition is misaligned.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 11 Mar 2010 20:59:25 +0000
+
+partman-base (138ubuntu2) lucid; urgency=low
+
+  * Build against parted 2.2.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 09 Mar 2010 00:39:55 +0000
+
+partman-base (138ubuntu1) lucid; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Ubiquity integration: If PARTMAN_NO_COMMIT is set, then exit rather
+      than running commit.d and finish.d scripts; add a partman-commit
+      script; dump extra information to /var/lib/partman/snoop if
+      PARTMAN_SNOOP is set; check for per-menu 'no_show_choices' file in
+      ask_user and don't reshow the menu if it exists.
+    - Don't skip over dmraid devices if the user chooses not to activate
+      them.
+    - If the only thing mounted on a disk is the installation medium and it
+      uses more or less the whole disk, then silently exclude that disk; if
+      the installation medium is mounted but doesn't use the whole disk,
+      issue a warning that partitioning may be difficult; if anything else
+      is mounted, offer to unmount it. partman/filter_mounted=false disables
+      this.
+    - Use ext4 as the default filesystem for new partitions.
+    - Use linux-swap(v1) instead of linux-swap(new) to reflect changes to
+      parted.
+    - Build with -O2 on powerpc to avoid a suspected toolchain bug.
+  * Build against parted 2.1.  We don't use its improved alignment features
+    yet, but we plan to do so by Lucid.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 26 Feb 2010 14:44:22 +0000
+
+partman-base (138) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Fix display of partman/text/dmraid_volume.  'dmraid -s -c -c <superset>'
+    doesn't seem to work (at least not for ISW), but 'dmraid -s -c -c
+    <device>' works and produces the information we need.
+
+  [ Frans Pop ]
+  * base.sh: fix incorrect variable use for kfreebsd in humandev().
+  * Add post-base-installer.d script to apt-install dmraid into target.
+    Included here as dmraid does not have a separate partman component.
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Israt Jahan
+  * Panjabi (pa.po) by A S Alam
+  * Romanian (ro.po) by Eddy Petrișor
+  * Slovenian (sl.po) by Vanja Cvelbar
+
+ -- Frans Pop <fjp@debian.org>  Mon, 22 Feb 2010 03:59:32 +0100
+
+partman-base (137) unstable; urgency=low
+
+  * Fix regression from calling sed outside debconf_select's inner loop:
+    remove empty choices, which confused cdebconf.  This notably happened
+    when asking partman-auto/choose_recipe with a trailing newline on the
+    choices list.
+
+  [ Updated translations ]
+  * Slovenian (sl.po) by Vanja Cvelbar
+
+ -- Colin Watson <cjwatson@debian.org>  Thu, 14 Jan 2010 01:35:40 +0000
+
+partman-base (136) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Upgrade to debhelper v7.
+  * Fix typo in partman-command that broke commands such as "partman-command
+    /dev/sda IS_CHANGED".
+  * Merge from Ubuntu:
+    - Call sed outside debconf_select's inner loop. In my benchmarks using
+      two disks with eight partitions each, this reduces debconf_select's
+      runtime on partman/choose_partition from 0.69 seconds to 0.07 seconds.
+    - Cache the output of partition_tree_choices for each disk, invalidating
+      the cache whenever we update a partition on the disk. In the above
+      benchmark, this saves on the order of half a second every time we
+      redisplay the partition tree when nothing has changed (e.g. on backing
+      up from a partition).
+
+  [ Aurelien Jarno ]
+  * [GNU/kFreeBSD] Add support for disk number > 10 and GPT naming scheme.
+
+  [ Frans Pop ]
+  * Remove no longer needed Lintian override for missing Standards-
+    Version field.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Asturian (ast.po) by Marcos Antonio Alvarez Costales
+  * Belarusian (be.po) by Pavel Piatruk
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Ask Hjorth Larsen
+  * German (de.po) by Holger Wansing
+  * Greek (el.po) by Emmanuel Galatoulas
+  * Esperanto (eo.po) by Felipe Castro
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Estonian (et.po) by Mattias Põldaru
+  * Finnish (fi.po) by Esko Arajärvi
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Marce Villarino
+  * Hindi (hi.po)
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Italian (it.po) by Milo Casagrande
+  * Japanese (ja.po) by Kenshi Muto
+  * Korean (ko.po) by Changwoo Ryu
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Marathi (mr.po) by Sampada
+  * Norwegian Bokmal (nb.po) by Hans Fredrik Nordhaug
+  * Dutch (nl.po) by Frans Pop
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Ivan Masár
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Swedish (sv.po) by Daniel Nylander
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Turkish (tr.po) by Mert Dirik
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Simplified Chinese (zh_CN.po) by 苏运强
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 06 Jan 2010 22:38:01 +0100
+
+partman-base (135ubuntu4) lucid; urgency=low
+
+  * Fix regression from calling sed outside debconf_select's inner loop:
+    remove empty choices, which confused cdebconf.  This notably happened
+    when asking partman-auto/choose_recipe with a trailing newline on the
+    choices list (LP: #507059).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 14 Jan 2010 01:39:30 +0000
+
+partman-base (135ubuntu3) lucid; urgency=low
+
+  * Check for a per-menu 'no_show_choices' file in ask_user. If it exists,
+    don't reshow the menu. This is intended for use in Ubiquity, where it's
+    useful to drive partman back and forward through menus without
+    necessarily needing to recalculate the menu choices every time.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 21 Dec 2009 16:55:36 +0000
+
+partman-base (135ubuntu2) lucid; urgency=low
+
+  * Avoid some unnecessary work in debconf_select when PARTMAN_SNOOP is not
+    set.
+  * Call sed outside debconf_select's inner loop. In my benchmarks using two
+    disks with eight partitions each, this reduces debconf_select's runtime
+    on partman/choose_partition from 0.69 seconds to 0.07 seconds.
+  * Cache the output of partition_tree_choices for each disk, invalidating
+    the cache whenever we update a partition on the disk. In the above
+    benchmark, this saves on the order of half a second every time we
+    redisplay the partition tree when nothing has changed (e.g. on backing
+    up from a partition).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 15 Dec 2009 23:32:31 +0000
+
+partman-base (135ubuntu1) lucid; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Ubiquity integration: If PARTMAN_NO_COMMIT is set, then exit rather
+      than running commit.d and finish.d scripts; add a partman-commit
+      script; dump extra information to /var/lib/partman/snoop if
+      PARTMAN_SNOOP is set.
+    - Don't skip over dmraid devices if the user chooses not to activate
+      them.
+    - If the only thing mounted on a disk is the installation medium and it
+      uses more or less the whole disk, then silently exclude that disk; if
+      the installation medium is mounted but doesn't use the whole disk,
+      issue a warning that partitioning may be difficult; if anything else
+      is mounted, offer to unmount it. partman/filter_mounted=false disables
+      this.
+    - Use ext4 as the default filesystem for new partitions.
+    - Use linux-swap(v1) instead of linux-swap(new) to reflect changes to
+      parted.
+    - Build with -O2 on powerpc to avoid a suspected toolchain bug.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 10 Nov 2009 12:31:13 +0000
+
+partman-base (135) unstable; urgency=low
+
+  [ Aurelien Jarno ]
+  * Allow the default filesystem to depends on the architecture.
+  * Change the default filesystem to ufs on GNU/kFreeBSD.
+  * Correctly detect cdrom and floppy drives on GNU/kFreeBSD.
+  * Add support for GNU/kFreeBSD in human_dev() and add the 
+    corresponding templates.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sun, 23 Aug 2009 18:57:00 +0200
+
+partman-base (134) unstable; urgency=low
+
+  * Change disable_swap to take $id as second optional argument. Some 
+    callers need this to disable swap on a partition.
+  * Add myself to uploaders.
+
+ -- Max Vozeler <xam@debian.org>  Thu, 06 Aug 2009 17:29:48 +0200
+
 partman-base (133ubuntu4) karmic; urgency=low
 
   * Build with -O2 on powerpc to avoid a suspected toolchain bug

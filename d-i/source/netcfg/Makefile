@@ -1,11 +1,16 @@
 CC		= gcc
 TARGETS		?= netcfg-static netcfg
 
-LDOPTS		= -ldebconfclient -ldebian-installer -liw
+LDOPTS		= -ldebconfclient -ldebian-installer
 CFLAGS		= -W -Wall -DNDEBUG 
 COMMON_OBJS	= netcfg-common.o wireless.o
 
-ifeq ($(NO_WIRELESS),)
+ifneq ($(DEB_HOST_ARCH_OS),linux)
+WIRELESS	= 0
+endif
+
+ifneq ($(WIRELESS),0)
+LDOPTS		+= -liw
 CFLAGS		+= -DWIRELESS
 endif
 

@@ -11,14 +11,16 @@ ROOT="$1"
 logoutput="log-output -t load-install-cd"
 
 check_id() {
-	cd_id=$($logoutput --pass-stdout chroot $ROOT \
-		apt-cdrom ident | grep "^Identifying" | cut -d" " -f2)
+	cd_ids=$($logoutput --pass-stdout chroot $ROOT \
+		 apt-cdrom ident | grep "^Identifying" | cut -d" " -f2)
 	# Only needed with Etch version of apt-cdrom
 	$logoutput umount /target/cdrom/ || true
 
-	if [ "$cd_id" = "$(head -n1 /var/lib/install-cd.id)" ]; then
-		return 0
-	fi
+	for cd_id in $cd_ids; do
+		if [ "$cd_id" = "$(head -n1 /var/lib/install-cd.id)" ]; then
+			return 0
+		fi
+	done
 	return 1
 }
 

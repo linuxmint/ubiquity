@@ -22,13 +22,45 @@ os_needs_local_clock () {
 	return 1
 }
 
+hwclock_prepare () {
+	anna-install rtc-modules || true
+
+	# This may not be necessary on all hardware; hwclock can do direct IO
+	# if the rtc module is not loaded.
+	log-output -t hw-detect modprobe -v rtc || log "rtc module not loaded"
+	log-output -t hw-detect modprobe -v rtc-dev || log "rtc-dev module not loaded"
+	update-dev --settle
+
+	# bind mount /dev into /target/dev so that rtc devices are
+	# available for hwclock
+	if mount -o bind /dev /target/dev; then
+		target_dev_mounted=1
+	else
+		warning "failed to bind mount /target/dev"
+	fi
+}
+
+hwclock_cleanup () {
+	if [ "$target_dev_mounted" ] && ! umount /target/dev; then
+		warning "failed to unmount /target/dev bind mount"
+	fi
+}
+
+hwclock_stop () {
+	kill $pid || return
+	sleep 1
+	if [ -e /proc/$pid ]; then
+		kill -9 $pid || return
+	fi
+}
+
 pri=high
 
 if db_fget clock-setup/utc seen && [ "$RET" = true ]; then
 	# keep preseeded value
 	:
 else
-	# os-prober is may not yet be installed..
+	# os-prober may not yet be installed...
 	anna-install os-prober-udeb || true
 
 	probed=$(os-prober) || true
@@ -54,91 +86,50 @@ if ! db_go; then
 	exit 10 # back to main menu
 fi
 
+# Update target system configuration for utc/localtime selection
 rcsfile=/target/etc/default/rcS
-adjtimefile=/target/etc/adjtime
 
 db_get clock-setup/utc
 if [ "$RET" = true ]; then
 	sed -i -e 's:^UTC="no":UTC="yes":' -e 's:^UTC=no:UTC=yes:' $rcsfile
-	if [ -e "$adjtimefile" ]; then
-		sed -i -e 's:^LOCAL:UTC:' $adjtimefile
-	fi
-	UTC='--utc'
+	OPT="--utc"
 else
 	sed -i -e 's:^UTC="yes":UTC="no":' -e 's:^UTC=yes:UTC=no:' $rcsfile
-	if [ -e "$adjtimefile" ]; then
-		sed -i -e 's:^UTC:LOCAL:' $adjtimefile
-	fi
-	UTC='--localtime'
+	OPT="--localtime"
 fi
 
-# If we didn't manage to sync the clock to NTP, then there is no point in
-# setting the hardware clock. At best, all we'll be doing is writing back
-# the value present when d-i started plus d-i's run-time; at worst, we'll
-# also introduce a timezone error.
-db_get clock-setup/ntp
-[ "$RET" = true ] || exit 0
+# Only update the hardware clock if the system clock was updated using rdate
+db_get clock-setup/system-time-changed
+if [ "$RET" = true ]; then
+	hwclock_prepare
 
-anna-install rtc-modules || true
+	db_progress INFO clock-setup/progress/hwclock
+	log-output -t clock-setup chroot /target hwclock $OPT --systohc --debug --noadjfile &
+	pid="$!"
+	count=0
 
-# This may not be necessary on all hardware; hwclock can do direct IO if
-# the rtc module is not loaded.
-log-output -t hw-detect modprobe -v rtc || log "rtc module not loaded"
-log-output -t hw-detect modprobe -v rtc-dev || log "rtc-dev module not loaded"
-update-dev --settle
-
-# rtc-dev creates a /dev/rtc0, so set up a symlink
-# XXX This won't be needed once a new udev (116) that
-# handles the symlink gets into Debian.
-if [ -e /dev/rtc0 ] && [ ! -e /dev/rtc ]; then
-	ln -sf rtc0 /dev/rtc
-fi
-
-# bind mount /dev into /target/dev so that rtc devices are available for hwclock
-if mount -o bind /dev /target/dev; then
-	target_dev_mounted=1
-else
-	warning "failed to bind mount /target/dev"
-fi
-
-cleanup () {
-	if [ "$target_dev_mounted" ] && ! umount /target/dev; then
-		warning "failed to unmount /target/dev bind mount"
-	fi
-}
-
-db_progress INFO clock-setup/progress/hwclock
-log-output -t clock-setup chroot /target hwclock --systohc --debug --noadjfile $UTC &
-pid="$!"
-count=0
-
-stop_hwclock () {
-	kill $pid || return
-	sleep 1
-	if [ -e /proc/$pid ]; then
-		kill -9 $pid || return
-	fi
-}
-
-while sleep 1; do
-	if [ ! -e /proc/$pid ]; then
-		break
-	fi
-	count=$(expr $count + 1)
-	if [ "$count" = 30 ]; then
-		count=0
-		db_input critical clock-setup/hwclock-wait || true
-		if ! db_go; then
-			stop_hwclock
-			cleanup
-			exit 10 # back to main menu
-		fi
-		db_get clock-setup/hwclock-wait
-		if [ "$RET" = false ]; then
-			stop_hwclock
+	while sleep 1; do
+		if [ ! -e /proc/$pid ]; then
 			break
 		fi
-	fi
-done
+		count=$(($count + 1))
+		if [ $count -eq 30 ]; then
+			count=0
+			db_input critical clock-setup/hwclock-wait || true
+			if ! db_go; then
+				hwclock_stop
+				cleanup
+				exit 10 # back to main menu
+			fi
+			db_get clock-setup/hwclock-wait
+			if [ "$RET" = false ]; then
+				hwclock_stop
+				break
+			fi
+		fi
+	done
 
-cleanup
+	hwclock_cleanup
+else
+	log "not setting hardware clock"
+fi

@@ -29,7 +29,7 @@ for choice in $selection; do # Microsoft Windows XP Professional (/dev/hda1)
         fi
         set_os_type "$line" || continue
         path=${loc#*/*/}
-        mount_os "$ostype" "$loc"
+        mount_os "$ostype" "$loc" || continue
         db_get migration-assistant/$path/users || continue
         IFS="$NEWLINE"
         user_selection=`echo "$RET" | sed -e 's/, /\n/g'`

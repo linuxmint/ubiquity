@@ -36,7 +36,7 @@ class PartmanCommit(FilteredCommand):
         return ('/bin/partman-commit', questions,
                 {'PARTMAN_ALREADY_CHECKED': '1'})
 
-    def error(self, priority, question):
+    def error(self, unused_priority, question):
         self.frontend.error_dialog(self.description(question),
                                    self.extended_description(question))
         self.succeeded = False
@@ -49,10 +49,7 @@ class PartmanCommit(FilteredCommand):
             return self.succeeded
 
         if question.startswith('partman/confirm'):
-            if question == 'partman/confirm':
-                self.db.set('ubiquity/partman-made-changes', 'true')
-            else:
-                self.db.set('ubiquity/partman-made-changes', 'false')
+            self.db.set('ubiquity/partman-confirm', question[8:])
             self.preseed(question, 'true')
             return True
 

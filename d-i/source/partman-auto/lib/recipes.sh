@@ -120,12 +120,14 @@ decode_recipe () {
 				# now, $iflabel will not work when doing automatic
 				# LVM partitioning.
 				iflabel="$(echo $line | sed -n 's/.*\$iflabel{ \([^}]*\) }.*/\1/p')"
-				if [ "$iflabel" ] && [ "${PWD#$DEVICES/}" != "$PWD" ]; then
-					open_dialog GET_LABEL_TYPE
-					read_line label
-					close_dialog
-					if [ "$iflabel" = "$label" ]; then
-						scheme="${scheme:+$scheme$NL}$line"
+				if [ "$iflabel" ]; then
+					if [ "${PWD#$DEVICES/}" != "$PWD" ]; then
+						open_dialog GET_LABEL_TYPE
+						read_line label
+						close_dialog
+						if [ "$iflabel" = "$label" ]; then
+							scheme="${scheme:+$scheme$NL}$line"
+						fi
 					fi
 				else
 					scheme="${scheme:+$scheme$NL}$line"

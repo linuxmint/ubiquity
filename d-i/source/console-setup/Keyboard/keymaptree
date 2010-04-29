@@ -84,8 +84,8 @@ for model in $models; do
     esac
 done
 
-variantpairs="$(./kbdnames-maker "$names" | grep 'variant\*' | sort -t '*' | \
-    cut -d'*' --output-delimiter=: -f2,3 | sed 's/:$//' | \
+variantpairs="$(./kbdnames-maker "$names" | grep '^C\*' | grep 'variant\*' | \
+    sort -t '*' | cut -d'*' --output-delimiter=: -f3,4 | sed 's/:$//' | \
     egrep -v '^(nec|nec_vndr)/jp')"
 
 rm -rf tree-keymaps

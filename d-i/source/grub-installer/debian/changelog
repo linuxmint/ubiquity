@@ -1,3 +1,266 @@
+grub-installer (1.49ubuntu11) lucid; urgency=low
+
+  * 'nosplash' doesn't work because it isn't passed through by user-params.
+    Use debian-installer/splash=false for this behaviour instead
+    (LP: #548954).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 06 Apr 2010 13:26:16 +0100
+
+grub-installer (1.49ubuntu10) lucid; urgency=low
+
+  * Historically, Ubuntu's default behaviour in the absence of command-line
+    arguments to the installer has been to pass 'splash' to the installed
+    system so that it gets a splash screen (and similarly 'quiet').  There's
+    some argument that this behaviour should require passing 'splash' to the
+    installer as well, but it's too late in the Lucid cycle for this change.
+    Nevertheless, we need a way to configure images such that they don't get
+    'splash' in the installed system, so introduce a 'nosplash' argument
+    which inhibits this, for use by the server CD (LP: #548954).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 01 Apr 2010 23:44:48 +0100
+
+grub-installer (1.49ubuntu9) lucid; urgency=low
+
+  * Ask grub-installer/only_debian at high priority again (LP: #47135).
+    Originally, in Warty, we ensured that this question wouldn't be visible
+    by default to support simple installations of Ubuntu with as few
+    questions as possible.  However, since then, we wrote Ubiquity, which
+    has taken over responsibility for the simple installation case, and it's
+    become clear that automatically installing GRUB to the first disk's MBR
+    is inadequate for many more complex situations.  Ironically, Ubiquity
+    makes this option easily accessible from the "Advanced" dialog box, but
+    Ubuntu's d-i required a special boot parameter to display it.
+  * Update grub-installer/bootdev text to avoid GRUB device naming that
+    changed between GRUB Legacy and GRUB 2, and to use libata-style device
+    naming since that is more accurate for most people (LP: #391775)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 26 Mar 2010 11:34:43 +0000
+
+grub-installer (1.49ubuntu8) lucid; urgency=low
+
+  * Bind-mount /proc and /sys while running grub-install (LP: #527210).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 22 Mar 2010 21:33:27 +0000
+
+grub-installer (1.49ubuntu7) lucid; urgency=low
+
+  * Fix GPT detection to account for changed fdisk output (LP: #538100).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 15 Mar 2010 10:00:46 +0000
+
+grub-installer (1.49ubuntu6) lucid; urgency=low
+
+  * Fix partition offset handling for GRUB Legacy.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 09 Mar 2010 11:29:05 +0000
+
+grub-installer (1.49ubuntu5) lucid; urgency=low
+
+  [ Joel Ebel ]
+  * Add missing $serial to get proper detection of serial console options
+    working.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Fri, 19 Feb 2010 17:41:03 -0500
+
+grub-installer (1.49ubuntu4) lucid; urgency=low
+
+  * Preseed grub-pc/install_devices_empty while installing grub-pc, since we
+    deliberately defer calling grub-install until a later point.  Thanks to
+    Dustin Kirkland for debugging assistance.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 04 Feb 2010 12:24:22 -0800
+
+grub-installer (1.49ubuntu3) lucid; urgency=low
+
+  * Add $partition_offset to $bootpart when deciding which partition to make
+    active based on GRUB-style device names (found while testing fix for LP
+    #185878).
+  * Use grub-probe to convert device names rather than relying on
+    device.map.
+  * Only add removable devices to device.map if using GRUB Legacy.
+  * Use an appropriate OS device name rather than (hd0) if possible.
+  * When installing from a non-CD medium, we only need to reset the default
+    boot device if we would otherwise end up installing GRUB to the
+    installation medium.
+  * Convert device names to by-id form before preseeding
+    grub-pc/install_devices.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 03 Feb 2010 17:08:02 -0800
+
+grub-installer (1.49ubuntu2) lucid; urgency=low
+
+  * Don't check for LVM when we've already worked out that we're installing
+    on SATA RAID.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 20 Jan 2010 19:04:14 +0000
+
+grub-installer (1.49ubuntu1) lucid; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Show the grub menu and raise the menu timeout if other operating
+      systems are installed (only for GRUB Legacy right now).
+    - Ask grub-installer/only_debian at medium priority.
+    - Remove splash boot parameter unless debian-installer/framebuffer=true.
+    - If / or /boot are on a removable device, install GRUB there by
+      default.
+    - Only mount /target/proc if it isn't already mounted.
+    - Support setting OVERRIDE_UNSUPPORTED_OS in the environment to force
+      grub-installer to use its default MBR selection method despite there
+      being unsupported operating systems on the disk.
+    - Unless grub-installer/make_active is preseeded to false, mark the
+      partition to which GRUB is being installed as bootable, or failing
+      that the first available primary partition on the disk to which GRUB
+      is being installed.
+    - Support grub-installer/bootdev_directory preseeding to make use of the
+      relative path feature of grub4dos, so that we can point grub4dos at
+      part of a disk for Wubi. Setting this disables normal grub
+      installation, but still generates a device.map (for GRUB Legacy only);
+      it also hides the menu.
+    - Handle cases where /boot is bind-mounted.
+    - Add support for writing an GRUB Legacy MBR on each disk in an
+      mdadm-managed RAID providing /boot. (GRUB 2 can handle this already.)
+    - Properly make use of output from os-prober to configure the booting of
+      other operating systems on dmraid arrays. Attempt to guess where in
+      the device map the array belongs, by substituting the first drive in
+      the dmraid array for the dmraid array device node itself, and removing
+      any reference to other member disks of the array.
+    - Set a sensible default boot device when /cdrom is not iso9660, as this
+      is probably a USB install and (hd0) does not make sense when
+      installing from a removable disk.
+    - Go back to using update-grub -y for GRUB Legacy for now; our grub
+      package is a bit old and still requires this.
+    - Default to grub2 for GPT systems.
+    - Allow grub/grub2 choice for ext4, though still default to grub2.
+    - If /boot is on an MD device and we're using GRUB 2, install GRUB there
+      rather than (hd0); GRUB 2 will interpret that as meaning that it needs
+      to install to each of the RAID members.
+    - Mount /target/sys when running update-grub.
+    - If using GRUB 2 and installing to a RAID device any of whose
+      components are partitions, then default to installing to the MBRs of
+      each of the containing disks, since GRUB 2 will refuse to install to
+      the partition devices.
+  * GRUB 2 now supports installation on SATA RAID and multipath.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 04 Jan 2010 15:58:21 +0000
+
+grub-installer (1.49) unstable; urgency=low
+
+  * Merge from Ubuntu:
+    - Preseed grub-pc/install_devices based on grub-installer/bootdev.
+      (Closes: 556738)
+
+ -- Felix Zielcke <fzielcke@z-51.de>  Mon, 23 Nov 2009 23:44:19 +0100
+
+grub-installer (1.48) unstable; urgency=low
+
+  [ Felix Zielcke ]
+  * Fix the generated GNU/Hurd menuentry in case os-prober doestn't get
+    installed. Patch by Samuel Thibault <sthibault@debian.org>
+    (Closes: #552409)
+
+  [ Frans Pop ]
+  * Make <back up> work from legacy and maturity dialogs.
+
+  [ Colin Watson ]
+  * Check for $ROOT/etc/mtab in update_mtab, not /etc/mtab (LP: #484832).
+  * Use GRUB Legacy on multipath disks for now (works around #442382 et al).
+
+  [ Updated translations ]
+  * Galician (gl.po) by Marce Villarino
+
+ -- Colin Watson <cjwatson@debian.org>  Mon, 23 Nov 2009 21:12:00 +0000
+
+grub-installer (1.47ubuntu1) lucid; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Show the grub menu and raise the menu timeout if other operating
+      systems are installed (only for GRUB Legacy right now).
+    - Ask grub-installer/only_debian at medium priority.
+    - Remove splash boot parameter unless debian-installer/framebuffer=true.
+    - If / or /boot are on a removable device, install GRUB there by
+      default.
+    - Only mount /target/proc if it isn't already mounted.
+    - Support setting OVERRIDE_UNSUPPORTED_OS in the environment to force
+      grub-installer to use its default MBR selection method despite there
+      being unsupported operating systems on the disk.
+    - Unless grub-installer/make_active is preseeded to false, mark the
+      partition to which GRUB is being installed as bootable, or failing
+      that the first available primary partition on the disk to which GRUB
+      is being installed.
+    - Support grub-installer/bootdev_directory preseeding to make use of the
+      relative path feature of grub4dos, so that we can point grub4dos at
+      part of a disk for Wubi. Setting this disables normal grub
+      installation, but still generates a device.map (for GRUB Legacy only);
+      it also hides the menu.
+    - Handle cases where /boot is bind-mounted.
+    - Add support for writing an GRUB Legacy MBR on each disk in an
+      mdadm-managed RAID providing /boot. (GRUB 2 can handle this already.)
+    - Properly make use of output from os-prober to configure the booting of
+      other operating systems on dmraid arrays. Attempt to guess where in
+      the device map the array belongs, by substituting the first drive in
+      the dmraid array for the dmraid array device node itself, and removing
+      any reference to other member disks of the array.
+    - Set a sensible default boot device when /cdrom is not iso9660, as this
+      is probably a USB install and (hd0) does not make sense when
+      installing from a removable disk.
+    - Go back to using update-grub -y for GRUB Legacy for now; our grub
+      package is a bit old and still requires this.
+    - Default to grub2 for GPT systems.
+    - Allow grub/grub2 choice for ext4, though still default to grub2.
+    - Preseed grub-pc/install_devices based on grub-installer/bootdev.
+    - If /boot is on an MD device and we're using GRUB 2, install GRUB there
+      rather than (hd0); GRUB 2 will interpret that as meaning that it needs
+      to install to each of the RAID members.
+    - Always use GRUB Legacy when /boot is on a multipath device.
+    - Mount /target/sys when running update-grub.
+    - If using GRUB 2 and installing to a RAID device any of whose
+      components are partitions, then default to installing to the MBRs of
+      each of the containing disks, since GRUB 2 will refuse to install to
+      the partition devices.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 11 Nov 2009 16:49:33 +0000
+
+grub-installer (1.47) unstable; urgency=low
+
+  [ Colin Watson ]
+  * By request of grub2's Debian maintainers, pass --force to grub-install
+    when using GRUB 2, in order to override the warning about using
+    blocklists in the event that the user selected an installation location
+    that requires them.
+  * Fix typo in fallback case when computing $disc_offered_devfs.
+
+ -- Felix Zielcke <fzielcke@z-51.de>  Fri, 16 Oct 2009 21:37:43 +0200
+
+grub-installer (1.46) unstable; urgency=low
+
+  [ Colin Watson ]
+  * grub_write_divider is specific to GRUB Legacy; don't call it for GRUB 2.
+
+  [ Felix Zielcke ]
+  * Merge from Ubuntu:
+    - Explicitly install os-prober when using GRUB 2, since it does a better
+      job than the otheros script.
+
+ -- Felix Zielcke <fzielcke@z-51.de>  Tue, 29 Sep 2009 19:24:39 +0200
+
+grub-installer (1.45) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Fix some hardcoded uses of /target.
+
+  [ Felix Zielcke ]
+  * Install GRUB 2 by default.
+
+ -- Felix Zielcke <fzielcke@z-51.de>  Mon, 21 Sep 2009 23:21:05 +0200
+
+grub-installer (1.44) unstable; urgency=low
+
+  * Try installing `grub-legacy' first before `grub' in case GRUB Legacy
+    has to be installed.
+  * Remove Robert Millan from Uploaders with his permission.
+
+ -- Felix Zielcke <fzielcke@z-51.de>  Mon, 21 Sep 2009 11:20:05 +0200
+
 grub-installer (1.43ubuntu8) karmic; urgency=low
 
   * If using GRUB 2 and installing to a RAID device any of whose components

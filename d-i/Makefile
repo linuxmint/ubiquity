@@ -50,6 +50,7 @@ clean:
 			(cd "$$dir" && debian/rules clean) || exit 1; \
 		fi; \
 	done
+	$(MAKE) -C $(SOURCEDIR)/console-setup/Keyboard clean
 	rm -f $(SOURCEDIR)/*.deb $(SOURCEDIR)/*.udeb
 	rm -f manifest.old
 	rm -rf udeb-control templates

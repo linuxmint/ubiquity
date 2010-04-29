@@ -21,7 +21,7 @@ import os
 import datetime
 import time
 import xml.dom.minidom
-import md5 # should be hashlib once we depend on >=2.5
+import hashlib
 import sys
 
 
@@ -72,7 +72,7 @@ class SystemTzInfo(datetime.tzinfo):
         finally:
             self._restore_tz(tzbackup)
 
-    def rawutcoffset(self, dt):
+    def rawutcoffset(self, unused_dt):
         tzbackup = self._select_tz()
         try:
             dstminutes = -time.timezone / 60
@@ -98,7 +98,7 @@ class SystemTzInfo(datetime.tzinfo):
         finally:
             self._restore_tz(tzbackup)
 
-    def tzname(self, dt):
+    def tzname(self, unused_dt):
         return self.tz
 
     def tzname_letters(self, dt):
@@ -179,9 +179,9 @@ class Location(object):
         # Grab md5sum of the timezone file for later comparison
         try:
             tz_file = file(os.path.join('/usr/share/zoneinfo', self.zone) ,'rb')
-            self.md5sum = md5.md5(tz_file.read()).digest()
+            self.md5sum = hashlib.md5(tz_file.read()).digest()
             tz_file.close()
-        except IOError, e:
+        except IOError:
             self.md5sum = None
 
         try:
@@ -229,14 +229,14 @@ class _Database(object):
         except:
             try:
                 tz_file = file(os.path.join('/usr/share/zoneinfo', tz) ,'rb')
-                md5sum = md5.md5(tz_file.read()).digest()
+                md5sum = hashlib.md5(tz_file.read()).digest()
                 tz_file.close()
 
                 for loc in self.locations:
                     if md5sum == loc.md5sum:
                         self.tz_to_loc[tz] = loc
                         return loc
-            except IOError, e:
+            except IOError:
                 pass
 
             # If not found, oh well, just warn and move on.

@@ -8,7 +8,7 @@ from PyQt4.QtCore import *
 class SqueezeLabel(QLabel):
     def __init__(self, parent = None):
         QLabel.__init__(self, parent)
-        
+
     def paintEvent(self, pe):
         fm = self.fontMetrics()
         if fm.width(self.text()) > self.contentsRect().width():

@@ -6,20 +6,30 @@ from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
 from ubiquity.misc import *
-from ubiquity.components import partman, partman_commit
+from ubiquity import i18n
+
+def get_string(name, lang=None, prefix=None):
+    """Get the string name in the given lang or a default."""
+    if lang is None and 'LANG' in os.environ:
+        lang = os.environ['LANG']
+    return i18n.get_string(name, lang, prefix)
 
 # describes the display for the manual partition view widget
 class PartitionModel(QAbstractItemModel):
     def __init__(self, ubiquity, parent=None):
         QAbstractItemModel.__init__(self, parent)
 
+        self.rootItem = None
+        self.clear()
+
+    def clear(self):
         rootData = []
-        rootData.append(QVariant(ubiquity.get_string('partition_column_device')))
-        rootData.append(QVariant(ubiquity.get_string('partition_column_type')))
-        rootData.append(QVariant(ubiquity.get_string('partition_column_mountpoint')))
-        rootData.append(QVariant(ubiquity.get_string('partition_column_format')))
-        rootData.append(QVariant(ubiquity.get_string('partition_column_size')))
-        rootData.append(QVariant(ubiquity.get_string('partition_column_used')))
+        rootData.append(QVariant(get_string('partition_column_device')))
+        rootData.append(QVariant(get_string('partition_column_type')))
+        rootData.append(QVariant(get_string('partition_column_mountpoint')))
+        rootData.append(QVariant(get_string('partition_column_format')))
+        rootData.append(QVariant(get_string('partition_column_size')))
+        rootData.append(QVariant(get_string('partition_column_used')))
         self.rootItem = TreeItem(rootData)
 
     def append(self, data, ubiquity):
@@ -108,11 +118,15 @@ class PartitionModel(QAbstractItemModel):
         return self.rootItem.children()
 
 class TreeItem:
-    def __init__(self, data, ubiquity=None, parent=None):
+    def __init__(self, data, controller=None, parent=None):
         self.parentItem = parent
         self.itemData = data
         self.childItems = []
-        self.ubiquity = ubiquity
+        self.controller = controller
+        if controller:
+            self.dbfilter = controller.dbfilter
+        else:
+            self.dbfilter = None
 
     def appendChild(self, item):
         self.childItems.append(item)
@@ -167,11 +181,11 @@ class TreeItem:
         elif partition['parted']['fs'] != 'free':
             return '  %s' % partition['parted']['path']
         elif partition['parted']['type'] == 'unusable':
-            return '  %s' % self.ubiquity.get_string('partman/text/unusable')
+            return '  %s' % get_string('partman/text/unusable')
         else:
             # partman uses "FREE SPACE" which feels a bit too SHOUTY for
             # this interface.
-            return '  %s' % self.ubiquity.get_string('partition_free_space')
+            return '  %s' % get_string('partition_free_space')
 
     def partman_column_type(self):
         partition = self.itemData[1]
@@ -190,8 +204,8 @@ class TreeItem:
 
     def partman_column_mountpoint(self):
         partition = self.itemData[1]
-        if isinstance(self.ubiquity.dbfilter, partman.Page):
-            mountpoint = self.ubiquity.dbfilter.get_current_mountpoint(partition)
+        if hasattr(self.dbfilter, 'get_current_mountpoint'):
+            mountpoint = self.dbfilter.get_current_mountpoint(partition)
             if mountpoint is None:
                 mountpoint = ''
         else:
@@ -202,42 +216,30 @@ class TreeItem:
         partition = self.itemData[1]
         if 'id' not in partition:
             return ''
-            #cell.set_property('visible', False)
-            #cell.set_property('active', False)
-            #cell.set_property('activatable', False)
         elif 'method' in partition:
             if partition['method'] == 'format':
                 return Qt.Checked
             else:
                 return Qt.Unchecked
-            #cell.set_property('visible', True)
-            #cell.set_property('active', partition['method'] == 'format')
-            #cell.set_property('activatable', 'can_activate_format' in partition)
         else:
             return Qt.Unchecked  ##FIXME should be enabled(False)
-            #cell.set_property('visible', True)
-            #cell.set_property('active', False)
-            #cell.set_property('activatable', False)
 
     def formatEnabled(self):
         """is the format tickbox enabled"""
         partition = self.itemData[1]
         return 'method' in partition and 'can_activate_format' in partition
 
-    def partman_column_format_toggled(self, value):
-        if not self.ubiquity.allowed_change_step:
+    def partman_column_format_toggled(self, unused_value):
+        if not self.controller.allowed_change_step():
             return
-        if not isinstance(self.ubiquity.dbfilter, partman.Page):
+        if not hasattr(self.controller.dbfilter, 'edit_partition'):
             return
-        #model = user_data
-        #devpart = model[path][0]
-        #partition = model[path][1]
         devpart = self.itemData[0]
         partition = self.itemData[1]
         if 'id' not in partition or 'method' not in partition:
             return
-        self.ubiquity.allow_change_step(False)
-        self.ubiquity.dbfilter.edit_partition(devpart, format='dummy')
+        self.controller.allow_change_step(False)
+        self.controller.dbfilter.edit_partition(devpart, fmt='dummy')
 
     def partman_column_size(self):
         partition = self.itemData[1]
@@ -254,10 +256,9 @@ class TreeItem:
         if 'id' not in partition or partition['parted']['fs'] == 'free':
             return ''
         elif 'resize_min_size' not in partition:
-            return self.ubiquity.get_string('partition_used_unknown')
+            return get_string('partition_used_unknown')
         else:
             # Yes, I know, 1000000 bytes is annoying. Sorry. This is what
             # partman expects.
             size_mb = int(partition['resize_min_size']) / 1000000
             return '%d MB' % size_mb
-            

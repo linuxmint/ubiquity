@@ -30,7 +30,7 @@ if [ -e /var/lib/install-cd.id ] && \
 fi
 
 ERRCODE=0
-in-target sh -c "debconf-apt-progress --no-progress --logstderr -- apt-get -o APT::Install-Recommends=false -q -y --no-remove install $packages" || ERRCODE=$?
+in-target sh -c "debconf-apt-progress --no-progress --logstderr -- apt-get -q -y --no-remove install $packages" || ERRCODE=$?
 
 if [ "$REMOUNT_CD" ]; then
 	load-install-cd "/target" || true

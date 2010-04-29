@@ -24,15 +24,14 @@ import os
 import debconf
 from ubiquity import misc
 
-class DebconfCommunicator(debconf.Debconf, object):
+class DebconfCommunicator(debconf.Debconf):
     def __init__(self, owner, title=None, cloexec=False):
-        def subprocess_setup():
-            misc.regain_privileges()
         self.dccomm = Popen(['debconf-communicate', '-fnoninteractive', owner],
-            stdin=PIPE, stdout=PIPE, close_fds=True, preexec_fn=subprocess_setup)
-        super(DebconfCommunicator, self).__init__(title=title,
-                                                  read=self.dccomm.stdout,
-                                                  write=self.dccomm.stdin)
+            stdin=PIPE, stdout=PIPE, close_fds=True,
+            preexec_fn=misc.regain_privileges)
+        debconf.Debconf.__init__(self, title=title,
+                                 read=self.dccomm.stdout,
+                                 write=self.dccomm.stdin)
         if cloexec:
             fcntl.fcntl(self.read.fileno(), fcntl.F_SETFD, fcntl.FD_CLOEXEC)
             fcntl.fcntl(self.write.fileno(), fcntl.F_SETFD, fcntl.FD_CLOEXEC)

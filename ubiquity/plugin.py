@@ -34,3 +34,15 @@ class Plugin(FilteredCommand):
 class InstallPlugin(Plugin):
     def install(self, *args, **kwargs):
         return self.run_command(auto_process=True)
+
+# Use this as a decorator if you want to guard against a function being called
+# when on a different page.  For instance, when it is called as part of the
+# event loop.
+def only_this_page(target):
+    def wrapper(self, *args, **kwargs):
+        if self.controller.dbfilter:
+            return target(self, *args, **kwargs)
+        else:
+            # gobject removes timeouts if they return non-True.
+            return True
+    return wrapper

@@ -12,6 +12,7 @@ fi
 
 db_get debian-installer/country
 CC="$RET"
+detected=
 multiple=
 if db_get "tzsetup/country/$CC"; then
 	multiple=1
@@ -20,8 +21,22 @@ STATE=0
 while :; do
 	case $STATE in
 	    0)
+		db_get tzsetup/geoip_server
+		if [ -n "$RET" ]; then
+			server="$RET"
+			if db_get mirror/http/proxy && [ "$RET" ]; then
+				export http_proxy="$RET"
+			fi
+			detected=$(wget "$server" -T 15 -t 1 -O - 2>/dev/null | grep "TimeZone" \
+				| LC_ALL=C sed 's,.*<TimeZone>\(.*\)</TimeZone>.*,\1,')
+		fi
+		if [ -n "$detected" ]; then
+			db_register time/zone time/zone # might be registered to something else
+			db_set time/zone "$detected"
+			db_subst tzsetup/detected ZONE $detected
+			db_input high tzsetup/detected || true
 		# per-country templates are used for countries with multiple choices
-		if [ "$multiple" ]; then
+		elif [ "$multiple" ]; then
 			db_register "tzsetup/country/$CC" time/zone
 			db_input high time/zone || :
 		else
@@ -35,7 +50,12 @@ while :; do
 		;;
 	    1)
 		select_all=
-		if [ "$multiple" ]; then
+		if [ -n "$detected" ]; then
+			db_get tzsetup/detected
+			if [ "$RET" = false ]; then
+				select_all=1
+			fi
+		elif [ "$multiple" ]; then
 			db_get time/zone
 			if [ "$RET" = other ]; then
 				select_all=1

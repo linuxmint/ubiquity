@@ -1,0 +1,20 @@
+#! /bin/sh
+set -e
+
+# Based on /usr/share/debhelper/autoscripts/preinst-removeconffile
+if [ "$1" = install ] || [ "$1" = upgrade ]; then
+	if [ -e "/etc/init.d/keyboard-setup" ] && [ ! -L "/etc/init.d/keyboard-setup" ]; then
+		if [ "`md5sum \"/etc/init.d/keyboard-setup\" | sed -e \"s/ .*//\"`" != \
+		     "`dpkg-query -W -f='${Conffiles}' console-setup | sed -n -e \"\\\\' /etc/init.d/keyboard-setup '{s/ obsolete$//;s/.* //p}\"`" ]
+		then
+			echo "Obsolete conffile /etc/init.d/keyboard-setup has been modified by you, renaming to .dpkg-bak"
+			mv -f "/etc/init.d/keyboard-setup" "/etc/init.d/keyboard-setup.dpkg-bak"
+		else
+			rm -f "/etc/init.d/keyboard-setup"
+		fi
+	fi
+fi
+
+#DEBHELPER#
+
+exit 0

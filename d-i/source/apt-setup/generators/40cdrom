@@ -27,6 +27,7 @@ isofs=
 if [ "$cdfstype" = "iso9660" ]; then
 	isofs=1
 fi
+mounts=
 
 remount_cd() {
 	if [ "$ROOT" ] && [ -n "$isofs" ] && [ ! -d /hd-media ] && [ "$REMOUNT_CD" ]; then
@@ -42,6 +43,9 @@ remount_cd() {
 bail_out() {
 	remount_cd
 	rm -f $ROOT$tmp $ROOT$tmp~
+	for mount in $mounts; do
+		umount $ROOT$mount || true
+	done
 	rm -f /var/lib/install-cd.id
 
 	db_input critical apt-setup/cdrom/failed || true
@@ -56,9 +60,9 @@ save_label() {
 	if ! ident="$($logoutput_pass $chroot $ROOT apt-cdrom ident)"; then
 		bail_out
 	fi
-	echo "$ident" | grep "^Identifying" | cut -d" " -f2 \
+	echo "$ident" | grep "^Identifying" | head -n1 | cut -d" " -f2 \
 		>/var/lib/install-cd.id
-	echo "$ident" | grep "^Stored label:" | sed "s/^[^:]*: //" \
+	echo "$ident" | grep "^Stored label:" | head -n1 | sed "s/^[^:]*: //" \
 		>>/var/lib/install-cd.id
 }
 
@@ -85,6 +89,18 @@ fi
 
 tmp=$($chroot $ROOT tempfile)
 
+if [ ! -e $ROOT/proc/cmdline ]; then
+	mount -t proc proc $ROOT/proc
+	mounts="$mounts /proc"
+fi
+if [ ! -d $ROOT/sys/devices ]; then
+	mount -t sysfs sysfs $ROOT/sys
+	mounts="$mounts /sys"
+fi
+if [ "$ROOT" ]; then
+	mount -o bind /dev $ROOT/dev
+	mounts="$mounts /dev"
+fi
 # apt-cdrom can be interactive, avoid that
 if $logoutput $chroot $ROOT apt-cdrom add \
    -o Dir::Etc::SourceList=$tmp \
@@ -100,3 +116,6 @@ fi
 
 remount_cd
 rm -f $ROOT$tmp $ROOT$tmp~
+for mount in $mounts; do
+	umount $ROOT$mount || true
+done

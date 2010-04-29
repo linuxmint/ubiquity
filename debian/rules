@@ -17,6 +17,8 @@ endif
 
 DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
 
+PYTHON := $(shell pyversions -r)
+
 console-setup-depends := console-setup (>= $(shell cd d-i/source/console-setup && dpkg-parsechangelog | awk '/Version:/ {print $$2}'))
 
 update:
@@ -30,34 +32,49 @@ build: build-stamp
 build-stamp:
 	dh_testdir
 
-	dh_auto_configure
+	PYTHON=$(PYTHON) dh_auto_configure
 	dh_auto_build
 	$(MAKE) -C d-i build
 
 	touch build-stamp
 
-clean:
-	dh_testdir
-	dh_testroot
+check:
 	# Sanity-check before upload.
 	find -name debian -prune -o -name \*.py -print | xargs py_compilefiles
 	find -type f \( -name \*.pyc -o -name \*.pyo \) -print0 | xargs -0r rm -f
+	# Check the syntax of any shell scripts.
+	set -e; for x in $$(find -type f -print0 | xargs -0 file -i | grep "text/x-shellscript" | cut -d':' -f1); do \
+		sh -n $$x; \
+	done
+
+pychecker:
+	./run-pychecker
+
+clean: check
+	dh_testdir
+	dh_testroot
 
 	$(MAKE) -C d-i clean
 	dh_auto_clean
 	dh_clean
+	rm -f debian/kbdnames.gz
 
 	$(MAKE) -C d-i check
 
 d-i/source/console-setup/Keyboard/MyKeyboardNames.pl:
 	$(MAKE) -C d-i/source/console-setup/Keyboard MyKeyboardNames.pl \
-		xkbdir=/usr/share/X11/xkb
+		pc105.tree xkbdir=/usr/share/X11/xkb
+
+debian/kbdnames.gz: d-i/source/console-setup/Keyboard/MyKeyboardNames.pl
+	( cd d-i/source/console-setup/Keyboard \
+	&& ./kbdnames-maker MyKeyboardNames.pl \
+	| grep -v '^C[*]' | grep -v '[*]model[*]' | sort | gzip -9 ) >$@
 
 ubiquity/keyboard_names.py: d-i/source/console-setup/Keyboard/MyKeyboardNames.pl
 	d-i/make-keyboard-names $< > $@
 
 install: DH_OPTIONS=
-install: build ubiquity/keyboard_names.py
+install: build ubiquity/keyboard_names.py debian/kbdnames.gz
 	dh_testdir
 	dh_testroot
 	dh_prep
@@ -70,9 +87,15 @@ endif
 	# For the meantime, nearly everything automake wants to install is
 	# part of the GTK frontend.
 ifndef UBIQUITY_NO_GTK
-	$(MAKE) install DESTDIR=$(CURDIR)/debian/ubiquity-frontend-gtk
+	$(MAKE) install DESTDIR=$(CURDIR)/debian/ubiquity-frontend-gtk \
+		pythondir=\$${prefix}/lib/ubiquity \
+		pyexecdir=\$${prefix}/lib/ubiquity
 	rm -rf debian/ubiquity-frontend-gtk/usr/share/applications \
 		debian/ubiquity-frontend-gtk/usr/share/ubiquity/pixmaps
+	mv -n debian/ubiquity-frontend-gtk/usr/lib/ubiquity/ubiquity \
+		debian/ubiquity/usr/lib/ubiquity/
+	rm -f debian/ubiquity/usr/lib/ubiquity/ubiquity/_osextras.a \
+		debian/ubiquity/usr/lib/ubiquity/ubiquity/_osextras.la
 endif
 	$(MAKE) -C d-i install
 
@@ -93,11 +116,6 @@ endif
 
 	# Bits of manual installation that can't be done by dh_install
 	
-	# Get rid of duplicate mythbuntu scripts and move some mythbuntu stuff around
-	mv debian/ubiquity-frontend-mythbuntu/usr/share/applications/ubiquity-mythbuntu.desktop debian/ubiquity-frontend-mythbuntu/usr/share/applications/ubiquity-gtkui.desktop
-	mv debian/ubiquity-frontend-mythbuntu/usr/share/pixmaps/ubiquity-mythbuntu.png debian/ubiquity-frontend-mythbuntu/usr/share/pixmaps/ubiquity.png
-	rm -rf debian/ubiquity/usr/share/ubiquity/mythbuntu
-
 	install bin/ubiquity-wrapper debian/ubiquity/usr/bin/ubiquity
 	sed 's/@VERSION@/$(VERSION)/g' bin/ubiquity \
 		> debian/ubiquity/usr/lib/ubiquity/bin/ubiquity
@@ -139,6 +157,10 @@ endif
 			> debian/ubiquity/usr/lib/ubiquity/localechooser/$$x; \
 		chmod +x debian/ubiquity/usr/lib/ubiquity/localechooser/$$x; \
 	done
+	sed 's/\\\$${!TAB}/ /g' \
+		debian/ubiquity/usr/lib/ubiquity/localechooser/localechooser \
+		> debian/ubiquity/usr/lib/ubiquity/localechooser/localechooser-debconf
+	chmod +x debian/ubiquity/usr/lib/ubiquity/localechooser/localechooser-debconf
 	install d-i/source/localechooser/finish-install \
 		debian/ubiquity/usr/lib/ubiquity/localechooser/
 	install d-i/source/tzsetup/post-base-installer.d/*tzsetup \
@@ -166,8 +188,10 @@ endif
 		debian/ubiquity/usr/lib/ubiquity/user-setup/user-setup-ask \
 		> debian/ubiquity/usr/lib/ubiquity/user-setup/user-setup-ask-oem
 	chmod +x debian/ubiquity/usr/lib/ubiquity/user-setup/user-setup-ask-oem
+	install d-i/source/debian-installer-utils/post-base-installer.d/10register-module \
+		debian/ubiquity/usr/lib/ubiquity/debian-installer-utils/register-module.post-base-installer
 	sed -e 's,/target/,/,g;s,/target,/,g' \
-		d-i/source/debian-installer-utils/register-module.post-base-installer \
+		d-i/source/debian-installer-utils/post-base-installer.d/10register-module \
 		> debian/oem-config/usr/lib/ubiquity/debian-installer-utils/register-module.post-base-installer-oem
 	chmod +x debian/oem-config/usr/lib/ubiquity/debian-installer-utils/register-module.post-base-installer-oem
 ifeq ($(DEB_HOST_ARCH),armel)
@@ -215,8 +239,7 @@ binary-indep: install
 	dh_compress
 	dh_fixperms
 	DH_OPTIONS= dh_pycentral -pubiquity-frontend-gtk \
-				 -pubiquity-frontend-kde \
-				 -pubiquity-frontend-mythbuntu
+				 -pubiquity-frontend-kde
 	dh_installdeb
 	dh_shlibdeps
 	dh_gencontrol -- -Vmangled-version='$(MANGLED_VERSION)'

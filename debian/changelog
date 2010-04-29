@@ -1,33 +1,1335 @@
-ubiquity (2.0.8-1mint6) helena; urgency=low
+ubiquity (2.2.23) lucid; urgency=low
 
-  * Changed icons for KDE CE
+  * Correctly select the detected timezone (LP: #559647).
+  * Don't reboot on failure if we say we're not going to.
+  * Always run wrap_fix in its entirety, even if the width or height
+    hasn't changed, as we may have switched text direction since the
+    last run (LP: #560114).
+  * Properly align keyboard_test_label, which was getting cut off in RTL
+    languages with the wrap_fix in place.
 
- -- Clement Lefebvre <root@linuxmint.com>  Thu, 14 Jan 2010 14:10:00 +0000
+ -- Evan Dandrea <evand@ubuntu.com>  Mon, 26 Apr 2010 17:00:55 +0100
 
-ubiquity (2.0.8-1mint5) helena; urgency=low
+ubiquity (2.2.22) lucid; urgency=low
 
-  * Changed hard-coded Kubuntu to Linux Mint in KDE CE frontend
+  [ Colin Watson ]
+  * Don't configure the boot loader in oem-config.  By definition, we've
+    already succeeded in booting, and repeating the process is at best a
+    no-op and at worst harmful.
+  * debconf frontend:
+    - Make sure that progress bars are never nested, as this only works when
+      using debconffilter (LP: #530027).
+  * Automatic update of included source packages: console-setup
+    1.34ubuntu15, flash-kernel 2.13ubuntu17, hw-detect 1.73ubuntu4,
+    migration-assistant 0.6.5, partman-auto 89ubuntu8, partman-partitioning
+    72ubuntu4.
 
- -- Clement Lefebvre <root@linuxmint.com>  Thu, 14 Jan 2010 14:10:00 +0000
+  [ Roman Shtylman ]
+  * Fix for (LP: #568890) show all partitions in advanced dialog
 
-ubiquity (2.0.8-1mint4) helena; urgency=low
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 26 Apr 2010 09:06:00 +0100
 
-  * Changed OEM wallpaper back to Fresh
-  * Changed templates for translations
+ubiquity (2.2.21) lucid; urgency=low
 
- -- Clement Lefebvre <root@linuxmint.com>  Fri, 20 Nov 2009 10:13:00 +0000
+  [ Evan Dandrea ]
+  * Honor user-setup/force-encrypt-home (LP: #566552).
+  * Check for LTS in the release name (LP: #558488).
+  * Hide the keyboard query dialog when we encounter an error parsing
+    the keymap decision tree (LP: #553087).
+  * Fix broken comparisons against boolean debconf values (LP: #567749).
+  * Return with the correct state value when a keyboard map is found
+    (LP: #553087).
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: debian-installer-utils
+    1.72ubuntu5, partman-auto 89ubuntu7, partman-base 139ubuntu6,
+    partman-target 64ubuntu9, tzsetup 1:0.26ubuntu9, user-setup
+    1.28ubuntu7.
 
-ubiquity (2.0.8-1mint3) helena; urgency=low
+  [ Colin Watson ]
+  * Handle new partman/confirm_nooverwrite question properly (LP: #556373).
 
-  * Changed OEM wallpaper
+  [ Mario Limonciello ]
+  * In OEM user config, don't change the last page's button to "Install"
+    to avoid confusion.
 
- -- Clement Lefebvre <root@linuxmint.com>  Tue, 10 Nov 2009 2:21:00 +0000
+ -- Evan Dandrea <evand@ubuntu.com>  Fri, 23 Apr 2010 09:32:43 +0100
 
-ubiquity (2.0.8-1mint1) helena; urgency=low
+ubiquity (2.2.20) lucid; urgency=low
 
-  * Linux Mint release based on 2.0.8 from Ubuntu.
+  * Use allow_change_step(False) from the KDE portions of the partman
+    component when necessary (LP: #563309).
 
- -- Clement Lefebvre <root@linuxmint.com>  Thu, 29 Oct 2009 12:01:00 +0000
+ -- Evan Dandrea <evand@ubuntu.com>  Mon, 19 Apr 2010 09:21:49 +0100
+
+ubiquity (2.2.19) lucid; urgency=low
+
+  * add support for omap bootloader installation
+
+ -- Oliver Grawert <ogra@ubuntu.com>  Mon, 19 Apr 2010 09:33:15 +0200
+
+ubiquity (2.2.18) lucid; urgency=low
+
+  [ Evan Dandrea ]
+  * Force garbage collection so we don't end up with stray X resources
+    when we kill the X server (LP: #556555).
+  * Fix the Portuguese and Latvian translations of the variable name
+    RELEASE (LP: #564517).
+  * Fix a missing closing bold tag in the Portuguese and Polish
+    translations (LP: #564545).
+  * Fix labels not expanding vertically to fit their text (LP: #560114,
+    LP: #557164, LP: #520898).
+  * Do not translate variable names in the Amharic translation
+    (LP: #564582).
+  * Start the window manager via ck-launch-session so pulseaudio is
+    granted access to the sound devices (LP: #549738).
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: console-setup
+    1.34ubuntu14, flash-kernel 2.13ubuntu16, hw-detect 1.73ubuntu3,
+    partman-auto 89ubuntu6, partman-base 139ubuntu5, partman-ext3
+    58ubuntu3, partman-target 64ubuntu8, user-setup 1.28ubuntu6.
+
+  [ Colin Watson ]
+  * Break out of oem-config-firstboot's main loop if oem-config-wrapper
+    succeeds (LP: #558593).
+  * Quit plymouth before starting either the emergency noninteractive
+    ubiquity frontend in automatic mode, or oem-config's debconf frontend.
+  * Get a controlling terminal before starting bterm, as otherwise bterm
+    won't reliably be able to take console input.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Fri, 16 Apr 2010 15:28:19 +0100
+
+ubiquity (2.2.17) lucid; urgency=low
+
+  [ Mario Limonciello ]
+  * Remove unused install_bottom_eb from GTK frontend's install_window.
+
+  [ Evan Dandrea ]
+  * Catch invalid iterators in on_region_combo_changed (LP: #521851).
+  * Don't let not being able to talk to the system bus crash the entire
+    language page.
+  * Translate the yes and no buttons on the quit dialog in the KDE
+    frontend (LP: #561876).
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: base-installer
+    1.103ubuntu7, choose-mirror 2.29ubuntu3, partman-base 139ubuntu4,
+    partman-basicfilesystems 63ubuntu4, tzsetup 1:0.26ubuntu8.
+
+  [ Colin Watson ]
+  * Skip copy_wallpaper_cache when running as oem-config.
+  * Update finish-install.d/07oem-config-user for new location of KDE's
+    oem-config-prepare .desktop file (LP: #557309).
+  * Restore translations for oem-config-check and oem-config-udeb, lost in
+    oem-config merge.
+  * Display simple progress feedback using debconf-apt-progress while
+    removing oem-config (LP: #558593).
+  * Write locale-gen output from ubiquity-dm to /var/log/installer/dm rather
+    than to the console.
+  * Increase kernel flush times (dirty_writeback_centisecs to 3000, and
+    dirty_expire_centisecs to 6000) during bulk data copying.  Surbhi
+    Palande suggests that this should make it easier for the kernel to pack
+    blocks contiguously, speeding up ureadahead after installation.
+
+  [ Amichai Rothman ]
+  * Fix hang unless mouse is moved (LP: #556376)
+
+ -- Evan Dandrea <evand@ubuntu.com>  Wed, 14 Apr 2010 17:38:36 +0100
+
+ubiquity (2.2.16) lucid; urgency=low
+
+  [ Evan Dandrea ]
+  * Only show the update link and release notes when a critical update
+    is available (LP: #554570).
+  * Fix backing up to the language page in the KDE frontend (LP: #557225).
+  * Bring back the debconf translation for password_extra_label.  The
+    KDE frontend still uses it (LP: #557192).
+  * Fix a small typo that was preventing the duration string on the
+    language page from being translated (LP: #551633).
+  * Fix backing up past partitioning when manual partitioning was
+    selected (LP: #557210).
+  * Let the user know why we're starting a desktop session or rebooting
+    when ubiquity in only mode crashes.  If in automatic mode, the
+    default is to reboot.  Preseed ubiquity/reboot_on_failure to false
+    to start a desktop session instead (LP: #558371).
+  * Make oem-config/install-language-support false by default.  OEMs
+    should only be turning this on if they've provided all the possible
+    langpacks in oem-config/repository or can guarantee an Internet
+    connection (LP: #539710).
+  * Call ubiquity/failure_command if we crash in only ubiquity mode.
+
+  [ Amichai Rothman ]
+  * Fix KDE frontend's slideshow links not working (LP: #540278)
+  * Fix KDE progress bar and skip button too small (LP: #555707)
+  * Fix KDE skip button appearing as full-width button at the
+    bottom of the window and messing up dialog layout (LP: #540321)
+  * Fix progress bar updated file count out of range (LP: #550147) 
+  * Fix progress title not shown during some configuration steps
+
+  [ Colin Watson ]
+  * Update handling of "Ready to install" etc. templates to account for the
+    removal of the separate welcome page.
+  * KDE frontend:
+    - Hide install_process_label ("installation process") and
+      breadcrumb_install ("Install") when running as oem-config; providing
+      alternative strings would break string freeze, and the UI should look
+      OK without them (LP: #540929).
+  * GTK frontend:
+    - Re-fetch translations before calling plugin_translate (LP: #552673).
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: partman-auto 89ubuntu5,
+    tzsetup 1:0.26ubuntu7.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 09 Apr 2010 19:29:50 +0100
+
+ubiquity (2.2.15) lucid; urgency=low
+
+  [ Evan Dandrea ]
+  * Move the install window color setting code closer to when the window
+    is shown, so the colors don't get reset before then.
+  * Fix alpha warning being shown all the time with recent changes to
+    the KDE frontend.
+  * Define allowed_change_step in the KDE frontend to fix the manual
+    partitioner buttons not working (LP: #556180).
+  * Do not show the 'ready to install' or alpha warning text in the KDE
+    frontend when in oem-config mode (LP: #556577).
+  * Update timezone images to cover changes to the Russian timezones and
+    make further adjustments around UTC+5, UTC+5.5, and UTC+7
+    (LP: #368060).
+  * Automatic update of included source packages: grub-installer
+    1.49ubuntu11.
+
+  [ Jonathan Riddell ]
+  * Workaround PyQt unicode encoding error in ubi-console-setup.py, (LP: #556436)
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 06 Apr 2010 17:29:17 +0100
+
+ubiquity (2.2.14) lucid; urgency=low
+
+  [ Jonathan Riddell ]
+  * Update Kubuntu icon desktop/hi*-app-ubiquity.png for new logo
+
+  [ Mario Limonciello ]
+  * Don't bail out if oem-config/remove_extras doesn't exist yet since
+    oem-config isn't actually installed. (LP: #554324, LP: #554664)
+
+ -- Mario Limonciello <superm1@ubuntu.com>  Sat, 03 Apr 2010 15:20:32 -0500
+
+ubiquity (2.2.13) lucid; urgency=low
+
+  [ Evan Dandrea ]
+  * In oem-config, support removing packages that were not part of the
+    base install and are not needed in the final system by preseeding
+    oem-config/remove_extras to true (LP: #315644, LP: #553184).
+
+  [ Roman Shtylman ]
+  * Kde_ui: 
+    - fixed (LP: #550466) (LP: #550472) using kmessage box for quit dialog
+    - fixed (LP: #540202) hide widgets until translated
+
+ -- Mario Limonciello <superm1@ubuntu.com>  Thu, 01 Apr 2010 11:51:01 -0500
+
+ubiquity (2.2.12) lucid; urgency=low
+
+  [ Evan Dandrea ]
+  * Accept and discard arguments to the KDE frontend's
+    on_keyboard_layout_selected function (LP: #552399).
+
+  [ Colin Watson ]
+  * Fix pkgsel/ignore-incomplete-language-support check (LP: #527623).
+  * KDE frontend:
+    - Ensure that entries in extra_bar_frames are never None (LP: #536912).
+    - Lock out manual partitioning operations while the partitioning backend
+      is running (LP: #540203).
+  * Don't lower-case the locale attribute on frontends.  This was added a
+    long time ago; since then, it's become unnecessary since i18n.get_string
+    lower-cases the locale itself, and it prevented us from finding
+    slideshow files for language variants (LP: #476269).
+  * Automatic update of included source packages: partman-auto 89ubuntu4,
+    partman-ext3 58ubuntu2.
+
+  [ Jonathan Riddell ]
+  * Move oem-config-prepare-kde.desktop install directory to
+    /usr/share/applications/kde4/, else it is labelled as a KDE 3
+    application
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 01 Apr 2010 01:27:27 +0100
+
+ubiquity (2.2.11) lucid; urgency=low
+
+  [ Evan Dandrea ]
+  * Get the slideshow dimensions from the slideshow.conf file as they
+    now vary from distribution to distribution.
+  * Give the installer window a slightly larger bottom edge to make the
+    grey border look less ugly.
+  * Connect the new installer window's skip button to the appropriate
+    function.
+  * Slighly tweak the layout so the progress widgets are more centered
+    in their frame.
+  * Translate the skip button in the new install window (LP: #551554).
+  * Update the interface when the user presses one of the buttons on the
+    finished_dialog (LP: #551574).
+  * Use the fancy new 'reboot required' panel notification
+    (LP: #551537).
+  * Move info_loop call from run to prepare so that it doesn't get
+    called with each debconf question asked in the user-setup component
+    (LP: #551742).
+  * Add only_this_page decorator to be used on functions that should
+    never be called once we've left their page.
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: base-installer
+    1.103ubuntu6, partman-base 139ubuntu3.
+  * Freeze exception (LP: #551503).
+
+  [ Mario Limonciello ]
+  * Fix installation of zh_CN and zh_TW language packs.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 30 Mar 2010 18:21:26 +0100
+
+ubiquity (2.2.10) lucid; urgency=low
+
+  * Fix the default language selection for when only-show-installable-languages
+    is set to true.
+  * Use the file object's close function rather than os.close in
+    DebconfInstallProgress. (LP: #549478)
+  * Hide the currently active progress window when switching to the new progress
+    window.
+  * Sync the title of the install progress window in automatic mode.
+  * In both of the gtk progress windows, don't show minimize or close buttons in
+    only mode.
+
+ -- Mario Limonciello <Mario_Limonciello@Dell.com>  Fri, 26 Mar 2010 16:45:50 -0500
+
+ubiquity (2.2.9) lucid; urgency=low
+
+  [ Evan Dandrea ]
+  * Correctly feed the calculated keyboard layout back to the running
+    component.  This has the side benefit of the calculated layout
+    getting selected in the treeviews (LP: #521831).
+  * Don't try to import the GTK LabelledEntry widget in the KDE frontend
+    (LP: #546792).
+  * Disable the context menu in the slideshow frame.  Thanks Dylan
+    McCall!
+  * Make sure the user we're not processing events before we've set up
+    the language list in the KDE frontend (LP 528678).
+  * Don't try to translate the greeter with the C locale.
+  * Don't destroy the main window when the close button is pressed
+    (LP: #543775).
+  * Properly handle exceptions around opening the release_notes_url file
+    in the KDE frontend (LP: #540266).  Hide the label if the release notes
+    do not exist.
+  * Handle window manager buttons properly in greeter mode
+    (LP 539827).
+  * Update DebconfInstallProgress for changes to python-apt
+    (LP: #546889).
+  * Make labels unselectable now that we're in beta, per foundations-
+    lucid-installer-design-improvements.
+  * Make the quit warning dialog transient for the main window (modal).
+  * Automatic update of included source packages: console-setup
+    1.34ubuntu13, grub-installer 1.49ubuntu9, partman-base 139ubuntu2.
+
+  [ Colin Watson ]
+  * Depend on uboot-mkimage and redboot-tools on armel, and ensure that the
+    appropriate one for the subarchitecture is kept installed, so that
+    flash-kernel can work properly without network access (LP: #537007).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Fri, 26 Mar 2010 17:59:52 +0000
+
+ubiquity (2.2.8) lucid; urgency=low
+
+  * Set a wallpaper and cursor for the KDE frontend when in only-
+    ubiquity mode (LP: #540933, LP: #540339).  Thanks Roman Shtylman!
+  * Add a password strength meter (LP: #537995).
+  * Modify the install progress window to match the new theme
+    (LP: #538411).
+  * Don't show the alpha warning in OEM mode when it's disabled.
+  * Add translations for the locale's preferred time format and
+    respective format string, as imported from gnome-panel
+    (LP: #538156).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Wed, 24 Mar 2010 23:26:46 +0000
+
+ubiquity (2.2.7) lucid; urgency=low
+
+  [ Evan Dandrea ]
+  * Add inactive labels to the user setup page (LP: #537986).
+  * Fix KDE frontend's return_to_partitioning function.
+  * Fix the KDE frontend's format button on the advanced partitioning
+    page.
+  * Assign resize_path before its used in the KDE frontend's PartAuto.
+  * Set the keymap to a reasonable default when leaving the greeter
+    (LP: #539255).
+  * Change the timezone highlight around UTC+5, UTC+5.5, and UTC+8
+    (LP: #368060).
+  * Fix setting the window title when in automatic mode in the KDE
+    frontend (LP: #541829).
+  * Automatic update of included source packages: grub-installer
+    1.49ubuntu8.
+  * Update translations from Launchpad.
+
+  [ Mario Limonciello ]
+  * Return True for set_page, restoring UI only page functionality.
+  * Quit plymouth before running ubiquity in noninteractive from the
+    upstart job.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 23 Mar 2010 14:44:46 +0000
+
+ubiquity (2.2.6) lucid; urgency=low
+
+  [ Evan Dandrea ]
+  * Properly set the text for the release notes label after the user
+    runs the 'update this installer' option.
+  * Correctly set up GtkComboBoxEntry widgets (LP: #539204).
+  * In the KDE frontend, call reboot with root privileges and try
+    rebooting via dbus only if a KDE dbus session exists (LP: #540856).
+  * Remove the apport hook, it lives in Ubuntu's apport package now.
+  * Don't let the user select both "Try Ubuntu" and "Install Ubuntu".
+  * Provide visual feedback for clicking "Try Ubuntu" in the form of a
+    spinning cursor.
+  * Automatic update of included source packages: base-installer
+    1.103ubuntu5, console-setup 1.34ubuntu12, partman-base 139ubuntu1.
+
+  [ Colin Watson ]
+  * If pkgsel/install-language-support is set to false, then don't install
+    new language packs from the network, but nevertheless keep any language
+    packs that are in the live filesystem (LP: #540878).
+  * Install oem-config-kde in the KDE user-setup plugin (LP: #540895).
+  * Don't fall through to the failsafe X server if the main X server
+    succeeds (LP: #540938).
+  * ubiquity-frontend-gtk depends on gksu (LP: #540331).
+  * Change .desktop translation domain to ubiquity-desktop (LP: #540936).
+  * Report disk sizes in decimal units in the manual partitioner, for
+    consistency with partman and to abide by the new units policy
+    (LP: #539653).
+
+  [ Mario Limonciello ]
+  * Don't delete the cache too early in select_language_packs.
+
+  [ Roman Shtylman ]
+  * Fix for 100% cpu usage in kde frontend (LP: #538505)
+
+  [ Michael Terry ]
+  * Upstart jobs: start on starting uxlaunch, Moblin's display manager
+    (LP: #540257).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Fri, 19 Mar 2010 23:52:24 +0000
+
+ubiquity (2.2.5) lucid; urgency=low
+
+  * Use a custom-generated locale when building keyboard_names.py
+    (LP: #540275).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Wed, 17 Mar 2010 19:10:05 +0000
+
+ubiquity (2.2.4) lucid; urgency=low
+
+  * Port from base-installer:
+    - Ensure that Acquire::cdrom::AutoDetect is disabled when running
+      apt-cdrom.  We bind-mount /target/cdrom, so apt's new libudev-based
+      autodetection isn't needed during installation (LP: #539170).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 17 Mar 2010 09:49:31 +0000
+
+ubiquity (2.2.3) lucid; urgency=low
+
+  * Automatic update of included source packages: partman-base 138ubuntu4.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 17 Mar 2010 00:27:39 +0000
+
+ubiquity (2.2.2) lucid; urgency=low
+
+  * Quit plymouth if it doesn't have an active VT, rather than trying to
+    reuse the VT it doesn't have, which results in X running on VT1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 16 Mar 2010 16:26:05 +0000
+
+ubiquity (2.2.1) lucid; urgency=low
+
+  * KDE frontend:
+    - Honour ubiquity/show_alpha_warning.
+  * Noninteractive frontend:
+    - Fix up plugin problems in the partman component (LP: #539342).
+  * Only fall through to the noninteractive frontend in automatic mode.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 16 Mar 2010 14:07:33 +0000
+
+ubiquity (2.2.0) lucid; urgency=low
+
+  [ Evan Dandrea ]
+  * Removed the alpha warning.  Welcome to Ubuntu 10.04 Beta 1.
+  * Align labels to the top on the language page (LP: #532876).
+  * The run method of GTK+ dialogs enters a nested main loop.  However,
+    the user can click the quit button (which calls the quit dialog's
+    run method) before the page is ready.  Once the page is actually ready,
+    another main loop is entered, and thus if the user hits the quit button
+    on the quit dialog at this point, nothing will happen.  Work around this
+    by managing the state of the quit dialog in the frontend.
+
+  [ Colin Watson ]
+  * GTK frontend:
+    - Fix label retranslation when clicking on update link (LP: #531864).
+  * KDE frontend:
+    - Use manual xauth code and sudo rather than kdesudo; the latter does
+      not permit passing through environment variables other than
+      one-by-one, which broke various things (LP: #526456, #538142).
+    - Construct the default hostname from the text in the username box, not
+      from the previous text in the hostname box (LP: #527704).
+  * Automatic update of included source packages: console-setup
+    1.34ubuntu11, grub-installer 1.49ubuntu7, partman-base 138ubuntu3,
+    partman-target 64ubuntu7.
+
+  [ Jonathan Riddell ]
+  * Ensure progressDialog is kept updated (LP: #538147)
+  * Set Qt style accelarators on question dialogue
+  * Do OEM config UI setup after translate_widgets, (LP: #539176)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 15 Mar 2010 23:37:55 +0000
+
+ubiquity (2.1.35) lucid; urgency=low
+
+  * KDE frontend:
+    - There are no more files matching gui/qt/images/*.jpg.  Don't try to
+      install them.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 11 Mar 2010 02:44:21 +0000
+
+ubiquity (2.1.34) lucid; urgency=low
+
+  [ Mario Limonciello ]
+  * Remove extraneous '--', restoring oem-config-firstboot.
+
+  [ Colin Watson ]
+  * Add not_me to the base interface definition of Controller.translate.
+  * Keep track of how partitioning progress is displayed without requiring
+    an argument to be passed to progress_stop (LP: #535630).
+  * Automatic update of included source packages: user-setup 1.28ubuntu5.
+
+  [ Roman Shtylman ]
+  * Updated Kubuntu artwork
+  * Fixed sidebar showing when not in greeter mode for kde
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 11 Mar 2010 01:41:16 +0000
+
+ubiquity (2.1.33) lucid; urgency=low
+
+  [ Colin Watson ]
+  * Wait for kwriteconfig to exit before proceeding.
+  * Start ibus-daemon when starting KDE in install-only mode, which should
+    make a few things a bit happier.
+  * Derive partman component's PageNoninteractive class from PageBase rather
+    than PluginUI, so that it has all the required methods.
+  * Stop starting gdm and kdm by hand on exit from /var/log/installer/dm
+    (using /etc/init.d/ calls, no less).  The Upstart jobs are written so
+    that this happens automatically if necessary.
+
+  [ Evan Dandrea ]
+  * Fix call to self.progress_start in ubi-partman.
+  * Also display progress titles on the advanced partitioning page.
+  * Fix call to self.progress_stop in ubi-partman.
+  * Don't accept unnecessary arguments to progress_stop anymore.
+  * Only try to set the focus on the next button when we've handed over
+    control to the user.  Prior to this the quit button was getting the
+    focus because the next button was insensitive.
+  * Use translatable strings for the keyboard query widget
+    (LP: #533859).
+  * Bring back the resizing partition progress dialog that was removed
+    with the rest of the automatic partitioning progress dialogs.
+  * Remove the intro plugin.  It's now presented as part of the language
+    page when the greeter option (-g) is selected.
+  * Support setting the language for the live environment from the
+    language page in greeter mode by finishing localechooser when 'Try
+    Ubuntu' is clicked.
+  * Fix missing references in the noninteractive portion of the
+    usersetup plugin.
+  * Automatic update of included source packages: bterm-unifont
+    1.1build1, flash-kernel 2.13ubuntu14, grub-installer 1.49ubuntu6,
+    migration-assistant 0.6.4build1, partconf 1.32ubuntu2, partman-base
+    138ubuntu2.
+
+  [ Mario Limonciello ]
+  * Fix wrong page to jump back to when partitioning fails during install.
+  * Remove has_separator property from gtk dialogs to prevent a warning
+    from gtk.Builder when they are loaded.
+
+  [ Roman Shtylman ]
+  * Support the greeter mode in the KDE frontend.
+  * Bring back the in-window progress bar, which was previous disabled to work
+    around a bug.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 09 Mar 2010 13:14:37 +0000
+
+ubiquity (2.1.32) lucid; urgency=low
+
+  [ Didier Roche ]
+  * scripts/install.py:
+   - copy the cached wallpaper created either by g-s-d or nautilus or by the
+     dedicated script in install mode. (LP: #530024)
+
+  [ Evan Dandrea ]
+  * WebKit puts file URLs in their own domain by default.  This means that
+    anything which checks for the same origin, such as creating an
+    XMLHttpRequest, will fail unless this is disabled (LP: #532502).
+  * Restore Colin's set_locale function.  However, this is only half the
+    puzzle.  We need to finish running the language component when the
+    exit button is pressed when in greeter mode.
+
+  [ Colin Watson ]
+  * KDE frontend:
+    - Fix references to PARTITION_* in PartMan module (LP: #528171).
+    - Drop real UID/GID when initialising KApplication.  The real and
+      effective IDs need to match, but raising them means we can't talk to
+      D-Bus.  Instead, use saved IDs to store our root privileges so that we
+      can get them back (LP: #526486).
+  * ubiquity-dm: Close stdout from dbus-launch.
+  * Automatic update of included source packages: apt-setup 1:0.42ubuntu3,
+    user-setup 1.28ubuntu4.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 06 Mar 2010 00:09:55 +0000
+
+ubiquity (2.1.31) lucid; urgency=low
+
+  * Do not show the contents of the language page until the strings have
+    been substituted and translated.
+  * Ellipsize the advanced partitioner progress label so that it doesn't
+    cause the window to expand.  Ideally, we'd also right-align the
+    spinner and left-aligned label, but that doesn't appear to be
+    possible without a custom composite widget, and putting the spinner
+    to the right of a right-aligned label looks ugly.
+  * Fix the spacing on the console-setup page (LP: #528695).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Thu, 04 Mar 2010 12:03:42 +0000
+
+ubiquity (2.1.30) lucid; urgency=low
+
+  [ Mario Limonciello ]
+  * Raise permissions for misc.execute calls in bin/ubiquity.
+  * Don't allow oem-user-config and oem-config to both be enabled.
+
+  [ Evan Dandrea ]
+  * Move the alpha warning for the GTK+ frontend to the language page.
+    It fits better there now that we have the greeter functionality.
+  * Push handling the progress bar when on the partitioning page
+    properly into ubi-partman.
+  * Show the advanced partitioning page immediately, now that its
+    progress is displayed in the window contents (LP: #336751).
+
+ -- Mario Limonciello <Mario_Limonciello@Dell.com>  Wed, 03 Mar 2010 19:40:15 -0600
+
+ubiquity (2.1.29) lucid; urgency=low
+
+  [ Evan Dandrea ]
+  * Align description labels to the top left on the user-setup page and get
+    rid of the width request (LP: #524827).
+  * Fix references to create_label and allow_change_step in the KDE
+    frontend's PartMan module (LP: #527932).
+  * str.split returns a list of one empty string when splitting on an
+    empty string.
+  * Update the KDE frontend with the new slideshow location (as of
+    ubiquity-slideshow 15).
+  * The timezone is perfectly usable at half its width and height, so
+    only request that.  This also means we're not trying to guess how
+    much space we can reasonably take up with the map, but rather
+    letting the rest of the interface determine the width and height of
+    the installer window.
+  * If the screen resolution is particularly low (< 600px height), allow
+    the user to scroll through the user setup page content.
+  * Left-align the labels on the segmented_bars.
+  * Make the segmented_bars narrower.
+  * Set the width of the language selection treeview to the minimum
+    required to fit the contents.  Do not allow it to expand.
+  * Move the greeter functionality into ubiquity itself, still
+    accessible with the maybe-ubiquity boot option (LP: #530713).
+  * Automatic update of included source packages: netcfg 1.51ubuntu2,
+    partconf 1.32ubuntu1, partman-base 138ubuntu1.
+
+  [ Colin Watson ]
+  * Fix choose_partition thawing to handle free space at the end of
+    update_partitions (LP: #527848).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 02 Mar 2010 21:11:41 +0000
+
+ubiquity (2.1.28) lucid; urgency=low
+
+  [ Evan Dandrea ]
+  * Copy oem-config debconf questions only after we're done using the
+    database.
+
+  [ Mario Limonciello ]
+  * Don't mistakenly always show ubiquity running in debug mode warning in
+    oem-config mode.
+
+  [ Colin Watson ]
+  * KDE frontend:
+    - Fix partman component for use_as signature change (LP: #527468).
+    - on_partitionResized needs a self argument (LP: #527457).
+
+  [ Jonathan Riddell ]
+  * kde_ui.py: Always show progressDialog during the install stage (LP:
+    #527448)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 25 Feb 2010 12:37:09 +0000
+
+ubiquity (2.1.27) lucid; urgency=low
+
+  * Check whether choose_partition should be thawed when going back from
+    scanning a non-resizable partition (LP: #527057).
+  * devkit-disks was renamed to udisks; try to inhibit that first.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 24 Feb 2010 15:08:00 +0000
+
+ubiquity (2.1.26) lucid; urgency=low
+
+  [ Evan Dandrea ]
+  * Specify migrationassistant's order as simply coming before summary,
+    as setting it as coming after user-setup and partman was causing it
+    to come after summary (LP: #526581).
+
+  [ Jonathan Riddell ]
+  * kde_ui.py: don't show integrated progress bar, it seems to cause a crash
+    https://launchpad.net/bugs/526534
+  * kde_ui.py: Show progressDialog for install, still needed (LP: #526454)
+
+ -- Jonathan Riddell <jriddell@ubuntu.com>  Wed, 24 Feb 2010 13:11:43 +0000
+
+ubiquity (2.1.25) lucid; urgency=low
+
+  [ Colin Watson ]
+  * Fix installation_medium_mounted call in partman plugin (LP: #524169).
+  * Make sure that /var/log/installer/media-info is world-readable.
+
+  [ Mario Limonciello ]
+  * get_mod_bool needs to default to True if the attribute doesn't
+    exist in the plugin.
+    - Fixes oem-config ValueError (LP: #526405)
+  * Fix launching KDE frontend in oem-config mode (LP: #526496)
+  * Automatic update of included source packages: base-installer
+    1.103ubuntu4.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 22 Feb 2010 23:38:20 +0000
+
+ubiquity (2.1.24) lucid; urgency=low
+
+  [ Cody Russell ]
+  * ubiquity-greeter-gtk: Add language selection facility.
+
+  [ Colin Watson ]
+  * Hook up ubiquity-greeter-gtk's language selection in ubiquity-dm to
+    rewrite /etc/default/locale, /etc/environment, and /etc/locale.gen
+    before continuing.
+  * Remove unnecessary SVG-specific code from ubiquity-greeter-gtk.
+  * Use /usr/share/images/xsplash/bg_2560x1600.jpg as ubiquity-greeter-gtk's
+    background image for now; it's slightly more visually appealing than the
+    test image!
+  * Make sure to run migration-assistant after user-setup, since it uses
+    passwd/username (LP: #524993).
+
+  [ Jonathan Riddell ]
+  * optimizegraphics: Losslessly optimized PNG and SVGZ files with
+    "optipng -o5" and "advdef -z -4". Reduced disk space: 160KB (0MB)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 22 Feb 2010 21:39:58 +0000
+
+ubiquity (2.1.23) lucid; urgency=low
+
+  [ Evan Dandrea ]
+  * Fix docstrings. They need to be the first statement in a function.
+  * Fix method call to set_summary_device in the advanced dialog.
+    Thanks Roman Shtylman.
+
+  [ Mario Limonciello ]
+  * Fix an UnboundLocalError in oem-config mode related to trusted_db.
+  * Remove all of the mythbuntu frontend from ubiquity.  Now that it's fully
+    stable, it's being moved to the mythbuntu-live-autostart package so that
+    it can benefit from being maintained by anyone in ~mythbuntu-dev.
+  * Automatic update of included source packages: grub-installer
+    1.49ubuntu5.
+
+  [ Roman Shtylman ]
+  * Fix for (LP: #424216) KDE ui on small screens
+  * Fix for (LP: #485322) KDE ui forward/install buttons
+  * Fix for (LP: #524090) KDE ui gray bar and scaling wallpaper
+
+ -- Mario Limonciello <superm1@ubuntu.com>  Sun, 21 Feb 2010 22:17:26 -0600
+
+ubiquity (2.1.22) lucid; urgency=low
+
+  * Use raised_privileges() in the noninteractive FE for init.
+  * Fix a couple of areas that broke in the noninteractive portions of
+    ubi-usersetup from the plugins conversion.
+  * Drop myth-summary.  Now that ubi-summary is a plugin, it's much more
+    difficult to override, and not worth the delta.
+  * Since both partman and usersetup now want to go after console_setup,
+    set partman's weight higher than usersetup's to restore the page.
+    (LP: #523648)
+  * Integrate 60mythbuntu target config into myth-passwords now that
+    user setup is a plugin.
+  * For user-setup's PageDebconf, inherit from PageBase for skeleton
+    functions that Page may use.
+
+ -- Mario Limonciello <superm1@ubuntu.com>  Fri, 19 Feb 2010 10:41:33 -0600
+
+ubiquity (2.1.21) lucid; urgency=low
+
+  [ Mario Limonciello ]
+  * Catch some attribute errors if plugins try to use the controller to
+    control allowing page changes too early during initialization due to
+    signal handlers.
+  * Update mythbuntu-services for changes in ubi-usersetup.
+  * Accomodate for the fact that passwd/user-passwd is no longer available
+    by the time the myth-* pages come up.
+
+  [ Evan Dandrea ]
+  * Consider a failure to set up the user-setup page to be a fatal
+    error.
+  * Add some missing imports and variables to the user-setup page.
+  * Add oem-config/install-language-support, which installs the
+    respective language support packages for the locale selected by the
+    user.
+  * Add an 'OEM' field to the plugins to declare whether a module is
+    suitable for use in oem-config (defaults to True).
+  * Don't assuming that the partman component is present when checking
+    to see if we're on the advanced partitioning page.
+  * Make usersetup depend on console_setup rather than partman, in case
+    the latter isn't present.
+  * Validate some fields on the usersetup page in real time.  Provide a
+    visual cue that the data entered is probably okay.
+  * Automatic update of included source packages: console-setup
+    1.34ubuntu10.
+
+  [ Roman Shtylman ]
+  * Fix for (LP: #522502)
+
+ -- Evan Dandrea <evand@ubuntu.com>  Wed, 17 Feb 2010 16:31:17 +0000
+
+ubiquity (2.1.20) lucid; urgency=low
+
+  * Convert migrationassistant, partman, summary, and usersetup to
+    plugins.
+  * Do not fullscreen the installer window when in only-ubiquity mode,
+    so users can see the pretty background and window decorations.
+  * Fix function arguments in ubiquity-dm (LP: #521702).
+  * Add python-rsvg dependency for the new greeter.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Mon, 15 Feb 2010 15:33:38 +0000
+
+ubiquity (2.1.19) lucid; urgency=low
+
+  * Automatic update of included source packages: clock-setup 0.102ubuntu1,
+    debian-installer-utils 1.72ubuntu4.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 14 Feb 2010 02:40:38 +0000
+
+ubiquity (2.1.18) lucid; urgency=low
+
+  * Preliminary version of a new greeter, accessible using the
+    'maybe-ubiquity' boot option.  In this mode, ubiquity-dm displays a
+    choice between "Try Ubuntu without installing" and "Install Ubuntu"
+    after starting X, rather than needing to present that choice at the boot
+    loader.  This is not ready for production use yet and (desperately!)
+    needs artwork, but merging it here will make it easier to test.  Thanks
+    to Cody Russell for the first version of the greeter code.
+  * Thaw choose_partition choices on partman startup.
+  * Always use use_as method to get method choices rather than going through
+    slower partman scripts.  (We were already doing this in some fast
+    paths.)
+  * Always use default_mountpoint_choices method to get mountpoint choices
+    rather than going through slower partman scripts.  (We were already
+    doing this in some fast paths.)
+  * Cache question types in each DebconfFilter instance, saving a debconf
+    command during widget search for every component using type: or ERROR
+    matching.
+  * Install wrapper scripts to cache results of os-prober and
+    linux-boot-prober.  The wrapper approach means that we capture calls to
+    these scripts from shell as well as Python.
+  * Cache question descriptions in partman plugin, since these are
+    frequently fetched and there's no REGISTER funkiness going on in
+    partman.
+  * Avoid descending into partman/free_space just to find out whether it's
+    possible to create a partition there.  We can get the same information
+    by inspecting the data returned by PARTITIONS.
+  * Install set-date-epoch program from clock-setup (>= 0.101).
+  * PROGRESS INFO takes a template, not a string (and even if it took a
+    string, debconf's command parsing wouldn't like passing just a space);
+    adjust install plugin handling to fix debconf_ui (LP: #521362).
+  * Switch to source format 3.0 (native) with bzip2 compression, saving a
+    little over a megabyte.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 14 Feb 2010 02:02:16 +0000
+
+ubiquity (2.1.17) lucid; urgency=low
+
+  [ Mario Limonciello ]
+  * debian/oem-config.postinst:
+    - Source debconf to ensure templates are populated in debconf.
+  * Drop update-rc.d calls from oem-config scripts as it's only supported
+    via upstart now.
+  * misc: return True/False from execute_root rather than None.
+
+  [ Evan Dandrea ]
+  * Use a GtkSpinner instead of a separate progress window when on the
+    manual partitioning page.
+
+  [ Colin Watson ]
+  * In cdebconf mode, initialise the templates database if necessary as a
+    workaround for cdebconf's packaging not doing this itself.
+  * Don't issue PROGRESS REGION command under debconf_ui (LP: #519398).
+  * KDE frontend:
+    - Don't add partition bar frames for devices we can't find for whatever
+      reason (LP: #485450).
+  * Pass model, layout, variant, and options to rewrite_xorg_conf
+    (LP: #514646).
+  * Install zh-hans language packs for zh_CN, and zh-hant language packs for
+    zh_TW (LP: #517621).
+  * Fix crash on keyboard variant selection (LP: #512953).
+  * Enable cancellation of NTP syncing.
+  * Correct tuple syntax in copy_debconf, thereby fixing copying of
+    console-setup's debconf questions.
+  * Fix unmount of /target/dev harder; second and subsequent arguments to
+    os.path.join need to not start with a slash.
+  * Automatically fall back to vesa if normal X startup fails.  This is a
+    reduced emulation of bullet-proof-X; using the standard implementation
+    is currently tricky.
+  * Add a couple of lintian overrides.
+  * Explicitly build-depend on xkb-data-i18n.  We normally skip
+    console-setup's build-dependencies when generating our own, but we need
+    this one to run kbdnames-maker.
+  * Update translations from Launchpad (LP: #473554, #520905).
+  * Automatic update of included source packages: base-installer
+    1.103ubuntu3, console-setup 1.34ubuntu9, debian-installer-utils
+    1.72ubuntu3, grub-installer 1.49ubuntu4, hw-detect 1.73ubuntu2,
+    partman-auto 89ubuntu3, partman-basicfilesystems 63ubuntu3,
+    partman-partitioning 72ubuntu3, tzsetup 1:0.26ubuntu5.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 12 Feb 2010 21:07:51 +0000
+
+ubiquity (2.1.16) lucid; urgency=low
+
+  [ Mario Limonciello ]
+  * Don't fail to run oem-config if oem-config/early_command isn't set.
+  * Copy oem-config/early_command from the installation preseed onto the
+    installed system.
+  * Try to dynamically detect the number of columns we'll need for
+    stepLanguageOnly.  When showing < 15 languages, this fixes the
+    orientation to be in a single column on small displays.
+  * If no plugins declare themselves as plugin_is_install (such as the
+    case in oem-config mode), then assume the last one is the install plugin.
+  * Allow pages that are declared plugin_is_install to process other steps
+    in process_step in addition to the install behaviors.
+  * Add a try/except guard around the fetch of oem-config/extra_packages.
+  * Add oem-config/late-command for cleaning up any preparation that was
+    done via oem-config/early-command for the oem-config run.
+  * Make the Mythbuntu backend setup plugin's GTK widget fit better.
+  * Automatic update of included source packages: apt-setup
+    1:0.42ubuntu2, partman-target 64ubuntu6.
+
+  [ Evan Dandrea ]
+  * Add oem-config/repository and oem-config/key, which respectively
+    specify an additional repository to install packages from and a
+    public key that the packages are signed with.
+  * Copy all oem-config/* templates to the installed system.
+  * Add an additional package (oem-config-remaster) to remaster an
+    Ubuntu ISO with additional packages and oem-config preseed data.
+
+  [ Colin Watson ]
+  * Drop code to remove broken CD-ROM entries from /etc/fstab after install;
+    partman-target 64ubuntu6 no longer writes removable device entries to
+    /etc/fstab.
+
+ -- Mario Limonciello <superm1@ubuntu.com>  Wed, 03 Feb 2010 00:11:50 -0600
+
+ubiquity (2.1.15) lucid; urgency=low
+
+  [ Mario Limonciello ]
+  * Add a new template, ubiquity/only-show-installable-languages for modifying
+    the behavior of what languages to offer on an invokation based upon
+    what's installed or "available" to install according to an apt cache.
+  * Expose extra functions get and substitute to plugins via it's
+    second argument (currently called Progress).
+  * Drop extraneous handlers from Mythbuntu pages.
+  * Move all handlers from mythbuntu_ui directly into plugins themselves.
+  * Move some functions from the install.py script into a new file,
+    install_misc.  The intention here is that they can then be used more
+    directly by ubiquity plugins.
+  * Add a new method for package removals to install_misc to allow
+    plugins to mark packages to be removed later in remove_extras.
+  * Modify the Mythbuntu services plugin to not even offer VNC if a short
+    pw. (LP: #469312)
+  * Convert most of the functions from mythbuntu_install.py into plugin
+    type Install methods.
+  * Support using pkgsel/install-language-support preseeded to false to
+    ignore installation of language packs (just like alternates).
+  * Drop mythbuntu_ui and all references to it.  The (former) Mythbuntu 
+    frontend is now fully pluggable into ubiquity's gtk_ui on it's own.
+  * Fix unmount command in chroot_cleanup to actually release /target/dev.
+  * In the KDE frontend for ubi-language, use findChildren to find widgets
+    because QWidget itself is not iterable.
+  * In the KDE frontend, don't try to set the text on the breadcrumbs early
+    as translations don't appear ready yet.  The widgets will still load,
+    and translate when the langauge is changed. (LP: #511947)
+  * Automatic update of included source packages: console-setup
+    1.34ubuntu8, debian-installer-utils 1.72ubuntu2, tzsetup
+    1:0.26ubuntu4.
+
+  [ Evan Dandrea ]
+  * Support getting the timezone from a geoip server (LP: #229884).
+  * Move oem-config runtime debconf questions into the oem-config
+    package.
+  * Add oem-config/early_command (run a command just before oem-config
+    starts).
+  * Support installing additional packages at runtime in oem-config, as
+    specified by oem-config/extra_packages.
+
+ -- Mario Limonciello <superm1@ubuntu.com>  Sun, 31 Jan 2010 23:44:44 -0600
+
+ubiquity (2.1.14) lucid; urgency=low
+
+  * Add missing build dependency on keymapper.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Fri, 22 Jan 2010 10:17:54 +0000
+
+ubiquity (2.1.13) lucid; urgency=low
+
+  [ Colin Watson ]
+  * Don't crash if something races with ubiquity or ubiquity-dm to create
+    /var/log/installer (LP: #458806).
+
+  [ Evan Dandrea ]
+  * Support the new translated keyboard names in console-setup
+    (LP: #127528).
+  * Provide an option to determine the keymap from a decision tree.
+  * Add missing parameter to exception in bin/ubiquity.
+  * slideshow_get_available_locale is an instance method (LP: #510710).
+  * The frontend always has a db attribute, per r3665, so revise the check in
+    debconf_communicator.  Thanks Colin Watson.
+  * Add missing function argument to Install's prepare.
+  * Automatic update of included source packages: console-setup
+    1.34ubuntu7, grub-installer 1.49ubuntu2, partman-uboot 3.
+
+  [ Mario Limonciello ]
+  * Remove another reference to a long dead xserver-xorg debconf question.
+  * Don't try reconfiguring LRM, it's been superceded by DKMS based packages.
+  * Add a new top function to the Controller to allow toggling the
+    visibility of the live installer from a plugin.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Fri, 22 Jan 2010 09:24:12 +0000
+
+ubiquity (2.1.12) lucid; urgency=low
+
+  [ Colin Watson ]
+  * Add osextras.unlink_force, equivalent to 'rm -f', to save on tedious
+    exception handling.
+  * Only restart debconf-communicator when changing language, not every time
+    we switch page.  This speeds up page transitions quite a bit, and should
+    incidentally fix LP: #508725 as well.
+  * GTK frontend:
+    - Check plugin builders as well when adding widgets (setting their
+      names, making them callable by the toplevel, etc.).  This fixes
+      translations of the language, timezone, and keyboard pages.
+  * Fix immediate retranslation when changing language.
+  * Add a semaphore to misc.regain_privileges and misc.drop_privileges, so
+    that a drop/regain pair always returns to the previous state.
+    misc.drop_all_privileges is now more clearly one-way, enforced by an
+    assertion.
+  * Add a context manager (raised_privileges) and a function decorator
+    (raise_privileges) that are equivalent to a
+    regain_privileges/drop_privileges pair, but that wrap up the required
+    try/finally logic to make it less likely that we'll end up at the wrong
+    privilege level by mistake.
+  * When attempting to upgrade the installer, only stop debconf-communicator
+    once we've determined that we actually have something to upgrade
+    (LP: #495175).
+  * Require Python 2.6, for the 'with' statement.
+  * Move default GRUB target calculation to ubiquity.misc, which is a better
+    location for common code than ubiquity.components.summary.  Try to avoid
+    using (hd0) as the target (prefer the first device from grub-mkdevicemap
+    output if possible), and, when installing from a non-CD medium, only
+    reset the default boot device if we would otherwise end up installing
+    GRUB to the installation medium.
+  * Initialise FilteredCommand.ui_loop_level earlier, just in case
+    (LP: #484452).
+
+  [ Evan Dandrea ]
+  * Allow the user to set a hostname in oem-config.
+  * Finally, finally, finally successfully work around GTK+ not
+    supporting height-for-width in labels.
+  * Remove labels created by plugins from the focus chain.
+  * Don't try to generate an apparmor cache in oem-config.
+  * Slightly better exception printing in scripts/install.py
+  * GNOME Bug #56070 (can't click button twice) has long since been
+    closed.  Remove hack.
+  * Automatic update of included source packages: localechooser
+    2.12ubuntu3, user-setup 1.28ubuntu3.
+
+  [ Mario Limonciello ]
+  * Drop old hack for reconfiguring mythbuntu-default-settings since
+    this is fixed in user-setup now.
+  * Drop old hack for copying ^xserver-xorg onto the target system.  No
+    longer necessary as thse variables don't exist in current installs.
+
+  [ Dylan McCall ]
+  * Use slideshow for language variants if available (LP: #476269).
+
+  [ Michael Terry ]
+  * Reset contents of timezone combo boxes every time the timezone page is
+    entered (LP: #461104).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Wed, 20 Jan 2010 15:35:08 +0000
+
+ubiquity (2.1.11) lucid; urgency=low
+
+  [ Evan Dandrea ]
+  * Remove ubiquity on successful completion of oem-config (LP: #210779).
+
+  [ Didier Roche ]
+  * Rebuild needed to take 1.28ubuntu2 user-setup-apply version (LP: #507121)
+
+  [ Colin Watson ]
+  * Log calls to partman's freeze_choices and thaw_choices.
+  * Revert frozen choices change from 2.1.8.  Instead, arrange to thaw
+    choices for partman/choose_partition immediately *before* going back to
+    it at the end of building the cache, rather than just after it's
+    displayed when thawing choices has no immediate effect (LP: #506585).
+  * Automatic update of included source packages: partman-base 135ubuntu4,
+    user-setup 1.28ubuntu2.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 16 Jan 2010 00:31:16 +0000
+
+ubiquity (2.1.10) lucid; urgency=low
+
+  [ Colin Watson ]
+  * Handle transitioning away from plymouth in ubiquity-dm.
+
+  [ Evan Dandrea ]
+  * Use new URL format introduced by the latest ubiquity-slideshow.
+  * Support RTL text in the Kubuntu slideshow.
+  * Bring the KDE frontend slideshow handling into line with GTK
+    frontend.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 12 Jan 2010 12:35:53 +0000
+
+ubiquity (2.1.9) lucid; urgency=low
+
+  * Generate an apparmor cache to speed up boot time.
+  * Handle SUDO_USER not being set in copy_network_config.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Mon, 11 Jan 2010 17:15:07 +0000
+
+ubiquity (2.1.8) lucid; urgency=low
+
+  [ Evan Dandrea ]
+  * On the timezone page, replace the GTK Comboboxes with ComboboxEntrys and
+    add support for typeahead by country/region and city.
+
+  [ Colin Watson ]
+  * Cope with frozen choices when preseeding partman to select a particular
+    script (LP: #505197).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 10 Jan 2010 23:04:44 +0000
+
+ubiquity (2.1.7) lucid; urgency=low
+
+  [ Mario Limonciello ]
+  * Mythbuntu: Reconfigure mythbuntu-default-settings to ensure that the
+    DefaultSession is set.
+  * Only run hal-lock if hald is actually running due to changes in
+    hal 0.5.14-0ubuntu2.
+  * Widget names are no longer stored in the widget's internal name, but
+    rather in the object data.  Sync this information back to the widget's
+    internal name. (LP: #503710)
+  * Automatic update of included source packages: grub-installer
+    1.49ubuntu1.
+
+  [ Evan Dandrea ]
+  * Copy any network configuration set up by the user of the live CD to
+    the installed system.
+
+ -- Mario Limonciello <superm1@ubuntu.com>  Wed, 06 Jan 2010 03:37:13 -0600
+
+ubiquity (2.1.6) lucid; urgency=low
+
+  [ Colin Watson ]
+  * Tell partman not to recalculate choices for choose_partition or
+    active_partition while we're going back and forward building the cache.
+    Requires partman-base 135ubuntu3.
+
+  [ Mario Limonciello ]
+  * debian/control: Drop Recommends on gnome-system-tools.  Code that was
+    using time-admin was removed back in ubiquity 1.3.7.
+  * Automatic update of included source packages: console-setup
+    1.34ubuntu6, partman-base 135ubuntu3.
+
+ -- Mario Limonciello <superm1@ubuntu.com>  Thu, 31 Dec 2009 01:21:41 -0600
+
+ubiquity (2.1.5) lucid; urgency=low
+
+  [ Mario Limonciello ]
+  * Mythbuntu: Don't start MySQL using the upstart scripts since they don't
+    work in a chroot. (LP: #494830)
+
+  [ Colin Watson ]
+  * Update two more edit_partition calls to account for renamed format ->
+    fmt argument (LP: #494608).
+  * Remove hack forcing the use of sudo with the KDE frontend, as it no
+    longer appears to be necessary and things break if we don't use kdesudo
+    (LP: #494997).
+  * Make ubiquity.parted_server's logging to /var/log/partman more
+    distinctive.
+  * Set sensible permissions on /var/log/installer/debug, not os.open's
+    default of 0755.
+  * Gather basic information from parted_server using the PARTITIONS command
+    (all partitions on a disk at once), which is slightly faster than
+    PARTITION_INFO (one partition at a time).
+  * Initialise automation_error_cmd, error_cmd, and success_cmd to '' rather
+    than None, since that's what's checked by the functions that use them.
+  * Unlink /var/lib/localechooser/langlevel even if unlinking
+    /var/lib/localechooser/preseeded fails.
+  * Regain privileges to unlink /var/lib/localechooser/preseeded and
+    /var/lib/localechooser/langlevel.
+  * Enable debconffilter debugging if UBIQUITY_DEBUG_CORE=1, so that we can
+    set DEBCONF_DEBUG=developer rather than DEBCONF_DEBUG=developer|filter
+    which cdebconf doesn't understand.
+  * Automatic update of included source packages: console-setup 1.34ubuntu5,
+    partman-base 135ubuntu2.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 16 Dec 2009 00:31:12 +0000
+
+ubiquity (2.1.4) lucid; urgency=low
+
+  [ Mario Limonciello ]
+  * Correct a variable that didn't get changed from pychecker
+    cleanup in the intro plugin (LP: #492873).
+
+  [ Martin Pitt ]
+  * scripts/ubi-restart-hal:
+    - Restart hal the upstart way.
+    - Do not fail if hal does not exist, and drop hal dependency. 
+      (LP: #493139)
+    - Also trigger an udev change event for key devices, so that the changed
+      keyboard settings also apply to an udevified X.org server.
+  * scripts/ubi-restart-hal: Rename to scripts/ubi-reload-keyboard to state
+    the intent, not the means (since it now primarily applies to udev).
+    Adjust debian/oem-config.install accordingly.
+
+  [ Colin Watson ]
+  * Automatic update of included source packages: base-installer
+    1.103ubuntu2, preseed 1.43.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 08 Dec 2009 11:58:27 +0000
+
+ubiquity (2.1.3) lucid; urgency=low
+
+  [ Evan Dandrea ]
+  * Additional code cleanup from pycheck findings.
+
+  [ Mario Limonciello ]
+  * Don't run run_target_config_hooks for OEM config mode.  It's
+    already run during actual installation and can cause problems
+    during the OEM config run. (LP: #473241)
+  * Mythbuntu frontend: don't default to UseEvents for NVIDIA anymore.
+
+  [ Colin Watson ]
+  * Pass DATA command through debconffilter rather than swallowing it,
+    restoring useful progress information (LP: #445385).
+  * Fix KDE frontend translation issues (LP: #478006):
+    - Retranslate install_process_label when the language changes.
+    - Make "Layout:", "Variant:", and "Below is an image of your current
+      layout:" translatable.
+  * Fix inconsistent return types in partman.Page.snoop.
+  * Automatic update of included source packages: base-installer
+    1.103ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 03 Dec 2009 16:47:09 +0000
+
+ubiquity (2.1.2) lucid; urgency=low
+
+  * Adjust for path changes in debian-installer-utils 1.72.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 27 Nov 2009 20:39:23 +0000
+
+ubiquity (2.1.1) lucid; urgency=low
+
+  [ Evan Dandrea ]
+  * Run success_cmd, error_cmd, and automation_error_cmd as root.
+  * Use /cdrom/casper/filesystem.size instead of calculating the size of
+    /rofs on each run.
+  * Include a progress message for ubiquity/success_command.
+  * Do not use the preseeded install progress message as the install
+    window title.  Use a more understandable string.
+  * Check the syntax of any shell scripts in the source tree as part of
+    debian/rules check.
+
+  [ Mario Limonciello ]
+  * When calling execute_root, don't pass a list because everything
+    passed is translated into a tupple.  Passing a list causes subprocess to
+    fail when invoked.
+
+  [ Colin Watson ]
+  * Add a button to the language page to upgrade the installer on the fly,
+    based on work by Michael Vogt several years ago (LP: #55505).
+  * GTK frontend:
+    - Only set the debconf progress window's transience and type hint when
+      it isn't already being shown.
+  * Automatic update of included source packages: debian-installer-utils
+    1.72ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 27 Nov 2009 20:02:26 +0000
+
+ubiquity (2.1.0) lucid; urgency=low
+
+  [ Evan Dandrea ]
+  * Run X with -nolisten tcp (LP: #462394).
+  * Make sure we never try to install onto the live filesystem.
+  * Only print the filenames being blacklisted if in debug mode.
+  * Provide human readable sizes in the partitions-too-small warning
+    (LP: #298974).
+  * Mark the "Installation Complete" window as always on top
+    (LP: #462178).
+  * Fixes from Pychecker for the KDE frontend (kde_ui):
+    - Don't import datetime or math.  The timezone code is in a separate
+      module now.
+    - Remove some unused variables.
+    - Don't assign to a variable that's going to be immediately discarded.
+  * Signal to GTK+ when using a right-to-left language, so that it
+    composes the interface from right to left (LP: #222845).
+  * Signal to the slideshow when the installer is using a right-to-left
+    language (LP: #446989).
+  * Set SUDO_UID and SUDO_GID in ubiquity-dm so ubiquity knows what user
+    to drop privileges to (LP: #422254).
+  * Do not try to configure networking in oem-config (LP: #471498).
+  * Make migration-assistant import failures non-fatal to the overall
+    install.
+  * pkgsel now provides a debconf question to avoid warning the end user
+    when the language packs could not be installed (LP: #471553).
+  * Make sure a device exists as part of the grub target device
+    validation.
+  * Allow the user to retry grub installation with a different device on
+    failure.
+  * Automatic update of included source packages: apt-setup
+    1:0.42ubuntu1, choose-mirror 2.29ubuntu2, clock-setup 0.100ubuntu1,
+    debian-installer-utils 1.71ubuntu1, grub-installer 1.47ubuntu1, hw-
+    detect 1.73ubuntu1, netcfg 1.51ubuntu1, partman-base 135ubuntu1,
+    tzsetup 1:0.26ubuntu1, user-setup 1.28ubuntu1.
+
+  [ Colin Watson ]
+  * Add a debian/rules target to run pychecker. I've fixed several warnings,
+    but there are still several left so this is not yet enabled by default.
+  * Fix debconf frontend:
+    - Start oem-config on stopping rc, as well as when starting display
+      managers.
+    - Add some missing imports (ubiquity.frontend.base.Controller,
+      ubiquity.plugin.Plugin, ubiquity.i18n, signal,
+      ubiquity.components.install).
+    - If there's a containing debconf frontend, talk to it rather than using
+      debconf-communicator.
+    - Set a controller in the language plugin.
+    - Use spaces rather than ${!TAB} in localechooser when using the debconf
+      frontend, since debconf doesn't support the latter yet.
+    - Don't handle user-setup preseeding for the debconf frontend.
+    - Remove unused progress_position handling.
+    - Fix exception names in ubi-network and ubi-tasks.
+  * Require Python 2.5, so we can now use hashlib rather than md5 and avoid
+    a slew of warnings.
+  * Add an intro message noting that we're alpha again.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Fri, 13 Nov 2009 10:41:42 +0000
 
 ubiquity (2.0.8) karmic-updates; urgency=low
 
@@ -6637,3 +7939,4 @@ ubuntu-express (0.4ubuntu1) breezy; urgency=low
   * Initial Release.
 
  -- Javier Carranza <javier.carranza@interactors.coop>  Fri, 29 Jul 2005 17:04:51 +0200
+

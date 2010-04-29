@@ -33,6 +33,6 @@ class PageDebconf(PluginUI):
 class Page(Plugin):
     def prepare(self, unfiltered=False):
         if not unfiltered:
-            raise NetworkFilteredOnly, \
+            raise NetworkUnfilteredOnly, \
                 "network component only usable with debconf frontend"
         return ['/usr/lib/ubiquity/netcfg-wrapper']

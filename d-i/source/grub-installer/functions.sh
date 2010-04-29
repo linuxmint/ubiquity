@@ -2,7 +2,7 @@
 update_mtab() {
 	[ "$ROOT" ] || return 0
 
-	[ ! -h /etc/mtab ] || return 0
+	[ ! -h "$ROOT/etc/mtab" ] || return 0
 
 	mtab=$ROOT/etc/mtab
 	grep "$ROOT" /proc/mounts | (

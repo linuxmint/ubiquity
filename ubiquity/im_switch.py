@@ -18,7 +18,7 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 # This is a Python reimplementation of im-switch's Xsession script:
-#   Copyright (C) 2005 Kenshi Muto <kmuto@debian.org> 
+#   Copyright (C) 2005 Kenshi Muto <kmuto@debian.org>
 #    Modified for Debian package.
 #   Copyright (C) 1999 - 2004 Red Hat, Inc. All rights reserved. This
 #   copyrighted material is made available to anyone wishing to use, modify,

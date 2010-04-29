@@ -135,6 +135,7 @@ if [ "x$1" = "x--supported" ]; then
 		"HP Media Vault mv2120")		exit 0 ;;
 		"Marvell DB-MV88F6781-BP Development Board") exit 0 ;;
 		"Linksys NSLU2")			exit 0 ;;
+		"OMAP3 Beagle Board")			exit 0 ;;
 		"QNAP TS-109/TS-209" | "QNAP TS-409")	exit 0 ;;
 		"Thecus N2100")				exit 0 ;;
 		*)					exit 1 ;;
@@ -518,6 +519,56 @@ EOF
 		echo "Creating new /boot/boot.scr." >&2
 		mv "$tmp.boot.scr" /boot/boot.scr
 		rm -f "$tmp.boot.script" "$tmp.boot.scr"
+	;;
+	"OMAP3 Beagle Board")
+		initrd_nand_size="16777216"
+		check_mtd
+		kmtd=$(mtdblock "Kernel")
+		if [ -z "$kmtd" ]; then
+			error "Cannot find mtd partition 'Kernel'"
+		fi
+		check_dev_mtdblock "$kmtd"
+		kmtdsize=$(mtdsize "Kernel")
+		check_size "Kernel" $(($kfilesize + 8 + 64)) $kmtdsize
+
+		printf "Generating kernel u-boot image... " >&2
+		tmp=$(tempfile) 
+		cat $kfile >> $tmp
+		mkimage -A arm -O linux -T kernel -C none -a 0x80008000 \
+			-e 0x80008000 -n "Ubuntu Kernel" -d $tmp $tmp.uboot >&2 1>/dev/null
+		echo "done." >&2
+
+		printf "Erasing Kernel NAND space... " >&2 
+		dd if=/dev/zero of=$kmtd bs=$kmtdsize count=1 2>/dev/null
+		echo "done." >&2
+
+		printf "Flashing kernel... " >&2
+		cat $tmp.uboot > $kmtd || error "failed."
+		echo "done." >&2
+		rm -f $tmp.uboot $tmp
+
+		imtd=$(mtdblock "File System")
+		if [ -z "$imtd" ]; then
+			error "Cannot find mtd partition for Initramfs"
+		fi
+		check_dev_mtdblock "$imtd"
+		check_size "Initramfs" $ifilesize $initrd_nand_size
+
+		printf "Generating Initramfs u-boot image... " >&2
+		tmp=$(tempfile) 
+		cat $ifile >> $tmp
+		mkimage -A arm -O linux -T ramdisk -C none -a 0x0 -e 0x0 \
+			-n "Ubuntu Initrd" -d $tmp $tmp.uboot >&2 1>/dev/null
+		echo "done." >&2
+
+		printf "Erasing Initramfs NAND space... " >&2
+		dd if=/dev/zero of=$imtd bs=$initrd_nand_size count=1 2>/dev/null
+		echo "done." >&2
+
+		printf "Flashing Initramfs... " >&2
+		cat $tmp.uboot > $imtd || error "failed."
+		echo "done." >&2 
+		rm -f $tmp.uboot $tmp
 	;;
 	"QNAP TS-109/TS-209" | "QNAP TS-409")
 		check_subarch "orion5x"

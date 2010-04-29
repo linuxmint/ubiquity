@@ -20,4 +20,7 @@ partmap: partmap.c
 clean:
 	rm -f parted_server parted_devices partmap
 
+test:
+	cd test && ./conversions
+
 .PHONY: clean

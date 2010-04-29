@@ -85,6 +85,17 @@ _Description: Write the changes to disks?
  .
  ${ITEMS}
 
+Template: partman/confirm_nooverwrite
+Type: boolean
+Default: false
+# :sl1:
+#flag:translate!:3
+_Description: Write the changes to disks?
+ If you continue, the changes listed below will be written to the disks.
+ Otherwise, you will be able to make further changes manually.
+ .
+ ${ITEMS}
+
 Template: partman/text/confirm_item_header
 Type: text
 # :sl2:
@@ -247,6 +258,18 @@ Type: text
 # :sl1:
 _Description: #%s
 
+Template: partman/text/ata_disk
+Type: text
+# For example ATA1 (ad0)
+# :sl1:
+_Description: ATA%s (%s)
+
+Template: partman/text/ata_partition
+Type: text
+# For example ATA1, partition #5 (ad0s5)
+# :sl1:
+_Description: ATA%s, partition #%s (%s)
+
 Template: partman/text/ide_master_disk
 Type: text
 # For example IDE0 master (hda)
@@ -280,6 +303,16 @@ Template: partman/text/scsi_partition
 Type: text
 # :sl1:
 _Description: SCSI%s (%s,%s,%s), partition #%s (%s)
+
+Template: partman/text/scsi_simple_disk
+Type: text
+# :sl1:
+_Description: SCSI%s (%s)
+
+Template: partman/text/scsi_simple_partition
+Type: text
+# :sl1:
+_Description: SCSI%s, partition #%s (%s)
 
 Template: partman/text/mmc_disk
 Type: text
@@ -386,7 +419,7 @@ Description: for internal use; can be preseeded
 
 Template: partman/default_filesystem
 Type: string
-Default: ext4
+Default: ext3
 Description: for internal use; can be preseeded
  Default filesystem used for new partitions
 
@@ -415,3 +448,24 @@ _Description: Installation medium on ${PARTITION}
  Your installation medium is on ${PARTITION}. You will not be able to
  create, delete, or resize partitions on this disk, but you may be able to
  install to existing partitions there.
+
+Template: partman/alignment
+Type: select
+Choices: cylinder, minimal, optimal
+Default: optimal
+Description: for internal use; can be preseeded
+ Adjust the policy for starting and ending alignment of new partitions.  You
+ can generally leave this alone unless optimal alignment causes some kind of
+ problem.
+ .
+ Cylinder alignment was required by very old DOS-era systems, and is not
+ usually needed nowadays.  However, a few buggy BIOSes may try to calculate
+ cylinder/head/sector addresses for partitions and get confused if
+ partitions aren't cylinder-aligned.
+ .
+ Minimal alignment ensures that new partitions are aligned to physical
+ blocks on the disk, avoiding performance degradation that may occur with
+ cylinder alignment particularly on modern disks.
+ .
+ Optimal alignment ensures that new partitions are aligned to a suitable
+ multiple of the physical block size, guaranteeing optimal performance.

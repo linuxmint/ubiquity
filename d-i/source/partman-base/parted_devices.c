@@ -1,4 +1,3 @@
-#ifdef __linux__
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -6,13 +5,19 @@
 #include <unistd.h>
 #include <string.h>
 
+#ifdef __linux__
 /* from <linux/cdrom.h> */
 #define CDROM_GET_CAPABILITY	0x5331	/* get capabilities */
 #endif /* __linux__ */
 
+#ifdef __FreeBSD_kernel__
+#include <sys/cdio.h>
+#include <errno.h>
+#endif
+
 #include <parted/parted.h>
 
-#ifdef __linux__
+#if defined(__linux__)
 static int
 is_cdrom(const char *path)
 {
@@ -28,20 +33,41 @@ is_cdrom(const char *path)
 	else
 		return 0;
 }
-#else /* !__linux__ */
-#define is_cdrom(path) 0
-#endif /* __linux__ */
+#elif defined(__FreeBSD_kernel__) /* !__linux__ */
+static int
+is_cdrom(const char *path)
+{
+	int fd;
 
-#ifdef __linux__
+	fd = open(path, O_RDONLY | O_NONBLOCK);
+	ioctl(fd, CDIOCCAPABILITY, NULL);	
+	close(fd);
+
+	if (errno != EBADF && errno != ENOTTY)
+		return 1;
+	else
+		return 0;
+}
+#else /* !__linux__ && !__FreeBSD_kernel__ */
+#define is_cdrom(path) 0
+#endif
+
+#if defined(__linux__)
 static int
 is_floppy(const char *path)
 {
 	return (strstr(path, "/dev/floppy") != NULL ||
 		strstr(path, "/dev/fd") != NULL);
 }
-#else /* !__linux__ */
+#elif defined(__FreeBSD_kernel__) /* !__linux__ */
+static int
+is_floppy(const char *path)
+{
+	return (strstr(path, "/dev/fd") != NULL);
+}
+#else /* !__linux__ && !__FreeBSD_kernel__ */
 #define is_floppy(path) 0
-#endif /* __linux__ */
+#endif
 
 void
 process_device(PedDevice *dev)

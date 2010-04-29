@@ -9,6 +9,8 @@ import errno
 import imp
 import grp
 
+import debconf
+
 sys.path.insert(0, '/usr/lib/ubiquity')
 
 import ubiquity.frontend
@@ -16,8 +18,49 @@ import pwd
 
 from ubiquity import osextras
 from ubiquity.casper import get_casper
+from ubiquity.debconfcommunicator import DebconfCommunicator
 
-background = '/usr/share/backgrounds/Fresh.jpg'
+background = '/usr/share/backgrounds/warty-final-ubuntu.png'
+
+def set_locale():
+    db = DebconfCommunicator('ubiquity', cloexec=True)
+    locale = ''
+    try:
+        locale = db.get('debian-installer/locale')
+    except debconf.DebconfError:
+        pass
+    db.shutdown()
+
+    if not locale:
+        return
+
+    default_locale = open('/etc/default/locale', 'w')
+    print >>default_locale, 'LANG="%s"' % locale
+    default_locale.close()
+
+    environment = open('/etc/environment')
+    environment_lines = environment.readlines()
+    environment.close()
+    environment = open('/etc/environment', 'w')
+    seen_lang = False
+    for line in environment_lines:
+        if line.startswith('LANG='):
+            print >>environment, 'LANG="%s"' % locale
+            seen_lang = True
+        else:
+            print >>environment, line.rstrip('\n')
+    if not seen_lang:
+        print >>environment, 'LANG="%s"' % locale
+    environment.close()
+
+    locale_gen = open('/etc/locale.gen', 'w')
+    print >>locale_gen, '%s UTF-8' % locale
+    locale_gen.close()
+
+    logfile = open('/var/log/installer/dm', 'a')
+    subprocess.call(['/usr/sbin/locale-gen', locale],
+                    stdout=logfile, stderr=logfile)
+    logfile.close()
 
 class XStartupError(EnvironmentError):
     pass
@@ -45,7 +88,7 @@ class DM:
         # this lets us find out which window manager etc. to launch. Be
         # careful that importing this here will cause the underlying library
         # to try to talk to the X server, which won't go well.
-        frontend_names = ['mythbuntu_ui', 'gtk_ui', 'kde_ui']
+        frontend_names = ['gtk_ui', 'kde_ui']
         self.frontend = None
         for f in frontend_names:
             try:
@@ -61,6 +104,19 @@ class DM:
     def sigusr1_handler(self, signum, frame):
         self.server_started = True
 
+    def active_vt(self):
+        import fcntl
+        import array
+
+        console = os.open('/dev/tty0', os.O_RDONLY | os.O_NOCTTY)
+        try:
+            VT_GETSTATE = 0x5603
+            vt_stat = array.array('H', [0, 0, 0])
+            fcntl.ioctl(console, VT_GETSTATE, vt_stat)
+            return vt_stat[0]
+        finally:
+            os.close(console)
+
     def drop_privileges(self):
         os.setgroups(self.groups)
         os.setgid(self.gid)
@@ -71,35 +127,107 @@ class DM:
 
     def run(self, *program):
         null = open('/dev/null', 'w')
-        if not os.path.exists('/var/log/installer'):
+        try:
             os.makedirs('/var/log/installer')
+        except OSError, e:
+            # be happy if someone already created the path
+            if e.errno != errno.EEXIST:
+                raise
         logfile = open('/var/log/installer/dm', 'w')
 
         signal.signal(signal.SIGUSR1, self.sigusr1_handler)
         signal.signal(signal.SIGTTIN, signal.SIG_IGN)
         signal.signal(signal.SIGTTOU, signal.SIG_IGN)
 
-        servercommand = ['X', '-br', '-ac', '-noreset', self.vt, self.display]
-        if self.frontend == 'mythbuntu_ui':
-            servercommand.append('-dpi')
-            servercommand.append('100')
+        servercommand = ['X', '-br', '-ac', '-noreset', '-nolisten', 'tcp']
 
-        server = subprocess.Popen(servercommand, stdin=null, stdout=logfile, stderr=logfile, preexec_fn=self.server_preexec)
+        try:
+            plymouth_running = subprocess.call(['plymouth', '--ping']) == 0
+        except OSError:
+            plymouth_running = False
+        if plymouth_running:
+            subprocess.call(['plymouth', 'deactivate'])
+            if subprocess.call(['plymouth', '--has-active-vt']) == 0:
+                self.vt = 'vt%d' % self.active_vt()
+                servercommand.append('-nr')
+            else:
+                subprocess.call(['plymouth', 'quit'])
+                plymouth_running = False
+
+        servercommand.extend([self.vt, self.display])
+
+        for attempt in ('main', 'failsafe'):
+            command = list(servercommand)
+            if attempt == 'failsafe':
+                # TODO cjwatson 2010-02-11: This is a bodge.  The
+                # duplication is nasty, but fortunately bullet-proof X
+                # actually turns out not to be very complicated nowadays.
+                # Most of the complexity is in the fallback session, which I
+                # haven't attempted to integrate here, so you won't get
+                # things like interactive reconfiguration.  I believe Evan
+                # is working on doing that, but is blocked on a couple of
+                # Upstart bugs; once all that's resolved, we should back
+                # this out.
+                xorg_conf_failsafe = '/etc/X11/xorg.conf.failsafe'
+                command.extend(['-config', xorg_conf_failsafe])
+                command.extend(['-logfile', '/var/log/Xorg.failsafe.log'])
+
+                if not os.path.exists(xorg_conf_failsafe):
+                    xorg_conf_failsafe_file = open(xorg_conf_failsafe, 'w')
+                    print >>xorg_conf_failsafe_file, '''\
+Section "Device"
+	Identifier	"Configured Video Device"
+	Driver		"vesa"
+EndSection
+
+Section "Monitor"
+	Identifier	"Configured Monitor"
+EndSection
+
+Section "Screen"
+	Identifier	"Default Screen"
+	Monitor		"Configured Monitor"
+	Device		"Configured Video Device"
+EndSection
+'''
+                    xorg_conf_failsafe_file.close()
+
+            server = subprocess.Popen(
+                command, stdin=null, stdout=logfile, stderr=logfile,
+                preexec_fn=self.server_preexec)
+
+            # Really we should select on a pipe or something, but it's not
+            # worth the effort for now.
+            try:
+                timeout = 60
+                while not self.server_started:
+                    status = server.poll()
+                    if type(status) is int and status != 0:
+                        if plymouth_running:
+                            subprocess.call(['plymouth', 'quit'])
+                        raise XStartupError, \
+                            "X server exited with return code " + str(status)
+                    if timeout == 0:
+                        if plymouth_running:
+                            subprocess.call(['plymouth', 'quit'])
+                        raise XStartupError, \
+                            "X server failed to start after 60 seconds"
+                    time.sleep(1)
+                    timeout -= 1
+                if plymouth_running:
+                    subprocess.call(['plymouth', 'quit', '--retain-splash'])
+            except XStartupError:
+                if attempt == 'failsafe':
+                    raise
+
+            if self.server_started:
+                break
 
         os.environ['DISPLAY'] = self.display
         os.environ['HOME'] = self.homedir
-
-        # Really we should select on a pipe or something, but it's not worth
-        # the effort for now.
-        timeout = 60
-        while not self.server_started:
-            status = server.poll()
-            if type(status) is int and status != 0:
-                raise XStartupError, "X server exited with return code " + str(status)
-            if timeout == 0:
-                raise XStartupError, "X server failed to start after 60 seconds"
-            time.sleep(1)
-            timeout -= 1
+        # Give ubiquity a UID and GID that it can drop privileges to.
+        os.environ['SUDO_UID'] = str(self.uid)
+        os.environ['SUDO_GID'] = str(self.gid)
 
         # Session bus, apparently needed by most interfaces now
         if ('DBUS_SESSION_BUS_ADDRESS' not in os.environ and
@@ -114,10 +242,11 @@ class DM:
                     os.environ[name] = value
                 except ValueError:
                     pass
+            dbus_subp.stdout.close()
             dbus_subp.wait()
 
         gconfd_running = False
-        if ((self.frontend == 'gtk_ui' or self.frontend == 'mythbuntu_ui') and
+        if (self.frontend == 'gtk_ui' and
             osextras.find_on_path('gconftool-2')):
             subprocess.call(['gconftool-2', '--spawn'],
                             stdin=null, stdout=logfile, stderr=logfile,
@@ -125,7 +254,7 @@ class DM:
             gconfd_running = True
 
         extras = []
-        if self.frontend == 'gtk_ui' or self.frontend == 'mythbuntu_ui':
+        if self.frontend == 'gtk_ui':
             gconf_dir = ('xml:readwrite:%s' %
                 os.path.expanduser('~%s/.gconf' %
                 self.username))
@@ -146,7 +275,8 @@ class DM:
             # Accessibility infrastructure
             if accessibility == 'true':
                 if os.path.exists('/usr/lib/at-spi/at-spi-registryd'):
-                    extras.append(subprocess.Popen(['/usr/lib/at-spi/at-spi-registryd'],
+                    extras.append(subprocess.Popen(
+                        ['/usr/lib/at-spi/at-spi-registryd'],
                         stdin=null, stdout=logfile, stderr=logfile))
                     os.environ['GTK_MODULES'] = 'gail:atk-bridge'
 
@@ -157,7 +287,8 @@ class DM:
             # Don't show the background image in v1 accessibility profile. It
             # is not shown in the GNOME desktop after all.
             fp = open('/proc/cmdline', 'r')
-            if os.access(background, os.R_OK) and not 'access=v1' in fp.readline():
+            if (os.access(background, os.R_OK) and
+                not 'access=v1' in fp.readline()):
                 import gtk
                 pixbuf = gtk.gdk.pixbuf_new_from_file(background)
                 root = gtk.gdk.get_default_root_window()
@@ -169,26 +300,28 @@ class DM:
                 gtk.gdk.flush()
             fp.close()
 
-        if self.frontend in ('gtk_ui', 'mythbuntu_ui'):
+        if self.frontend == 'gtk_ui':
             if gconfd_running and osextras.find_on_path('metacity'):
-                wm = subprocess.Popen(['metacity', '--sm-disable'],
-                    stdin=null, stdout=logfile, stderr=logfile,
-                    **maybe_drop_privileges)
+                wm_cmd = ['metacity', '--sm-disable']
             elif osextras.find_on_path('xfwm4'):
-                wm = subprocess.Popen('xfwm4',
-                    stdin=null, stdout=logfile, stderr=logfile,
-                    **maybe_drop_privileges)
+                wm_cmd = ['xfwm4']
             elif osextras.find_on_path('matchbox-window-manager'):
-                wm = subprocess.Popen('matchbox-window-manager',
-                    stdin=null, stdout=logfile, stderr=logfile,
-                    **maybe_drop_privileges)
+                wm_cmd = ['matchbox-window-manager']
             else:
                 raise MissingProgramError, \
-                    "No window manager found (tried metacity, xfwm4, matchbox-window-manager)"
+                    ("No window manager found (tried metacity, xfwm4, "
+                     "matchbox-window-manager)")
+            if osextras.find_on_path('ck-launch-session'):
+                wm_cmd.insert(0, 'ck-launch-session')
+            wm = subprocess.Popen(wm_cmd,
+                stdin=null, stdout=logfile, stderr=logfile,
+                **maybe_drop_privileges)
 
             if os.path.exists('/usr/lib/gnome-settings-daemon/gnome-settings-daemon'):
-                extras.append(subprocess.Popen(['/usr/lib/gnome-settings-daemon/gnome-settings-daemon'],
-                    stdin=null, stdout=logfile, stderr=logfile, **maybe_drop_privileges))
+                extras.append(subprocess.Popen(
+                    ['/usr/lib/gnome-settings-daemon/gnome-settings-daemon'],
+                    stdin=null, stdout=logfile, stderr=logfile,
+                    **maybe_drop_privileges))
 
             # Accessibility tools
             if accessibility == 'true':
@@ -204,12 +337,89 @@ class DM:
                             stdin=null, stdout=logfile, stderr=logfile))
                 fp.close()
         elif self.frontend == 'kde_ui':
-            extras.append(subprocess.Popen(['kwriteconfig', '--file', 'kwinrc', '--group', 'Compositing', '--key', 'Enabled', 'false'], stdin=null, stdout=logfile, stderr=logfile, preexec_fn=self.drop_privileges))
-            wm = subprocess.Popen('kwin', stdin=null, stdout=logfile,
-                stderr=logfile, preexec_fn=self.drop_privileges)
+            # Don't show the background image in v1 accessibility profile.
+            path = '/usr/share/wallpapers/Ethais/contents/images/1920x1200.png'
+            with open('/proc/cmdline', 'r') as fp:
+                if (os.access(path, os.R_OK)
+                    and not 'access=v1' in fp.readline()):
+                    # Draw a background image for the install progress window.
+                    from PyQt4.QtCore import Qt
+                    from PyQt4 import QtGui
+                    a = QtGui.QApplication(sys.argv)
+                    root_win = a.desktop()
+                    wallpaper = QtGui.QPixmap(path)
+                    wallpaper = wallpaper.scaled(root_win.width(),
+                        root_win.height(), Qt.KeepAspectRatioByExpanding,
+                        Qt.SmoothTransformation)
+                    palette = QtGui.QPalette()
+                    palette.setBrush(root_win.backgroundRole(),
+                                     QtGui.QBrush(wallpaper))
+                    root_win.setPalette(palette)
+                    root_win.setCursor(Qt.ArrowCursor)
+                    a.processEvents()
+                    # Force garbage collection so we don't end up with stray X
+                    # resources when we kill the X server (LP: #556555).
+                    del a
+
+            subprocess.call(
+                ['kwriteconfig', '--file', 'kwinrc', '--group', 'Compositing',
+                                 '--key', 'Enabled', 'false'],
+                stdin=null, stdout=logfile, stderr=logfile,
+                preexec_fn=self.drop_privileges)
+            wm = subprocess.Popen('kwin',
+                stdin=null, stdout=logfile, stderr=logfile,
+                preexec_fn=self.drop_privileges)
 
         greeter = subprocess.Popen(program, stdin=null, stdout=logfile, stderr=logfile)
         ret = greeter.wait()
+
+        reboot = False
+        if ret != 0:
+            from ubiquity.debconfcommunicator import DebconfCommunicator
+            import debconf
+            db = DebconfCommunicator('ubiquity', cloexec=True)
+            try:
+                error_cmd = db.get('ubiquity/failure_command')
+                if error_cmd:
+                    subprocess.call(['sh', '-c', error_cmd])
+            except debconf.DebconfError:
+                pass
+            
+            reboot = False
+            try:
+                if '--automatic' in program:
+                    reboot = db.get('ubiquity/reboot_on_failure') == 'true'
+            except debconf.DebconfError:
+                pass
+            
+            if reboot:
+                question = 'ubiquity/install_failed_reboot'
+            else:
+                question = 'ubiquity/install_failed'
+            title = ''
+            message = ''
+            try:
+                title = unicode(db.metaget(question, 'description'),
+                                'utf-8', 'replace')
+                message = unicode(db.metaget(question, 'extended_description'),
+                                  'utf-8', 'replace')
+            except debconf.DebconfError:
+                pass
+
+            if title and message:
+                if self.frontend == 'gtk_ui':
+                    cmd = ['zenity', '--error', '--title=%s' % title,
+                           '--text=%s' % message]
+                    subprocess.call(cmd)
+                elif self.frontend == 'kde_ui':
+                    cmd = ['kdialog', '--title=%s' % title,
+                           '--msgbox=%s' % message]
+                    subprocess.call(cmd)
+                else:
+                    # Not ideal, but if we cannot let the user know what's
+                    # going on, it's best to drop them into a desktop and let
+                    # them figure it out.
+                    reboot = False
 
         def kill_if_exists(pid, signum):
             try:
@@ -249,13 +459,16 @@ class DM:
         kill_if_exists(server.pid, signal.SIGTERM)
         server.wait()
 
+        if reboot:
+            subprocess.Popen(['reboot'])
         if ret is not None and ret >= 0:
             return ret
         else:
             return 1
 
 if len(sys.argv) < 4:
-    sys.stderr.write('Usage: %s <vt[1-N]> <:[0-N]> <username> <program> [<arguments>]\n' % sys.argv[0])
+    sys.stderr.write('Usage: %s <vt[1-N]> <:[0-N]> <username> <program> '
+                     '[<arguments>]\n' % sys.argv[0])
     sys.exit(1)
 
 vt, display, username = sys.argv[1:4]
@@ -263,12 +476,7 @@ try:
     dm = DM(vt, display, username)
 except XStartupError:
     sys.exit(1)
-proc = None
-if dm.frontend == 'gtk_ui' or dm.frontend == 'mythbuntu_ui':
-    proc = ['/etc/init.d/gdm', 'start']
-elif dm.frontend == 'kde_ui':
-    proc = ['/etc/init.d/kdm', 'start']
 ret = dm.run(*sys.argv[4:])
-if proc:
-    subprocess.Popen(proc)
+if ret == 0:
+    set_locale()
 sys.exit(ret)

@@ -35,11 +35,14 @@ def main():
         inner = ['/usr/lib/ubiquity/bin/ubiquity']
         inner.extend(newargv)
 
-        # Lock HAL's storage subsystem (or DeviceKit-disks).
-        if osextras.find_on_path('devkit-disks'):
+        # Lock HAL's storage subsystem (or DeviceKit-disks or udisks).
+        if osextras.find_on_path('udisks'):
+            toexec.extend(['udisks', '--inhibit', '--'])
+            toexec.extend(inner)
+        elif osextras.find_on_path('devkit-disks'):
             toexec.extend(['devkit-disks', '--inhibit', '--'])
             toexec.extend(inner)
-        elif osextras.find_on_path('hal-lock'):
+        elif osextras.find_on_path('hal-lock') and not os.system('pgrep hald>/dev/null'):
             toexec.extend(['hal-lock',
                            '--interface', 'org.freedesktop.Hal.Device.Storage',
                            '--exclusive', '--run'])
@@ -53,7 +56,7 @@ def main():
             # frontend module.
             import imp
             import ubiquity.frontend
-            frontend_names = ['mythbuntu_ui', 'gtk_ui', 'kde_ui']
+            frontend_names = ['gtk_ui', 'kde_ui']
             for f in frontend_names:
                 try:
                     imp.find_module(f, ubiquity.frontend.__path__)
@@ -62,25 +65,28 @@ def main():
                 except ImportError:
                     pass
 
-        if frontend in ('gtk_ui', 'mythbuntu_ui'):
+        if frontend == 'gtk_ui':
             toexec = ['gksudo', '--preserve-env']
             if desktop:
                 toexec.extend(['--desktop', desktop])
             toexec.append('--')
         elif frontend == 'kde_ui':
-            kdesu = None
-            if osextras.find_on_path('kdesu'):
-                kdesu = 'kdesu'
-            elif osextras.find_on_path('kdesudo'):
-                kdesu = 'kdesudo'
-            elif os.path.exists('/usr/lib/kde4/libexec/kdesu'):
-                kdesu = '/usr/lib/kde4/libexec/kdesu'
-            if kdesu:
-                toexec = [kdesu, '--nonewdcop', '--']
-            else:
-                toexec = ['sudo', '-E']
-            #temporarily force sudo until we work out why kdesudo stops it passing partitioning stage
-            toexec = ['sudo', '-E']
+            # We need to pass through xauth information.  kdesudo won't do,
+            # though, as it can't be made to tell sudo to preserve the
+            # environment.
+            import tempfile
+            xauthority = tempfile.NamedTemporaryFile(prefix='ubiquity-',
+                                                     suffix='-xauth')
+            os.chmod(xauthority.name, 0600) # root can still read it
+            xauth_extract = subprocess.Popen(
+                ['xauth', 'extract', '-', os.environ['DISPLAY']],
+                stdout=subprocess.PIPE)
+            xauth_merge = subprocess.Popen(
+                ['xauth', '-f', xauthority.name, 'merge', '-'],
+                stdin=xauth_extract.stdout)
+            xauth_merge.wait()
+            xauth_extract.wait()
+            toexec = ['sudo', '-E', 'XAUTHORITY=%s' % xauthority.name]
         else:
             toexec = ['sudo', '-E']
 

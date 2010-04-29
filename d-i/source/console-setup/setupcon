@@ -186,7 +186,8 @@ if [ "$keyboard_only" != yes ] && [ "$ACTIVE_CONSOLES" ]; then
     for f in $FONT; do
 	if [ -f "$f" ]; then
 	    LOADFONTS="$LOADFONTS $f"
-	    else
+	else
+	    fdec="${f%.gz}"
 	    for dir in \
 		/usr/local/share/consolefonts \
 		/usr/share/consolefonts \
@@ -195,6 +196,9 @@ if [ "$keyboard_only" != yes ] && [ "$ACTIVE_CONSOLES" ]; then
 	    do
 		if [ -f "$dir/${f##*/}" ]; then
 		    LOADFONTS="$LOADFONTS $dir/${f##*/}"
+		    break
+		elif [ -f "$dir/${fdec##*/}" ]; then
+		    LOADFONTS="$LOADFONTS $dir/${fdec##*/}"
 		    break
 		fi
 		if [ "$dir" = FONT_IS_MISSING ]; then
@@ -209,7 +213,13 @@ if [ "$keyboard_only" != yes ] && [ "$ACTIVE_CONSOLES" ]; then
 	    [ "$save" = yes ] \
 	    && [ "${f%/*}" != /etc/console-setup ]
 	then
-	    cp "$f" /etc/console-setup/
+	    fdec="${f%.gz}"
+	    if [ "$fdec" = "$f" ]; then
+		cp "$f" /etc/console-setup/
+	    else
+		gunzip -c "$f" >"/etc/console-setup/${fdec##*/}"
+	    fi
+	    rm -f "/etc/console-setup/${fdec##*/}.gz"
 	fi
     done
     
@@ -238,6 +248,9 @@ if [ "$keyboard_only" != yes ] && [ "$ACTIVE_CONSOLES" ]; then
 	    if [ -f "$dir/$CHARMAP.acm.gz" ]; then
 		ACM="$dir/$CHARMAP.acm.gz"
 		break
+	    elif [ -f "$dir/$CHARMAP.acm" ]; then
+		ACM="$dir/$CHARMAP.acm"
+		break
 	    fi
 	done
     fi
@@ -246,7 +259,13 @@ if [ "$keyboard_only" != yes ] && [ "$ACTIVE_CONSOLES" ]; then
 	    [ "$save" = yes ] \
 	    && [ "${ACM%/*}" != /etc/console-setup ]
 	then
-	    cp "$ACM" /etc/console-setup/
+	    acmdec="${ACM%.gz}"
+	    if [ "$acmdec" = "$ACM" ]; then
+		cp "$ACM" /etc/console-setup/
+	    else
+		gunzip -c "$ACM" >"/etc/console-setup/${acmdec##*/}"
+	    fi
+	    rm -f "/etc/console-setup/${acmdec##*/}.gz"
 	fi
     else
 	ACM="$CHARMAP.acm.gz"

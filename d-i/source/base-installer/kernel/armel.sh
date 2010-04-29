@@ -1,6 +1,6 @@
 arch_get_kernel_flavour () {
 	case "$SUBARCH" in
-	    dove|imx51|iop32x|iop33x|ixp4xx|kirkwood|orion5x|versatile)
+	    dove|imx51|omap|iop32x|iop33x|ixp4xx|kirkwood|orion5x|versatile)
 		echo "$SUBARCH"
 		return 0 ;;
 	    ads)

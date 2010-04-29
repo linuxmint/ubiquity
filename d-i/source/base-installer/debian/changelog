@@ -1,3 +1,118 @@
+base-installer (1.103ubuntu7) lucid; urgency=low
+
+  * Add armel/omap subarchitecture.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 13 Apr 2010 14:28:26 +0100
+
+base-installer (1.103ubuntu6) lucid; urgency=low
+
+  * Handle armel metapackages in ordering hack (imx51, dove, and omap).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 30 Mar 2010 10:21:10 +0100
+
+base-installer (1.103ubuntu5) lucid; urgency=low
+
+  * Add support for preempt kernel flavour on amd64 (LP: #541625).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 19 Mar 2010 10:06:10 +0000
+
+base-installer (1.103ubuntu4) lucid; urgency=low
+
+  * Add base-installer/kernel/backports-modules template, which may be
+    preseeded to install selected linux-backports-modules-* packages
+    (LP: #526422).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 23 Feb 2010 17:45:53 +0000
+
+base-installer (1.103ubuntu3) lucid; urgency=low
+
+  * Backport from trunk:
+    - Ensure that Acquire::cdrom::AutoDetect is disabled when running
+      apt-cdrom.  We bind-mount /target/cdrom, so apt's new libudev-based
+      autodetection isn't needed during installation.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 04 Feb 2010 12:51:40 -0800
+
+base-installer (1.103ubuntu2) lucid; urgency=low
+
+  * Explicitly ignore Recommends while installing the kernel. We don't want
+    to install bootloaders at this point.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 04 Dec 2009 15:04:25 +0000
+
+base-installer (1.103ubuntu1) lucid; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Use and depend on the Ubuntu keyring.
+    - Enable the restricted component by default, unless
+      apt-setup/restricted is preseeded to false.
+    - Set up the default sources.list to look in -updates and -security (the
+      latter from apt-setup/security_host) as well as the unadorned suite;
+      also -proposed if apt-setup/proposed is true.
+    - Use Ubuntu kernel image names.
+    - Allow preseeding base-installer/kernel/override-image to force a given
+      kernel to be used.
+    - Install busybox-initramfs rather than busybox.
+    - Revert Joey's patch to call base-installer.d hooks after running
+      debootstrap, which broke console-setup's expectation of being able to
+      insert its configuration file into /target before console-setup is
+      installed by debootstrap.
+    - Add armel/imx51 and armel/dove subarchitectures.
+    - Prefer PAE kernels on machines with >3GB of RAM.
+    - Install kernel headers to match the kernel. This may be overridden by
+      setting base-installer/kernel/headers to false.
+  * Remove all traces of lpia, which is being decommissioned (see
+    https://blueprints.launchpad.net/ubuntu/+spec/mobile-lucid-lpia-future).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 03 Dec 2009 12:21:27 +0000
+
+base-installer (1.103) unstable; urgency=low
+
+  [ Aurelien Jarno ]
+  * Add scripts to select GNU/kFreeBSD kernels.
+  * Add kfreebsd-amd64 and kfreebsd-i386 to the testsuite.
+
+  [ Frans Pop ]
+  * Allow to configure APT in the target system to not install Recommends by
+    default using the base-installer/install-recommends template. The option
+    is only intended for experienced users and is therefore not offered in a
+    dialog. It can be either preseeded or set at the boot prompt.
+    Together with changes in other components, this also makes what's set
+    using this option the global default for all package installs during the
+    installation process (with the exception of debootstrap).
+    Closes: #543256.
+
+  [ Christian Perrier ]
+  * Replace one occurrence of "bootloader" in debconf templates
+
+  [ Frans Pop ]
+  * Remove no longer needed Lintian override for missing Standards-
+    Version field.
+
+  [ Updated translations ]
+  * Asturian (ast.po) by Marcos Antonio Alvarez Costales
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Ask Hjorth Larsen
+  * German (de.po) by Holger Wansing
+  * Greek, Modern (1453-) (el.po) by Emmanuel Galatoulas
+  * Esperanto (eo.po) by Felipe Castro
+  * Estonian (et.po) by Mattias Põldaru
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Italian (it.po) by Milo Casagrande
+  * Korean (ko.po) by Changwoo Ryu
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Russian (ru.po) by Yuri Kozlov
+  * Swedish (sv.po) by Daniel Nylander
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Turkish (tr.po) by Mert Dirik
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Simplified Chinese (zh_CN.po) by Deng Xiyue
+
+ -- Frans Pop <fjp@debian.org>  Mon, 16 Nov 2009 14:05:24 +0100
+
 base-installer (1.102ubuntu2) karmic; urgency=low
 
   * Install kernel headers to match the kernel (LP: #413135). This may be

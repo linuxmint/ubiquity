@@ -10,6 +10,11 @@ main_build:
 	cd Keyboard && $(MAKE) build-mini xkbdir=$(xkbdir)
 	touch main_build
 
+debian/kbdnames.gz: main_build
+	( cd Keyboard \
+	&& ./kbdnames-maker MyKeyboardNames.pl \
+		| grep -v '^C[*]' | sort | gzip -9 ) >$@
+
 debian/console-setup.config debian/console-setup-mini.config: debian/config.proto main_build
 	awk ' \
 /## *PACKAGE *##/ { \
@@ -29,16 +34,16 @@ debian/console-setup.config debian/console-setup-mini.config: debian/config.prot
     next; \
 } \
 /## *KBDNAMES *##/ { \
-    printf "kbdnames='\''"; \
-    system("cd Keyboard && ./kbdnames-maker MyKeyboardNames.pl"); \
-    printf "'\''"; \
+    printf "all_kbdnames () {\n cat <<'\''EOF'\'' \n"; \
+    system("cd Keyboard && ./kbdnames-maker MyKeyboardNames.pl | grep '\''^C[*]'\''"); \
+    printf "EOF\n [ ! -f /usr/share/console-setup-mini/kbdnames.gz ] || zcat /usr/share/console-setup-mini/kbdnames.gz \n}\n"; \
     next; \
 } \
 { \
    print; \
 }' debian/config.proto >$@
 
-build: main_build debian/console-setup.config debian/console-setup-mini.config
+build: main_build debian/kbdnames.gz debian/console-setup.config debian/console-setup-mini.config
 
 .PHONY : clean
 clean:
@@ -47,6 +52,7 @@ clean:
 	-rm -f build main_build
 	-rm -f debian/*.config
 	-rm -f debian/*~
+	-rm -f debian/kbdnames.gz
 	dh_clean
 
 .PHONY : install
@@ -67,17 +73,24 @@ install-main: build
 	install -d debian/console-setup/usr/share/lintian/overrides
 	install -m 644 debian/lintian.overrides \
 		debian/console-setup/usr/share/lintian/overrides/console-setup
-	dh_installinit --no-start --name keyboard-setup -- start 06 S .
-	dh_installinit --name console-setup -- start 49 S .
+	# no upstart job for keyboard-setup
+	dh_installinit --no-start --name console-setup -- start 49 S .
 	install -d debian/console-setup/usr/share/initramfs-tools/hooks \
-		debian/console-setup/usr/share/initramfs-tools/scripts/init-top
+		debian/console-setup/usr/share/initramfs-tools/scripts/init-top \
+		debian/console-setup/usr/share/initramfs-tools/scripts/panic
 	install -m755 debian/console-setup.initramfs-hook \
 		debian/console-setup/usr/share/initramfs-tools/hooks/console_setup
 	install -m755 debian/console-setup.initramfs-top \
 		debian/console-setup/usr/share/initramfs-tools/scripts/init-top/console_setup
+	sed -e "/^OPTION=/d" \
+		< debian/console-setup.initramfs-top \
+		> debian/console-setup/usr/share/initramfs-tools/scripts/panic/console_setup
+	chmod 755 debian/console-setup/usr/share/initramfs-tools/scripts/panic/console_setup
 	install -d debian/console-setup/usr/share/apport/package-hooks
 	install -m644 debian/console-setup.apport \
 		debian/console-setup/usr/share/apport/package-hooks/source_console-setup.py
+	dh_install -pconsole-setup console-setup-tty lib/udev
+	dh_installudev -pconsole-setup --priority=85
 	rm -rf `find debian/console-setup -name .cvsignore`
 	rm -rf `find debian/console-setup -name .svn`
 
@@ -126,6 +139,8 @@ install-mini: build
 		usr/share/consolefonts
 	dh_install -pconsole-setup-mini Fonts/Vietnamese-Fixed16.psf.gz \
 		usr/share/consolefonts
+	dh_install -pconsole-setup-mini debian/kbdnames.gz \
+		usr/share/console-setup-mini
 	dh_install -pconsole-setup-mini Keyboard/ckbcomp-mini usr/bin
 	dh_link -pconsole-setup-mini usr/bin/ckbcomp-mini usr/bin/ckbcomp
 	dh_install -pconsole-setup-mini setupcon bin
@@ -216,6 +231,7 @@ install-udeb: build
 	dh_link -pconsole-setup-udeb usr/bin/ckbcomp-mini usr/bin/ckbcomp
 	dh_install -pconsole-setup-udeb setupcon bin
 	dh_install -p console-setup-udeb debian/console-setup.config usr/share/console-setup-mini
+	dh_install -p console-setup-udeb debian/kbdnames.gz usr/share/console-setup-mini
 	dh_installdirs -p console-setup-udeb lib/debian-installer.d
 	install -m0644 debian/console-setup-udeb.startup \
 		debian/console-setup-udeb/lib/debian-installer.d/S55console-setup

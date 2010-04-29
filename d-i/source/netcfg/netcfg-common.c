@@ -24,10 +24,9 @@
 #include "netcfg.h"
 #if defined(WIRELESS)
 #include <iwlib.h>
-#elif defined(__linux__)
-#include <linux/if.h>
 #endif
 #include <net/if_arp.h>
+#include <net/if.h>
 #include <errno.h>
 #include <assert.h>
 #include <ctype.h>
@@ -44,6 +43,8 @@
 #include <debian-installer.h>
 #include <time.h>
 #include <netdb.h>
+
+#include <ifaddrs.h>
 
 /* Set if there is currently a progress bar displayed. */
 int netcfg_progress_displayed = 0;
@@ -119,6 +120,8 @@ void open_sockets (void)
     skfd = socket (AF_INET, SOCK_DGRAM, 0);
 }
 
+#ifdef __linux__
+
 #define SYSCLASSNET "/sys/class/net/"
 
 /* Returns non-zero if this interface has an enabled kill switch, otherwise
@@ -180,6 +183,14 @@ int check_kill_switch(const char *iface)
 
 #undef SYSCLASSNET
 
+#else /* !__linux__ */
+int check_kill_switch(const char *iface)
+{
+    return 0;
+}
+#endif /* __linux__ */
+
+#if defined(WIRELESS)
 int is_raw_80211(const char *iface)
 {
     struct ifreq ifr;
@@ -203,87 +214,67 @@ int is_raw_80211(const char *iface)
         return 0;
     }
 }
+#endif
 
-int is_interface_up(char *inter)
+int qsort_strcmp(const void *a, const void *b)
 {
-    struct ifreq ifr;
-    
-    strncpy(ifr.ifr_name, inter, sizeof(ifr.ifr_name));
-    
-    if (ioctl(skfd, SIOCGIFFLAGS, &ifr) < 0)
-        return -1;
-    
-    return ((ifr.ifr_flags & IFF_UP) ? 1 : 0);
-}
-
-void get_name(char *name, char *p)
-{
-    while (isspace(*p))
-        p++;
-    while (*p) {
-        if (isspace(*p))
-            break;
-        if (*p == ':') {	/* could be an alias */
-            char *dot = p, *dotname = name;
-            *name++ = *p++;
-            while (isdigit(*p))
-                *name++ = *p++;
-            if (*p != ':') {	/* it wasn't, backup */
-                p = dot;
-                name = dotname;
-            }
-            if (*p == '\0')
-                return;
-            p++;
-            break;
-        }
-        *name++ = *p++;
-    }
-    *name++ = '\0';
-    return;
+    const char **ia = (const char **)a;
+    const char **ib = (const char **)b;
+    return strcmp(*ia, *ib);
 }
 
 int get_all_ifs (int all, char*** ptr)
 {
-    FILE *ifs = NULL;
-    char ibuf[512], rbuf[512];
+    struct ifaddrs *ifap, *ifa;
+    char ibuf[512];
     char** list = NULL;
     size_t len = 0;
     
-    if ((ifs = fopen("/proc/net/dev", "r")) != NULL) {
-        fgets(ibuf, sizeof(ibuf), ifs); /* eat header */
-        fgets(ibuf, sizeof(ibuf), ifs); /* ditto */
-    }
-    else
+    if (getifaddrs(&ifap) == -1)
         return 0;
 
-    while (fgets(rbuf, sizeof(rbuf), ifs) != NULL) {
-        get_name(ibuf, rbuf);
-        if (!strcmp(ibuf, "lo"))        /* ignore the loopback */
+    for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
+        strncpy(ibuf, ifa->ifa_name, sizeof(ibuf));
+        if (ifa->ifa_flags & IFF_LOOPBACK)   /* ignore loopback devices */
             continue;
+#if defined(__linux__)
         if (!strncmp(ibuf, "sit", 3))        /* ignore tunnel devices */
             continue;
+#endif
+#if defined(WIRELESS)
         if (is_raw_80211(ibuf))
             continue;
-        if (all || is_interface_up(ibuf) == 1) {
-            list = realloc(list, sizeof(char*) * (len + 1));
-            list[len] = strdup(ibuf);
-            len++;
+#endif
+        if (all || ifa->ifa_flags & IFF_UP) {
+            int found = 0;
+            size_t i;
+
+            for (i = 0 ; i < len ; i++) {
+                if (!strcmp(ibuf, list[i])) {
+                    found = 1;
+                }
+            }
+            if (!found) {
+                list = realloc(list, sizeof(char*) * (len + 2));
+                list[len] = strdup(ibuf);
+                len++;
+            }
         }
     }
     
-    /* OK, now terminate it if necessary */
+    /* OK, now sort the list and terminate it if necessary */
     if (list != NULL) {
-        list = realloc(list, sizeof(char*) * (len + 1));
+        qsort(list, len, sizeof(char *), qsort_strcmp);
         list[len] = NULL;
     }
-    fclose (ifs);
+    freeifaddrs(ifap);
     
     *ptr = list;
     
     return len;
 }
 
+#ifdef __linux__
 short find_in_stab(const char* iface)
 {
     FILE *dn = NULL;
@@ -305,6 +296,13 @@ short find_in_stab(const char* iface)
     pclose(dn);
     return 0;
 }
+#else /* !__linux__ */
+/* Stub function for platforms not supporting /var/run/stab. */
+short find_in_stab(const char* iface)
+{
+    return 0;
+}
+#endif /* __linux__ */
 
 char *find_in_devnames(const char* iface)
 {

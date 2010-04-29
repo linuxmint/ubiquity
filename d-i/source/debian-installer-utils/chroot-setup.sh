@@ -44,6 +44,18 @@ exit 0
 EOF
 	chmod a+rx /target/sbin/start-stop-daemon
 	
+	# If Upstart is in use, add a dummy initctl to stop it starting jobs.
+	if [ -x /target/sbin/initctl ]; then
+		mv /target/sbin/initctl /target/sbin/initctl.REAL
+		cat > /target/sbin/initctl <<EOF
+#!/bin/sh
+echo 1>&2
+echo 'Warning: Fake initctl called, doing nothing.' 1>&2
+exit 0
+EOF
+		chmod a+rx /target/sbin/initctl
+	fi
+
 	# Record the current mounts
 	mountpoints > /tmp/mount.pre
 
@@ -104,6 +116,9 @@ EOF
 chroot_cleanup () {
 	rm -f /target/usr/sbin/policy-rc.d
 	mv /target/sbin/start-stop-daemon.REAL /target/sbin/start-stop-daemon
+	if [ -x /target/sbin/initctl.REAL ]; then
+		mv /target/sbin/initctl.REAL /target/sbin/initctl
+	fi
 
 	# Undo the mounts done by the packages during installation.
 	# Reverse sorting to umount the deepest mount points first.

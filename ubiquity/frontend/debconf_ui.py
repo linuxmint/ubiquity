@@ -27,25 +27,35 @@
 import sys
 import os
 import textwrap
+import signal
 
-from ubiquity.frontend.base import BaseFrontend
+import debconf
+
+from ubiquity.frontend.base import BaseFrontend, Controller
+from ubiquity.plugin import Plugin
+from ubiquity import i18n
+from ubiquity.components import install
+
+class PersistentDebconfCommunicator(debconf.Debconf):
+    def shutdown(self):
+        pass
 
 class Wizard(BaseFrontend):
     def __init__(self, distro):
         BaseFrontend.__init__(self, distro)
 
-        db = self.debconf_communicator()
         if self.oem_user_config:
-            db.info('ubiquity/text/oem_user_config_title')
+            self.db.info('ubiquity/text/oem_user_config_title')
         else:
-            db.info('ubiquity/text/live_installer')
-        db.shutdown()
+            self.db.info('ubiquity/text/live_installer')
 
         self.previous_excepthook = sys.excepthook
         sys.excepthook = self.excepthook
 
         # Set default language.
-        i18n.reset_locale()
+        i18n.reset_locale(self)
+
+        self.stop_debconf()
 
     def excepthook(self, exctype, excvalue, exctb):
         """Crash handler."""
@@ -57,6 +67,21 @@ class Wizard(BaseFrontend):
         self.post_mortem(exctype, excvalue, exctb)
 
         self.previous_excepthook(exctype, excvalue, exctb)
+
+    def debconf_communicator(self):
+        if 'DEBIAN_HAS_FRONTEND' in os.environ:
+            # We may only instantiate Debconf once, as it fiddles with
+            # sys.stdout. See LP #24727.
+            if self.db is None:
+                self.db = PersistentDebconfCommunicator()
+            return self.db
+        else:
+            # This needs to be instantiated afresh each time, as normal.
+            return BaseFrontend.debconf_communicator(self)
+
+    def stop_debconf(self):
+        if 'DEBIAN_HAS_FRONTEND' not in os.environ:
+            BaseFrontend.stop_debconf(self)
 
     def run(self):
         if os.getuid() != 0:
@@ -88,7 +113,9 @@ class Wizard(BaseFrontend):
                 ui = self.pages[self.pagesindex].ui
             else:
                 ui = None
-            dbfilter = self.pages[self.pagesindex].filter_class(self, ui=ui)
+            dbfilter = self.pages[self.pagesindex].filter_class(self,
+                                                                db=self.db,
+                                                                ui=ui)
             ret = dbfilter.run_unfiltered()
 
             if ret == 10:
@@ -98,8 +125,8 @@ class Wizard(BaseFrontend):
 
         # TODO: handle errors
         if self.pagesindex == self.pageslen:
-            dbfilter = install.Install(self)
-            ret = dbfilter.run_command(auto_process=True)
+            dbfilter = install.Install(self, db=self.db)
+            ret = dbfilter.run_unfiltered()
             if ret != 0:
                 self.installing = False
                 if ret == 3:
@@ -118,9 +145,6 @@ class Wizard(BaseFrontend):
                 else:
                     raise RuntimeError, ("Install failed with exit code %s; see "
                                          "/var/log/syslog" % ret)
-
-            while self.progress_position.depth() != 0:
-                self.debconf_progress_stop()
 
             return 0
         else:

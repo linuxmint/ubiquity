@@ -59,6 +59,12 @@ for item in $(sed -e 's/[^ =]*="[^"]*[ ][^"]*"//g' \
 			continue
 		fi
 
+		# Skip live-CD-specific crud
+		if [ "${var%-ubiquity}" != "$var" ] || \
+		   [ "$var" = noninteractive ]; then
+			continue
+		fi
+
 		# Skip debconf variables
 		varnoslash="${var##*/*}"
 		if [ "$varnoslash" = "" ]; then

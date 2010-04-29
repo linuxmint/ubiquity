@@ -6,7 +6,7 @@ set -e
 db_get time/zone
 zone="$RET"
 
-if [ ! -e /target/usr/share/zoneinfo/$zone ]; then
+if [ -z "$zone" ] || [ ! -e /target/usr/share/zoneinfo/$zone ]; then
 	logger -t tzsetup "Warning: ignoring invalid time zone '$zone'"
 	exit 0
 fi

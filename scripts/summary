@@ -55,12 +55,8 @@ db_subst ubiquity/summary MIGRATE \
 db_capb
 
 db_capb escape
-db_get ubiquity/partman-made-changes
-if [ "$RET" = true ]; then
-	db_metaget partman/confirm Extended_description
-else
-	db_metaget partman/confirm_nochanges Extended_description
-fi
+db_get ubiquity/partman-confirm
+db_metaget "partman/$RET" Extended_description
 db_subst ubiquity/summary PARTMAN_CHANGES \
 	"$(printf %s "$RET" | debconf-escape -e)"
 db_capb

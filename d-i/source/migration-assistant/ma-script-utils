@@ -53,6 +53,7 @@ mountpoint="/mnt/migrationassistant"
 unmount_os() {
     # If we didn't mount the device ourselves, don't unmount it.
     [ "$mountpoint" = "/mnt/migrationassistant" ] || return 0
+    [ -z "$1" ] && return 0
     unmount_previously_run=
     device="$1"
 
@@ -110,42 +111,55 @@ mount_os () {
     ostype="$1"
     device="$2"
 
-
     if [ "$1" = "linux" ]; then
         mkdir -p $mountpoint
         unmount_os $device
-        mount $device $mountpoint || error "Failed to mount $device"
+        if ! mount $device $mountpoint; then
+            error "Failed to mount $device"
+            exit 1
+        fi
         if [ -f "$mountpoint/etc/fstab" ]; then
             while read uuid mp rest; do
+                echo "$uuid" | grep -q '^#' && continue
                 if [ "$mp" != "/home" ]; then
                     continue
                 fi
-
-                if [ "${uuid%=*}" = "UUID" ]; then
-                    devname="/dev/disk/by-uuid/${uuid#*=}"
-                    uuid=$(readlink -e "$devname") || \
-                        error "$devname does not exist."
-                elif [ "${uuid%=*}" = "LABEL" ]; then
-                    devname="/dev/disk/by-label/${uuid#*=}"
-                    uuid=$(readlink -e "$devname") || \
-                        error "$devname does not exist."
-                    elif [ ! -e "$uuid" ]; then
-                        # This happens when the IDE driver in the old OS
-                        # doesn't match the driver in the installer.  The old
-                        # /home might be mounted on /dev/hda3 which could now
-                        # be /dev/sda3 or something entirely different.  Since
-                        # there's no way to determine what the device is
-                        # without the old kernel loaded, we fail gracefully so
-                        # that we can continue to the next OS.
-                        log "$uuid does not exist, continuing."
-                        break
+                devname=
+                if [ -n "${uuid#*=}" ]; then
+                    if [ "${uuid%=*}" = "UUID" ]; then
+                        devname="/dev/disk/by-uuid/${uuid#*=}"
+                    elif [ "${uuid%=*}" = "LABEL" ]; then
+                        devname="/dev/disk/by-label/${uuid#*=}"
                     fi
-                    failed=
-                    mount $uuid "$mountpoint/home" || failed="1"
-                        if [ "$failed" ]; then
+                fi
+                if [ -n "$devname" ]; then
+                    uuid=$(readlink -e "$devname") || uuid=
+                    if [ -z "$uuid"]; then
+                        error "$devname does not exist."
+                        return 1
+                    fi
+                else
+                    error "couldn't understand $uuid."
+                    return 1
+                fi
+                
+                if [ ! -e "$uuid" ]; then
+                    # This happens when the IDE driver in the old OS
+                    # doesn't match the driver in the installer.  The old
+                    # /home might be mounted on /dev/hda3 which could now
+                    # be /dev/sda3 or something entirely different.  Since
+                    # there's no way to determine what the device is
+                    # without the old kernel loaded, we fail gracefully so
+                    # that we can continue to the next OS.
+                    error "$uuid does not exist."
+                    return 1
+                fi
+                if ! mount $uuid "$mountpoint/home"; then
                     unmount_os "$uuid"
-                    mount $uuid "$mountpoint/home" || \
+                    if ! mount $uuid "$mountpoint/home"; then
                         error "failed to mount $uuid"
+                        return 1
+                    fi
                 fi
                 break
             done < "$mountpoint/etc/fstab"
@@ -161,12 +175,14 @@ mount_os () {
 
         mkdir -p $mountpoint
         unmount_os $device
-        mount -t ntfs $device $mountpoint -o umask=0022,nls=utf8 3>&- || \
-        ( log "Mounting $device to $mountpoint with NTFS failed."
-        mount -t vfat $device $mountpoint -o umask=0022,utf8 || \
-        log "Mounting $device to $mountpoint with VFAT failed." )
+        if ! mount -t ntfs $device $mountpoint -o umask=0022,nls=utf8 3>&-; then
+            log "Mounting $device to $mountpoint with NTFS failed."
+            if ! mount -t vfat $device $mountpoint -o umask=0022,utf8; then
+                log "Mounting $device to $mountpoint with VFAT failed."
+                return 1
+            fi
+        fi
     fi
-
 }
 
 ROOT=/target

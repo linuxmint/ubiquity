@@ -18,6 +18,7 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 from ubiquity.filteredcommand import FilteredCommand
+from ubiquity import misc
 
 class GrubInstaller(FilteredCommand):
     def prepare(self):
@@ -32,8 +33,8 @@ class GrubInstaller(FilteredCommand):
 
     def run(self, priority, question):
         if question == 'grub-installer/bootdev':
-            # Force to (hd0) in the case of an unsupported OS.
+            # Force to the default in the case of an unsupported OS.
             if self.db.get(question) == '':
-                self.preseed(question, '(hd0)')
+                self.preseed(question, misc.grub_default())
 
         return FilteredCommand.run(self, priority, question)

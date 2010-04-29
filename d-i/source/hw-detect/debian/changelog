@@ -1,3 +1,84 @@
+hw-detect (1.73ubuntu4) lucid; urgency=low
+
+  * Enable backup while running iscsi_login, to match behaviour when running
+    iscsi_login from partman.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 23 Apr 2010 21:09:45 +0100
+
+hw-detect (1.73ubuntu3) lucid; urgency=low
+
+  * Update Ubuntu-specific translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 15 Apr 2010 00:17:52 +0100
+
+hw-detect (1.73ubuntu2) lucid; urgency=low
+
+  * Don't try to install libc6-vfp any more; it hasn't been built since
+    eglibc 2.10.1-0ubuntu10 in karmic.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 10 Feb 2010 12:26:38 +0000
+
+hw-detect (1.73ubuntu1) lucid; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Remove FireWire Ethernet support.
+    - Register lp module on i386 and amd64.
+    - Exit zero if you continue all the way through ethdetect's errors about
+      having no network interfaces.
+    - Register rtc module on amd64.
+    - Drop priorities of a couple of ethdetect questions to medium.
+    - Install mouseemu on systems likely to have single-button mice (i.e.
+      non-desktop Macs), but not powerpc64 since that causes an oops in the
+      input layer.
+    - On powerpc/ps3 systems, load ps3rom, ps3disk, and ps3_gelic, and add
+      snd_ps3 to /etc/modules.
+    - Install elfspe2 on Cell (powerpc/ps3 and powerpc/cell) platforms.
+    - disk-detect.sh: Do not check the kernel command line for any option
+      to enable dmraid support. If functional dmraid arrays are found, the
+      user will be asked if they wish to activate them.
+    - Make dmraid logging a bit neater.
+    - 'dmraid -c -s' changed its output format; cope with both old and new.
+    - Reinstate snd-powermac for i2s-a devices since apparently the lock-up
+      has been fixed.
+    - Remove dm-emc from the multipath modules, since it's gone since
+      2.6.27.
+    - Improve checks for dm-* drivers being present to avoid relying on them
+      being built as modules.
+    - Install libc6-vfp on armel systems where the vfp word is found in the
+      /proc/cpuinfo features.
+    - Offer iSCSI targets for preseeding if partman-iscsi is available and
+      no disk devices are found.
+    - Stop installing acpi, acpid, and acpi-support-base if acpi is
+      available.
+    - Add support for Dell Driver Injection disk v1, an integrated flash
+      media based solution for adding in drivers after OS launches.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 09 Nov 2009 10:38:34 +0000
+
+hw-detect (1.73) unstable; urgency=low
+
+  [ Otavio Salvador ]
+  * Skip the start_pcmcia question since it has been enabled by default
+    for ages without known problems. In case it fails it ought to be fixed
+    in kernel anyway. The question template has been kept to avoid double
+    work for translators in case we get too many bug reports about it.
+
+  [ Colin Watson ]
+  * Improve cardbus_check_netdev quoting.
+  * Explicitly set seen flag of hw-detect/pcmcia_resources to true so that
+    it doesn't get asked on second and subsequent runs of hw-detect if
+    pcmcia_core fails to get loaded for some reason.
+  * Suppress unused-parameter warnings in archdetect.
+
+  [ Updated translations ]
+  * Czech (cs.po) by Miroslav Kure
+  * Esperanto (eo.po) by Felipe Castro
+  * Hindi (hi.po)
+  * Italian (it.po) by Milo Casagrande
+  * Swedish (sv.po) by Daniel Nylander
+
+ -- Colin Watson <cjwatson@debian.org>  Thu, 23 Jul 2009 16:40:23 +0100
+
 hw-detect (1.72ubuntu5) karmic; urgency=low
 
   * Fix db_fget arguments when checking for partman-iscsi preseeding.

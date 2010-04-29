@@ -163,6 +163,13 @@ install_filesystems () {
 configure_apt_preferences () {
 	[ ! -d "$APT_CONFDIR" ] && mkdir -p "$APT_CONFDIR"
 
+	# Install Recommends?
+	if db_get base-installer/install-recommends && [ "$RET" = false ]; then
+		cat >$APT_CONFDIR/00InstallRecommends <<EOT
+APT::Install-Recommends "false";
+EOT
+	fi
+
 	# Make apt trust Debian CDs. This is not on by default (we think).
 	# This will be left in place on the installed system.
 	cat > $APT_CONFDIR/00trustcdrom <<EOT
@@ -336,7 +343,7 @@ kernel_update_list () {
 	(set +e;
 	# Hack to get the metapackages in the right order; should be
 	# replaced by something better at some point.
-	chroot /target apt-cache search ^linux- | grep '^linux-\(amd64\|386\|686\|k7\|generic\|server\|virtual\|rt\|xen\|power\|cell\|ia64\|sparc\|hppa\|lpia\)';
+	chroot /target apt-cache search ^linux- | grep '^linux-\(amd64\|386\|686\|k7\|generic\|server\|virtual\|preempt\|rt\|xen\|power\|cell\|ia64\|sparc\|hppa\|imx51\|dove\|omap\)';
 	chroot /target apt-cache search ^linux-image- | grep -v '^linux-image-2\.';
 	chroot /target apt-cache search ^linux-image-2. | sort -r) | \
 	cut -d" " -f1 | uniq > "$KERNEL_LIST.unfiltered"
@@ -675,10 +682,18 @@ EOF
 	# Advance progress bar to 30% of allocated space for install_linux
 	update_progress 30 100
 
+	# Always ignore Recommends for the kernel; we don't want to install
+	# bootloaders at this point
+	cat >$APT_CONFDIR/00InstallRecommendsKernel <<EOT
+APT::Install-Recommends "false";
+EOT
+
 	# Install the kernel
 	db_subst base-installer/section/install_kernel_package SUBST0 "$KERNEL"
 	db_progress INFO base-installer/section/install_kernel_package
 	log-output -t base-installer apt-install "$KERNEL" || kernel_install_failed=$?
+
+	rm -f $APT_CONFDIR/00InstallRecommendsKernel
 
 	db_get base-installer/kernel/headers
 	if [ "$RET" = true ]; then
@@ -690,6 +705,22 @@ EOF
 		db_subst base-installer/section/install_kernel_package SUBST0 "$HEADERS"
 		db_progress INFO base-installer/section/install_kernel_package
 		log-output -t base-installer apt-install "$HEADERS" || true
+	fi
+
+	db_get base-installer/kernel/backports-modules
+	if [ "$RET" ]; then
+		BACKPORTS_MODULES="$RET"
+
+		# Advance progress bar to 85% of allocated space for install_linux
+		update_progress 85 100
+
+		# Install kernel backports modules if possible
+		for backports_module in $BACKPORTS_MODULES; do
+			LBM="$(echo "$KERNEL" | sed "s/linux\\(-image\\|\\)/linux-backports-modules-$backports_module-$DISTRIBUTION/")"
+			db_subst base-installer/section/install_kernel_package SUBST0 "$LBM"
+			db_progress INFO base-installer/section/install_kernel_package
+			log-output -t base-installer apt-install "$LBM" || true
+		done
 	fi
 
 	# Advance progress bar to 90% of allocated space for install_linux
@@ -820,6 +851,7 @@ Acquire::cdrom {
     Mount  "true";
     UMount "true";
   };
+  AutoDetect "false";
 }
 EOT
 

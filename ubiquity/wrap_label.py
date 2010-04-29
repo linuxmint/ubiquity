@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+#
 # Original authors:
 #   Alex Graveley
 #   Christian Hammond <chipx86@chipx86.com>
@@ -30,7 +32,6 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import gobject
-import pygtk
 import gtk
 import pango
 
@@ -54,12 +55,12 @@ class WrapLabel(gtk.Label):
         gtk.Label.set_markup(self, text)
         self.set_wrap_width(self.m_wrap_width)
 
-    def on_size_request(self, widget, requisition):
+    def on_size_request(self, unused_widget, requisition):
         width, height = self.get_layout().get_pixel_size()
         requisition.width = 0
         requisition.height = height
 
-    def on_size_allocate(self, widget, allocation):
+    def on_size_allocate(self, unused_widget, allocation):
         gtk.Label.size_allocate(self, allocation)
         self.set_wrap_width(allocation.width)
 

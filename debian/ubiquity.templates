@@ -39,28 +39,6 @@ Template: ubiquity/text/welcome_heading_label
 Type: text
 _Description: Welcome
 
-Template: ubiquity/text/welcome_text_label
-Type: text
-_Description:
- Ready to install? Once you answer a few questions, the contents of the live
- CD can be installed on this computer so you can run the system at full
- speed and without the CD.
- .
- Answering the questions should only take a few minutes.
- .
- Please choose the language used for the installation process. This
- language will be the default language for the final system.
-
-Template: ubiquity/text/welcome_text_oem_user_label
-Type: text
-_Description:
- Once you answer a few questions, this computer will be ready to use.
- .
- Answering the questions should only take a few minutes.
- .
- Please choose the language used for the configuration process. This
- language will be the default language for this computer.
-
 Template: ubiquity/text/oem_id_label
 Type: text
 _Description:
@@ -68,15 +46,69 @@ _Description:
  for this batch of systems. This name will be saved on the installed system
  and can be used to help with bug reports.
 
+Template: ubiquity/text/try_text_label
+Type: text
+_Description:
+ You can try ${RELEASE} from this ${MEDIUM} without making any changes to
+ your system.
+
+Template: ubiquity/text/try_ubuntu
+Type: text
+_Description: Try ${RELEASE}
+
+Template: ubiquity/text/install_ubuntu
+Type: text
+_Description: Install ${RELEASE}
+
+Template: ubiquity/text/ready_text_label
+Type: text
+_Description:
+ Ready to install?  Once you answer a few questions, the contents of the live
+ ${MEDIUM} can be installed on this computer so you can run ${RELEASE} at
+ full speed without the ${MEDIUM}.
+
+Template: ubiquity/text/ready_text_oem_user_label
+Type: text
+_Description:
+ Once you answer a few questions, this computer will be ready to use.
+
+Template: ubiquity/text/duration_text_label
+Type: text
+_Description: Answering the questions should only take a few minutes.
+
 Template: ubiquity/text/release_notes_label
 Type: text
 _Description:
- If you have Internet access, read the release notes for information on
- problems that may affect you.
+ You may wish to read the <a href="release-notes">release notes</a> or <a
+ href="update">update this installer</a>.
 
-Template: ubiquity/text/release_notes_url
+Template: ubiquity/text/release_notes_only
 Type: text
-_Description: Release Notes
+_Description:
+ You may wish to read the <a href="release-notes">release notes</a>.
+
+Template: ubiquity/text/update_installer_only
+Type: text
+_Description:
+ You may wish to <a href="update">update this installer</a>.
+
+Template: ubiquity/show_alpha_warning
+Type: boolean
+Default: false
+Description: for internal use; can be preseeded
+ Show a message warning that this installer version is not ready for
+ production use.
+
+Template: ubiquity/text/alpha_warning_label
+Type: text
+_Description:
+ This is a pre-release of the ${RELEASE} live ${MEDIUM} installer. It is not
+ a final release; that will come with the final release of ${RELEASE} in
+ April 2010.
+ .
+ The installation process may resize or erase partitions on your hard disk.
+ Be sure to <b>take a full backup of any valuable data</b> before running
+ this program.
 
 Template: ubiquity/text/timezone_heading_label
 Type: text
@@ -91,7 +123,7 @@ _Description:
 
 Template: ubiquity/text/timezone_city_label
 Type: text
-_Description: Zone:
+_Description: Time Zone:
 
 Template: ubiquity/text/timezone_zone_label
 Type: text
@@ -117,6 +149,34 @@ Template: ubiquity/text/manual_keymap
 Type: text
 _Description: Choose your own:
 
+Template: ubiquity/text/calculate_keymap
+Type: text
+_Description: Guess keymap:
+
+Template: ubiquity/text/calculate_keymap_button
+Type: text
+_Description: Guess...
+
+Template: ubiquity/text/keyboard_query_press
+Type: text
+_Description: Please press one of the following keys:
+
+Template: ubiquity/text/keyboard_query_present
+Type: text
+_Description: Is the following key present on your keyboard?
+
+Template: ubiquity/text/keyboard_layout_label
+Type: text
+_Description: Layout:
+
+Template: ubiquity/text/keyboard_variant_label
+Type: text
+_Description: Variant:
+
+Template: ubiquity/text/keyboard_image_label
+Type: text
+_Description: Below is an image of your current layout:
+
 Template: ubiquity/text/userinfo_heading_label
 Type: text
 _Description: Who are you?
@@ -125,9 +185,17 @@ Template: ubiquity/text/fullname_label
 Type: text
 _Description: What is your name?
 
+Template: ubiquity/text/fullname_inactive_label
+Type: text
+_Description: Full Name
+
 Template: ubiquity/text/username_label
 Type: text
 _Description: What name do you want to use to log in?
+
+Template: ubiquity/text/username_inactive_label
+Type: text
+_Description: Username
 
 Template: ubiquity/text/username_extra_label
 Type: text
@@ -138,6 +206,14 @@ _Description:
 Template: ubiquity/text/password_label
 Type: text
 _Description: Choose a password to keep your account safe.
+
+Template: ubiquity/text/password_inactive_label
+Type: text
+_Description: Password
+
+Template: ubiquity/text/password_again_inactive_label
+Type: text
+_Description: Re-enter password
 
 Template: ubiquity/text/password_debug_warning_label
 Type: text
@@ -151,9 +227,33 @@ _Description:
  should be at least eight characters long, and should be changed at regular
  intervals.
 
+Template: ubiquity/text/password/too_short
+Type: text
+_Description: Strength: too short
+
+Template: ubiquity/text/password/weak
+Type: text
+_Description: Strength: weak
+
+Template: ubiquity/text/password/fair
+Type: text
+_Description: Strength: fair
+
+Template: ubiquity/text/password/good
+Type: text
+_Description: Strength: good
+
+Template: ubiquity/text/password/strong
+Type: text
+_Description: Strength: strong
+
 Template: ubiquity/text/hostname_label
 Type: text
 _Description: What is the name of this computer?
+
+Template: ubiquity/text/hostname_inactive_label
+Type: text
+_Description: Computer Name
 
 Template: ubiquity/text/hostname_extra_label
 Type: text
@@ -212,7 +312,7 @@ _Description: This computer has several operating systems on it.
 
 Template: ubiquity/text/part_auto_choices_label
 Type: text
-_Description: Where do you want to put Linux Mint 8?
+_Description: Where do you want to put ${RELEASE}?
 
 Template: ubiquity/text/part_advanced_heading_label
 Type: text
@@ -221,7 +321,7 @@ _Description: Prepare partitions
 Template: ubiquity/text/part_format_warning
 Type: text
 # SYSTEMS is a comma-separated list of operating systems present on the disk.
-_Description: This will delete ${SYSTEMS} and install Linux Mint 8.
+_Description: This will delete ${SYSTEMS} and install ${RELEASE}.
 
 Template: ubiquity/text/ready_heading_label
 Type: text
@@ -256,6 +356,41 @@ _Description: Quit the installation?
 Template: ubiquity/text/warning_dialog_label
 Type: text
 _Description: Do you really want to quit the installation now?
+
+Template: ubiquity/text/bootloader_fail_dialog
+Type: text
+_Description: Bootloader install failed
+
+Template: ubiquity/text/bootloader_fail_title
+Type: text
+_Description:
+ Sorry, an error occurred and it was not possible to install the bootloader at
+ the specified location.
+
+Template: ubiquity/text/grub_new_device
+Type: text
+_Description: Choose a different device to install the bootloader on:
+
+Template: ubiquity/text/grub_no_new_device
+Type: text
+_Description: Continue without a bootloader.
+
+Template: ubiquity/text/skip_label
+Type: text
+_Description:
+ You will need to manually install a bootloader in order to start ${RELEASE}.
+
+Template: ubiquity/text/grub_fail_option
+Type: text
+_Description: Cancel the installation.
+
+Template: ubiquity/text/abort_label
+Type: text
+_Description: This may leave your computer unable to boot.
+
+Template: ubiquity/text/bootloader_fail_proceed
+Type: text
+_Description: How would you like to proceed?
 
 Template: ubiquity/text/progress_cancel_button
 Type: text
@@ -327,6 +462,10 @@ Template: ubiquity/text/partition_button_undo
 Type: text
 # An action, displayed on a button or as a menu item.
 _Description: Revert
+
+Template: ubiquity/text/part_advanced_recalculating_label
+Type: text
+_Description: Recalculating partitions...
 
 Template: ubiquity/text/partition_column_device
 Type: text
@@ -441,7 +580,7 @@ _Description: Port:
 Template: ubiquity/text/finished_label
 Type: text
 _Description:
- Installation has finished.  You can continue testing Linux Mint now, but until
+ Installation has finished.  You can continue testing Ubuntu now, but until
  you restart the computer, any changes you make or documents you save will
  not be preserved.
 
@@ -477,7 +616,7 @@ _Description: Ready to install
 
 Template: ubiquity/install/checking
 Type: text
-_Description: Checking the installation...
+_Description: Verifying the installation configuration...
 
 Template: ubiquity/install/title
 Type: title
@@ -711,6 +850,21 @@ _Description: Error while removing packages
  look for newer versions of your installer image, or failing that report the
  problem to your distributor.
 
+Template: ubiquity/install/broken_migration
+Type: error
+_Description: Error migrating documents and settings
+ An error occurred while migrating data.  More details may be found in
+ /var/log/syslog.  The installation will continue, but some or all of the
+ documents and settings you requested may not have been transferred to the
+ installed system.
+
+Template: ubiquity/install/broken_network_copy
+Type: error
+_Description: Error copying network configuration
+ An error occurred while copying the network settings.  The installation will
+ continue, but the network configuration will have to be set up again in the
+ installed system.
+
 Template: ubiquity/install/md5_check
 Type: boolean
 Default: true
@@ -720,6 +874,10 @@ Template: ubiquity/install/generate-blacklist
 Type: boolean
 Default: true
 Description: set true to generate a list of files to skip copying.
+
+Template: ubiquity/install/new-bootdev
+Type: string
+Description: for internal use; new boot device to try.
 
 Template: ubiquity/install/blacklist
 Type: text
@@ -745,6 +903,12 @@ Description: Patterns for language packs to install
  language-pack-$LL is required, and is always installed (by localechooser).
  You do not need to list it here.
 
+Template: pkgsel/ignore-incomplete-language-support
+Type: boolean
+Default: false
+Description: for internal use; can be preseeded
+ Do not warn the end user if the language packs could not be installed.
+
 Template: ubiquity/keep-installed
 Type: string
 Description: for internal use; can be preseeded
@@ -753,10 +917,19 @@ Description: for internal use; can be preseeded
  language packs that are staying installed. Listing packages here that are
  not in the live filesystem has no effect.
 
-Template: ubiquity/partman-made-changes
+Template: ubiquity/only-show-installable-languages
 Type: boolean
-Default: true
-Description: for internal use; record whether partman asked for confirmation of changes
+Default: false
+Description: for internal use; can be preseeded
+ If the environment that you are running ubiquity or oem-config in doesn't
+ have internet access, then packages that are not currently available in
+ the apt cache (or livefs) won't be offered if this key is set true.
+
+Template: ubiquity/partman-confirm
+Type: select
+Default: confirm
+Choices: confirm, confirm_nochanges, confirm_nooverwrite
+Description: for internal use; record partman's confirmation question
 
 Template: ubiquity/partman-rebuild-cache
 Type: boolean
@@ -814,7 +987,7 @@ Type: boolean
 #flag:translate!:3
 _Description: Do you want to return to the partitioner?
  Some of the partitions you created are too small.  Please make the following
- partitions at least this large (in bytes):
+ partitions at least this large:
  .
  ${PARTITIONS}
  .
@@ -872,3 +1045,82 @@ _Description: Install
 Template: ubiquity/text/install_process_label
 Type: text
 _Description: installation process
+
+Template: ubiquity/install/success_command
+Type: text
+Description: Reticulating splines...
+
+Template: ubiquity/text/checking_for_installer_updates
+Type: text
+_Description: Checking for installer updates
+
+Template: ubiquity/text/reading_package_information
+Type: text
+_Description: Reading package information
+
+Template: ubiquity/text/updating_package_information
+Type: text
+_Description: Updating package information
+
+Template: ubiquity/text/apt_progress_cps
+Type: text
+_Description: File ${INDEX} of ${TOTAL} at ${SPEED}/s
+
+Template: ubiquity/text/apt_progress
+Type: text
+_Description: File ${INDEX} of ${TOTAL}
+
+Template: ubiquity/text/installing_update
+Type: text
+_Description: Installing update
+
+Template: ubiquity/text/error_updating_installer
+Type: text
+#flag:translate!:3
+_Description: Error updating installer
+ The installer encountered an error while trying to update itself:
+ .
+ ${ERROR}
+
+Template: ubiquity/text/USB
+Type: text
+# Translated acronym for Universal Serial Bus.
+_Description: USB
+
+Template: ubiquity/text/CD
+Type: text
+# Translated acronym for Compact Disc.
+_Description: CD
+
+Template: ubiquity/text/select_language_label
+Type: text
+_Description:
+ Please choose the language to use for the install process. This
+  Language will be the default language for this computer.
+
+Template: ubiquity/text/select_language_oem_user_label
+Type: text
+_Description:
+ Please choose the language used for the configuration process. This
+ language will be the default language for this computer.
+
+Template: ubiquity/text/begin_install_button
+Type: text
+_Description:
+ Continue with installation.
+
+Template: ubiquity/install_failed
+Type: text
+_Description: Installation failed
+ The installer encountered an unrecoverable error.  A desktop session will
+ now be run so that you may investigate the problem or try installing again.
+
+Template: ubiquity/install_failed_reboot
+Type: text
+_Description: Installation failed
+ The installer encountered an unrecoverable error and will now reboot.
+
+Template: ubiquity/reboot_on_failure
+Type: boolean
+Default: true
+Description: for internal use; automatically reboot when the install fails.

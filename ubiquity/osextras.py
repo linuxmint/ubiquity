@@ -22,6 +22,15 @@
 
 import os
 
+try:
+    from ubiquity._osextras import *
+except ImportError:
+    # Support running from a built source tree.
+    if os.path.isdir('ubiquity/.libs'):
+        import sys
+        sys.path.insert(0, 'ubiquity/.libs')
+        from _osextras import *
+
 def _resolve_link_root(root, path):
     """Helper for realpath_root. See posixpath._resolve_link."""
     paths_seen = set()
@@ -34,8 +43,8 @@ def _resolve_link_root(root, path):
         # Resolve where the link points to
         resolved = os.readlink(fullpath)
         if not os.path.isabs(resolved):
-            dir = os.path.dirname(path)
-            path = os.path.normpath(os.path.join(dir, resolved))
+            dirname = os.path.dirname(path)
+            path = os.path.normpath(os.path.join(dirname, resolved))
         else:
             path = os.path.normpath(resolved)
         fullpath = os.path.join(root, path[1:])
@@ -96,3 +105,11 @@ def find_on_path(command):
         if os.path.isfile(filename) and os.access(filename, os.X_OK):
             return True
     return False
+
+
+def unlink_force(path):
+    """Unlink path, without worrying about whether it exists."""
+    try:
+        os.unlink(path)
+    except OSError:
+        pass

@@ -137,7 +137,9 @@ if db_fget partman-iscsi/login/address seen && [ "$RET" = true ] && \
 	if ! pidof iscsid >/dev/null; then
 		iscsi-start
 	fi
+	db_capb backup
 	iscsi_login
+	db_capb
 fi
 
 while ! disk_found; do
@@ -170,7 +172,9 @@ while ! disk_found; do
 			if ! pidof iscsid >/dev/null; then
 				iscsi-start
 			fi
+			db_capb backup
 			iscsi_login
+			db_capb
 			continue
 		elif [ "$RET" != none ]; then
 			module="$RET"

@@ -28,12 +28,57 @@ else
 	exit 0
 fi
 
+device_name () {
+	local name
+	if ! name="$(device_info name "$1")"; then
+		name="$(printf %s "${1##*/}" | \
+			sed 's,!,/,g')"
+	fi
+	echo "/dev/$name"
+}
+
+is_sataraid () {
+	grep -qs ^DMRAID- "$1/dm/uuid"
+}
+
+is_sataraid_partition () {
+	# dmraid partitions are always slaved to another dm device
+	for slave in "$1"/slaves/dm-*; do
+		if [ -e "$slave" ]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
+if type dmraid >/dev/null 2>&1; then
+	raiddevs="$(dmraid -r -c || true)"
+else
+	raiddevs=
+fi
+
+# cloned-and-hacked from partman-base/init.d/parted
+part_of_sataraid () {
+	local raiddev
+	for raiddev in $raiddevs; do
+		if [ "$(readlink -f "$raiddev")" = "$1" ]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
 syspaths=
 scan_partition=false
 case $TYPE in
     partition)
 	for x in /sys/block/*/*[0-9]; do
 		[ -d "$x" ] || continue
+		syspaths="${syspaths:+$syspaths }$x"
+	done
+	for x in /sys/block/dm-*; do
+		[ -d "$x" ] || continue
+		(is_sataraid "$x" && is_sataraid_partition "$x") || continue
 		syspaths="${syspaths:+$syspaths }$x"
 	done
 	TYPE=disk
@@ -49,6 +94,19 @@ case $TYPE in
     *)
 	for x in /sys/block/*; do
 		[ -d "$x" ] || continue
+		case $x in
+		    /sys/block/dm-*)
+			if is_sataraid "$x" && is_sataraid_partition "$x"; then
+				continue
+			fi
+			;;
+		    *)
+			name="$(device_name "$x")"
+			if part_of_sataraid "$name"; then
+				continue
+			fi
+			;;
+		esac
 		syspaths="${syspaths:+$syspaths }$x"
 	done
 	;;
@@ -78,8 +136,14 @@ for x in $syspaths; do
 	fi
 	if ! $match && [ "$TYPE" = disk ]; then
 		case $devpath in
-		    /block/cciss\!*|/block/ida\!*|/block/rd\!*|/block/mmcblk*)
+		    /block/cciss\!*|/block/ida\!*|/block/rd\!*|/block/mmcblk*|/block/vd[a-z]*)
 			match=:
+			;;
+		    /block/dm-*)
+			# for now, we only understand dmraid
+			if is_sataraid "/sys$devpath"; then
+				match=:
+			fi
 			;;
 		esac
 	fi
@@ -105,10 +169,6 @@ for x in $syspaths; do
 		fi
 	fi
 	if $match; then
-		if ! name="$(device_info name "$devpath")"; then
-			name="$(printf %s "${devpath##*/}" | \
-				sed 's,!,/,g')"
-		fi
-		echo "/dev/$name"
+		device_name "/sys$devpath"
 	fi
 done

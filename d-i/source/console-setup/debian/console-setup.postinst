@@ -119,19 +119,27 @@ if [ "$1" = "configure" ]; then
     mv -f $CONFIGFILE.tmp $CONFIGFILE
 fi
 
-# In d-i debhelper doesn't use /etc/init.d scripts :-)
-if [ -f /usr/share/console-setup-mini/console-setup.config ]; then
-    if [ -d /lib/debian-installer ]; then
-	setupcon --force --save
-    else
-	# setting the font corrupts X
-	setupcon --save-only
-	setupcon --force -k
-	cat >&2 <<EOF
+if type plymouth >/dev/null && plymouth --ping; then
+    # setting the keymap breaks with plymouth in raw mode, and setting the
+    # font will currently also break if on vgacon
+    setupcon --save-only
+elif [ -d /lib/debian-installer ] || \
+     expr "$(fgconsole 2>/dev/null || true)" : '[1-6]$' >/dev/null; then
+    setupcon --force --save
+else
+    # setting the font corrupts X
+    setupcon --save-only
+    setupcon --force -k
+    cat >&2 <<EOF
 Your console font configuration will be updated the next time your system
 boots. If you want to update it now, run 'setupcon' from a virtual console.
 EOF
-    fi
+fi
+
+if type update-rc.d >/dev/null; then
+    # upstart transition to a single job, not entirely handled by debhelper
+    # autoscripts
+    update-rc.d -f keyboard-setup remove >/dev/null
 fi
 
 #DEBHELPER#

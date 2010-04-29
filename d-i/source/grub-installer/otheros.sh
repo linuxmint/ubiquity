@@ -173,13 +173,13 @@ EOF
 	fi
 	cat >> $tmpfile <<EOF
 	multiboot /boot/gnumach.gz root=device:$hurddrive
-	module /hurd/ext2fs.static --readonly \\
+	module /hurd/ext2fs.static ext2fs --readonly \\
 			--multiboot-command-line=\${kernel-command-line} \\
 			--host-priv-port=\${host-port} \\
 			--device-master-port=\${device-port} \\
 			--exec-server-task=\${exec-task} -T typed \${root} \\
 			\$(task-create) \$(task-resume)
-	module /lib/ld.so.1 /hurd/exec \$(exec-task=task-create)
+	module /lib/ld.so.1 exec /hurd/exec \$(exec-task=task-create)
 }
 
 EOF

@@ -20,3 +20,6 @@ strip: $(TARGETS)
 
 clean:
 	rm -f $(OBJECTS) $(TARGETS)
+
+test:
+	$(MAKE) -C testsuite test

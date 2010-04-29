@@ -3,15 +3,15 @@ Section: admin
 Priority: optional
 Maintainer: Ubuntu Installer Team <ubuntu-installer@lists.ubuntu.com>
 Uploaders: Colin Watson <cjwatson@ubuntu.com>, Evan Dandrea <evand@ubuntu.com>
-Build-Depends: apt, bf-utf-source, dash, dctrl-tools, debconf (>= 0.5.0), debhelper (>= 7.3.10~), dh-di (>= 3), dpkg-dev (>= 1.14.4), intltool (>= 0.40.0), intltool-debian (>= 0.30+20040212), iso-codes, isoquery, libbogl-dev, libdebconfclient0-dev (>= 0.68), libdebian-installer4-dev (>= 0.41), libiw-dev (>= 27+28pre9), libparted1.8-dev, libxml2-dev (>= 2.6.24), locales, po-debconf (>= 1.0), python-central (>= 0.5), tzdata, wget, xkb-data (>= 0.9)
+Build-Depends: apt, bf-utf-source, dash, dctrl-tools, debconf (>= 0.5.0), debhelper (>= 7.3.10), dh-di (>= 3), dpkg-dev (>= 1.14.4), intltool (>= 0.40.0), intltool-debian (>= 0.30+20040212), iso-codes, isoquery, keymapper (>= 0.5.3-7), libbogl-dev, libdebconfclient0-dev (>= 0.68), libdebian-installer4-dev (>= 0.41), libiw-dev (>= 27+28pre9), libparted0-dev (>= 2.2), libxml2-dev (>= 2.6.24), locales, po-debconf (>= 1.0), python-all-dev (>= 2.6), python-central (>= 0.5), tzdata, wget, xkb-data (>= 0.9), xkb-data-i18n
 Standards-Version: 3.6.2.1
-XS-Python-Version: current, >= 2.4
+XS-Python-Version: current, >= 2.6
 Vcs-Bzr: http://bazaar.launchpad.net/~ubuntu-installer/ubiquity/trunk
 
 Package: ubiquity
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, debconf (>= 1.4.72ubuntu5), ubiquity-frontend-${mangled-version}, ubiquity-artwork-${mangled-version}, laptop-detect, lsb-release, ubiquity-casper, python-apt (>= 0.6.16.2ubuntu4), ${console-setup-depends}, iso-codes, passwd, adduser, os-prober, rdate, ntfsprogs [any-alpha any-amd64 any-i386 any-ia64 any-lpia], ecryptfs-utils, cryptsetup, python-pyicu, reiserfsprogs, language-selector-common (>= 0.4.16)
-Recommends: grub-pc [any-amd64 any-i386 any-lpia] | grub [any-amd64 any-i386 any-lpia], flash-kernel [armel], yaboot [powerpc], hfsutils [powerpc], silo [sparc], dmraid
+Recommends: grub-pc [any-amd64 any-i386 any-lpia] | grub [any-amd64 any-i386 any-lpia], flash-kernel [armel], uboot-mkimage [armel], uboot-envtools [armel], redboot-tools [armel], yaboot [powerpc], hfsutils [powerpc], silo [sparc], dmraid
 Conflicts: ubuntu-express, espresso, espresso-utils, espresso-locale, espresso-keyboard-setup, espresso-kbd-chooser, espresso-timezone, user-setup (<< 0.05ubuntu6), partman, espresso-grub, espresso-yaboot
 Replaces: ubuntu-express, espresso, espresso-utils, espresso-locale, espresso-keyboard-setup, espresso-kbd-chooser, espresso-timezone, user-setup (<< 0.05ubuntu6), partman, espresso-grub, espresso-yaboot, ubiquity-frontend-gtk (<< 0.99.82)
 XB-Python-Version: ${python:Versions}
@@ -42,8 +42,7 @@ Description: Ubuntu artwork for Ubiquity live installer
 
 Package: ubiquity-frontend-gtk
 Architecture: all
-Depends: ${misc:Depends}, ${python:Depends}, ubiquity (= ${binary:Version}), python-dbus, python-gtk2 (>= 2.12), iso-codes, x-window-manager
-Recommends: gnome-system-tools
+Depends: ${misc:Depends}, ${python:Depends}, ubiquity (= ${binary:Version}), python-dbus, python-gtk2 (>= 2.17.0-0ubuntu2), iso-codes, x-window-manager, gksu
 Suggests: gnome-control-center
 Conflicts: ubuntu-express-frontend-gtk, espresso-frontend-gtk
 Replaces: ubuntu-express-frontend-gtk, espresso-frontend-gtk
@@ -55,22 +54,12 @@ Description: GTK+ frontend for Ubiquity live installer
 
 Package: ubiquity-frontend-kde
 Architecture: all
-Depends: ${misc:Depends}, ${python:Depends}, ubiquity (= ${binary:Version}), python-kde4, kde-window-manager, kdesudo | kdesudo-kde4
+Depends: ${misc:Depends}, ${python:Depends}, ubiquity (= ${binary:Version}), python-kde4, kde-window-manager, xauth
 Provides: ubiquity-frontend-${mangled-version}
 XB-Python-Version: ${python:Versions}
 Description: KDE frontend for Ubiquity live installer
  This package provides a KDE-based user interface frontend for the Ubiquity
  live CD installer.
-
-Package: ubiquity-frontend-mythbuntu
-Architecture: all
-Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, ubiquity (= ${binary:Version}), ubiquity-frontend-gtk (= ${binary:Version}), mythtv-common, python-mysqldb, expect, vnc4-common, lirc (>= 0.8.2-0ubuntu3), mythbuntu-common, python-xkit
-Provides: ubiquity-frontend-${mangled-version}
-XB-Python-Version: ${python:Versions}
-Description: Mythbuntu frontend for the Ubiquity live installer
- This package provides a GTK+-based user interface frontend for the use
- when performing a Mythbuntu installation.  The interface is derived
- from the GTK frontend already available.
 
 Package: ubiquity-frontend-debconf
 Architecture: all
@@ -83,7 +72,7 @@ Description: debconf frontend for the Ubiquity live installer
 
 Package: oem-config
 Architecture: all
-Depends: ${misc:Depends}, ubiquity (= ${binary:Version}), oem-config-frontend-${mangled-version}, hal
+Depends: ${misc:Depends}, ubiquity (= ${binary:Version}), oem-config-frontend-${mangled-version}
 Conflicts: oem-config-keyboard, oem-config-locale, oem-config-timezone
 Replaces: oem-config-keyboard, oem-config-locale, oem-config-timezone, oem-config-gtk (<< 1.54.13), oem-config-kde (<< 1.54.13)
 Description: Perform end-user configuration after initial OEM installation
@@ -150,3 +139,10 @@ Architecture: all
 Depends: oem-config-check, cdebconf-udeb
 XB-Installer-Menu-Item: 2800
 Description: Prepare for OEM configuration
+
+Package: oem-config-remaster
+Architecture: all
+Depends: genisoimage, gnupg, apt-utils
+Description: Remaster a CD with additional oem-config functionality
+ This script remasters a CD with additional packages and optional oem-config
+ preseed data.

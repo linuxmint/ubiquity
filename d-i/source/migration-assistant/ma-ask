@@ -52,7 +52,7 @@ for choice in $selection; do # Microsoft Windows XP Professional (/dev/hda1)
         log "got ostype of: '$ostype', mountpoint is: '$mountpoint'"
 
         path="${loc#*/*/}" # hda1 or discs/disc0/part1
-        mount_os "$ostype" "$loc"
+        mount_os "$ostype" "$loc" || continue
         db_register migration-assistant/users migration-assistant/$path/users
         db_subst migration-assistant/$path/users user-choices \
             "$($mapath/ma-search-users "$ostype" "$mountpoint" 2>>/var/log/syslog)"

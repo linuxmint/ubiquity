@@ -9,7 +9,8 @@ author		"Ubuntu Installer Team <ubuntu-installer@lists.ubuntu.com>"
 
 start on (starting gdm
 	  or starting kdm
-	  or starting xdm)
+	  or starting xdm
+	  or starting uxlaunch)
 stop on runlevel [06]
 
 task
@@ -24,6 +25,7 @@ script
     automatic=
     debug=
     noninteractive=
+    choose=
     for x in $(cat /proc/cmdline); do
 	case $x in
 	    debug-ubiquity)
@@ -33,6 +35,10 @@ script
 	    automatic-ubiquity)
 		automatic="--automatic"
 		ubiquity=1
+		;;
+	    maybe-ubiquity)
+		ubiquity=1
+		choose="--greeter"
 		;;
 	    only-ubiquity)
 		ubiquity=1
@@ -60,11 +66,14 @@ script
     setterm -blank 0
 
     if [ -n "$noninteractive" ]; then
+	plymouth quit || :
 	exec ubiquity noninteractive $debug
     else
-	if ! ubiquity-dm vt7 :0 ubuntu /usr/bin/ubiquity $debug $automatic --only; then
+	if ! ubiquity-dm vt7 :0 ubuntu /usr/bin/ubiquity $debug $automatic $choose --only; then
 	    # has X crashed, or has ubiquity?
-            if ! [ -f /var/log/installer/version ]; then
+            if [ "$automatic" ] && ! [ -f /var/log/installer/version ]; then
+                # in case we crashed before the X startup sequence
+                plymouth quit || :
                 exec ubiquity noninteractive $debug
             fi
 	fi

@@ -1,3 +1,95 @@
+clock-setup (0.102ubuntu1) lucid; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Default to ntp.ubuntu.com for the NTP server.
+    - Ask the UTC question, defaulting to true, even if we appear to be the
+      only OS (unless clock-setup/utc-auto is preseeded to true).
+    - Apparently OpenSolaris keeps the hardware clock in local time
+      (surprisingly).  Assume UTC=no if Solaris is detected.
+    - Pass --noadjfile to hwclock.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 13 Feb 2010 15:47:26 +0000
+
+clock-setup (0.102) unstable; urgency=low
+
+  * Use log-output when calling set-date-epoch.
+  * Upgrade to debhelper v7.
+
+  [ Updated translations ]
+  * Slovenian (sl.po) by Vanja Cvelbar
+
+ -- Frans Pop <fjp@debian.org>  Wed, 16 Dec 2009 20:54:51 +0100
+
+clock-setup (0.101) unstable; urgency=low
+
+  * Remove no longer needed Lintian override for missing Standards-
+    Version field.
+  * If the current system date is before the epoch, rdate fails to set it to
+    the date obtained using NTP (#502336). Work around this by setting the date
+    to the epoch (1-1-1970) if the current date is smaller, before calling
+    rdate. Closes: #548128.
+
+  [ Updated translations ]
+  * Asturian (ast.po) by astur
+  * Danish (da.po) by Mads Lundby
+  * Galician (gl.po) by Marce Villarino
+
+ -- Frans Pop <fjp@debian.org>  Mon, 14 Dec 2009 21:54:16 +0100
+
+clock-setup (0.100ubuntu1) lucid; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Default to ntp.ubuntu.com for the NTP server.
+    - Ask the UTC question, defaulting to true, even if we appear to be the
+      only OS (unless clock-setup/utc-auto is preseeded to true).
+    - Apparently OpenSolaris keeps the hardware clock in local time
+      (surprisingly). Assume UTC=no if Solaris is detected.
+    - Pass --noadjfile to hwclock.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 09 Nov 2009 17:43:01 +0000
+
+clock-setup (0.100) unstable; urgency=low
+
+  * finish-install: there's no need anymore to create a /dev/rtc symlink.
+  * finish-install: don't modify /target/etc/adjtime directly. First of all
+    it does not yet exist, and calling hwclock with the correct option has
+    the same effect anyway. Closes: #541436.
+  * finish-install: only set the hardware clock if the system time was
+    updated using rdate.
+
+  [ Updated translations ]
+  * Asturian (ast.po) by Marcos Antonio Alvarez Costales
+  * Korean (ko.po) by Changwoo Ryu
+
+ -- Frans Pop <fjp@debian.org>  Wed, 02 Sep 2009 17:02:42 +0200
+
+clock-setup (0.99) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Merge from Ubuntu:
+    - Add lpia to architecture list.
+    - Fix rdate-udeb dependency to include the epoch.
+    - Check for the existence of /etc/adjtime before running sed over it,
+      since Ubuntu no longer necessarily ships that file given
+      https://wiki.ubuntu.com/HardwareClock (Evan Dandrea).
+    - Fix handling of progress bar cancellation (LP: #262500):
+      + db_progress INFO might be cancelled if the user is quick; cope with
+        that.
+      + Reset the progresscancel capability when we're finished.
+
+  [ Frans Pop ]
+  * Remove no longer needed versioned dependencies.
+  * Make clock-setup safe for s390. D-I is not allowed to change the system
+    clock on s390, but it is still needed there because of time zone setup.
+    Closes: #538344.
+  * Bump debhelper compatibility to 6.
+
+  [ Updated translations ]
+  * Hindi (hi.po)
+  * Italian (it.po) by Milo Casagrande
+
+ -- Frans Pop <fjp@debian.org>  Sun, 02 Aug 2009 10:40:41 +0200
+
 clock-setup (0.98ubuntu3) karmic; urgency=low
 
   * If we didn't manage to sync the clock to NTP, then don't set the

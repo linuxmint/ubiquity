@@ -35,9 +35,11 @@
 def check_grub_device(device):
     """Check that the user entered a valid boot device.
         @return True if the device is valid, False if it is not."""
-    import re
+    import re, os
     regex = re.compile(r'^/dev/([a-zA-Z0-9]+|mapper/[a-zA-Z0-9_]+)$')
     if regex.search(device):
+        if not os.path.exists(device):
+            return False
         return True
     # (device[,part-num])
     regex = re.compile(r'^\((hd|fd)[0-9]+(,[0-9]+)*\)$')
@@ -76,3 +78,60 @@ def check_hostname(name):
         result.add(HOSTNAME_BADDOTS)
 
     return sorted(result)
+
+# Based on setPasswordStrength() in Mozilla Seamonkey, which is tri-licensed
+# under MPL 1.1, GPL 2.0, and LGPL 2.1.
+
+def password_strength(password):
+    upper = lower = digit = symbol = 0
+    for char in password:
+        if char.isdigit():
+            digit += 1
+        elif char.islower():
+            lower += 1
+        elif char.isupper():
+            upper += 1
+        else:
+            symbol += 1
+    length = len(password)
+    if length > 5:
+        length = 5
+    if digit > 3:
+        digit = 3
+    if upper > 3:
+        upper = 3
+    if symbol > 3:
+        symbol = 3
+    strength = (((length * 0.1) - 0.2)
+               + (digit * 0.1)
+               + (symbol * 0.15)
+               + (upper * 0.1))
+    if strength > 1:
+        strength = 1
+    if strength < 0:
+        strength = 0
+    return strength
+
+def human_password_strength(password):
+    strength = password_strength(password)
+    length = len(password)
+    if length == 0:
+        hint = ''
+        color = ''
+    elif length < 6:
+        hint = 'too_short'
+        color = 'darkred'
+    elif strength < 0.5:
+        hint = 'weak'
+        color = 'darkred'
+    elif strength < 0.75:
+        hint = 'fair'
+        color = 'darkorange'
+    elif strength < 0.9:
+        hint = 'good'
+        color = 'darkgreen'
+    else:
+        hint = 'strong'
+        color = 'darkgreen'
+    return (hint, color)
+

@@ -1,0 +1,48 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+bad=
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd "$dev"
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ "$fs" != free ] || continue
+		partitions="$partitions $id,$path"
+	done
+	close_dialog
+
+	for part in $partitions; do
+		id="${part%,*}"
+		path="${part#*,}"
+		[ -f "$id/method" ] || continue
+		[ -f "$id/format" ] || continue
+		[ -f "$id/acting_filesystem" ] || continue
+		[ -f "$id/mountpoint" ] || continue
+		filesystem="$(cat "$id/acting_filesystem")"
+		mountpoint="$(cat "$id/mountpoint")"
+		case $filesystem in
+		    ext3|ext4)
+			if [ -f $id/formatted ] && \
+			   [ $id/formatted -nt $id/method ] && \
+			   ([ ! -f $id/filesystem ] || \
+			    [ $id/formatted -nt $id/filesystem ]); then
+				continue
+			fi
+			open_dialog ALIGNMENT_OFFSET $id
+			read_line offset
+			close_dialog
+			if [ "$offset" != 0 ]; then
+				db_subst partman-ext3/bad_alignment PARTITION "$path"
+				db_subst partman-ext3/bad_alignment MOUNTPOINT "$mountpoint"
+				db_subst partman-ext3/bad_alignment OFFSET "$offset"
+				db_input critical partman-ext3/bad_alignment || true
+				db_go || true
+				exit 1
+			fi
+			;;
+		esac
+	done
+done

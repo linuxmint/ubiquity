@@ -5,6 +5,13 @@ Type: text
 # :sl1:
 _Description: Install the base system
 
+Template: base-installer/install-recommends
+Type: boolean
+Default: true
+Description: for internal use; can be preseeded
+ Will configure APT in the target system not to install recommened
+ packages by default. For experienced users only.
+
 Template: base-installer/cannot_install
 Type: error
 # The base system is the minimal Debian system 
@@ -83,7 +90,7 @@ _Description: Drivers to include in the initrd:
  programs required to do that.
  .
  A generic initrd is much larger than a targeted one and may even be so
- large that some bootloaders are unable to load it but has the advantage that
+ large that some boot loaders are unable to load it but has the advantage that
  it can be used to boot the target system on almost any hardware. With the
  smaller targeted initrd there is a very small chance that not all needed
  drivers are included.
@@ -457,3 +464,11 @@ Type: boolean
 Default: true
 Description: for internal use; can be preseeded
  Install kernel headers along with the kernel.
+
+Template: base-installer/kernel/backports-modules
+Type: string
+Description: for internal use; can be preseeded
+ Install kernel backports modules along with the kernel.  For example,
+ setting this to "nouveau wireless" will install
+ linux-backports-modules-nouveau-$DISTRIBUTION-$FLAVOUR and
+ linux-backports-modules-wireless-$DISTRIBUTION-$FLAVOUR.

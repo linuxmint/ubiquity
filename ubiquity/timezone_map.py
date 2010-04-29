@@ -23,7 +23,6 @@ import math
 import cairo
 import gtk
 import glib
-from gtk import gdk
 import gobject
 import os
 import datetime
@@ -137,6 +136,7 @@ class TimezoneMap(gtk.Widget):
         gtk.Widget.__init__(self)
         self.tzdb = database
         self.image_path = image_path
+        self.time_fmt = '%X'
         self.orig_background = \
             gtk.gdk.pixbuf_new_from_file(os.path.join(self.image_path,
             'bg.png'))
@@ -154,22 +154,13 @@ class TimezoneMap(gtk.Widget):
         self.distances = []
         self.previous_click = (-1, -1)
         self.dist_pos = 0
-        
+
+    def set_time_format(self, time_fmt):
+        self.time_fmt = time_fmt
+
     def do_size_request(self, requisition):
-        # Set a small size request to create an aspect ratio for the parent
-        # widget.
-        screen_height = gtk.gdk.get_default_root_window().get_screen().get_height()
-        # fudge factor for rest of timezone page + panels + a bit for luck;
-        # since the current background image is 409 pixels high, 1024+768
-        # screens and better should end up with a full-sized background
-        if screen_height > self.orig_background.get_height() + 300:
-            width = self.orig_background.get_width()
-            height = self.orig_background.get_height()
-        else:
-            width = self.orig_background.get_width() / 2
-            height = self.orig_background.get_height() / 2
-        requisition.width = width
-        requisition.height = height
+        requisition.width = self.orig_background.get_width() / 2
+        requisition.height = self.orig_background.get_height() / 2
         gtk.Widget.do_size_request(self, requisition)
 
     def do_size_allocate(self, allocation):
@@ -184,15 +175,15 @@ class TimezoneMap(gtk.Widget):
 
     def do_realize(self):
         self.set_flags(self.flags() | gtk.REALIZED)
-        self.window = gdk.Window(
+        self.window = gtk.gdk.Window(
             self.get_parent_window(),
             width=self.allocation.width,
             height=self.allocation.height,
-            window_type=gdk.WINDOW_CHILD,
-            wclass=gdk.INPUT_OUTPUT,
+            window_type=gtk.gdk.WINDOW_CHILD,
+            wclass=gtk.gdk.INPUT_OUTPUT,
             event_mask=self.get_events() |
-                        gdk.EXPOSURE_MASK |
-                        gdk.BUTTON_PRESS_MASK)
+                        gtk.gdk.EXPOSURE_MASK |
+                        gtk.gdk.BUTTON_PRESS_MASK)
         self.window.set_user_data(self)
         self.style.attach(self.window)
         self.style.set_background(self.window, gtk.STATE_NORMAL)
@@ -200,11 +191,11 @@ class TimezoneMap(gtk.Widget):
         cursor = gtk.gdk.Cursor(gtk.gdk.HAND2)
         self.window.set_cursor(cursor)
 
-    def do_expose_event(self, event):
+    def do_expose_event(self, unused_event):
         cr = self.window.cairo_create()
         cr.set_source_pixbuf(self.background, 0, 0)
         cr.paint()
-        
+
         # Render highlight.
         # Possibly not the best solution, though in my head it seems better
         # than keeping two copies (original and resized) of every timezone in
@@ -226,7 +217,6 @@ class TimezoneMap(gtk.Widget):
         height = self.background.get_height()
         width = self.background.get_width()
 
-        only_draw_selected = True
         loc = self.selected and self.tzdb.get_loc(self.selected)
         if loc:
             pointx = convert_longitude_to_x(loc.longitude, width)
@@ -241,7 +231,7 @@ class TimezoneMap(gtk.Widget):
 
             # Draw the time.
             now = datetime.datetime.now(loc.info)
-            time_text = now.strftime('%X')
+            time_text = now.strftime(self.time_fmt)
             cr.select_font_face('Sans', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
             cr.set_font_size(12.0)
             xbearing, ybearing, width, height, xadvance, yadvance = \
@@ -264,12 +254,12 @@ class TimezoneMap(gtk.Widget):
     def timeout(self):
         self.queue_draw()
         return True
-    
-    def mapped(self, widget, event):
+
+    def mapped(self, unused_widget, unused_event):
         if self.update_timeout is None:
             self.update_timeout = gobject.timeout_add(1000, self.timeout)
 
-    def unmapped(self, widget, event):
+    def unmapped(self, unused_widget, unused_event):
         if self.update_timeout is not None:
             gobject.source_remove(self.update_timeout)
             self.update_timeout = None
@@ -301,14 +291,14 @@ class TimezoneMap(gtk.Widget):
             print 'Mouse click outside of the map.'
         return None
 
-    def button_press(self, widget, event):
+    def button_press(self, unused_widget, event):
         x = int(event.x)
         y = int(event.y)
-        
+
         o = self.convert_xy_to_offset(x, y)
         if not o:
             return
-        
+
         self.selected_offset = o
 
         if (x, y) == self.previous_click and self.distances:

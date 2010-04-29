@@ -330,6 +330,31 @@ else
     locale=C
 fi
 
+if [ "$LC_MESSAGES"  -a "$LC_MESSAGES" != C ]; then
+    messages=$LC_MESSAGES
+elif db_get debian-installer/locale && [ "$RET" ]; then
+    messages="$RET"
+else
+    messages=C
+fi
+
+messages_lang=$(echo $messages | sed 's/_.*//')
+messages_country=$(echo $messages | sed 's/.*_//;s/\..*//;s/@.*//')
+messages_modif=
+echo $messages | grep -v -q @ || messages_modif=$(echo $messages | sed 's/.*@//')
+
+lang_kbdnames () {
+    all_kbdnames | \
+        grep "^$1[*]" | \
+        sed "s/^$1[*]//"
+}
+
+kbdnames=$(lang_kbdnames ${messages_lang}_${messages_country}__${messages_modif})
+[ -n "$kbdnames" ] || kbdnames=$(lang_kbdnames ${messages_lang}_${messages_country}__${messages_modif})
+[ -n "$kbdnames" ] || kbdnames=$(lang_kbdnames ${messages_lang}_${messages_country})
+[ -n "$kbdnames" ] || kbdnames=$(lang_kbdnames ${messages_lang})
+[ -n "$kbdnames" ] || kbdnames=$(lang_kbdnames C)
+
 case "$locale" in
     *KOI8*|*koi8*)
 	default_codeset=CyrKoi
@@ -827,6 +852,9 @@ case "$locale" in
     *_GB*)
 	default_layout=gb  # United Kingdom
 	;;
+    *_GG*)
+	default_layout=gb  # United Kingdom
+	;;
     *_HU*)
 	default_layout=hu  # Hungary
 	;;
@@ -837,6 +865,9 @@ case "$locale" in
 	default_layout=il  # Israel
 	layout_priority=critical
 	;;
+    *_IM*)
+	default_layout=gb  # United Kingdom
+	;;
     *_IR*)
 	default_layout=ir  # Iran
 	;;
@@ -845,6 +876,9 @@ case "$locale" in
 	;;
     *_IT*)
 	default_layout=it  # Italy
+	;;
+    *_JE*)
+	default_layout=gb  # United Kingdom
 	;;
     *_JP*)
 	default_layout=jp  # Japan

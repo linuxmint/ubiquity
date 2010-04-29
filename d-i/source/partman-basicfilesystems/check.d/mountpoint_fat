@@ -2,6 +2,8 @@
 
 . /lib/partman/lib/base.sh
 
+ARCH="$(archdetect)"
+
 for dev in $DEVICES/*; do
 	[ -d "$dev" ] || continue
 	cd $dev
@@ -26,6 +28,18 @@ for dev in $DEVICES/*; do
 			# Check for FAT file systems mounted in places where POSIX
 			# filesystem semantics are usually expected, and make the
 			# user choose again.
+			case $mountpoint in
+			    /boot)
+				case $ARCH in
+				    armel/omap)
+					# omap uboot has problems with ext2;
+					# the problems with FAT can be
+					# worked around.
+					continue
+					;;
+				esac
+			    ;;
+			esac
 			case $mountpoint in
 			    /|/boot|/home|/opt|/srv|/tmp|/usr|/usr/local|/var)
 				>"$id/visual_mountpoint"

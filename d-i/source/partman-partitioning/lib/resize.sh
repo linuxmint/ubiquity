@@ -64,13 +64,23 @@ get_ntfs_resize_range () {
 			sed 's/^You might resize at \([0-9]*\) bytes.*/\1/' | \
 			grep '^[0-9]*$')
 		if [ "$size" ]; then
-			minsize=$size
+			if ! longint_le "$size" "$cursize"; then
+				logger -t partman "ntfsresize reported minimum size $size, but current partition size is $cursize"
+				unset minsize cursize maxsize prefsize
+				return 1
+			elif ! longint_le "$minsize" "$size"; then
+				logger -t partman "ntfsresize reported minimum size $size, but minimum partition size is $minsize"
+				unset minsize cursize maxsize prefsize
+				return 1
+			else
+				minsize=$size
+			fi
 		fi
 	fi
 }
 
 get_ext2_resize_range () {
-	local bdev tune2fs block_size block_count free_blocks
+	local bdev tune2fs block_size block_count free_blocks real_minsize
 	open_dialog GET_VIRTUAL_RESIZE_RANGE $oldid
 	read_line minsize cursize maxsize
 	close_dialog
@@ -90,7 +100,18 @@ get_ext2_resize_range () {
 		if expr "$block_size" : '[0-9][0-9]*$' >/dev/null && \
 		   expr "$block_count" : '[0-9][0-9]*$' >/dev/null && \
 		   expr "$free_blocks" : '[0-9][0-9]*$' >/dev/null; then
-			minsize="$(expr \( "$block_count" - "$free_blocks" \) \* "$block_size")"
+			real_minsize="$(expr \( "$block_count" - "$free_blocks" \) \* "$block_size")"
+			if ! longint_le "$real_minsize" "$cursize"; then
+				logger -t partman "tune2fs reported minimum size $real_minsize, but current partition size is $cursize"
+				unset minsize cursize maxsize prefsize
+				return 1
+			elif ! longint_le "$minsize" "$real_minsize"; then
+				logger -t partman "tune2fs reported minimum size $real_minsize, but minimum partition size is $minsize"
+				unset minsize cursize maxsize prefsize
+				return 1
+			else
+				minsize="$real_minsize"
+			fi
 		fi
 	fi
 	return 0
@@ -101,6 +122,34 @@ get_resize_range () {
 	read_line minsize cursize maxsize
 	close_dialog
 	prefsize=$cursize
+}
+
+# This function works only on non-virtual (i.e. committed) filesystems.  It
+# calls some external programs to discover the size, so caches for
+# efficiency.
+get_real_resize_range () {
+	# Keep this variable name in sync with other functions above.
+	local oldid="$1"
+	local fs="$2"
+
+	if [ -f "$oldid/real_resize_range_cache" ]; then
+		read minsize cursize maxsize prefsize \
+			< "$oldid/real_resize_range_cache"
+	else
+		local CODE=0
+		case $fs in
+		    ntfs)		get_ntfs_resize_range || CODE=$? ;;
+		    ext2|ext3|ext4)	get_ext2_resize_range || CODE=$? ;;
+		    *)			get_resize_range ;;
+		esac
+		case $CODE in
+		    0)
+			echo "$minsize $cursize $maxsize $prefsize" \
+				> "$oldid/real_resize_range_cache"
+			;;
+		esac
+		return $CODE
+	fi
 }
 
 human_resize_range () {

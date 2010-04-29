@@ -57,7 +57,7 @@ class PartedServer(object):
 
     def log(self, *args):
         f = open(logfile, 'a')
-        print >>f, ' '.join(args)
+        print >>f, 'ubiquity:', ' '.join(args)
         f.close()
 
     def write_line(self, *args):

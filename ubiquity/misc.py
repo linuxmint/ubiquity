@@ -375,19 +375,19 @@ from collections import namedtuple
 def get_release():
     ReleaseInfo = namedtuple('ReleaseInfo', 'name, version')
     if get_release.release_info is None:
-        try:
-            with open('/cdrom/.disk/info') as fp:
-                line = fp.readline()
-                if line:
-                    line = line.split()
-                    if line[2] == 'LTS':
-                        line[1] += ' LTS'
-                    get_release.release_info = ReleaseInfo(name=line[0], version=line[1])
-        except:
-            syslog.syslog(syslog.LOG_ERR, 'Unable to determine the release.')
+        #try:
+        #    with open('/cdrom/.disk/info') as fp:
+        #        line = fp.readline()
+        #        if line:
+        #            line = line.split()
+        #            if line[2] == 'LTS':
+        #                line[1] += ' LTS'
+        #            get_release.release_info = ReleaseInfo(name=line[0], version=line[1])
+        #except:
+        #    syslog.syslog(syslog.LOG_ERR, 'Unable to determine the release.')
 
-        if not get_release.release_info:
-            get_release.release_info = ReleaseInfo(name='Ubuntu', version='')
+        #if not get_release.release_info:
+        get_release.release_info = ReleaseInfo(name='Linux Mint', version='10')
     return get_release.release_info
 get_release.release_info = None
 

@@ -4,6 +4,8 @@ ifdef DEBUG
 CFLAGS += -g3
 endif
 
+LIBS = -lparted
+
 PARTCONF_OBJS = util.o partconf.o find-parts.o
 
 all: partconf find-partitions mkfstab mountpoint

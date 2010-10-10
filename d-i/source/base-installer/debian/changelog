@@ -1,3 +1,125 @@
+base-installer (1.107ubuntu3) maverick; urgency=low
+
+  * Backport from trunk:
+    - Move base-installer/install-recommends from bootstrap-base.templates
+      to base-installer.templates.
+
+ -- Cody A.W. Somerville <cody.somerville@canonical.com>  Wed, 29 Sep 2010 11:20:54 +0100
+
+base-installer (1.107ubuntu2) maverick; urgency=low
+
+  * Backport from trunk:
+    - Set Dir::Media::MountPath to /media/cdrom as well as
+      Acquire::cdrom::mount, as otherwise apt doesn't consistently read from
+      the right one.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 22 Sep 2010 13:28:28 +0100
+
+base-installer (1.107ubuntu1) maverick; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Use and depend on the Ubuntu keyring.
+    - Enable the restricted component by default, unless
+      apt-setup/restricted is preseeded to false.
+    - Set up the default sources.list to look in -updates and -security (the
+      latter from apt-setup/security_host) as well as the unadorned suite;
+      also -proposed if apt-setup/proposed is true.
+    - Use Ubuntu kernel image names.
+    - Allow preseeding base-installer/kernel/override-image to force a given
+      kernel to be used.
+    - Install busybox-initramfs rather than busybox.
+    - Revert Joey's patch to call base-installer.d hooks after running
+      debootstrap, which broke console-setup's expectation of being able to
+      insert its configuration file into /target before console-setup is
+      installed by debootstrap.
+    - Add armel/imx51, armel/dove, and armel/omap subarchitectures.
+    - Prefer PAE kernels on machines with >3GB of RAM.
+    - Install kernel headers to match the kernel. This may be overridden by
+      setting base-installer/kernel/headers to false.
+    - Add base-installer/kernel/backports-modules template, which may be
+      preseeded to install selected linux-backports-modules-* packages.
+  * Drop patch to ignore Recommends while installing the kernel, superseded
+    by a more general change upstream.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 19 May 2010 12:06:04 +0100
+
+base-installer (1.107) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Fix install_extra() to actually display the return code from apt-install
+    in case of an error.
+
+  [ Aurelien Jarno ]
+  * Add script and tests to select SH4 kernels.
+  * Add code to install GNU/kFreeBSD kernel.
+
+  [ Updated translations ]
+  * Asturian (ast.po) by astur
+  * Danish (da.po) by Anders Jenbo
+  * German (de.po) by Holger Wansing
+  * French (fr.po) by Christian Perrier
+  * Hebrew (he.po) by Lior Kaplan
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Norwegian Nynorsk (nn.po) by Eirik U. Birkeland
+
+ -- Aurelien Jarno <aurel32@debian.org>  Thu, 13 May 2010 23:10:53 +0200
+
+base-installer (1.106) unstable; urgency=low
+
+  * Define the mount point for apt-cdrom in target as /media/cdrom instead
+    of /cdrom as the latter was deprecated back in Etch.
+
+  [ Updated translations ]
+  * Hebrew (he.po) by Omer Zak
+  * Slovenian (sl.po) by Vanja Cvelbar
+
+ -- Frans Pop <fjp@debian.org>  Fri, 12 Mar 2010 22:48:17 +0100
+
+base-installer (1.105) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Upgrade to debhelper v7.
+  * Ensure that Acquire::cdrom::AutoDetect is disabled when running
+    apt-cdrom.  We bind-mount /target/cdrom, so apt's new libudev-based
+    autodetection isn't needed during installation.
+
+  [ Frans Pop ]
+  * powerpc: add kernel selection support for PlayStation 3 systems.
+  * Don't install Recommends during base system installation as it leads to
+    inconsistencies and requires too many exceptions. Instead delay enabling
+    installation of Recommends to the very end of base system installation.
+    Any package installations after base-installer will follow the debconf
+    setting install-recommends, unless overridden in a call to 'apt-install'.
+  * Drop install_filesystems step as that is now being taken care of by
+    post-base-installer.d hook scripts.
+    Requires: partman-base (138), partman-md (50), partman-lvm (69),
+    partman-crypto (41).
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Israt Jahan
+  * German (de.po) by Holger Wansing
+  * Hebrew (he.po) by Lior Kaplan
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Simplified Chinese (zh_CN.po) by 苏运强
+
+ -- Otavio Salvador <otavio@debian.org>  Sun, 21 Feb 2010 23:08:51 -0300
+
+base-installer (1.104) unstable; urgency=low
+
+  * Remove options relative_links and do_bootfloppy from default
+    /etc/kernel-img.conf file as requested by Maximilian Attems.
+  * Allow for options to be present in queue for apt-install (di-utils 1.73).
+
+  [ Updated translations ]
+  * Asturian (ast.po) by astur
+  * Belarusian (be.po) by Pavel Piatruk
+  * Esperanto (eo.po) by Felipe Castro
+  * Galician (gl.po) by Marce Villarino
+  * Italian (it.po) by Milo Casagrande
+  * Slovenian (sl.po) by Vanja Cvelbar
+
+ -- Frans Pop <fjp@debian.org>  Wed, 23 Dec 2009 00:20:24 +0100
+
 base-installer (1.103ubuntu7) lucid; urgency=low
 
   * Add armel/omap subarchitecture.

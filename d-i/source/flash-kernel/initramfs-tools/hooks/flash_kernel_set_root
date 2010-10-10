@@ -19,6 +19,64 @@ pause_error() {
 	fi
 }
 
+# Should we override the root device or merely provide a default root
+# device?
+root_type() {
+	case "$1" in
+		"Buffalo Linkstation Pro/Live")
+			echo "override"
+		;;
+		"Buffalo/Revogear Kurobox Pro")
+			echo "override"
+		;;
+		"D-Link DNS-323")
+			echo "override"
+		;;
+		"GLAN Tank")
+			echo "override"
+		;;
+		"HP Media Vault mv2120")
+			echo "override"
+		;;
+		"Linksys NSLU2")
+			echo "default"
+		;;
+		"QNAP TS-109/TS-209")
+			echo "override"
+		;;
+		"QNAP TS-119/TS-219")
+			echo "override"
+		;;
+		"QNAP TS-409")
+			echo "override"
+		;;
+		"QNAP TS-41x")
+			echo "override"
+		;;
+		"Marvell OpenRD Base Board")
+			echo "default"
+		;;
+		"Marvell OpenRD Client Board")
+			echo "default"
+		;;
+		"Marvell SheevaPlug Reference Board")
+			echo "default"
+		;;
+		"Marvell eSATA SheevaPlug Reference Board")
+			echo "default"
+		;;
+		"Thecus N2100")
+			echo "override"
+		;;
+		"Lanner EM7210")
+			echo "override"
+		;;
+		*)
+			echo
+		;;
+	esac
+}
+
 case $1 in
 prereqs)
 	prereqs
@@ -28,17 +86,11 @@ esac
 
 . /usr/share/initramfs-tools/hook-functions
 
-# Only run on some machines
+# Only run this hook on some machines
 machine=$(grep "^Hardware" /proc/cpuinfo | sed 's/Hardware\s*:\s*//')
-case "$machine" in
-	"Buffalo Linkstation Pro/Live" | "Buffalo/Revogear Kurobox Pro" | "D-Link DNS-323" | "GLAN Tank" | "HP Media Vault mv2120" | "Linksys NSLU2" | "QNAP TS-109/TS-209" | "QNAP TS-409" | "Thecus N2100")
-		# Pass the check and continue below
-	;;
-	*)
-		# If the machine is not listed, don't run this hook
-		exit 0
-	;;
-esac
+if [ -z "$(root_type "$machine")" ]; then
+	exit 0
+fi
 
 # Record the root filesystem device for use during boot
 rootdev=$(egrep '^[^# 	]+[ 	]+/[ 	]' /etc/fstab | awk '{print $1}') || true
@@ -80,16 +132,16 @@ if [ ! -e "$rootdev" ]; then
 	echo "Warning: /etc/fstab parse error; guessing that the root device is $rootdev" >&2
 	pause_error
 fi
-case "$machine" in
+case "$(root_type "$machine")" in
 	# The boot loader doesn't pass root= on the command line, so
 	# provide a default.
-	"Linksys NSLU2")
+	"default")
 		install -d $DESTDIR/conf/conf.d
 		echo "ROOT=\"$rootdev\"" > $DESTDIR/conf/conf.d/default_root
 	;;
 	# The boot loader passes a bogus root= (e.g. root=/dev/ram), so
 	# override the command line parameter.
-	"Buffalo Linkstation Pro/Live" | "Buffalo/Revogear Kurobox Pro" | "D-Link DNS-323" | "GLAN Tank" | "HP Media Vault mv2120" | "QNAP TS-109/TS-209" | "QNAP TS-409" | "Thecus N2100")
+	"override")
 		install -d $DESTDIR/conf
 		echo "ROOT=\"$rootdev\"" >> $DESTDIR/conf/param.conf
 	;;

@@ -22,24 +22,32 @@ class KeyboardQuery(gtk.Window):
     def __init__(self, frontend):
         gtk.Window.__init__(self)
 
-        self.set_title('')
+        self.set_title(
+            frontend.get_string('ubiquity/text/keyboard_query_title'))
+        self.set_keep_above(True)
         self.set_modal(True)
+        self.set_border_width(20)
+        self.set_property('allow_grow', False)
+        # TODO if we can allocate the space we'll need ahead of time, we can
+        # use center_on_parent here.
+        self.set_position(gtk.WIN_POS_CENTER_ALWAYS)
         self.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_DIALOG)
-        self.vbox = gtk.VBox()
+        self.vbox = gtk.VBox(spacing=10)
 
         self.press_string = \
             frontend.get_string('ubiquity/text/keyboard_query_press')
         self.present_string = \
             frontend.get_string('ubiquity/text/keyboard_query_present')
         self.heading = gtk.Label(self.press_string)
-        self.vbox.add(self.heading)
+        self.heading.set_alignment(0, 0.5)
+        self.vbox.pack_start(self.heading, expand=False)
 
         self.keyrow = Keyrow()
-        self.vbox.add(self.keyrow)
+        self.vbox.pack_start(self.keyrow, expand=False)
 
         self.buttons = gtk.HButtonBox()
-        self.buttons.set_border_width(4)
-        self.buttons.set_layout(gtk.BUTTONBOX_END)
+        self.buttons.set_spacing(12)
+        self.buttons.set_layout(gtk.BUTTONBOX_START)
         # FIXME evand 2009-12-16: i18n
         no = gtk.Button(stock=gtk.STOCK_NO)
         yes = gtk.Button(stock=gtk.STOCK_YES)
@@ -96,6 +104,8 @@ class KeyboardQuery(gtk.Window):
         # FIXME need to account for possible remapping.  Find the API to translate
         # kernel keycodes to X keycodes (xkb).
         # MIN_KEYCODE = 8
+
+        # FIXME escape should close the window.
 
         code = event.hardware_keycode - 8
         if code > 255:

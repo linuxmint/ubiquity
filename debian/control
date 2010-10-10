@@ -3,17 +3,17 @@ Section: admin
 Priority: optional
 Maintainer: Ubuntu Installer Team <ubuntu-installer@lists.ubuntu.com>
 Uploaders: Colin Watson <cjwatson@ubuntu.com>, Evan Dandrea <evand@ubuntu.com>
-Build-Depends: apt, bf-utf-source, dash, dctrl-tools, debconf (>= 0.5.0), debhelper (>= 7.3.10), dh-di (>= 3), dpkg-dev (>= 1.14.4), intltool (>= 0.40.0), intltool-debian (>= 0.30+20040212), iso-codes, isoquery, keymapper (>= 0.5.3-7), libbogl-dev, libdebconfclient0-dev (>= 0.68), libdebian-installer4-dev (>= 0.41), libiw-dev (>= 27+28pre9), libparted0-dev (>= 2.2), libxml2-dev (>= 2.6.24), locales, po-debconf (>= 1.0), python-all-dev (>= 2.6), python-central (>= 0.5), tzdata, wget, xkb-data (>= 0.9), xkb-data-i18n
+Build-Depends: apt, bf-utf-source, dash, dctrl-tools, debconf (>= 0.5.0), debhelper (>= 7.4.0), dh-di (>= 3), dpkg-dev (>= 1.14.4), intltool (>= 0.40.0), intltool-debian (>= 0.30+20040212), iso-codes, isoquery, keymapper (>= 0.5.3-7), libbogl-dev, libcheese-gtk-dev, libdebconfclient0-dev (>= 0.68), libdebian-installer4-dev (>= 0.76), libglib2.0-dev, libgstreamer-plugins-base0.10-dev (>= 0.10.23), libgtk2.0-dev, libindicator-dev (>= 0.3.14), libiw-dev (>= 27+28pre9), libparted0-dev (>= 2.2), libxml2-dev (>= 2.6.24), locales, pkg-config, po-debconf (>= 1.0), python-all-dev (>= 2.6), python-central (>= 0.5), python-gobject-dev, python-gtk2-dev, tzdata, wget, xkb-data (>= 0.9), xkb-data-i18n
 Standards-Version: 3.6.2.1
 XS-Python-Version: current, >= 2.6
 Vcs-Bzr: http://bazaar.launchpad.net/~ubuntu-installer/ubiquity/trunk
 
 Package: ubiquity
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, debconf (>= 1.4.72ubuntu5), ubiquity-frontend-${mangled-version}, ubiquity-artwork-${mangled-version}, laptop-detect, lsb-release, ubiquity-casper, python-apt (>= 0.6.16.2ubuntu4), ${console-setup-depends}, iso-codes, passwd, adduser, os-prober, rdate, ntfsprogs [any-alpha any-amd64 any-i386 any-ia64 any-lpia], ecryptfs-utils, cryptsetup, python-pyicu, reiserfsprogs, language-selector-common (>= 0.4.16)
-Recommends: grub-pc [any-amd64 any-i386 any-lpia] | grub [any-amd64 any-i386 any-lpia], flash-kernel [armel], uboot-mkimage [armel], uboot-envtools [armel], redboot-tools [armel], yaboot [powerpc], hfsutils [powerpc], silo [sparc], dmraid
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, debconf (>= 1.4.72ubuntu5), ubiquity-frontend-${mangled-version}, ubiquity-artwork-${mangled-version}, laptop-detect, lsb-release, ubiquity-casper, python-apt (>= 0.6.16.2ubuntu4), ${console-setup-depends}, iso-codes, passwd, adduser, os-prober, rdate, ntfsprogs [any-alpha any-amd64 any-i386], ecryptfs-utils, cryptsetup, python-pyicu, reiserfsprogs, language-selector-common (>= 0.4.16)
+Recommends: grub-pc [any-amd64 any-i386] | grub [any-amd64 any-i386] | grub-efi [any-amd64 any-i386], flash-kernel [armel], uboot-mkimage [armel], uboot-envtools [armel], redboot-tools [armel], yaboot [powerpc], hfsutils [powerpc], dmraid
 Conflicts: ubuntu-express, espresso, espresso-utils, espresso-locale, espresso-keyboard-setup, espresso-kbd-chooser, espresso-timezone, user-setup (<< 0.05ubuntu6), partman, espresso-grub, espresso-yaboot
-Replaces: ubuntu-express, espresso, espresso-utils, espresso-locale, espresso-keyboard-setup, espresso-kbd-chooser, espresso-timezone, user-setup (<< 0.05ubuntu6), partman, espresso-grub, espresso-yaboot, ubiquity-frontend-gtk (<< 0.99.82)
+Replaces: ubuntu-express, espresso, espresso-utils, espresso-locale, espresso-keyboard-setup, espresso-kbd-chooser, espresso-timezone, user-setup (<< 0.05ubuntu6), partman, espresso-grub, espresso-yaboot, ubiquity-frontend-gtk (<< 2.3.8)
 XB-Python-Version: ${python:Versions}
 Description: Ubuntu live CD installer
  This is a simple live CD installer designed to integrate well with Debian-
@@ -41,12 +41,12 @@ Description: Ubuntu artwork for Ubiquity live installer
 # files, and user interface text for the Ubiquity live CD installer.
 
 Package: ubiquity-frontend-gtk
-Architecture: all
-Depends: ${misc:Depends}, ${python:Depends}, ubiquity (= ${binary:Version}), python-dbus, python-gtk2 (>= 2.17.0-0ubuntu2), iso-codes, x-window-manager, gksu
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, ubiquity (= ${binary:Version}), python-dbus, python-gtk2 (>= 2.17.0-0ubuntu2), iso-codes, x-window-manager, gksu, python-vte, python-webkit
 Suggests: gnome-control-center
-Conflicts: ubuntu-express-frontend-gtk, espresso-frontend-gtk
-Replaces: ubuntu-express-frontend-gtk, espresso-frontend-gtk
-Provides: ubiquity-frontend-${mangled-version}
+Conflicts: ubuntu-express-frontend-gtk, espresso-frontend-gtk, ubiquity (<< 2.4.3)
+Replaces: ubuntu-express-frontend-gtk, espresso-frontend-gtk, ubiquity (<< 2.4.3)
+Provides: ubiquity-frontend-${mangled-version}, indicator-renderer
 XB-Python-Version: ${python:Versions}
 Description: GTK+ frontend for Ubiquity live installer
  This package provides a GTK+-based user interface frontend for the Ubiquity
@@ -84,7 +84,7 @@ Description: Perform end-user configuration after initial OEM installation
 
 Package: oem-config-gtk
 Architecture: all
-Depends: ${misc:Depends}, oem-config (= ${source:Version}), ubiquity-frontend-gtk (= ${source:Version})
+Depends: ${misc:Depends}, oem-config (= ${source:Version}), ubiquity-frontend-gtk (= ${source:Version}), python-aptdaemon-gtk, aptdaemon
 Replaces: oem-config (<< 1.0)
 Provides: oem-config-frontend-${mangled-version}
 Description: GTK+ frontend for end-user post-OEM-install configuration

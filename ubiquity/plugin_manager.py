@@ -22,7 +22,8 @@ import sys
 import os
 import fnmatch
 
-PLUGIN_PATH = '/usr/lib/ubiquity/plugins'
+PLUGIN_PATH = (os.environ.get('UBIQUITY_PLUGIN_PATH', False)
+               or '/usr/lib/ubiquity/plugins')
 
 def load_plugins():
     modules = []

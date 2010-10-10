@@ -1,0 +1,74 @@
+#! /bin/sh -e
+TYPE="$1"
+
+case $TYPE in
+    maybe-floppy)
+	logger -t list-devices "deprecated parameter maybe-floppy"
+	TYPE=floppy
+        ;;
+    maybe-usb-floppy)
+        # Linux specific option, ignore it
+        exit 0
+        ;;
+    cd|disk|partition|floppy)
+        ;;
+    usb-partition)
+        TYPE=usb_partition
+        ;;
+    mmc-partition)
+        # MMC is not supported on kFreeBSD
+        exit 0
+        ;;
+    *)
+	echo "Usage: $0 cd|disk|partition|floppy|maybe-usb-floppy|usb-partition|mmc-partition" >&2
+	exit 2
+        ;;
+esac
+
+#
+# We are using the entries present in /dev to detect the different kind
+# of devices. Some heuristics are then used to refine the result.
+#
+
+is_cd() {
+	echo "$1" | egrep -q '^/dev/cd[0-9]+$' || return 1
+	
+	return 0
+}
+
+is_disk() {
+	echo "$1" | egrep -q '^/dev/(ad|da)[0-9]+$' || return 1
+	
+	return 0
+}
+
+is_partition() {
+	echo "$1" | egrep -q '^/dev/((ad|da)[0-9]+[ps][0-9]+[a-z]?$|md[0-9])+$' || return 1
+	
+	return 0
+}
+
+is_floppy() {
+	echo "$1" | egrep -q '^/dev/fd[0-9]+$' || return 1
+
+	return 0
+}
+
+is_usb_partition() {
+	echo "$1" | egrep -q '^/dev/(ad|da)[0-9]+[ps][0-9]+$' || return 1
+	drive="$(echo "$1" | sed -e 's,^/dev/,,' -e 's,[ps][0-9]\+,,')"
+	grep -q "kernel: $drive at umass" /var/log/syslog || return 1
+
+ 	return 0
+}
+
+# Loop through all /dev/ entries and test all the character ones
+for x in /dev/* ; do
+	[ -c "$x" ] || continue
+
+	if is_$TYPE "$x" ; then
+		echo $x
+	fi
+done
+
+exit 0

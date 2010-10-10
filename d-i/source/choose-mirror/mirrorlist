@@ -113,10 +113,13 @@ if ($type =~ /(.*)list/) {
 	foreach my $id (0..$#data) {
 		next unless exists $data[$id]->{"archive-$type"} and
 		                    exists $data[$id]->{country};
-		$countries{$data[$id]->{country}} = 1;
+		my $cc = $data[$id]->{country};
+		die "Error: country code '$cc' does not occur in iso-3166 table"
+			unless exists $iso3166{$cc};
+		$countries{$iso3166{$cc}} = $cc;
 	}
-	foreach  my $country (sort (keys %countries)) {
-		print LIST "${country}\n";
+	foreach my $country (sort (keys %countries)) {
+		print LIST "$countries{$country}\t${country}\n";
 	}
 	close LIST;
 }

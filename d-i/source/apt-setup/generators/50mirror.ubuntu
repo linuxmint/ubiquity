@@ -244,6 +244,23 @@ ${COMMENT}deb-src http://archive.canonical.com/ubuntu $codename partner
 EOF
 fi
 
+echo >> $file
+if db_get apt-setup/extras && [ "$RET" = true ]; then
+    COMMENT=
+else
+    cat >> $file <<EOF
+## Uncomment the following two lines to add software from Ubuntu's
+## 'extras' repository.
+EOF
+    COMMENT='# '
+fi
+cat >> $file <<EOF
+## This software is not part of Ubuntu, but is offered by third-party
+## developers who want to ship their latest software.
+${COMMENT}deb http://extras.ubuntu.com/ubuntu $codename main
+${COMMENT}deb-src http://extras.ubuntu.com/ubuntu $codename main
+EOF
+
 apt-setup-signed-release archive.ubuntu.com "$file"
 
 exit 0

@@ -23,10 +23,8 @@ import os
 import types
 import signal
 import subprocess
-import re
 
 import debconf
-from ubiquity.debconfcommunicator import DebconfCommunicator
 
 from ubiquity.debconffilter import DebconfFilter
 

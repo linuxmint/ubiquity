@@ -19,15 +19,14 @@
 
 from subprocess import *
 import fcntl
-import os
 
 import debconf
 from ubiquity import misc
 
 class DebconfCommunicator(debconf.Debconf):
-    def __init__(self, owner, title=None, cloexec=False):
+    def __init__(self, owner, title=None, cloexec=False, env=None):
         self.dccomm = Popen(['debconf-communicate', '-fnoninteractive', owner],
-            stdin=PIPE, stdout=PIPE, close_fds=True,
+            stdin=PIPE, stdout=PIPE, close_fds=True, env=env,
             preexec_fn=misc.regain_privileges)
         debconf.Debconf.__init__(self, title=title,
                                  read=self.dccomm.stdout,

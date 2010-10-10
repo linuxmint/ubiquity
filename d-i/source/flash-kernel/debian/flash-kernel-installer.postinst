@@ -17,15 +17,40 @@ error() {
 }
 
 findfs () {
-	mount | grep "on /target${1%/} " | cut -d' ' -f1
+	mount | grep "on /target${1%/} " | tail -n1 | cut -d' ' -f1
 }
 
 # Are we writing to flash or constructing an image on disk?
 write_to_flash() {
 	case "$machine" in
-		"Buffalo Linkstation Pro/Live" | "Buffalo/Revogear Kurobox Pro" | "GLAN Tank" | "HP Media Vault mv2120" | "Marvell DB-MV88F6781-BP Development Board")
+		"Buffalo Linkstation Pro/Live")
 			return 1
 		;;
+		"Buffalo/Revogear Kurobox Pro")
+			return 1
+		;;
+		"GLAN Tank")
+			return 1
+		;;
+		"HP Media Vault mv2120")
+			return 1
+		;;
+		"Marvell OpenRD Base Board")
+			return 1
+		;;
+		"Marvell OpenRD Client Board")
+			return 1
+		;;
+		"Marvell SheevaPlug Reference Board")
+			return 1
+		;;
+		"Marvell eSATA SheevaPlug Reference Board")
+			return 1
+		;;
+		"Marvell DB-MV88F6781-BP Development Board")
+			return 1
+		;;
+		# Assume that we write to flash for all other devices
 		*)
 			return 0
 		;;
@@ -34,6 +59,30 @@ write_to_flash() {
 
 machine=$(grep "^Hardware" /proc/cpuinfo | sed 's/Hardware\s*:\s*//')
 
+dove_flash_kernel_installer() {
+	in-target update-initramfs -u || true
+	if ! apt-install uboot-mkimage; then
+		error "apt-install uboot-mkimage failed"
+	fi
+
+	# Add the rootfs to the flash-kernel.conf file
+	rootfs=$(findfs /)
+	uuid="$(block-attr --uuid "$rootfs")"
+	echo "rootfs='root=UUID=$uuid'" > /target/etc/flash-kernel.conf
+}
+
+omap_flash_kernel_installer() {
+	in-target update-initramfs -u || true
+
+	if ! apt-install uboot-mkimage; then
+		error "apt-install uboot-mkimage failed"
+	fi
+
+	# Add the u-boot partition to the flash-kernl.conf file
+	# FIXME: figure out how to properly autodetect this
+	echo "UBOOT_PART=/dev/mmcblk0p1" > /target/etc/flash-kernel.conf
+}
+	# Add the rootfs to the flash-kernel.conf file
 if write_to_flash; then
 	db_progress START 0 3 flash-kernel-installer/progress
 else
@@ -49,15 +98,10 @@ if ! apt-install flash-kernel; then
 	error "apt-install flash-kernel failed"
 fi
 
-# Set up flash-kernel to run on kernel upgrades.
-if ! grep -q flash-kernel /target/etc/kernel-img.conf; then
-	echo "postinst_hook = flash-kernel" >> \
-		/target/etc/kernel-img.conf
-fi
-
 # Temporarily move flash-kernel out of the way so update-initramfs
-# won't call flash-kernel; otherwise we'd call it twice.
+# won't call flash-kernel; otherwise we might call it twice.
 mv /target/usr/sbin/flash-kernel /target/tmp/flash-kernel.$$
+trap "mv /target/tmp/flash-kernel.$$ /target/usr/sbin/flash-kernel" EXIT HUP INT QUIT TERM
 
 db_progress STEP 1
 
@@ -168,42 +212,37 @@ case "$machine" in
 		fi
 	;;
 	"Marvell DB-MV88F6781-BP Development Board")
+		dove_flash_kernel_installer
+	;;
+	"OMAP3 Beagle Board")
+	omap_flash_kernel_installer
+	;;
+	"Marvell OpenRD Base Board" | "Marvell OpenRD Client Board" | "Marvell SheevaPlug Reference Board" | "Marvell eSATA SheevaPlug Reference Board")
 		in-target update-initramfs -u || true
 		if ! apt-install uboot-mkimage; then
 			error "apt-install uboot-mkimage failed"
 		fi
-
-		# Add the rootfs to the flash-kernel.conf file
-		rootfs=$(findfs /)
-		uuid="$(block-attr --uuid "$rootfs")"
-		echo "rootfs='root=UUID=$uuid'" > /target/etc/flash-kernel.conf
 	;;
-	"OMAP3 Beagle Board")
-		if ! apt-install uboot-mkimage; then
-			error "apt-install uboot-mkimage failed"
-		fi
-		if ! apt-install uboot-envtools; then
-			error "apt-install uboot-envtools failed"
-		fi
-		rootfs=$(findfs /)
-		uuid="$(block-attr --uuid "$rootfs")"
-		cmdline="root=UUID=$uuid ro quiet splash vram=12M omapfb.mode=dvi:1280x720MR-16@60 fixrtc"
-		bootcmd="nand read 80000000 280000 400000;nand read 81600000 680000 1000000;bootm 80000000 81600000"
-		# create a default config for uboot-envtools
-		echo "/dev/mtd2 0x0000 0x20000 0x20000" > /target/etc/fw_env.config
-		# set proper NAND boot defaults
-		in-target fw_setenv bootcmd "${bootcmd}"
-		in-target fw_setenv bootargs "${cmdline}"
-		in-target fw_setenv bootdelay 3
-    ;;
 	"Thecus N2100" | "Thecus N4100")
 		in-target update-initramfs -u || true
 	;;
-	"QNAP TS-109/TS-209" | "QNAP TS-409")
+	"QNAP TS-109/TS-209" | "QNAP TS-119/TS-219" | "QNAP TS-409" | "QNAP TS-41x")
 		in-target update-initramfs -u || true
 		if ! apt-install uboot-mkimage; then
 			error "apt-install uboot-mkimage failed"
 		fi
+	;;
+	"Lanner EM7210")
+		in-target update-initramfs -u || true
+	;;
+	*)
+		case "`archdetect`" in
+			"arm*/dove")
+				dove_flash_kernel_installer
+			;;
+			"arm*/omap" | "arm*/omap4")
+				omap_flash_kernel_installer
+			esac
 	;;
 esac
 
@@ -214,6 +253,7 @@ else
 	db_progress INFO flash-kernel-installer/generating_image
 fi
 
+trap - EXIT HUP INT QUIT TERM
 mv /target/tmp/flash-kernel.$$ /target/usr/sbin/flash-kernel
 
 # We need the udev /dev which has the MTD devices

@@ -15,10 +15,16 @@ command is run before anna has configured a default retriever, the udebs
 will be queued for the future anna run. If it's run after a default
 retriever is configured, the specified udebs will be installed immediately.
 
-apt-install: The parameter is a deb that should be installed into /target.
-If the /target environment is not yet set up, the package will be queued for
-later installation (at the end of base-installation).
+apt-install: The parameter is one or more debs that should be installed into
+/target. If the /target environment is not yet set up, the package will be
+queued for later installation (at the end of base-installation).
 If /target is already set up, the package will be installed straightaway.
+Whether Recommends are installed by default depends on the value of the
+template base-installer/install-recommends.
+The command accepts the following options, which get preserved if packages
+are queued for later installation:
+* --no-recommends: don't install Recommends, even if that's the default;
+* --with-recommends: force installation of Recommends.
 apt-install makes use of in-target and debconf-apt-progress to allow
 configuration questions to be asked and to allow media changes if multiple
 CD/DVD sources have been set up.

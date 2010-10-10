@@ -22,7 +22,7 @@ default_disk_label () {
 		echo msdos;;
 	    amd64|kfreebsd-amd64)
 		case "$sub" in
-		    mac)
+		    mac|efi)
 			echo gpt;;
 		    *)
 			echo msdos;;
@@ -33,13 +33,11 @@ default_disk_label () {
 		echo gpt;;
 	    i386|kfreebsd-i386)
 		case "$sub" in
-		    mac)
+		    mac|efi)
 			echo gpt;;
 		    *)
 			echo msdos;;
 		esac;;
-	    lpia)
-		echo msdos;;
 	    m68k)
 		case "$sub" in
 		    amiga)
@@ -128,7 +126,9 @@ default_disk_label () {
 		esac;;
 	    s390)
 		echo msdos;;
-	    sparc)
+	    sh4)
+		echo msdos;;
+	    sparc|sparc64)
 		echo sun;;
 	    *)
 		echo UNKNOWN;;

@@ -11,7 +11,7 @@ rm -f /var/lib/oem-config/run
 
 # Remove the temporary OEM configuration user, if possible.
 if getent passwd oem >/dev/null; then
-	deluser --quiet --remove-home oem || true
+	userdel --force --remove oem || true
 fi
 
 # Cleanup from anything the early command prepared
@@ -22,20 +22,28 @@ if [ "${RET%% *}" = 0 ]; then
 fi
 RET="$(echo GET oem-config/remove | debconf-communicate)"
 if [ "${RET#* }" = true ]; then
+	#debconf crashes with this set (LP: #641478)
+	unset DBUS_SESSION_BUS_ADDRESS
+	#mandb postinst doesn't like not knowing the locale
+	if [ -r /etc/default/locale ]; then
+		. /etc/default/locale
+		export LANG LANGUAGE
+	fi
+	# We're about to pull the rug out from under our own feet, so this
+	# has to run very late.
 	case $FRONTEND in
 		debconf_ui)
 			export DEBIAN_FRONTEND=dialog
+			oem-config-remove || true
 			;;
 		gtk_ui)
-			export DEBIAN_FRONTEND=gnome
+			oem-config-remove-gtk || true
 			;;
 		kde_ui)
 			export DEBIAN_FRONTEND=kde
+			oem-config-remove || true
 			;;
 	esac
-	# We're about to pull the rug out from under our own feet, so this
-	# has to run very late.
-	oem-config-remove || true
 fi
 
 exit 0

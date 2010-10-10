@@ -1,7 +1,5 @@
 # -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
-import syslog
-
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 

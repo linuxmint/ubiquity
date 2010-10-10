@@ -11,7 +11,11 @@ start on (starting gdm
 	  or starting kdm
 	  or starting xdm
 	  or starting uxlaunch)
-stop on runlevel [06]
+stop on (runlevel [06]
+	 or stopping gdm
+	 or stopping kdm
+	 or stopping xdm
+	 or stopping uxlaunch)
 
 task
 normal exit 0 1
@@ -63,7 +67,7 @@ script
     initctl emit starting-dm DM=ubiquity-dm
 
     # turn off console blanking for install process
-    setterm -blank 0
+    setterm -blank 0 > /dev/console
 
     if [ -n "$noninteractive" ]; then
 	plymouth quit || :

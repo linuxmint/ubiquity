@@ -37,9 +37,6 @@ fi
 
 tmp=$($chroot $ROOT tempfile)
 
-# Only needed with Etch version of apt-cdrom
-$logoutput umount /target/cdrom/ || true
-
 cd_label=$(tail -n1 /var/lib/install-cd.id)
 db_subst apt-setup/cdrom/set-first LABEL "$cd_label"
 db_input high apt-setup/cdrom/set-first || true
@@ -75,9 +72,6 @@ while [ "$RET" = true ]; do
 		fi
 		rm -f $ROOT$tmp $ROOT$tmp~
 	fi
-
-	# Only needed with Etch version of apt-cdrom
-	$logoutput umount /target/cdrom/ || true
 
 	db_input critical $template || true
 	if ! db_go; then

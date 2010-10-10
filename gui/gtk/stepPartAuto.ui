@@ -1,136 +1,196 @@
 <?xml version="1.0"?>
 <interface>
   <requires lib="gtk+" version="2.16"/>
+  <!-- interface-requires gtkwidgets 0.0 -->
   <!-- interface-naming-policy toplevel-contextual -->
-  <object class="GtkVBox" id="stepPartAuto">
+  <object class="GtkListStore" id="liststore1">
+    <columns>
+      <!-- column-name gchararray1 -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkAlignment" id="stepPartAuto">
     <property name="visible">True</property>
-    <property name="border_width">6</property>
-    <property name="orientation">vertical</property>
+    <property name="top_padding">20</property>
+    <property name="left_padding">20</property>
+    <property name="right_padding">20</property>
     <child>
-      <object class="GtkLabel" id="part_auto_heading_label">
+      <object class="GtkVBox" id="vbox2">
         <property name="visible">True</property>
-        <property name="can_focus">True</property>
-        <property name="xalign">0</property>
-        <property name="label" translatable="yes">&lt;big&gt;&lt;b&gt;Prepare disk space&lt;/b&gt;&lt;/big&gt;</property>
-        <property name="use_markup">True</property>
-        <property name="selectable">False</property>
-      </object>
-      <packing>
-        <property name="expand">False</property>
-        <property name="fill">False</property>
-        <property name="position">0</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkHSeparator" id="hseparator21">
-        <property name="visible">True</property>
-      </object>
-      <packing>
-        <property name="expand">False</property>
-        <property name="padding">6</property>
-        <property name="position">1</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkLabel" id="part_auto_comment_label">
-        <property name="visible">True</property>
-        <property name="can_focus">True</property>
-        <property name="xalign">0</property>
-        <property name="ypad">6</property>
-        <property name="label" translatable="yes">This computer has no operating systems on it.</property>
-        <property name="selectable">False</property>
-      </object>
-      <packing>
-        <property name="expand">False</property>
-        <property name="fill">False</property>
-        <property name="position">2</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkVBox" id="autopartition_vbox">
-        <property name="visible">True</property>
-        <property name="orientation">vertical</property>
-        <property name="spacing">12</property>
+        <property name="spacing">24</property>
         <child>
-          <object class="GtkFrame" id="before_bar_eb">
+          <object class="GtkHBox" id="hbox1">
             <property name="visible">True</property>
-            <property name="label_xalign">0</property>
-            <property name="label_yalign">0</property>
-            <property name="shadow_type">none</property>
-            <child>
-              <placeholder/>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkVBox" id="vbox2">
-            <property name="visible">True</property>
-            <property name="orientation">vertical</property>
             <property name="spacing">6</property>
             <child>
-              <object class="GtkLabel" id="part_auto_choices_label">
+              <object class="GtkLabel" id="part_auto_select_drive_label">
                 <property name="visible">True</property>
                 <property name="xalign">0</property>
-                <property name="label" translatable="yes">Where do you want to put Ubuntu?</property>
+                <property name="label" translatable="yes">Select drive:</property>
               </object>
               <packing>
+                <property name="expand">False</property>
                 <property name="position">0</property>
               </packing>
             </child>
             <child>
-              <object class="GtkAlignment" id="alignment2">
+              <object class="GtkComboBox" id="part_auto_select_drive">
                 <property name="visible">True</property>
-                <property name="left_padding">12</property>
+                <property name="model">liststore1</property>
+                <signal name="changed" handler="part_auto_select_drive_changed"/>
                 <child>
-                  <object class="GtkVBox" id="autopartition_choices_vbox">
-                    <property name="visible">True</property>
-                    <property name="orientation">vertical</property>
-                    <property name="spacing">6</property>
-                    <child>
-                      <placeholder/>
-                    </child>
-                  </object>
+                  <object class="GtkCellRendererText" id="cellrenderertext1"/>
+                  <attributes>
+                    <attribute name="text">0</attribute>
+                  </attributes>
                 </child>
               </object>
               <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
                 <property name="position">1</property>
               </packing>
             </child>
           </object>
           <packing>
             <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">1</property>
+            <property name="position">0</property>
           </packing>
         </child>
         <child>
-          <object class="GtkFrame" id="action_bar_eb">
+          <object class="GtkVBox" id="vbox1">
             <property name="visible">True</property>
-            <property name="label_xalign">0</property>
-            <property name="label_yalign">0</property>
-            <property name="shadow_type">none</property>
             <child>
-              <placeholder/>
+              <object class="GtkLabel" id="part_auto_allocate_label">
+                <property name="visible">True</property>
+                <property name="xalign">0</property>
+                <property name="label" translatable="yes">Allocate drive space by dragging the divider below:</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkAlignment" id="alignment3">
+                <property name="visible">True</property>
+                <property name="top_padding">9</property>
+                <child>
+                  <object class="GtkEventBox" id="eventbox1">
+                    <property name="visible">True</property>
+                    <child>
+                      <object class="GtkNotebook" id="partition_container">
+                        <property name="visible">True</property>
+                        <property name="show_tabs">False</property>
+                        <property name="show_border">False</property>
+                        <child>
+                          <object class="ResizeWidget" id="resizewidget">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                          </object>
+                        </child>
+                        <child type="tab">
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <object class="PartitionBox" id="partitionbox">
+                            <property name="visible">True</property>
+                            <property name="extra"> </property>
+                            <property name="title">Ubuntu</property>
+                          </object>
+                          <packing>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                        <child type="tab">
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child type="tab">
+                          <placeholder/>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkAlignment" id="alignment2">
+                <property name="visible">True</property>
+                <property name="top_padding">16</property>
+                <child>
+                  <object class="GtkLabel" id="part_auto_hidden_label">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="xalign">0</property>
+                    <property name="label" translatable="yes">&lt;small&gt;5 smaller partitions are hidden, use the &lt;a href=""&gt;advanced partitioning tool&lt;/a&gt; for more control&lt;/small&gt;</property>
+                    <property name="use_markup">True</property>
+                    <signal name="activate_link" handler="part_auto_hidden_label_activate_link"/>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkAlignment" id="alignment1">
+                <property name="visible">True</property>
+                <property name="top_padding">14</property>
+                <child>
+                  <object class="GtkHButtonBox" id="hbuttonbox1">
+                    <property name="visible">True</property>
+                    <property name="spacing">18</property>
+                    <property name="layout_style">center</property>
+                    <child>
+                      <object class="GtkButton" id="part_auto_use_entire_partition">
+                        <property name="label" translatable="yes">Use Entire Partition</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <signal name="clicked" handler="part_auto_use_entire_partition_clicked"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="part_auto_use_entire_disk">
+                        <property name="label" translatable="yes">Use Entire Disk</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <signal name="clicked" handler="part_auto_use_entire_disk_clicked"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="position">3</property>
+              </packing>
             </child>
           </object>
           <packing>
             <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">2</property>
+            <property name="position">1</property>
           </packing>
         </child>
       </object>
-      <packing>
-        <property name="padding">6</property>
-        <property name="position">3</property>
-      </packing>
     </child>
   </object>
 </interface>

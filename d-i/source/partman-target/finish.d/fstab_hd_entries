@@ -32,7 +32,7 @@ fstab=$(
 	while read mp fs type options dump pass; do
 		case "$fs" in
 		    (/dev/disk/*|/dev/fd[0-9]*|/dev/mapper/*)
-			addfstab "$(mapdevfs $fs)" "${mp}" "$type" "$options" "$dump" "$pass"
+			addfstab "$(mapdevfs $fs)" "$mp" "$type" "$options" "$dump" "$pass"
 			;;
 		    (/*)
 			dev="/var/lib/partman/devices/$(echo "$fs" | sed 's:/:=:g')"
@@ -43,7 +43,7 @@ fstab=$(
 				else
 					options="loop,$options"
 				fi
-				addfstab "$loop" "${mp}" "$type" "$options" "$dump" "$pass"
+				addfstab "$loop" "$mp" "$type" "$options" "$dump" "$pass"
 			else
 				case "$mp" in
 				    (/*)	desc="$mp" ;;
@@ -53,14 +53,14 @@ fstab=$(
 				   label="$(block-attr --label $fs)" && \
 				   [ "$label" ]; then
 					printf "# %s was on %s during installation\n" "$desc" "$(mapdevfs $fs)"
-					addfstab "LABEL=$label" "${mp}" "$type" "$options" "$dump" "$pass"
+					addfstab "LABEL=$label" "$mp" "$type" "$options" "$dump" "$pass"
 				elif ([ "$style" = label ] || [ "$style" = uuid ]) && \
 				     uuid="$(block-attr --uuid $fs)" && \
 				     [ "$uuid" ]; then
 					printf "# %s was on %s during installation\n" "$desc" "$(mapdevfs $fs)"
-					addfstab "UUID=$uuid" "${mp}" "$type" "$options" "$dump" "$pass"
+					addfstab "UUID=$uuid" "$mp" "$type" "$options" "$dump" "$pass"
 				else
-					addfstab "$(mapdevfs $fs)" "${mp}" "$type" "$options" "$dump" "$pass"
+					addfstab "$(mapdevfs $fs)" "$mp" "$type" "$options" "$dump" "$pass"
 				fi
 			fi
 			;;

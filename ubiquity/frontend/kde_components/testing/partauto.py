@@ -9,8 +9,6 @@ from PyQt4.QtGui import *
 from ubiquity.frontend.kde_components.PartAuto import PartAuto
 
 if __name__ == "__main__":
-    import sys
-
     app = QApplication(sys.argv)
 
     PartAuto._uidir = '../../../../gui/qt'

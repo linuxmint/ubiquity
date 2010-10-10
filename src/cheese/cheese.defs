@@ -1,0 +1,91 @@
+;; -*- scheme -*-
+; object definitions ...
+(define-object AvatarChooser
+  (in-module "Cheese")
+  (parent "GtkDialog")
+  (c-name "CheeseAvatarChooser")
+  (gtype-id "CHEESE_TYPE_AVATAR_CHOOSER")
+)
+
+(define-object CameraDeviceMonitor
+  (in-module "Cheese")
+  (parent "GObject")
+  (c-name "CheeseCameraDeviceMonitor")
+  (gtype-id "CHEESE_TYPE_CAMERA_DEVICE_MONITOR")
+)
+
+(define-object Widget
+  (in-module "Cheese")
+  (parent "GtkNotebook")
+  (c-name "CheeseWidget")
+  (gtype-id "CHEESE_TYPE_WIDGET")
+)
+
+
+
+
+;; From cheese-widget.h
+
+(define-function cheese_widget_get_type
+  (c-name "cheese_widget_get_type")
+  (return-type "GType")
+)
+
+(define-function cheese_widget_new
+  (c-name "cheese_widget_new")
+  (is-constructor-of "CheeseWidget")
+  (return-type "GtkWidget*")
+)
+
+(define-method get_error
+  (of-object "CheeseWidget")
+  (c-name "cheese_widget_get_error")
+  (return-type "none")
+  (parameters
+    '("GError**" "error")
+  )
+)
+
+
+
+;; From cheese-avatar-chooser.h
+
+(define-function cheese_avatar_chooser_get_type
+  (c-name "cheese_avatar_chooser_get_type")
+  (return-type "GType")
+)
+
+(define-function cheese_avatar_chooser_new
+  (c-name "cheese_avatar_chooser_new")
+  (is-constructor-of "CheeseAvatarChooser")
+  (return-type "GtkWidget*")
+)
+
+(define-method get_picture
+  (of-object "CheeseAvatarChooser")
+  (c-name "cheese_avatar_chooser_get_picture")
+  (return-type "GdkPixbuf*")
+)
+
+
+
+;; From cheese-camera-device-monitor.h
+
+(define-function cheese_camera_device_monitor_get_type
+  (c-name "cheese_camera_device_monitor_get_type")
+  (return-type "GType")
+)
+
+(define-function cheese_camera_device_monitor_new
+  (c-name "cheese_camera_device_monitor_new")
+  (is-constructor-of "CheeseCameraDeviceMonitor")
+  (return-type "CheeseCameraDeviceMonitor*")
+)
+
+(define-method coldplug
+  (of-object "CheeseCameraDeviceMonitor")
+  (c-name "cheese_camera_device_monitor_coldplug")
+  (return-type "none")
+)
+
+

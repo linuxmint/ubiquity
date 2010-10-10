@@ -41,7 +41,7 @@ while ( <STDIN> ) {
 	chomp;
 	if (m/^$/) {
 	    print_template;
-	} elsif ( m/^(\w+)(\[(\w+)\])?:\s+(.*)\s*$/ ) {
+	} elsif ( m/^([\w-]+)(\[(\w+)\])?:\s+(.*)\s*$/ ) {
 		if ( defined $3 ) {
 			if ( defined $template{$1} and ref $template{$1} ne "HASH" ) {
 				local $_;

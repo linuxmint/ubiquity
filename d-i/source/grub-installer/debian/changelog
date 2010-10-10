@@ -1,3 +1,192 @@
+grub-installer (1.55ubuntu4) maverick; urgency=low
+
+  * Install GRUB to the SATA RAID or multipath device when /boot is on such
+    a device, rather than installing to the first hard disk (LP: #603854).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 05 Oct 2010 21:57:05 +0100
+
+grub-installer (1.55ubuntu3) maverick; urgency=low
+
+  * Purge grub-efi* when $grub_package is grub or grub-pc, and purge grub,
+    grub-legacy, and grub-pc when $grub_package is grub-efi (LP: #632642).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 08 Sep 2010 10:29:51 +0100
+
+grub-installer (1.55ubuntu2) maverick; urgency=low
+
+  [ Soren Hansen ]
+  * Add a preseedable grub-installer/timeout template to adjust the initial
+    GRUB timeout (LP: #628418).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 06 Sep 2010 12:07:05 +0100
+
+grub-installer (1.55ubuntu1) maverick; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Show the grub menu and raise the menu timeout if other operating
+      systems are installed (only for GRUB Legacy right now).
+    - Remove splash boot parameter unless debian-installer/framebuffer=true
+      and debian-installer/splash=true.
+    - If / or /boot are on a removable device, install GRUB there by
+      default.
+    - Only mount /target/proc if it isn't already mounted.
+    - Support setting OVERRIDE_UNSUPPORTED_OS in the environment to force
+      grub-installer to use its default MBR selection method despite there
+      being unsupported operating systems on the disk.
+    - Unless grub-installer/make_active is preseeded to false, mark the
+      partition to which GRUB is being installed as bootable, or failing
+      that the first available primary partition on the disk to which GRUB
+      is being installed.
+    - Support grub-installer/bootdev_directory preseeding to make use of the
+      relative path feature of grub4dos, so that we can point grub4dos at
+      part of a disk for Wubi. Setting this disables normal grub
+      installation, but still generates a device.map (for GRUB Legacy only);
+      it also hides the menu.
+    - Handle cases where /boot is bind-mounted.
+    - Add support for writing an GRUB Legacy MBR on each disk in an
+      mdadm-managed RAID providing /boot. (GRUB 2 can handle this already.)
+    - Properly make use of output from os-prober to configure the booting of
+      other operating systems on dmraid arrays. Attempt to guess where in
+      the device map the array belongs, by substituting the first drive in
+      the dmraid array for the dmraid array device node itself, and removing
+      any reference to other member disks of the array.
+    - Set a sensible default boot device when /cdrom is not iso9660, as this
+      is probably a USB install and (hd0) does not make sense when
+      installing from a removable disk.
+    - Go back to using update-grub -y for GRUB Legacy for now; our grub
+      package is a bit old and still requires this.
+    - Default to grub2 for GPT systems.
+    - Allow grub/grub2 choice for ext4, though still default to grub2.
+    - If /boot is on an MD device and we're using GRUB 2, install GRUB there
+      rather than (hd0); GRUB 2 will interpret that as meaning that it needs
+      to install to each of the RAID members.
+    - Mount /target/sys when running update-grub.
+    - If using GRUB 2 and installing to a RAID device any of whose
+      components are partitions, then default to installing to the MBRs of
+      each of the containing disks, since GRUB 2 will refuse to install to
+      the partition devices.
+    - Bind-mount /proc and /sys while running grub-install.
+    - Update grub-installer/bootdev text to avoid GRUB device naming that
+      changed between GRUB Legacy and GRUB 2, and to use libata-style device
+      naming since that is more accurate for most people.
+    - Install grub-efi on i386/efi and amd64/efi subarchitectures.
+  * Don't ask for a boot device on EFI, and don't pass a boot device
+    argument to grub-install.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 03 Sep 2010 10:54:21 +0100
+
+grub-installer (1.55) unstable; urgency=low
+
+  [ Aurelien Jarno ]
+  * Allow booting on ext2fs or xfs partition using grub-pc (for 
+    GNU/kFreeBSD).
+ 
+  [ Updated translations ]
+  * Asturian (ast.po) by maacub
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Danish (da.po) by Jacob Sparre Andersen
+  * Persian (fa.po) by Behrad Eslamifar
+  * Serbian (sr.po) by Karolina Kalic
+
+ -- Aurelien Jarno <aurel32@debian.org>  Mon, 23 Aug 2010 00:30:49 +0200
+
+grub-installer (1.54) unstable; urgency=low
+
+  * Only set postinst_hook and postrm_hook in /etc/kernel-img.conf if
+    /etc/kernel/postinst.d/zz-update-grub does not exist.
+
+  [ Updated translations ]
+  * Persian (fa.po) by Ebrahim Byagowi
+  * Finnish (fi.po) by Esko Arajärvi
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Serbian (sr.po) by Janos Guljas
+  * Serbian Latin (sr@latin.po) by Karolina Kalic
+
+ -- Colin Watson <cjwatson@debian.org>  Wed, 04 Aug 2010 06:59:23 +0100
+
+grub-installer (1.53) unstable; urgency=low
+
+  [ Updated translations ]
+  * Kurdish (ku.po) by Erdal Ronahi
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 11 Jul 2010 18:20:11 +0200
+
+grub-installer (1.52) unstable; urgency=low
+
+  * Merge from Ubuntu:
+    - Resolve symlinks in default boot device.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Viktar Siarheichyk
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Macedonian (mk.po) by Arangel Angov
+  * Ukrainian (uk.po) by Borys Yanovych
+
+ -- Colin Watson <cjwatson@debian.org>  Thu, 08 Jul 2010 13:17:03 +0100
+
+grub-installer (1.51) unstable; urgency=low
+
+  * Merge from Ubuntu:
+    - Use grub-probe to convert device names rather than relying on
+      device.map.
+    - Use an appropriate OS device name rather than (hd0) if possible.
+    - Convert device names to by-id form before preseeding
+      grub-pc/install_devices.  This is important now that grub-pc migrates
+      to this on upgrades to 1.98+20100702-1, but not after that.
+    - Preseed grub-pc/install_devices_empty while installing grub-pc, since
+      we deliberately defer calling grub-install until a later point.
+
+  [ Updated translations ]
+  * Asturian (ast.po) by astur
+  * Danish (da.po) by Jacob Sparre Andersen
+  * German (de.po) by Holger Wansing
+  * Persian (fa.po) by acathur
+  * French (fr.po) by Christian Perrier
+  * Hebrew (he.po) by Omer Zak
+  * Central Khmer (km.po) by Khoem Sokhem
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Romanian (ro.po) by ioan-eugen stan
+  * Slovenian (sl.po) by Vanja Cvelbar
+
+ -- Colin Watson <cjwatson@debian.org>  Fri, 02 Jul 2010 23:10:54 +0100
+
+grub-installer (1.50) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Drop support for the discontinued lpia architecture.
+
+  [ Colin Watson ]
+  * Fix serial console handling for grub2.
+  * Fix a hardcoded use of /target.
+
+  [ Frans Pop ]
+  * Don't install Recommends with grub-legacy to avoid pulling in os-prober
+    (through grub-common) as D-I takes care of creating entries for other
+    operating systems.
+  * Don't explicitly install os-prober with grub-pc. Leave it to be pulled
+    in automatically based on the global setting for installing Recommends.
+  * Fix incorrect call to dpkg --compare-versions when grub-legacy is installed.
+
+  [ Updated translations ]
+  * Asturian (ast.po) by astur
+  * Belarusian (be.po) by Pavel Piatruk
+  * Bengali (bn.po) by Israt Jahan
+  * German (de.po) by Holger Wansing
+  * Italian (it.po) by Milo Casagrande
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Simplified Chinese (zh_CN.po) by 苏运强
+
+ -- Otavio Salvador <otavio@debian.org>  Mon, 22 Feb 2010 00:04:48 -0300
+
+grub-installer (1.49ubuntu12) maverick; urgency=low
+
+  * Install grub-efi on i386/efi and amd64/efi subarchitectures.
+  * Resolve symlinks in default boot device (LP: #602758).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 08 Jul 2010 13:03:01 +0100
+
 grub-installer (1.49ubuntu11) lucid; urgency=low
 
   * 'nosplash' doesn't work because it isn't passed through by user-params.

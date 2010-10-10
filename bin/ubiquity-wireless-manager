@@ -1,0 +1,170 @@
+#!/usr/bin/python
+
+import dbus, uuid
+import gobject
+import dbus.service
+
+# Network Manager states
+STATE_UNKNOWN = 0
+STATE_ASLEEP = 1
+STATE_CONNECTING = 2
+STATE_CONNECTED = 3
+STATE_DISCONNECTED = 4
+
+# Network Manager device types
+DEVICE_TYPE_UNKNOWN = 0
+DEVICE_TYPE_ETHERNET = 1
+DEVICE_TYPE_WIFI = 2
+DEVICE_TYPE_GSM = 3
+DEVICE_TYPE_CDMA = 4
+
+from dbus.mainloop.glib import DBusGMainLoop
+DBusGMainLoop(set_as_default=True)
+
+WM = 'com.ubuntu.ubiquity.WirelessManager'
+WM_PATH = '/com/ubuntu/ubiquity/WirelessManager'
+NM = 'org.freedesktop.NetworkManager'
+NM_PATH = '/org/freedesktop/NetworkManager'
+NM_DEV = 'org.freedesktop.NetworkManager.Device'
+NM_AP = 'org.freedesktop.NetworkManager.AccessPoint'
+NM_DEV_WIFI = 'org.freedesktop.NetworkManager.Device.Wireless'
+PROPS = 'org.freedesktop.DBus.Properties'
+
+NM_USER_SETTINGS = 'org.freedesktop.NetworkManagerUserSettings'
+NM_SETTINGS_PATH = '/org/freedesktop/NetworkManagerSettings'
+NM_SETTINGS = 'org.freedesktop.NetworkManagerSettings'
+NM_SETTINGS_CONNECTION = 'org.freedesktop.NetworkManagerSettings.Connection'
+NM_SETTINGS_CONNECTION_SECRETS = 'org.freedesktop.NetworkManagerSettings.Connection.Secrets'
+
+# NOTE We pay attention to existing passphrases and connections because the
+# user may have already connected to the wireless network using the panel.
+
+class Manager(dbus.service.Object):
+    def __init__(self, bus):
+        self.bus = bus
+        dbus.service.Object.__init__(self, self.bus, WM_PATH)
+        self._bus_name = dbus.service.BusName(WM, self.bus)
+
+        bus = dbus.SystemBus()
+        nm = bus.get_object(NM, NM_PATH)
+        nmi = dbus.Interface(nm, NM)
+
+        self.aps = []
+        self.devices = []
+        # How do we differentiate the same networks between two cards?
+        # Headings.  But just do a big list for now.
+        for dev in nmi.GetDevices():
+            obj = bus.get_object(NM, dev)
+            props = dbus.Interface(obj, PROPS)
+            if props.Get(NM_DEV, 'DeviceType') == DEVICE_TYPE_WIFI:
+                # TODO set internal property HasHardware to true, watch for changes. 
+                self.devices.append(dev)
+                obj = dbus.Interface(obj, NM_DEV_WIFI)
+                for ap in obj.GetAccessPoints():
+                    self.aps.append(ap)
+                    bus.add_signal_receiver(self._changed, 'PropertiesChanged', NM_AP, NM, path_keyword='path')
+
+        self.build_connection_cache()
+
+        bus.add_signal_receiver(self._added, 'AccessPointAdded', NM_DEV_WIFI, NM)
+        bus.add_signal_receiver(self._removed, 'AccessPointRemoved', NM_DEV_WIFI, NM)
+        bus.add_signal_receiver(self._state_changed, 'StateChange', NM, NM)
+
+    def build_connection_cache(self):
+        self.usersettings = {}
+        self.passphrases = {}
+        bus = dbus.SystemBus()
+        nms = bus.get_object(NM_USER_SETTINGS, NM_SETTINGS_PATH)
+        nmsi = dbus.Interface(nms, NM_SETTINGS)
+        # TODO need to watch NewConnection signal?  If we care about the user updating
+        # the settings externally, then yes.
+        for con in nmsi.ListConnections():
+            uso = bus.get_object(NM_USER_SETTINGS, con)
+            usi = dbus.Interface(uso, NM_SETTINGS_CONNECTION)
+            settings = usi.GetSettings()
+            if not settings.has_key('802-11-wireless'):
+                continue
+            ssid = ''.join([str(ch) for ch in settings['802-11-wireless']['ssid']])
+            ssid = ssid.encode('utf-8')
+            self.usersettings[ssid] = con
+            if settings.has_key('802-11-wireless-security'):
+                # Need to watch for changes unless we stop caching passphrases.
+                i = dbus.Interface(uso, NM_SETTINGS_CONNECTION_SECRETS)
+                passphrase = i.GetSecrets('802-11-wireless-security', [], False)
+                print passphrase['802-11-wireless-security']
+                passphrase = passphrase['802-11-wireless-security'].values()[0]
+                self.passphrases[ssid] = passphrase
+
+    @dbus.service.method(WM, in_signature='', out_signature='as')
+    def GetAPs(self):
+        return self.aps
+
+    @dbus.service.method(WM, in_signature='s', out_signature='a{sv}')
+    def GetProperties(self, ap):
+        bus = dbus.SystemBus()
+        obj = bus.get_object(NM, ap)
+        props = dbus.Interface(obj, PROPS)
+
+        ssid = ''.join([str(ch) for ch in props.Get(NM_AP, 'Ssid')])
+        # FIXME this fails (creates a null string) on some APs.
+        ssid = ssid.encode('utf-8')
+        strength = props.Get(NM_AP, 'Strength')
+        locked = props.Get(NM_AP, 'WpaFlags') != 0
+        # Add passphrase property.  If not set and locked is set, the UI should
+        # block the next button.
+        passphrase = self.passphrases.get(ssid, '')
+        # TODO managed mode or infrastructure
+        return {'Ssid' : ssid, 'Strength' : strength, 'Locked' : locked, 'Passphrase' : passphrase}
+    
+    @dbus.service.method(WM, in_signature='o', out_signature='')
+    def Connect(self, ap):
+        # TODO add passphrase parameter
+        print 'trying to connect to', ap
+        props = self.GetProperties(ap)
+        ssid = props['Ssid']
+        if ssid in self.usersettings:
+            print 'already have password', self.usersettings[ssid]
+            bus = dbus.SystemBus()
+            nm = bus.get_object(NM, NM_PATH)
+            nmi = dbus.Interface(nm, NM)
+            # FIXME Support multiple devices somehow.
+            # http://www.mail-archive.com/networkmanager-list@gnome.org/msg12120.html
+            nmi.ActivateConnection(NM_USER_SETTINGS,
+                self.usersettings[ssid], self.devices[0], ap)
+        else:
+            if props['Locked']:
+                print 'need password'
+            else:
+                # TODO connect
+                pass
+
+    def _added(self, ap):
+        self.aps.append(ap)
+        self.Added(ap)
+
+    def _removed(self, ap):
+        self.aps.remove(ap)
+        self.Removed(ap)
+
+    def _changed(self, changed, path=None):
+        if changed.has_key('Strength'):
+            self.StrengthChanged(path, changed['Strength'])
+
+    def _state_changed(self, state):
+        print 'new state:', state
+
+    @dbus.service.signal(WM, signature='o')
+    def Added(self, ap):
+        pass
+    
+    @dbus.service.signal(WM, signature='o')
+    def Removed(self, ap):
+        pass
+
+    @dbus.service.signal(WM, signature='ou')
+    def StrengthChanged(self, ap, value):
+        pass
+
+bus = dbus.SystemBus()
+m = Manager(bus)
+gobject.MainLoop().run()

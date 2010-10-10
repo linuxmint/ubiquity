@@ -1,3 +1,178 @@
+debian-installer-utils (1.79ubuntu1) maverick; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - user-params: Don't propagate vga=*, break=*, *-ubiquity, or
+      noninteractive to installed system.
+    - Use /proc/self/fd/4 rather than /dev/fd/4 in fetch-url-methods/http;
+      the latter doesn't seem to exist in d-i.
+    - list-devices: new "mmc-partition" type for detecting partitions on MMC
+      devices.
+    - Don't include the battery subsystem on calls to udevadm trigger.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 23 Aug 2010 14:21:53 +0100
+
+debian-installer-utils (1.79) unstable; urgency=low
+
+  [ Aurelien Jarno ]
+  * Only detect /dev/cd0 as a CD-ROM drive on GNU/kFreeBSD, to prevent
+    multiple /etc/fstab entries.
+  * Mount /target/sys in chroot_setup () on GNU/KFreeBSD.
+
+  [ Colin Watson ]
+  * udev 152 changed the default action for 'udevadm trigger' from 'add' to
+    'change'.  We really do need 'add' after installing new kernel modules,
+    so specify this explicitly.
+
+  [ Jeremie Koenig ]
+  * in-target: Check for /target/sys only if /sys/devices exists, to avoid
+    enforcing it on systems without a sysfs (ie. Hurd). Closes: #592684.
+
+ -- Colin Watson <cjwatson@debian.org>  Mon, 23 Aug 2010 14:06:40 +0100
+
+debian-installer-utils (1.78) unstable; urgency=low
+
+  [ Otavio Salvador ]
+  * When running in live-installer di-utils-reboot ought to quit
+    installer if not rebooting/halting the machine. Closes: #589453.
+
+  [ Aurelien Jarno ]
+  * Install a different list-devices script per OS.
+  * Add a GNU/kFreeBSD version of list-devices.
+  * Add a Hurd version of list-devices.
+
+  [ Updated translations ]
+  * Asturian (ast.po) by maacub
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bosnian (bs.po) by Armin Beširović
+  * Danish (da.po) by Jacob Sparre Andersen
+  * Persian (fa.po) by Ebrahim Byagowi
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Telugu (te.po) by Arjuna Rao Chavala
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sun, 22 Aug 2010 19:27:27 +0200
+
+debian-installer-utils (1.77ubuntu1) maverick; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - user-params: Don't propagate vga=*, break=*, *-ubiquity, or
+      noninteractive to installed system.
+    - Use /proc/self/fd/4 rather than /dev/fd/4 in fetch-url-methods/http;
+      the latter doesn't seem to exist in d-i.
+    - list-devices: new "mmc-partition" type for detecting partitions on MMC
+      devices.
+    - Don't include the battery subsystem on calls to udevadm trigger.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 20 Aug 2010 01:54:38 +0100
+
+debian-installer-utils (1.77) unstable; urgency=low
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Viktar Siarheichyk
+  * Croatian (hr.po) by Josip Rodin
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Macedonian (mk.po) by Arangel Angov
+  * Nepali (ne.po)
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 11 Jul 2010 11:06:00 +0200
+
+debian-installer-utils (1.76) unstable; urgency=low
+
+  [ Samuel Thibault ]
+  * debian/rules: Add hurd terminfo on hurd.
+ 
+  [ Colin Watson ]
+  * list-devices: Consider Xen virtual block devices as disks.
+
+  [ Updated translations ]
+  * Amharic (am.po) by Tegegne Tefera
+  * Bosnian (bs.po) by Armin Beširović
+  * Danish (da.po) by Jacob Sparre Andersen
+  * Dzongkha (dz.po) by Jurmey Rabgay
+  * Persian (fa.po) by acathur
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Central Khmer (km.po) by Khoem Sokhem
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Malayalam (ml.po) by Praveen Arimbrathodiyil
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Romanian (ro.po) by ioan-eugen stan
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 06 Jul 2010 11:30:19 +0100
+
+debian-installer-utils (1.75ubuntu1) maverick; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - user-params: Don't propagate vga=*, break=*, *-ubiquity, or
+      noninteractive to installed system.
+    - Use /proc/self/fd/4 rather than /dev/fd/4 in fetch-url-methods/http;
+      the latter doesn't seem to exist in d-i.
+    - list-devices: new "mmc-partition" type for detecting partitions on MMC
+      devices.
+    - Don't include the battery subsystem on calls to udevadm trigger.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 21 May 2010 16:57:48 +0100
+
+debian-installer-utils (1.75) unstable; urgency=low
+
+  * Add GNU/kFreeBSD specific code to setup the chroot.
+
+  [ Updated translations ]
+  * Catalan (ca.po) by Jordi Mallach
+  * Norwegian Nynorsk (nn.po) by Eirik U. Birkeland
+
+ -- Aurelien Jarno <aurel32@debian.org>  Thu, 13 May 2010 23:35:59 +0200
+
+debian-installer-utils (1.74) unstable; urgency=low
+
+  * list-devices: Add support for dmraid disks and partitions.  Exclude
+    disks and partitions that are already part of a dmraid set.
+  * list-devices: Consider virtio devices as disks (LP: #568143).
+  * ncurses-base 5.4-9 moved the base terminfo descriptions to
+    /lib/terminfo, and ncurses-base 5.7+20100313-1 removed the compatibility
+    symlinks in /usr/share/terminfo.  Cope with either directory for
+    convenience, in case we ever need descriptions that are still in
+    /usr/share/terminfo.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Pavel Piatruk
+  * Bengali (bn.po) by Israt Jahan
+  * German (de.po) by Holger Wansing
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * French (fr.po) by Christian Perrier
+  * Hebrew (he.po) by Omer Zak
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Marathi (mr.po) by Sampada
+  * Panjabi (pa.po) by A S Alam
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Albanian (sq.po) by Elian Myftiu
+  * Tamil (ta.po) by Dr,T,Vasudevan
+  * Simplified Chinese (zh_CN.po) by 苏运强
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 27 Apr 2010 11:23:35 +0100
+
+debian-installer-utils (1.73) unstable; urgency=low
+
+  * di-utils-shell: avoid error when running at priority critical.
+    Closes: #561074.
+  * apt-install: allow to force installing or ignoring Recommends irrespective
+    of the default set in base-installer/install-recommends.
+    Use of this option requires base-installer 1.104.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Pavel Piatruk
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Greek, Modern (1453-) (el.po)
+  * Galician (gl.po) by Marce Villarino
+  * Bokmål, Norwegian (nb.po) by Hans Fredrik Nordhaug
+  * Dutch (nl.po) by Frans Pop
+  * Polish (pl.po) by Bartosz Fenski
+  * Slovenian (sl.po) by Vanja Cvelbar
+
+ -- Frans Pop <fjp@debian.org>  Wed, 23 Dec 2009 00:21:43 +0100
+
 debian-installer-utils (1.72ubuntu5) lucid; urgency=low
 
   * Backport from trunk:

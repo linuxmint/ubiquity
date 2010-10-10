@@ -31,6 +31,7 @@ class PartMan(QWidget):
 
         uic.loadUi(os.path.join(_uidir,'stepPartMan.ui'), self)
         self.part_advanced_warning_hbox.setVisible(False)
+        self.part_advanced_bootloader_frame.setVisible(False)
 
         self.partition_tree_model = PartitionModel(self.ctrlr, self.partition_list_treeview)
         self.partition_list_treeview.setModel(self.partition_tree_model)
@@ -211,7 +212,8 @@ class PartMan(QWidget):
     def on_partition_create_use_combo_changed (self, *args):
         if not hasattr(self, 'create_use_method_names'):
             return
-        known_filesystems = ('ext4', 'ext3', 'ext2', 'reiserfs', 'jfs', 'xfs',
+        known_filesystems = ('ext4', 'ext3', 'ext2',
+                             'btrfs', 'reiserfs', 'jfs', 'xfs',
                              'fat16', 'fat32', 'ntfs', 'uboot')
         text = unicode(self.create_dialog.partition_create_use_combo.currentText())
         if text not in self.create_use_method_names:
@@ -347,7 +349,8 @@ class PartMan(QWidget):
         # If the selected method isn't a filesystem, then selecting a mount
         # point makes no sense. TODO cjwatson 2007-01-31: Unfortunately we
         # have to hardcode the list of known filesystems here.
-        known_filesystems = ('ext4', 'ext3', 'ext2', 'reiserfs', 'jfs', 'xfs',
+        known_filesystems = ('ext4', 'ext3', 'ext2',
+                             'btrfs', 'reiserfs', 'jfs', 'xfs',
                              'fat16', 'fat32', 'ntfs', 'uboot')
         text = unicode(self.edit_dialog.partition_edit_use_combo.currentText())
         if text not in self.edit_use_method_names:
@@ -441,3 +444,19 @@ class PartMan(QWidget):
             return
         self.ctrlr.allow_change_step(False)
         self.ctrlr.dbfilter.undo()
+
+    def setGrubOptions(self, options, default):
+        self.part_advanced_bootloader_frame.setVisible(True)
+        self.grub_device_entry.clear()
+        for opt in options:
+           self.grub_device_entry.addItem(opt[0]);
+
+        index = self.grub_device_entry.findText(default)
+        if (index == -1):
+            self.grub_device_entry.addItem(default)
+            index = self.grub_device_entry.count() - 1
+            # select the target device
+        self.grub_device_entry.setCurrentIndex(index)
+
+    def getGrubChoice(self):
+        return unicode(self.grub_device_entry.currentText())

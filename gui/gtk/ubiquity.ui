@@ -10,89 +10,62 @@
     <signal name="realize" handler="set_window_hints"/>
     <signal name="delete_event" handler="on_live_installer_delete_event"/>
     <child>
-      <object class="GtkAlignment" id="alignment1">
+      <object class="GtkVBox" id="wizard">
         <property name="visible">True</property>
-        <property name="top_padding">20</property>
-        <property name="bottom_padding">20</property>
-        <property name="left_padding">20</property>
-        <property name="right_padding">20</property>
         <child>
-          <object class="GtkVBox" id="wizard">
+          <object class="GtkNotebook" id="page_mode">
             <property name="visible">True</property>
-            <property name="orientation">vertical</property>
+            <property name="can_focus">True</property>
+            <property name="show_tabs">False</property>
+            <property name="show_border">False</property>
             <child>
-              <object class="GtkVBox" id="subtitle-0">
-                <property name="visible">True</property>
-                <property name="orientation">vertical</property>
-                <child>
-                  <object class="GtkImage" id="logo_image">
-                    <property name="visible">True</property>
-                    <property name="stock">gtk-missing-image</property>
-                  </object>
-                  <packing>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkHBox" id="hbox36">
+              <object class="GtkVBox" id="vbox2">
                 <property name="visible">True</property>
                 <child>
-                  <object class="GtkImage" id="photo">
-                    <property name="visible">True</property>
-                    <property name="yalign">0</property>
-                    <property name="stock">gtk-missing-image</property>
+                  <object class="GtkAlignment" id="title_section">
+                    <property name="border_width">20</property>
+                    <child>
+                      <object class="GtkLabel" id="page_title">
+                        <property name="visible">True</property>
+                        <property name="xalign">0</property>
+                        <property name="label" translatable="yes">&lt;span size="xx-large"&gt;Page Title&lt;/span&gt;</property>
+                        <property name="use_markup">True</property>
+                      </object>
+                    </child>
                   </object>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="fill">False</property>
                     <property name="position">0</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkVBox" id="vbox50">
+                  <object class="GtkEventBox" id="page_section">
                     <property name="visible">True</property>
-                    <property name="orientation">vertical</property>
                     <child>
-                      <object class="GtkNotebook" id="steps">
+                      <object class="GtkVBox" id="vbox11">
                         <property name="visible">True</property>
-                        <property name="show_tabs">False</property>
-                        <property name="show_border">False</property>
-                        <signal name="switch_page" handler="on_steps_switch_page"/>
-                      </object>
-                      <packing>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkAlignment" id="navigation_control">
-                        <property name="visible">True</property>
-                        <property name="left_padding">16</property>
                         <child>
-                          <object class="GtkHBox" id="hbox46">
+                          <object class="GtkNotebook" id="steps">
                             <property name="visible">True</property>
+                            <property name="show_tabs">False</property>
+                            <property name="show_border">False</property>
+                            <signal name="switch_page" handler="on_steps_switch_page"/>
+                          </object>
+                          <packing>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkAlignment" id="alignment11">
+                            <property name="visible">True</property>
+                            <property name="top_padding">10</property>
+                            <property name="bottom_padding">20</property>
+                            <property name="left_padding">20</property>
+                            <property name="right_padding">20</property>
                             <child>
-                              <object class="GtkLabel" id="step_label">
+                              <object class="GtkHButtonBox" id="navigation_control">
                                 <property name="visible">True</property>
-                                <property name="can_focus">True</property>
-                                <property name="xalign">0</property>
-                                <property name="label" translatable="yes">Step ${INDEX} of ${TOTAL}</property>
-                                <property name="selectable">False</property>
-                              </object>
-                              <packing>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkHButtonBox" id="hbuttonbox5">
-                                <property name="visible">True</property>
-                                <property name="border_width">4</property>
+                                <property name="spacing">6</property>
                                 <property name="layout_style">end</property>
                                 <child>
                                   <object class="GtkButton" id="quit">
@@ -101,7 +74,6 @@
                                     <property name="can_focus">True</property>
                                     <property name="can_default">True</property>
                                     <property name="receives_default">True</property>
-                                    <property name="border_width">4</property>
                                     <property name="use_underline">True</property>
                                     <property name="use_stock">True</property>
                                     <signal name="clicked" handler="on_quit_clicked"/>
@@ -119,7 +91,6 @@
                                     <property name="can_focus">True</property>
                                     <property name="can_default">True</property>
                                     <property name="receives_default">True</property>
-                                    <property name="border_width">4</property>
                                     <property name="use_underline">True</property>
                                     <property name="use_stock">True</property>
                                     <signal name="clicked" handler="on_back_clicked"/>
@@ -138,7 +109,6 @@
                                     <property name="can_default">True</property>
                                     <property name="has_default">True</property>
                                     <property name="receives_default">True</property>
-                                    <property name="border_width">4</property>
                                     <property name="use_underline">True</property>
                                     <property name="use_stock">True</property>
                                     <signal name="clicked" handler="on_next_clicked"/>
@@ -150,19 +120,14 @@
                                   </packing>
                                 </child>
                               </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="position">1</property>
-                              </packing>
                             </child>
                           </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="position">1</property>
+                          </packing>
                         </child>
                       </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">1</property>
-                      </packing>
                     </child>
                   </object>
                   <packing>
@@ -170,11 +135,109 @@
                   </packing>
                 </child>
               </object>
+            </child>
+            <child type="tab">
+              <placeholder/>
+            </child>
+            <child>
+              <object class="GtkScrolledWindow" id="webkit_scrolled_window">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="hscrollbar_policy">automatic</property>
+                <property name="vscrollbar_policy">automatic</property>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
               <packing>
                 <property name="position">1</property>
               </packing>
             </child>
+            <child type="tab">
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child type="tab">
+              <placeholder/>
+            </child>
           </object>
+          <packing>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkAlignment" id="progress_section">
+            <property name="border_width">20</property>
+            <child>
+              <object class="GtkVBox" id="vbox1">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkExpander" id="install_details_expander">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <child>
+                      <object class="GtkScrolledWindow" id="install_details_sw">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="hscrollbar_policy">automatic</property>
+                        <property name="vscrollbar_policy">automatic</property>
+                        <child>
+                          <placeholder/>
+                        </child>
+                      </object>
+                    </child>
+                    <child type="label">
+                      <object class="GtkHBox" id="hbox12">
+                        <property name="visible">True</property>
+                        <child>
+                          <object class="GtkLabel" id="install_progress_text">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="label" translatable="yes">Installing...</property>
+                          </object>
+                          <packing>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="progress_cancel_button">
+                            <property name="label" translatable="yes">_Skip</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="use_underline">True</property>
+                            <signal name="clicked" handler="on_progress_cancel_button_clicked"/>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkProgressBar" id="install_progress">
+                    <property name="visible">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="position">1</property>
+          </packing>
         </child>
       </object>
     </child>
@@ -224,7 +287,6 @@
                         <property name="can_focus">True</property>
                         <property name="label" translatable="yes">Do you really want to abort the installation now?</property>
                         <property name="wrap">True</property>
-                        <property name="selectable">False</property>
                       </object>
                     </child>
                   </object>
@@ -292,90 +354,6 @@
       <action-widget response="-7">exitbutton</action-widget>
     </action-widgets>
   </object>
-  <object class="GtkWindow" id="debconf_progress_window">
-    <property name="border_width">12</property>
-    <property name="title">Progress bar title</property>
-    <property name="resizable">False</property>
-    <property name="modal">True</property>
-    <property name="window_position">center-always</property>
-    <property name="deletable">False</property>
-    <signal name="realize" handler="set_window_hints"/>
-    <child>
-      <object class="GtkVBox" id="vbox35">
-        <property name="visible">True</property>
-        <property name="orientation">vertical</property>
-        <property name="spacing">6</property>
-        <child>
-          <object class="GtkLabel" id="progress_title">
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="xalign">0</property>
-            <property name="label">&lt;big&gt;&lt;b&gt;Progress bar title&lt;/b&gt;&lt;/big&gt;</property>
-            <property name="use_markup">True</property>
-            <property name="selectable">False</property>
-            <property name="ellipsize">end</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="padding">6</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkProgressBar" id="progress_bar">
-            <property name="width_request">400</property>
-            <property name="visible">True</property>
-            <property name="pulse_step">0.10000000149011612</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkHBox" id="hbox37">
-            <property name="visible">True</property>
-            <property name="spacing">6</property>
-            <child>
-              <object class="GtkLabel" id="progress_info">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="xalign">0</property>
-                <property name="ypad">6</property>
-                <property name="label">&lt;i&gt;Progress bar info&lt;/i&gt;</property>
-                <property name="use_markup">True</property>
-                <property name="selectable">False</property>
-                <property name="ellipsize">end</property>
-              </object>
-              <packing>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="progress_cancel_button">
-                <property name="label" translatable="yes">Skip</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">False</property>
-                <property name="use_underline">True</property>
-                <signal name="clicked" handler="on_progress_cancel_button_clicked"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="pack_type">end</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
-      </object>
-    </child>
-  </object>
   <object class="GtkDialog" id="finished_dialog">
     <property name="border_width">6</property>
     <property name="title" translatable="yes">Installation complete</property>
@@ -418,7 +396,6 @@
                         <property name="ypad">6</property>
                         <property name="label" translatable="yes">Installation is complete. You need to restart the computer in order to use the new installation. You can continue to use this live CD, although any changes you make or documents you save will not be preserved.</property>
                         <property name="wrap">True</property>
-                        <property name="selectable">False</property>
                       </object>
                     </child>
                   </object>
@@ -535,7 +512,6 @@
                     <property name="xalign">0</property>
                     <property name="label" translatable="yes">We're sorry; the installer crashed. Please file a new bug report at https://launchpad.net/ubuntu/+source/ubiquity/+filebug (do not attach your details to any existing bug) and a developer will attend to the problem as soon as possible. To help the developers understand what went wrong, include the following detail in your bug report, and attach the files /var/log/syslog and /var/log/partman:</property>
                     <property name="wrap">True</property>
-                    <property name="selectable">False</property>
                   </object>
                   <packing>
                     <property name="fill">False</property>
@@ -548,7 +524,6 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="xalign">0</property>
-                    <property name="selectable">False</property>
                   </object>
                   <packing>
                     <property name="fill">False</property>
@@ -611,12 +586,10 @@
     <child internal-child="vbox">
       <object class="GtkVBox" id="dialog-vbox7">
         <property name="visible">True</property>
-        <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child>
           <object class="GtkVBox" id="bootloader_fail_vbox1">
             <property name="visible">True</property>
-            <property name="orientation">vertical</property>
             <property name="spacing">18</property>
             <child>
               <object class="GtkHBox" id="bootloader_fail_hbox3">
@@ -668,12 +641,10 @@
                     <child>
                       <object class="GtkVBox" id="bootloader_fail_vbox2">
                         <property name="visible">True</property>
-                        <property name="orientation">vertical</property>
                         <property name="spacing">6</property>
                         <child>
                           <object class="GtkVBox" id="bootloader_fail_vbox3">
                             <property name="visible">True</property>
-                            <property name="orientation">vertical</property>
                             <property name="spacing">3</property>
                             <child>
                               <object class="GtkRadioButton" id="grub_new_device">
@@ -718,7 +689,6 @@
                         <child>
                           <object class="GtkVBox" id="bootloader_fail_vbox4">
                             <property name="visible">True</property>
-                            <property name="orientation">vertical</property>
                             <property name="spacing">3</property>
                             <child>
                               <object class="GtkRadioButton" id="grub_no_new_device">
@@ -783,7 +753,6 @@
                         <child>
                           <object class="GtkVBox" id="bootloader_fail_vbox5">
                             <property name="visible">True</property>
-                            <property name="orientation">vertical</property>
                             <child>
                               <object class="GtkRadioButton" id="grub_fail_option">
                                 <property name="label" translatable="yes">Cancel the installation.</property>

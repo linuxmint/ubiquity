@@ -1,3 +1,151 @@
+apt-setup (1:0.45ubuntu4) maverick; urgency=low
+
+  * Do not include the CDROM line in the check for restricted being
+    present in the sources.list (LP: #655893).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Thu, 07 Oct 2010 11:35:56 +0100
+
+apt-setup (1:0.45ubuntu3) maverick; urgency=low
+
+  * Default apt-setup/extras to false; it will be preseeded to true on
+    desktop images (LP: #653200).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 04 Oct 2010 09:48:13 +0100
+
+apt-setup (1:0.45ubuntu2) maverick; urgency=low
+
+  [ Michael Vogt ]
+  * add support for extras.ubuntu.com (as apt-setup/extras)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 15 Sep 2010 09:48:54 +0100
+
+apt-setup (1:0.45ubuntu1) maverick; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Install the Ubuntu mirror generator instead of Debian's.
+    - Set apt-setup/security_host to security.ubuntu.com, or
+      ports.ubuntu.com on ports architectures; adjust directory and
+      distribution to match.
+    - Add security sources for restricted, universe, and multiverse,
+      commented out unless the respective components are enabled. Disable
+      security generator checks for contrib and non-free.
+    - For CD installs, leave the sources.list created by apt-setup in
+      /etc/apt/sources.list.apt-setup, and restore the sources.list created
+      during base installation for the rest of the installation.
+    - Honour OVERRIDE_BASE_INSTALLABLE when checking
+      /cdrom/.disk/base_installable.
+    - Set the mirror verification timeout to 30 seconds.
+    - Disable the volatile service for Ubuntu, and don't ask the
+      apt-setup/services-select question.
+    - Always disable the CD at the end of installation if any mirrors are
+      present, even if it's a complete CD.
+    - Pre-populate apt's lists directory with signed Release files for
+      archive.ubuntu.com (and mirrors) and security.ubuntu.com, to protect
+      against downgrade attacks right from initial installation.
+    - Run 'apt-get update' for all sources.list lines produced by a single
+      generator in one go, and don't comment out sources.list lines if it
+      fails.
+    - Make the path to security updates configurable, as well as the host.
+    - Remove restricted from cdrom entry if apt-setup/restricted is false.
+    - Allow preseeding apt-setup/partner to enable the partner repository.
+    - Make sure apt-cdrom doesn't unmount the CD if cd_type ends with
+      /single.
+    - Enable all network sources, including security updates, even if the
+      network is unconfigured.
+    - Honour apt-setup/restricted, apt-setup/universe, and
+      apt-setup/multiverse when writing -backports lines.
+    - Check to make sure the CD filesystem is iso9660 before remounting it
+      as such.  Do not write a CD identifier if we're not working with
+      iso9660 so pkgsel does not try to unmount such disks.
+    - Run 'apt-get update', without downloading package lists or cleaning up
+      old files, after moving the sources.list generated during base system
+      installation back into place.
+    - If OVERRIDE_LEAVE_CD_MOUNTED is set, don't unmount /cdrom; this is a
+      bad idea in a live CD environment!
+    - Bail out cleanly from cdrom generator if /cdrom/.disk/info doesn't
+      exist or has zero size.
+    - Mount /proc, /sys, and /dev in the target system if necessary when
+      running apt-cdrom.
+  * Add Release files for maverick.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 21 May 2010 15:07:42 +0100
+
+apt-setup (1:0.45) unstable; urgency=low
+
+  * There's no need anymore to unmount /target/cdrom.
+
+  [ Updated translations ]
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Hebrew (he.po) by Omer Zak
+  * Slovenian (sl.po) by Vanja Cvelbar
+
+ -- Frans Pop <fjp@debian.org>  Fri, 12 Mar 2010 23:11:42 +0100
+
+apt-setup (1:0.44) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Re-enable progress bar cancellation; debconf 1.5.27 fixes occasional
+    bugs where we weren't exiting 30 appropriately, and
+    debian-installer-utils 1.70 fixes exit code propagation.  I've left the
+    comments in place pending testing.
+  * Guard against future multiple-CD handling changes in apt.  If multiple
+    CDs are inserted then any one can satisfy a media-change request.  We
+    don't yet deal with multiple CDs everywhere, but at least we won't break
+    when 'apt-cdrom ident' starts returning multiple labels.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Pavel Piatruk
+  * Bengali (bn.po) by Israt Jahan
+  * German (de.po) by Holger Wansing
+  * Finnish (fi.po) by Esko Arajärvi
+  * Panjabi (pa.po) by A S Alam
+  * Polish (pl.po) by Bartosz Fenski
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Simplified Chinese (zh_CN.po) by 苏运强
+
+ -- Otavio Salvador <otavio@debian.org>  Mon, 22 Feb 2010 00:00:01 -0300
+
+apt-setup (1:0.43) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Upgrade to debhelper v7.
+  * Stop abusing $RET in generators/50mirror for things other than debconf.
+
+  [ Chris Lamb ]
+  * Use cdrom-detect/cdrom_fs when remounting the CD to ensure that we do so
+    using the same filesystem. Patch by Colin Watson, merged back from Ubuntu.
+    Requires cdrom-detect >= 1.32.
+  * Don't try and run apt-cdrom for non-ISO9660 "CD-ROMs".
+
+  [ Frans Pop ]
+  * Remove no longer needed Lintian override for missing Standards-
+    Version field.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Asturian (ast.po) by astur
+  * Belarusian (be.po) by Pavel Piatruk
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Ask Hjorth Larsen
+  * Greek, Modern (1453-) (el.po)
+  * Estonian (et.po) by Mattias Põldaru
+  * Finnish (fi.po) by Esko Arajärvi
+  * Galician (gl.po) by Marce Villarino
+  * Italian (it.po) by Milo Casagrande
+  * Japanese (ja.po) by Kenshi Muto
+  * Korean (ko.po) by Changwoo Ryu
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Bokmål, Norwegian (nb.po) by Hans Fredrik Nordhaug
+  * Dutch (nl.po) by Frans Pop
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Turkish (tr.po) by Mert Dirik
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Frans Pop <fjp@debian.org>  Wed, 23 Dec 2009 00:34:42 +0100
+
 apt-setup (1:0.42ubuntu3) lucid; urgency=low
 
   * Mount /proc, /sys, and /dev in the target system if necessary when

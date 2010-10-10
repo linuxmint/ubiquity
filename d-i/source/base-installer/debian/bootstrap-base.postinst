@@ -7,8 +7,11 @@ db_capb backup
 . /usr/lib/base-installer/library.sh
 
 ETCDIR=/target/etc
-ARCH=`udpkg --print-architecture`
 KEYRING=/usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+# Architecture and OS detection
+ARCH=`udpkg --print-architecture`
+OS=`udpkg --print-os`
 
 # Set initial value to includes and excludes
 db_get base-installer/includes
@@ -140,10 +143,10 @@ waypoint 1	configure_apt_preferences
 waypoint 1	configure_apt
 waypoint 3	apt_update
 waypoint 5	post_install_hooks
-waypoint 2	install_filesystems
 waypoint 1	pick_kernel
-waypoint 20	install_linux
+waypoint 20	install_kernel
 waypoint 10	install_extra
+waypoint 0	final_apt_preferences
 waypoint 0	cleanup
 
 run_waypoints base-installer/progress/installing-base

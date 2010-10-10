@@ -264,7 +264,11 @@ def get_languages(current_language_index=-1, only_installable=False):
 
     if only_installable:
         from apt.cache import Cache
-        cache = Cache()
+        #workaround for an issue where euid != uid and the
+        #apt cache has not yet been loaded causing a SystemError
+        #when libapt-pkg tries to load the Cache the first time.
+        with misc.raised_privileges():
+            cache = Cache()
 
     languagelist = gzip.open('/usr/lib/ubiquity/localechooser/languagelist.data.gz')
     language_display_map = {}
@@ -278,7 +282,10 @@ def get_languages(current_language_index=-1, only_installable=False):
             i += 1
             continue
 
-        if only_installable and code != 'C':
+        if only_installable:
+            if code == 'C':
+                i += 1
+                continue
             pkg_name = 'language-pack-%s' % code
             #special case these
             if pkg_name.endswith('_CN'):

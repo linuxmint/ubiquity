@@ -40,7 +40,7 @@ fi
 # is listed in it.
 dists="main"
 for dist in restricted; do
-	if grep -q '^[^#]* '$dist $ROOT/etc/apt/sources.list.new; then
+	if grep -v 'cdrom:' $ROOT/etc/apt/sources.list.new | grep -q '^[^#]* '$dist; then
 		dists="$dists $dist"
 	fi
 done

@@ -2,6 +2,13 @@
 
 . /usr/share/debconf/confmodule
 
+# Only run the first time
+if [ -f /var/lib/partman/initial_help ]; then
+	exit 0
+fi
+mkdir -p /var/lib/partman
+touch /var/lib/partman/initial_help
+
 if [ -x /bin/archdetect ]; then
 	arch=$(archdetect)
 else

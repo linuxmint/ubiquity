@@ -1,3 +1,101 @@
+partman-auto (91ubuntu4) maverick; urgency=low
+
+  * Use /usr/lib/base-installer/dmi-available-memory if available to
+    determine memory size for RAM-dependent recipe elements (LP: #604765).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 21 Aug 2010 00:09:22 +0100
+
+partman-auto (91ubuntu3) maverick; urgency=low
+
+  * Support resizing the largest partition on multiple disks.
+  * Support formatting the entire partition for any partition that can
+    be resized.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 13 Jul 2010 10:11:51 +0100
+
+partman-auto (91ubuntu2) maverick; urgency=low
+
+  * Add i386/efi (and amd64/efi, kfreebsd-i386/efi, and kfreebsd-amd64/efi)
+    recipes that create an EFI System Partition.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 18 Jun 2010 15:40:29 +0100
+
+partman-auto (91ubuntu1) maverick; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Adjust default partition sizes for Ubuntu.
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Offer resize_use_free autopartitioning method, except on armel.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+    - Drop the bootable flag from i386/amd64 recipes; it can break existing
+      Windows installations when autopartitioning only free space rather
+      than a whole disk.
+    - Make biggest_free respect the selection made in partman-auto/disk.
+    - Exclude devices containing the installation medium from automatic
+      partitioning.
+    - Add armel/dove recipes.
+    - Use new get_real_resize_range function from partman-partitioning
+      72ubuntu3, which caches calls to tune2fs and ntfsresize.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 27 May 2010 09:54:10 +0100
+
+partman-auto (91) unstable; urgency=low
+
+  * Fix $iflabel{ } logic to avoid including the partition anyway if the
+    current directory is not a subdirectory of /var/lib/partman/devices.
+    This caused automatic LVM partitioning to be calculated with a biosgrub
+    partition regardless of the disk label type, although as it happened
+    this cancelled out with another bug so that partition would never
+    actually be written to disk (LP: #538536).
+  * Run clean_method before starting autopartitioning instead of in the
+    middle of performing a recipe, and call autopartition just once for
+    multi-disk partitioning.  This means that methods applied to partitions
+    of physical disks in RAID recipes are applied to all disks rather than
+    just the last one (LP: #566965).
+
+  [ Updated translations ]
+  * Asturian (ast.po) by astur
+  * Danish (da.po) by Jacob Sparre Andersen
+  * German (de.po) by Holger Wansing
+  * French (fr.po) by Christian Perrier
+  * Hebrew (he.po) by Omer Zak
+  * Korean (ko.po) by Changwoo Ryu
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Norwegian Nynorsk (nn.po) by Eirik U. Birkeland
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Tamil (ta.po) by Dr,T,Vasudevan
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 25 May 2010 16:01:39 +0100
+
+partman-auto (90) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Merge from Ubuntu:
+    - Remove explicit $primary{ } specifiers from standard recipes. We only
+      need them to be primary if no other primary partitions exist already.
+  * Change expert recipe error message to focus on the available disk space
+    being too small, not the recipe being too large (idea from "Rorschach",
+    LP: #415488).
+
+  [ Frans Pop ]
+  * Remove no longer needed Lintian override for missing Standards-Version
+    field.
+  * After choosing "biggest free" option followed by backing up from the recipe
+    dialog, don't exit to main menu but return to initial partman-auto dialog.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Pavel Piatruk
+  * German (de.po) by Holger Wansing
+  * Galician (gl.po) by Marce Villarino
+  * Italian (it.po) by Milo Casagrande
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Simplified Chinese (zh_CN.po) by 苏运强
+
+ -- Frans Pop <fjp@debian.org>  Mon, 22 Feb 2010 04:15:54 +0100
+
 partman-auto (89ubuntu8) lucid; urgency=low
 
   * Explicitly handle failures from get_real_resize_range (LP: #568021).

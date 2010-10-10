@@ -34,12 +34,12 @@ populate_media () {
 	shift; shift; shift
 	mkdir -p /target$MEDIA
 	if [ "$1" ]; then
-		rm_dir_or_link /target${MEDIA}/${category}
-		ln -s ${category}0 /target${MEDIA}/${category}
+		rm_dir_or_link /target$MEDIA/$category
+		ln -s ${category}0 /target$MEDIA/$category
 	fi
 	number=0
 	while [ "$1" ]; do
-		mount_point="${MEDIA}/${category}$number"
+		mount_point="$MEDIA/$category$number"
 		addfstab "$1" "$mount_point" "$fs" "$options" 0 0
 		rm_dir_or_link /target$mount_point
 		mkdir -p /target$mount_point

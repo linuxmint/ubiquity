@@ -16,7 +16,10 @@ DISTRIBUTION=
 # used by kernel installation code
 KERNEL=
 KERNEL_LIST=/tmp/available_kernels.txt
-KERNEL_MAJOR="$(uname -r | cut -d . -f 1,2)"
+case `udpkg --print-os` in
+	linux)		KERNEL_MAJOR="$(uname -r | cut -d . -f 1,2)" ;;
+	kfreebsd)	KERNEL_MAJOR="$(uname -r | cut -d . -f 1)" ;;
+esac
 KERNEL_VERSION="$(uname -r | cut -d - -f 1)"
 KERNEL_ABI="$(uname -r | cut -d - -f 1,2)"
 KERNEL_FLAVOUR=$(uname -r | cut -d - -f 3-)
@@ -36,6 +39,10 @@ fi
 APT_SOURCES=/target/etc/apt/sources.list
 APT_CONFDIR=/target/etc/apt/apt.conf.d
 IT_CONFDIR=/target/etc/initramfs-tools/conf.d
+
+IFS_ORIG="$IFS"
+NL="
+"
 
 log() {
 	logger -t base-installer "$@"
@@ -119,7 +126,7 @@ check_target () {
 	fi
 }
 
-setup_dev () {
+setup_dev_linux () {
 	# Ensure static device nodes created during install are preserved
 	# Tests in MAKEDEV require this is done in the D-I environment
 	mkdir -p /dev/.static/dev
@@ -129,46 +136,25 @@ setup_dev () {
 	mount --bind /dev /target/dev/
 }
 
-# TODO: as we no longer have to create devices here, the apt-install calls
-# could possibly better be done as post-base-installer hooks from partman
-install_filesystems () {
-	# RAID
-	if [ -e /proc/mdstat ] && grep -q ^md /proc/mdstat ; then
-		apt-install mdadm
-	fi
-	# device-mapper
-	if grep -q " device-mapper$" /proc/misc; then
-		# Avoid warnings from lvm2 tools about open file descriptors
-		export LVM_SUPPRESS_FD_WARNINGS=1
+setup_dev_kfreebsd() {
+	mount -t devfs devfs /target/dev
+}
 
-		# We can't check the root node directly as is done above because
-		# root could be on an LVM LV on top of an encrypted device
-		if type dmsetup >/dev/null 2>&1 && \
-		   dmsetup table | cut -d' ' -f4 | grep -q "crypt" 2>/dev/null; then
-			apt-install cryptsetup
-		fi
-
-		if type dmraid >/dev/null 2>&1; then
-			if dmraid -s -c >/dev/null 2>&1; then
-				apt-install dmraid
-			fi
-		fi
-
-		if pvdisplay | grep -iq "physical volume ---"; then
-			apt-install lvm2
-		fi
-	fi
+setup_dev() {
+	case "$OS" in
+		linux) setup_dev_linux ;;
+		kfreebsd) setup_dev_kfreebsd ;;
+		*) ;;
+	esac	
 }
 
 configure_apt_preferences () {
 	[ ! -d "$APT_CONFDIR" ] && mkdir -p "$APT_CONFDIR"
 
-	# Install Recommends?
-	if db_get base-installer/install-recommends && [ "$RET" = false ]; then
-		cat >$APT_CONFDIR/00InstallRecommends <<EOT
+	# Don't install Recommends during base-installer
+	cat >$APT_CONFDIR/00InstallRecommends <<EOT
 APT::Install-Recommends "false";
 EOT
-	fi
 
 	# Make apt trust Debian CDs. This is not on by default (we think).
 	# This will be left in place on the installed system.
@@ -191,6 +177,14 @@ EOT
 	fi
 }
 
+final_apt_preferences () {
+	# From here on install Recommends as configured
+	db_get base-installer/install-recommends
+	if [ "$RET" = true ]; then
+		rm -f $APT_CONFDIR/00InstallRecommends
+	fi
+}
+
 apt_update () {
 	log-output -t base-installer chroot /target apt-get update \
 		|| apt_update_failed=$?
@@ -201,19 +195,23 @@ apt_update () {
 }
 
 install_extra () {
+	local IFS
 	info "Installing queued packages into /target/."
 
-	if [ -f /var/lib/apt-install/queue ] ; then
+	if [ -f /var/lib/apt-install/queue ]; then
 		# We need to install these one by one in case one fails.
-		PKG_COUNT=`cat /var/lib/apt-install/queue | wc -w`
+		PKG_COUNT=$(cat /var/lib/apt-install/queue | wc -w)
 		CURR_PKG=0
-		for PKG in `cat /var/lib/apt-install/queue`; do
+		IFS="$NL"
+		for LINE in $(cat /var/lib/apt-install/queue); do
+			IFS="$IFS_ORIG"
+			PKG=${LINE%% *}
+			OPTS=$(echo "$LINE" | sed "s/$PKG *//")
 			db_subst base-installer/section/install_extra_package SUBST0 "$PKG"
 			db_progress INFO base-installer/section/install_extra_package
 
-			if ! log-output -t base-installer apt-install $PKG; then
+			log-output -t base-installer apt-install $OPTS $PKG || \
 				warning "Failed to install $PKG into /target/: $?"
-			fi
 
 			# Advance progress bar within space allocated for install_extra
 			CURR_PKG=$(($CURR_PKG + 1))
@@ -345,7 +343,8 @@ kernel_update_list () {
 	# replaced by something better at some point.
 	chroot /target apt-cache search ^linux- | grep '^linux-\(amd64\|386\|686\|k7\|generic\|server\|virtual\|preempt\|rt\|xen\|power\|cell\|ia64\|sparc\|hppa\|imx51\|dove\|omap\)';
 	chroot /target apt-cache search ^linux-image- | grep -v '^linux-image-2\.';
-	chroot /target apt-cache search ^linux-image-2. | sort -r) | \
+	chroot /target apt-cache search ^linux-image-2. | sort -r;
+	chroot /target apt-cache search ^kfreebsd-image) | \
 	cut -d" " -f1 | uniq > "$KERNEL_LIST.unfiltered"
 	kernels=`< "$KERNEL_LIST.unfiltered" tr '\n' ' ' | sed -e 's/ $//'`
 	for candidate in $kernels; do
@@ -476,7 +475,7 @@ pick_kernel () {
 	info "Using kernel '$KERNEL'"
 }
 
-install_linux () {
+install_kernel_linux () {
 	if [ "$KERNEL" = none ]; then
 		info "Not installing any kernel"
 		return
@@ -530,9 +529,7 @@ install_linux () {
 # Kernel image management overrides
 # See kernel-img.conf(5) for details
 do_symlinks = yes
-relative_links = yes
 do_bootloader = no
-do_bootfloppy = no
 do_initrd = $do_initrd
 link_in_boot = $link_in_boot
 EOF
@@ -679,25 +676,17 @@ EOF
 		fi
 	fi
 
-	# Advance progress bar to 30% of allocated space for install_linux
+	# Advance progress bar to 30% of allocated space for install_kernel_linux
 	update_progress 30 100
-
-	# Always ignore Recommends for the kernel; we don't want to install
-	# bootloaders at this point
-	cat >$APT_CONFDIR/00InstallRecommendsKernel <<EOT
-APT::Install-Recommends "false";
-EOT
 
 	# Install the kernel
 	db_subst base-installer/section/install_kernel_package SUBST0 "$KERNEL"
 	db_progress INFO base-installer/section/install_kernel_package
 	log-output -t base-installer apt-install "$KERNEL" || kernel_install_failed=$?
 
-	rm -f $APT_CONFDIR/00InstallRecommendsKernel
-
 	db_get base-installer/kernel/headers
 	if [ "$RET" = true ]; then
-		# Advance progress bar to 80% of allocated space for install_linux
+		# Advance progress bar to 80% of allocated space for install_kernel_linux
 		update_progress 80 100
 
 		# Install kernel headers if possible
@@ -711,7 +700,7 @@ EOT
 	if [ "$RET" ]; then
 		BACKPORTS_MODULES="$RET"
 
-		# Advance progress bar to 85% of allocated space for install_linux
+		# Advance progress bar to 85% of allocated space for install_kernel_linux
 		update_progress 85 100
 
 		# Install kernel backports modules if possible
@@ -819,25 +808,79 @@ addmodule_yaird () {
 	fi
 }
 
+install_kernel_kfreebsd() {
+	if [ "$KERNEL" = none ]; then
+		info "Not installing any kernel"
+		return
+	fi
+
+	# Create configuration file for kernel-package
+	if [ -f /target/etc/kernel-img.conf ]; then
+		# Backup old kernel-img.conf
+		mv /target/etc/kernel-img.conf /target/etc/kernel-img.conf.$$
+	fi
+
+	cat > /target/etc/kernel-img.conf <<EOF
+# Kernel image management overrides
+# See kernel-img.conf(5) for details
+do_symlinks = no
+EOF
+	# Advance progress bar to 10% of allocated space for install_kfreebsd
+	update_progress 10 100
+
+	# Install the kernel
+	db_subst base-installer/section/install_kernel_package SUBST0 "$KERNEL"
+	db_progress INFO base-installer/section/install_kernel_package
+	log-output -t base-installer apt-install "$KERNEL" || kernel_install_failed=$?
+
+	# Advance progress bar to 90% of allocated space for install_kfreebsd
+	update_progress 90 100
+
+	if [ -f /target/etc/kernel-img.conf.$$ ]; then
+		# Revert old kernel-img.conf
+		mv /target/etc/kernel-img.conf.$$ /target/etc/kernel-img.conf
+	fi
+
+	if [ "$kernel_install_failed" ]; then
+		db_subst base-installer/kernel/failed-install KERNEL "$KERNEL"
+		exit_error base-installer/kernel/failed-install
+	fi
+}
+
+install_kernel() {
+	case "$OS" in
+		linux) install_kernel_linux ;;
+		kfreebsd) install_kernel_kfreebsd ;;
+		*) ;;
+	esac	
+}
+
+
 # Assumes the file protocol is only used for CD (image) installs
 configure_apt () {
 	if [ "$PROTOCOL" = file ]; then
+		local tdir=/target/media$DIRECTORY
 		rm -f /var/lib/install-cd.id
 
 		# Let apt inside the chroot see the cdrom
-		if [ -n "$DIRECTORY" ]; then
-			umount /target$DIRECTORY 2>/dev/null || true
-			if [ ! -e /target/$DIRECTORY ]; then
-				mkdir -p /target/$DIRECTORY
-			fi
+		umount $tdir 2>/dev/null || true
+		if [ ! -e $tdir ]; then
+			mkdir -p $tdir
 		fi
 
 		# The bind mount is left mounted, for future apt-install
 		# calls to use.
-		if ! mount -o bind $DIRECTORY /target$DIRECTORY; then
-			warning "failed to bind mount /target$DIRECTORY"
+		if ! mount -o bind $DIRECTORY $tdir; then
+			warning "failed to bind mount $tdir"
 		fi
 
+		# Define the mount point for apt-cdrom
+		cat > $APT_CONFDIR/00CDMountPoint << EOT
+Acquire::cdrom {
+  mount "/media/cdrom";
+}
+Dir::Media::MountPath "/media/cdrom";
+EOT
 		# Make apt-cdrom and apt not unmount/mount CD-ROMs;
 		# needed to support CD images (hd-media installs).
 		# This file will be left in place until the end of the
@@ -846,8 +889,7 @@ configure_apt () {
 		cat > $APT_CONFDIR/00NoMountCDROM << EOT
 APT::CDROM::NoMount "true";
 Acquire::cdrom {
-  mount "/cdrom";
-  "/cdrom/" {
+  "/media/cdrom/" {
     Mount  "true";
     UMount "true";
   };

@@ -145,12 +145,12 @@ preseed () {
 
 # Check for DHCP filename preseeding
 dhcp_preseed_url () {
-for file in /var/lib/dhcp/dhclient.leases /var/lib/dhcp3/dhclient.leases; do
-	if [ -r "$file" ]; then
-		FN="$(sed -n -e '/filename/s/.*"\(.*\)"./\1/p' $file)"
-		if echo "$FN" | grep -q "://" ; then
-			echo "$FN"
+	for file in /var/lib/dhcp/dhclient.leases /var/lib/dhcp3/dhclient.leases /var/lib/udhcp/udhcpc.leases; do
+		if [ -r "$file" ]; then
+			FN="$(sed -n -e '/ filename "/ s/.*"\(.*\)"./\1/p' $file | tail -n1)"
+			if echo "$FN" | grep -q "://" ; then
+				echo "$FN"
+			fi
 		fi
-	fi
-done
+	done
 }

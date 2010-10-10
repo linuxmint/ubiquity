@@ -10,7 +10,7 @@ chroot_setup () {
 	   [ ! -d /target/proc ]; then
 		return 1
 	fi
-	if [ ! -d /target/sys ]; then
+	if [ -d /sys/devices ] && [ ! -d /target/sys ]; then
 		return 1
 	fi
 
@@ -59,24 +59,40 @@ EOF
 	# Record the current mounts
 	mountpoints > /tmp/mount.pre
 
-	# Some packages (eg. the kernel-image package) require a mounted
-	# /proc/. Only mount it if not mounted already
-	if [ ! -f /target/proc/cmdline ]; then
-		mount -t proc proc /target/proc
-	fi
+	case `udpkg --print-os` in
+	        "linux")
+			# Some packages (eg. the kernel-image package) require a mounted
+			# /proc/. Only mount it if not mounted already
+			if [ ! -f /target/proc/cmdline ]; then
+				mount -t proc proc /target/proc
+			fi
 
-	# For installing >=2.6.14 kernels we also need sysfs mounted
-	# Only mount it if not mounted already
-	if [ ! -d /target/sys/devices ]; then
-		mount -t sysfs sysfs /target/sys
-	fi
+			# For installing >=2.6.14 kernels we also need sysfs mounted
+			# Only mount it if not mounted already
+			if [ ! -d /target/sys/devices ]; then
+				mount -t sysfs sysfs /target/sys
+			fi
 
-	# In Lenny, /dev/ lacks the pty devices, so we need devpts mounted
-	if [ ! -e /target/dev/pts/0 ]; then
-		mkdir -p /target/dev/pts
-		mount -t devpts devpts -o noexec,nosuid,gid=5,mode=620 \
-			/target/dev/pts
-	fi
+			# In Lenny, /dev/ lacks the pty devices, so we need devpts mounted
+			if [ ! -e /target/dev/pts/0 ]; then
+				mkdir -p /target/dev/pts
+				mount -t devpts devpts -o noexec,nosuid,gid=5,mode=620 \
+					/target/dev/pts
+			fi
+		;;
+	        "kfreebsd")
+			# Some packages (eg. the kernel-image package) require a mounted
+			# /proc/. Only mount it if not mounted already
+			if [ ! -f /target/proc/cmdline ]; then
+				mount -t procfs proc /target/proc
+			fi
+			# Some package might need sysfs mounted
+			# Only mount it if not mounted already
+			if [ ! -d /target/sys/devices ]; then
+				mount -t linsysfs sysfs /target/sys
+			fi
+		;;
+	esac
 
 	# Try to enable proxy when using HTTP.
 	# What about using ftp_proxy for FTP sources?

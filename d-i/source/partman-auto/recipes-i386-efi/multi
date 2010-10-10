@@ -1,0 +1,60 @@
+partman-auto/text/multi_scheme ::
+
+20 50 200 free
+	$iflabel{ gpt }
+	method{ efi }
+	format{ } .
+
+128 512 256 ext2
+	$defaultignore{ }
+	method{ format }
+	format{ }
+	use_filesystem{ }
+	filesystem{ ext2 }
+	mountpoint{ /boot } .
+
+120 800 350 $default_filesystem
+	$lvmok{ }
+	method{ format }
+	format{ }
+	use_filesystem{ }
+	$default_filesystem{ }
+	mountpoint{ / } .
+
+500 3000 6000 $default_filesystem
+	$lvmok{ }
+	method{ format }
+	format{ }
+	use_filesystem{ }
+	$default_filesystem{ }
+	mountpoint{ /usr } .
+
+70 1500 3000 $default_filesystem
+	$lvmok{ }
+	method{ format }
+	format{ }
+	use_filesystem{ }
+	$default_filesystem{ }
+	mountpoint{ /var } .
+
+96 512 300% linux-swap
+	$lvmok{ }
+	method{ swap }
+	format{ } .
+
+20 300 400 $default_filesystem
+	$lvmok{ }
+	method{ format }
+	format{ }
+	use_filesystem{ }
+	$default_filesystem{ }
+	mountpoint{ /tmp } .
+
+300 3000 -1 $default_filesystem
+	$lvmok{ }
+	method{ format }
+	format{ }
+	use_filesystem{ }
+	$default_filesystem{ }
+	mountpoint{ /home } .
+

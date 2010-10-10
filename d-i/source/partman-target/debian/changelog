@@ -1,3 +1,84 @@
+partman-target (67ubuntu1) maverick; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Disable automatic mounting of USB removable devices.
+    - Mount floppies with 'exec' and 'utf8'.
+    - Use the path of the file associated with a loop device in /etc/fstab,
+      rather than the filesystem's UUID or the loop device path.
+    - Always set the loop option for loop devices.
+    - Remove critical system files from the existing filesystem before
+      installing.
+    - Preserve the UID and GID of the initial user, if possible.  Requires a
+      patch to user-setup.
+    - Don't clear partitions or complain about them not being formatted if
+      they've already been formatted by a previous partitioner run.
+    - Recommend blkid rather than vol_id in /etc/fstab.
+    - Stop adding removable devices to /etc/fstab, now that apt knows how to
+      find CD-ROM devices using libudev.
+    - Mount /proc with nodev,noexec,nosuid.
+    - Notify user-setup if there is an encrypted home partition present.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 26 May 2010 14:50:31 +0100
+
+partman-target (67) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Ensure that /dev isn't assigned a separate mount point (closes:
+    #445211).
+
+  [ Aurelien Jarno ]
+  * Add code to create a GNU/kFreeBSD specific version of /etc/fstab.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Thu, 13 May 2010 20:35:50 +0200
+
+partman-target (66) unstable; urgency=low
+
+  * No longer create /cdrom compatibility symlink. Closes: #573252.
+    With thanks to Maximilian Attems.
+    Requires base-installer (>= 1.106).
+  * Remove unnecessary braces in finish.d scripts.
+
+  [ Updated translations ]
+  * Hebrew (he.po) by Omer Zak
+  * Slovenian (sl.po) by Vanja Cvelbar
+
+ -- Frans Pop <fjp@debian.org>  Sun, 14 Mar 2010 08:33:08 +0100
+
+partman-target (65) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Merge from Ubuntu:
+    - Rather than pretending that partitions have no longer been formatted
+      after the partitioner is complete, reset their intended state from
+      "format the partition" to "keep and use the existing data". This still
+      solves the original problem reported in Debian bug #256090 while also
+      stopping partitions from being needlessly reformatted if you go back
+      to the partitioner after base system installation and then forward
+      again (LP: #29712).
+  * Use ${var:-alternative} syntax in active_partition/method/choices rather
+    than writing out an 'if' block.
+  * Only run display.d/init_help the first time.
+
+  [ Frans Pop ]
+  * Remove no longer needed Lintian override for missing Standards-Version
+    field.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Asturian (ast.po) by astur
+  * Belarusian (be.po) by Pavel Piatruk
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * German (de.po) by Holger Wansing
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Galician (gl.po) by Marce Villarino
+  * Dutch (nl.po) by Frans Pop
+  * Panjabi (pa.po) by A S Alam
+  * Polish (pl.po) by Bartosz Fenski
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Simplified Chinese (zh_CN.po) by 苏运强
+
+ -- Frans Pop <fjp@debian.org>  Mon, 22 Feb 2010 04:13:45 +0100
+
 partman-target (64ubuntu9) lucid; urgency=low
 
   * Notify user-setup that there is an encrypted home partition present

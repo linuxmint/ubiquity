@@ -23,8 +23,6 @@
 # Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ##################################################################################
 
-import sys
-
 from PyQt4 import *
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
@@ -259,7 +257,7 @@ class PartitionsBar(QWidget):
 
         if part.next == None or part.next.index != -1:
             #if our resize partition is at the end or the next one is not free space
-            p = Partition('Linux Mint', new_size, 'auto')
+            p = Partition('Kubuntu', new_size, 'auto')
             p.next = part.next
             part.next = p
 

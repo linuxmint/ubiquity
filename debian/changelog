@@ -1,20 +1,617 @@
-ubiquity (2.2.24-1mint1) isadora; urgency=low
+ubiquity (2.4.8) maverick; urgency=low
 
-  * Added fix from Ubiquity 2.2.24 (though this is still based on 2.2.23)
+  * Automatic update of included source packages: apt-setup
+    1:0.45ubuntu4, choose-mirror 2.33ubuntu3.
 
- -- Clement Lefebvre <root@linuxmint.com>  Thu, 29 Apr 2010 15:47:00 +0000
+ -- Evan Dandrea <evand@ubuntu.com>  Thu, 07 Oct 2010 13:06:13 +0100
 
-ubiquity (2.2.23-1mint2) isadora; urgency=low
+ubiquity (2.4.7) maverick; urgency=low
 
-  * Changed partition colors
+  [ Evan Dandrea, Colin Watson ]
+  * Fix code to ensure that GRUB isn't installed to the installation device
+    when it's a USB stick; this was a combination of the installation device
+    typically being a partition rather than a disk device, and the fact that
+    grub-mkdevicemap now emits /dev/disk/by-id/ names rather than
+    traditional device names (LP: #630529).
 
- -- Clement Lefebvre <root@linuxmint.com>  Thu, 29 Apr 2010 11:23:00 +0000
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 06 Oct 2010 14:01:53 +0100
 
-ubiquity (2.2.23-1mint1) isadora; urgency=low
+ubiquity (2.4.6) maverick; urgency=low
 
-  * Linux Mint release based on 2.2.23 from Ubuntu.
+  * Automatic update of included source packages: apt-setup
+    1:0.45ubuntu3, base-installer 1.107ubuntu3, choose-mirror
+    2.33ubuntu2, grub-installer 1.55ubuntu4, user-setup 1.28ubuntu10.
 
- -- Clement Lefebvre <root@linuxmint.com>  Thu, 29 Apr 2010 11:23:00 +0000
+ -- Evan Dandrea <evand@ubuntu.com>  Wed, 06 Oct 2010 12:27:46 +0100
+
+ubiquity (2.4.5) maverick; urgency=low
+
+  [ Mario Limonciello ]
+  * If a derivative doesn't provide a release notes URL on the media, don't show
+    the release notes label (LP: #651800)
+
+  [ Colin Watson ]
+  * Update translations from Launchpad (LP: #652395).
+  * Automatic update of included source packages: partman-base 141ubuntu2.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 01 Oct 2010 10:17:57 +0100
+
+ubiquity (2.4.4) maverick; urgency=low
+
+  * manually update indicators ABI in panel source.
+
+ -- Mario Limonciello <Mario_Limonciello@Dell.com>  Mon, 27 Sep 2010 16:15:44 -0500
+
+ubiquity (2.4.3) maverick; urgency=low
+
+  * pixmaps/cd_in_tray.png has moved back to ubiquity-frontend-gtk.  Remove
+    it from ubiquity.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 27 Sep 2010 12:55:43 +0100
+
+ubiquity (2.4.2) maverick; urgency=low
+
+  [ Jonathon Riddell ]
+  * gui/qt/stepLanguage.ui: nicer icons and better layout on
+    language page (LP: #628808)
+
+  [ Mario Limonciello ]
+  * Set the LANG before running oem-config-remove.
+  * Prevent a crash of debconf-communicate when removing oem-config.
+    (LP: #641478)
+  * Raise privileges when running the language page in only-installable
+    mode. (LP: #647792)
+  * Automatic update of included source packages: flash-kernel
+    2.28ubuntu10.
+
+  [ Evan Dandrea ]
+  * Don't let Jockey's automatic driver installation failing cause the
+    entire prepare page to fail.
+  * Make sure $LANGUAGE gets set in the parallel debconf child process,
+    so that we get translated descriptions (LP: #646109).
+  * Set the effective UID in regain_privileges_save so we don't try to
+    setgroups([]) as a regular user (LP: #646827).
+
+  [ Didier Roche ]
+  * depends on latest libindicator-dev for ABI change (LP: #637692, #647739)
+
+ -- Mario Limonciello <Mario_Limonciello@Dell.com>  Sat, 25 Sep 2010 18:24:06 -0500
+
+ubiquity (2.4.1) maverick; urgency=low
+
+  [ Evan Dandrea ]
+  * Fix the installer window growing and shrinking when typing in the
+    boxes on the user setup page.
+  * Do not show the prepare page by means of hiding the language page
+    before the former is ready.
+  * Fix a crash in the KDE partitioning page when no partitions are
+    available for resizing (LP: #644407).
+  * Call setgroups() when raising and dropping privileges.  Thanks Colin
+    Watson!
+  * Also tail syslog in the installer details pane, since that's where
+    the action is.
+  * Correctly use the plugin_translate hook in the KDE frontend
+    (LP: #645092).
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: base-installer
+    1.107ubuntu2.
+
+  [ Jonathan Riddell ]
+  * In gui/qt/app.ui remove unnecessary margin, (LP: #628883)
+  * KDE UI, Change button next between 'install now' and 'next'
+    depending on partition mode, (LP: #628882)
+
+ -- Evan Dandrea <evand@ubuntu.com>  Thu, 23 Sep 2010 10:49:53 +0100
+
+ubiquity (2.4.0) maverick; urgency=low
+
+  [ Sebastian Heinlein ]
+  * Rework oem-config-gtk to use a mainloop (LP: #637517)
+
+  [ Evan Dandrea ]
+  * Call gconftool-2 --set with --config-source.
+  * Better lock down the installer environment when past partitioning.
+  * Lock down the installer environment when at partitioning commit,
+    rather than just after automatic partitioning (and not manual
+    partitioning) (LP: #640604, LP: #641897).
+  * Do not show the quit button in OEM mode.
+  * Depend on aptdaemon (LP: #641051).
+  * Fix the skip download button (LP: #628311).
+  * Make the '[type here to change]' string translatable (LP: #642989).
+  * Disable the non-free software option if multiverse and restricted
+    are disabled via preseed (LP: #641676).
+  * Install kubuntu-restricted-addons, not kubuntu-restricted-extras
+    (LP: #643614).
+  * Clear hostname error when fixed (LP: #640661).
+  * Deal with broken /cdrom symlinks (LP: #642274).
+  * Disable locking the screen and switching users in the installer
+    session (LP: #644016).
+  * Update translations from Launchpad.
+
+  [ Colin Watson ]
+  * Stop ubiquity and oem-config when stopping display managers.  This
+    should guarantee that X has exited by the time we try to start plymouth
+    on shutdown (LP: #628630).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 21 Sep 2010 10:09:28 +0100
+
+ubiquity (2.3.19) maverick; urgency=low
+
+  * Make sure /var/lib/ubiquity/langpacks gets generated (LP: #630924).
+  * Fall back to root if the regular user cannot be found in
+    ubiquity-dm (LP: #640386).
+  * Properly handle dmimodel() returning the null string.
+  * Fix bootloader installation test (LP: #640341).
+  * Set a the respective timezone, both internally and visually, when an
+    entry is selected from the geonames autocompletion.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Thu, 16 Sep 2010 13:22:19 +0100
+
+ubiquity (2.3.18) maverick; urgency=low
+
+  [ Evan Dandrea ]
+  * Improve the text on the prepare page, based on input from Matthew
+    Paul Thomas, Amanda Brock, and Andrew Sinclair
+    (LP: #635269, LP: #635260).
+  * Translate latitude and longitude from the Geonames service to its
+    respective Olsen timezone database entry.
+  * Add back the hostname entry (LP: #628087).
+  * Use a block device icon for cases where we cannot detect the
+    operating system on a partition.
+  * Set the amount of used space on a partition that we presume contains
+    no operating system (LP: #626299).
+  * Make requiring a password to log in the default again, matching the
+    behavior in the previous version of Ubuntu.
+  * Use the correct string for the resize partition option.
+  * Set the size of the disk on the automatic partitioning page
+    (LP: #626299).
+  * Use dmidecode to get a more unique suffix for the hostname
+    (LP: #628087).
+  * Also generate a sample hostname when generating a sample username
+    (LP: #634279).
+  * Only set the next button to 'Install Now' when not on the first
+    partitioning page (LP: #636392).
+  * Fix transposed latitude and longitude in geonames lookup.
+  * Provide a version parameter to the geoname lookup.
+  * Show the number of partitions that will be deleted when in 'use
+    entire disk' mode.
+  * Remove Pango markup from the debconf templates where possible.
+  * Properly set the partition widget description label.
+  * Use a GtkMenuBar rather than a GtkMenu as the source of the dark
+    styling to match recent changes to the default theme.
+  * Properly start a ConsoleKit session (LP: #631538).
+  * Fix the spacing on the automatic partitioning page.
+    gui/gtk/stepPartAuto.ui
+  * Correct layout based on suggestions from Matthew Paul Thomas.
+  * Correct layout on keyboard guesser.
+  * Run the Jockey backend with an in-memory debconf database, and run
+    the frontend asynchronously (LP: #627822).
+  * Don't show the GTK frontend until it's done constructing the UI.
+  * Show a spinning cursor on the X root window in addition to the
+    ubiquity window, so it's clear that the installer is loading the
+    next page even when the cursor is off the main window.
+  * Make return_to_partitioning work with parallel debconf instances
+    (LP: #637706).
+  * Added a Windows icon for the resize widget.  Thanks Otto Greenslade!
+  * Disable the alpha warning, albeit late.
+  * Add a command line option to not install a bootloader
+    (-b, --no-bootloader) (LP: #615033).
+  * Do not show 'free space' partitions in the bootloader target
+    combobox (LP: #615033).
+  * Meet the Geonames.org CC license requirements by adding 'Geonames.org'
+    to the map.
+  * Install the restricted package independent of the apt-installed
+    packages, since those are installed with just the live CD's
+    sources.list (LP: #638073).
+  * Disable the wireless plugin for now.  It's not ready for release.
+  * Make use of the new connectivity check page.
+  * Automatic update of included source packages: apt-setup
+    1:0.45ubuntu2, hw-detect 1.73ubuntu5.
+
+  [ Mario Limonciello ]
+  * Restore the functionality of the noninteractive frontend.
+  * Disable GVFS fuse daemon while in ubiquity-dm
+  * Remove oem user with userdel rather than deluser (the latter didn't support
+    doing it while oem was logged in) (LP: #624888)
+  * Run oem-config-wrapper as the user oem rather than root.
+    - Fixes issues with pulseaudio applet not working
+    - Prevents root terminals from ctrl-alt-t (LP: #594233)
+  * Disable general terminals from ctrl-alt-t unless running in debug mode.
+    (LP: #594233)
+  * Grab focus of the slideshow when it starts, keeping focus off the expander
+    in automatic mode.
+  * Don't allow progressing past the language page unless a valid language is
+    picked.
+  * Fix progressbar reporting messages reporting missing from plugininstall.py
+    in ubiquity or oem-config.
+
+  [ Colin Watson ]
+  * GTK frontend: Make user-setup entry boxes activate the Forward button
+    when Enter is pressed.
+  * Revert Debug::identcdrom=true for writable USB media; with changes in
+    apt 0.8.3ubuntu3, this is sufficient for stable apt-cdrom identification
+    of writable USB media (LP: #628290).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Wed, 15 Sep 2010 13:28:55 +0100
+
+ubiquity (2.3.17) maverick; urgency=low
+
+  [ Evan Dandrea ]
+  * Fetch the translations for the release_notes_only and
+    update_installer_only strings (LP: #629627).
+  * Don't use the same name for the error method and GTK label
+    (LP: #631046).
+  * Re-use the valid username check from user-setup in the GTK UI
+    (LP: #631046).
+  * Do not cut off the text of the Try and Install buttons by setting
+    their width to just the largest initial width of the two
+    (LP: #629437).
+  * Update the panel to use the new location for the panel background,
+    and force a redraw when setting it.
+  * If the username only contains non-alphanumeric characters, set the
+    hostname to ubuntu-{laptop,desktop}.
+  * Replace RELEASE with the release name in the KDE UI finished dialog
+    (LP: #628964).
+  * Do not look for a full path on non-paths when getting the default
+    grub target.
+  * Fix a crash when there are no disks present on the system
+    (LP: #631766).
+  * Don't let the user continue if there are no disks present, or if
+    there isn't enough free space on any of them to install.
+  * Fix UI bugs in the automatic partitioner page.  Better handle
+    determining what the desired partitioning recipe is (LP: #630450).
+  * Update the KDE partitioning UI to reflect changes to ubi-partman and
+    partman-auto.
+    - Use the already existent ubiquity variants of the d-i "Guided -" strings
+      (LP: #628864).
+    - Fix the automatic resize option failing to appear
+      (LP: #628897, LP: #628815).
+    - Use a combobox to select which disk to use on all options that support
+      multiple disks, not just the "use entire disk" option.
+  * Add notification area support in the panel.
+  * Drop ia64 and sparc.
+  * Run nm-applet in the ubiquity GTK session.
+
+  [ Colin Watson ]
+  * Factor out common /proc/mounts handling into a new
+    ubiquity.misc.mount_info function.
+  * Remove lpia architecture support.
+  * Handle grub-efi when installing on amd64/efi or i386/efi
+    subarchitectures (LP: #632642).
+
+  [ Mario Limonciello ]
+  * Adjust the fudge factor for showing languages on oem-config page
+    due to the changes to the default window size being much bigger.
+  * During oem-config's removal of ubiquity, remove other ubiquity
+    related items that might have potentially still been on the system
+    from a live-helper generated image.
+  * Refactor mount_info to also report ro/rw, and let plugininstall
+    key off that instead.
+  * Set the panel indicators to show up on the right to match the rest
+    of the desktop (LP: #632592)
+  * Automatic update of included source packages: grub-installer
+    1.55ubuntu3.
+
+ -- Mario Limonciello <Mario_Limonciello@Dell.com>  Wed, 08 Sep 2010 14:43:59 -0500
+
+ubiquity (2.3.16) maverick; urgency=low
+
+  [ Mario Limonciello ]
+  * Don't show logout option in only-ubiquity mode(s) (LP: #618744)
+  * Don't show a minimize option in only-ubiquity mode(s) (LP: #627656)
+  * Translate the page_title of the language page when languages are
+    swapped.
+  * Restore functionality to set the GTK slideshow size based on a 
+    configuration file that was lost in r4123.1.37.
+  * Parse the slideshow size when the GTK frontend first starts to
+    prevent the window resizing later.
+  * Automatic update of included source packages: grub-installer
+    1.55ubuntu1, partman-basicfilesystems 63ubuntu7, partman-efi
+    21ubuntu1.
+
+  [ Evan Dandrea ]
+  * Do not generate or show the bootloader options if we're on x86, or
+    bootloader installation is explicitly disabled (LP: #628582).
+  * Add correct URL for the Geonames service.
+
+  [ Colin Watson ]
+  * Remove a number of unused or duplicate imports.
+
+ -- Mario Limonciello <Mario_Limonciello@Dell.com>  Sun, 05 Sep 2010 01:40:01 -0500
+
+ubiquity (2.3.15) maverick; urgency=low
+
+  * Clean stray QSocketNotifiers that were missed because their fd was
+    reused before they could normally be deleted.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Thu, 02 Sep 2010 10:21:58 +0100
+
+ubiquity (2.3.14) maverick; urgency=low
+
+  [ Colin Watson ]
+  * KDE frontend:
+    - If the slideshow doesn't exist, hide self.ui.pageMode rather than
+      self.page_mode (LP: #627549).
+  * Set Debug::identcdrom=true for apt-cdrom if installing from a
+    non-ISO9660 filesystem, since otherwise apt-cdrom will include the free
+    blocks count of /cdrom in its database which is unreliable on read-write
+    filesystems, especially USB images with persistence enabled.  Thanks to
+    Manoj Iyer for patient testing (LP: #627672).
+
+  [ Mario Limonciello ]
+  * Provides indicator-renderer (LP: #616165)
+
+  [ Evan Dandrea ]
+  * Disconnect and destroy QSocketNotifiers when the dbfilter finishes.
+    Thanks Colin Watson (LP: #625586).
+  * add the check_hostname function back to ubi-usersetup (LP: #628317).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Thu, 02 Sep 2010 01:42:52 +0100
+
+ubiquity (2.3.13) maverick; urgency=low
+
+  [ Mario Limonciello ]
+  * When using xfsettingsd, set the background to black first.
+  * Set release_notes_found to False initially to prevent a scenario it gets 
+    accessed before being set when offline (LP: #628011).
+
+  [ Evan Dandrea ]
+  * Only set the label on the 'use entire disk' button if we're not
+    going into the advanced partitioner (LP: #625258).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Wed, 01 Sep 2010 10:31:32 +0100
+
+ubiquity (2.3.12) maverick; urgency=low
+
+  * Argh.  Missing import.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 31 Aug 2010 21:31:02 +0100
+
+ubiquity (2.3.11) maverick; urgency=low
+
+  * Fix hostname error in KDE frontend (LP: #627489).  Guard against
+    invalid hostnames in the GTK frontend.
+  * Create a new pipe for update-apt-cache.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 31 Aug 2010 19:38:00 +0100
+
+ubiquity (2.3.10) maverick; urgency=low
+
+  [ Evan Dandrea ]
+  * Handle crashes in parallel debconffilters by failing the
+    installation.
+  * Add a grub target device combobox on the GTK and KDE advanced
+    partitioning pages.
+  * Bootloader handling is now done in ubi-partman.  Do not overwrite it
+    with the default selection in plugininstall.
+  * Get rid of the quitting state variable and use the existing
+    current_page construct (LP: #627284).
+
+  [ Mario Limonciello ]
+  * Add a new script that uses python-aptdaemon-gtk for oem-config removal.
+  * If running with only installable languages, don't offer "No Localization"
+  * If only one language is available, mark the language page as complete.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 31 Aug 2010 12:19:00 +0100
+
+ubiquity (2.3.9) maverick; urgency=low
+
+  * Do not set up the Qt DBus main loop twice.  This was crashing on the
+    prepare page.
+  * Stop Qt callbacks on the prepare and language pages once we have a
+    result, matching the GTK behavior.
+  * Drop privileges before setting the background in the Qt portion of
+    ubiquity-dm, otherwise .kde/share/config will be created as root.
+  * Beta freeze exception (LP: #625472).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Fri, 27 Aug 2010 19:14:08 +0100
+
+ubiquity (2.3.8) maverick; urgency=low
+
+  [ Mario Limonciello ]
+  * If a plugin declares a title, but it's not fetched properly from debconf,
+    hide the title bar rather than crash.
+  * Don't use "Ethernet" when indicating a user is connected to the network.
+    (LP: #615104, #615035)
+  * Make sure finished_label reflects the derivative name rather than
+    hardcoding to "Ubuntu".
+  * Set the buttons on the second autopartitioning screen appropriately
+    to the choices on the first.
+
+  [ Colin Watson ]
+  * Update d-i/update-control for Dpkg::Deps changes in dpkg 1.15.6.
+  * Make ubiquity-frontend-gtk Architecture: any, due to
+    /usr/lib/ubiquity/panel (LP: #616581).
+  * Remove build-locale on clean.
+  * Update build rules for changes in debian-installer-utils 1.78.
+
+  [ Jonathan Riddell ]
+  * Add prepare page to KDE frontend
+  * Update KDE Language page to closer follow GTK layout
+  * pixmaps/cd_in_tray.png moves to ubiquity.install-any and ubiquity replaces old
+    ubiquity-frontend-gtk
+  * In debian/rules move usr/lib/ubiquity/ubiquity/cheese* back to
+    ubiquity-frontend-gtk package, including it in ubiquity package brings in a lot
+    of Gnome dependencies
+  * In ubi-language.py check if release notes can be accessed as well as checking
+    for upgrade available and show correct label as appropriate
+
+  [ Evan Dandrea ]
+  * Add new non-free option text from Michael Forrest.
+  * Do not show the skip button by default.
+  * Make the keyboard guesser window modal again, making it closeable
+    and accepting of input.
+  * Add back ready_text_label for the KDE frontend.
+  * Add parallel operation support to the KDE frontend, with help from
+    Jonathan Riddell.
+  * Automatic update of included source packages: debian-installer-utils
+    1.79ubuntu1, flash-kernel 2.28ubuntu8, partman-auto 91ubuntu4,
+    partman-uboot 4, user-setup 1.28ubuntu8.
+  * Update translations from Launchpad.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Thu, 26 Aug 2010 20:50:32 +0100
+
+ubiquity (2.3.7) maverick; urgency=low
+
+  * Don't show the warning text in ubi-warning until after it's translated.
+  * Hide the language plugin page if in greeter mode and advancing to keep the
+    other pages from growing. (which seems what Evan was trying to do in r4183)
+  * Fix the cut off text on the warning page. (LP: #615034)
+  * For plugininstall, use the actual debconf database, not the parallel database.
+
+ -- Mario Limonciello <Mario_Limonciello@Dell.com>  Sun, 15 Aug 2010 02:34:50 -0500
+
+ubiquity (2.3.6) maverick; urgency=low
+
+  * Redirect console blanking setterm command to /dev/console so it is effective
+    with upstart.
+  * Show the proper derivative name for prepare_foss_disclaimer on stepPrepare.
+  * Fallback to NM icons if the wifi icons don't load (such as humanity missing).  
+    If still fail, don't crash, just don't show icons.  (LP: #617696)
+  * Pass the output of wget calls into /dev/null to prevent files popping up in ~.
+  * If available, run xfsettingsd in ubiquity only mode.
+  * ubiquity-dm: wait for gsd to fork to prevent a race condition in setting
+    ubiquity styles.
+  * Add missing imports for LabelledEntry, causing timezone and console_setup to
+    not function in oem-config mode.
+  * Fix the partitioner trying to offer resize options in the GUI when it shouldn't.
+    (LP: #617729)
+  * Revert additional changes to gtk_ui from r4183 that were causing the window to
+    constantly resize and the auto partitioner to break.
+  * Automatic update of included source packages: flash-kernel
+    2.28ubuntu5.
+
+ -- Mario Limonciello <Mario_Limonciello@Dell.com>  Sat, 14 Aug 2010 18:48:52 -0500
+
+ubiquity (2.3.5) maverick; urgency=low
+
+  [ Mario Limonciello ]
+  * Drop the (now) unused install_window and references to it.
+  * Don't start the ubiquity panel on xfwm4.  It doesn't appear to work properly
+    for now even with the proper indicators installed.
+  * Set the priority the prepare page higher to prevent timezone from being
+    shown instead.
+  * Fix misc.get_release to return the proper data for non-ubuntu disks.
+  * Correct the text in the stepLanguage widgets to reflect ${RELEASE}
+    rather than hardcoding to Ubuntu.
+  * depends on python-vte for GTK frontend (LP: #616272)
+  * depends on python-webkit for GTK frontend (LP: #616275)
+
+  [ Jonathan Riddell ]
+  * In ubi-wireless.py and ubi-prepare.py only load gtkwidgets.py when
+    creating the GTKPage, else KDE frontend breaks
+
+ -- Jonathan Riddell <jriddell@ubuntu.com>  Wed, 11 Aug 2010 18:02:35 +0100
+
+ubiquity (2.3.4) maverick; urgency=low
+
+  [ Mario Limonciello ]
+  * Also set the custom title when translating widgets.
+  * If there is at least one framebuffer device, fallback to fbdev rather
+    than vesa for bulletproof X.
+  * Remove extra imports in ubiquity-dm.
+  * Add a new template ubiquity/force_failsafe_graphics intended to force
+    installation to use vesa or fbdev, but not on the target system.  This is
+    primarily intended for systems where the installation kernel has known
+    graphics problems, but you are solving them in a post installation step.
+  * Fix packaging to install the new pieces introduced for the overhaul.
+  * debian/control: fix build-deps from redesign branch.
+  * install two new png files for the language page in the gtk frontend.
+  * Fix automatic mode in gtk_ui.
+  * Add a new controller function to allow disabling the progress_section
+    of the Window for pages it doesn't make sense on that might be shown
+    in automatic mode before the partitioner comes.
+  * Move the call to unmount_source back into install.py, it's only really
+    used there for file copy, not by plugins.
+  * Update some DebconfFetchProgress calls to DebconfAcquireProgress calls.
+  * Run success cmd after plugininstall finishes.
+  * Correct a few more deprecated apt calls.
+  * Don't show the warning page or the prepare page in oem-config for now.
+    The prepare page might make sense to re-enable, but will need a little
+    different wording if so.
+  * Update deprecated use of get_release_name() to get_release().name.
+  * Mark timezone to come after both partman and language so that it shows
+    up in oem-config too.
+  * Only run plugininstall after the last page in oem mode.
+  * If the slideshow doesn't exist, hide the page notebook rather than
+    showing the webkit 404 page.
+
+  [ Bilal Akhtar ]
+  * debian/ubiquity.templates:
+    - Add an underline symbol before the label of the install button
+      to make it accessible with the Alt key. (LP: #492825)
+
+  [ Evan Dandrea ]
+  * Merge maverick-redesign branch.  Fingers crossed.
+  * Automatic update of included source packages: clock-setup
+    0.103ubuntu1.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Fri, 06 Aug 2010 14:15:17 -0400
+
+ubiquity (2.3.3) maverick; urgency=low
+
+  [ Mario Limonciello ]
+  * Disable the "Installing the System" title before Ubiquity comes up
+    in automatic mode to prevent confusion before it actually does damage
+    in case there are any confirmation screens that should come up first.
+  * Allow setting a custom title via ubiquity/custom_title_text.
+  * If a package that was marked for installation is upgradable (and thus
+    already installed), mark it for upgrade. (LP: #604585)
+  * install.py: Update APT usage from deprecated functions and variables.
+  * Automatic update of included source packages: bterm-unifont 1.2,
+    flash-kernel 2.28ubuntu4, grub-installer 1.49ubuntu12, partman-auto
+    91ubuntu3.
+
+  [ Colin Watson ]
+  * Refactor default boot device calculation, bringing it into sync with
+    grub-installer.  This should ensure that when installing to a removable
+    device we always default to installing GRUB to that same device as well,
+    while leaving the situation for installations to hard disks unchanged
+    (LP: #549756).
+
+ -- Mario Limonciello <Mario_Limonciello@Dell.com>  Sat, 24 Jul 2010 17:49:20 -0500
+
+ubiquity (2.3.2) maverick; urgency=low
+
+  * Cause 'compat/udpkg --print-os' to always print 'linux' (LP: #600244).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 30 Jun 2010 19:48:14 +0100
+
+ubiquity (2.3.1) maverick; urgency=low
+
+  * finish-install.apt-cdrom-setup has moved to finish-install.d/10apt-
+    cdrom-setup.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Wed, 30 Jun 2010 09:56:42 +0100
+
+ubiquity (2.3.0) maverick; urgency=low
+
+  [ Evan Dandrea ]
+  * Fix wrongly formatted string (LP: #546971).
+  * Merge testing branch.  Ubiquity now has a test harness in tests/
+  * Automatic update of included source packages: apt-setup
+    1:0.45ubuntu1, base-installer 1.107ubuntu1, choose-mirror
+    2.33ubuntu1, debian-installer-utils 1.75ubuntu1, flash-kernel
+    2.28ubuntu1, migration-assistant 0.6.7, partconf 1.33, partman-auto
+    91ubuntu2, partman-base 141ubuntu1, partman-basicfilesystems
+    63ubuntu6, partman-basicmethods 44, partman-efi 20ubuntu2, partman-
+    ext3 59ubuntu1, partman-newworld 22, partman-partitioning 74ubuntu2,
+    partman-reiserfs 47, partman-target 67ubuntu1, preseed 1.45, yaboot-
+    installer 1.1.16ubuntu1.
+
+  [ Colin Watson ]
+  * Only validate the GRUB device entry if it's shown.
+  * Add btrfs support.
+  * Add an intro message noting that we're alpha again.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Wed, 30 Jun 2010 08:40:20 +0100
+
+ubiquity (2.2.24) lucid-updates; urgency=low
+
+  * Automatic update of included source packages: migration-assistant
+    0.6.6.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Thu, 29 Apr 2010 10:36:42 +0100
 
 ubiquity (2.2.23) lucid; urgency=low
 

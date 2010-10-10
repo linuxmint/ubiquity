@@ -24,17 +24,15 @@
 # with Ubiquity; if not, write to the Free Software Foundation, Inc., 51
 # Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-import syslog
-
-import gobject
-
 import os
 import sys
 import signal
 
+import gobject
+
 from ubiquity import filteredcommand, i18n
 from ubiquity.misc import *
-from ubiquity.components import install, partman_commit
+from ubiquity.components import install, plugininstall, partman_commit
 from ubiquity.plugin import Plugin
 import ubiquity.progressposition
 import ubiquity.frontend.base
@@ -104,6 +102,14 @@ class Wizard(BaseFrontend):
         self.start_debconf()
         dbfilter = install.Install(self)
         ret = dbfilter.run_command(auto_process=True)
+        if ret == 0:
+            dbfilter = plugininstall.Install(self)
+            ret = dbfilter.run_command(auto_process=True)
+        if ret == 0:
+            self.run_success_cmd()
+            print >>self.console, 'Installation complete.'
+            if self.get_reboot():
+                execute("reboot")
         if ret != 0:
             if ret == 3:
                 # error already handled by Install
@@ -118,12 +124,7 @@ class Wizard(BaseFrontend):
                 tbfile.close()
                 raise RuntimeError, ("Install failed with exit code %s\n%s" %
                                      (ret, realtb))
-        else:
-            self.run_success_cmd()
-            print >>self.console, 'Installation complete.'
-            if self.get_reboot():
-                execute("reboot")
-
+            
     def watch_debconf_fd(self, from_debconf, process_input):
         """Event loop interface to debconffilter.
 
@@ -235,22 +236,11 @@ class Wizard(BaseFrontend):
         """Set text to be displayed in the installation summary."""
         pass
 
-    def set_summary_device(self, device):
-        """Set the GRUB device. A hack until we have something better."""
-        if device is not None:
-            if not device.startswith('(') and not device.startswith('/dev/'):
-                device = '/dev/%s' % device
-        self.summary_device = device
-
     # called from ubiquity.components.install
     def get_grub(self):
         # Always return true as there's no UI to disable it.
         # FIXME: Better to grab grub-installer/skip out of debconf?
         return True
-
-    def get_summary_device(self):
-        """Get the selected GRUB device."""
-        return self.summary_device
 
     def set_popcon(self, participate):
         """Set whether to participate in popularity-contest."""

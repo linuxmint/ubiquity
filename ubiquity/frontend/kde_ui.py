@@ -26,12 +26,9 @@
 
 import sys
 import os
-import subprocess
 import traceback
 import syslog
 import atexit
-import signal
-import gettext
 import dbus
 
 # kde gui specifics
@@ -45,12 +42,10 @@ from PyKDE4.kdecore import *
 from ubiquity.frontend.kde_components.ProgressDialog import *
 from ubiquity.frontend.kde_components.SqueezeLabel import *
 
-import debconf
-
-from ubiquity import filteredcommand, i18n, validation, parted_server
+from ubiquity import filteredcommand, i18n
 from ubiquity.misc import *
 from ubiquity.plugin import Plugin
-from ubiquity.components import partman_commit, install
+from ubiquity.components import partman_commit, install, plugininstall
 import ubiquity.progressposition
 import ubiquity.frontend.base
 from ubiquity.frontend.base import BaseFrontend
@@ -147,6 +142,17 @@ class Controller(ubiquity.frontend.base.Controller):
             self._wizard.ui.show()
         self._wizard.refresh()
 
+    def get_string(self, name, lang=None, prefix=None):
+        return self._wizard.get_string(name, lang, prefix)
+
+    def setNextButtonTextInstallNow(self, checked):
+        self._wizard.ui.next.setText(self.get_string('install_button').replace('_', '&', 1))
+        self._wizard.ui.next.setIcon(self._wizard.applyIcon)
+
+    def setNextButtonTextNext(self, checked):
+        self._wizard.ui.next.setText(self.get_string('next').replace('_', '&', 1))
+        self._wizard.ui.next.setIcon(self._wizard.forwardIcon)
+
 class Wizard(BaseFrontend):
 
     def __init__(self, distro):
@@ -183,6 +189,9 @@ class Wizard(BaseFrontend):
             self.app.setStyleSheet(file(os.path.join(UIDIR, "style.qss")).read())
         finally:
             regain_privileges_save()
+
+        import dbus.mainloop.qt
+        dbus.mainloop.qt.DBusQtMainLoop(set_as_default=True)
 
         self.ui = UbiquityUI()
 
@@ -283,12 +292,18 @@ class Wizard(BaseFrontend):
         self.backup = False
         self.history = []
         self.progressDialog = ProgressDialog(0, 0, self.ui)
+        self.finished_installing = False
+        self.finished_pages = False
+        self.parallel_db = None
 
         self.laptop = execute("laptop-detect")
 
         # set default language
         self.locale = i18n.reset_locale(self)
 
+        self.socketNotifierRead = {}
+        self.socketNotifierWrite = {}
+        self.socketNotifierException = {}
         self.debconf_callbacks = {}    # array to keep callback functions needed by debconf file descriptors
 
         self.ui.setWindowIcon(KIcon("ubiquity"))
@@ -300,7 +315,9 @@ class Wizard(BaseFrontend):
         self.stop_debconf()
         self.translate_widgets(reget=True)
 
-        if self.oem_config:
+        if self.custom_title:
+            self.ui.setWindowTitle(self.custom_title)
+        elif self.oem_config:
             self.ui.setWindowTitle(self.get_string('oem_config_title'))
         elif self.oem_user_config:
             self.ui.setWindowTitle(self.get_string('oem_user_config_title'))
@@ -434,9 +451,7 @@ class Wizard(BaseFrontend):
                 self.pages[self.pagesindex].controller.dbfilter = None
 
             if self.backup or self.dbfilter_handle_status():
-                if self.installing:
-                    self.progress_loop()
-                elif self.current_page is not None and not self.backup:
+                if self.current_page is not None and not self.backup:
                     self.process_step()
                     if not self.stay_on_page:
                         self.pagesindex = self.pagesindex + 1
@@ -449,17 +464,87 @@ class Wizard(BaseFrontend):
 
             self.app.processEvents()
 
-            # needed to be here for --automatic as there might not be any
-            # current page in the event all of the questions have been
-            # preseeded.
-            if self.pagesindex == self.pageslen:
-                # Ready to install
-                self.ui.hide()
-                self.current_page = None
-                self.installing = True
-                self.progress_loop()
+        if self.current_page is not None:
+            borderCSS = "border-width: 6px; border-image: " \
+                        "url(/usr/share/ubiquity/qt/images/label_border.png) " \
+                        "6px;"
+            currentSS = "%s color: %s; " % (borderCSS, "#0088aa")
+            inactiveSS = "color: %s; " % "#b3b3b3"
+            for page in self.pages:
+                if page.breadcrumb:
+                    page.breadcrumb.setStyleSheet(inactiveSS)
+            self.ui.breadcrumb_install.setStyleSheet(currentSS)
+            self.start_slideshow()
+            self.run_main_loop()
+
+            quitText = '<qt>%s</qt>' % self.get_string("finished_label")
+            rebootButtonText = self.get_string("reboot_button")
+            quitButtonText = self.get_string("quit_button")
+            titleText = self.get_string("finished_dialog")
+
+            self.ui.hide()
+            self.run_success_cmd()
+            if self.oem_user_config:
+                self.quit()
+            elif not self.get_reboot_seen():
+                if ('UBIQUITY_ONLY' in os.environ or
+                    'UBIQUITY_GREETER' in os.environ):
+                    quitText = self.get_string('ubiquity/finished_restart_only')
+                quitText = quitText.replace('${RELEASE}', get_release().name)
+                messageBox = QMessageBox(QMessageBox.Question, titleText,
+                                         quitText, QMessageBox.NoButton,
+                                         self.ui)
+                messageBox.addButton(rebootButtonText, QMessageBox.AcceptRole)
+                if ('UBIQUITY_ONLY' not in os.environ and
+                    'UBIQUITY_GREETER' not in os.environ):
+                    messageBox.addButton(quitButtonText, QMessageBox.RejectRole)
+                messageBox.setWindowFlags(messageBox.windowFlags() |
+                                          Qt.WindowStaysOnTopHint)
+                quitAnswer = messageBox.exec_()
+
+                if quitAnswer == 0:
+                    self.reboot()
+            elif self.get_reboot():
+                self.reboot()
 
         return self.returncode
+
+    def start_slideshow(self):
+        slideshow_dir = '/usr/share/ubiquity-slideshow'
+        slideshow_locale = self.slideshow_get_available_locale(slideshow_dir,
+                                                               self.locale)
+        slideshow_main = slideshow_dir + '/slides/index.html'
+        if not os.path.exists(slideshow_main):
+            self.ui.pageMode.hide()
+            return
+
+        slides = 'file://' + slideshow_main
+        if slideshow_locale != 'c': #slideshow will use default automatically
+            slides += '#?locale=' + slideshow_locale
+            ltr = i18n.get_string('default-ltr', slideshow_locale,
+                                  'ubiquity/imported')
+            if ltr == 'default:RTL':
+                slides += '?rtl'
+
+        from PyQt4.QtWebKit import QWebView
+        from PyQt4.QtWebKit import QWebPage
+        def openLink(qUrl):
+            QDesktopServices.openUrl(qUrl)
+
+        webView = QWebView()
+        webView.linkClicked.connect(openLink)
+        webView.setContextMenuPolicy(Qt.NoContextMenu)
+        webView.page().setLinkDelegationPolicy(QWebPage.DelegateExternalLinks)
+        webView.page().mainFrame().setScrollBarPolicy(Qt.Horizontal,
+                                                      Qt.ScrollBarAlwaysOff)
+        webView.page().mainFrame().setScrollBarPolicy(Qt.Vertical,
+                                                      Qt.ScrollBarAlwaysOff)
+        webView.setFixedSize(700,420)
+        webView.load(QUrl(slides))
+
+        self.ui.pageMode.setCurrentIndex(1)
+        self.ui.pageMode.widget(1).layout().addWidget(webView)
+        webView.show()
 
     def set_layout_direction(self, lang=None):
         if not lang:
@@ -504,6 +589,17 @@ class Wizard(BaseFrontend):
                 #for c in self.all_children(toplevel):
                     #widgets.append((c, None))
         self.translate_widgets(lang=lang, widgets=widgets, reget=reget)
+        # Allow plugins to provide a hook for translation.
+        for p in pages:
+            # There's no sense retranslating the page we're leaving.
+            if not_current and p == current_page:
+                continue
+            if hasattr(p.ui, 'plugin_translate'):
+                try:
+                    p.ui.plugin_translate(lang or self.locale)
+                except Exception, e:
+                    print >>sys.stderr, 'Could not translate page (%s): %s' \
+                                        % (p.module.NAME, str(e))
 
     # translates widget text based on the object names
     # widgets is a list of (widget, prefix) pairs
@@ -522,6 +618,8 @@ class Wizard(BaseFrontend):
             core_names.append('ubiquity/text/oem_config_title')
             core_names.append('ubiquity/text/oem_user_config_title')
             core_names.append('ubiquity/text/breadcrumb_install')
+            core_names.append('ubiquity/text/release_notes_only')
+            core_names.append('ubiquity/text/update_installer_only')
             for stock_item in ('cancel', 'close', 'go-back', 'go-forward',
                                'ok', 'quit', 'yes', 'no'):
                 core_names.append('ubiquity/imported/%s' % stock_item)
@@ -595,7 +693,9 @@ class Wizard(BaseFrontend):
             widget.setText(text.replace('_', '&', 1))
 
         elif isinstance(widget, QWidget) and str(name) == "UbiquityUIBase":
-            if self.oem_config:
+            if self.custom_title:
+                text = self.custom_title
+            elif self.oem_config:
                 text = self.get_string('oem_config_title', lang, prefix)
             elif self.oem_user_config:
                 text = self.get_string('oem_user_config_title', lang, prefix)
@@ -710,11 +810,21 @@ class Wizard(BaseFrontend):
         self.ui.breadcrumb_install.setStyleSheet(activeSS)
 
         if is_install:
-            self.ui.next.setText(self.get_string('install_button').replace('_', '&', 1))
+            self.ui.next.setText(
+                self.get_string('install_button').replace('_', '&', 1))
             self.ui.next.setIcon(self.applyIcon)
+        else:
+            self.ui.next.setText(self.get_string("next").replace('_', '&', 1))
+            self.ui.next.setIcon(self.forwardIcon)
+            self.translate_widget(self.ui.next)
 
         if self.pagesindex == 0:
             self.allow_go_backward(False)
+        elif self.pages[self.pagesindex - 1].module.NAME == 'partman':
+            # We're past partitioning.  Unless the install fails, there is no
+            # going back.
+            self.allow_go_backward(False)
+            self.ui.quit.hide()
         else:
             self.allow_go_backward(True)
 
@@ -770,134 +880,6 @@ class Wizard(BaseFrontend):
         else:
             self.stackLayout.setCurrentWidget(widget)
             self.on_steps_switch_page(current)
-
-    def progress_loop(self):
-        """prepare, copy and config the system in the core install process."""
-        syslog.syslog('progress_loop()')
-
-        self.current_page = None
-
-        slideshow_dir = '/usr/share/ubiquity-slideshow'
-        slideshow_locale = self.slideshow_get_available_locale(slideshow_dir, self.locale)
-        slideshow_main = slideshow_dir + '/slides/index.html'
-
-        s = self.app.desktop().availableGeometry()
-        fail = None
-        if os.path.exists(slideshow_main):
-            if s.height >= 600 and s.width >= 800:
-                slides = 'file://' + slideshow_main
-                if slideshow_locale != 'c': #slideshow will use default automatically
-                    slides += '#?locale=' + slideshow_locale
-                    ltr = i18n.get_string('default-ltr', slideshow_locale, 'ubiquity/imported')
-                    if ltr == 'default:RTL':
-                        slides += '?rtl'
-                try:
-                    from PyQt4.QtWebKit import QWebView
-                    from PyQt4.QtWebKit import QWebPage
-
-                    def openLink(qUrl):
-                        QDesktopServices.openUrl(qUrl)
-
-                    webView = QWebView()
-
-                    webView.linkClicked.connect(openLink)
-
-                    webView.setContextMenuPolicy(Qt.NoContextMenu)
-                    webView.page().setLinkDelegationPolicy(QWebPage.DelegateExternalLinks)
-                    webView.page().mainFrame().setScrollBarPolicy(Qt.Horizontal, Qt.ScrollBarAlwaysOff)
-                    webView.page().mainFrame().setScrollBarPolicy(Qt.Vertical, Qt.ScrollBarAlwaysOff)
-                    webView.setFixedSize(700,420)
-
-                    webView.load(QUrl(slides))
-
-                    #add the webview to the extra frame of the progress dialog
-                    self.progressDialog.extraFrame.layout().addWidget(webView)
-                    self.progressDialog.extraFrame.setVisible(True)
-                except ImportError:
-                    fail = 'Webkit not present.'
-            else:
-                fail = 'Display < 800x600 (%sx%s).' % (s.width, s.height)
-        else:
-            fail = 'No slides present for %s.' % slideshow_dir
-        if fail:
-            syslog.syslog('Not displaying the slideshow: %s' % fail)
-
-        self.progressDialog.show()
-
-        self.debconf_progress_start(
-            0, 100, self.get_string('ubiquity/install/title'))
-        self.debconf_progress_region(0, 15)
-
-        if not self.oem_user_config:
-            self.start_debconf()
-            dbfilter = partman_commit.PartmanCommit(self)
-            if dbfilter.run_command(auto_process=True) != 0:
-                while self.progress_position.depth() != 0:
-                    self.debconf_progress_stop()
-                self.progressDialog.hide()
-                self.return_to_partitioning()
-                return
-
-        # No return to partitioning from now on
-        self.installing_no_return = True
-
-        self.debconf_progress_region(15, 100)
-
-        self.start_debconf()
-        dbfilter = install.Install(self)
-        ret = dbfilter.run_command(auto_process=True)
-        if ret != 0:
-            self.installing = False
-            if ret == 3:
-                # error already handled by Install
-                sys.exit(ret)
-            elif (os.WIFSIGNALED(ret) and
-                  os.WTERMSIG(ret) in (signal.SIGINT, signal.SIGKILL,
-                                       signal.SIGTERM)):
-                sys.exit(ret)
-            elif os.path.exists('/var/lib/ubiquity/install.trace'):
-                tbfile = open('/var/lib/ubiquity/install.trace')
-                realtb = tbfile.read()
-                tbfile.close()
-                raise RuntimeError, ("Install failed with exit code %s\n%s" %
-                                     (ret, realtb))
-            else:
-                raise RuntimeError, ("Install failed with exit code %s; see "
-                                     "/var/log/syslog" % ret)
-
-        while self.progress_position.depth() != 0:
-            self.debconf_progress_stop()
-
-        # just to make sure
-        self.progressDialog.hide()
-
-        self.installing = False
-        quitText = '<qt>%s</qt>' % self.get_string("finished_label")
-        rebootButtonText = self.get_string("reboot_button")
-        quitButtonText = self.get_string("quit_button")
-        titleText = self.get_string("finished_dialog")
-
-        ##FIXME use non-stock messagebox to customise button text
-        #quitAnswer = QMessageBox.question(self.ui, titleText, quitText, rebootButtonText, quitButtonText)
-        self.run_success_cmd()
-        if self.oem_user_config:
-            self.quit()
-        elif not self.get_reboot_seen():
-            if ('UBIQUITY_ONLY' in os.environ or
-                'UBIQUITY_GREETER' in os.environ):
-                quitText = self.get_string('ubiquity/finished_restart_only')
-            messageBox = QMessageBox(QMessageBox.Question, titleText, quitText, QMessageBox.NoButton, self.ui)
-            messageBox.addButton(rebootButtonText, QMessageBox.AcceptRole)
-            if ('UBIQUITY_ONLY' not in os.environ and
-                'UBIQUITY_GREETER' not in os.environ):
-                messageBox.addButton(quitButtonText, QMessageBox.RejectRole)
-            messageBox.setWindowFlags(messageBox.windowFlags() | Qt.WindowStaysOnTopHint)
-            quitAnswer = messageBox.exec_()
-
-            if quitAnswer == 0:
-                self.reboot()
-        elif self.get_reboot():
-            self.reboot()
 
     def reboot(self, *args):
         """reboot the system after installing process."""
@@ -1043,63 +1025,62 @@ class Wizard(BaseFrontend):
             self.ui.navigation.show()
 
     def watch_debconf_fd (self, from_debconf, process_input):
-        self.debconf_fd_counter = 0
-        self.socketNotifierRead = QSocketNotifier(from_debconf, QSocketNotifier.Read, self.app)
-        self.socketNotifierRead.activated[int].connect(self.watch_debconf_fd_helper_read)
+        if from_debconf in self.debconf_callbacks:
+            self.watch_debconf_fd_helper_disconnect(from_debconf)
+        self.socketNotifierRead[from_debconf] = QSocketNotifier(from_debconf, QSocketNotifier.Read, self.app)
+        self.socketNotifierRead[from_debconf].activated[int].connect(self.watch_debconf_fd_helper_read)
 
-        self.socketNotifierWrite = QSocketNotifier(from_debconf, QSocketNotifier.Write, self.app)
-        self.socketNotifierWrite.activated[int].connect(self.watch_debconf_fd_helper_write)
+        self.socketNotifierWrite[from_debconf] = QSocketNotifier(from_debconf, QSocketNotifier.Write, self.app)
+        self.socketNotifierWrite[from_debconf].activated[int].connect(self.watch_debconf_fd_helper_write)
 
-        self.socketNotifierException = QSocketNotifier(from_debconf, QSocketNotifier.Exception, self.app)
-        self.socketNotifierException.activated[int].connect(self.watch_debconf_fd_helper_exception)
+        self.socketNotifierException[from_debconf] = QSocketNotifier(from_debconf, QSocketNotifier.Exception, self.app)
+        self.socketNotifierException[from_debconf].activated[int].connect(self.watch_debconf_fd_helper_exception)
 
         self.debconf_callbacks[from_debconf] = process_input
-        self.current_debconf_fd = from_debconf
+
+    def watch_debconf_fd_helper_disconnect (self, source):
+        del self.debconf_callbacks[source]
+        self.socketNotifierRead[source].activated[int].disconnect(self.watch_debconf_fd_helper_read)
+        self.socketNotifierWrite[source].activated[int].disconnect(self.watch_debconf_fd_helper_write)
+        self.socketNotifierException[source].activated[int].disconnect(self.watch_debconf_fd_helper_exception)
+        del self.socketNotifierRead[source]
+        del self.socketNotifierWrite[source]
+        del self.socketNotifierException[source]
 
     def watch_debconf_fd_helper_read (self, source):
-        self.debconf_fd_counter += 1
         debconf_condition = 0
         debconf_condition |= filteredcommand.DEBCONF_IO_IN
-        self.debconf_callbacks[source](source, debconf_condition)
+        callback = self.debconf_callbacks[source]
+        if not callback(source, debconf_condition):
+            # The parallel dbfilter code in debconffilter_done could re-open
+            # this fd before we reach this point.
+            if callback == self.debconf_callbacks[source]:
+                self.watch_debconf_fd_helper_disconnect(source)
 
     def watch_debconf_fd_helper_write(self, source):
         debconf_condition = 0
         debconf_condition |= filteredcommand.DEBCONF_IO_OUT
-        self.debconf_callbacks[source](source, debconf_condition)
+        callback = self.debconf_callbacks[source]
+        if not callback(source, debconf_condition):
+            if callback == self.debconf_callbacks[source]:
+                self.watch_debconf_fd_helper_disconnect(source)
 
     def watch_debconf_fd_helper_exception(self, source):
         debconf_condition = 0
         debconf_condition |= filteredcommand.DEBCONF_IO_ERR
-        self.debconf_callbacks[source](source, debconf_condition)
+        callback = self.debconf_callbacks[source]
+        if not callback(source, debconf_condition):
+            if callback == self.debconf_callbacks[source]:
+                self.watch_debconf_fd_helper_disconnect(source)
 
     def debconf_progress_start (self, progress_min, progress_max, progress_title):
-        if progress_title is None:
-            progress_title = ""
-        total_steps = progress_max - progress_min
-        skipText = self.get_string("progress_cancel_button")
-
-        self.ui.progressCancel.setText(skipText)
-
-        self.progressDialog.setWindowModality(Qt.WindowModal)
-        self.progressDialog.setCancelText(skipText)
-        self.progressDialog.setCancellable(False)
-        self.progressDialog.setMaximum(total_steps)
-        self.progressDialog.setWindowTitle(progress_title)
-        #self.progressDialog.show()
-
-        # TODO cancel button
-
-        self.ui.progressBar.setMaximum(total_steps)
-        self.ui.progressBar.setFormat(progress_title + " %p%")
-        self.ui.progressBar.show()
-
-        self.ui.content_widget.setEnabled(False)
-
         self.progress_position.start(progress_min, progress_max,
                                      progress_title)
-
         self.debconf_progress_set(0)
-
+        self.debconf_progress_info(progress_title)
+        total_steps = progress_max - progress_min
+        self.ui.progressBar.setMaximum(total_steps)
+        self.ui.progressBar.setFormat(progress_title + " %p%")
 
     def debconf_progress_set (self, progress_val):
         self.progress_cancelled = self.progressDialog.wasCanceled()
@@ -1107,9 +1088,6 @@ class Wizard(BaseFrontend):
             return False
         self.progress_position.set(progress_val)
         fraction = self.progress_position.fraction()
-
-        self.progressDialog.setProgressValue(
-            int(fraction * self.progressDialog.maximum()))
 
         self.ui.progressBar.setValue(int(fraction * self.ui.progressBar.maximum()))
 
@@ -1122,9 +1100,6 @@ class Wizard(BaseFrontend):
         self.progress_position.step(progress_inc)
         fraction = self.progress_position.fraction()
 
-        self.progressDialog.setProgressValue(
-            int(fraction * self.progressDialog.maximum()))
-
         self.ui.progressBar.setValue(int(fraction * self.ui.progressBar.maximum()))
 
         return True
@@ -1134,7 +1109,6 @@ class Wizard(BaseFrontend):
         if self.progress_cancelled:
             return False
 
-        self.progressDialog.setProgressLabel(progress_info)
         self.ui.progressBar.setFormat(progress_info + " %p%")
 
         return True
@@ -1142,13 +1116,6 @@ class Wizard(BaseFrontend):
     def debconf_progress_stop (self):
         self.progress_cancelled = False
         self.progress_position.stop()
-        if self.progress_position.depth() == 0:
-            self.progressDialog.reset() # also hides dialog
-        else:
-            self.progressDialog.setWindowTitle(self.progress_position.title())
-
-        self.ui.content_widget.setEnabled(True)
-        self.ui.progressBar.hide()
 
     def debconf_progress_region (self, region_start, region_end):
         self.progress_position.set_region(region_start, region_end)
@@ -1166,19 +1133,70 @@ class Wizard(BaseFrontend):
     #    self.progress_cancelled = True
 
     def debconffilter_done (self, dbfilter):
-        # processing events here prevents GUI from hanging until mouse moves (LP #556376)
+        # processing events here prevents GUI from hanging until mouse moves
+        # (LP #556376)
         self.app.processEvents()
-        ##FIXME in Qt 4 without this disconnect it calls watch_debconf_fd_helper_read once more causing
-        ## a crash after the keyboard stage.  No idea why.
-        try:
-            self.socketNotifierRead.activated.disconnect(self.watch_debconf_fd_helper_read)
-        except Exception:
-            pass # May not be connected if it's a trivial dbfilter
+        if not dbfilter.status:
+            self.find_next_step(dbfilter.__module__)
+        elif dbfilter.__module__ in ('ubiquity.components.install',
+                                     'ubiquity.components.plugininstall'):
+            # We don't want to try to retry a failing step here, because it
+            # will have the same set of inputs, and thus likely the same
+            # result.
+            # TODO: We may want to call return_to_partitioning after the crash
+            # dialog instead.
+            dialog = QDialog(self.ui)
+            uic.loadUi("%s/crashdialog.ui" % UIDIR, dialog)
+            dialog.beastie_url.setOpenExternalLinks(True)
+            dialog.exec_()
+            sys.exit(1)
         if BaseFrontend.debconffilter_done(self, dbfilter):
             self.app.exit()
             return True
         else:
             return False
+
+    def find_next_step(self, finished_step):
+        # TODO need to handle the case where debconffilters launched from
+        # here crash.  Factor code out of dbfilter_handle_status.
+        last_page = self.pages[-1].module.__name__
+        if finished_step == last_page:
+            self.finished_pages = True
+            if self.finished_installing or self.oem_user_config:
+                self.ui.progressBar.show()
+                dbfilter = plugininstall.Install(self)
+                dbfilter.start(auto_process=True)
+
+        elif finished_step == 'ubi-partman':
+            self.ui.progressBar.show()
+            self.installing = True
+            from ubiquity.debconfcommunicator import DebconfCommunicator
+            if self.parallel_db is not None:
+                # Partitioning failed and we're coming back through again.
+                self.parallel_db.shutdown()
+            env = os.environ.copy()
+            # debconf-apt-progress, start_debconf()
+            env['DEBCONF_DB_REPLACE'] = 'configdb'
+            env['DEBCONF_DB_OVERRIDE'] = 'Pipe{infd:none outfd:none}'
+            self.parallel_db = DebconfCommunicator('ubiquity', cloexec=True,
+                                                   env=env)
+            dbfilter = partman_commit.PartmanCommit(self, db=self.parallel_db)
+            dbfilter.start(auto_process=True)
+
+        # FIXME OH DEAR LORD.  Use isinstance.
+        elif finished_step == 'ubiquity.components.partman_commit':
+            dbfilter = install.Install(self, db=self.parallel_db)
+            dbfilter.start(auto_process=True)
+
+        elif finished_step == 'ubiquity.components.install':
+            self.finished_installing = True
+            if self.finished_pages:
+                dbfilter = plugininstall.Install(self)
+                dbfilter.start(auto_process=True)
+
+        elif finished_step == 'ubiquity.components.plugininstall':
+            self.installing = False
+            self.quit_main_loop()
 
     def installation_medium_mounted (self, message):
         self.ui.part_advanced_warning_message.setText(message)
@@ -1189,8 +1207,10 @@ class Wizard(BaseFrontend):
         stage, then errors can safely return us to partitioning.
         """
         if self.installing and not self.installing_no_return:
+            # Stop the currently displayed page.
+            if self.dbfilter is not None:
+                self.dbfilter.cancel_handler()
             # Go back to the partitioner and try again.
-            #self.live_installer.show()
             self.pagesindex = -1
             for page in self.pages:
                 if page.module.NAME == 'partman':
@@ -1200,12 +1220,14 @@ class Wizard(BaseFrontend):
             self.start_debconf()
             ui = self.pages[self.pagesindex].ui
             self.dbfilter = self.pages[self.pagesindex].filter_class(self, ui=ui)
-            self.set_current_page(self.previous_partitioning_page)
+            self.allow_change_step(False)
+            self.dbfilter.start(auto_process=True)
             self.ui.next.setText(self.get_string("next").replace('_', '&', 1))
             self.ui.next.setIcon(self.forwardIcon)
             self.translate_widget(self.ui.next)
-            self.backup = True
             self.installing = False
+            self.ui.progressBar.hide()
+            self.ui.quit.show()
 
     def error_dialog (self, title, msg, fatal=True):
         self.run_automation_error_cmd()

@@ -407,6 +407,9 @@ def main(oem_config):
     parser.add_option('-g', '--greeter', dest='greeter', action='store_true',
                       help='allow the user to leave the installer and enter ' \
                       'a live desktop (for the initial boot).')
+    parser.add_option('-b', '--no-bootloader', dest='bootloader',
+                      action='store_true',
+                      help='Do not install a bootloader.')
     (options, args) = parser.parse_args()
 
     if options.debug:
@@ -433,6 +436,9 @@ def main(oem_config):
 
     if options.only:
         os.environ['UBIQUITY_ONLY'] = '1'
+
+    if options.bootloader:
+        os.environ['UBIQUITY_NO_BOOTLOADER'] = '1'
 
     if oem_config:
         os.environ['UBIQUITY_OEM_USER_CONFIG'] = '1'

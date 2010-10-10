@@ -183,15 +183,28 @@ scan_disk () {
 	done 9<"$tmpfile"
 }
 
+replace=""
+nl=""
+marker="replace="
 get_resize_use_free_on_dev() {
 	cd $dev
 
 	scan_disk
 	log "dev: '$dev', totalfree: '$totalfree', diskfree: '$diskfree', diskpart: '$diskpart', diskpath: '$diskpath'"
-	if longint_le "$bestfree" "$diskfree"; then
-		bestfree="$diskfree"
-		bestpart="$diskpart"
-		bestpath="$diskpath"
+	if longint_le "$(expr 3 \* 1024 \* 1024 \* 1024)" "$diskfree"; then
+		log "Found resizable partition '$diskpart' ($diskpath) with $diskfree bytes free"
+		db_subst partman-auto/text/resize_use_free PARTITION "$(humandev "$diskpath")"
+		db_metaget partman-auto/text/resize_use_free description
+		printf "%s\t%s\n" "$diskpart" "$RET"
+		nl="$NL"
+		# We do this inside resize_use_free rather than its own
+		# partitioning method because we only want to offer to replace
+		# partitions that we are offering to resize.
+		db_subst partman-auto/text/some_partition PARTITION "$(humandev "$diskpath")"
+		db_metaget partman-auto/text/some_partition description
+		replace="$replace$NL$marker$diskpart$TAB$RET"
+	else
+		log "Found resizable partition '$diskpart' ($diskpath), but not offering because only $diskfree bytes free"
 	fi
 }
 
@@ -211,13 +224,8 @@ else
 	get_resize_use_free_on_dev
 fi
 
-if [ -z "$bestpart" ] || [ "$bestpart" = none ]; then
-	log "Found no resizable partitions"
-elif longint_le "$(expr 3 \* 1024 \* 1024 \* 1024)" $bestfree; then
-	log "Found resizable partition '$bestpart' ($bestpath) with $bestfree bytes free"
-	db_subst partman-auto/text/resize_use_free PARTITION "$(humandev "$bestpath")"
-	db_metaget partman-auto/text/resize_use_free description
-	printf "%s\t%s" "$bestpart" "$RET"
+if [ -n "$replace" ]; then
+	printf %s "$replace"
 else
-	log "Found resizable partition '$bestpart' ($bestpath), but not offering because only $bestfree bytes free"
+	log "Found no resizable partitions"
 fi

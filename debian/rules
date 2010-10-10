@@ -16,6 +16,7 @@ $(warning Version $(VERSION) in debian/changelog does not match $(AC_VERSION) in
 endif
 
 DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
+DEB_HOST_ARCH_OS ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
 
 PYTHON := $(shell pyversions -r)
 
@@ -58,6 +59,7 @@ clean: check
 	dh_auto_clean
 	dh_clean
 	rm -f debian/kbdnames.gz
+	rm -rf build-locale
 
 	$(MAKE) -C d-i check
 
@@ -94,6 +96,8 @@ ifndef UBIQUITY_NO_GTK
 		debian/ubiquity-frontend-gtk/usr/share/ubiquity/pixmaps
 	mv -n debian/ubiquity-frontend-gtk/usr/lib/ubiquity/ubiquity \
 		debian/ubiquity/usr/lib/ubiquity/
+	mv -n debian/ubiquity/usr/lib/ubiquity/ubiquity/cheese* \
+		debian/ubiquity-frontend-gtk/usr/lib/ubiquity/
 	rm -f debian/ubiquity/usr/lib/ubiquity/ubiquity/_osextras.a \
 		debian/ubiquity/usr/lib/ubiquity/ubiquity/_osextras.la
 endif
@@ -124,7 +128,8 @@ endif
 		d-i/source/apt-setup/apt-setup \
 		> debian/ubiquity/usr/lib/ubiquity/apt-setup/apt-setup
 	chmod +x debian/ubiquity/usr/lib/ubiquity/apt-setup/apt-setup
-	install d-i/source/apt-setup/finish-install.apt-cdrom-setup \
+
+	install d-i/source/apt-setup/finish-install.d/10apt-cdrom-setup \
 		debian/ubiquity/usr/lib/ubiquity/apt-setup/finish-install
 	if [ -e "d-i/source/base-installer/kernel/$(DEB_HOST_ARCH).sh" ]; then \
 		install -m644 d-i/source/base-installer/kernel/$(DEB_HOST_ARCH).sh \
@@ -145,12 +150,6 @@ endif
 		d-i/source/hw-detect/debian/hw-detect/bin/hw-detect \
 		> debian/ubiquity/bin/hw-detect
 	chmod +x debian/ubiquity/bin/hw-detect
-ifeq ($(DEB_HOST_ARCH),sparc)
-	sed 's,/usr/share/hw-detect,/usr/lib/ubiquity/hw-detect,g' \
-		d-i/source/hw-detect/discover-sbus.sh \
-		> debian/ubiquity/bin/discover-sbus
-	chmod +x debian/ubiquity/bin/discover-sbus
-endif
 	set -e; for x in languagemap localechooser post-base-installer; do \
 		sed 's,/usr/share/localechooser,/usr/lib/ubiquity/localechooser,g' \
 			d-i/source/localechooser/$$x \
@@ -188,6 +187,8 @@ endif
 		debian/ubiquity/usr/lib/ubiquity/user-setup/user-setup-ask \
 		> debian/ubiquity/usr/lib/ubiquity/user-setup/user-setup-ask-oem
 	chmod +x debian/ubiquity/usr/lib/ubiquity/user-setup/user-setup-ask-oem
+	install d-i/source/debian-installer-utils/list-devices-$(DEB_HOST_ARCH_OS) \
+		debian/ubiquity/bin/list-devices
 	install d-i/source/debian-installer-utils/post-base-installer.d/10register-module \
 		debian/ubiquity/usr/lib/ubiquity/debian-installer-utils/register-module.post-base-installer
 	sed -e 's,/target/,/,g;s,/target,/,g' \
@@ -204,10 +205,6 @@ ifeq ($(DEB_HOST_ARCH),powerpc)
 	install d-i/source/yaboot-installer/debian/postinst \
 		debian/ubiquity/usr/lib/ubiquity/yaboot-installer/yaboot-installer
 endif
-ifeq ($(DEB_HOST_ARCH),sparc)
-	install d-i/source/silo-installer/debian/silo-installer.postinst \
-		debian/ubiquity/usr/lib/ubiquity/silo-installer/silo-installer
-endif
 
 	set -e; for size in 16 22 32 48 64 128; do \
 		mkdir -p debian/ubiquity-frontend-kde/usr/share/icons/hicolor/$${size}x$${size}/apps; \
@@ -216,7 +213,7 @@ endif
 
 BINARY_INDEP_OPTIONS := -i
 ifdef UBIQUITY_NO_GTK
-BINARY_INDEP_OPTIONS += -Nubiquity-frontend-gtk -Noem-config-gtk
+BINARY_INDEP_OPTIONS += -Noem-config-gtk
 endif
 ifdef UBIQUITY_NO_KDE
 BINARY_INDEP_OPTIONS += -Nubiquity-frontend-kde -Noem-config-kde
@@ -238,16 +235,20 @@ binary-indep: install
 	dh_strip
 	dh_compress
 	dh_fixperms
-	DH_OPTIONS= dh_pycentral -pubiquity-frontend-gtk \
-				 -pubiquity-frontend-kde
+	DH_OPTIONS= dh_pycentral -i
 	dh_installdeb
 	dh_shlibdeps
 	dh_gencontrol -- -Vmangled-version='$(MANGLED_VERSION)'
 	dh_md5sums
 	dh_builddeb
 
+BINARY_ARCH_OPTIONS := -a
+ifdef UBIQUITY_NO_GTK
+BINARY_ARCH_OPTIONS += -Nubiquity-frontend-gtk
+endif
+
 # Build architecture-dependent files here.
-binary-arch: DH_OPTIONS=-a
+binary-arch: DH_OPTIONS=$(BINARY_ARCH_OPTIONS)
 binary-arch: install
 	dh_testdir
 	dh_testroot
@@ -274,7 +275,7 @@ binary-arch: install
 	dh_strip
 	dh_compress
 	dh_fixperms
-	dh_pycentral
+	DH_OPTIONS= dh_pycentral -a
 	dh_installdeb
 	dh_shlibdeps
 	dh_gencontrol -- -V'console-setup-depends=$(console-setup-depends)' -Vmangled-version='$(MANGLED_VERSION)'

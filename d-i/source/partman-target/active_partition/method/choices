@@ -16,18 +16,10 @@ if [ -f $id/filesystem ] && \
    ([ "$method" = keep ] || [ "$method" = format ]); then
 	fs=$(cat $id/filesystem)
 	db_metaget partman/filesystem_long/$fs description || RET=''
-	if [ "$RET" ]; then
-		description="$RET"
-	else
-		description="$fs"
-	fi
+	description="${RET:-$fs}"
 else
 	db_metaget partman/method_long/$method description || RET=''
-	if [ "$RET" ]; then
-		description="$RET"
-	else
-		description="$method"
-	fi
+	description="${RET:-$method}"
 fi
 
 db_metaget partman-target/text/method description

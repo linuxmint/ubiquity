@@ -27,36 +27,44 @@ def addBars(parent, before_bar, after_bar):
 
 class PartAuto(QWidget):
 
-    def __init__(self):
+    def __init__(self, controller):
         QWidget.__init__(self)
+        self.controller = controller
 
         uic.loadUi(os.path.join(_uidir,'stepPartAuto.ui'), self)
 
         self.diskLayout = None
 
         self.autopartition_buttongroup = QButtonGroup(self)
+        self.autopartition_buttongroup.buttonClicked[int].connect(
+            self.on_button_toggled)
+        self.part_auto_disk_box.currentIndexChanged[int].connect(
+            self.on_disks_combo_changed)
 
         self._clearInfo()
 
     def _clearInfo(self):
-        self.extra_bar_frames = []
+        self.bar_frames = []
         self.autopartitionTexts = []
-        self.extraChoicesText = {}
+
+        self.disks = []
 
         self.resizeSize = None
         self.resizeChoice = None
         self.manualChoice = None
+        self.useDeviceChoice = None
 
     def setDiskLayout(self, diskLayout):
         self.diskLayout = diskLayout
 
-    def setupChoices (self, choices, extra_options,
-                                   resize_choice, manual_choice,
-                                   biggest_free_choice):
+    def setupChoices (self, choices, extra_options, resize_choice,
+                      manual_choice, biggest_free_choice, use_device_choice):
         self._clearInfo()
 
         self.resizeChoice = resize_choice
         self.manualChoice = manual_choice
+        self.useDeviceChoice = use_device_choice
+        self.extra_options = extra_options
 
         # remove any previous autopartition selections
         for child in self.autopart_selection_frame.children():
@@ -70,168 +78,100 @@ class PartAuto(QWidget):
                 child.setParent(None)
                 del child
 
-        release_name = get_release_name()
+        release_name = get_release().name
 
         bId = 0
-        for choice in choices:
-            button = QRadioButton(choice, self.autopart_selection_frame)
+        if resize_choice in extra_options:
+            button = QRadioButton(resize_choice, self.autopart_selection_frame)
             self.autopart_selection_frame.layout().addWidget(button)
             self.autopartition_buttongroup.addButton(button, bId)
+            self.autopartitionTexts.append(resize_choice)
+            button.clicked.connect(self.controller.setNextButtonTextInstallNow)
             bId += 1
 
-            #Qt changes the string by adding accelerators,
-            #so keep pristine string here as is returned later to partman
-            self.autopartitionTexts.append(choice)
+            disks = []
+            for disk_id in extra_options[resize_choice]:
+                # information about what can be resized
+                unused, min_size, max_size, pref_size, resize_path = \
+                    extra_options[resize_choice][disk_id]
 
-            ## these three things are toggled by each option
-            # extra options frame for the option
-            #frame = None
-            bar_frame = QFrame()
-            bar_frame.setLayout(QVBoxLayout())
-            bar_frame.setVisible(False)
-            bar_frame.layout().setSpacing(0)
-            self.barsFrame.layout().addWidget(bar_frame)
+                for text, path in extra_options[use_device_choice].items():
+                    path = path[0]
+                    if path.rsplit('/', 1)[1] == disk_id:
+                        bar_frame = QFrame()
+                        bar_frame.setLayout(QVBoxLayout())
+                        bar_frame.setVisible(False)
+                        bar_frame.layout().setSpacing(0)
+                        self.barsFrame.layout().addWidget(bar_frame)
+                        self.bar_frames.append(bar_frame)
 
-            button.toggled[bool].connect(bar_frame.setVisible)
-
-            # if we have more information about the choice
-            # i.e. various hard drives to install onto
-            if choice in extra_options:
-                # label for the before device
-                dev = None
-
-                if choice == biggest_free_choice:
-                    biggest_free_id = extra_options[choice]
-                    dev = None
-
-                    try:
-                        resize_path = biggest_free_id[3]
-                        dev = self.diskLayout[resize_path.replace("/", "=").rstrip("1234567890")]
-                    except Exception: pass
-
-                    if dev:
-                        #create partition bars for graphical before/after display
+                        disks.append((text, bar_frame))
+                        self.resizeSize = pref_size
+                        dev = self.diskLayout[disk_id]
                         before_bar = PartitionsBar()
                         after_bar = PartitionsBar()
 
                         for p in dev:
-                            before_bar.addPartition(p[0], int(p[1]), p[3])
-                            if p[1] == biggest_free_id:
-                                after_bar.addPartition(release_name, int(p[1]), 'auto')
-                            else:
-                                after_bar.addPartition(p[0], int(p[1]), p[3])
-
-                        addBars(bar_frame, before_bar, after_bar)
-
-                # install side by side/resize
-                elif choice == resize_choice:
-                    # information about what can be resized
-                    extraInfo = extra_options[choice]
-
-                    min_size, max_size, pref_size, resize_path = extraInfo
-                    self.resizeSize = pref_size
-
-                    try:
-                        dev = self.diskLayout[resize_path.replace("/", "=").rstrip("1234567890")]
-                    except Exception: pass
-
-                    if dev:
-                        before_bar = PartitionsBar()
-                        after_bar = PartitionsBar()
-
-                        for p in dev:
-                            #addPartition(name, size, fs):
                             before_bar.addPartition(p[0], int(p[1]), p[3])
                             after_bar.addPartition(p[0], int(p[1]), p[3])
 
                         after_bar.setResizePartition(resize_path,
                             min_size, max_size, pref_size, release_name)
                         after_bar.partitionResized.connect(self.on_partitionResized)
-
                         addBars(bar_frame, before_bar, after_bar)
+            self.disks.append(disks)
 
-                #full disk install
-                elif choice != manual_choice:
-                    # setup new frame to hold combo box
-                    # this allows us to make the combo box indented over
-                    # as well as not stretch to full width as it would do in the
-                    # vertical layout
-                    frame = QFrame()
-                    self.autopart_selection_frame.layout().addWidget(frame)
+        # TODO biggest_free_choice
 
-                    frame_layout = QHBoxLayout(frame)
-                    self.extra_combo = QComboBox()
-                    self.extra_combo.setEnabled(False)
+        # Use entire disk.
+        button = QRadioButton(use_device_choice, self.autopart_selection_frame)
+        self.autopartitionTexts.append(use_device_choice)
+        self.autopart_selection_frame.layout().addWidget(button)
+        self.autopartition_buttongroup.addButton(button, bId)
+        button.clicked.connect(self.controller.setNextButtonTextInstallNow)
+        bId += 1
 
-                    self.autopart_selection_frame.layout().addWidget(self.extra_combo)
+        disks = []
+        for text, path in extra_options[use_device_choice].items():
+            path = path[0]
+            bar_frame = QFrame()
+            bar_frame.setLayout(QVBoxLayout())
+            bar_frame.setVisible(False)
+            bar_frame.layout().setSpacing(0)
+            self.barsFrame.layout().addWidget(bar_frame)
+            self.bar_frames.append(bar_frame)
 
-                    frame_layout.addSpacing(20)
-                    frame_layout.addWidget(self.extra_combo)
-                    frame_layout.addStretch(1)
+            disks.append((text, bar_frame))
 
-                    self.extra_bar_frames = []
-                    comboTexts = []
+            dev = self.diskLayout[path.rsplit('/', 1)[1]]
+            before_bar = PartitionsBar()
+            after_bar = PartitionsBar()
 
-                    button.toggled[bool].connect(self.extra_combo.setEnabled)
+            for p in dev:
+                before_bar.addPartition(p[0], int(p[1]), p[3])
+            if before_bar.diskSize > 0:
+                after_bar.addPartition(release_name, before_bar.diskSize, 'auto')
+            else:
+                after_bar.addPartition(release_name, 1, 'auto')
 
-                    for extra in extra_options[choice]:
-                        #each extra choice needs to toggle a change in the before bar
-                        #extra is just a string with a general description
-                        #each extra choice needs to be a before/after bar option
-                        if extra == '':
-                            continue
+            addBars(bar_frame, before_bar, after_bar)
+        self.disks.append(disks)
 
-                        extra_bar_frame = None
+        # Manual partitioning.
 
-                        # add the extra disk to the combo box
-                        self.extra_combo.addItem(extra)
-                        self.extra_combo.currentIndexChanged[int].connect(self.on_extra_combo_changed)
-
-                        #find the device to make a partition bar out of it
-                        dev = None
-                        for d in self.diskLayout:
-                            disk = d
-                            if disk.startswith('=dev='):
-                                disk = disk[5:]
-                            if "(%s)" % disk in extra:
-                                dev = self.diskLayout[d]
-                                break
-
-                        #add the bars if we found the device
-                        if dev:
-                            before_bar = PartitionsBar()
-                            after_bar = PartitionsBar()
-
-                            for p in dev:
-                                before_bar.addPartition(p[0], int(p[1]), p[3])
-
-                            if before_bar.diskSize > 0:
-                                after_bar.addPartition(release_name, before_bar.diskSize, 'auto')
-                            else:
-                                after_bar.addPartition(release_name, 1, 'auto')
-
-                            extra_bar_frame = addBars(bar_frame, before_bar, after_bar)
-                            if len(self.extra_bar_frames) > 0:
-                                extra_bar_frame.setVisible(False)
-
-                        if extra_bar_frame is not None:
-                            self.extra_bar_frames.append(extra_bar_frame)
-
-                        # Qt changes the string by adding accelerators,
-                        # so keep the pristine string here to be
-                        # returned to partman later.
-                        comboTexts.append(extra)
-
-                    self.extraChoicesText[choice] = comboTexts
+        button = QRadioButton(manual_choice, self.autopart_selection_frame)
+        self.autopartitionTexts.append(manual_choice)
+        self.autopart_selection_frame.layout().addWidget(button)
+        self.autopartition_buttongroup.addButton(button, bId)
+        button.clicked.connect(self.controller.setNextButtonTextNext)
+        self.disks.append([])
 
         #select the first button
         b = self.autopartition_buttongroup.button(0)
-        if b:
-            b.setChecked(True)
+        b and b.click()
 
     # slot for when partition is resized on the bar
-    def on_partitionResized(self, path, size):
-        #self.resizePath = path
+    def on_partitionResized(self, unused, size):
         self.resizeSize = size
 
     def getChoice (self):
@@ -244,16 +184,31 @@ class PartAuto(QWidget):
         if choice == self.resizeChoice:
             # resize choice should have been hidden otherwise
             assert self.resizeSize is not None
-            return choice, '%d B' % self.resizeSize
-        elif (choice != self.manualChoice and
-            self.extraChoicesText.has_key(choice)):
-            comboId = self.extra_combo.currentIndex()
-            disk_texts = self.extraChoicesText[choice]
-            return choice, unicode(disk_texts[comboId])
+            comboText = unicode(self.part_auto_disk_box.currentText())
+            disk_id = self.extra_options[self.useDeviceChoice][comboText][0]
+            disk_id = disk_id.rsplit('/', 1)[1]
+            option = self.extra_options[choice][disk_id][0]
+            return option, '%d B' % self.resizeSize
+        elif choice == self.useDeviceChoice:
+            return choice, unicode(self.part_auto_disk_box.currentText())
         else:
             return choice, None
 
-    def on_extra_combo_changed(self, index):
-        for e in self.extra_bar_frames:
+    def on_disks_combo_changed(self, index):
+        for e in self.bar_frames:
             e.setVisible(False)
-        self.extra_bar_frames[index].setVisible(True)
+        button_id = self.autopartition_buttongroup.checkedId()
+        length = len(self.disks[button_id])
+        if index < length and length > 0:
+            self.disks[button_id][index][1].setVisible(True)
+
+    def on_button_toggled(self, unused):
+        button_id = self.autopartition_buttongroup.checkedId()
+        self.part_auto_disk_box.clear()
+        if not [self.part_auto_disk_box.addItem(disk[0])
+                for disk in self.disks[button_id]]:
+            self.part_auto_disk_box.hide()
+        else:
+            # If we haven't added any items to the disk combobox, hide it.
+            self.part_auto_disk_box.show()
+

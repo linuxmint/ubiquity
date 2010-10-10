@@ -17,10 +17,26 @@ import ubiquity.frontend
 import pwd
 
 from ubiquity import osextras
+from ubiquity.misc import create_bool
 from ubiquity.casper import get_casper
 from ubiquity.debconfcommunicator import DebconfCommunicator
 
-background = '/usr/share/backgrounds/linuxmint/Talento-1.jpg'
+background = '/usr/share/backgrounds/warty-final-ubuntu.png'
+
+def ck_open_session(uid):
+    import dbus
+    bus = dbus.SystemBus ()
+    manager_obj = bus.get_object ('org.freedesktop.ConsoleKit',
+            '/org/freedesktop/ConsoleKit/Manager')
+    manager = dbus.Interface (manager_obj, 'org.freedesktop.ConsoleKit.Manager')
+    params = dbus.Array ([], signature = "(sv)")
+    params.append(("unix-user", dbus.Int32(uid)))
+    params.append(("session-type", dbus.String("")))
+    params.append(("x11-display", dbus.String(os.environ['DISPLAY'])))
+    params.append(("x11-display-device", dbus.String('/dev/tty7')))
+    params.append(("is-local", dbus.Boolean(True)))
+    cookie = manager.OpenSessionWithParameters(params)
+    os.environ['XDG_SESSION_COOKIE'] = cookie
 
 def set_locale():
     db = DebconfCommunicator('ubiquity', cloexec=True)
@@ -75,7 +91,14 @@ class DM:
         self.server_started = False
 
         self.username = get_casper('USERNAME', default_username)
-        self.uid, self.gid = pwd.getpwnam(self.username)[2:4]
+        try:
+            self.uid, self.gid = pwd.getpwnam(self.username)[2:4]
+        except KeyError:
+            import syslog
+            syslog.syslog('Could not find %s, falling back to root.' %
+                          self.username)
+            self.username = 'root'
+            self.uid, self.gid = 0, 0
         self.homedir = pwd.getpwnam(self.username)[5]
         self.uid = int(self.uid)
         self.gid = int(self.gid)
@@ -100,6 +123,13 @@ class DM:
         else:
             raise AttributeError, ('No frontend available; tried %s' %
                                    ', '.join(frontend_names))
+
+        db = DebconfCommunicator('ubiquity', cloexec=True)
+        try:
+            self.force_failsafe = create_bool(db.get('ubiquity/force_failsafe_graphics'))
+        except debconf.DebconfError:
+            self.force_failsafe = False
+        db.shutdown()
 
     def sigusr1_handler(self, signum, frame):
         self.server_started = True
@@ -158,7 +188,9 @@ class DM:
 
         for attempt in ('main', 'failsafe'):
             command = list(servercommand)
-            if attempt == 'failsafe':
+            if attempt == 'main' and self.force_failsafe:
+                continue
+            elif attempt == 'failsafe':
                 # TODO cjwatson 2010-02-11: This is a bodge.  The
                 # duplication is nasty, but fortunately bullet-proof X
                 # actually turns out not to be very complicated nowadays.
@@ -168,6 +200,10 @@ class DM:
                 # is working on doing that, but is blocked on a couple of
                 # Upstart bugs; once all that's resolved, we should back
                 # this out.
+                if os.path.exists('/dev/fb0'):
+                    driver = 'fbdev'
+                else:
+                    driver = 'vesa'
                 xorg_conf_failsafe = '/etc/X11/xorg.conf.failsafe'
                 command.extend(['-config', xorg_conf_failsafe])
                 command.extend(['-logfile', '/var/log/Xorg.failsafe.log'])
@@ -177,7 +213,7 @@ class DM:
                     print >>xorg_conf_failsafe_file, '''\
 Section "Device"
 	Identifier	"Configured Video Device"
-	Driver		"vesa"
+	Driver		"%s"
 EndSection
 
 Section "Monitor"
@@ -189,7 +225,7 @@ Section "Screen"
 	Monitor		"Configured Monitor"
 	Device		"Configured Video Device"
 EndSection
-'''
+''' % driver
                     xorg_conf_failsafe_file.close()
 
             server = subprocess.Popen(
@@ -228,6 +264,9 @@ EndSection
         # Give ubiquity a UID and GID that it can drop privileges to.
         os.environ['SUDO_UID'] = str(self.uid)
         os.environ['SUDO_GID'] = str(self.gid)
+        os.environ['GVFS_DISABLE_FUSE' ] = '1'
+
+        ck_open_session(self.uid)
 
         # Session bus, apparently needed by most interfaces now
         if ('DBUS_SESSION_BUS_ADDRESS' not in os.environ and
@@ -263,7 +302,11 @@ EndSection
                 subprocess.call(
                     ['gconftool-2', '--config-source', gconf_dir,
                      '--type', 'int', '--set',
-                     '/apps/metacity/general/num_workspaces', '1'],
+                     '/apps/metacity/general/num_workspaces', '1',
+                     '--type', 'boolean', '--set',
+                     '/desktop/gnome/lockdown/disable_user_switching', 'true',
+                     '--type', 'boolean', '--set',
+                     '/desktop/gnome/lockdown/disable_lock_screen', 'true'],
                     stdin=null, stdout=logfile, stderr=logfile,
                     preexec_fn=self.drop_privileges)
                 subp = subprocess.Popen(
@@ -311,18 +354,39 @@ EndSection
                 raise MissingProgramError, \
                     ("No window manager found (tried metacity, xfwm4, "
                      "matchbox-window-manager)")
-            if osextras.find_on_path('ck-launch-session'):
-                wm_cmd.insert(0, 'ck-launch-session')
             wm = subprocess.Popen(wm_cmd,
                 stdin=null, stdout=logfile, stderr=logfile,
                 **maybe_drop_privileges)
 
             if os.path.exists('/usr/lib/gnome-settings-daemon/gnome-settings-daemon'):
-                extras.append(subprocess.Popen(
+                proc = subprocess.Popen(
                     ['/usr/lib/gnome-settings-daemon/gnome-settings-daemon'],
+                    stdin=null, stdout=logfile, stderr=logfile,
+                    **maybe_drop_privileges)
+                proc.wait()
+                extras.append(proc)
+
+            if os.path.exists('/usr/bin/xfsettingsd'):
+                extras.append(subprocess.Popen(
+                    ['xsetroot', '-solid', 'black'],
+                    stdin=null, stdout=logfile, stderr=logfile,
+                    **maybe_drop_privileges))
+                extras.append(subprocess.Popen(
+                    ['/usr/bin/xfsettingsd'],
                     stdin=null, stdout=logfile, stderr=logfile,
                     **maybe_drop_privileges))
 
+            if os.path.exists('/usr/lib/ubiquity/panel') and "xfwm4" not in wm_cmd:
+                extras.append(subprocess.Popen(
+                    ['/usr/lib/ubiquity/panel'],
+                    stdin=null, stdout=logfile, stderr=logfile,
+                    **maybe_drop_privileges))
+
+            if osextras.find_on_path('nm-applet'):
+                extras.append(subprocess.Popen(
+                    ['nm-applet'],
+                    stdin=null, stdout=logfile, stderr=logfile,
+                    **maybe_drop_privileges))
             # Accessibility tools
             if accessibility == 'true':
                 fp = open('/proc/cmdline', 'r')
@@ -338,6 +402,8 @@ EndSection
                 fp.close()
         elif self.frontend == 'kde_ui':
             # Don't show the background image in v1 accessibility profile.
+            os.setegid(self.gid)
+            os.seteuid(self.uid)
             path = '/usr/share/wallpapers/Ethais/contents/images/1920x1200.png'
             with open('/proc/cmdline', 'r') as fp:
                 if (os.access(path, os.R_OK)
@@ -360,6 +426,8 @@ EndSection
                     # Force garbage collection so we don't end up with stray X
                     # resources when we kill the X server (LP: #556555).
                     del a
+            os.seteuid(0)
+            os.setegid(0)
 
             subprocess.call(
                 ['kwriteconfig', '--file', 'kwinrc', '--group', 'Compositing',
@@ -375,8 +443,6 @@ EndSection
 
         reboot = False
         if ret != 0:
-            from ubiquity.debconfcommunicator import DebconfCommunicator
-            import debconf
             db = DebconfCommunicator('ubiquity', cloexec=True)
             try:
                 error_cmd = db.get('ubiquity/failure_command')

@@ -1,7 +1,8 @@
 #!/bin/sh
 
 # Copyright (C) 2006  Joey Hess  <joeyh@debian.org>
-# Copyright (C) 2006, 2007, 2008  Martin Michlmayr <tbm@cyrius.com>
+# Copyright (C) 2006, 2007, 2008, 2009  Martin Michlmayr <tbm@cyrius.com>
+# Copyright (C) 2009, 2010 Canonical Ltd
 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -102,9 +103,9 @@ sercomm_header() {
 
 nslu2_swap() {
 	if [ "$little_endian" ]; then
-		devio "<<"$1 "xp $,4"
+		devio "<<$1" "xp $,4"
 	else
-		cat $1
+		cat "$1"
 	fi
 }
 
@@ -116,6 +117,176 @@ cleanup() {
 	done
 }
 
+# generic flash-kernel routines for specific subarchs
+omap_flash_kernel() {
+	if [ -n "${UBOOT_PART}" ]; then
+		echo "Using u-boot partition: ${UBOOT_PART}" >&2
+		TMPMOUNT=$(mktemp -d)
+		mount $UBOOT_PART $TMPMOUNT
+		printf "Creating backups of uImage and uInitrd... " >&2
+		if [ -e $TMPMOUNT/uImage ]; then
+			cp $TMPMOUNT/uImage $TMPMOUNT/uImage.bak
+		fi
+		if [ -e $TMPMOUNT/uInitrd ]; then
+			cp $TMPMOUNT/uInitrd $TMPMOUNT/uInitrd.bak
+		fi
+		echo "done." >&2
+		printf "Generating kernel u-boot image... " >&2
+		mkimage -A arm -O linux -T kernel -C none -a 0x80008000 \
+			-e 0x80008000 -n "Ubuntu Kernel" -d $kfile $TMPMOUNT/uImage >&2 1>/dev/null
+		echo "done." >&2
+		printf "Generating Initramfs u-boot image... " >&2
+		mkimage -A arm -O linux -T ramdisk -C none -a 0x0 -e 0x0 \
+			-n "Ubuntu Initrd" -d $ifile $TMPMOUNT/uInitrd >&2 1>/dev/null
+			echo "done." >&2
+		if [ -e /boot/boot.script ];then
+			printf "Generating u-boot configuration from /boot/boot.script... " >&2
+			cp $TMPMOUNT/boot.scr $TMPMOUNT/boot.scr.bak
+			mkimage -A arm -T script -C none -n "Ubuntu boot script" -d /boot/boot.script \
+				$TMPMOUNT/boot.scr >&2 1>/dev/null
+			echo "done." >&2
+		fi
+		umount $TMPMOUNT
+		rm -rf $TMPMOUNT
+	else
+		initrd_nand_size="16777216"
+		check_mtd
+		kmtd=$(mtdblock "Kernel")
+		if [ -z "$kmtd" ]; then
+			error "Cannot find mtd partition 'Kernel'"
+		fi
+		check_dev_mtdblock "$kmtd"
+		kmtdsize=$(mtdsize "Kernel")
+		check_size "Kernel" $(($kfilesize + 8 + 64)) $kmtdsize
+
+		printf "Generating kernel u-boot image... " >&2
+		tmp=$(tempfile) 
+		cat $kfile >> $tmp
+		mkimage -A arm -O linux -T kernel -C none -a 0x80008000 \
+			-e 0x80008000 -n "Ubuntu Kernel" -d $tmp $tmp.uboot >&2 1>/dev/null
+		echo "done." >&2
+
+		printf "Erasing Kernel NAND space... " >&2 
+		dd if=/dev/zero of=$kmtd bs=$kmtdsize count=1 2>/dev/null
+		echo "done." >&2
+
+		printf "Flashing kernel... " >&2
+		cat $tmp.uboot > $kmtd || error "failed."
+		echo "done." >&2
+		rm -f $tmp.uboot $tmp
+
+		imtd=$(mtdblock "File System")
+		if [ -z "$imtd" ]; then
+			error "Cannot find mtd partition for Initramfs"
+		fi
+		check_dev_mtdblock "$imtd"
+		check_size "Initramfs" $ifilesize $initrd_nand_size
+
+		printf "Generating Initramfs u-boot image... " >&2
+		tmp=$(tempfile) 
+		cat $ifile >> $tmp
+		mkimage -A arm -O linux -T ramdisk -C none -a 0x0 -e 0x0 \
+			-n "Ubuntu Initrd" -d $tmp $tmp.uboot >&2 1>/dev/null
+		echo "done." >&2
+
+		printf "Erasing Initramfs NAND space... " >&2
+		dd if=/dev/zero of=$imtd bs=$initrd_nand_size count=1 2>/dev/null
+			echo "done." >&2
+
+		printf "Flashing Initramfs... " >&2
+		cat $tmp.uboot > $imtd || error "failed."
+		echo "done." >&2 
+		rm -f $tmp.uboot $tmp
+	fi
+}
+
+dove_flash_kernel() {
+	tmp=$(tempfile)
+	uboot_kernel_load_addr=0x00200000
+	uboot_initramfs_load_addr=0x01100000
+	script_load_addr=0x1000
+
+	printf "Generating kernel u-boot image... " >&2
+	cat $kfile >> $tmp
+	mkimage -A arm -O linux -T kernel -C none -n "$desc" -a 0x00008000 \
+		-e 0x00008000 -d $tmp $tmp.uboot >&2 1>/dev/null
+	echo "done." >&2
+	if [ -e /boot/uImage ]; then
+		echo "Creating backup of /boot/uImage." >&2
+		mv /boot/uImage /boot/uImage.bak
+	fi
+	echo "Creating new /boot/uImage." >&2
+	mv $tmp.uboot /boot/uImage
+	rm -f $tmp
+	printf "Generating initrd u-boot image... " >&2
+	mkimage -A arm -O linux -T ramdisk -C gzip -a 0x0 \
+		-e 0x0 -n "$idesc" -d "$ifile" "$tmp.uboot" >&2 1>/dev/null
+	echo "done." >&2
+	if [ -e /boot/uInitrd ]; then
+		echo "Creating backup of /boot/uInitrd." >&2
+		mv /boot/uInitrd /boot/uInitrd.bak
+	fi
+	echo "Creating new /boot/uInitrd." >&2
+	mv "$tmp.uboot" /boot/uInitrd
+	rm -f "$tmp.uboot"
+	printf "Generating new u-boot boot script..." >&2
+	# The UUID will come from the flash-kernel config file
+	cat >"$tmp.boot.script" <<EOF
+echo Starting Ubuntu...
+if test -n \${fs} && test -n \${interface} && test -n \${device} && test -n \${prefix}; then
+	\${fs}load \${interface} \${device} $uboot_kernel_load_addr \${prefix}uImage
+	\${fs}load \${interface} \${device} $uboot_initramfs_load_addr \${prefix}uInitrd
+	setenv bootargs $rootfs ro quiet splash
+	bootm $uboot_kernel_load_addr $uboot_initramfs_load_addr
+fi
+
+echo boot information not recieved from u-boot, scanning for startup device
+
+if test -e \${reinitalize_devices}; then
+	usb start;
+	ide reset;
+fi
+
+for i in usb ide; do 
+	for j in 0 1; do
+		for l in / /boot/; do
+			for m in fat ext2; do
+				setenv interface \$i;
+				setenv device \$j;
+				setenv prefix \$l;
+				setenv fs \$m;
+
+				echo Scanning \${fs} \${interface} \${device} on prefix \${prefix} ...;
+
+				# This "if" avoids loading an old image but
+				# doesn't work in stock u-boot 1.3.4 and is
+				# only fixed in Canonical u-boot from October
+				# 1st or later
+
+				if \${fs}load \${interface} \${device} $script_load_addr \${prefix}boot.scr; then
+					if imi $script_load_addr; then
+						echo boot.scr found! Executing ...;
+						autoscr $script_load_addr;
+					fi;
+				fi
+			done;
+		done;
+	done;
+done
+echo No boot device found.;
+EOF
+	mkimage -A arm -T script -C none -n "Ubuntu boot script" -d "$tmp.boot.script" \
+		"$tmp.boot.scr" >&2 1>/dev/null
+	echo "done." >&2
+	if [ -e /boot/boot.scr ]; then
+		echo "Creating backup of /boot/boot.scr." >&2
+		mv /boot/boot.scr /boot/boot.scr.bak
+	fi
+	echo "Creating new /boot/boot.scr." >&2
+	mv "$tmp.boot.scr" /boot/boot.scr
+	rm -f "$tmp.boot.script" "$tmp.boot.scr"
+}
+
 trap "cleanup" 0 HUP INT QUIT KILL SEGV PIPE TERM
 
 config="/etc/flash-kernel.conf"
@@ -123,23 +294,56 @@ if [ -r "$config" ]; then
     . "$config"
 fi
 
-machine=$(grep "^Hardware" /proc/cpuinfo | sed 's/Hardware\s*:\s*//')
+if [ "x$1" = "x--machine" ]; then
+	machine=$2
+	shift 2
+else
+	machine=$(grep "^Hardware" /proc/cpuinfo | sed 's/Hardware\s*:\s*//')
+fi
+
+running_subarch=$(uname -r | sed -e 's/.*-//')
 
 if [ "x$1" = "x--supported" ]; then
+	# if FLASH_KERNEL_SKIP is set, its always unsupported
+	if [ -n "$FLASH_KERNEL_SKIP" ]; then
+		exit 1
+	fi
+
 	case "$machine" in
+		"ARM-Versatile Express CA9x4")		exit 0 ;;
 		"Buffalo Linkstation Pro/Live")		exit 0 ;;
 		"Buffalo/Revogear Kurobox Pro")		exit 0 ;;
 		"D-Link DNS-323")			exit 0 ;;
 		"Freescale MX51 Babbage Board")		exit 0 ;;
 		"GLAN Tank")				exit 0 ;;
 		"HP Media Vault mv2120")		exit 0 ;;
+		"IGEP v2 board")            exit 0 ;;
 		"Marvell DB-MV88F6781-BP Development Board") exit 0 ;;
 		"Linksys NSLU2")			exit 0 ;;
 		"OMAP3 Beagle Board")			exit 0 ;;
+		"OMAP4430 Panda Board")			exit 0 ;;
+		"OMAP4430 4430SDP board")		exit 0 ;;
+		"Marvell OpenRD Base Board")		exit 0 ;;
+		"Marvell OpenRD Client Board")		exit 0 ;;
+		"Marvell SheevaPlug Reference Board")	exit 0 ;;
+		"Marvell eSATA SheevaPlug Reference Board")	exit 0 ;;
 		"QNAP TS-109/TS-209" | "QNAP TS-409")	exit 0 ;;
+		"QNAP TS-119/TS-219")			exit 0 ;;
+		"QNAP TS-41x")				exit 0 ;;
 		"Thecus N2100")				exit 0 ;;
-		*)					exit 1 ;;
+		"Lanner EM7210")			exit 0 ;;
+		*)
+			# we're supported if we have a generic fallback
+			case "$running_subarch" in
+				"dove" | "omap" | "omap4") exit 0 ;;
+			esac
+		exit 1
+		;;
 	esac
+fi
+
+if [ -n "$FLASH_KERNEL_SKIP" ]; then
+	exit 0
 fi
 
 if [ -n "$1" ]; then
@@ -165,8 +369,8 @@ fi
 if [ ! -e $kfile ] || [ ! -e $ifile ]; then
 	error "Can't find $kfile and $ifile"
 fi
-kfilesize=$(wc -c $kfile | awk '{print $1}')
-ifilesize=$(wc -c $ifile | awk '{print $1}')
+kfilesize=$(wc -c "$kfile" | awk '{print $1}')
+ifilesize=$(wc -c "$ifile" | awk '{print $1}')
 
 # Extract the subarchitecture from the kernel name
 if [ -L "$kfile" ]; then
@@ -175,41 +379,77 @@ fi
 subarch=$(echo "$kfile" | sed -e 's/.*-//')
 
 case "$machine" in
+	"ARM-Versatile Express CA9x4")
+		check_subarch "vexpress"
+		check_mtd
+
+		kmtd=$(mtdblock "kernel")
+		if [ -z "$kmtd" ]; then
+			error "Cannot find mtd partition 'kernel'"
+		fi
+		check_dev_mtdblock "$kmtd"
+		kmtdsize=$(mtdsize "kernel")
+		check_size "kernel" $(($kfilesize + 64)) $kmtdsize
+		printf "Generating a u-boot compatible kernel image... " >&2
+		mkimage -A arm -O linux -T kernel -C none -a 0x60008000 \
+			-e 0x60008000 -n "$desc" -d $kfile $kfile.uboot \
+			>&2 1>/dev/null
+		printf "Writing kernel to flash... " >&2
+		cat $kfile.uboot > $kmtd || error "failed."
+		echo "done." >&2
+		rm -f $kfile.uboot
+
+		imtd=$(mtdblock "initrd")
+		if [ -z "$imtd" ]; then
+			error "Cannot find mtd partition for initrd"
+		fi
+		check_dev_mtdblock "$imtd"
+		imtdsize=$(mtdsize "initrd")
+		check_size "initrd" $ifilesize $imtdsize 
+		printf "Generating u-boot compatible initrd image... " >&2
+		mkimage -A arm -O linux -T ramdisk -C none -a 0x81000000 \
+			-e 0x81000000 -n "$idesc" -d $ifile $ifile.uboot \
+			>&2 1>/dev/null
+		printf "Writing initrd to flash... " >&2
+		cat $ifile.uboot > $imtd || error "failed."
+		echo "done." >&2 
+		rm -f $ifile.uboot
+	;;
 	"Buffalo Linkstation Pro/Live" | "Buffalo/Revogear Kurobox Pro")
 		check_subarch "orion5x"
-		tmp=$(tempfile)
+		tmp="$(tempfile)"
 		printf "Generating kernel u-boot image... " >&2
 		case "$machine" in
 			"Buffalo Linkstation Pro/Live")
 				# Set machine id 1585 (0x0631)
-				devio > $tmp 'wl 0xe3a01c06,4' 'wl 0xe3811031,4'
+				devio > "$tmp" 'wl 0xe3a01c06,4' 'wl 0xe3811031,4'
 			;;
 			"Buffalo/Revogear Kurobox Pro")
 				# Set machine id 1509 (0x05e5)
-				devio > $tmp 'wl 0xe3a01c05,4' 'wl 0xe38110e5,4'
+				devio > "$tmp" 'wl 0xe3a01c05,4' 'wl 0xe38110e5,4'
 			;;
 		esac
-		cat $kfile >> $tmp
+		cat "$kfile" >> "$tmp"
 		mkimage -A arm -O linux -T kernel -C none -a 0x00008000 \
-			-e 0x00008000 -n "$desc" -d $tmp $tmp.uboot >&2 1>/dev/null
+			-e 0x00008000 -n "$desc" -d "$tmp" "$tmp.uboot" >&2 1>/dev/null
 		echo "done." >&2
 		if [ -e /boot/uImage.buffalo ]; then
 			echo "Creating backup of /boot/uImage.buffalo." >&2
 			mv /boot/uImage.buffalo /boot/uImage.buffalo.bak
 		fi
 		echo "Creating new /boot/uImage.buffalo." >&2
-		mv $tmp.uboot /boot/uImage.buffalo
-		rm -f $tmp
+		mv "$tmp.uboot" /boot/uImage.buffalo
+		rm -f "$tmp"
 		printf "Generating initrd u-boot image... " >&2
 		mkimage -A arm -O linux -T ramdisk -C gzip -a 0x0 \
-			-e 0x0 -n "$idesc" -d $ifile $tmp.uboot >&2 1>/dev/null
+			-e 0x0 -n "$idesc" -d "$ifile" "$tmp.uboot" >&2 1>/dev/null
 		echo "done." >&2
 		if [ -e /boot/initrd.buffalo ]; then
 			echo "Creating backup of /boot/initrd.buffalo." >&2
 			mv /boot/initrd.buffalo /boot/initrd.buffalo.bak
 		fi
 		echo "Creating new /boot/initrd.buffalo." >&2
-		mv $tmp.uboot /boot/initrd.buffalo
+		mv "$tmp.uboot" /boot/initrd.buffalo
 	;;
 	"D-Link DNS-323")
 		check_subarch "orion5x"
@@ -229,24 +469,25 @@ case "$machine" in
 		kmtdsize=$(mtdsize "Linux Kernel")
 		check_size "Linux Kernel" $(($kfilesize + 8 + 64)) $kmtdsize
 		printf "Generating kernel u-boot image... " >&2
-		tmp=$(tempfile)
+		tmp="$(tempfile)"
 		# Set machine id 1542 (0x0606)
-		devio > $tmp 'wl 0xe3a01c06,4' 'wl 0xe3811006,4'
-		cat $kfile >> $tmp
+		devio > "$tmp" 'wl 0xe3a01c06,4' 'wl 0xe3811006,4'
+		cat "$kfile" >> "$tmp"
 		mkimage -A arm -O linux -T kernel -C none -a 0x00008000 \
-			-e 0x00008000 -n "$desc" -d $tmp $tmp.uboot >&2 1>/dev/null
+			-e 0x00008000 -n "$desc" -d "$tmp" "$tmp.uboot" >&2 1>/dev/null
 		echo "done." >&2
 		printf "Flashing kernel... " >&2
-		cat $tmp.uboot > $kmtd || error "failed."
+		cat "$tmp.uboot" > "$kmtd" || error "failed."
 		echo "done." >&2
-		rm -f $tmp.uboot $tmp
+		rm -f "$tmp.uboot" "$tmp"
 		printf "Generating initramfs u-boot image... " >&2
 		mkimage -A arm -O linux -T ramdisk -C gzip -a 0x00800000 \
-			-e 0x00800000 -n "$idesc" -d $ifile $tmp.uboot >&2 1>/dev/null
-		printf "Flashing initramfs... " >&2
-		cat $tmp.uboot > $imtd || error "failed."
+			-e 0x00800000 -n "$idesc" -d "$ifile" "$tmp.uboot" >&2 1>/dev/null
 		echo "done." >&2
-		rm -f $tmp.uboot
+		printf "Flashing initramfs... " >&2
+		cat "$tmp.uboot" > "$imtd" || error "failed."
+		echo "done." >&2
+		rm -f "$tmp.uboot"
 	;;
 	"Freescale MX51 Babbage Board")
 		check_subarch "imx51"
@@ -326,30 +567,30 @@ case "$machine" in
 	;;
 	"GLAN Tank")
 		rm -f /boot/initrd /boot/zImage
-		ln -s $(basename $ifile) /boot/initrd
+		ln -s "$(basename "$ifile")" /boot/initrd
 		(
 			# Set machine id 1100 (0x044c)
 			devio 'wl 0xe3a01c04,4' 'wl 0xe381104c,4'
-			cat $kfile
+			cat "$kfile"
 		) > /boot/zImage
 	;;
 	"HP Media Vault mv2120")
 		check_subarch "orion5x"
-		tmp=$(tempfile)
+		tmp="$(tempfile)"
 		printf "Generating kernel u-boot image... " >&2
 		# Set machine id 1693 (0x069d)
-		devio > $tmp 'wl 0xe3a01c06,4' 'wl 0xe381109d,4'
-		cat $kfile >> $tmp
+		devio > "$tmp" 'wl 0xe3a01c06,4' 'wl 0xe381109d,4'
+		cat "$kfile" >> "$tmp"
 		mkimage -A arm -O linux -T multi -C none -n "$desc" -a 0x01000000 \
-			-e 0x01000000 -d $tmp:$ifile $tmp.uboot >&2 1>/dev/null
+			-e 0x01000000 -d "$tmp:$ifile" "$tmp.uboot" >&2 1>/dev/null
 		echo "done." >&2
 		if [ -e /boot/uImage ]; then
 			echo "Creating backup of /boot/uImage." >&2
 			mv /boot/uImage /boot/uImage.bak
 		fi
 		echo "Creating new /boot/uImage." >&2
-		mv $tmp.uboot /boot/uImage
-		rm -f $tmp
+		mv "$tmp.uboot" /boot/uImage
+		rm -f "$tmp"
 	;;
 	"Linksys NSLU2")
 		check_subarch "ixp4xx"
@@ -412,46 +653,40 @@ case "$machine" in
 		# headers.
 		boundary=1441792 # 0x00160000
 		ksize1=$(expr $boundary - $offset - 16)
-		tmp=$(tempfile)
+		tmp="$(tempfile)"
 		printf "Flashing kernel: " >&2
 		(
 			sercomm_header $(expr $kfilesize + 16)
-			dd if=$kfile of=$tmp bs=$ksize1 count=1 2>/dev/null
-			nslu2_swap $tmp
+			dd if="$kfile" of="$tmp" bs=$ksize1 count=1 2>/dev/null
+			nslu2_swap "$tmp"
 			sercomm_header 131072
-			dd if=$kfile of=$tmp ibs=$ksize1 skip=1 2>/dev/null
-			nslu2_swap $tmp
-			rm -f $tmp
+			dd if="$kfile" of="$tmp" ibs=$ksize1 skip=1 2>/dev/null
+			nslu2_swap "$tmp"
+			rm -f "$tmp"
 		) > "$kmtd" || error "failed."
 		echo "done." >&2
 		printf "Flashing initramfs: " >&2
-		dd if=$ifile of=$tmp ibs=$(($imtdsize - 16)) conv=sync 2>/dev/null
+		dd if="$ifile" of="$tmp" ibs=$(($imtdsize - 16)) conv=sync 2>/dev/null
 		(
 			sercomm_header $ifilesize
-			nslu2_swap $tmp
-			rm -f $tmp
-		) > $imtd || error "failed."
+			nslu2_swap "$tmp"
+			rm -f "$tmp"
+		) > "$imtd" || error "failed."
 		echo "done." >&2
 	;;
-	"Marvell DB-MV88F6781-BP Development Board")
-		check_subarch "dove"
-		tmp=$(tempfile)
-		uboot_kernel_load_addr=0x00200000
-		uboot_initramfs_load_addr=0x01100000
-		script_load_addr=0x1000
-
+	"Marvell OpenRD Base Board" | "Marvell OpenRD Client Board" | "Marvell SheevaPlug Reference Board" | "Marvell eSATA SheevaPlug Reference Board")
+		check_subarch "kirkwood"
+		tmp="$(tempfile)"
 		printf "Generating kernel u-boot image... " >&2
-		cat $kfile >> $tmp
-		mkimage -A arm -O linux -T kernel -C none -n "$desc" -a 0x00008000 \
-			-e 0x00008000 -d $tmp $tmp.uboot >&2 1>/dev/null
+		mkimage -A arm -O linux -T kernel -C none -a 0x00008000 \
+			-e 0x00008000 -n "$desc" -d "$kfile" "$tmp.uboot" >&2 1>/dev/null
 		echo "done." >&2
 		if [ -e /boot/uImage ]; then
 			echo "Creating backup of /boot/uImage." >&2
 			mv /boot/uImage /boot/uImage.bak
 		fi
 		echo "Creating new /boot/uImage." >&2
-		mv $tmp.uboot /boot/uImage
-		rm -f $tmp
+		mv "$tmp.uboot" /boot/uImage
 		printf "Generating initrd u-boot image... " >&2
 		mkimage -A arm -O linux -T ramdisk -C gzip -a 0x0 \
 			-e 0x0 -n "$idesc" -d "$ifile" "$tmp.uboot" >&2 1>/dev/null
@@ -462,116 +697,32 @@ case "$machine" in
 		fi
 		echo "Creating new /boot/uInitrd." >&2
 		mv "$tmp.uboot" /boot/uInitrd
-		rm -f "$tmp.uboot"
-		printf "Generating new u-boot boot script..." >&2
-		# The UUID will come from the flash-kernel config file
-		cat >"$tmp.boot.script" <<EOF
-echo Starting Ubuntu...
-if test -n \${fs} && test -n \${interface} && test -n \${device} && test -n \${prefix}; then
-	\${fs}load \${interface} \${device} $uboot_kernel_load_addr \${prefix}uImage
-	\${fs}load \${interface} \${device} $uboot_initramfs_load_addr \${prefix}uInitrd
-	setenv bootargs $rootfs ro quiet splash
-	bootm $uboot_kernel_load_addr $uboot_initramfs_load_addr
-fi
-
-echo boot information not recieved from u-boot, scanning for startup device
-
-if test -e \${reinitalize_devices}; then
-	usb start;
-	ide reset;
-fi
-
-for i in usb ide; do 
-	for j in 0 1; do
-		for l in / /boot/; do
-			for m in fat ext2; do
-				setenv interface \$i;
-				setenv device \$j;
-				setenv prefix \$l;
-				setenv fs \$m;
-
-				echo Scanning \${fs} \${interface} \${device} on prefix \${prefix} ...;
-
-				# This "if" avoids loading an old image but
-				# doesn't work in stock u-boot 1.3.4 and is
-				# only fixed in Canonical u-boot from October
-				# 1st or later
-
-				if \${fs}load \${interface} \${device} $script_load_addr \${prefix}boot.scr; then
-					if imi $script_load_addr; then
-						echo boot.scr found! Executing ...;
-						autoscr $script_load_addr;
-					fi;
-				fi
-			done;
-		done;
-	done;
-done
-echo No boot device found.;
-EOF
-		mkimage -A arm -T script -C none -n "Ubuntu boot script" -d "$tmp.boot.script" \
-			"$tmp.boot.scr" >&2 1>/dev/null
-		echo "done." >&2
-		if [ -e /boot/boot.scr ]; then
-			echo "Creating backup of /boot/boot.scr." >&2
-			mv /boot/boot.scr /boot/boot.scr.bak
-		fi
-		echo "Creating new /boot/boot.scr." >&2
-		mv "$tmp.boot.scr" /boot/boot.scr
-		rm -f "$tmp.boot.script" "$tmp.boot.scr"
+		rm -f "$tmp"
 	;;
-	"OMAP3 Beagle Board")
-		initrd_nand_size="16777216"
-		check_mtd
-		kmtd=$(mtdblock "Kernel")
-		if [ -z "$kmtd" ]; then
-			error "Cannot find mtd partition 'Kernel'"
-		fi
-		check_dev_mtdblock "$kmtd"
-		kmtdsize=$(mtdsize "Kernel")
-		check_size "Kernel" $(($kfilesize + 8 + 64)) $kmtdsize
-
-		printf "Generating kernel u-boot image... " >&2
-		tmp=$(tempfile) 
-		cat $kfile >> $tmp
-		mkimage -A arm -O linux -T kernel -C none -a 0x80008000 \
-			-e 0x80008000 -n "Ubuntu Kernel" -d $tmp $tmp.uboot >&2 1>/dev/null
-		echo "done." >&2
-
-		printf "Erasing Kernel NAND space... " >&2 
-		dd if=/dev/zero of=$kmtd bs=$kmtdsize count=1 2>/dev/null
-		echo "done." >&2
-
-		printf "Flashing kernel... " >&2
-		cat $tmp.uboot > $kmtd || error "failed."
-		echo "done." >&2
-		rm -f $tmp.uboot $tmp
-
-		imtd=$(mtdblock "File System")
-		if [ -z "$imtd" ]; then
-			error "Cannot find mtd partition for Initramfs"
-		fi
-		check_dev_mtdblock "$imtd"
-		check_size "Initramfs" $ifilesize $initrd_nand_size
-
-		printf "Generating Initramfs u-boot image... " >&2
-		tmp=$(tempfile) 
-		cat $ifile >> $tmp
-		mkimage -A arm -O linux -T ramdisk -C none -a 0x0 -e 0x0 \
-			-n "Ubuntu Initrd" -d $tmp $tmp.uboot >&2 1>/dev/null
-		echo "done." >&2
-
-		printf "Erasing Initramfs NAND space... " >&2
-		dd if=/dev/zero of=$imtd bs=$initrd_nand_size count=1 2>/dev/null
-		echo "done." >&2
-
-		printf "Flashing Initramfs... " >&2
-		cat $tmp.uboot > $imtd || error "failed."
-		echo "done." >&2 
-		rm -f $tmp.uboot $tmp
+	"Marvell DB-MV88F6781-BP Development Board")
+		check_subarch "dove"
+		dove_flash_kernel
 	;;
-	"QNAP TS-109/TS-209" | "QNAP TS-409")
-		check_subarch "orion5x"
+	"IGEP v2 board" | "OMAP3 Beagle Board" | "OMAP4430 4430SDP board" | "OMAP4430 Panda Board")
+		case "$machine" in
+			"IGEP v2 board"|"OMAP3 Beagle Board")
+				check_subarch "omap"
+			;;
+			"OMAP4430 4430SDP board" | "OMAP4430 Panda Board")
+				check_subarch "omap4"
+			;;
+		esac
+		omap_flash_kernel
+	;;
+	"QNAP TS-109/TS-209" | "QNAP TS-119/TS-219" | "QNAP TS-409" | "QNAP TS-41x")
+		case "$machine" in
+			"QNAP TS-109/TS-209" | "QNAP TS-409")
+				check_subarch "orion5x"
+			;;
+			"QNAP TS-119/TS-219" | "QNAP TS-41x")
+				check_subarch "kirkwood"
+			;;
+		esac
 		check_mtd
 		imtd=$(mtdblock "RootFS1")
 		if [ -z "$imtd" ]; then
@@ -588,31 +739,39 @@ EOF
 		kmtdsize=$(mtdsize "Kernel")
 		check_size "Kernel" $(($kfilesize + 8 + 64)) $kmtdsize
 		printf "Generating kernel u-boot image... " >&2
-		tmp=$(tempfile)
+		tmp="$(tempfile)"
 		case "$machine" in
 			"QNAP TS-109/TS-209")
 				# Set machine id 1565 (0x061d)
-				devio > $tmp 'wl 0xe3a01c06,4' 'wl 0xe381101d,4'
+				devio > "$tmp" 'wl 0xe3a01c06,4' 'wl 0xe381101d,4'
+			;;
+			"QNAP TS-119/TS-219")
+				# Set machine id 2139 (0x085b)
+				devio > "$tmp" 'wl 0xe3a01c08,4' 'wl 0xe381105b,4'
 			;;
 			"QNAP TS-409")
 				# Set machine id 1601 (0x0641)
-				devio > $tmp 'wl 0xe3a01c06,4' 'wl 0xe3811041,4'
+				devio > "$tmp" 'wl 0xe3a01c06,4' 'wl 0xe3811041,4'
+			;;
+			"QNAP TS-41x")
+				# Set machine id 2502 (0x09c6)
+				devio > "$tmp" 'wl 0xe3a01c09,4' 'wl 0xe38110c6,4'
 			;;
 		esac
-		cat $kfile >> $tmp
+		cat "$kfile" >> "$tmp"
 		mkimage -A arm -O linux -T kernel -C none -a 0x00008000 \
-			-e 0x00008000 -n "$desc" -d $tmp $tmp.uboot >&2 1>/dev/null
+			-e 0x00008000 -n "$desc" -d "$tmp" "$tmp.uboot" >&2 1>/dev/null
 		echo "done." >&2
 		printf "Flashing kernel... " >&2
-		cat $tmp.uboot > $kmtd || error "failed."
+		cat "$tmp.uboot" > "$kmtd" || error "failed."
 		echo "done." >&2
-		rm -f $tmp.uboot $tmp
+		rm -f "$tmp.uboot" "$tmp"
 		printf "Flashing initramfs... " >&2
 		pad=$(expr $imtdsize - $ifilesize)
 		(
-			cat $ifile
+			cat "$ifile"
 			dd if=/dev/zero bs=$pad count=1 2>/dev/null
-		) > $imtd || error "failed."
+		) > "$imtd" || error "failed."
 		echo "done." >&2
 	;;
 	"Thecus N2100")
@@ -636,19 +795,68 @@ EOF
 		(
 			# Set machine id 1101 (0x044d)
 			devio 'wl 0xe3a01c04,4' 'wl 0xe381104d,4'
-			cat $kfile
-		) > $kmtd || error "failed."
+			cat "$kfile"
+		) > "$kmtd" || error "failed."
 		echo "done." >&2
 		printf "Flashing initramfs... " >&2
 		pad=$(expr $imtdsize - $ifilesize)
 		(
-			cat $ifile
+			cat "$ifile"
 			dd if=/dev/zero bs=$pad count=1 2>/dev/null
-		) > $imtd || error "failed."
+		) > "$imtd" || error "failed."
+		echo "done." >&2
+	;;
+	"Lanner EM7210")
+		# Really: Intel SS4000-e and compatibles
+		check_subarch "iop32x"
+		check_mtd
+		imtd=$(mtdblock "ramdisk.gz")
+		if [ -z "$imtd" ]; then
+			error "Cannot find mtd partition 'ramdisk.gz'"
+		fi
+		check_dev_mtdblock "$imtd"
+		imtdsize=$(mtdsize "ramdisk.gz")
+		check_size "ramdisk" $ifilesize $imtdsize
+		kmtd=$(mtdblock zImage)
+		if [ -z "$kmtd" ]; then
+			error "Cannot find mtd partition 'zImage'"
+		fi
+		kmtdsize=$(mtdsize "zImage")
+		check_size "zImage" $(($kfilesize + 8)) $kmtdsize
+		printf "Flashing kernel..." >&2
+		(
+			# Set machine ID 1212 (0x04bc)
+			devio 'wl 0xe3a01c04,4' 'wl 0xe38110bc,4'
+			cat "$kfile"
+		) > "$kmtd" || error "failed."
+		echo "done." >&2
+		printf "Flashing initramfs... " >&2
+		pad=$(expr $imtdsize - $ifilesize)
+		(
+			cat "$ifile"
+			dd if=/dev/zero bs=$pad count=1 2>/dev/null
+		) > "$imtd" || error "failed."
 		echo "done." >&2
 	;;
 	*)
-		error "Unsupported platform."
+		case "$running_subarch" in
+			"dove" | "omap" | "omap4")
+				echo "warning: using generic subarchitecture fallback for $running_subarch"
+				check_subarch $running_subarch
+
+				case "$subarch" in
+					"dove")
+						dove_flash_kernel
+					;;
+					"omap" | "omap4")
+						omap_flash_kernel
+					;;
+				esac
+		;;
+		*)
+			error "Unsupported platform."
+		;;
+		esac
 	;;
 esac
 

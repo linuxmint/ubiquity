@@ -6,6 +6,28 @@
 dev=${1%//*}
 oldid=${1#*//}
 
+if $(echo $1 | grep -qs '^replace='); then
+	dev="${dev#replace=*}"
+	cd $dev
+	open_dialog DELETE_PARTITION $oldid
+	close_dialog
+	bestsize=0
+	open_dialog PARTITIONS
+	while :; do
+		read_line num id size type fs path name
+		[ "$id" ] || break
+		if [ "$fs" = free ] && longint_le $bestsize $size; then
+			bestsize=$size
+		fi
+	done
+	close_dialog
+
+	db_progress STOP
+
+	autopartition $dev $bestid || exit $?
+	exit 100
+fi
+
 cd $dev
 
 bestsize=0

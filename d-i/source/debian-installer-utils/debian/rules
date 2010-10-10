@@ -2,12 +2,19 @@
 %:
 	dh $@
 
-TERMS=/usr/share/terminfo/a/ansi /usr/share/terminfo/d/dumb \
-      /usr/share/terminfo/l/linux /usr/share/terminfo/v/vt102
+TERMNAMES = a/ansi d/dumb l/linux v/vt102
 
 ifeq ($(DEB_HOST_ARCH_OS),kfreebsd)
-TERMS+=/usr/share/terminfo/c/cons25
+TERMNAMES += c/cons25
 endif
+
+ifeq ($(DEB_HOST_ARCH_OS),hurd)
+TERMNAMES += h/hurd
+endif
+
+TERMS = $(foreach term,$(TERMNAMES),\
+          $(firstword $(wildcard /lib/terminfo/$(term)) \
+                      $(wildcard /usr/share/terminfo/$(term))))
 
 override_dh_auto_install:
 	for file in $(TERMS); do \
@@ -15,3 +22,8 @@ override_dh_auto_install:
 		cp -pL $$file debian/di-utils-terminfo/$$file; \
 		chmod 644 debian/di-utils-terminfo/$$file; \
 	done
+
+	mkdir -p debian/di-utils/bin
+	cp -pL list-devices-$(DEB_HOST_ARCH_OS) debian/di-utils/bin/list-devices
+	chmod 755 debian/di-utils/bin/list-devices
+	

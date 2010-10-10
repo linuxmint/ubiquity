@@ -86,7 +86,9 @@ def set(key, keytype, value):
     if not _gconftool_exists():
         return
 
-    subprocess.call(['gconftool-2', '--set', key, '--type', keytype, value],
+    gconf_dir = _gconf_dir()
+    subprocess.call(['gconftool-2', '--config-source', gconf_dir, '--set', key,
+                     '--type', keytype, value],
                     preexec_fn=misc.drop_all_privileges)
 
 def unset(key):

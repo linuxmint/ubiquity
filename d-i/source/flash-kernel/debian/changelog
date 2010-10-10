@@ -1,3 +1,230 @@
+flash-kernel (2.28ubuntu10) maverick; urgency=low
+
+  * merge versatile espress support from Matt Waddel <matt.waddel@linaro.org>
+    to close (LP: #646141)
+
+ -- Oliver Grawert <ogra@ubuntu.com>  Fri, 24 Sep 2010 13:44:19 +0200
+
+flash-kernel (2.28ubuntu9) maverick; urgency=low
+
+  * merge Loïcs patch from bug 645659 to add IGEP2 support (not autoclosing
+    that yet since jasper-initramfs fix is also pending)
+
+ -- Oliver Grawert <ogra@ubuntu.com>  Thu, 23 Sep 2010 10:49:08 +0200
+
+flash-kernel (2.28ubuntu8) maverick; urgency=low
+
+  * Drop Vcs-Bzr; I've moved this to the package-import branch.
+
+ -- Loïc Minier <loic.minier@ubuntu.com>  Thu, 26 Aug 2010 16:43:26 +0200
+
+flash-kernel (2.28ubuntu7) maverick; urgency=low
+
+  * chmod +x flash-kernel in the source package, as in Debian.
+  * Don't try to make backup of uImage or uInitrd if they don't exist (i.e.
+    flash-kernel gets installed into the chroot, but the udeb logic never
+    ran).
+
+ -- Loïc Minier <loic.minier@linaro.org>  Thu, 26 Aug 2010 16:02:44 +0200
+
+flash-kernel (2.28ubuntu6) maverick; urgency=low
+
+  * skip flash-kernel with exit 0 if FLASH_KERNEL_SKIP env is set; in turn
+    make --supported fail with exit 1 if FLASH_KERNEL_SKIP is set (LP: #623276)
+
+ -- Alexander Sack <asac@linaro.org>  Tue, 24 Aug 2010 12:58:10 +0200
+
+flash-kernel (2.28ubuntu5) maverick; urgency=low
+
+  * changes to omap_flash_kernel()
+    - add quotes around ${UBOOT_PART} -n test 
+    - use $kfile and $ifile instead of hardcoded /boot/vmlinuz and /boot/initrd.img 
+
+ -- John Rigby <john.rigby@linaro.org>  Wed, 04 Aug 2010 19:58:39 -0600
+
+flash-kernel (2.28ubuntu4) maverick; urgency=medium
+
+  * Implement generic subarchitecture support (LP: #607723)
+  * Implement initial OMAP4 installation support
+  * Add OMAP4 Blaze Board to whitelists
+
+ -- Michael Casadevall <mcasadevall@ubuntu.com>  Tue, 20 Jul 2010 09:48:01 +0000
+
+flash-kernel (2.28ubuntu3) maverick; urgency=low
+
+  * use /boot/boot.script if it exists as input for boot.scr on OMAP
+
+ -- Oliver Grawert <ogra@ubuntu.com>  Fri, 09 Jul 2010 14:08:17 +0200
+
+flash-kernel (2.28ubuntu2) maverick; urgency=low
+
+  * add support for OMAP4 pandaboard
+
+ -- Oliver Grawert <ogra@ubuntu.com>  Thu, 08 Jul 2010 18:33:06 +0200
+
+flash-kernel (2.28ubuntu1) maverick; urgency=low
+
+  * Merge from debian unstable.  Remaining changes:
+    - Use XS-Debian-Vcs-Svn instead of commenting Vcs-Svn out
+    - Add Suggests: on redboot-tools for the fis command.
+    - Add Suggests: on uboot-envtools for fw_setenv command
+    - Implement support for OMAP3 Beagle Board
+    - Implement support for Marvell dove board
+    - Implement support for Freescale MX51 Babbage Board
+    - Add above architectures to README file
+    - Change descriptions from Debian kernel/initramfs to Ubuntu kernel/initramfs
+    - Create /target/etc/flash-kernel.conf from flash-kernel-installer.postinst
+    - Source /etc/flash-kernel.conf if present.
+    - Detect UUID of /target and set proper cmdline upon install
+    - Adjust versioned initramfs-tools dependency to ubuntu version
+
+ -- Oliver Grawert <ogra@ubuntu.com>  Wed, 06 May 2010 14:34:14 +0200
+
+flash-kernel (2.28) unstable; urgency=low
+
+  [ John Holland ]
+  * Add support for the eSATA SheevaPlug.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Pavel Piatruk
+  * Bengali (bn.po) by Israt Jahan
+  * German (de.po) by Holger Wansing
+  * Slovenian (sl.po) by Vanja Cvelbar
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Tue, 16 Mar 2010 16:15:19 +0000
+
+flash-kernel (2.27) unstable; urgency=low
+
+  [ Martin Michlmayr ]
+  * Add support for the QNAP TS-410, TS-410U, TS-419P and TS-419U
+    Turbo NAS.
+  * Mention that the QNAP TS-110 and TS-210 Turbo NAS are supported.
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Tue, 03 Nov 2009 17:28:08 +0000
+
+flash-kernel (2.26) unstable; urgency=low
+
+  [ Martin Michlmayr ]
+  * Add an option --machine to specify the device but leave this option
+    undocumented since it only has limited use.
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Mon, 02 Nov 2009 21:43:08 +0000
+
+flash-kernel (2.25) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Use the EXIT trap instead of ERR, which is a bashism.
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Mon, 19 Oct 2009 17:16:14 +0100
+
+flash-kernel (2.24) unstable; urgency=low
+
+  [ Martin Michlmayr ]
+  * Move back flash-kernel to its original location upon failure of
+    the udeb postinst, otherwise the postinst will fail when run
+    another time.
+  * Don't hardcode the machine ID for Marvell SheevaPlug, OpenRD-Base
+    and OpenRD-Client since the boot loader will (or can be configured
+    to) use the correct machine ID.  This allows installed disks to be
+    shared between these devices.
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Sun, 18 Oct 2009 18:29:05 +0100
+
+flash-kernel (2.23) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Upgrade to debhelper v7.
+
+  [ Martin Michlmayr ]
+  * Add support for the Marvell OpenRD-Base and OpenRD-Client.
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Mon, 28 Sep 2009 21:53:22 +0100
+
+flash-kernel (2.22) unstable; urgency=low
+
+  [ Martin Michlmayr ]
+  * Add the Intel SS4000-E to the README file as a supported device.
+  * Fix syntax error in the postinst of the udeb.
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Thu, 30 Jul 2009 08:18:55 +0200
+
+flash-kernel (2.21) unstable; urgency=low
+
+  * debian/flash-kernel-installer.postinst: run update-initramfs -u in
+    case of Lanner EM7210, so as to override root= kernel argument.
+  * debian/rules: add "-X.svn" line to dh_install call, so that
+    subversion directories aren't needlessly copied
+
+ -- Wouter Verhelst <wouter@debian.org>  Sat, 25 Jul 2009 14:37:49 +0200
+
+flash-kernel (2.20) unstable; urgency=low
+
+  * Add support for Lanner EM7210 and compatibles (e.g., Intel SS4000-e)
+
+ -- Wouter Verhelst <wouter@debian.org>  Sat, 06 Jun 2009 14:42:34 +0200
+
+flash-kernel (2.19) unstable; urgency=low
+
+  * Add support for the SheevaPlug.
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Mon, 25 May 2009 21:12:05 +0200
+
+flash-kernel (2.18) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Make findfs use the last of any mounts found, in case there's more than
+    one due to pilot error in the partitioner.
+
+  [ Martin Michlmayr ]
+  * No longer add a kernel postinst hook that calls flash-kernel.  Closes:
+    #526640
+  * Add a NEWS file telling people that they can remove the postinst hook.
+  * Depend on initramfs-tools (>= 0.92f), which was the first version
+    that called flash-kernel.
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Tue, 19 May 2009 12:56:10 +0200
+
+flash-kernel (2.17) unstable; urgency=low
+
+  * Add kirkwood as a supported subarchitecture, but only activate
+    flash-kernel on the QNAP TS-119/TS-219 so far.
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Tue, 31 Mar 2009 21:31:12 +0200
+
+flash-kernel (2.16) unstable; urgency=low
+
+  [ Otavio Salvador ]
+  * Apply patch from Per Andersson <avtobiff@gmail.com> to update the
+    manpage to describe the behaviour of the subarch check and the new
+    naming conventions.  Closes: #521356
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Tue, 31 Mar 2009 17:29:26 +0200
+
+flash-kernel (2.15) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Remove unused cruft from debian/rules, pointed out by Loïc Minier.
+  * Add lots of defensive shell quoting, also pointed out by Loïc Minier.
+
+  [ Martin Michlmayr ]
+  * Add support for QNAP TS-119 and TS-219 Turbo NAS.
+  * Remove some code duplication in the initramfs hook.
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Tue, 24 Mar 2009 20:03:24 +0100
+
+flash-kernel (2.14) unstable; urgency=low
+
+  * Display a message when the generation of the u-boot image for the
+    D-Link DNS-323 is done.
+
+  [ Updated translations ]
+  * Galician (gl.po) by marce villarino
+  * Hindi (hi.po) by Kumar Appaiah
+  * Kazakh (kk.po) by daur88
+  * Malayalam (ml.po) by Praveen Arimbrathodiyil
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Sun, 08 Mar 2009 22:03:02 +0100
+
 flash-kernel (2.13ubuntu17) lucid; urgency=low
 
   * add "fixrtc" option to default cmdline for OMAP3 Beagle, this fixes the

@@ -1,3 +1,81 @@
+partman-ext3 (59ubuntu1) maverick; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Special case loopmounted filesystems as it's safer to format the
+      underlying file, not the device.
+    - Offer ext4 before ext3.
+    - Warn when reformatting an existing misaligned partition for use as
+      ext3/ext4, since it will result in poor performance and this is about
+      the only sensible opportunity to fix it.
+    - Add preseedable partman-ext3/lazy_itable_init question, which if true
+      runs mkfs.ext* with '-E lazy_itable_init', greatly speeding up mkfs on
+      large drives.  This defaults to false since it is currently unsafe for
+      use on areas of disk that previously contained a filesystem.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 25 May 2010 18:43:20 +0100
+
+partman-ext3 (59) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Upgrade to debhelper v7.
+
+  [ Frans Pop ]
+  * Remove no longer needed Lintian override for missing Standards-Version
+    field.
+
+  [ Christian Perrier ]
+  * Drop double spaces after period in templates.
+
+  [ Martin Michlmayr ]
+  * check.d/ext2_or_ext3_boot: when a RAID1 partition is used for /boot
+    don't check whether it's the 1st primary partition.  There's no good
+    way to map a RAID partition to its physical partition at the moment.
+    (Closes: #504397).
+  * check.d/ext2_or_ext3_boot: ensure that the /boot partition has the
+    bootable flag (Closes: #509799).
+
+  [ Updated translations ]
+  * Amharic (am.po) by Tegegne Tefera
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Asturian (ast.po) by marquinos
+  * Belarusian (be.po) by Pavel Piatruk
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bengali (bn.po) by Israt Jahan
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Ask Hjorth Larsen
+  * German (de.po) by Holger Wansing
+  * Greek, Modern (1453-) (el.po)
+  * Esperanto (eo.po) by Felipe Castro
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Estonian (et.po) by Mattias Põldaru
+  * Basque (eu.po) by Piarres Beobide
+  * Finnish (fi.po) by Esko Arajärvi
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Marce Villarino
+  * Hindi (hi.po)
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Italian (it.po) by Milo Casagrande
+  * Japanese (ja.po) by Kenshi Muto
+  * Korean (ko.po) by Changwoo Ryu
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Marathi (mr.po) by Sampada
+  * Bokmål, Norwegian (nb.po) by Hans Fredrik Nordhaug
+  * Dutch (nl.po) by Frans Pop
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Romanian (ro.po) by Eddy Petrișor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Ivan Masár
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Swedish (sv.po) by Daniel Nylander
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Turkish (tr.po) by Mert Dirik
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+  * Simplified Chinese (zh_CN.po) by 苏运强
+
+ -- Frans Pop <fjp@debian.org>  Mon, 22 Feb 2010 04:18:34 +0100
+
 partman-ext3 (58ubuntu3) lucid; urgency=low
 
   * Add preseedable partman-ext3/lazy_itable_init question, which if true

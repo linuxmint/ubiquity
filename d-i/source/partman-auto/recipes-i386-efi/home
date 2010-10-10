@@ -1,0 +1,36 @@
+partman-auto/text/home_scheme ::
+
+20 50 200 free
+	$iflabel{ gpt }
+	method{ efi }
+	format{ } .
+
+128 512 256 ext2
+	$defaultignore{ }
+	method{ format }
+	format{ }
+	use_filesystem{ }
+	filesystem{ ext2 }
+	mountpoint{ /boot } .
+
+500 4000 7000 $default_filesystem
+	$lvmok{ }
+	method{ format }
+	format{ }
+	use_filesystem{ }
+	$default_filesystem{ }
+	mountpoint{ / } .
+
+96 512 300% linux-swap
+	$lvmok{ }
+	method{ swap }
+	format{ } .
+
+100 10000 -1 $default_filesystem
+	$lvmok{ }
+	method{ format }
+	format{ }
+	use_filesystem{ }
+	$default_filesystem{ }
+	mountpoint{ /home } .
+

@@ -1,0 +1,48 @@
+#!/bin/sh
+#make -C d-i update
+#make -C d-i build
+#make -C d-i install
+# Need to install python-pyicu
+# For loading the console-setup plugin.  This is needed for at least testing
+# loading of plugins.
+./debian/rules ubiquity/keyboard_names.py
+rebuild=false
+for x in d-i/templates debian/ubiquity.templates \
+	debian/ubiquity.templates-imported; do
+	if [ $x -nt tests/debconfdb ]; then
+		rebuild=:
+		break
+	fi
+done
+$rebuild && (cat d-i/templates; echo;
+	po2debconf debian/ubiquity.templates; echo;
+	po2debconf debian/ubiquity.templates-imported \
+		--podir=debian/imported-po) > tests/debconfdb
+cat > tests/debconf.conf << EOF
+Config: configdb
+Templates: templatedb
+
+Name: configdb
+Driver: File
+Mode: 644
+Filename: tests/config.dat
+
+Name: templatedb
+Driver: File
+Mode: 644
+Filename: tests/templates.dat
+EOF
+export DEBCONF_SYSTEMRC=tests/debconf.conf
+$rebuild && debconf-loadtemplate ubiquity tests/debconfdb
+[ -e ubiquity/Makefile ] || ./configure && (cd ubiquity; make)
+# For log-output
+export PATH="d-i/source/debian-installer-utils:$PATH"
+
+# SUDO UID and SUDO_GID are for KDE
+SUDO_UID=$(id -u) \
+SUDO_GID=$(id -g) \
+UBIQUITY_PATH=. \
+UBIQUITY_PLUGIN_PATH=ubiquity/plugins \
+PIXMAPS=desktop \
+UBIQUITY_GLADE=gui/gtk \
+fakeroot xvfb-run ./tests/run-frontend

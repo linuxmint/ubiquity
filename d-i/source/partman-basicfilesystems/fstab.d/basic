@@ -62,7 +62,10 @@ for dev in $DEVICES/*; do
 				fi
 			fi
 			# base-passwd defines gid 46 as group plugdev
-			echo "$path" "$mountpoint" vfat $options,umask=007,gid=46 0 1
+			if [ "$method" != efi ]; then
+				options="$options,umask=007,gid=46"
+			fi
+			echo "$path" "$mountpoint" vfat $options 0 1
 			;;
 		    ntfs)
 			[ -f "$id/mountpoint" ] || continue

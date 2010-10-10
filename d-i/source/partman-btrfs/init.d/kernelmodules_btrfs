@@ -1,0 +1,20 @@
+#!/bin/sh
+
+mkdir -p /var/lib/partman
+
+cat /proc/modules |
+while read module_name x; do
+	if [ "$module_name" = btrfs ]; then
+		>/var/lib/partman/btrfs
+		exit 0
+	fi
+done
+
+if modprobe btrfs >/dev/null 2>/dev/null; then
+	>/var/lib/partman/btrfs
+	exit 0
+fi
+
+if grep -q btrfs /proc/filesystems; then
+	>/var/lib/partman/btrfs
+fi

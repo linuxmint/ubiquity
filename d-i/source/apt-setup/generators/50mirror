@@ -112,12 +112,12 @@ if [ -e /cdrom/.disk/base_installable ] || [ "$OVERRIDE_BASE_INSTALLABLE" ]; the
 	fi
 
 	while true; do
-		RET=0
-		choose-mirror -n || RET=$?	# no progress bar
+		CODE=0
+		choose-mirror -n || CODE=$?	# no progress bar
 		db_capb backup progresscancel
-		if [ $RET -eq 0 ]; then
+		if [ $CODE -eq 0 ]; then
 			break
-		elif [ $RET -eq 10 ]; then
+		elif [ $CODE -eq 10 ]; then
 			# User backed out of choose-mirror
 			db_input critical apt-setup/no_mirror
 			db_go || exit 10
@@ -127,8 +127,8 @@ if [ -e /cdrom/.disk/base_installable ] || [ "$OVERRIDE_BASE_INSTALLABLE" ]; the
 				exit 1
 			fi
 		else
-			logger -t apt-setup "choose-mirror failed with error code $RET"
-			exit $RET
+			logger -t apt-setup "choose-mirror failed with error code $CODE"
+			exit $CODE
 		fi
 	done
 fi

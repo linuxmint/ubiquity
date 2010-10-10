@@ -11,8 +11,7 @@ sub first_dep ($) {
 		$inner = $deps[0];
 	}
 	unless ($inner->isa('Dpkg::Deps::Simple')) {
-		die sprintf "Couldn't reduce %s to a simple dependency!\n",
-			    $inner->dump();
+		die sprintf "Couldn't reduce $inner to a simple dependency!\n";
 	}
 	return $inner;
 }
@@ -36,14 +35,22 @@ my @basebd = (
     'dpkg-dev (>= 1.14.4)',
     'intltool (>= 0.40.0)',
     'keymapper (>= 0.5.3-7)',
+    'libcheese-gtk-dev',
+    'libglib2.0-dev',
+    'libgstreamer-plugins-base0.10-dev (>= 0.10.23)',
+    'libgtk2.0-dev',
+    'libindicator-dev (>= 0.3.14)',
+    'pkg-config',
     'po-debconf (>= 1.0)',
     'python-all-dev (>= 2.6)',
     'python-central (>= 0.5)',
+    'python-gobject-dev',
+    'python-gtk2-dev',
     'xkb-data (>= 0.9)',
     'xkb-data-i18n',
 );
 my $basebd = join ', ', @basebd;
-my $parsed = Dpkg::Deps::parse($basebd, reduce_arch => 1);
+my $parsed = Dpkg::Deps::deps_parse($basebd, reduce_arch => 1);
 for my $bd ($parsed->get_deps()) {
 	my $firstbd = first_dep($bd);
 	$builddeps{$firstbd->{package}} = $firstbd;
@@ -55,7 +62,7 @@ for my $source (<source/*/debian/control>) {
 	open SOURCE, '<', $source or die "can't open $source: $!";
 	while (<SOURCE>) {
 		if (/^Build-Depends(?:-Indep)?:\s*(.*)/i) {
-			$parsed = Dpkg::Deps::parse($1, reduce_arch => 1);
+			$parsed = Dpkg::Deps::deps_parse($1, reduce_arch => 1);
 			for my $bd ($parsed->get_deps()) {
 				# Reduce any or-ed dependencies to the first
 				# alternative.
@@ -73,7 +80,7 @@ for my $source (<source/*/debian/control>) {
 }
 
 my $builddeps =
-	join ', ', map { $builddeps{$_}->dump() } sort keys %builddeps;
+	join ', ', map { "$builddeps{$_}" } sort keys %builddeps;
 open IN, '<', $control or die "can't open $control: $!";
 open OUT, '>', "$control.tmp" or die "can't open $control.tmp for writing: $!";
 foreach (<IN>) {

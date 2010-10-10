@@ -6,7 +6,6 @@ from PyQt4 import uic
 
 import subprocess
 import sys
-import os
 
 IMG_DIR = "/usr/share/ubiquity/qt/images"
 

@@ -98,7 +98,7 @@ clean:
 	rm -f $(BIN) $(OBJS) *~ mirrors_*.h
 	rm -f debian/templates-countries debian/httplist-countries debian/ftplist-countries
 	rm -f demo demo.templates
-	rm -rf debian/iso-codes debian/pobuild
+	rm -rf debian/iso-codes/ debian/pobuild*/
 	rm -f debian/iso_3166.tab
 
 reallyclean: clean

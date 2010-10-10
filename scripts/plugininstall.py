@@ -133,7 +133,7 @@ class Install(install_misc.InstallBase):
 
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/apt')
-        self.configure_apt()
+        #self.configure_apt()
 
         self.configure_plugins()
 
@@ -246,7 +246,7 @@ class Install(install_misc.InstallBase):
         except debconf.DebconfError:
             domain = ''
         if hostname == '':
-            hostname = 'ubuntu'
+            hostname = 'mint'
 
         hosts = open(os.path.join(self.target, 'etc/hosts'), 'w')
         print >>hosts, "127.0.0.1\tlocalhost"
@@ -1308,7 +1308,7 @@ class Install(install_misc.InstallBase):
 
         # we don't use copy_network_config casper user trick as it's not and not
         # ubuntu in install mode
-        casper_user = 'ubuntu'
+        casper_user = 'mint'
         casper_user_home = os.path.expanduser('~%s' % casper_user)
         casper_user_wallpaper_cache_dir = os.path.join(casper_user_home,
                                                        '.cache', 'wallpaper')

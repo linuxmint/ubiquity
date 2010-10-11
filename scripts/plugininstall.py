@@ -134,6 +134,10 @@ class Install(install_misc.InstallBase):
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/apt')
         #self.configure_apt()
+        try:
+            shutil.rmtree(os.path.join(self.target, 'var/lib/apt-xapian-index'), ignore_errors=True)
+        except OSError:
+            pass
 
         self.configure_plugins()
 

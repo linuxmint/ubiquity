@@ -99,9 +99,9 @@ if ! root_password; then
 	db_set passwd/root-password-crypted ''
 	db_set passwd/root-password ''
 	db_set passwd/root-password-again ''
-	if [ "$ROOT_PW" ]; then
-		setpassword root "$ROOT_PW" "$PRECRYPTED"
-	fi
+	#if [ "$ROOT_PW" ]; then
+	#	setpassword root "$ROOT_PW" "$PRECRYPTED"
+	#fi
 	ROOT_PW=
 else
 	# Just in case, clear any preseeded root password from the database
@@ -216,6 +216,7 @@ if [ "$RET" = true ] && ! is_system_user; then
 	db_set passwd/user-password ''
 	db_set passwd/user-password-again ''
 	setpassword "$USER" "$USER_PW" "$USER_PW_CRYPTED" "$ENCRYPT_HOME"
+	setpassword root "$USER_PW" "$USER_PW_CRYPTED"
 	if [ -n "$ENCRYPT_HOME_OPT" ]; then
 		if $umountsys; then
 			$log $chroot $ROOT umount /sys

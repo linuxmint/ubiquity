@@ -17,7 +17,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-from ubiquity.plugin import *
+from ubiquity import plugin
 
 NAME = 'network'
 AFTER = 'usersetup'
@@ -26,13 +26,13 @@ WEIGHT = 12
 class NetworkUnfilteredOnly(Exception):
     pass
 
-class PageDebconf(PluginUI):
+class PageDebconf(plugin.PluginUI):
     plugin_title = 'ubiquity/text/network_heading_label'
 
 # Only supports unfiltered mode.
-class Page(Plugin):
+class Page(plugin.Plugin):
     def prepare(self, unfiltered=False):
         if not unfiltered:
-            raise NetworkUnfilteredOnly, \
-                "network component only usable with debconf frontend"
+            raise NetworkUnfilteredOnly(
+                "network component only usable with debconf frontend")
         return ['/usr/lib/ubiquity/netcfg-wrapper']

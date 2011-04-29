@@ -25,26 +25,10 @@ import locale
 import sys
 from ubiquity import misc, im_switch
 
-_supported_locales = None
-
-def get_supported_locales():
-    """Returns a list of all locales supported by the installation system."""
-    global _supported_locales
-    if _supported_locales is None:
-        _supported_locales = {}
-        supported = open('/usr/share/i18n/SUPPORTED')
-        for line in supported:
-            (locale, charset) = line.split(None, 1)
-            _supported_locales[locale] = charset
-        supported.close()
-    return _supported_locales
-
-
 # if 'just_country' is True, only the country is changing
 def reset_locale(frontend, just_country=False):
+    frontend.start_debconf()
     di_locale = frontend.db.get('debian-installer/locale')
-    if di_locale not in get_supported_locales():
-        di_locale = frontend.db.get('debian-installer/fallbacklocale')
     if not di_locale:
         # TODO cjwatson 2006-07-17: maybe fetch
         # languagechooser/language-name and set a language based on
@@ -191,11 +175,9 @@ string_questions = {
     'closebutton1': 'ubiquity/imported/close',
     'cancelbutton1': 'ubiquity/imported/cancel',
     'okbutton1': 'ubiquity/imported/ok',
-    'advanced_cancelbutton': 'ubiquity/imported/cancel',
-    'advanced_okbutton': 'ubiquity/imported/ok',
 }
 
-string_extended = set('grub_device_label')
+string_extended = set()
 
 def map_widget_name(prefix, name):
     """Map a widget name to its translatable template."""
@@ -278,14 +260,11 @@ def get_languages(current_language_index=-1, only_installable=False):
         if line == '' or line == '\n':
             continue
         code, name, trans = line.strip(u'\n').split(u':')[1:]
-        if code in ('dz', 'km'):
+        if code in ('C', 'dz', 'km'):
             i += 1
             continue
 
         if only_installable:
-            if code == 'C':
-                i += 1
-                continue
             pkg_name = 'language-pack-%s' % code
             #special case these
             if pkg_name.endswith('_CN'):

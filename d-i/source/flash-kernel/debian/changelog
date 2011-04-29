@@ -1,3 +1,76 @@
+flash-kernel (2.28ubuntu19) natty; urgency=low
+
+  * IMX: Replace imx5 subarch with mx5; matches upstream kernel more closely
+    and seems to be what Debian will be using.  It's easier to do the change
+    now, before there is any in archive kernel with the "imx5" subarch name.
+  * IMX: Use proper location for boot.script ($TMPMOUNT rather than /boot);
+    it wasn't possible to use this functionality with the incorrect directory.
+
+ -- Ying-Chun Liu (PaulLiu) <paul.liu@linaro.org>  Fri, 15 Apr 2011 15:11:40 +0800
+
+flash-kernel (2.28ubuntu18) natty; urgency=low
+
+  * match omap4 hardware on "OMAP4 Panda board" as well (LP: #744862)
+
+ -- Oliver Grawert <ogra@ubuntu.com>  Wed, 30 Mar 2011 11:55:56 +0200
+
+flash-kernel (2.28ubuntu17) natty; urgency=low
+
+  * IMX51: transition from redboot -> uboot
+  * IMX53: Add imx53 loco board support
+
+ -- Ying-Chun Liu (PaulLiu) <paul.liu@linaro.org>  Tue, 08 Mar 2011 02:53:43 +0800
+
+flash-kernel (2.28ubuntu16) natty; urgency=low
+
+  * Don't check any subarch for the EfikaMX case, install whatever kernel is
+    apt-get install-ed; we can't get to a consensus on how to solve this
+    cleanly, so at least this will allow installation for people who know what
+    they are doing; LP: #671027.
+
+ -- Loïc Minier <loic.minier@ubuntu.com>  Mon, 07 Mar 2011 12:15:26 +0100
+
+flash-kernel (2.28ubuntu15) natty; urgency=low
+
+  * Fix tabs vs. spaces.
+  * Uncomment check_subarch call for EfikaMX and replace "$running_subarch"
+    with "mx51" which seems more consistent and is similar to other boards;
+    see LP #671027.
+  * efikamx_flash_kernel(): remove $tmp.
+
+ -- Loïc Minier <loic.minier@linaro.org>  Mon, 28 Feb 2011 16:10:02 +0100
+
+flash-kernel (2.28ubuntu14) natty; urgency=low
+ 
+  [ Marcin Juszkiewicz ]
+  * Add Efika MX Smartbook/Smarttop support based on work done by Genesi.
+    (LP: #671027)
+
+ -- Oliver Grawert <ogra@ubuntu.com>  Thu, 17 Feb 2011 16:01:42 +0100
+
+flash-kernel (2.28ubuntu13) natty; urgency=low
+
+  * Add --update-bootloader argument which triggers updating x-loader
+    and u-boot files. The only supported boards for now are IGEPv2,
+    Beagle and Panda.
+
+ -- Jani Monoses <jani@ubuntu.com>  Wed, 26 Jan 2011 14:10:17 +0200
+
+flash-kernel (2.28ubuntu12) natty; urgency=low
+
+  * Update to final package name for mkimage: u-boot-tools.
+
+ -- Loïc Minier <loic.minier@linaro.org>  Sat, 08 Jan 2011 12:33:59 +0100
+
+flash-kernel (2.28ubuntu11) natty; urgency=low
+
+  * mkimage moved from the uboot-mkimage to the u-boot package:
+    - update control to suggest u-boot | uboot-mkimage.
+    - update flash-kernel-installer.postinst to use a common function to
+      install mkimage and try installing u-boot in-target first.
+
+ -- Loïc Minier <loic.minier@linaro.org>  Mon, 20 Dec 2010 10:47:49 +0100
+
 flash-kernel (2.28ubuntu10) maverick; urgency=low
 
   * merge versatile espress support from Matt Waddel <matt.waddel@linaro.org>

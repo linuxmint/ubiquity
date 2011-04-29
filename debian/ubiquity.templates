@@ -10,21 +10,19 @@ Type: boolean
 Default: true
 Description: enable frame buffer console on boot
 
-Template: ubiquity/text/biggest_free
+Template: ubiquity/text/restart_to_continue
 Type: text
-_Description: Use the largest continuous free space
+_Description: Restart to Continue
 
-Template: ubiquity/text/use_device
+Template: ubiquity/text/custom_partitioning_title
 Type: text
-_Description: Erase and use the entire disk
+_Description: Manual configuration (advanced)
 
-Template: ubiquity/text/resize_use_free
+Template: ubiquity/text/custom_partitioning_desc
 Type: text
-_Description: Install alongside other operating systems
-
-Template: ubiquity/text/custom_partitioning
-Type: text
-_Description: Specify partitions manually (advanced)
+_Description:
+ Too smart for us? Get your hands dirty with some advanced partitioning
+ options.
 
 Template: ubiquity/text/live_installer
 Type: text
@@ -44,6 +42,9 @@ _Description:
 
 Template: ubiquity/text/try_install_text_label
 Type: text
+# RELEASE is a variable substituted into this string, and may be 'Ubuntu'
+#flag:comment:2
+# MEDIUM is a variable substituted into this string, and may be 'CD'
 _Description:
  You can try ${RELEASE} without making any changes to your computer,
  directly from this ${MEDIUM}.
@@ -53,20 +54,13 @@ _Description:
 
 Template: ubiquity/text/try_ubuntu
 Type: text
+# RELEASE is a variable substituted into this string, and may be 'Ubuntu'
 _Description: Try ${RELEASE}
 
 Template: ubiquity/text/install_ubuntu
 Type: text
+# RELEASE is a variable substituted into this string, and may be 'Ubuntu'
 _Description: Install ${RELEASE}
-
-Template: ubiquity/text/ready_text_oem_user_label
-Type: text
-_Description:
- Once you answer a few questions, this computer will be ready to use.
-
-Template: ubiquity/text/duration_text_label
-Type: text
-_Description: Answering the questions should only take a few minutes.
 
 Template: ubiquity/text/release_notes_label
 Type: text
@@ -93,10 +87,13 @@ Description: for internal use; can be preseeded
 
 Template: ubiquity/text/alpha_warning_label
 Type: text
+#flag:comment:2
+# RELEASE is a variable substituted into this string, and may be 'Ubuntu'
+# MEDIUM is a variable substituted into this string, and may be 'CD'
 _Description:
  This is a pre-release of the ${RELEASE} live ${MEDIUM} installer. It is not
  a final release; that will come with the final release of ${RELEASE} in
- October 2010.
+ April 2011.
  .
  The installation process may resize or erase partitions on your hard disk.
  Be sure to <b>take a full backup of any valuable data</b> before running
@@ -124,11 +121,11 @@ _Description: Type here to test your keyboard
 
 Template: ubiquity/text/deduce_layout
 Type: text
-_Description: Figure Out Keyboard Layout
+_Description: Detect Keyboard Layout
 
 Template: ubiquity/text/keyboard_query_title
 Type: text
-_Description: Figure out keyboard layout
+_Description: Detect Keyboard Layout...
 
 Template: ubiquity/text/keyboard_query_press
 Type: text
@@ -170,6 +167,10 @@ Template: ubiquity/text/password_again_inactive_label
 Type: text
 _Description: Confirm password
 
+Template: ubiquity/text/verified_password_label
+Type: text
+_Description: Confirm your password:
+
 Template: ubiquity/text/hostname_label
 Type: text
 _Description: Your computer's name:
@@ -182,6 +183,10 @@ _Description: The name it uses when it talks to other computers.
 Template: ubiquity/text/password_debug_warning_label
 Type: text
 _Description: You are running in debugging mode. Do not use a valuable password!
+
+Template: ubiquity/text/password_mismatch
+Type: text
+_Description: Passwords do not match
 
 Template: ubiquity/text/password/too_short
 Type: text
@@ -215,10 +220,6 @@ Template: ubiquity/text/login_encrypt
 Type: text
 _Description: Encrypt my home folder
 
-Template: ubiquity/text/ma_heading_label
-Type: text
-_Description: Migrate documents and settings
-
 Template: ubiquity/text/ma_text_label
 Type: text
 _Description:
@@ -232,60 +233,20 @@ Template: ubiquity/text/part_auto_heading_label
 Type: text
 _Description: Allocate drive space
 
-Template: ubiquity/text/part_auto_comment_label
+Template: ubiquity/text/part_auto_files
 Type: text
-_Description: How do you want to partition the disk?
-
-Template: ubiquity/text/part_auto_comment_none
-Type: text
-_Description: This computer has no operating systems on it.
-
-Template: ubiquity/text/part_auto_comment_one
-Type: text
-_Description: This computer has ${OS} on it.
-
-Template: ubiquity/text/part_auto_comment_many
-Type: text
-_Description: This computer has several operating systems on it.
-
-Template: ubiquity/text/part_auto_choices_label
-Type: text
-_Description: Where do you want to put ${RELEASE}?
+# SIZE is a variable substituted into this string, and may be '100 GB'
+_Description: Files (${SIZE})
 
 Template: ubiquity/text/part_advanced_heading_label
 Type: text
 _Description: Prepare partitions
-
-Template: ubiquity/text/part_format_warning
-Type: text
-# SYSTEMS is a comma-separated list of operating systems present on the disk.
-_Description: This will delete ${SYSTEMS} and install ${RELEASE}.
-
-Template: ubiquity/text/ready_heading_label
-Type: text
-_Description: Ready to install
-
-Template: ubiquity/text/ready_details_label
-Type: text
-_Description: Details
-
-Template: ubiquity/text/ready_description_label
-Type: text
-_Description: Your new operating system will now be installed with the following settings:
-
-Template: ubiquity/text/advanced_button
-Type: text
-_Description: Advanced...
 
 Template: ubiquity/text/install_button
 Type: text
 # This is used as a button label, and should be translated as an action.
 # Omit the [ ... ] from the translation.
 _Description: _Install Now[ action ]
-
-Template: ubiquity/text/step_label
-Type: text
-_Description: Step ${INDEX}/${TOTAL}
 
 Template: ubiquity/text/warning_dialog
 Type: title
@@ -315,6 +276,7 @@ _Description: Continue without a bootloader.
 
 Template: ubiquity/text/skip_label
 Type: text
+# RELEASE is a variable substituted into this string, and may be 'Ubuntu'
 _Description:
  You will need to manually install a bootloader in order to start ${RELEASE}.
 
@@ -345,6 +307,16 @@ _Description: Continue Testing
 Template: ubiquity/text/reboot_button
 Type: text
 _Description: Restart Now
+
+Template: ubiquity/text/shutdown_button
+Type: text
+_Description: Shutdown Now
+
+Template: ubiquity/show_shutdown_button
+Type: boolean
+Default: false
+Description: for internal use; can be preseeded
+ Show the Shutdown Now button at the end of installation
 
 Template: ubiquity/text/crash_dialog
 Type: text
@@ -471,40 +443,13 @@ Template: ubiquity/text/partition_edit_size_label
 Type: text
 _Description: New partition size in megabytes (1000000 bytes):
 
-Template: ubiquity/text/advanced_dialog
-Type: text
-_Description: Advanced Options
-
 Template: ubiquity/text/bootloader_group_label
 Type: text
 _Description: Boot loader
 
-Template: ubiquity/text/grub_enable
-Type: text
-_Description: Install boot loader
-
-Template: ubiquity/text/popcon_group_label
-Type: text
-_Description: Popularity contest
-
-Template: ubiquity/text/popcon_checkbutton
-Type: text
-_Description: Participate in the package usage survey
-
-Template: ubiquity/text/proxy_group_label
-Type: text
-_Description: Network proxy
-
-Template: ubiquity/text/proxy_host_label
-Type: text
-_Description: HTTP proxy:
-
-Template: ubiquity/text/proxy_port_label
-Type: text
-_Description: Port:
-
 Template: ubiquity/text/finished_label
 Type: text
+# RELEASE is a variable substituted into this string, and may be 'Ubuntu'
 _Description:
  Installation has finished.  You can continue testing ${RELEASE} now, but until
  you restart the computer, any changes you make or documents you save will
@@ -526,20 +471,6 @@ _Description:
  Installation is complete. You need to restart the computer in order to use
  the new installation.
 
-Template: ubiquity/summary
-Type: note
-#flag:translate!:3
-_Description: Ready to install
-  Language: ${LANGUAGE}
-  Keyboard layout: ${KEYMAP}
-  Name: ${FULLNAME}
-  Login name: ${USERNAME}
-  Location: ${LOCATION}
-  Migration Assistant:
-  ${MIGRATE}
- .
- ${PARTMAN_CHANGES}
-
 Template: ubiquity/install/checking
 Type: text
 _Description: Verifying the installation configuration...
@@ -559,10 +490,6 @@ Description: Only for preseeding; not translated.
  image to copy to the hard disk. (Normally, these paths would begin with
  /cdrom.) If more than one filesystem image is given, they will be overlaid
  using unionfs.
-
-Template: ubiquity/install/scanning
-Type: text
-_Description: Scanning files...
 
 Template: ubiquity/install/copying
 Type: text
@@ -679,17 +606,25 @@ Template: ubiquity/install/hardware
 Type: text
 _Description: Configuring hardware...
 
+Template: ubiquity/install/nonfree
+Type: text
+_Description: Installing third-party software...
+
 Template: ubiquity/install/network
 Type: text
 _Description: Configuring network...
 
-Template: ubiquity/install/hostname
-Type: text
-_Description: Setting computer name...
-
 Template: ubiquity/install/bootloader
 Type: text
 _Description: Configuring boot loader...
+
+Template: ubiquity/install/apt_clone_save
+Type: text
+_Description: Saving installed packages...
+
+Template: ubiquity/install/apt_clone_restore
+Type: text
+_Description: Restoring previously installed packages...
 
 Template: ubiquity/install/installing
 Type: text
@@ -790,6 +725,13 @@ _Description: Error copying network configuration
  An error occurred while copying the network settings.  The installation will
  continue, but the network configuration will have to be set up again in the
  installed system.
+
+Template: ubiquity/install/broken_apt_clone
+Type: error
+_Description: Error restoring installed applications
+ An error occurred while restoring previously-installed applications.  The
+ installation will continue, but you may have to manually reinstall some
+ applications after the computer reboots.
 
 Template: ubiquity/install/md5_check
 Type: boolean
@@ -900,6 +842,11 @@ Type: boolean
 Default: false
 Description: for internal use; automatically reboot when the install completes.
 
+Template: ubiquity/poweroff
+Type: boolean
+Default: false
+Description: for internal use; automatically shutdown when the install completes.
+
 Template: ubiquity/success_command
 Type: string
 Description: for internal use; specify a command to be run on install success.
@@ -940,10 +887,6 @@ Template: ubiquity/text/tasks_heading_label
 Type: text
 _Description: Software selection
 
-Template: ubiquity/text/applying
-Type: text
-_Description: Applying configuration
-
 Template: ubiquity/text/breadcrumb_language
 Type: text
 _Description: Language
@@ -967,10 +910,6 @@ _Description: Disk Setup
 Template: ubiquity/text/breadcrumb_user
 Type: text
 _Description: User Info
-
-Template: ubiquity/text/breadcrumb_summary
-Type: text
-_Description: Summary
 
 Template: ubiquity/text/breadcrumb_install
 Type: text
@@ -1038,11 +977,6 @@ _Description:
  Please choose the language used for the configuration process. This
  language will be the default language for this computer.
 
-Template: ubiquity/text/begin_install_button
-Type: text
-_Description:
- Continue with installation.
-
 Template: ubiquity/install_failed
 Type: text
 _Description: Installation failed
@@ -1061,6 +995,7 @@ Description: for internal use; automatically reboot when the install fails.
 
 Template: ubiquity/text/prepare_heading_label
 Type: text
+# RELEASE is a variable substituted into this string, and may be 'Ubuntu'
 _Description: Preparing to install ${RELEASE}
 
 Template: ubiquity/text/wireless_heading_label
@@ -1124,14 +1059,6 @@ _Description:
  1 partition will be deleted, use the <a href="">advanced
  partitioning tool</a> for more control
 
-Template: ubiquity/text/part_auto_use_entire_partition
-Type: text
-_Description: Use Entire Partition
-
-Template: ubiquity/text/part_auto_use_entire_disk
-Type: text
-_Description: Use Entire Disk
-
 Template: ubiquity/text/part_auto_split_largest_partition
 Type: text
 _Description: Split Largest Partition
@@ -1147,6 +1074,7 @@ _Description: For best results, please ensure that this computer:
 
 Template: ubiquity/text/prepare_sufficient_space
 Type: text
+# SIZE is a variable substituted into this string, and may be '3.7 GB'
 _Description: has at least ${SIZE} available drive space
 
 Template: ubiquity/text/prepare_power_source
@@ -1159,6 +1087,7 @@ _Description: is connected to the Internet
 
 Template: ubiquity/text/prepare_foss_disclaimer
 Type: text
+# RELEASE is a variable substituted into this string, and may be 'Ubuntu'
 _Description:
  ${RELEASE} uses third-party software to display Flash, MP3 and other media,
  and to work with some wireless hardware. Some of this software is
@@ -1227,9 +1156,138 @@ Template: ubiquity/text/welcome_heading_label
 Type: text
 _Description: Welcome
 
-Template: ubiquity/text/ready_text_label
+# Automatic partitioning options.
+# Refer to the installer design document for the rationale behind each of
+# these:
+# http://bit.ly/ubuntu-installer-specification-partitioning
+
+Template: ubiquity/partitioner/single_os_replace
+Type: text
+# OS is a variable substituted into this string, and may be 'Windows 7'
+#flag:comment:1
+# DISTRO is a variable substituted into this string, and may be 'Ubuntu'
+_Description: Replace ${OS} with ${DISTRO}
+ <span foreground="darkred">Warning:</span> This will delete all of your ${OS}
+ programs, documents, photos, music, and any other files.
+
+Template: ubiquity/partitioner/single_os_resize
+Type: text
+#flag:comment:1
+# DISTRO is a variable substituted into this string, and may be 'Ubuntu'
+# OS is a variable substituted into this string, and may be 'Windows 7'
+_Description: Install ${DISTRO} alongside ${OS}
+ Documents, music, and other personal files will be kept. You can choose which
+ operating system you want each time the computer starts up.
+
+Template: ubiquity/partitioner/ubuntu_inside
+Type: text
+#flag:comment:1
+# DISTRO is a variable substituted into this string, and may be 'Ubuntu'
+# OS is a variable substituted into this string, and may be 'Windows 7'
+_Description: Install ${DISTRO} inside ${OS}
+ Documents, music, and other personal files will be kept. You can choose which
+ operating system you want each time the computer starts up.
+
+Template: ubiquity/partitioner/advanced
+Type: text
+#flag:comment:2
+# DISTRO is a variable substituted into this string, and may be 'Ubuntu'
+_Description: Something else
+ You can create or resize partitions yourself, or choose multiple partitions
+ for ${DISTRO}.
+
+Template: ubiquity/partitioner/ubuntu_format
+Type: text
+# CURDISTRO is a variable substituted into this string, and may be 'Ubuntu 10.10'
+_Description: Erase ${CURDISTRO} and reinstall
+ <span foreground="darkred">Warning:</span> This will delete all your
+ ${CURDISTRO} programs, documents, photos, music, and any other files.
+
+Template: ubiquity/partitioner/ubuntu_upgrade
+Type: text
+#flag:comment:1
+# CURDISTRO is a variable substituted into this string, and may be 'Ubuntu 10.10'
+# VER is a variable substituted into this string, and may be '11.04'
+_Description: Upgrade ${CURDISTRO} to ${VER}
+ Documents, music, and other personal files will be kept. Installed software
+ will be kept where possible. System-wide settings will be cleared.
+
+Template: ubiquity/partitioner/ubuntu_resize
+Type: text
+#flag:comment:1
+# DISTRO is a variable substituted into this string, and may be 'Ubuntu'
+# VER is a variable substituted into this string, and may be '11.04'
+# CURDISTRO is a variable substituted into this string, and may be 'Ubuntu 10.10'
+_Description: Install ${DISTRO} ${VER} alongside ${CURDISTRO}
+ Documents, music, and other personal files will be kept. You can choose which
+ operating system you want each time the computer starts up.
+
+Template: ubiquity/partitioner/no_systems_format
+Type: text
+#flag:comment:1
+# DISTRO is a variable substituted into this string, and may be 'Ubuntu'
+_Description: Erase disk and install ${DISTRO}
+ <span foreground="darkred">Warning:</span> This will delete any files on the
+ disk.
+
+Template: ubiquity/partitioner/ubuntu_and_os_format
+Type: text
+#flag:comment:2
+# OS is a variable substituted into this string, and may be 'Windows 7'
+# CURDISTRO is a variable substituted into this string, and may be 'Ubuntu 10.10'
+_Description: Erase everything and reinstall
+ <span foreground="darkred">Warning:</span> This will delete all your
+ programs, documents, photos, music, and other files in both ${OS} and
+ ${CURDISTRO}.
+
+Template: ubiquity/partitioner/ubuntu_reinstall
+Type: text
+#flag:comment:1
+# CURDISTRO is a variable substituted into this string, and may be 'Ubuntu 10.10'
+_Description: Reinstall ${CURDISTRO}
+ Documents, music, and other personal files will be kept. Installed software
+ will be kept where possible. System-wide settings will be cleared.
+
+Template: ubiquity/partitioner/multiple_os_format
+Type: text
+#flag:comment:1
+# DISTRO is a variable substituted into this string, and may be 'Ubuntu'
+_Description: Erase disk and install ${DISTRO}
+ <span foreground="darkred">Warning:</span> This will delete all your programs,
+ documents, photos, music, and any other files in all operating systems.
+
+Template: ubiquity/partitioner/multiple_os_resize
+Type: text
+#flag:comment:1
+# DISTRO is a variable substituted into this string, and may be 'Ubuntu'
+_Description: Install ${DISTRO} alongside them
+ Documents, music, and other personal files will be kept. You can choose which
+ operating system you want each time the computer starts up.
+
+Template: ubiquity/partitioner/heading_one
+Type: text
+#flag:comment:2
+# OS is a variable substituted into this string, and may be 'Windows 7'
+_Description:
+ This computer currently has ${OS} on it. What would you like to do?
+
+Template: ubiquity/partitioner/heading_dual
+Type: text
+#flag:comment:2
+# OS1 is a variable substituted into this string, and may be 'Windows 7'
+# OS2 is a variable substituted into this string, and may be 'Mac OS X'
+_Description:
+ This computer currently has ${OS1} and ${OS2} on it. What would you like
+ to do?
+
+Template: ubiquity/partitioner/heading_multiple
 Type: text
 _Description:
- Ready to install?  Once you answer a few questions, the contents of the live
- ${MEDIUM} can be installed on this computer so you can run ${RELEASE} at
- full speed without the ${MEDIUM}.
+ This computer currently has multiple operating systems on it. What would you
+ like to do?
+
+Template: ubiquity/partitioner/heading_no_detected
+Type: text
+_Description:
+ This computer currently has no detected operating systems. What would you
+ like to do?

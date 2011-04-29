@@ -7,7 +7,6 @@
 #define NETWORKS_FILE   "/etc/networks"
 #define RESOLV_FILE     "/etc/resolv.conf"
 #define DHCLIENT_CONF	"/etc/dhclient.conf"
-#define DHCLIENT3_CONF	"/etc/dhcp3/dhclient.conf"
 #define DOMAIN_FILE     "/tmp/domain_name"
 #define NTP_SERVER_FILE "/tmp/dhcp-ntp-servers"
 
@@ -28,7 +27,7 @@
 # define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 #endif
 
-#define empty_str(s) (s && *s == '\0')
+#define empty_str(s) (s != NULL && *s == '\0')
 
 #define HELPFUL_COMMENT \
 "# This file describes the network interfaces available on your system\n" \
@@ -36,11 +35,21 @@
 
 #define IPV6_HOSTS \
 "# The following lines are desirable for IPv6 capable hosts\n" \
-"::1     localhost ip6-localhost ip6-loopback\n" \
+"::1     ip6-localhost ip6-loopback\n" \
 "fe00::0 ip6-localnet\n" \
 "ff00::0 ip6-mcastprefix\n" \
 "ff02::1 ip6-allnodes\n" \
 "ff02::2 ip6-allrouters\n"
+
+/* The time, in seconds, that we will wait for a link to be established
+ * via link autonegotiation.  Sometime in the future this may become a
+ * preseed option.
+ */
+#define NETCFG_LINK_WAIT_TIME 3
+
+#ifndef MAXHOSTNAMELEN
+#define MAXHOSTNAMELEN 63
+#endif
 
 typedef enum { NOT_ASKED = 30, GO_BACK } response_t;
 typedef enum { DHCP, STATIC, DUNNO } method_t;
@@ -85,7 +94,8 @@ extern void netcfg_die (struct debconfclient *client);
 
 extern int netcfg_get_interface(struct debconfclient *client, char **interface, int *num_interfaces, char* defif);
 
-extern short verify_hostname (char *hname);
+extern short valid_hostname (const char *hname);
+extern short valid_domain (const char *dname);
 
 extern int netcfg_get_hostname(struct debconfclient *client, char *template, char **hostname, short hdset);
 
@@ -98,6 +108,8 @@ extern int netcfg_get_static(struct debconfclient *client);
 extern int netcfg_activate_dhcp(struct debconfclient *client);
 
 extern int resolv_conf_entries (void);
+
+extern int read_resolv_conf_nameservers (struct in_addr array[]);
 
 extern int ask_dhcp_options (struct debconfclient *client);
 extern int netcfg_activate_static(struct debconfclient *client);
@@ -130,8 +142,11 @@ extern void parse_args (int argc, char** argv);
 extern void open_sockets (void);
 extern void reap_old_files (void);
 
+extern void netcfg_update_entropy (void);
+
 extern int netcfg_write_resolv (char*, struct in_addr *);
 
-extern int ethtool_lite (char*);
+extern int ethtool_lite (const char *if_name);
+extern int netcfg_detect_link(struct debconfclient *client, const char *if_name);
 
 #endif /* _NETCFG_H_ */

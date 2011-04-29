@@ -109,7 +109,7 @@ class StylizedFrame(gtk.Bin):
 
     def do_forall(self, include_internals, callback, user_data):
         if self.child:
-            callback (self.child, user_data)
+            callback(self.child, user_data)
 
     def paint_background(self, c):
         c.set_source_rgb(*gtk_to_cairo_color('#fbfbfb'))
@@ -679,7 +679,7 @@ class GreyableBin(gtk.Bin):
     def do_size_request(self, r):
         cw, ch = 0,0;
         if self.child and (self.child.flags() & gtk.VISIBLE):
-            cw, ch =  self.child.size_request()
+            cw, ch = self.child.size_request()
 
         # FIXME: what do we need border_width and an extra
         # 10px for?
@@ -763,7 +763,6 @@ class CellRendererPixbufWithOverlay(gtk.CellRendererText):
     read the content out
     """
 
-
     # FIXME get these from the icons
     # offset of the install overlay icon
     OFFSET_X = 3
@@ -791,6 +790,7 @@ class CellRendererPixbufWithOverlay(gtk.CellRendererText):
             # icon not present in theme, probably because running uninstalled
             self._installed = icons.load_icon('emblem-system',
                                           self.OVERLAY_SIZE, 0)
+
     def do_set_property(self, pspec, value):
         setattr(self, pspec.name, value)
 
@@ -802,6 +802,7 @@ class CellRendererPixbufWithOverlay(gtk.CellRendererText):
         width = 22
         height = 22
         return (0, 0, width, height)
+
     def do_render(self, window, widget, background_area, cell_area,
                   expose_area, flags):
 
@@ -839,6 +840,7 @@ gobject.type_register(CellRendererPixbufWithOverlay)
 
 class WirelessTreeView(gtk.TreeView):
     __gtype_name__ = 'WirelessTreeView'
+
     def __init__(self, bus):
         self.model = gtk.ListStore(str)
         gtk.TreeView.__init__(self, self.model)
@@ -936,7 +938,7 @@ class WirelessTreeView(gtk.TreeView):
             icon = 'wifi-080'
         else:
             icon = 'wifi-100'
-        if self.icons.has_key(icon):
+        if icon in self.icons:
             cell.set_property('pixbuf', self.icons[icon])
         cell.set_property('overlay', ap['Locked'])
 

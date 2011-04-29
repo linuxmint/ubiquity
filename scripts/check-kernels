@@ -10,14 +10,6 @@ KERNEL_VERSION="$(echo "$UNAME_R" | cut -d - -f 1)"
 KERNEL_ABI="$(echo "$UNAME_R" | cut -d - -f 1,2)"
 MACHINE="$(uname -m)"
 NUMCPUS=
-MEMTOTAL=0
-if [ -x /usr/lib/base-installer/dmi-available-memory ]; then
-	MEMTOTAL="$(/usr/lib/base-installer/dmi-available-memory)"
-fi
-if [ "$MEMTOTAL" = 0 ]; then
-	MEMTOTAL="$(grep '^MemTotal:[[:space:]]*' /proc/meminfo | \
-		    sed 's/^MemTotal:[[:space:]]*//; s/ .*//')"
-fi
 
 if [ -f /usr/lib/ubiquity/base-installer/kernel.sh ]; then
 	. /usr/lib/ubiquity/base-installer/kernel.sh

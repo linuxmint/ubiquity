@@ -40,17 +40,8 @@ class Install(FilteredCommand):
         if not (automatic_mode and install_bootloader_seen):
             if self.frontend.oem_user_config:
                 self.preseed_bool('ubiquity/install_bootloader', False)
-            elif self.frontend.get_grub() is not None:
-                self.preseed_bool('ubiquity/install_bootloader', self.frontend.get_grub())
             else:
                 self.preseed_bool('ubiquity/install_bootloader', True)
-
-        popcon = self.frontend.get_popcon()
-        if popcon is not None:
-            if popcon:
-                self.preseed('popularity-contest/participate', 'true')
-            else:
-                self.preseed('popularity-contest/participate', 'false')
 
         # for clock-setup
         self.preseed('netcfg/dhcp_ntp_servers', '', seen=False)

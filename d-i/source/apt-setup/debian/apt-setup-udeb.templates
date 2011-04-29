@@ -83,3 +83,31 @@ _Description: Services to use:
  relatively frequently and where not having the latest version could reduce
  the usability of the software. An example is the virus signatures for a virus
  scanner. This service is only available for stable and oldstable releases.
+
+# All services except partner and extras are enabled by default to allow
+# preseeding; partner will be automatically disabled if non-free software is
+# disabled.  For convenience, preseeding apt-setup/partner or
+# apt-setup/extras will automatically enable the respective services.
+Template: apt-setup/services-select-ubuntu
+Type: multiselect
+Choices-C: security, partner, extras
+# SEC_HOST, PARTNER_HOST, and EXTRAS_HOST are host names (e.g.
+# security.ubuntu.com)
+# Translators: the *entire* string should be under 55 columns
+# including host name. In short, KEEP THIS SHORT and, yes, that's tricky
+# :sl2:
+__Choices: security updates (from ${SEC_HOST}), partner archive (from ${PARTNER_HOST}), extras archive (from ${EXTRAS_HOST})
+Default: security
+# :sl2:
+_Description: Services to use:
+ Ubuntu has some additional services that provide updates to releases and
+ add-on packages.
+ .
+ Security updates help to keep your system secured against attacks. Enabling
+ this service is strongly recommended.
+ .
+ The partner archive contains software provided by Canonical's partners as a
+ service to Ubuntu users.
+ .
+ The extras archive contains free software offered by third-party
+ application developers who want to ship their latest software.

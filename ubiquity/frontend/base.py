@@ -39,14 +39,8 @@ class Controller:
         self.oem_config = wizard.oem_config
         self.oem_user_config = wizard.oem_user_config
 
-        # For summary and install.
-        self.get_grub = wizard.get_grub
-        self.set_grub = wizard.set_grub
-        self.get_popcon = wizard.get_popcon
-        self.set_popcon = wizard.set_popcon
-        self.set_proxy_host = wizard.set_proxy_host
-        self.set_proxy_port = wizard.set_proxy_port
-        self.get_proxy = wizard.get_proxy
+    def set_locale(self, locale):
+        self._wizard.locale = locale
 
     def translate(self, lang=None, just_me=True, not_me=False, reget=False):
         pass
@@ -91,11 +85,7 @@ class BaseFrontend:
         self.dbfilter_status = None
         self.resize_choice = None
         self.manual_choice = None
-        self.grub_en = None
-        self.popcon = None
         self.locale = None
-        self.http_proxy_host = None
-        self.http_proxy_port = 8080
 
         # Drop privileges so we can run the frontend as a regular user, and
         # thus talk to a11y applications running as a regular user.
@@ -105,7 +95,7 @@ class BaseFrontend:
 
         self.oem_user_config = False
         if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
-          self.oem_user_config = True
+            self.oem_user_config = True
 
         try:
             self.custom_title = self.db.get('ubiquity/custom_title_text')
@@ -147,6 +137,12 @@ class BaseFrontend:
         except debconf.DebconfError:
             pass
 
+        try:
+            self.show_shutdown_button = \
+                self.db.get('ubiquity/show_shutdown_button') == 'true'
+        except debconf.DebconfError:
+            self.show_shutdown_button = False
+
         # Load plugins
         plugins = plugin_manager.load_plugins()
         modules = plugin_manager.order_plugins(plugins)
@@ -162,7 +158,7 @@ class BaseFrontend:
             self.modules.append(comp)
 
         if not self.modules:
-            raise ValueError, 'No valid steps.'
+            raise ValueError('No valid steps.')
 
         if 'SUDO_USER' in os.environ:
             os.environ['SCIM_USER'] = os.environ['SUDO_USER']
@@ -323,41 +319,6 @@ class BaseFrontend:
     # Interfaces with various components. If a given component is not used
     # then its abstract methods may safely be left unimplemented.
 
-    # ubiquity.components.summary
-
-    def set_grub(self, enable):
-        """Sets whether we will be installing GRUB."""
-        self.grub_en = enable
-
-    # called from ubiquity.components.install
-    def get_grub(self):
-        """Returns whether we will be installing GRUB."""
-        return self.grub_en
-
-    def get_popcon(self):
-        return self.popcon
-
-    def set_popcon(self, participate):
-        """Set whether to participate in popularity-contest."""
-        self.popcon = participate
-
-    def set_proxy_host(self, host):
-        """Set the HTTP proxy host."""
-        self.http_proxy_host = host
-
-    def set_proxy_port(self, port):
-        """Set the HTTP proxy port."""
-        self.http_proxy_port = port
-
-    # called from ubiquity.components.install
-    def get_proxy(self):
-        """Get the selected HTTP proxy."""
-        if self.http_proxy_host:
-            return 'http://%s:%s/' % (self.http_proxy_host,
-                                      self.http_proxy_port)
-        else:
-            return None
-
     def set_reboot(self, reboot):
         """Set whether to reboot automatically when the install completes."""
         self.reboot_after_install = reboot
@@ -373,6 +334,25 @@ class BaseFrontend:
         except debconf.DebconfError:
             pass
         if reboot_seen == 'false':
+            return False
+        else:
+            return True
+
+    def set_shutdown(self, shutdown):
+        """Set whether to shutdown automatically when the install completes."""
+        self.shutdown_after_install = shutdown
+
+    def get_shutdown(self):
+        return self.shutdown_after_install
+
+    def get_shutdown_seen(self):
+        shutdown_seen = 'false'
+        try:
+            shutdown_seen = self.debconf_operation('fget', 'ubiquity/poweroff',
+                'seen')
+        except debconf.DebconfError:
+            pass
+        if shutdown_seen == 'false':
             return False
         else:
             return True

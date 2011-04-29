@@ -24,7 +24,7 @@ import re
 import debconf
 import PyICU
 
-from ubiquity.plugin import *
+from ubiquity import plugin
 from ubiquity import i18n
 from ubiquity import misc
 import ubiquity.tz
@@ -36,13 +36,12 @@ WEIGHT = 10
 
 _geoname_url = 'http://geoname-lookup.ubuntu.com/?query=%s&release=%s'
 
-class PageGtk(PluginUI):
+class PageGtk(plugin.PluginUI):
     plugin_title = 'ubiquity/text/timezone_heading_label'
     def __init__(self, controller, *args, **kwargs):
         self.controller = controller
         try:
             import gtk
-            from ubiquity.gtkwidgets import LabelledEntry
             builder = gtk.Builder()
             self.controller.add_builder(builder)
             builder.add_from_file(os.path.join(os.environ['UBIQUITY_GLADE'], 'stepLocation.ui'))
@@ -128,7 +127,7 @@ class PageGtk(PluginUI):
                     # Might want to match the debconf format.
                     name, loc = result
                     model.append([name, '', loc.human_country,
-                                  loc.latitude, loc.longitude])
+                                  str(loc.latitude), str(loc.longitude)])
 
                 try:
                     import urllib2, urllib, json
@@ -191,7 +190,7 @@ class PageGtk(PluginUI):
         completion.set_match_func(match_func)
         completion.set_cell_data_func(cell, data_func)
 
-class PageKde(PluginUI):
+class PageKde(plugin.PluginUI):
     plugin_breadcrumb = 'ubiquity/text/breadcrumb_timezone'
 
     def __init__(self, controller, *args, **kwargs):
@@ -213,7 +212,7 @@ class PageKde(PluginUI):
 
         self.plugin_widgets = self.page
 
-    @only_this_page
+    @plugin.only_this_page
     def refresh_timezones(self):
         lang = os.environ['LANG'].split('_', 1)[0]
         shortlist = self.controller.dbfilter.build_shortlist_region_pairs(lang)
@@ -226,7 +225,7 @@ class PageKde(PluginUI):
         for pair in longlist:
             self.page.timezone_zone_combo.addItem(pair[0], pair[2])
 
-    @only_this_page
+    @plugin.only_this_page
     def populateCities(self, regionIndex):
         self.page.timezone_city_combo.clear()
 
@@ -247,7 +246,7 @@ class PageKde(PluginUI):
         return len(countries) == 1 and self.controller.dbfilter.get_default_for_region(countries[0])
 
     # called when the region(zone) combo changes
-    @only_this_page
+    @plugin.only_this_page
     def regionChanged(self, regionIndex):
         if self.controller.dbfilter is None:
             return
@@ -270,7 +269,7 @@ class PageKde(PluginUI):
         self.tzmap.set_timezone(zone)
         self.tzmap.zoneChanged.connect(self.mapZoneChanged)
 
-    @only_this_page
+    @plugin.only_this_page
     def mapZoneChanged(self, loc, zone):
         self.page.timezone_zone_combo.blockSignals(True)
         self.page.timezone_city_combo.blockSignals(True)
@@ -302,10 +301,16 @@ class PageKde(PluginUI):
     def get_timezone (self):
         return self.tzmap.get_timezone()
 
-class PageDebconf(PluginUI):
+class PageDebconf(plugin.PluginUI):
     plugin_title = 'ubiquity/text/timezone_heading_label'
 
-class PageNoninteractive(PluginUI):
+    def __init__(self, controller, *args, **kwargs):
+        self.controller = controller
+
+class PageNoninteractive(plugin.PluginUI):
+    def __init__(self, controller, *args, **kwargs):
+        self.controller = controller
+
     def set_timezone(self, timezone):
         """Set the current selected timezone."""
         self.timezone = timezone
@@ -314,7 +319,7 @@ class PageNoninteractive(PluginUI):
         """Get the current selected timezone."""
         return self.timezone
 
-class Page(Plugin):
+class Page(plugin.Plugin):
     def prepare(self, unfiltered=False):
         clock_script = '/usr/share/ubiquity/clock-setup'
         env = {'PATH': '/usr/share/ubiquity:' + os.environ['PATH']}
@@ -372,7 +377,7 @@ class Page(Plugin):
                     zone = choices_c[0]
             self.ui.set_timezone(zone)
 
-        return Plugin.run(self, priority, question)
+        return plugin.Plugin.run(self, priority, question)
 
     def get_default_for_region(self, region):
         try:
@@ -591,13 +596,14 @@ class Page(Plugin):
             if location.zone == zone:
                 self.preseed('debian-installer/country', location.country)
                 break
-        Plugin.ok_handler(self)
+        plugin.Plugin.ok_handler(self)
 
     def cleanup(self):
-        Plugin.cleanup(self)
-        i18n.reset_locale(self.frontend, just_country=True)
+        plugin.Plugin.cleanup(self)
+        self.ui.controller.set_locale(
+                i18n.reset_locale(self.frontend, just_country=True))
 
-class Install(InstallPlugin):
+class Install(plugin.InstallPlugin):
     def prepare(self, unfiltered=False):
         tzsetup_script = '/usr/lib/ubiquity/tzsetup/post-base-installer'
         clock_script = '/usr/share/ubiquity/clock-setup-apply'
@@ -609,4 +615,4 @@ class Install(InstallPlugin):
 
     def install(self, target, progress, *args, **kwargs):
         progress.info('ubiquity/install/timezone')
-        return InstallPlugin.install(self, target, progress, *args, **kwargs)
+        return plugin.InstallPlugin.install(self, target, progress, *args, **kwargs)

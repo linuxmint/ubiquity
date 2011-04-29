@@ -1,20 +1,723 @@
-ubiquity (2.4.8-1mint3) julia; urgency=low
+ubiquity (2.6.10) natty; urgency=low
 
-  * Changed icons
+  * Add __init__ methods to ubi-timezone's PageDebconf and
+    PageNoninteractive classes, so that they have controller attributes
+    (LP: #769081).
 
- -- Clement Lefebvre <root@linuxmint.com>  Mon, 11 Oct 2010 14:11:00 +0000
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 22 Apr 2011 21:03:09 +0100
 
-ubiquity (2.4.8-1mint2) julia; urgency=low
+ubiquity (2.6.9) natty; urgency=low
 
-  * Update APT cache.
+  * Disable the alpha warning.  Whoops.
 
- -- Clement Lefebvre <root@linuxmint.com>  Mon, 11 Oct 2010 14:11:00 +0000
+ -- Evan Dandrea <ev@ubuntu.com>  Thu, 21 Apr 2011 17:36:10 +0100
 
-ubiquity (2.4.8-1mint1) julia; urgency=low
+ubiquity (2.6.8) natty; urgency=low
 
-  * Linux Mint release based on 2.4.8 from Ubuntu.
+  * Pretend to be online in tests.  Fixes build failure.
 
- -- Clement Lefebvre <root@linuxmint.com>  Sun, 10 Oct 2010 18:31:00 +0000
+ -- Evan Dandrea <ev@ubuntu.com>  Thu, 21 Apr 2011 14:48:24 +0100
+
+ubiquity (2.6.7) natty; urgency=low
+
+  [ Evan Dandrea ]
+  * Fix missing import on the partitioning page.
+  * Repack debs in apt-clone.
+  * Disable the upgrade/reinstall option when no Internet connection is
+    available.  See LP 766171 for details.
+  * Update translations from Launchpad.
+  * Don't ever show scrollbars in the slideshow.  The window growing
+    slightly is not ideal, but still better than this. See LP 529201
+    for details.
+  * Defend against temporary mountpoints not existing before attempting
+    to remove them (LP: #759716).
+
+  [ Colin Watson ]
+  * Automatic update of included source packages: console-setup
+    1.57ubuntu20, grub-installer 1.60ubuntu3, partman-auto 93ubuntu15.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 21 Apr 2011 00:34:54 +0100
+
+ubiquity (2.6.6) natty; urgency=low
+
+  [ Jonathan Riddell ]
+  * bin/ubiquity-dm: use correct KDE wallpaper path
+
+  [ Colin Watson ]
+  * Don't copy keyboard-configuration questions to /target in OEM mode, and
+    reset any values that come from the live filesystem build.  oem-config
+    will ask them later, and copying these confuses it (LP: #741304).
+  * GTK frontend:
+    - Avoid a crash if the automatic partitioning page is never displayed.
+
+  [ Evan Dandrea ]
+  * Remove the 'Bootloader device' line.  See LP #726740.
+  * Do not reset the bootloader choice unless it's absolutely necessary
+    (LP: #756920). Thanks Stéphane Graber!
+  * Move installation of the nvidia driver to after the removal of
+    unneeded kernels. Divert update-initramfs for the duration and
+    trigger it afterwards (LP: #759804).
+  * Make the 'name already exists on the network' warning message not
+    block the user from moving forward (LP: #760884).
+  * Briefly shut down the debconf database to flush any changes before
+    starting the parallel database (LP: #761094).
+  * Fix removal of slideshow packages for non-GTK frontends
+    (LP: #745607).
+  * Set the locale again after the timezone page so that the slideshow
+    can have country-specific translations (LP: #758658).
+  * Automatic update of included source packages: base-installer
+    1.116ubuntu2, choose-mirror 2.37ubuntu2, console-setup 1.57ubuntu19,
+    flash-kernel 2.28ubuntu19, user-setup 1.28ubuntu15.
+  * Update translations from Launchpad.
+
+  [ Mario Limonciello ]
+  * Show the oem-config slideshow in oem-config rather than the ubuntu one.
+  * Uninstall the oem-config slideshow after install is done (LP: #759935).
+
+  [ Julien Lavergne ]
+  * Disable ubiquity panel for openbox session. 
+
+  [ Mackenzie Morgan ]
+  * Make radio buttons use label wording for screen reader (LP: #749653)
+
+ -- Evan Dandrea <ev@ubuntu.com>  Tue, 19 Apr 2011 11:45:53 +0100
+
+ubiquity (2.6.5) natty; urgency=low
+
+  * Fix broken home directory lookup (LP: #759401).
+
+ -- Evan Dandrea <ev@ubuntu.com>  Wed, 13 Apr 2011 09:17:48 +0100
+
+ubiquity (2.6.4) natty; urgency=low
+
+  * Don't check for debconf database locks when ubiquity is itself running
+    inside a debconf frontend (LP: #758858).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 12 Apr 2011 21:25:47 +0100
+
+ubiquity (2.6.3) natty; urgency=low
+
+  * Clean up after the langpacks state on multiple runs of the installer.
+  * Prefer biggest_free over resize always now that we make sure the
+    biggest_free choice offers at least 5GB (LP: #758236, LP: #652852).
+  * Determine the home directory of the target user when copying the
+    network configuration (LP: 745607).
+  * Select all the ubiquity slideshow packages for removal, and do not
+    error out if none can be found (LP: #745607).
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: console-setup
+    1.57ubuntu18, migration-assistant 0.6.10.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Tue, 12 Apr 2011 18:29:53 +0100
+
+ubiquity (2.6.2) natty; urgency=low
+
+  [ Colin Watson ]
+  * Handle keyboard layouts with only one variant (LP: #711926).
+  * Make sure to set a new variant default when changing keyboard layout
+    (LP: #745137).
+
+  [ Evan Dandrea ]
+  * Deal with the confirmation key being translated in jockey-text
+    (LP: #757208).
+  * Update translations from Launchpad.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Mon, 11 Apr 2011 17:51:12 +0100
+
+ubiquity (2.6.1) natty; urgency=low
+
+  [ Stéphane Graber ]
+  * KDE frontend:
+    - Disable partition edit dialog on row activation, until such time as we
+      know how to distinguish click from double-click (LP: #628906).
+
+  [ Colin Watson ]
+  * Automatic update of included source packages: localechooser 2.34ubuntu4,
+    partman-auto 93ubuntu14.
+  * Update translations from Launchpad.
+  * Add ${misc:Depends} to dependencies of ubiquity-ubuntu-artwork and
+    oem-config-remaster.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 11 Apr 2011 02:22:28 +0100
+
+ubiquity (2.6.0) natty; urgency=low
+
+  [ Evan Dandrea ]
+  * Provide a better description for the upgrade/reinstall option that
+    intends to make the difference between it and a traditional Ubuntu
+    upgrade clear (LP: #752372).
+  * Don't show the biggest_free option if we can't fit Ubuntu in the
+    free space (LP: #751145).
+  * Try calling unlock_environment a bit earlier to work around LP: 657086.
+  * Be sure to back up in the dbfilter when backing up from the advanced
+    partitioning page (LP: #744938).
+  * Increase the minimum size of the Ubuntu install to be twice the size
+    of the contents of the installation (roughly 5.2 GB) (LP: #745148).
+
+  [ Colin Watson ]
+  * Switch to xz compression for the source package, saving nearly a
+    megabyte.
+  * Update translations from Launchpad.
+  * Update imported translations from gtk+2.0 2.24.4-0ubuntu1.
+  * Automatic update of included source packages: apt-setup 1:0.49ubuntu4,
+    netcfg 1.60ubuntu3.
+
+  [ Jonathan Riddell ]
+  * Update artwork gui/qt/images/squares.png
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 10 Apr 2011 01:47:19 +0100
+
+ubiquity (2.5.34) natty; urgency=low
+
+  [ Colin Watson ]
+  * Force the output of 'locale charmap' to UTF-8 while running
+    console-setup (LP: #730576).
+
+  [ Evan Dandrea ]
+  * Bump panel indicators ABI (LP: #745681).
+
+  [ Mario Limonciello ]
+  * Modify oem-config-remove-gtk to look in /var/lib/dpkg/info again
+    rather than /var/lib/dpkg/info/*/ for installed packages.
+  * Remove cryptsetup after oem-config if ecryptfs is not in use.
+    Thanks Tony Espy.
+
+ -- Mario Limonciello <Mario_Limonciello@Dell.com>  Tue, 05 Apr 2011 17:36:07 -0500
+
+ubiquity (2.5.33) natty; urgency=low
+
+  [ Colin Watson ]
+  * Shut down the debconf-communicator instance started in DM.run.  This
+    should reduce the number of spurious crash reports we get.
+  * KDE frontend:
+    - Force the SIGCHLD handler installed by QProcessManager to use
+      SA_RESTART, in the hope of avoiding problems with Python's lack of
+      EINTR-safety (LP: #745014).
+    - Show ext2 and btrfs in the same colour as ext3 and ext4, rather than
+      in the same colour as free space.
+  * localechooser/supported-locales only lists additional locales, so
+    calculate the set of language packs to install using the union of it and
+    debian-installer/locale (LP: #741304).
+  * Do a quick check at startup to see if the debconf database is locked by
+    something else, and exit slightly more gracefully than by raising an
+    exception (LP: #746020).
+  * GTK frontend:
+    - Fix the partman plugin to convert the return value of
+      gtk.TreeModel.get_value to Unicode before looking it up in a dict
+      (LP: #746408).
+  * Update translations from Launchpad (LP: #745924, #746500).
+  * Automatic update of included source packages: flash-kernel 2.28ubuntu18.
+
+  [ Evan Dandrea ]
+  * Clarify substitution variables in the debconf templates using comments.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 02 Apr 2011 13:03:38 +0100
+
+ubiquity (2.5.32) natty; urgency=low
+
+  * Fix test failure on non-x86 architectures.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 29 Mar 2011 10:29:20 +0100
+
+ubiquity (2.5.31) natty; urgency=low
+
+  * Put build-dependencies in the right place.
+  * Add python-apt to the build-depends for the test harness.
+  * Use the standard nocheck DEB_BUILD_OPTIONS argument instead of
+    UBIQUITY_NO_TESTS. Thanks Steve Langasek!
+  * Run the tests on all architectures.
+  * Don't feed jockey's output into debconf (LP: #739632).
+
+ -- Evan Dandrea <ev@ubuntu.com>  Mon, 28 Mar 2011 23:21:15 +0100
+
+ubiquity (2.5.30) natty; urgency=low
+
+  [ Evan Dandrea ]
+  * Add an error message for apt-clone failing.
+  * Do not consider Windows Recovery partitions in the list of operating
+    systems.
+  * Add unit tests, which can be run via ./tests/run or by building the
+    package.  To override a failing test causing the package build to
+    fail, use the UBIQUITY_NO_TESTS environment variable.
+  * Divert initctl around apt-clone to prevent packages with Upstart
+    jobs from failing to be reinstalled.
+  * Ensure that the partition description labels all wrap at the same
+    point (LP: #741664).
+  * Move test dependencies into build-depends.  Thanks Colin Watson!
+  * Move the apt-clone working directory into /var/log/installer at the
+    end of installation (LP: #739492).
+  * Set the next button back to its original label once done calculating
+    its size.
+  * Automatic update of included source packages: migration-assistant
+    0.6.9, user-setup 1.28ubuntu14.
+
+  [ Colin Watson ]
+  * Start debconf in ubiquity.i18n.reset_locale if it isn't already running
+    (LP: #649895).
+  * Remove grub_device_label from string_extended, now that the boot loader
+    question is only asked from the partitioning page rather than a separate
+    dialog (LP: #726740).
+
+ -- Evan Dandrea <ev@ubuntu.com>  Mon, 28 Mar 2011 18:30:33 +0100
+
+ubiquity (2.5.29) natty; urgency=low
+
+  * Remove cy from LINGUAS. Fixes build failure.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Wed, 23 Mar 2011 21:16:17 +0000
+
+ubiquity (2.5.28) natty; urgency=low
+
+  [ Evan Dandrea ]
+  * Update the descriptions for the automatic partitioning options to match
+    changes to the specification (LP: #736959).
+  * Mount /proc and friends for apt-clone.
+  * Use the noninteractive debconf frontend when calling apt-clone.
+  * apt-clone is now a separate package.
+  * Add a partitioning heading to help clarify what operating systems
+    may be acted upon by the installer.
+  * Remove ' (loader)' from the os-prober operating system descriptions on
+    the initial partitioning page.
+  * Properly substitute in the non-Ubuntu system when generating descriptions
+    for dual boot partitioning.
+  * Remove alpha warning for reuse option in preparation for the 11.04 Beta.
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: console-setup
+    1.57ubuntu17, grub-installer 1.60ubuntu2, localechooser 2.34ubuntu3,
+    partman-auto 93ubuntu13, partman-auto-loop 0ubuntu19.
+
+  [ Colin Watson ]
+  * Preprocess our variant of keyboard-configuration.postinst, so that it
+    includes the keyboard_present function.
+  * Start oem-config-debconf on stopping rc RUNLEVEL=[2345], rather than on
+    (filesystem and stopped udevtrigger); this guarantees that we will never
+    end up without a controlling terminal because tty1 has already started.
+  * Don't run the oem-config job in recovery mode (thanks, Shih-Yuan Lee;
+    LP: #734695).
+  * Run plugininstall in debconf frontend (LP: #740183).
+
+ -- Evan Dandrea <ev@ubuntu.com>  Wed, 23 Mar 2011 20:22:00 +0000
+
+ubiquity (2.5.27) natty; urgency=low
+
+  * Drop code related to debian-installer/fallbacklocale, since that
+    template no longer exists (LP: #736060).
+  * Update imported translations from gtk+2.0 2.24.3-0ubuntu2 and
+    gnome-panel 1:2.32.1-0ubuntu6.
+  * Ensure that PartedServer dialogs are always properly closed on
+    exceptional paths.
+  * Fix partition-table-full check to cope with disks without a partition
+    table.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 16 Mar 2011 14:36:02 +0000
+
+ubiquity (2.5.26) natty; urgency=low
+
+  [ Evan Dandrea ]
+  * Revert dropping privileges earlier (LP: #730209).
+
+  [ Colin Watson ]
+  * Update for changes in localechooser up to 2.34ubuntu1.
+  * Automatic update of included source packages: localechooser 2.34ubuntu2,
+    partman-auto 93ubuntu10.
+  * Update translations from Launchpad.
+  * GTK frontend:
+    - Translate some other possible versions of the next button when
+      changing language (LP: #730208).
+
+  [ Daniel Manrique ]
+  * Allow preseeding only ubiquity/reboot to suppress the reboot dialog,
+    without needing to preseed ubiquity/poweroff as well (LP: #727416).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 15 Mar 2011 17:34:27 +0000
+
+ubiquity (2.5.25) natty; urgency=low
+
+  [ Mario Limonciello ]
+  * Install oem-config-debconf properly. (LP: #732576)
+  * Don't trigger oem-config-debconf on dbus.
+
+  [ Kees Cook ]
+  * scripts/plugininstall.py: do not explode if /proc/swaps is missing,
+    thanks to Gilles Grandou (LP: #651886).
+
+ -- Kees Cook <kees@ubuntu.com>  Thu, 10 Mar 2011 14:37:48 -0800
+
+ubiquity (2.5.24) natty; urgency=low
+
+  [ Evan Dandrea ]
+  * Drop privileges earlier in ubi-partman.
+  * Remove unused templates.
+
+  [ Mario Limonciello ]
+  * Fix oem-config-remove-gtk for changes in multiarch.
+  * Automatic update of included source packages: flash-kernel
+    2.28ubuntu17.
+
+  [ Loïc Minier ]
+  * bin/ubiquity-dm: fix superfluous closing parenthesis left behind in last
+    ubiquity-dm changes; thanks Tobin Davis; LP: #731536.
+
+ -- Mario Limonciello <Mario_Limonciello@Dell.com>  Tue, 08 Mar 2011 14:33:04 -0600
+
+ubiquity (2.5.23) natty; urgency=low
+
+  [ Evan Dandrea ]
+  * Ensure we always have an automatic partitioning option selected.
+  * Merge in latest change to apt-clone from Michael Vogt:
+    - Current apt_pkg API methods.
+    - Better command line argument parsing.
+    - Set DPkg::Chroot-Directory (LP 727758).
+  * Do not attempt to proceed to a second page with the biggest_free
+    option (LP: #727842, LP: #652852).  This will change once we have an
+    interface for the biggest_free option.
+  * If the partition table is full and a copy of Windows exists, replace the
+    resize option with a copy of wubi.exe to the Windows startup folder,
+    followed by a reboot.
+  * Temporary fix for translations with carriage returns (LP: #730498).
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: console-setup
+    1.57ubuntu10.
+
+  [ Colin Watson ]
+  * Set Dir::Media::MountPath as well as Acquire::cdrom::mount (in line with
+    base-installer), and pass all the options set by configure_apt to
+    python-apt as well so that attempts to install packages from python-apt
+    will behave consistently (LP: #727783).
+
+  [ Julien Lavergne ]
+  * bin/ubiquity-dm:
+   - Wait lxsession before launching the panel, to have theming support.
+     (LP: #684802)
+  * src/panel/panel.c
+   - Load lxpanel background for the panel when it's available.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Mon, 07 Mar 2011 09:16:26 +0000
+
+ubiquity (2.5.22) natty; urgency=low
+
+  [ Evan Dandrea ]
+  * Make apt-clone executable. D'oh.
+  * Show the amount of space available for Ubuntu after resizing for
+    each disk in the combo box.
+  * Don't show the progress section when advancing to the manual
+    partitioning page from the hyperlink for it.
+  * Change 'Figure Out' to 'Detect' for reals (LP: #717500).
+
+  [ Colin Watson ]
+  * Deny requests from hw-detect to load firmware (LP: #727288).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 01 Mar 2011 23:28:42 +0000
+
+ubiquity (2.5.21) natty; urgency=low
+
+  * Add a set_autopartition_options method stub.
+  * Don't display the package preservation progress message if it's
+    ultimately going to be skipped.
+  * Show the progress bar as soon as we have a final autopartitioning
+    option.
+  * Automatic update of included source packages: partman-auto
+    93ubuntu9.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Tue, 01 Mar 2011 08:13:20 +0000
+
+ubiquity (2.5.20) natty; urgency=low
+
+  * Merge the automatic partitioner redesign branch (LP: #723849).
+
+ -- Evan Dandrea <ev@ubuntu.com>  Tue, 01 Mar 2011 04:48:11 +0000
+
+ubiquity (2.5.19) natty; urgency=low
+
+  [ Colin Watson ]
+  * Automatic update of included source packages: base-installer
+    1.116ubuntu1, console-setup 1.57ubuntu8, flash-kernel 2.28ubuntu15,
+    partman-auto 93ubuntu8, partman-target 71ubuntu2.
+
+  [ Bryce Harrington ]
+  * Revert "Queue a redraw of the panel after setting the background".  This
+    change is implicated in a memory leak leading to OOM conditions and
+    eventual crash of Xserver.  (Possible fix for LP: #714829, would reopen
+    693300)
+
+  [ Mario Limonciello ]
+  * Fix reference leak in panel set_background function.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 28 Feb 2011 19:54:45 +0000
+
+ubiquity (2.5.18) natty; urgency=low
+
+  * Automatic update of included source packages: partman-auto
+    93ubuntu6.
+
+ -- Mario Limonciello <Mario_Limonciello@Dell.com>  Thu, 24 Feb 2011 17:54:41 -0600
+
+ubiquity (2.5.17) natty; urgency=low
+
+  * Do not show the installer in dbusmneu.  Thanks Ken VanDine!
+  * Install a composite-enabled graphics driver when the third-party
+    software option is checked.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Thu, 24 Feb 2011 16:58:05 +0000
+
+ubiquity (2.5.16) natty; urgency=low
+
+  [ Evan Dandrea ]
+  * Rename the keyboard layout guessing button (LP: #717500).
+  * Install oem-config-slideshow-ubuntu alongside oem-config-gtk.
+  * Fix accessibility support in the installer session.
+  * Automatic update of included source packages: flash-kernel
+    2.28ubuntu14, partman-auto 93ubuntu5.
+
+  [ Mario Limonciello ]
+  * Create a dummy job for oem-config-debconf to prevent race
+    conditions with oem-config-gtk and gdm. (LP: #650703)
+
+ -- Evan Dandrea <ev@ubuntu.com>  Sun, 20 Feb 2011 03:00:54 +0000
+
+ubiquity (2.5.15) natty; urgency=low
+
+  [ Colin Watson ]
+  * Ignore "Not Available" strings in dmidecode output (LP: #711968).
+  * Tell keyboard-configuration not to write defaults in the debconf
+    database when we're in the process of changing the layout (LP: #705917).
+  * Automatic update of included source packages: console-setup 1.57ubuntu7,
+    flash-kernel 2.28ubuntu13, grub-installer 1.60ubuntu1, netcfg
+    1.60ubuntu2, partman-auto 93ubuntu4, partman-btrfs 5ubuntu3,
+    partman-partitioning 79ubuntu2.
+
+  [ Jonathan Riddell ]
+  * frontend/kde_ui.py use new KDE wallpaper
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 15 Feb 2011 11:52:27 +0000
+
+ubiquity (2.5.14) natty; urgency=low
+
+  * Append to the timezone model using the correct types (LP: #702898).
+  * Update translations from Launchpad.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Wed, 02 Feb 2011 10:24:41 +0000
+
+ubiquity (2.5.13) natty; urgency=low
+
+  [ Jonathan Riddell ]
+  * Fix layout issues in stepPartMan.ui and stepLanguage.ui LP: #705915
+
+  [ Evan Dandrea ]
+  * Show a Shutdown Now button (LP: #690726). Thanks Cyrus Lien!
+  * Only show the shutdown button if ubiquity/show_shutdown_button was
+    preseeded true.
+  * Don't show a resize grip on the panel.
+
+  [ Colin Watson ]
+  * Automatic update of included source packages: base-installer
+    1.115ubuntu1, choose-mirror 2.37ubuntu1, partman-btrfs 5ubuntu2,
+    partman-ext3 62ubuntu1, yaboot-installer 1.1.19ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 01 Feb 2011 14:42:55 +0000
+
+ubiquity (2.5.12) natty; urgency=low
+
+  [ Mario Limonciello ]
+  * Fix oem-config-remove-gtk for changes in AptClient's commit_packages.
+    (LP: #708722)
+
+  [ Evan Dandrea ]
+  * Update translations from Launchpad.
+  * If a session indicator gconf key starts unset, make sure it ends
+    that way (LP: #684052).
+  * Fix mistake in the cleanup branch merge that broke translations
+    (LP: #691671).
+  * pc105.tree is included in console-setup now, which speeds up
+    ubiquity builds.
+  * Detect hostname collisions (LP: #634187).
+
+  [ Colin Watson ]
+  * Automatic update of included source packages: clock-setup 0.106ubuntu1,
+    console-setup 1.57ubuntu5, partman-basicfilesystems 69ubuntu1,
+    partman-efi 23ubuntu1, partman-partitioning 79ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 28 Jan 2011 15:06:19 +0000
+
+ubiquity (2.5.11) natty; urgency=low
+
+  * Automatic update of included source packages: partman-partitioning
+    78ubuntu2.
+
+ -- Mario Limonciello <Mario_Limonciello@Dell.com>  Tue, 18 Jan 2011 15:11:14 -0600
+
+ubiquity (2.5.10) natty; urgency=low
+
+  * No change rebuild for new libindicator2.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Mon, 17 Jan 2011 12:30:07 +0000
+
+ubiquity (2.5.9) natty; urgency=low
+
+  [ Mario Limonciello ]
+  * If upgradable packages are marked for installation by a plugin, upgrade
+    them rather than ignoring.
+  * Don't start plugininstall if the user presses back on the last page in
+    oem-config.
+  * Don't show "No Localization" as a language option. (LP: #697326)
+  * Automatic update of included source packages: base-installer
+    1.114ubuntu3, flash-kernel 2.28ubuntu12, hw-detect 1.81ubuntu2,
+    partman-btrfs 5ubuntu1, user-setup 1.28ubuntu13.
+
+  [ Colin Watson ]
+  * Depend on new archdetect-deb package rather than installing it from
+    hw-detect ourselves.
+
+  [ Evan Dandrea ]
+  * Avoid running oem-config in the live environment in custom
+    configurations (LP: #699720).  Thanks Shih-Yuan Lee!
+  * Queue a redraw of the panel after setting the background (LP:
+    #693300).  Thanks Cyrus Lien!
+
+ -- Mario Limonciello <Mario_Limonciello@Dell.com>  Fri, 14 Jan 2011 16:32:30 -0600
+
+ubiquity (2.5.8) natty; urgency=low
+
+  * Allow overriding frontend using the ubiquity/frontend= boot parameter
+    (thanks, Roberto C. Morano and Juanje Ojeda; LP: #364009).
+  * console-setup/codeset was renamed to console-setup/codeset47
+    (LP: #699829).
+  * Automatic update of included source packages: base-installer
+    1.114ubuntu2, console-setup 1.57ubuntu2, netcfg 1.59ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 07 Jan 2011 15:09:58 +0000
+
+ubiquity (2.5.7) natty; urgency=low
+
+  [ Evan Dandrea ]
+  * Set the accessible name of every widget.
+
+  [ Colin Watson ]
+  * Update for changes in console-setup up to 1.57ubuntu1, particularly the
+    introduction of /etc/default/keyboard and keyboard-configuration.
+  * Automatic update of included source packages: console-setup 1.57ubuntu1,
+    debian-installer-utils 1.82ubuntu1, flash-kernel 2.28ubuntu11, partconf
+    1.36, partman-base 147ubuntu1, partman-basicmethods 47, partman-btrfs 5,
+    partman-jfs 33, partman-newworld 25, partman-reiserfs 50, partman-xfs
+    47, preseed 1.48.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 05 Jan 2011 17:19:11 +0000
+
+ubiquity (2.5.6) natty; urgency=low
+
+  [ Colin Watson ]
+  * Recommend btrfs-tools (LP: #674805).
+  * Sync network configuration with netcfg: drop ip6-allhosts (see Debian
+    #533384); strip trailing dots from the hostname and leading and trailing
+    dots from the domain.
+  * Automatic update of included source packages: grub-installer
+    1.57ubuntu2, netcfg 1.57ubuntu3, partman-auto 93ubuntu3, partman-target
+    71ubuntu1, user-setup 1.28ubuntu12.
+
+  [ Mario Limonciello ]
+  * If available, copy GRUB translations in oem-config user mode.
+    (LP: #686789)
+
+  [ Evan Dandrea ]
+  * Add debconf template for password confirmation (LP: #654491).
+  * Translate the 'passwords do not match' string (LP: #686737).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 17 Dec 2010 15:02:18 +0000
+
+ubiquity (2.5.5) natty; urgency=low
+
+  * Ensure that /var/lib/ubiquity exists in scripts/plugininstall.py.
+  * Automatic update of included source packages: partman-auto 93ubuntu2.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 02 Dec 2010 17:00:29 +0000
+
+ubiquity (2.5.4) natty; urgency=low
+
+  * ubiquity/frontend/kde_components/PartAuto.py fix namespace on QWidget
+    LP: #684059
+
+ -- Jonathan Riddell <jriddell@ubuntu.com>  Thu, 02 Dec 2010 12:50:08 +0000
+
+ubiquity (2.5.3) natty; urgency=low
+
+  * Automatic update of included source packages: apt-setup 1:0.49ubuntu3.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 01 Dec 2010 17:20:02 +0000
+
+ubiquity (2.5.2) natty; urgency=low
+
+  [ Julien Lavergne ]
+  * debian/ubiquity.ubiquity.upstart, debian/oem-config.oem-config.upstart:
+    - Add lxdm support.
+  * Add support for openbox-lubuntu and lxsession for ubiquity-dm (LP: #546445)
+
+  [ Colin Watson ]
+  * Automatic update of included source packages: apt-setup 1:0.49ubuntu2,
+    user-setup 1.28ubuntu11.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 29 Nov 2010 14:59:02 +0000
+
+ubiquity (2.5.1) natty; urgency=low
+
+  [ Colin Watson ]
+  * Remove 'localhost' from default ::1 line in /etc/hosts (see netcfg 1.57,
+    Debian #595107).
+
+  [ Evan Dandrea ]
+  * Expose the navigation control in the GTK frontend API.
+    Thanks Ying-Chun Liu!
+  * Do not filter out partitions in migration-assistant anymore.
+    parted_server is no longer running by the time it starts, but that's
+    of no matter as it runs long after the partitioning has been
+    committed.
+  * Automatic update of included source packages: apt-setup
+    1:0.49ubuntu1, base-installer 1.114ubuntu1, choose-mirror
+    2.36ubuntu1, clock-setup 0.105ubuntu1, debian-installer-utils
+    1.81ubuntu1, grub-installer 1.57ubuntu1, hw-detect 1.81ubuntu1,
+    migration-assistant 0.6.8, netcfg 1.57ubuntu2, partconf 1.35,
+    partman-base 146ubuntu2, partman-basicfilesystems 68ubuntu1,
+    partman-basicmethods 46, partman-btrfs 4, partman-efi 22ubuntu1,
+    partman-ext3 61ubuntu1, partman-jfs 32, partman-newworld 24,
+    partman-partitioning 78ubuntu1, partman-reiserfs 49, partman-target
+    70ubuntu1, partman-xfs 46, preseed 1.47, yaboot-installer
+    1.1.18ubuntu1.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 23 Nov 2010 17:46:54 +0000
+
+ubiquity (2.5.0) natty; urgency=low
+
+  [ Colin Watson ]
+  * Log which package (albeit only the first one) caused us to declare
+    language support incomplete.
+  * Initialise release_notes_found in KDE prepare plugin, so that it doesn't
+    break in oem-config mode (LP: #656983).
+  * Re-enable alpha warning for natty.
+  * Fix ubiquity.i18n.string_extended set creation syntax.
+  * GTK frontend:
+    - Display inline error messages for bad usernames, rather than just
+      silently greying out the Forward button (LP: #555896).
+    - Use gobject.timeout_add_seconds rather than gobject.timeout_add in a
+      couple of places where the exact timeout period isn't critical.
+  * Adjust for changes in base-installer 1.113ubuntu1.
+  * Install new files from apt-setup 1:0.48ubuntu1.
+  * Automatic update of included source packages: apt-setup 1:0.48ubuntu1,
+    base-installer 1.113ubuntu1, choose-mirror 2.35ubuntu1, clock-setup
+    0.104ubuntu1, debian-installer-utils 1.80ubuntu1, hw-detect 1.80ubuntu1,
+    netcfg 1.56ubuntu1, partconf 1.34, partman-auto 93ubuntu1, partman-base
+    145ubuntu1, partman-basicfilesystems 67ubuntu1, partman-basicmethods 45,
+    partman-btrfs 3, partman-ext3 60ubuntu1, partman-jfs 31,
+    partman-newworld 23, partman-partitioning 77ubuntu1, partman-reiserfs
+    48, partman-target 69ubuntu1, partman-xfs 45, preseed 1.46,
+    yaboot-installer 1.1.17ubuntu1.
+
+  [ Evan Dandrea ]
+  * Merge with the maverick-cleanup branch.
+
+  [ Martin Pitt ]
+  * debian/rules: Run dh_scour to compress shipped SVG images. Add
+    python-scour build dependency.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 08 Nov 2010 14:00:56 +0000
 
 ubiquity (2.4.8) maverick; urgency=low
 

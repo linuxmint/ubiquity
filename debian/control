@@ -3,15 +3,15 @@ Section: admin
 Priority: optional
 Maintainer: Ubuntu Installer Team <ubuntu-installer@lists.ubuntu.com>
 Uploaders: Colin Watson <cjwatson@ubuntu.com>, Evan Dandrea <evand@ubuntu.com>
-Build-Depends: apt, bf-utf-source, dash, dctrl-tools, debconf (>= 0.5.0), debhelper (>= 7.4.0), dh-di (>= 3), dpkg-dev (>= 1.14.4), intltool (>= 0.40.0), intltool-debian (>= 0.30+20040212), iso-codes, isoquery, keymapper (>= 0.5.3-7), libbogl-dev, libcheese-gtk-dev, libdebconfclient0-dev (>= 0.68), libdebian-installer4-dev (>= 0.76), libglib2.0-dev, libgstreamer-plugins-base0.10-dev (>= 0.10.23), libgtk2.0-dev, libindicator-dev (>= 0.3.14), libiw-dev (>= 27+28pre9), libparted0-dev (>= 2.2), libxml2-dev (>= 2.6.24), locales, pkg-config, po-debconf (>= 1.0), python-all-dev (>= 2.6), python-central (>= 0.5), python-gobject-dev, python-gtk2-dev, tzdata, wget, xkb-data (>= 0.9), xkb-data-i18n
+Build-Depends: apt, bf-utf-source, dctrl-tools, debconf (>= 0.5.0), debconf-utils, debhelper (>= 7.4.17), dh-di (>= 3), dpkg-dev (>= 1.14.4), intltool (>= 0.40.0), intltool-debian (>= 0.30+20040212), iso-codes, isoquery, keymapper (>= 0.5.3-7), libbogl-dev, libcheese-gtk-dev, libdebconfclient0-dev (>= 0.68), libdebian-installer4-dev (>= 0.76), libglib2.0-dev, libgstreamer-plugins-base0.10-dev (>= 0.10.23), libgtk2.0-dev, libindicator-dev (>= 0.3.19), libiw-dev (>= 27+28pre9), libparted0-dev (>= 2.2), libxml2-dev (>= 2.6.24), locales, pkg-config, po-debconf (>= 1.0), python-all-dev (>= 2.6), python-apt, python-central (>= 0.5), python-gobject-dev, python-gtk2-dev, python-mock, python-pyicu, python-scour, tzdata, wget, xkb-data (>= 0.9), xkb-data-i18n
 Standards-Version: 3.6.2.1
 XS-Python-Version: current, >= 2.6
 Vcs-Bzr: http://bazaar.launchpad.net/~ubuntu-installer/ubiquity/trunk
 
 Package: ubiquity
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, debconf (>= 1.4.72ubuntu5), ubiquity-frontend-${mangled-version}, ubiquity-artwork-${mangled-version}, laptop-detect, lsb-release, ubiquity-casper, python-apt (>= 0.6.16.2ubuntu4), ${console-setup-depends}, iso-codes, passwd, adduser, os-prober, rdate, ntfsprogs [any-alpha any-amd64 any-i386], ecryptfs-utils, cryptsetup, python-pyicu, reiserfsprogs, language-selector-common (>= 0.4.16)
-Recommends: grub-pc [any-amd64 any-i386] | grub [any-amd64 any-i386] | grub-efi [any-amd64 any-i386], flash-kernel [armel], uboot-mkimage [armel], uboot-envtools [armel], redboot-tools [armel], yaboot [powerpc], hfsutils [powerpc], dmraid
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, debconf (>= 1.4.72ubuntu5), ubiquity-frontend-${mangled-version}, ubiquity-artwork-${mangled-version}, laptop-detect, lsb-release, ubiquity-casper, python-apt (>= 0.6.16.2ubuntu4), ${console-setup-depends}, iso-codes, passwd, adduser, os-prober, rdate, ntfsprogs [any-alpha any-amd64 any-i386], ecryptfs-utils, cryptsetup, python-pyicu, reiserfsprogs, language-selector-common (>= 0.4.16), archdetect-deb, dpkg-repack, apt-clone
+Recommends: grub-pc [any-amd64 any-i386] | grub [any-amd64 any-i386] | grub-efi [any-amd64 any-i386], flash-kernel [armel], uboot-mkimage [armel], uboot-envtools [armel], redboot-tools [armel], yaboot [powerpc], hfsutils [powerpc], dmraid, btrfs-tools
 Conflicts: ubuntu-express, espresso, espresso-utils, espresso-locale, espresso-keyboard-setup, espresso-kbd-chooser, espresso-timezone, user-setup (<< 0.05ubuntu6), partman, espresso-grub, espresso-yaboot
 Replaces: ubuntu-express, espresso, espresso-utils, espresso-locale, espresso-keyboard-setup, espresso-kbd-chooser, espresso-timezone, user-setup (<< 0.05ubuntu6), partman, espresso-grub, espresso-yaboot, ubiquity-frontend-gtk (<< 2.3.8)
 XB-Python-Version: ${python:Versions}
@@ -24,6 +24,7 @@ Description: Ubuntu live CD installer
 
 Package: ubiquity-ubuntu-artwork
 Architecture: all
+Depends: ${misc:Depends}
 Conflicts: ubuntu-express-ubuntu-artwork, ubuntu-express-ubuntu-doc, espresso-ubuntu-artwork, espresso-ubuntu-doc, ubiquity-ubuntu-doc
 Replaces: ubuntu-express-ubuntu-artwork, ubuntu-express-ubuntu-doc, espresso-ubuntu-artwork, espresso-ubuntu-doc, ubiquity-ubuntu-doc, ubiquity (<< 1.13.0)
 Provides: ubiquity-artwork-${mangled-version}
@@ -33,6 +34,7 @@ Description: Ubuntu artwork for Ubiquity live installer
 
 #Package: ubiquity-guadalinex-artwork
 #Architecture: all
+#Depends: ${misc:Depends}
 #Conflicts: ubuntu-express-guadalinex-artwork, ubuntu-express-guadalinex-doc, espresso-guadalinex-artwork, espresso-guadalinex-doc, ubiquity-guadalinex-doc
 #Replaces: ubuntu-express-guadalinex-artwork, ubuntu-express-guadalinex-doc, espresso-guadalinex-artwork, espresso-guadalinex-doc, ubiquity-guadalinex-doc
 #Provides: ubiquity-artwork-${mangled-version}
@@ -142,7 +144,7 @@ Description: Prepare for OEM configuration
 
 Package: oem-config-remaster
 Architecture: all
-Depends: genisoimage, gnupg, apt-utils
+Depends: ${misc:Depends}, genisoimage, gnupg, apt-utils
 Description: Remaster a CD with additional oem-config functionality
  This script remasters a CD with additional packages and optional oem-config
  preseed data.

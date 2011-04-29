@@ -26,19 +26,12 @@ KERNEL_FLAVOUR=$(uname -r | cut -d - -f 3-)
 MACHINE="$(uname -m)"
 NUMCPUS=$(cat /var/numcpus 2>/dev/null) || true
 CPUINFO=/proc/cpuinfo
-MEMTOTAL=0
-if [ -x /usr/lib/base-installer/dmi-available-memory ]; then
-	MEMTOTAL="$(/usr/lib/base-installer/dmi-available-memory)"
-fi
-if [ "$MEMTOTAL" = 0 ]; then
-	MEMTOTAL="$(grep '^MemTotal:[[:space:]]*' /proc/meminfo | \
-		    sed 's/^MemTotal:[[:space:]]*//; s/ .*//')"
-fi
 
 # files and directories
 APT_SOURCES=/target/etc/apt/sources.list
 APT_CONFDIR=/target/etc/apt/apt.conf.d
 IT_CONFDIR=/target/etc/initramfs-tools/conf.d
+DPKG_CONFDIR=/target/etc/dpkg/dpkg.cfg.d
 
 IFS_ORIG="$IFS"
 NL="
@@ -94,7 +87,8 @@ update_progress () {
 check_target () {
 	# Make sure something is mounted on the target.
 	# Partconf causes the latter format.
-	if ! grep -q '/target ' /proc/mounts && \
+	if [ -e /proc/mounts ] && \
+	   ! grep -q '/target ' /proc/mounts && \
 	   ! grep -q '/target/ ' /proc/mounts; then
 		exit_error base-installer/no_target_mounted
 	fi
@@ -144,7 +138,7 @@ setup_dev() {
 	case "$OS" in
 		linux) setup_dev_linux ;;
 		kfreebsd) setup_dev_kfreebsd ;;
-		*) ;;
+		*) warning "setup_dev called for an unknown OS ($OS)." ;;
 	esac	
 }
 
@@ -175,6 +169,13 @@ APT::Get::AllowUnauthenticated "true";
 Aptitude::CmdLine::Ignore-Trust-Violations "true";
 EOT
 	fi
+
+	# Disable all syncing; it's unnecessary in an installation context,
+	# and can slow things down quite a bit.
+	# This file will be left in place until the end of the install.
+	cat > $DPKG_CONFDIR/force-unsafe-io <<EOT
+force-unsafe-io
+EOT
 }
 
 final_apt_preferences () {
@@ -368,6 +369,8 @@ kernel_present () {
 
 pick_kernel () {
 	kernel_update_list
+	
+	db_settitle debian-installer/bootstrap-base/title
 
 	# Check for overrides
 	if db_get base-installer/kernel/override-image && [ "$RET" ]; then
@@ -594,6 +597,7 @@ EOF
 				db_get base-installer/kernel/linux/initramfs-tools/driver-policy
 				db_set base-installer/initramfs-tools/driver-policy "$RET"
 			fi
+			db_settitle debian-installer/bootstrap-base/title
 			db_input medium base-installer/initramfs-tools/driver-policy || true
 			if ! db_go; then
 				db_progress stop
@@ -646,7 +650,7 @@ EOF
 		else
 			resume=
 		fi
-		if [ "$resume" ]; then
+		if [ "$resume" ] && ! echo "$resume" | grep -q "^/dev/mapper/"; then
 			resume_uuid="$(block-attr --uuid "$resume" || true)"
 			if [ "$resume_uuid" ]; then
 				resume="UUID=$resume_uuid"
@@ -851,7 +855,7 @@ install_kernel() {
 	case "$OS" in
 		linux) install_kernel_linux ;;
 		kfreebsd) install_kernel_kfreebsd ;;
-		*) ;;
+		*) warning "install_kernel called for an unknown OS ($OS)." ;;
 	esac	
 }
 
@@ -870,9 +874,26 @@ configure_apt () {
 
 		# The bind mount is left mounted, for future apt-install
 		# calls to use.
-		if ! mount -o bind $DIRECTORY $tdir; then
-			warning "failed to bind mount $tdir"
-		fi
+		case "$OS" in
+			linux)
+			if ! mount -o bind $DIRECTORY $tdir; then
+				warning "failed to bind mount $tdir"
+			fi
+			;;
+			kfreebsd)
+			if ! mount -t nullfs $DIRECTORY $tdir ; then
+				warning "failed to bind mount $tdir"
+			fi
+			;;
+			hurd)
+			if ! mount -t firmlink $DIRECTORY $tdir ; then
+				warning "failed to bind mount $tdir"
+			fi
+			;;
+			*)
+			warning "configure_apt called with unknown OS ($OS)."
+			;;
+		esac
 
 		# Define the mount point for apt-cdrom
 		cat > $APT_CONFDIR/00CDMountPoint << EOT

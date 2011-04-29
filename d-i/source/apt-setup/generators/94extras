@@ -1,0 +1,33 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+file="$1"
+
+if ! db_get mirror/codename || [ -z "$RET" ]; then
+	db_get cdrom/codename
+fi
+codename="$RET"
+
+if db_get apt-setup/services-select-ubuntu && echo "$RET" | grep -q extras; then
+    COMMENT=
+else
+    cat >> $file <<EOF
+## Uncomment the following two lines to add software from Ubuntu's
+## 'extras' repository.
+EOF
+    COMMENT='# '
+fi
+cat >> $file <<EOF
+## This software is not part of Ubuntu, but is offered by third-party
+## developers who want to ship their latest software.
+${COMMENT}deb http://extras.ubuntu.com/ubuntu $codename main
+${COMMENT}deb-src http://extras.ubuntu.com/ubuntu $codename main
+EOF
+
+if [ -z "$COMMENT" ]; then
+    apt-setup-signed-release extras.ubuntu.com "$file"
+fi
+
+exit 0

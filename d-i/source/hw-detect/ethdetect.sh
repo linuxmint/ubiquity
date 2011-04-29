@@ -260,7 +260,12 @@ for iface in $(lsifaces); do
 	ip link set "$iface" up || true
 	ip link set "$iface" down || true
 done
-check-missing-firmware
+db_get ethdetect/prompt_missing_firmware
+if [ "$RET" = true ]; then
+	check-missing-firmware
+else
+	check-missing-firmware -n
+fi
 
 sysfs-update-devnames || true
 cleanup

@@ -37,7 +37,6 @@ import subprocess
 import traceback
 import syslog
 import atexit
-import signal
 import gettext
 import ConfigParser
 
@@ -52,9 +51,8 @@ import gobject
 gobject.threads_init()
 import glib
 
-from ubiquity import filteredcommand, gconftool, i18n, validation, \
-                     wrap_label
-from ubiquity.misc import *
+from ubiquity import filteredcommand, gconftool, i18n, validation, misc
+from ubiquity import gtkwidgets
 from ubiquity.plugin import Plugin
 from ubiquity.components import install, plugininstall, partman_commit
 import ubiquity.progressposition
@@ -111,10 +109,6 @@ def set_root_cursor(cursor=None):
         gtk.main_iteration()
 
 class Controller(ubiquity.frontend.base.Controller):
-    def __init__(self, wizard):
-        ubiquity.frontend.base.Controller.__init__(self, wizard)
-        self.grub_options = wizard.grub_options
-
     def add_builder(self, builder):
         self._wizard.builders.append(builder)
 
@@ -125,7 +119,7 @@ class Controller(ubiquity.frontend.base.Controller):
 
     def allow_go_forward(self, allowed):
         try:
-             self._wizard.allow_go_forward(allowed)
+            self._wizard.allow_go_forward(allowed)
         except AttributeError:
             pass
 
@@ -170,6 +164,19 @@ class Controller(ubiquity.frontend.base.Controller):
     def get_string(self, name, lang=None, prefix=None):
         return self._wizard.get_string(name, lang, prefix)
 
+    def toggle_navigation_control(self,hideFlag):
+        if hideFlag:
+            self._wizard.navigation_control.show()
+        else:
+            self._wizard.navigation_control.hide()
+        self._wizard.refresh()
+
+    def toggle_next_button(self, label='gtk-go-forward'):
+        self._wizard.toggle_next_button(label)
+
+    def switch_to_install_interface(self):
+        self._wizard.switch_to_install_interface()
+
 class Wizard(BaseFrontend):
 
     def __init__(self, distro):
@@ -190,7 +197,10 @@ class Wizard(BaseFrontend):
             """Make a widget callable by the toplevel."""
             if not isinstance(widget, gtk.Widget):
                 return
-            widget.set_name(gtk.Buildable.get_name(widget))
+            name = gtk.Buildable.get_name(widget)
+            widget.set_name(name)
+            atk_desc = widget.get_accessible()
+            atk_desc.set_name(name)
             self.all_widgets.add(widget)
             setattr(self, widget.get_name(), widget)
             # We generally want labels to be selectable so that people can
@@ -212,7 +222,8 @@ class Wizard(BaseFrontend):
         self.thunar_previous = {}
         self.language_questions = ('live_installer', 'quit', 'back', 'next',
                                    'warning_dialog', 'warning_dialog_label',
-                                   'cancelbutton', 'exitbutton')
+                                   'cancelbutton', 'exitbutton',
+                                   'install_button', 'restart_to_continue')
         self.current_page = None
         self.backup = None
         self.allowed_change_step = True
@@ -221,8 +232,6 @@ class Wizard(BaseFrontend):
         self.stay_on_page = False
         self.progress_position = ubiquity.progressposition.ProgressPosition()
         self.progress_cancelled = False
-        self.default_keyboard_layout = None
-        self.default_keyboard_variant = None
         self.installing = False
         self.installing_no_return = False
         self.returncode = 0
@@ -238,12 +247,12 @@ class Wizard(BaseFrontend):
         set_root_cursor(self.watch)
         atexit.register(set_root_cursor)
 
-        self.laptop = execute("laptop-detect")
+        self.laptop = misc.execute("laptop-detect")
 
         # set default language
         self.locale = i18n.reset_locale(self)
 
-        gobject.timeout_add(30000, self.poke_screensaver)
+        gobject.timeout_add_seconds(30, self.poke_screensaver)
 
         # set custom language
         self.set_locales()
@@ -269,7 +278,6 @@ class Wizard(BaseFrontend):
         self.pages = []
         self.pagesindex = 0
         self.pageslen = 0
-        self.user_pageslen = 0
         steps = self.builder.get_object("steps")
         found_install = False
         for mod in self.modules:
@@ -288,7 +296,8 @@ class Wizard(BaseFrontend):
                         if not isinstance(widget_list, list):
                             widget_list = [widget_list]
                         for w in widget_list:
-                            if not w: continue
+                            if not w:
+                                continue
                             if isinstance(w, str):
                                 w = add_subpage(self, steps, w)
                             else:
@@ -300,7 +309,6 @@ class Wizard(BaseFrontend):
                     mod.all_widgets = mod.widgets + mod.optional_widgets
                     for w in mod.all_widgets:
                         process_labels(w)
-                    self.user_pageslen += len(mod.widgets)
                     self.pageslen += 1
                     self.pages.append(mod)
 
@@ -588,20 +596,20 @@ class Wizard(BaseFrontend):
                 if self.backup:
                     self.pagesindex = self.pop_history()
 
-
             while gtk.events_pending():
                 gtk.main_iteration()
 
-        # There's still work to do (postinstall).  Lets keep the user
+        # There's still work to do (postinstall).  Let's keep the user
         # entertained.
         self.start_slideshow()
         gtk.main()
         # postinstall will exit here by calling gtk.main_quit in
         # find_next_step.
 
+        self.unlock_environment()
         if self.oem_user_config:
             self.quit_installer()
-        elif not self.get_reboot_seen():
+        elif not (self.get_reboot_seen() or self.get_shutdown_seen()):
             self.live_installer.hide()
             if ('UBIQUITY_ONLY' in os.environ or
                 'UBIQUITY_GREETER' in os.environ):
@@ -609,15 +617,17 @@ class Wizard(BaseFrontend):
                 self.quit_button.hide()
             else:
                 txt = self.finished_label.get_label()
-                txt = txt.replace('${RELEASE}', get_release().name)
+                txt = txt.replace('${RELEASE}', misc.get_release().name)
             self.finished_label.set_label(txt)
-            with raised_privileges():
+            with misc.raised_privileges():
                 open('/var/run/reboot-required', "w").close()
             self.finished_dialog.set_keep_above(True)
             set_root_cursor()
             self.finished_dialog.run()
         elif self.get_reboot():
             self.reboot()
+        elif self.get_shutdown():
+            self.shutdown()
 
         return self.returncode
 
@@ -626,7 +636,7 @@ class Wizard(BaseFrontend):
         uri = req.get_uri()
         decision.ignore()
         subprocess.Popen(['sensible-browser', uri],
-                         close_fds=True, preexec_fn=drop_all_privileges)
+                         close_fds=True, preexec_fn=misc.drop_all_privileges)
         return True
 
     def start_slideshow(self):
@@ -684,14 +694,15 @@ class Wizard(BaseFrontend):
         self.vte.show()
         # FIXME shrink the window horizontally instead of locking the window size.
         self.live_installer.set_property('allow_grow', False)
-        # TODO move this into gtkwidgets as a subclass of GtkExpander.
+        # TODO move this into gtkwidgets as a subclass of GtkExpander or use a
+        # GtkFixed.
         def do_allocate(widget, allocation):
             child = self.install_details_expander.get_label_widget()
             a = child.get_allocation()
             expander_size = widget.style_get_property('expander-size')
             expander_spacing = widget.style_get_property('expander-spacing')
             border_width = widget.get_property('border-width')
-            focus_width = widget.style_get_property('focus-line-width')
+            #focus_width = widget.style_get_property('focus-line-width')
             focus_pad = widget.style_get_property('focus-padding')
 
             w = allocation.width - 2 * border_width - expander_size - \
@@ -717,15 +728,11 @@ class Wizard(BaseFrontend):
             self.quit.hide()
 
         if 'UBIQUITY_AUTOMATIC' in os.environ:
-            #hide the notebook until the first page is ready
+            # Hide the notebook until the first page is ready.
             self.page_mode.hide()
             self.progress_section.show()
             self.live_installer.show()
         self.allow_change_step(False)
-
-        if hasattr(self, 'stepPartAuto'):
-            self.previous_partitioning_page = \
-                self.steps.page_num(self.stepPartAuto)
 
         # The default instantiation of GtkComboBoxEntry creates a
         # GtkCellRenderer, so reuse it.
@@ -735,8 +742,15 @@ class Wizard(BaseFrontend):
         self.grub_new_device_entry.pack_start(renderer, True)
         self.grub_new_device_entry.add_attribute(renderer, 'text', 1)
 
-        #Parse the slideshow size early to prevent the window from growing
-        self.slideshow = '/usr/share/ubiquity-slideshow'
+        # Only show the Shutdown Now button if explicitly asked to.
+        if not self.show_shutdown_button:
+            self.shutdown_button.hide()
+
+        # Parse the slideshow size early to prevent the window from growing
+        if self.oem_user_config:
+            self.slideshow = '/usr/share/oem-config-slideshow'
+        else:
+            self.slideshow = '/usr/share/ubiquity-slideshow'
         if os.path.exists(self.slideshow):
             try:
                 cfg = ConfigParser.ConfigParser()
@@ -777,7 +791,7 @@ class Wizard(BaseFrontend):
             'UBIQUITY_ONLY' in os.environ or
             'UBIQUITY_GREETER' in os.environ):
             f = gtk.gdk.FUNC_RESIZE | gtk.gdk.FUNC_MAXIMIZE | gtk.gdk.FUNC_MOVE
-            if not self.oem_user_config and not 'progress' in widget.get_name():
+            if not self.oem_user_config:
                 f |= gtk.gdk.FUNC_CLOSE
             widget.window.set_functions(f)
 
@@ -788,9 +802,7 @@ class Wizard(BaseFrontend):
                     '/apps/indicator-session/suppress_restart_menuitem',
                     '/apps/indicator-session/suppress_shutdown_menuitem',
                     '/desktop/gnome/lockdown/disable_user_switching'):
-            val = gconftool.get(key)
-            if val:
-                self.gconf_previous[key] = val
+            self.gconf_previous[key] = gconftool.get(key)
             gconftool.set(key, 'bool', 'true')
 
         self.quit.hide()
@@ -802,13 +814,17 @@ class Wizard(BaseFrontend):
         self.refresh()
 
     def unlock_environment(self):
+        syslog.syslog('Reverting lockdown the desktop environment.')
         for key in ('/apps/indicator-session/suppress_logout_menuitem',
                     '/apps/indicator-session/suppress_logout_restart_menuitem',
                     '/apps/indicator-session/suppress_restart_menuitem',
                     '/apps/indicator-session/suppress_shutdown_menuitem',
                     '/desktop/gnome/lockdown/disable_user_switching'):
             if key in self.gconf_previous:
-                gconftool.set(key, 'bool', self.gconf_previous[key])
+                if self.gconf_previous[key] == '':
+                    gconftool.unset(key)
+                else:
+                    gconftool.set(key, 'bool', self.gconf_previous[key])
         if not self.oem_user_config:
             self.quit.show()
         f = gtk.gdk.FUNC_RESIZE | gtk.gdk.FUNC_MAXIMIZE | \
@@ -885,8 +901,6 @@ class Wizard(BaseFrontend):
         name = widget.get_name()
 
         if isinstance(widget, gtk.Label):
-            if name == 'ready_text_label' and self.oem_user_config:
-                text = self.get_string('ready_text_oem_user_label', lang)
             widget.set_markup(text)
 
             # Ideally, these attributes would be in the ui file (and can be if
@@ -916,10 +930,6 @@ class Wizard(BaseFrontend):
                 widget.set_attributes(attrs)
 
         elif isinstance(widget, gtk.Button):
-            # TODO evand 2007-06-26: LP #122141 causes a crash unless we keep a
-            # reference to the button image.
-            unused = widget.get_image()
-
             question = i18n.map_widget_name(prefix, widget.get_name())
             widget.set_label(text)
 
@@ -1042,17 +1052,20 @@ class Wizard(BaseFrontend):
 
             if history_entry == self.history[-1]:
                 return # Don't add the page if it's a dup
-            if widget in page.optional_widgets:
-                self.user_pageslen += 1
         self.history.append(history_entry)
 
     def pop_history(self):
         if len(self.history) < 2:
             return self.pagesindex
-        old_entry = self.history.pop()
-        if old_entry[1] in old_entry[0].optional_widgets:
-            self.user_pageslen -= 1
+        self.history.pop()
         return self.pages.index(self.history[-1][0])
+
+    def toggle_next_button(self, label='gtk-go-forward'):
+        if label != 'gtk-go-forward':
+            self.next.set_label(self.get_string(label))
+        else:
+            self.next.set_label(label)
+            self.translate_widget(self.next)
 
     def set_page(self, n):
         self.run_automation_error_cmd()
@@ -1095,10 +1108,9 @@ class Wizard(BaseFrontend):
             return False
 
         if is_install and not self.oem_user_config:
-            self.next.set_label(self.get_string('install_button'))
+            self.toggle_next_button('install_button')
         else:
-            self.next.set_label("gtk-go-forward")
-            self.translate_widget(self.next)
+            self.toggle_next_button()
 
         num = self.steps.page_num(cur)
         if num < 0:
@@ -1124,7 +1136,7 @@ class Wizard(BaseFrontend):
         if page.title:
             title = self.get_string(page.title, lang)
             if title:
-                title = title.replace('${RELEASE}', get_release().name)
+                title = title.replace('${RELEASE}', misc.get_release().name)
                 # TODO: Use attributes instead?  Would save having to
                 # hardcode the size in here.
                 self.page_title.set_markup(
@@ -1159,75 +1171,16 @@ class Wizard(BaseFrontend):
 
     # Methods
 
-    def progress_loop(self):
-        """prepare, copy and config the system in the core install process."""
-        self.installing = True
-
-        syslog.syslog('progress_loop()')
-
-        self.live_installer.hide()
-
-        self.debconf_progress_start(
-            0, 100, self.get_string('ubiquity/install/title'))
-        self.debconf_progress_region(0, 15)
-
-        if not self.oem_user_config:
-            self.start_debconf()
-            dbfilter = partman_commit.PartmanCommit(self)
-            if dbfilter.run_command(auto_process=True) != 0:
-                while self.progress_position.depth() != 0:
-                    self.debconf_progress_stop()
-                self.debconf_progress_window.hide()
-                self.return_to_partitioning()
-                return
-
-        # No return to partitioning from now on
-        self.installing_no_return = True
-
-        self.debconf_progress_region(15, 100)
-
-        self.start_debconf()
-        dbfilter = install.Install(self)
-        ret = dbfilter.run_command(auto_process=True)
-        if ret != 0:
-            self.installing = False
-            if ret == 3:
-                # error already handled by Install
-                sys.exit(ret)
-            elif (os.WIFSIGNALED(ret) and
-                  os.WTERMSIG(ret) in (signal.SIGINT, signal.SIGKILL,
-                                       signal.SIGTERM)):
-                sys.exit(ret)
-            elif os.path.exists('/var/lib/ubiquity/install.trace'):
-                tbfile = open('/var/lib/ubiquity/install.trace')
-                realtb = tbfile.read()
-                tbfile.close()
-                raise RuntimeError, ("Install failed with exit code %s\n%s" %
-                                     (ret, realtb))
-            else:
-                raise RuntimeError, ("Install failed with exit code %s; see "
-                                     "/var/log/syslog" % ret)
-
-        while self.progress_position.depth() != 0:
-            self.debconf_progress_stop()
-
-        # just to make sure
-        self.debconf_progress_window.hide()
-
-        #in case there are extra pages
-        self.back.hide()
-        self.quit.hide()
-        self.next.set_label("gtk-go-forward")
-        self.translate_widget(self.next)
-
-        self.installing = False
-
     def reboot(self, *args):
         """reboot the system after installing process."""
 
         self.returncode = 10
         self.quit_installer()
+    def shutdown(self, *args):
+        """Shutdown the system after installing process."""
 
+        self.returncode = 11
+        self.quit_installer()
     def do_reboot(self):
         """Callback for main program to actually reboot the machine."""
 
@@ -1242,7 +1195,24 @@ class Wizard(BaseFrontend):
                                          '/org/gnome/SessionManager')
             manager.RequestReboot()
         else:
-            execute_root("reboot")
+            misc.execute_root("reboot")
+
+    def do_shutdown(self):
+        """Callback for main program to actually shutdown the machine."""
+
+        try:
+            session = dbus.Bus.get_session()
+            gnome_session = session.name_has_owner('org.gnome.SessionManager')
+        except dbus.exceptions.DBusException:
+            gnome_session = False
+
+        if gnome_session:
+            manager = session.get_object('org.gnome.SessionManager',
+                                         '/org/gnome/SessionManager')
+            manager.RequestShutdown()
+        else:
+            misc.execute_root("poweroff")
+
 
     def quit_installer(self, *args):
         """quit installer cleanly."""
@@ -1281,6 +1251,12 @@ class Wizard(BaseFrontend):
             return
 
         self.allow_change_step(False)
+        ui = self.pages[self.pagesindex].ui
+        if hasattr(ui, 'plugin_on_next_clicked'):
+            if ui.plugin_on_next_clicked():
+                # Stop processing and return to the page.
+                self.allow_change_step(True)
+                return
 
         step = self.page_name(self.steps.get_current_page())
 
@@ -1288,24 +1264,6 @@ class Wizard(BaseFrontend):
         # entering. At present it's a little awkward to define actions that
         # occur upon entering a page without unwanted side-effects when the
         # user tries to go forward but fails due to validation.
-
-        # FIXME UGH.  I don't want this outside of the plugin.
-        if step == 'stepPartAsk':
-            self.next.set_label(self.get_string('install_button'))
-            if not self.custom_partitioning.get_active():
-                self.set_current_page(self.steps.page_num(self.stepPartAuto))
-                self.allow_change_step(True)
-                return
-        if step == "stepPartAuto":
-            self.part_advanced_warning_message.set_text('')
-            self.part_advanced_warning_hbox.hide()
-        if step in ("stepPartAuto", "stepPartAdvanced"):
-            # TODO Ideally this should be done in the base frontend or the
-            # partitioning component itself.
-            options = grub_options()
-            self.grub_options.clear()
-            for opt in options:
-                self.grub_options.append(opt)
 
         if self.dbfilter is not None:
             self.dbfilter.ok_handler()
@@ -1322,9 +1280,6 @@ class Wizard(BaseFrontend):
         step = self.page_name(step_num)
         syslog.syslog('Step_before = %s' % step)
 
-        if step.startswith("stepPart"):
-            self.previous_partitioning_page = step_num
-
     def on_back_clicked(self, unused_widget):
         """Callback to set previous screen."""
 
@@ -1332,18 +1287,18 @@ class Wizard(BaseFrontend):
             return
 
         self.allow_change_step(False)
+        ui = self.pages[self.pagesindex].ui
+        if hasattr(ui, 'plugin_on_back_clicked'):
+            if ui.plugin_on_back_clicked():
+                # Stop processing and return to the page.
+                self.allow_change_step(True)
+                return
 
         self.backup = True
         self.stay_on_page = False
 
         # Enabling next button
         self.allow_go_forward(True)
-        # Setting actual step
-        step = self.step_name(self.steps.get_current_page())
-
-        if step == "summary":
-            self.next.set_label("gtk-go-forward")
-            self.translate_widget(self.next)
 
         if self.dbfilter is not None:
             self.dbfilter.cancel_handler()
@@ -1369,7 +1324,6 @@ class Wizard(BaseFrontend):
         gobject.io_add_watch(from_debconf,
                              gobject.IO_IN | gobject.IO_ERR | gobject.IO_HUP,
                              self.watch_debconf_fd_helper, process_input)
-
 
     def watch_debconf_fd_helper (self, source, cb_condition, callback):
         debconf_condition = 0
@@ -1427,10 +1381,10 @@ class Wizard(BaseFrontend):
     def on_progress_cancel_button_clicked (self, unused_button):
         self.progress_cancelled = True
 
-
     def debconffilter_done (self, dbfilter):
         if not dbfilter.status:
             self.find_next_step(dbfilter.__module__)
+        # TODO: This doesn't handle partman-commit failures.
         elif dbfilter.__module__ in ('ubiquity.components.install',
                                      'ubiquity.components.plugininstall'):
             # We don't want to try to retry a failing step here, because it
@@ -1447,11 +1401,17 @@ class Wizard(BaseFrontend):
         else:
             return False
 
+
+    def switch_to_install_interface(self):
+        self.installing = True
+        self.lockdown_environment()
+        self.progress_section.show()
+
     def find_next_step(self, finished_step):
         # TODO need to handle the case where debconffilters launched from
         # here crash.  Factor code out of dbfilter_handle_status.
         last_page = self.pages[-1].module.__name__
-        if finished_step == last_page:
+        if finished_step == last_page and not self.backup:
             self.finished_pages = True
             if self.finished_installing or self.oem_user_config:
                 self.progress_section.show()
@@ -1459,9 +1419,15 @@ class Wizard(BaseFrontend):
                 dbfilter.start(auto_process=True)
 
         elif finished_step == 'ubi-partman':
-            self.installing = True
-            self.lockdown_environment()
-            self.progress_section.show()
+            # Flush changes to the database so that when the parallel db
+            # starts, it does so with the most recent changes.
+            self.stop_debconf()
+            self.start_debconf()
+            options = misc.grub_options()
+            self.grub_options.clear()
+            for opt in options:
+                self.grub_options.append(opt)
+            self.switch_to_install_interface()
             from ubiquity.debconfcommunicator import DebconfCommunicator
             if self.parallel_db is not None:
                 # Partitioning failed and we're coming back through again.
@@ -1489,7 +1455,6 @@ class Wizard(BaseFrontend):
         elif finished_step == 'ubiquity.components.plugininstall':
             self.installing = False
             self.run_success_cmd()
-            #gtk.main_quit()
             self.quit_main_loop()
 
     def grub_verify_loop(self, widget, okbutton):
@@ -1514,14 +1479,15 @@ class Wizard(BaseFrontend):
                 if page.module.NAME == 'partman':
                     self.pagesindex = self.pages.index(page)
                     break
-            if self.pagesindex == -1: return
+            if self.pagesindex == -1:
+                return
 
             self.start_debconf()
             ui = self.pages[self.pagesindex].ui
             self.dbfilter = self.pages[self.pagesindex].filter_class(self, ui=ui)
             self.allow_change_step(False)
             self.dbfilter.start(auto_process=True)
-            self.next.set_label("gtk-go-forward")
+            self.toggle_next_button()
             self.translate_widget(self.next)
             self.installing = False
             self.progress_section.hide()
@@ -1535,13 +1501,9 @@ class Wizard(BaseFrontend):
         # buttons. Cursor handling should be controllable independently.
         saved_allowed_change_step = self.allowed_change_step
         self.allow_change_step(True)
-        if self.current_page is not None:
-            transient = self.live_installer
-        else:
-            transient = self.debconf_progress_window
         if not msg:
             msg = title
-        dialog = gtk.MessageDialog(transient, gtk.DIALOG_MODAL,
+        dialog = gtk.MessageDialog(self.live_installer, gtk.DIALOG_MODAL,
                                    gtk.MESSAGE_ERROR, gtk.BUTTONS_OK, msg)
         dialog.set_title(title)
         dialog.run()
@@ -1566,7 +1528,7 @@ class Wizard(BaseFrontend):
 
     def bootloader_dialog (self, current_device):
         l = self.skip_label.get_label()
-        l = l.replace('${RELEASE}', get_release().name)
+        l = l.replace('${RELEASE}', misc.get_release().name)
         self.skip_label.set_label(l)
         self.grub_new_device_entry.child.set_text(current_device)
         self.grub_new_device_entry.child.grab_focus()
@@ -1589,10 +1551,6 @@ class Wizard(BaseFrontend):
         # buttons. Cursor handling should be controllable independently.
         saved_allowed_change_step = self.allowed_change_step
         self.allow_change_step(True)
-        if self.current_page is not None:
-            transient = self.live_installer
-        else:
-            transient = self.debconf_progress_window
         if not msg:
             msg = title
         buttons = []
@@ -1607,7 +1565,7 @@ class Wizard(BaseFrontend):
             # subtype of str, which unicode isn't.
             text = str(text)
             buttons.extend((text, len(buttons) / 2 + 1))
-        dialog = gtk.Dialog(title, transient, gtk.DIALOG_MODAL, tuple(buttons))
+        dialog = gtk.Dialog(title, self.live_installer, gtk.DIALOG_MODAL, tuple(buttons))
         vbox = gtk.VBox()
         vbox.set_border_width(5)
         label = gtk.Label(msg)

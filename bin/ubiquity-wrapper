@@ -102,16 +102,13 @@ def main():
         archdetect = subprocess.Popen(['archdetect'], stdout=subprocess.PIPE)
         arch = archdetect.communicate()[0].strip()
         if arch == 'powerpc/ps3':
-            meminfo = open('/proc/meminfo')
-            try:
+            with open('/proc/meminfo') as meminfo:
                 for line in meminfo:
                     if line.startswith('MemTotal:'):
                         mem = int(line.split()[1])
                         if mem <= 262144:
                             lowmem = True
                             break
-            finally:
-                meminfo.close()
         if lowmem:
             syslog.syslog("Low memory: killing processes to work around hang")
             if frontend == 'gtk_ui':

@@ -24,19 +24,38 @@ autopartitioning_failed () {
 	exit 1
 }
 
+find_method () {
+	local num id size type fs path name method found
+	found=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ -f $id/method-old ] || continue
+		method="$(cat $id/method-old)"
+		if [ "$method" = "$1" ]; then
+			found="$id"
+		fi
+	done
+	close_dialog
+	echo "$found"
+}
+
 unnamed=0
 
 decode_recipe () {
-	local ignore ram line word min factor max fs iflabel label -
+	local ignore ram line word min factor max fs iflabel label map map_end -
+	local reusemethod method id
 	ignore="${2:+${2}ignore}"
 	unnamed=$(($unnamed + 1))
 	ram=
-	if [ -x /usr/lib/base-installer/dmi-available-memory ]; then
-		ram="$(/usr/lib/base-installer/dmi-available-memory)"000
-		if [ "$ram" = 0000 ]; then
-			ram=
+	for map in /sys/firmware/memmap/*; do
+		[ -d "$map" ] || continue
+		if [ "$(cat $map/type)" = "System RAM" ]; then
+			map_start="$(printf %d "$(cat $map/start)")"
+			map_end="$(printf %d "$(cat $map/end)")"
+			ram="$(expr "${ram:-0}" + \
+				    "$map_end" - "$map_start" + 1)"
 		fi
-	fi
+	done
 	if [ -z "$ram" ]; then
 		ram=$(grep ^Mem: /proc/meminfo | { read x y z; echo $y; }) # in bytes
 	fi
@@ -118,30 +137,44 @@ decode_recipe () {
 
 			# Exclude partitions that have ...ignore set
 			if [ "$ignore" ] && [ "$(echo $line | grep "$ignore")" ]; then
-				:
-			else
-				# Exclude partitions that are only for a different
-				# disk label. The $PWD check avoids problems when
-				# running from partman-auto-lvm, where we aren't in
-				# a subdirectory of $DEVICES while decoding the
-				# recipe; but we do need to perform this check early
-				# so that size calculations work. As a result, for
-				# now, $iflabel will not work when doing automatic
-				# LVM partitioning.
-				iflabel="$(echo $line | sed -n 's/.*\$iflabel{ \([^}]*\) }.*/\1/p')"
-				if [ "$iflabel" ]; then
-					if [ "${PWD#$DEVICES/}" != "$PWD" ]; then
-						open_dialog GET_LABEL_TYPE
-						read_line label
-						close_dialog
-						if [ "$iflabel" = "$label" ]; then
-							scheme="${scheme:+$scheme$NL}$line"
-						fi
-					fi
-				else
-					scheme="${scheme:+$scheme$NL}$line"
+				line=
+				continue
+			fi
+
+			# Exclude partitions that are only for a different
+			# disk label.  The $PWD check avoids problems when
+			# running from older versions of partman-auto-lvm,
+			# where we weren't in a subdirectory of $DEVICES
+			# while decoding the recipe; we preserve it in case
+			# of custom code with the same problem.
+			iflabel="$(echo $line | sed -n 's/.*\$iflabel{ \([^}]*\) }.*/\1/p')"
+			if [ "$iflabel" ]; then
+				if [ "${PWD#$DEVICES/}" = "$PWD" ]; then
+					line=''
+					continue
+				fi
+
+				open_dialog GET_LABEL_TYPE
+				read_line label
+				close_dialog
+				if [ "$iflabel" != "$label" ]; then
+					line=''
+					continue
 				fi
 			fi
+
+			# Check if we can reuse an existing partition.
+			if echo "$line" | grep -q '\$reusemethod{'; then
+				if [ "${PWD#$DEVICES/}" != "$PWD" ]; then
+					method="$(echo "$line" | sed -n 's/.* method{ \([^}]*\) }.*/\1/p')"
+					id="$(find_method "$method")"
+					if [ "$id" ]; then
+						line="$(echo "$line" | sed 's/\$reusemethod{[^}]*}/$reuse{ '"$id"' }/')"
+					fi
+				fi
+			fi
+
+			scheme="${scheme:+$scheme$NL}$line"
 			line=''
 			;;
 		    *)
@@ -375,6 +408,21 @@ choose_recipe () {
 }
 
 expand_scheme() {
+	# Filter out reused partitions first, as we don't want to take
+	# account of their size.
+	scheme_reused=$(
+	    foreach_partition '
+		if echo "$*" | grep -q '\''\$reuse{'\''; then
+			echo "$*"
+		fi'
+	)
+	scheme=$(
+	    foreach_partition '
+		if ! echo "$*" | grep -q '\''\$reuse{'\''; then
+			echo "$*"
+		fi'
+	)
+
 	# Make factors small numbers so we can multiply on them.
 	# Also ensure that fact, max and fs are valid
 	# (Ofcourse in valid recipes they must be valid.)
@@ -441,7 +489,8 @@ clean_method() {
 		cd $device
 		open_dialog PARTITIONS
 		while { read_line num id size type fs path name; [ "$id" ]; }; do
-			rm -f $id/method
+			[ -e $id/method ] || continue
+			mv $id/method $id/method-old
 		done
 		close_dialog
 	done

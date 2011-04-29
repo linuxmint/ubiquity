@@ -10,6 +10,17 @@ warning() {
 	log "warning: $*"
 }
 
+arch_has_os_needing_local_clock () {
+	# keep in sync with arches that can run OSs matched by
+	# os_needs_local_clock
+	case "$(udpkg --print-architecture)" in
+	*i386*|*amd64*|*ia64*)
+		return 0
+	;;
+	esac
+	return 1
+}
+
 os_needs_local_clock () {
 	while read line; do
 		shortname=$(echo "$line" | cut -d : -f 3)
@@ -30,20 +41,6 @@ hwclock_prepare () {
 	log-output -t hw-detect modprobe -v rtc || log "rtc module not loaded"
 	log-output -t hw-detect modprobe -v rtc-dev || log "rtc-dev module not loaded"
 	update-dev --settle
-
-	# bind mount /dev into /target/dev so that rtc devices are
-	# available for hwclock
-	if mount -o bind /dev /target/dev; then
-		target_dev_mounted=1
-	else
-		warning "failed to bind mount /target/dev"
-	fi
-}
-
-hwclock_cleanup () {
-	if [ "$target_dev_mounted" ] && ! umount /target/dev; then
-		warning "failed to unmount /target/dev bind mount"
-	fi
 }
 
 hwclock_stop () {
@@ -60,15 +57,19 @@ if db_fget clock-setup/utc seen && [ "$RET" = true ]; then
 	# keep preseeded value
 	:
 else
-	# os-prober may not yet be installed...
-	anna-install os-prober-udeb || true
+	probed=""
 
-	probed=$(os-prober) || true
-
-	if echo "$probed" | os_needs_local_clock; then
-		# default to localtime for some OSes
-		db_set clock-setup/utc false
-		pri=low
+	if arch_has_os_needing_local_clock; then
+		# os-prober may not yet be installed...
+		anna-install os-prober-udeb || true
+	
+		probed=$(os-prober) || true
+	
+		if echo "$probed" | os_needs_local_clock; then
+			# default to localtime for some OSes
+			db_set clock-setup/utc false
+			pri=low
+		fi
 	fi
 
 	if [ -z "$probed" ]; then
@@ -128,8 +129,6 @@ if [ "$RET" = true ]; then
 			fi
 		fi
 	done
-
-	hwclock_cleanup
 else
 	log "not setting hardware clock"
 fi

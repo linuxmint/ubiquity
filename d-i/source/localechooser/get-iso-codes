@@ -16,3 +16,8 @@ for i in $(find /usr/share/locale/ -name iso_3166.mo); do
 		cp iso-codes.updates/$language.po debian/iso-codes
 	fi
 done
+
+# If no iso-codes translation is available for se, then use nb instead
+if [ ! -f debian/iso-codes/se.po ] && [ -f debian/iso-codes/nb.po ]; then
+	cp debian/iso-codes/nb.po debian/iso-codes/se.po
+fi

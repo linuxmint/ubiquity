@@ -1,3 +1,274 @@
+grub-installer (1.60ubuntu3) natty; urgency=low
+
+  * Remove grub-gfxpayload-lists in situations where we need to remove
+    grub-pc (LP: #765270).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 20 Apr 2011 21:47:46 +0100
+
+grub-installer (1.60ubuntu2) natty; urgency=low
+
+  * Fix reference to Debian in Norwegian Bokmål translation (LP: #718236).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 23 Mar 2011 16:34:39 +0000
+
+grub-installer (1.60ubuntu1) natty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Show the grub menu and raise the menu timeout if other operating
+      systems are installed (only for GRUB Legacy right now).
+    - Remove splash boot parameter unless debian-installer/framebuffer=true
+      and debian-installer/splash=true.
+    - If / or /boot are on a removable device, install GRUB there by
+      default.
+    - Only mount /target/proc if it isn't already mounted.
+    - Support setting OVERRIDE_UNSUPPORTED_OS in the environment to force
+      grub-installer to use its default MBR selection method despite there
+      being unsupported operating systems on the disk.
+    - Unless grub-installer/make_active is preseeded to false, mark the
+      partition to which GRUB is being installed as bootable, or failing
+      that the first available primary partition on the disk to which GRUB
+      is being installed.
+    - Support grub-installer/bootdev_directory preseeding to make use of the
+      relative path feature of grub4dos, so that we can point grub4dos at
+      part of a disk for Wubi. Setting this disables normal grub
+      installation, but still generates a device.map (for GRUB Legacy only);
+      it also hides the menu.
+    - Handle cases where /boot is bind-mounted.
+    - Add support for writing an GRUB Legacy MBR on each disk in an
+      mdadm-managed RAID providing /boot. (GRUB 2 can handle this already.)
+    - Properly make use of output from os-prober to configure the booting of
+      other operating systems on dmraid arrays. Attempt to guess where in
+      the device map the array belongs, by substituting the first drive in
+      the dmraid array for the dmraid array device node itself, and removing
+      any reference to other member disks of the array.
+    - Go back to using update-grub -y for GRUB Legacy for now; our grub
+      package is a bit old and still requires this.
+    - Default to grub2 for GPT systems.
+    - Allow grub/grub2 choice for ext4, though still default to grub2.
+    - If /boot is on an MD device and we're using GRUB 2, install GRUB there
+      rather than (hd0); GRUB 2 will interpret that as meaning that it needs
+      to install to each of the RAID members.
+    - If using GRUB 2 and installing to a RAID device any of whose
+      components are partitions, then default to installing to the MBRs of
+      each of the containing disks, since GRUB 2 will refuse to install to
+      the partition devices.
+    - Bind-mount /proc and /sys while running grub-install.
+    - Update grub-installer/bootdev text to avoid GRUB device naming that
+      changed between GRUB Legacy and GRUB 2, and to use libata-style device
+      naming since that is more accurate for most people.
+    - On i386/efi and amd64/efi subarchitectures, install grub-efi and purge
+      grub, grub-legacy, and grub-pc; elsewhere, purge grub-efi*.
+    - Don't ask for a boot device on EFI, and don't pass a boot device
+      argument to grub-install.
+    - Add a preseedable grub-installer/timeout template to adjust the
+      initial GRUB timeout.
+    - Install GRUB to the SATA RAID or multipath device when /boot is on
+      such a device, rather than installing to the first hard disk.
+  * If the first disk has neither a partition table nor a filesystem, don't
+    try to install to it as grub-setup will refuse (LP: #711830).
+  * Canonicalise device names printed by 'mdadm --detail' (LP: #695842).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 10 Feb 2011 14:05:10 +0000
+
+grub-installer (1.60) unstable; urgency=low
+
+  * Drop warning about GRUB 2 being experimental. Closes: #610365.
+
+ -- Otavio Salvador <otavio@debian.org>  Mon, 17 Jan 2011 21:41:47 -0200
+
+grub-installer (1.59) unstable; urgency=low
+
+  [ Julien Cristau ]
+  * Amend changes from 1.57: call device_to_disk on the device mounted as
+    cdrom.  Booting from a disk or usb device, that may end up being
+    /dev/sda1 instead of /dev/sda, defeating the "we shouldn't install GRUB to
+    the installation media" test.  In addition, avoid installing GRUB to the
+    device mounted on /hd-media.  Closes: #605562.
+
+  [ Updated translations ]
+  * Northern Sami (se.po) by Børre Gaup
+
+ -- Otavio Salvador <otavio@ossystems.com.br>  Sat, 15 Jan 2011 16:49:51 -0200
+
+grub-installer (1.58) unstable; urgency=low
+
+  [ Christian Perrier ]
+  * Change text of examples in debconf templates to fit the new
+    partition numbering scheme in GRUB 2. Closes: #581687
+
+  [ Updated translations ]
+  * Hindi (hi.po) by Kumar Appaiah
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Central Khmer (km.po) by Khoem Sokhem
+  * Lao (lo.po) by Anousak Souphavanh
+  * Malayalam (ml.po) by Praveen Arimbrathodiyil
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel
+  * Northern Sami (se.po) by Børre Gaup
+  * Slovak (sk.po) by Ivan Masár
+  * Telugu (te.po) by Arjuna Rao Chavala
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 24 Dec 2010 19:01:42 -0200
+
+grub-installer (1.57ubuntu2) natty; urgency=low
+
+  * Ignore words not beginning with "/dev/" in 'mdadm --detail' output
+    (LP: #680751).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 09 Dec 2010 12:35:22 +0000
+
+grub-installer (1.57ubuntu1) natty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Show the grub menu and raise the menu timeout if other operating
+      systems are installed (only for GRUB Legacy right now).
+    - Remove splash boot parameter unless debian-installer/framebuffer=true
+      and debian-installer/splash=true.
+    - If / or /boot are on a removable device, install GRUB there by
+      default.
+    - Only mount /target/proc if it isn't already mounted.
+    - Support setting OVERRIDE_UNSUPPORTED_OS in the environment to force
+      grub-installer to use its default MBR selection method despite there
+      being unsupported operating systems on the disk.
+    - Unless grub-installer/make_active is preseeded to false, mark the
+      partition to which GRUB is being installed as bootable, or failing
+      that the first available primary partition on the disk to which GRUB
+      is being installed.
+    - Support grub-installer/bootdev_directory preseeding to make use of the
+      relative path feature of grub4dos, so that we can point grub4dos at
+      part of a disk for Wubi. Setting this disables normal grub
+      installation, but still generates a device.map (for GRUB Legacy only);
+      it also hides the menu.
+    - Handle cases where /boot is bind-mounted.
+    - Add support for writing an GRUB Legacy MBR on each disk in an
+      mdadm-managed RAID providing /boot. (GRUB 2 can handle this already.)
+    - Properly make use of output from os-prober to configure the booting of
+      other operating systems on dmraid arrays. Attempt to guess where in
+      the device map the array belongs, by substituting the first drive in
+      the dmraid array for the dmraid array device node itself, and removing
+      any reference to other member disks of the array.
+    - Go back to using update-grub -y for GRUB Legacy for now; our grub
+      package is a bit old and still requires this.
+    - Default to grub2 for GPT systems.
+    - Allow grub/grub2 choice for ext4, though still default to grub2.
+    - If /boot is on an MD device and we're using GRUB 2, install GRUB there
+      rather than (hd0); GRUB 2 will interpret that as meaning that it needs
+      to install to each of the RAID members.
+    - If using GRUB 2 and installing to a RAID device any of whose
+      components are partitions, then default to installing to the MBRs of
+      each of the containing disks, since GRUB 2 will refuse to install to
+      the partition devices.
+    - Bind-mount /proc and /sys while running grub-install.
+    - Update grub-installer/bootdev text to avoid GRUB device naming that
+      changed between GRUB Legacy and GRUB 2, and to use libata-style device
+      naming since that is more accurate for most people.
+    - On i386/efi and amd64/efi subarchitectures, install grub-efi and purge
+      grub, grub-legacy, and grub-pc; elsewhere, purge grub-efi*.
+    - Don't ask for a boot device on EFI, and don't pass a boot device
+      argument to grub-install.
+    - Add a preseedable grub-installer/timeout template to adjust the
+      initial GRUB timeout.
+    - Install GRUB to the SATA RAID or multipath device when /boot is on
+      such a device, rather than installing to the first hard disk.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 22 Nov 2010 10:30:59 +0000
+
+grub-installer (1.57) unstable; urgency=low
+
+  * Merge changes from Ubuntu by Evan Dandrea and myself:
+    - Set a sensible default boot device, so that we aren't installing GRUB
+      to installation media which may be removed later.  The disk containing
+      /cdrom is very unlikely to be a sensible default.  If we had to fall
+      back to (hd0), then we can't tell exactly which disk that is, but if
+      /cdrom seems to be a USB stick then (hd0) may not be safe.  If we hit
+      either of those checks, then try the disk containing /boot instead
+      (closes: #568529).
+
+  [ Updated translations ]
+  * Sinhala (si.po) by Danishka Navin
+  * Slovenian (sl.po) by Vanja Cvelbar
+
+ -- Colin Watson <cjwatson@debian.org>  Fri, 19 Nov 2010 15:27:33 +0000
+
+grub-installer (1.56ubuntu1) natty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Show the grub menu and raise the menu timeout if other operating
+      systems are installed (only for GRUB Legacy right now).
+    - Remove splash boot parameter unless debian-installer/framebuffer=true
+      and debian-installer/splash=true.
+    - If / or /boot are on a removable device, install GRUB there by
+      default.
+    - Only mount /target/proc if it isn't already mounted.
+    - Support setting OVERRIDE_UNSUPPORTED_OS in the environment to force
+      grub-installer to use its default MBR selection method despite there
+      being unsupported operating systems on the disk.
+    - Unless grub-installer/make_active is preseeded to false, mark the
+      partition to which GRUB is being installed as bootable, or failing
+      that the first available primary partition on the disk to which GRUB
+      is being installed.
+    - Support grub-installer/bootdev_directory preseeding to make use of the
+      relative path feature of grub4dos, so that we can point grub4dos at
+      part of a disk for Wubi. Setting this disables normal grub
+      installation, but still generates a device.map (for GRUB Legacy only);
+      it also hides the menu.
+    - Handle cases where /boot is bind-mounted.
+    - Add support for writing an GRUB Legacy MBR on each disk in an
+      mdadm-managed RAID providing /boot. (GRUB 2 can handle this already.)
+    - Properly make use of output from os-prober to configure the booting of
+      other operating systems on dmraid arrays. Attempt to guess where in
+      the device map the array belongs, by substituting the first drive in
+      the dmraid array for the dmraid array device node itself, and removing
+      any reference to other member disks of the array.
+    - Set a sensible default boot device when /cdrom is not iso9660, as this
+      is probably a USB install and (hd0) does not make sense when
+      installing from a removable disk.
+    - Go back to using update-grub -y for GRUB Legacy for now; our grub
+      package is a bit old and still requires this.
+    - Default to grub2 for GPT systems.
+    - Allow grub/grub2 choice for ext4, though still default to grub2.
+    - If /boot is on an MD device and we're using GRUB 2, install GRUB there
+      rather than (hd0); GRUB 2 will interpret that as meaning that it needs
+      to install to each of the RAID members.
+    - If using GRUB 2 and installing to a RAID device any of whose
+      components are partitions, then default to installing to the MBRs of
+      each of the containing disks, since GRUB 2 will refuse to install to
+      the partition devices.
+    - Bind-mount /proc and /sys while running grub-install.
+    - Update grub-installer/bootdev text to avoid GRUB device naming that
+      changed between GRUB Legacy and GRUB 2, and to use libata-style device
+      naming since that is more accurate for most people.
+    - On i386/efi and amd64/efi subarchitectures, install grub-efi and purge
+      grub, grub-legacy, and grub-pc; elsewhere, purge grub-efi*.
+    - Don't ask for a boot device on EFI, and don't pass a boot device
+      argument to grub-install.
+    - Add a preseedable grub-installer/timeout template to adjust the
+      initial GRUB timeout.
+    - Install GRUB to the SATA RAID or multipath device when /boot is on
+      such a device, rather than installing to the first hard disk.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 15 Nov 2010 11:33:47 +0000
+
+grub-installer (1.56) unstable; urgency=low
+
+  [ Otavio Salvador ]
+  * Use '$grub_version' instead of '$grub_package' to choose the chain
+    writting code.
+
+  [ Colin Watson ]
+  * Run update-grub within in-target so that /target/proc and /target/sys
+    are mounted, fixing OS detection (closes: #560027, #567980, #593460).
+
+  [ Robert Millan ]
+  * ZFS support (Closes: #595152).
+
+  [ Updated translations ]
+  * Catalan (ca.po) by Jordi Mallach
+  * Danish (da.po) by Anders Jenbo
+  * Persian (fa.po) by Behrad Eslamifar
+  * Icelandic (is.po) by Sveinn í Felli
+
+ -- Robert Millan <rmh@debian.org>  Wed, 10 Nov 2010 01:04:15 +0100
+
 grub-installer (1.55ubuntu4) maverick; urgency=low
 
   * Install GRUB to the SATA RAID or multipath device when /boot is on such

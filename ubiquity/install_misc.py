@@ -471,7 +471,7 @@ def broken_packages(cache):
 
 def mark_install(cache, pkg):
     cachedpkg = get_cache_pkg(cache, pkg)
-    if cachedpkg is not None and not cachedpkg.is_installed:
+    if cachedpkg is not None and (not cachedpkg.is_installed or cachedpkg.is_upgradable):
         apt_error = False
         try:
             cachedpkg.mark_install()
@@ -794,22 +794,24 @@ class InstallBase:
         except debconf.DebconfError:
             pass
         if not langpacks:
+            langpack_set = set()
             try:
                 langpack_db = self.db.get('localechooser/supported-locales')
-                langpack_set = set()
                 for locale in langpack_db.replace(',', '').split():
                     langpack_set.add(locale_to_language_pack(locale))
-                langpacks = sorted(langpack_set)
             except debconf.DebconfError:
                 pass
-        if not langpacks:
             langpack_db = self.db.get('debian-installer/locale')
-            langpacks = [locale_to_language_pack(langpack_db)]
+            langpack_set.add(locale_to_language_pack(langpack_db))
+            langpacks = sorted(langpack_set)
 
+        no_install = '/var/lib/ubiquity/no-install-langpacks'
+        if os.path.exists(no_install):
+            osextras.unlink_force(no_install)
         if len(langpacks) == 1 and langpacks[0] in ('C', 'en'):
             # Touch
-            with file('/var/lib/ubiquity/no-install-langpacks', 'a'):
-                os.utime('/var/lib/ubiquity/no-install-langpacks', None)
+            with open(no_install, 'a'):
+                os.utime(no_install, None)
 
         syslog.syslog('keeping language packs for: %s' % ' '.join(langpacks))
 
@@ -882,11 +884,13 @@ class InstallBase:
                              if get_cache_pkg(cache, lp).is_installed]
 
         del cache
-
         record_installed(to_install)
+
+        langpacks_file = '/var/lib/ubiquity/langpacks'
+        if os.path.exists(langpacks_file):
+            osextras.unlink_force(langpacks_file)
         if install_new:
             if save:
-                langpacks_file = '/var/lib/ubiquity/langpacks'
                 if not os.path.exists(os.path.dirname(langpacks_file)):
                     os.makedirs(os.path.dirname(langpacks_file))
                 with open(langpacks_file, 'w') as langpacks:

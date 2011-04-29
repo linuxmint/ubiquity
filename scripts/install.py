@@ -39,6 +39,7 @@ from ubiquity import install_misc
 from ubiquity import osextras
 from ubiquity.casper import get_casper
 
+
 class Install(install_misc.InstallBase):
 
     def __init__(self):
@@ -63,7 +64,8 @@ class Install(install_misc.InstallBase):
             self.target = '/'
             return
 
-        assert os.path.ismount(self.target), 'Failed to mount the target: %s' % str(self.target)
+        assert os.path.ismount(self.target), \
+            'Failed to mount the target: %s' % str(self.target)
 
         self.select_language_packs(save=True)
         self.select_ecryptfs()

@@ -2,6 +2,34 @@
 set -e
 
 . /usr/share/debconf/confmodule
+. /lib/chroot-setup.sh
+
+# This code is copied from chroot-setup.sh, and is needed until after a d-i
+# release whose initrds contain a sufficiently new version of di-utils.
+if ! type chroot_cleanup_localmounts >/dev/null 2>&1; then
+	# Variant of chroot_cleanup that only cleans up chroot_setup's mounts.
+	chroot_cleanup_localmounts () {
+		rm -f /target/usr/sbin/policy-rc.d
+		mv /target/sbin/start-stop-daemon.REAL /target/sbin/start-stop-daemon
+		if [ -x /target/sbin/initctl.REAL ]; then
+			mv /target/sbin/initctl.REAL /target/sbin/initctl
+		fi
+
+		# Undo the mounts done by the packages during installation.
+		# Reverse sorting to umount the deepest mount points first.
+		# Items with count of 1 are new.
+		for dir in $( (cat /tmp/mount.pre /tmp/mount.pre /tmp/mount.post ) | \
+			     sort -r | uniq -c | grep "^[[:space:]]*1[[:space:]]" | \
+			     sed "s/^[[:space:]]*[0-9][[:space:]]//"); do
+			if ! umount $dir; then
+				logger -t $0 "warning: Unable to umount '$dir'"
+			fi
+		done
+		rm -f /tmp/mount.pre /tmp/mount.post
+
+		rm -f /var/run/chroot-setup.lock
+	}
+fi
 
 file="$1"
 
@@ -11,30 +39,36 @@ fi
 if [ ! -s /cdrom/.disk/info ]; then
 	exit 0
 fi
-REMOUNT_CD=true
+
+cd_mountable=1
+db_get cdrom-detect/hybrid || true
+if [ "$RET" = true ] || [ -d /hd-media ]; then
+	cd_mountable=""
+fi
+
+fs=iso9660
+if db_get cdrom-detect/cdrom_fs && [ "$RET" ]; then
+	fs="$RET"
+else
+	fs=$(mount | grep "on /cdrom " | cut -d' ' -f5) || true
+fi
+
+if [ "$fs" != iso9660 ]; then
+	cd_mountable=""
+fi
+
 if [ "$OVERRIDE_LEAVE_CD_MOUNTED" ]; then
-	REMOUNT_CD=
+	cd_mountable=""
 fi
 cd_type=$(cat /cdrom/.disk/cd_type)
 case $cd_type in
     */single)
-	REMOUNT_CD=
+	cd_mountable=""
 	;;
 esac
 
-cdfstype=$(mount | grep "on /cdrom " | cut -d' ' -f5)
-isofs=
-if [ "$cdfstype" = "iso9660" ]; then
-	isofs=1
-fi
-mounts=
-
 remount_cd() {
-	if [ "$ROOT" ] && [ -n "$isofs" ] && [ ! -d /hd-media ] && [ "$REMOUNT_CD" ]; then
-		fs=iso9660
-		if db_get cdrom-detect/cdrom_fs && [ "$RET" ]; then
-			fs="$RET"
-		fi
+	if [ "$ROOT" ] && [ "$cd_mountable" ]; then
 		db_get cdrom-detect/cdrom_device
 		$logoutput mount -t "$fs" -o ro,exec $RET /cdrom || true
 	fi
@@ -43,9 +77,6 @@ remount_cd() {
 bail_out() {
 	remount_cd
 	rm -f $ROOT$tmp $ROOT$tmp~
-	for mount in $mounts; do
-		umount $ROOT$mount || true
-	done
 	rm -f /var/lib/install-cd.id
 
 	db_input critical apt-setup/cdrom/failed || true
@@ -57,7 +88,7 @@ bail_out() {
 save_label() {
 	local ident
 
-	if ! ident="$($logoutput_pass $chroot $ROOT apt-cdrom ident)"; then
+	if ! ident="$(LC_ALL=C $logoutput_pass $chroot $ROOT apt-cdrom ident)"; then
 		bail_out
 	fi
 	echo "$ident" | grep "^Identifying" | head -n1 | cut -d" " -f2 \
@@ -78,36 +109,28 @@ if [ "$ROOT" ]; then
 	chroot=chroot
 
 	# Allow apt-cdrom to manage mounting/unmounting CDs in /target
-	# (except for hd-media installs)
-	if [ ! -d /hd-media ] && [ -n "$isofs" ] && [ "$REMOUNT_CD" ]; then
+	if [ "$cd_mountable" ]; then
 		rm -f $ROOT/etc/apt/apt.conf.d/00NoMountCDROM
 
 		# Also removes the bind-mount in /target
 		$logoutput umount /cdrom || true
 	fi
+
+	chroot_setup
+	# Needed until after a d-i release with new enough di-utils.
+	mountpoints > /tmp/mount.post
+	trap chroot_cleanup_localmounts EXIT HUP INT QUIT TERM
 fi
 
 tmp=$($chroot $ROOT tempfile)
 
-if [ ! -e $ROOT/proc/cmdline ]; then
-	mount -t proc proc $ROOT/proc
-	mounts="$mounts /proc"
-fi
-if [ ! -d $ROOT/sys/devices ]; then
-	mount -t sysfs sysfs $ROOT/sys
-	mounts="$mounts /sys"
-fi
-if [ "$ROOT" ]; then
-	mount -o bind /dev $ROOT/dev
-	mounts="$mounts /dev"
-fi
 # apt-cdrom can be interactive, avoid that
 if $logoutput $chroot $ROOT apt-cdrom add \
    -o Dir::Etc::SourceList=$tmp \
    </dev/null; then
 	cat $ROOT$tmp >> $file
 
-	if [ "$ROOT" ] && [ -n "$isofs" ] && [ ! -d /hd-media ] && [ "$REMOUNT_CD" ]; then
+	if [ "$ROOT" ] && [ "$cd_mountable" ]; then
 		save_label
 	fi
 else
@@ -116,6 +139,3 @@ fi
 
 remount_cd
 rm -f $ROOT$tmp $ROOT$tmp~
-for mount in $mounts; do
-	umount $ROOT$mount || true
-done

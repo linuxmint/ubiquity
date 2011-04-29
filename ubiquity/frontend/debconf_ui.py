@@ -34,7 +34,7 @@ import debconf
 from ubiquity.frontend.base import BaseFrontend, Controller
 from ubiquity.plugin import Plugin
 from ubiquity import i18n
-from ubiquity.components import install
+from ubiquity.components import install, plugininstall
 
 class PersistentDebconfCommunicator(debconf.Debconf):
     def shutdown(self):
@@ -125,26 +125,29 @@ class Wizard(BaseFrontend):
 
         # TODO: handle errors
         if self.pagesindex == self.pageslen:
-            dbfilter = install.Install(self, db=self.db)
-            ret = dbfilter.run_unfiltered()
-            if ret != 0:
-                self.installing = False
-                if ret == 3:
-                    # error already handled by Install
-                    sys.exit(ret)
-                elif (os.WIFSIGNALED(ret) and
-                      os.WTERMSIG(ret) in (signal.SIGINT, signal.SIGKILL,
-                                           signal.SIGTERM)):
-                    sys.exit(ret)
-                elif os.path.exists('/var/lib/ubiquity/install.trace'):
-                    tbfile = open('/var/lib/ubiquity/install.trace')
-                    realtb = tbfile.read()
-                    tbfile.close()
-                    raise RuntimeError, ("Install failed with exit code %s\n%s" %
-                                         (ret, realtb))
-                else:
-                    raise RuntimeError, ("Install failed with exit code %s; see "
-                                         "/var/log/syslog" % ret)
+            for install_component in plugininstall, install:
+                dbfilter = install_component.Install(self, db=self.db)
+                ret = dbfilter.run_unfiltered()
+                if ret != 0:
+                    self.installing = False
+                    if ret == 3:
+                        # error already handled by Install
+                        sys.exit(ret)
+                    elif (os.WIFSIGNALED(ret) and
+                          os.WTERMSIG(ret) in (signal.SIGINT, signal.SIGKILL,
+                                               signal.SIGTERM)):
+                        sys.exit(ret)
+                    elif os.path.exists('/var/lib/ubiquity/install.trace'):
+                        tbfile = open('/var/lib/ubiquity/install.trace')
+                        realtb = tbfile.read()
+                        tbfile.close()
+                        raise RuntimeError(
+                            "Install failed with exit code %s\n%s" %
+                            (ret, realtb))
+                    else:
+                        raise RuntimeError(
+                            "Install failed with exit code %s; see "
+                            "/var/log/syslog" % ret)
 
             return 0
         else:

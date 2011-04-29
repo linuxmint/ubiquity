@@ -16,9 +16,15 @@ case $1 in
 		db_progress START 0 100 oem-config/removing
 		db_progress INFO debconf-apt-progress/preparing
 
-		debconf-apt-progress --from 0 --to 100 \
+		debconf-apt-progress --from 0 --to 50 \
 			--logfile /var/log/oem-config.log -- \
-			apt-get -y purge ubiquity ubiquity-casper ubiquity-ubuntu-artwork ubiquity-slideshow-ubuntu
+			apt-get -y purge ubiquity ubiquity-casper ubiquity-ubuntu-artwork
+		debconf-apt-progress --from 50 --to 75 \
+			--logfile /var/log/oem-config.log -- \
+			apt-get -y purge 'ubiquity-slideshow-*' || true
+		debconf-apt-progress --from 75 --to 100 \
+			--logfile /var/log/oem-config.log -- \
+			apt-get -y purge 'oem-config-slideshow-*' || true
 
 		debconf-apt-progress --stop
 		;;

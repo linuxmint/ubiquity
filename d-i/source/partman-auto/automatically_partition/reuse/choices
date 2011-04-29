@@ -1,0 +1,67 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+set -e
+
+cleanup_ro_partitions=
+mountpoint="$(mktemp -d)"
+cleanup () {
+	[ -e $mountpoint ] && umount -l $mountpoint && rmdir $mountpoint || true
+	for p in $cleanup_ro_partitions; do
+		blockdev --setrw $p || true
+	done
+}
+trap cleanup EXIT HUP INT QUIT TERM
+
+reuse=
+disks=
+if db_get partman-auto/disk; then
+	disks="$RET"
+fi
+for dev in $DEVICES/*; do
+	[ -d $dev ] || continue
+	if [ "$disks" ]; then
+		partman_disk="$(cat "$dev/device")"
+		local found=0
+		for preseed_disk in $disks; do
+			preseed_id=$(mapdevfs $preseed_disk)
+			case " $preseed_id " in
+			    *" $partman_disk "*)
+				found=1
+				;;
+			    *)
+				continue
+				;;
+			esac
+		done
+		if [ "$found" = "0" ]; then
+			continue
+		fi
+	fi
+	cd $dev
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ "$fs" != free ] || continue
+		part=$dev//$id
+		blockdev --setro $path
+		cleanup_ro_partitions="$cleanup_ro_partitions $path"
+		t="$(blkid -o value -s TYPE $path)" || true
+		if [ -n "$t" ] && [ "$t" != "swap" ] && \
+		mount -o ro $path $mountpoint 3>&-; then
+			release="$(grep -s DISTRIB_ID $mountpoint/etc/lsb-release)" || true
+			umount -l $mountpoint || true
+			if [ "${release##DISTRIB_ID=}" = "Ubuntu" ]; then
+				db_subst partman-auto/text/reuse PARTITION "$(humandev "$path")"
+				db_metaget partman-auto/text/reuse description
+				reuse="$reuse$NL$part$TAB$RET"
+			fi
+		fi
+		blockdev --setrw $path
+	done
+	close_dialog
+done
+
+if [ "$reuse" ]; then
+	printf %s "$reuse"
+fi

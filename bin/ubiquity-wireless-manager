@@ -82,12 +82,12 @@ class Manager(dbus.service.Object):
             uso = bus.get_object(NM_USER_SETTINGS, con)
             usi = dbus.Interface(uso, NM_SETTINGS_CONNECTION)
             settings = usi.GetSettings()
-            if not settings.has_key('802-11-wireless'):
+            if '802-11-wireless' not in settings:
                 continue
             ssid = ''.join([str(ch) for ch in settings['802-11-wireless']['ssid']])
             ssid = ssid.encode('utf-8')
             self.usersettings[ssid] = con
-            if settings.has_key('802-11-wireless-security'):
+            if '802-11-wireless-security' in settings:
                 # Need to watch for changes unless we stop caching passphrases.
                 i = dbus.Interface(uso, NM_SETTINGS_CONNECTION_SECRETS)
                 passphrase = i.GetSecrets('802-11-wireless-security', [], False)
@@ -147,7 +147,7 @@ class Manager(dbus.service.Object):
         self.Removed(ap)
 
     def _changed(self, changed, path=None):
-        if changed.has_key('Strength'):
+        if 'Strength' in changed:
             self.StrengthChanged(path, changed['Strength'])
 
     def _state_changed(self, state):

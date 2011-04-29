@@ -3,13 +3,12 @@
 import sys
 import os
 
-from PyQt4 import uic
-from PyQt4.QtGui import *
+from PyQt4 import QtGui
 
 from ubiquity.frontend.kde_components.PartAuto import PartAuto
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
+    app = QtGui.QApplication(sys.argv)
 
     PartAuto._uidir = '../../../../gui/qt'
 

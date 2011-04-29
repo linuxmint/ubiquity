@@ -43,7 +43,7 @@ struct ethtool_value
 #ifdef TEST
 int main(int argc, char** argv)
 #else
-int ethtool_lite (char * iface)
+int ethtool_lite (const char * iface)
 #endif
 {
 #ifdef TEST
@@ -53,19 +53,19 @@ int ethtool_lite (char * iface)
 
 	if (fd < 0)
 	{
-		di_warning("could not open control socket\n");
+		di_warning("ethtool-lite: could not open control socket\n");
 		return UNKNOWN;
 	}
 
 #ifdef TEST
 	if (argc < 2)
 	{
-		fprintf(stderr, "Error: must pass an interface name\n");
+		fprintf(stderr, "ethtool-lite: Error: must pass an interface name\n");
 		return 1;
 	}
 	iface = argv[1];
 #endif
-	
+
 #if defined(__linux__)
 	struct ethtool_value edata;
 	struct ifreq ifr;
@@ -74,17 +74,16 @@ int ethtool_lite (char * iface)
 	edata.cmd = ETHTOOL_GLINK;
 	ifr.ifr_data = (char *)&edata;
 	strncpy (ifr.ifr_name, iface, IFNAMSIZ);
-	
-	if (ioctl (fd, SIOCETHTOOL, &ifr) < 0)
-		di_info("ethtool ioctl on %s failed\n", iface);
-	
-	if (edata.data)
+
+	if (ioctl (fd, SIOCETHTOOL, &ifr) >= 0)
 	{
-		di_info("%s is connected.\n", iface);
-		return CONNECTED;
+		di_info("ethtool-lite: %s is %sconnected.\n", iface,
+		        (edata.data) ? "" : "dis");
+		return (edata.data) ? CONNECTED : DISCONNECTED;
 	}
 	else
 	{
+		di_info("ethtool-lite: ethtool ioctl on %s failed\n", iface);
 		u_int16_t *data = (u_int16_t *)&ifr.ifr_data;
 		int ctl;
 		data[0] = 0;
@@ -95,7 +94,7 @@ int ethtool_lite (char * iface)
 			ctl = SIOCDEVPRIVATE + 1;
 		else
 		{
-			di_warning("couldn't determine MII ioctl to use for %s\n", iface);
+			di_warning("ethtool-lite: couldn't determine MII ioctl to use for %s\n", iface);
 			return UNKNOWN;
 		}
 
@@ -105,14 +104,14 @@ int ethtool_lite (char * iface)
 		{
 			int ret = !(data[3] & 0x0004);
 
-			di_info ("%s is %sconnected. (MII)\n", iface,
+			di_info ("ethtool-lite: %s is %sconnected. (MII)\n", iface,
 				(ret) ? "dis" : "");
 
 			return ret ? DISCONNECTED : CONNECTED;
 		}
 	}
 
-	di_warning("MII ioctl failed for %s\n", iface);
+	di_warning("ethtool-lite: MII ioctl failed for %s\n", iface);
 
 #elif defined(__FreeBSD_kernel__)
 	struct ifmediareq ifmr;
@@ -121,21 +120,21 @@ int ethtool_lite (char * iface)
 	strncpy(ifmr.ifm_name, iface, sizeof(ifmr.ifm_name));
 
 	if (ioctl(fd, SIOCGIFMEDIA, (caddr_t)&ifmr) < 0) {
-		di_warning("SIOCGIFMEDIA ioctl on %s failed\n", iface);
+		di_warning("ethtool-lite: SIOCGIFMEDIA ioctl on %s failed\n", iface);
 		return UNKNOWN;
 	}
 
 	if (ifmr.ifm_status & IFM_AVALID) {
 		if (ifmr.ifm_status & IFM_ACTIVE) {
-			di_info("%s is connected.\n", iface);
+			di_info("ethtool-lite: %s is connected.\n", iface);
 			return CONNECTED;
 		} else {
-			di_info("%s is disconnected.\n", iface);
+			di_info("ethtool-lite: %s is disconnected.\n", iface);
 			return DISCONNECTED;
 		}
 	}
 
-	di_warning("couldn't determine status for %s\n", iface);
+	di_warning("ethtool-lite: couldn't determine status for %s\n", iface);
 #endif
 	return UNKNOWN;
 }

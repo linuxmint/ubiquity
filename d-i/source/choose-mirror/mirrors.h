@@ -5,9 +5,8 @@
  */
 struct mirror_t {
 	char *site;
-	char *country;
+	char *country; /* NULL for GeoDNS */
 	char *root;
-	int wildcard;
 };
 
 #define DEBCONF_BASE "mirror/"
@@ -23,7 +22,7 @@ struct mirror_t {
 /* Stack of suites */
 static const char suites[][SUITE_LENGTH] = {
 	/* higher preference */
-	"maverick",
+	"natty",
 	/* lower preference */
 };
 

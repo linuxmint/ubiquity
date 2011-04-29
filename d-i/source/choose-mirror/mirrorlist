@@ -80,16 +80,33 @@ for (my $id = 0; $id < @data; $id++) {
 	}
 }
 
-# Poor man's mirror rating system: push-primary, push* (-secondary), others
+# Assign a rating to each mirror, so that push-primary come first, followed
+# by push-secondary. Normally that is followed by geodns, and then leaf.
+# However, if a country has no push-primary or secondary mirrors, its leaf
+# mirrors are put before geodns, since we do not want to default to a
+# geodns mirror that will likely not be in the country.
+my %cc_has_push_mirror;
 foreach my $id (0..$#data) {
+	my $cc = $data[$id]->{country};
+	if (exists $data[$id]->{type} && $data[$id]->{type} =~ /push/i) {
+		$cc_has_push_mirror{$cc}=1;
+	}
+}
+foreach my $id (0..$#data) {
+	my $cc = $data[$id]->{country};
 	my $rating=0;
 	if (exists $data[$id]->{type}) {
-	        $rating=1 if $data[$id]->{type} =~ /push/i;
-                $rating=2 if $data[$id]->{type} =~ /push-primary/i;
+	        $rating=1 if $data[$id]->{type} =~ /geodns/i;
+	        $rating=4 if $data[$id]->{type} =~ /push/i;
+                $rating=5 if $data[$id]->{type} =~ /push-primary/i;
         }
+	if (! $rating && ! $cc_has_push_mirror{$cc}) {
+		$rating=2;
+	}
 	$data[$id]->{rating}=$rating;
 }
 
+# Filter out mirrors that don't carry the target architecture.
 my @newdata;
 foreach my $id (0..$#data) {
 	if (exists $data[$id]->{'archive-architecture'} &&
@@ -111,9 +128,14 @@ if ($type =~ /(.*)list/) {
 	my $type=$1;
  	open (LIST, ">debian/${type}list-countries") or die "debian/${type}list-countries: $!";
 	foreach my $id (0..$#data) {
-		next unless exists $data[$id]->{"archive-$type"} and
-		                    exists $data[$id]->{country};
-		my $cc = $data[$id]->{country};
+		my $cc;
+		if (exists $data[$id]->{type} and $data[$id]->{type} =~ /geodns/i) {
+			$cc='GB'; # location of Ubuntu master archive
+		}
+		else {
+			$cc=$data[$id]->{country};
+		}
+		next unless exists $data[$id]->{"archive-$type"} and defined $cc;
 		die "Error: country code '$cc' does not occur in iso-3166 table"
 			unless exists $iso3166{$cc};
 		$countries{$iso3166{$cc}} = $cc;
@@ -132,21 +154,23 @@ else {
 	print OUT "static struct mirror_t mirrors_$type\[] = {\n";
 	my $q='"';
 	foreach my $id (sort { $data[$b]->{rating} <=> $data[$a]->{rating} } 0..$#data) {
-		next unless exists $data[$id]->{"archive-$type"} and
-			    exists $data[$id]->{country};
+		my $cc;
+		if (exists $data[$id]->{type} && $data[$id]->{type} =~/geodns/i) {
+			$cc='NULL';
+		}
+		else {
+			$cc=$q.$data[$id]->{country}.$q;
+		}
+		next unless exists $data[$id]->{"archive-$type"} and defined $cc;
 		if (! exists $data[$id]->{'archive-architecture'}) {
 			print STDERR "warning: missing archive-architecture for mirror ".$data[$id]->{site}."; assuming it contains all architectures.\n";
 		}
-		my $wildcard = 0;
-		if (exists $data[$id]->{wildcard} and $data[$id]->{wildcard} eq 'yes') {
-			$wildcard = 1;
-		}
 		print OUT "\t{",
-			  join(", ", $q.$data[$id]->{site}.$q, $q.$data[$id]->{country}.$q,
-				$q.$data[$id]->{"archive-$type"}.$q, $wildcard),
+			  join(", ", $q.$data[$id]->{site}.$q, $cc,
+				$q.$data[$id]->{"archive-$type"}.$q),
 			  "},\n";
 	}
-	print OUT "\t{NULL, NULL, NULL, 0}\n";
+	print OUT "\t{NULL, NULL, NULL}\n";
 	print OUT "};\n";
 
 	close OUT;

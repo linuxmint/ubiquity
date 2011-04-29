@@ -12,7 +12,7 @@ set -e
 disable_service() {
 	local to_disable="$1"
 
-	db_get apt-setup/services-select
+	db_get apt-setup/services-select-ubuntu
 	local services="$RET"
 
 	local new_services s
@@ -23,10 +23,23 @@ disable_service() {
 				new_services=${new_services:+$new_services, }$s
 			fi
 		done
-		db_set apt-setup/services-select "$new_services"
+		db_set apt-setup/services-select-ubuntu "$new_services"
 		return 0
 	fi
 	return 1
+}
+
+# Returns 0 if the service was actually added
+enable_service() {
+	local to_enable="$1"
+
+	db_get apt-setup/services-select-ubuntu
+	local services="$RET"
+
+	if ! echo "$services" | grep -q $to_enable; then
+		db_set apt-setup/services-select-ubuntu "${services:+$services, }$to_enable"
+		return 0
+	fi
 }
 
 if ! db_get mirror/suite || [ -z "$RET" ]; then
@@ -34,39 +47,31 @@ if ! db_get mirror/suite || [ -z "$RET" ]; then
 fi
 suite="$RET"
 
-# No update services available for unstable
-if [ "$suite" = unstable ]; then
-	db_set apt-setup/services-select ""
-	exit
+if (! db_get apt-setup/restricted || [ "$RET" = false ]) && \
+   (! db_get apt-setup/multiverse || [ "$RET" = false ]); then
+	disable_service partner
+elif db_get apt-setup/partner && [ "$RET" = true ]; then
+	enable_service partner
 fi
-
-volatile=y
-if [ "$suite" != stable ] && [ "$suite" != oldstable ]; then
-	disable_service volatile || true
-	volatile=n
+if db_get apt-setup/extras && [ "$RET" = true ]; then
+	enable_service extras
 fi
 
 db_get apt-setup/security_host
-db_subst apt-setup/services-select SEC_HOST "$RET"
-db_get apt-setup/volatile_host
-db_subst apt-setup/services-select VOL_HOST "$RET"
+db_subst apt-setup/services-select-ubuntu SEC_HOST "$RET"
+db_subst apt-setup/services-select-ubuntu PARTNER_HOST archive.canonical.com
+db_subst apt-setup/services-select-ubuntu EXTRAS_HOST extras.ubuntu.com
 
-# Don't ask this for Ubuntu.
-#db_input medium apt-setup/services-select || true
-#if ! db_go; then
-#	exit 10 # back up
-#fi
-
-# Selecting volatile for testing is invalid
-if [ "$volatile" = n ] && disable_service volatile; then
-	logger -t apt-setup "info: invalid selection of volatile for testing disabled"
+db_input medium apt-setup/services-select-ubuntu || true
+if ! db_go; then
+	exit 10 # back up
 fi
 
 # No need to set up proxy here if no services were selected
-db_get apt-setup/services-select
+db_get apt-setup/services-select-ubuntu
 [ "$RET" ] || exit 0
 
-# Proxy configuration is common to both security and volatile
+# Proxy configuration is common to all services
 if db_get mirror/http/proxy && [ -n "$RET" ]; then
 	proxy="$RET"
 	if ! grep -iq "Acquire::http::Proxy" $ROOT/etc/apt/apt.conf.new; then

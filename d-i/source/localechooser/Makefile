@@ -1,4 +1,4 @@
-all: debian/languagelist.data debian/short-tmp/shortlists debian/templates check-scripts check-data check-utf8
+all: check-scripts debian/languagelist.data debian/short-tmp/shortlists debian/templates check-scripts check-data check-utf8
 
 LIST     = languagelist
 
@@ -24,8 +24,10 @@ debian/short-tmp/shortlists: debian/iso_3166.tab debian/iso-codes
 	./mkshort
 
 check-scripts:
+	@set -e ; \
 	if [ -x /bin/ash ] ; then SH=ash ; else SH=dash; fi ; \
-	for s in finish-install debian/postinst languagemap localechooser ; do \
+	for s in finish-install.d/05localechooser debian/postinst languagemap localechooser ; do \
+		echo "Checking syntax of $$s" ; \
 		$$SH -n $$s ; \
 	done
 
@@ -49,5 +51,5 @@ demo: localechooser.templates localechooser
 	DEBIAN_FRONTEND=dialog DEBCONF_DEBUG=developer /usr/share/debconf/frontend ./localechooser
 
 clean:
-	$(RM) localechooser.templates debian/templates debian/templates.continents debian/templates.base-in debian/templates.base debian/languagelist.data debian/iso_3166.tab
+	$(RM) localechooser.templates debian/templates debian/templates.continents debian/templates.base-in debian/templates.base debian/templates.tmp debian/languagelist.data debian/iso_3166.tab
 	$(RM) -rf debian/short-tmp debian/iso-codes

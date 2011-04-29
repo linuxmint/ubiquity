@@ -31,7 +31,7 @@ import signal
 import gobject
 
 from ubiquity import filteredcommand, i18n
-from ubiquity.misc import *
+from ubiquity import misc
 from ubiquity.components import install, plugininstall, partman_commit
 from ubiquity.plugin import Plugin
 import ubiquity.progressposition
@@ -43,7 +43,7 @@ class Wizard(BaseFrontend):
     def __init__(self, distro):
         BaseFrontend.__init__(self, distro)
 
-        with raised_privileges():
+        with misc.raised_privileges():
             self.console = open('/dev/console', 'w')
         if not self.console:
             self.console = sys.stdout # better than crashing
@@ -64,7 +64,7 @@ class Wizard(BaseFrontend):
         i18n.reset_locale(self)
 
         if self.oem_config:
-            execute_root('apt-install', 'oem-config-gtk')
+            misc.execute_root('apt-install', 'oem-config-gtk')
 
     def run(self):
         """Main entry point."""
@@ -109,7 +109,7 @@ class Wizard(BaseFrontend):
             self.run_success_cmd()
             print >>self.console, 'Installation complete.'
             if self.get_reboot():
-                execute("reboot")
+                misc.execute("reboot")
         if ret != 0:
             if ret == 3:
                 # error already handled by Install
@@ -122,8 +122,8 @@ class Wizard(BaseFrontend):
                 tbfile = open('/var/lib/ubiquity/install.trace')
                 realtb = tbfile.read()
                 tbfile.close()
-                raise RuntimeError, ("Install failed with exit code %s\n%s" %
-                                     (ret, realtb))
+                raise RuntimeError("Install failed with exit code %s\n%s" %
+                                  (ret, realtb))
             
     def watch_debconf_fd(self, from_debconf, process_input):
         """Event loop interface to debconffilter.
@@ -138,7 +138,6 @@ class Wizard(BaseFrontend):
         gobject.io_add_watch(from_debconf,
                              gobject.IO_IN | gobject.IO_ERR | gobject.IO_HUP,
                              self.watch_debconf_fd_helper, process_input)
-
 
     def watch_debconf_fd_helper (self, source, cb_condition, callback):
         debconf_condition = 0
@@ -229,27 +228,6 @@ class Wizard(BaseFrontend):
     # FIXME: Needed by m-a, but is it really necessary?
     def allow_go_forward(self, allow):
         pass
-
-    # ubiquity.components.summary
-
-    def set_summary_text(self, text):
-        """Set text to be displayed in the installation summary."""
-        pass
-
-    # called from ubiquity.components.install
-    def get_grub(self):
-        # Always return true as there's no UI to disable it.
-        # FIXME: Better to grab grub-installer/skip out of debconf?
-        return True
-
-    def set_popcon(self, participate):
-        """Set whether to participate in popularity-contest."""
-        self.popcon = participate
-
-    # called from ubiquity.components.install
-    def get_popcon(self):
-        """Get whether to participate in popularity-contest."""
-        return self.popcon
 
     # General facilities for components.
 

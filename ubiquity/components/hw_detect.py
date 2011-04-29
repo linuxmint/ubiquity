@@ -22,6 +22,7 @@ from ubiquity.filteredcommand import FilteredCommand
 class HwDetect(FilteredCommand):
     def prepare(self):
         self.preseed('hw-detect/start_pcmcia', 'false')
+        self.preseed('hw-detect/load_firmware', 'false')
         return (['/bin/hw-detect'], ['ERROR', 'PROGRESS'])
 
     def error(self, priority, question):

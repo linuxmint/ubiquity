@@ -210,15 +210,16 @@ on_realize(GtkWidget *win, gpointer data) {
 	gtk_window_set_type_hint(GTK_WINDOW(win), GDK_WINDOW_TYPE_HINT_DOCK);
 	gdk_window_set_geometry_hints (win->window, NULL, GDK_HINT_POS);
 	gdk_window_move_resize(win->window, 0, 0, width, allocation.height);
+	gtk_window_set_has_resize_grip(GTK_WINDOW(win), FALSE);
 }
 
 static const char* indicators[] = {
 	//TODO: dynamically fill in the ABI version at build time
 	// Reboot, shut down, ...
-	"/usr/lib/indicators/4/libsession.so",
+	"/usr/lib/indicators/5/libsession.so",
 	// Bluetooth
-	"/usr/lib/indicators/4/libapplication.so",
-	"/usr/lib/indicators/4/libsoundmenu.so",
+	"/usr/lib/indicators/5/libapplication.so",
+	"/usr/lib/indicators/5/libsoundmenu.so",
 	NULL
 };
 static void
@@ -226,14 +227,20 @@ set_background(GtkWidget *win) {
 	GdkPixbuf *pixbuf;
 	GtkPixmap *pixmap;
 	pixbuf = gdk_pixbuf_new_from_file("/usr/share/themes/Ambiance/gtk-2.0/apps/img/panel.png", NULL);
+	if (!pixbuf) {
+		pixbuf = gdk_pixbuf_new_from_file("/usr/share/lxpanel/images/lubuntu-background.png", NULL);
+	}
 	if (pixbuf) {
 		gdk_pixbuf_render_pixmap_and_mask(pixbuf, &pixmap, NULL, 0);
 		if (pixmap)
 			gdk_window_set_back_pixmap(win->window, pixmap, FALSE);
 		gdk_pixbuf_unref(pixbuf);
+		g_object_unref(pixmap);
 	} else {
 		g_warning("Could not find background image.");
 	}
+	/* Implicated in major memory leak - See LP: #714829 */
+	/* gtk_widget_queue_draw(win); */
 }
 
 static gint

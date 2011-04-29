@@ -99,9 +99,9 @@ if ! root_password; then
 	db_set passwd/root-password-crypted ''
 	db_set passwd/root-password ''
 	db_set passwd/root-password-again ''
-	#if [ "$ROOT_PW" ]; then
-	#	setpassword root "$ROOT_PW" "$PRECRYPTED"
-	#fi
+	if [ "$ROOT_PW" ]; then
+		setpassword root "$ROOT_PW" "$PRECRYPTED"
+	fi
 	ROOT_PW=
 else
 	# Just in case, clear any preseeded root password from the database
@@ -147,14 +147,22 @@ if [ "$RET" = true ] && ! is_system_user; then
 		done
 		
 		umountproc=false
+		umountsys=false
 		umountdev=false
 		if [ ! -e $ROOT/proc/cmdline ]; then
 			$log $chroot $ROOT mount -t proc proc /proc
 			umountproc=:
 		fi
-		if ! grep -qE '^[^ ]+ /dev' $ROOT/proc/mounts; then
+		if [ ! -e $ROOT/sys/block ]; then
+			# We need /sys for devtmpfs to create block devices.
+			$log $chroot $ROOT mount -t sysfs sysfs /sys
+			umountsys=:
+		fi
+		if [ $(stat -c %d "$ROOT/dev") -eq $(stat -c %d "$ROOT") ]; then
 			mount --bind /dev $ROOT/dev
 			umountdev=:
+		else
+			$log $chroot $ROOT udevadm settle
 		fi
 		if ! $log $chroot $ROOT ecryptfs-setup-swap -f -n; then
 			echo "ecryptfs-setup-swap failed." >&2
@@ -165,6 +173,9 @@ if [ "$RET" = true ] && ! is_system_user; then
 		fi
 		if $umountproc; then
 			$log $chroot $ROOT umount /proc
+		fi
+		if $umountsys; then
+			$log $chroot $ROOT umount /sys
 		fi
 		if $umountdev; then
 			umount $ROOT/dev
@@ -205,7 +216,6 @@ if [ "$RET" = true ] && ! is_system_user; then
 	db_set passwd/user-password ''
 	db_set passwd/user-password-again ''
 	setpassword "$USER" "$USER_PW" "$USER_PW_CRYPTED" "$ENCRYPT_HOME"
-	setpassword root "$USER_PW" "$USER_PW_CRYPTED"
 	if [ -n "$ENCRYPT_HOME_OPT" ]; then
 		if $umountsys; then
 			$log $chroot $ROOT umount /sys
@@ -276,6 +286,23 @@ TimedLoginDelay=10"
 					-e "s/^#?AutoReLogin=.*\$/AutoReLogin=true/" \
 					/etc/kde4/kdm/kdmrc
 			fi
+
+			if $chroot $ROOT [ -f /etc/lxdm/lxdm.conf ]; then
+    				# Configure LXDM autologin with LXDE session
+   				$log $chroot $ROOT sed -i$BACKUP -r \
+        				-e "s/^# autologin=dgod/autologin=$USER/" \
+        				-e "s/^# session/session/" \
+        				/etc/lxdm/lxdm.conf
+			fi
+
+			if $chroot $ROOT [ -f /etc/xdg/lubuntu/lxdm/lxdm.conf ]; then
+    				# Configure LXDM autologin with Lubuntu session
+				$log $chroot $ROOT sed -i$BACKUP -r \
+			        	-e "s/^# autologin=dgod/autologin=$USER/" \
+			        	-e "s/^# session/session/" \
+			        	-e "s/startlxde/startlubuntu/" \
+			        	/etc/xdg/lubuntu/lxdm/lxdm.conf
+			fi
 		fi
 	fi
 
@@ -291,11 +318,13 @@ TimedLoginDelay=10"
 		if [ -e $ROOT/etc/sudoers ]; then
 			$log $chroot $ROOT addgroup --system admin >/dev/null 2>&1 || true
 			$log $chroot $ROOT adduser "$USER" admin >/dev/null 2>&1 || true
-			cat <<EOF >>$ROOT/etc/sudoers
+                        if ! egrep -q "^%admin[[:space:]]+ALL=\(ALL\)[[:space:]]+ALL$" $ROOT/etc/sudoers; then
+			    cat <<EOF >>$ROOT/etc/sudoers
 
 # Members of the admin group may gain root privileges
 %admin ALL=(ALL) ALL
 EOF
+                        fi
 		else
 			# sudo failed to install, system won't be usable
 			exit 1

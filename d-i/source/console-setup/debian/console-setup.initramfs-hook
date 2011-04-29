@@ -14,10 +14,13 @@ prereqs)
 esac
 
 . /usr/share/initramfs-tools/hook-functions
-. /etc/default/console-setup
+[ -r /etc/default/keyboard ] || exit 0
+[ -r /etc/default/console-setup ] || exit 0
+. /etc/default/console-setup # also sources /etc/default/keyboard
 
 # Copy console-setup configuration
 mkdir -p "$DESTDIR/etc/default"
+cp -p /etc/default/keyboard "$DESTDIR/etc/default"
 cp -p /etc/default/console-setup "$DESTDIR/etc/default"
 
 # Assume setupcon --save has been run

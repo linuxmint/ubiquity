@@ -2,7 +2,7 @@
 
 import os
 from PyQt4 import uic
-from PyQt4.QtGui import *
+from PyQt4 import QtGui
 
 from ubiquity.frontend.kde_components.PartitionBar import PartitionsBar
 from ubiquity.frontend.kde_components.PartitionModel import PartitionModel
@@ -16,10 +16,10 @@ PARTITION_TYPE_LOGICAL = 1
 PARTITION_PLACE_BEGINNING = 0
 PARTITION_PLACE_END = 1
 
-class PartMan(QWidget):
+class PartMan(QtGui.QWidget):
 
     def __init__(self, controller):
-        QWidget.__init__(self)
+        QtGui.QWidget.__init__(self)
         self.ctrlr = controller
 
         self.edit_use_method_names = {}
@@ -47,7 +47,7 @@ class PartMan(QWidget):
         self.partition_tree_model.clear()
 
         for child in self.part_advanced_bar_frame.children():
-            if isinstance(child, QWidget):
+            if isinstance(child, QtGui.QWidget):
                 child.setParent(None)
                 del child
 
@@ -134,7 +134,7 @@ class PartMan(QWidget):
 
         # lazy initialization
         if not self.create_dialog:
-            self.create_dialog = QDialog(self)
+            self.create_dialog = QtGui.QDialog(self)
             uic.loadUi("%s/partition_create_dialog.ui" % _uidir, self.create_dialog)
             self.create_dialog.partition_create_use_combo.currentIndexChanged[int].connect(self.on_partition_create_use_combo_changed)
 
@@ -182,7 +182,7 @@ class PartMan(QWidget):
             self.create_dialog.partition_create_mount_combo.addItem(mp)
         self.create_dialog.partition_create_mount_combo.clearEditText()
 
-        if self.create_dialog.exec_() == QDialog.Accepted:
+        if self.create_dialog.exec_() == QtGui.QDialog.Accepted:
             if partition['parted']['type'] == 'primary':
                 prilog = PARTITION_TYPE_PRIMARY
             elif partition['parted']['type'] == 'logical':
@@ -236,7 +236,7 @@ class PartMan(QWidget):
 
         #lazy loading
         if not self.edit_dialog:
-            self.edit_dialog = QDialog(self)
+            self.edit_dialog = QtGui.QDialog(self)
             uic.loadUi("%s/partition_edit_dialog.ui" % _uidir, self.edit_dialog)
             self.edit_dialog.partition_edit_use_combo.currentIndexChanged[int].connect(self.on_partition_edit_use_combo_changed)
 
@@ -312,7 +312,7 @@ class PartMan(QWidget):
                 self.edit_dialog.partition_edit_mount_combo.addItem(current_mountpoint)
                 self.edit_dialog.partition_edit_mount_combo.setCurrentIndex(self.edit_dialog.partition_edit_mount_combo.count() - 1)
 
-        if (self.edit_dialog.exec_() == QDialog.Accepted):
+        if (self.edit_dialog.exec_() == QtGui.QDialog.Accepted):
             size = None
             if current_size is not None:
                 size = str(self.edit_dialog.partition_edit_size_spinbutton.value())
@@ -370,7 +370,7 @@ class PartMan(QWidget):
                 self.edit_dialog.partition_edit_mount_combo.addItem(mp)
 
     def on_partition_list_treeview_activated(self, index):
-        """ activated when parition lick clicked """
+        """ activated when partition line clicked """
         if not self.ctrlr.allowed_change_step():
             return
 
@@ -393,8 +393,6 @@ class PartMan(QWidget):
         elif partition['parted']['fs'] == 'free':
             if 'can_new' in partition and partition['can_new']:
                 self.partman_create_dialog(devpart, partition)
-        else:
-            self.partman_edit_dialog(devpart, partition)
 
     ### actions for clicking the buttons ###
 
@@ -449,7 +447,7 @@ class PartMan(QWidget):
         self.part_advanced_bootloader_frame.setVisible(True)
         self.grub_device_entry.clear()
         for opt in options:
-           self.grub_device_entry.addItem(opt[0]);
+            self.grub_device_entry.addItem(opt[0]);
 
         index = self.grub_device_entry.findText(default)
         if (index == -1):

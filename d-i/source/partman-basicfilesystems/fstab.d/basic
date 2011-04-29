@@ -16,6 +16,8 @@ if db_get debian-installer/locale; then
 	esac
 fi
 
+os="$(udpkg --print-os)"
+
 for dev in $DEVICES/*; do
 	[ -d $dev ] || continue
 	cd $dev
@@ -39,7 +41,9 @@ for dev in $DEVICES/*; do
 			fi
 			options=$(get_mountoptions $dev $id)
 			if [ "$mountpoint" = / ]; then
-				if [ "$options" = defaults ]; then
+				if [ "$os" = hurd ] || [ "$os" = kfreebsd ] ; then
+					: # remount-ro not supported
+				elif [ "$options" = defaults ]; then
 					options="errors=remount-ro"
 				else
 					options="${options},errors=remount-ro"
@@ -48,24 +52,42 @@ for dev in $DEVICES/*; do
 			else
 				pass=2
 			fi
-			echo "$path" "$mountpoint" ext2 $options 0 $pass
+			if [ "$os" = kfreebsd ] ; then
+				if [ "$options" = "defaults" ] ; then
+					options="rw"
+				elif ! echo "$options" | grep -q '\(^\|,\)r\(o\|w\)\(,\|$\)' ; then
+					options="${options},rw"
+				 fi
+				echo "$path" "$mountpoint" ext2fs $options 0 $pass
+			else
+				echo "$path" "$mountpoint" ext2 $options 0 $pass
+			fi
 			;;
 		    fat16|fat32)
 			[ -f "$id/mountpoint" ] || continue
 			mountpoint=$(cat $id/mountpoint)
 			options=$(get_mountoptions $dev $id)
-			if [ "$utf8" ]; then
-				if [ "$options" = defaults ]; then
-					options="utf8"
-				else
-					options="$options,utf8"
+			if [ "$os" = kfreebsd ] ; then
+				if [ "$options" = "defaults" ] ; then
+					options="rw"
+				elif ! echo "$options" | grep -q '\(^\|,\)r\(o\|w\)\(,\|$\)' ; then
+					options="${options},rw"
 				fi
+				echo "$path" "$mountpoint" msdosfs $options 0 0
+			else
+				if [ "$utf8" ] ; then
+					if [ "$options" = defaults ]; then
+						options="utf8"
+					else
+						options="$options,utf8"
+					fi
+				fi
+				# base-passwd defines gid 46 as group plugdev
+				if [ "$method" != efi ]; then
+					options="$options,umask=007,gid=46"
+				fi
+				echo "$path" "$mountpoint" vfat $options 0 1
 			fi
-			# base-passwd defines gid 46 as group plugdev
-			if [ "$method" != efi ]; then
-				options="$options,umask=007,gid=46"
-			fi
-			echo "$path" "$mountpoint" vfat $options 0 1
 			;;
 		    ntfs)
 			[ -f "$id/mountpoint" ] || continue

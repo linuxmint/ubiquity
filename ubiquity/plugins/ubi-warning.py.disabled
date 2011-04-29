@@ -21,7 +21,7 @@
 
 import os
 
-from ubiquity.plugin import *
+from ubiquity import plugin
 from ubiquity import i18n
 from ubiquity import misc
 
@@ -30,7 +30,7 @@ BEFORE = 'prepare'
 WEIGHT = 10
 OEM = False
 
-class PageBase(PluginUI):
+class PageBase(plugin.PluginUI):
     def set_alpha_warning(self, show):
         self.show_alpha_warning = show
 
@@ -75,6 +75,6 @@ class PageGtk(PageBase):
         for w in self.page.get_children():
             w.show()
 
-class Page(Plugin):
+class Page(plugin.Plugin):
     def prepare(self):
         return (['/usr/share/ubiquity/simple-plugins', 'warning'], ['ubiquity/show_alpha_warning'])

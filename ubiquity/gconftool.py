@@ -127,4 +127,3 @@ def dump(key, f):
                                 preexec_fn=misc.drop_all_privileges)
         subp.communicate()
     return True
-

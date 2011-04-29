@@ -226,8 +226,8 @@ def install(frontend=None, query=False):
                     del os.environ['UBIQUITY_MIGRATION_ASSISTANT']
             break
     else:
-        raise AttributeError, ('No frontend available; tried %s' %
-                               ', '.join(frontends))
+        raise AttributeError('No frontend available; tried %s' %
+                             ', '.join(frontends))
     os.environ['UBIQUITY_FRONTEND'] = chosen
     if query:
         print >> sys.__stdout__, os.environ['UBIQUITY_FRONTEND']
@@ -251,6 +251,9 @@ def install(frontend=None, query=False):
     unmount_target()
     if ret == 10:
         wizard.do_reboot()
+    if ret == 11:
+        wizard.do_shutdown()
+
 
 @misc.raise_privileges
 def apply_keyboard():
@@ -260,16 +263,15 @@ def apply_keyboard():
     
     # Mostly taken from ubi-console-setup.
     
-    # We need to get rid of /etc/default/console-setup, or console-setup
-    # will think it's already configured and behave differently. Try to
-    # save the old file for interest's sake, but it's not a big deal if
-    # we can't.
-    osextras.unlink_force('/etc/default/console-setup.pre-ubiquity')
+    # We need to get rid of /etc/default/keyboard, or keyboard-configuration
+    # will think it's already configured and behave differently. Try to save
+    # the old file for interest's sake, but it's not a big deal if we can't.
+    osextras.unlink_force('/etc/default/keyboard.pre-ubiquity')
     try:
-        os.rename('/etc/default/console-setup',
-                  '/etc/default/console-setup.pre-ubiquity')
+        os.rename('/etc/default/keyboard',
+                  '/etc/default/keyboard.pre-ubiquity')
     except OSError:
-        osextras.unlink_force('/etc/default/console-setup')
+        osextras.unlink_force('/etc/default/keyboard')
 
     import debconf
     dccomm = subprocess.Popen(['debconf-communicate',
@@ -282,10 +284,10 @@ def apply_keyboard():
             # Make sure debconf doesn't do anything with crazy "preseeded"
             # answers to these questions. If you want to preseed these, use the
             # *code variants.
-            dc.fset('console-setup/layout', 'seen', 'false')
-            dc.fset('console-setup/variant', 'seen', 'false')
-            dc.fset('console-setup/model', 'seen', 'false')
-            dc.fset('console-setup/codeset', 'seen', 'false')
+            dc.fset('keyboard-configuration/layout', 'seen', 'false')
+            dc.fset('keyboard-configuration/variant', 'seen', 'false')
+            dc.fset('keyboard-configuration/model', 'seen', 'false')
+            dc.fset('console-setup/codeset47', 'seen', 'false')
         except debconf.DebconfError:
             return
     finally:
@@ -295,7 +297,8 @@ def apply_keyboard():
     # Accept all the defaults, given the preseeded language.
     child_env = dict(os.environ)
     child_env['OVERRIDE_ALLOW_PRESEEDING'] = '1'
-    subprocess.call(['dpkg-reconfigure', '-fnoninteractive', 'console-setup'],
+    subprocess.call(['dpkg-reconfigure', '-fnoninteractive',
+                     'keyboard-configuration'],
                     env=child_env)
     misc.execute('setupcon', '--save-only')
     # Reprocess /lib/udev/rules.d/64-xorg-xkb.rules
@@ -308,7 +311,30 @@ def copy_debconf():
     if not TARGET:
         return
     targetdb = TARGET + '/var/cache/debconf/config.dat'
-    for q in ('^console-setup/', '^oem-config/'):
+    patterns = ['^oem-config/']
+    oem = False
+
+    import debconf
+    dccomm = subprocess.Popen(['debconf-communicate',
+                               '-fnoninteractive', 'ubiquity'],
+                              stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE, close_fds=True)
+    try:
+        dc = debconf.Debconf(read=dccomm.stdout, write=dccomm.stdin)
+        try:
+            if dc.get('oem-config/enable') == 'true':
+                oem = True
+        except debconf.DebconfError:
+            pass
+    finally:
+        dccomm.stdin.close()
+        dccomm.wait()
+
+    if not oem:
+        patterns.append('^keyboard-configuration/')
+        patterns.append('^console-setup/')
+
+    for q in patterns:
         misc.execute_root('debconf-copydb', 'configdb', 'targetdb', '-p', q,
                      '--config=Name:targetdb', '--config=Driver:File',
                      '--config=Filename:%s' % targetdb)
@@ -356,6 +382,23 @@ def acquire_lock():
     print >>lock, os.getpid()
     lock.flush()
     os.fsync(lock.fileno())
+
+    if 'DEBIAN_HAS_FRONTEND' not in os.environ:
+        # Do a quick check to see if the debconf database is locked by
+        # something else.
+        test_debconf = subprocess.Popen(
+            ['debconf-communicate', '-fnoninteractive', 'ubiquity'],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, close_fds=True)
+        try:
+            print >>test_debconf.stdin, 'VERSION 2.0'
+            test_debconf.stdout.readline()
+        except IOError:
+            pass
+        test_debconf.stdin.close()
+        if test_debconf.wait() != 0:
+            print "Debconf database is locked!"
+            print "This may be because a package management program is running."
+            sys.exit(1)
 
 def run_oem_hooks():
     """Run hook scripts from /usr/lib/oem-config/post-install."""
@@ -498,7 +541,7 @@ def main(oem_config):
     # Initialise cdebconf if necessary, to work around
     # http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=451130.
     if options.cdebconf:
-        for package in ('ubiquity', 'console-setup'):
+        for package in ('ubiquity', 'keyboard-configuration', 'console-setup'):
             subprocess.call(['debconf-loadtemplate', package,
                              '/var/lib/dpkg/info/%s.templates' % package])
 

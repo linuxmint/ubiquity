@@ -2,17 +2,16 @@
 
 import sys
 
-from PyQt4 import uic
-from PyQt4.QtGui import *
+from PyQt4 import QtGui
 
 from ubiquity.frontend.kde_components.PartitionBar import PartitionsBar
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    QApplication.setStyle("Oxygen")
+    app = QtGui.QApplication(sys.argv)
+    QtGui.QApplication.setStyle("Oxygen")
 
-    wid = QWidget()
-    layout = QVBoxLayout(wid)
+    wid = QtGui.QWidget()
+    layout = QtGui.QVBoxLayout(wid)
 
     pb1 = PartitionsBar(wid)
     layout.addWidget(pb1)

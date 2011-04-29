@@ -1,8 +1,6 @@
 # -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
-from PyQt4 import QtCore
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from PyQt4 import QtCore, QtGui
 
 import datetime
 import ubiquity.tz
@@ -14,12 +12,12 @@ class City:
         self.loc = loc
         self.pixmap = pixmap
 
-class TimezoneMap(QWidget):
+class TimezoneMap(QtGui.QWidget):
 
     zoneChanged = QtCore.pyqtSignal(object, object)
 
     def __init__(self, parent):
-        QWidget.__init__(self, parent)
+        QtGui.QWidget.__init__(self, parent)
         # currently active city
         self.selected_city = None
         self.selected_zone = None
@@ -29,10 +27,10 @@ class TimezoneMap(QWidget):
 
         #load background pixmap
         self.imagePath = "/usr/share/ubiquity/pixmaps/timezone"
-        self.pixmap = QPixmap("%s/bg.png" % self.imagePath)
+        self.pixmap = QtGui.QPixmap("%s/bg.png" % self.imagePath)
 
         #redraw timer for selected city time
-        self.timer = QTimer(self)
+        self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.update)
         self.timer.start(1000)
 
@@ -46,7 +44,7 @@ class TimezoneMap(QWidget):
 
         for zone in zones:
             #print '%s/timezone_%s.png' % (self.imagePath, zone)
-            zonePixmaps[zone] = QPixmap('%s/timezone_%s.png' % (self.imagePath, zone))
+            zonePixmaps[zone] = QtGui.QPixmap('%s/timezone_%s.png' % (self.imagePath, zone))
 
         #load the timezones from database
         self.tzdb = ubiquity.tz.Database()
@@ -67,18 +65,13 @@ class TimezoneMap(QWidget):
             zoneS = str(zoneHour)
 
             #try to find the closest zone
-            if not zonePixmaps.has_key(zoneS):
-                if zonePixmaps.has_key(str(zoneHour + .25)):
-                    zoneS = str(zoneHour + .25)
-                elif zonePixmaps.has_key(str(zoneHour + .25)):
-                    zoneS = str(zoneHour - .25)
-                elif zonePixmaps.has_key(str(zoneHour + .5)):
-                    zoneS = str(zoneHour + .5)
-                elif zonePixmaps.has_key(str(zoneHour - .5)):
-                    zoneS = str(zoneHour - .5)
-                else:
-                    #no zone...default to nothing
-                    zoneS = None
+            if zoneS not in zonePixmaps:
+                zoneS = None
+                for offset in (.25, -.25, .5, -.5): 
+                    zstring = str(zoneHour + offset)
+                    if zstring in zonePixmaps:
+                        zoneS = zstring
+                        break
 
             pixmap = zoneS and zonePixmaps[zoneS]
 
@@ -113,11 +106,11 @@ class TimezoneMap(QWidget):
         return y
 
     def paintEvent(self, unused_paintEvent):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
+        painter = QtGui.QPainter(self)
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
 
-        path = QPainterPath()
-        path.addRoundedRect(QRectF(self.rect()), 5, 5)
+        path = QtGui.QPainterPath()
+        path.addRoundedRect(QtCore.QRectF(self.rect()), 5, 5)
         painter.setClipPath(path)
 
         painter.drawPixmap(self.rect(), self.pixmap)
@@ -129,8 +122,8 @@ class TimezoneMap(QWidget):
             if (c.pixmap):
                 painter.drawPixmap(self.rect(), c.pixmap)
 
-            painter.setBrush(QColor(30, 30, 30, 200))
-            painter.setPen(Qt.white)
+            painter.setBrush(QtGui.QColor(30, 30, 30, 200))
+            painter.setPen(QtCore.Qt.white)
 
             #mark the location with a dot
             painter.drawEllipse(cpos, 3, 3)
@@ -140,14 +133,14 @@ class TimezoneMap(QWidget):
                 now = datetime.datetime.now(ubiquity.tz.SystemTzInfo(c.loc.zone))
                 timestring = now.strftime('%X')
 
-                start = cpos + QPoint(3,-3)
+                start = cpos + QtCore.QPoint(3,-3)
                 margin = 2
 
                 # correct the text render position if text will render off widget
-                text_size = painter.fontMetrics().size(Qt.TextSingleLine, timestring)
-                text_size += QSize(margin*2, margin*2)
+                text_size = painter.fontMetrics().size(QtCore.Qt.TextSingleLine, timestring)
+                text_size += QtCore.QSize(margin*2, margin*2)
 
-                rect = QRect(start, start + QPoint(text_size.width(), -text_size.height()))
+                rect = QtCore.QRect(start, start + QtCore.QPoint(text_size.width(), -text_size.height()))
 
                 #check bounds of the time display
                 if rect.top() < 0:
@@ -155,10 +148,10 @@ class TimezoneMap(QWidget):
                 if rect.right() > self.width():
                     rect.moveRight(start.x() - 3)
 
-                painter.setPen(Qt.NoPen)
+                painter.setPen(QtCore.Qt.NoPen)
                 painter.drawRoundedRect(rect, 3, 3)
-                painter.setPen(Qt.white)
-                painter.drawText(rect, Qt.AlignCenter, timestring)
+                painter.setPen(QtCore.Qt.white)
+                painter.drawText(rect, QtCore.Qt.AlignCenter, timestring)
 
             except ValueError:
                 # Some versions of Python have problems with clocks set
@@ -209,7 +202,7 @@ class TimezoneMap(QWidget):
         # this then becomes the percentage of the height
         y = y * self.height()
 
-        return QPoint(int(x), int(y))
+        return QtCore.QPoint(int(x), int(y))
 
     def mouseReleaseEvent(self, mouseEvent):
         pos = mouseEvent.pos()

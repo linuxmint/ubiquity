@@ -60,12 +60,6 @@ while :; do
 		4)
 			db_input low apt-setup/backports || true
 		;;
-		5)
-			if (db_get apt-setup/restricted && [ "$RET" = true ]) || \
-			   (db_get apt-setup/multiverse && [ "$RET" = true ]); then
-				db_input low apt-setup/partner || true
-			fi
-		;;
 		*)
 			break
 		;;
@@ -221,44 +215,6 @@ cat >> $file <<EOF
 ## or updates from the Ubuntu security team.
 ${COMMENT}deb $protocol://$hostname$directory $codename-backports $alldists
 ${COMMENT}deb-src $protocol://$srchostname$srcdirectory $codename-backports $alldists
-EOF
-
-if (db_get apt-setup/restricted && [ "$RET" = true ]) || \
-   (db_get apt-setup/multiverse && [ "$RET" = true ]) || \
-   (db_get apt-setup/partner && [ "$RET" = true ]); then
-	echo >> $file
-	if db_get apt-setup/partner && [ "$RET" = true ]; then
-		COMMENT=
-	else
-		cat >> $file <<EOF
-## Uncomment the following two lines to add software from Canonical's
-## 'partner' repository.
-EOF
-		COMMENT='# '
-	fi
-	cat >> $file <<EOF
-## This software is not part of Ubuntu, but is offered by Canonical and the
-## respective vendors as a service to Ubuntu users.
-${COMMENT}deb http://archive.canonical.com/ubuntu $codename partner
-${COMMENT}deb-src http://archive.canonical.com/ubuntu $codename partner
-EOF
-fi
-
-echo >> $file
-if db_get apt-setup/extras && [ "$RET" = true ]; then
-    COMMENT=
-else
-    cat >> $file <<EOF
-## Uncomment the following two lines to add software from Ubuntu's
-## 'extras' repository.
-EOF
-    COMMENT='# '
-fi
-cat >> $file <<EOF
-## This software is not part of Ubuntu, but is offered by third-party
-## developers who want to ship their latest software.
-${COMMENT}deb http://extras.ubuntu.com/ubuntu $codename main
-${COMMENT}deb-src http://extras.ubuntu.com/ubuntu $codename main
 EOF
 
 apt-setup-signed-release archive.ubuntu.com "$file"

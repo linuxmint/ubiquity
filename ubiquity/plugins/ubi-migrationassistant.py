@@ -20,16 +20,15 @@ import syslog
 import os
 import debconf
 
-from ubiquity.plugin import *
-from ubiquity.misc import *
+from ubiquity import plugin
 
 NAME = 'migrationassistant'
-BEFORE = 'summary'
+AFTER = 'usersetup'
 WEIGHT = 10
 # Not useful in oem-config.
 OEM = False
 
-class PageBase(PluginUI):
+class PageBase(plugin.PluginUI):
     def ma_set_choices(self, choices):
         """Set the available migration-assistant choices."""
         pass
@@ -197,7 +196,7 @@ class PageGtk(PageBase):
 class PageNoninteractive(PageBase):
     pass
 
-class Page(Plugin):
+class Page(plugin.Plugin):
     def prepare(self):
         self.got_a_question = False
         questions = ['^migration-assistant/partitions',
@@ -225,11 +224,6 @@ class Page(Plugin):
                 self.preseed(question, 'false')
             return True
 
-        # We cannot currently import from partitions that are scheduled for
-        # deletion, so we filter them out of the list.
-        if question == 'migration-assistant/partitions':
-            self.filter_parts()
-
         elif question == 'ubiquity/run-ma-again':
             self.db.set('ubiquity/run-ma-again', 'false')
             self.set_choices()
@@ -239,7 +233,7 @@ class Page(Plugin):
             if not self.got_a_question:
                 return self.succeeded
             else:
-                return Plugin.run(self, priority, question)
+                return plugin.Plugin.run(self, priority, question)
 
         elif question.endswith('user'):
             username = self.db.get('passwd/username')
@@ -259,7 +253,7 @@ class Page(Plugin):
     def error(self, priority, question):
         self.frontend.error_dialog(self.description(question),
                                    self.extended_description(question))
-        return Plugin.error(self, priority, question)
+        return plugin.Plugin.error(self, priority, question)
 
     def ok_handler(self):
         choices = self.ui.ma_get_choices()
@@ -284,34 +278,7 @@ class Page(Plugin):
             self.db.register('migration-assistant/users', question)
             self.preseed(question, ', '.join(users[p]))
 
-        return Plugin.ok_handler(self)
-
-    def filter_parts(self):
-        question = 'migration-assistant/partitions'
-        from ubiquity.parted_server import PartedServer
-        with raised_privileges():
-            parted = PartedServer()
-
-            parts = []
-            for disk in parted.disks():
-                parted.select_disk(disk)
-                for partition in parted.partitions():
-                    # We check to see if the partition is scheduled to be
-                    # formatted and if not add it to the list of post-commit
-                    # available partitions.
-                    filename = '/var/lib/partman/devices/%s/%s/format' % \
-                        (disk, partition[1])
-                    if os.path.exists(filename):
-                        syslog.syslog('filtering out %s as it is to be formatted.' % partition[5])
-                    else:
-                        parts.append(partition[5])
-
-        ret = []
-        for choice in self.choices(question):
-            if choice[choice.rfind('(')+1:choice.rfind(')')] in parts:
-                ret.append(choice)
-
-        self.preseed(question, ", ".join(ret))
+        return plugin.Plugin.ok_handler(self)
 
     def set_choices(self):
         tree = []
@@ -360,17 +327,17 @@ class Page(Plugin):
 
         self.ui.ma_set_choices(tree)
 
-class Install(InstallPlugin):
+class Install(plugin.InstallPlugin):
     def prepare(self):
         return (['/usr/lib/ubiquity/migration-assistant/ma-apply',
                  '/usr/lib/ubiquity/migration-assistant'], [])
 
     def install(self, target, progress, *args, **kwargs):
         progress.info('ubiquity/install/migrationassistant')
-        return InstallPlugin.install(self, target, progress, *args, **kwargs)
+        return plugin.InstallPlugin.install(self, target, progress, *args, **kwargs)
 
     def error(self, priority, question):
         self.frontend.error_dialog(self.description(question))
-        return InstallPlugin.error(self, priority, question)
+        return plugin.InstallPlugin.error(self, priority, question)
 
 # vim:ai:et:sts=4:tw=80:sw=4:

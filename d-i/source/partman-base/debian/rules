@@ -1,6 +1,6 @@
 #! /usr/bin/make -f
 %:
-	dh --with d-i $@
+	dh $@ --with d-i
 
 ARCH_OS=$(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
 
@@ -9,6 +9,9 @@ DEFAULT_FS=ext4
 endif
 ifeq ($(ARCH_OS),kfreebsd)
 DEFAULT_FS=ufs
+endif
+ifeq ($(ARCH_OS),hurd)
+DEFAULT_FS=ext2
 endif
 
 PROVIDES=made-filesystems, mounted-partitions, partitioned-harddrives, created-fstab

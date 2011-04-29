@@ -14,9 +14,6 @@ package KeyboardNames;
     'Advance Scorpius KI' => 'scorpius',
     'Amiga' => 'amiga',
     'Apple' => 'apple',
-    'Apple Aluminium Keyboard (ANSI)' => 'applealu_ansi',
-    'Apple Aluminium Keyboard (ISO)' => 'applealu_iso',
-    'Apple Aluminium Keyboard (JIS)' => 'applealu_jis',
     'Apple Laptop' => 'apple_laptop',
     'Asus Laptop' => 'asus_laptop',
     'Atari TT' => 'ataritt',
@@ -83,7 +80,6 @@ package KeyboardNames;
     'Happy Hacking Keyboard' => 'hhk',
     'Happy Hacking Keyboard for Mac' => 'macintosh_hhk',
     'Hewlett-Packard Internet Keyboard' => 'hpi6',
-    'Hewlett-Packard Mini 110 Notebook' => 'hpmini110',
     'Hewlett-Packard Omnibook 500 FA' => 'hp500fa',
     'Hewlett-Packard Omnibook 5xx' => 'hp5xx',
     'Hewlett-Packard Omnibook 6000/6100' => 'hp6000',
@@ -99,9 +95,9 @@ package KeyboardNames;
     'IBM Rapid Access II' => 'rapidaccess2',
     'IBM Space Saver' => 'ibm_spacesaver',
     'IBM ThinkPad 560Z/600/600E/A22E' => 'thinkpad',
+    'IBM ThinkPad 560Z/600/600E/A22E, Intl' => 'thinkpadintl',
     'IBM ThinkPad R60/T60/R61/T61' => 'thinkpad60',
     'IBM ThinkPad Z60m/Z60t/Z61m/Z61t' => 'thinkpadz60',
-    'Intelligent Keyboard K04' => 'intelligent_keyboard_k04',
     'Keytronic FlexPro' => 'flexpro',
     'Laptop/notebook Compaq (eg. Armada) Laptop Keyboard' => 'armada',
     'Laptop/notebook Compaq (eg. Presario) Internet Keyboard' => 'presario',
@@ -236,7 +232,6 @@ package KeyboardNames;
     'Lithuania' => 'lt',
     'Macedonia' => 'mk',
     'Maldives' => 'mv',
-    'Mali' => 'ml',
     'Malta' => 'mt',
     'Maori' => 'mao',
     'Mongolia' => 'mn',
@@ -262,9 +257,7 @@ package KeyboardNames;
     'Sweden' => 'se',
     'Switzerland' => 'ch',
     'Syria' => 'sy',
-    'Taiwan' => 'tw',
     'Tajikistan' => 'tj',
-    'Tanzania' => 'tz',
     'Thailand' => 'th',
     'Turkey' => 'tr',
     'Turkmenistan' => 'tm',
@@ -357,7 +350,6 @@ package KeyboardNames;
 	'German (Macintosh)' => 'de_mac',
 	'German, Sun dead keys' => 'de_sundeadkeys',
 	'German, eliminate dead keys' => 'de_nodeadkeys',
-	'Legacy' => 'legacy',
     },
     'cn' => {
 	'Tibetan' => 'tib',
@@ -365,7 +357,6 @@ package KeyboardNames;
     },
     'cz' => {
 	'UCW layout (accented letters only)' => 'ucw',
-	'US Dvorak with CZ UCW support' => 'dvorak-ucw',
 	'With <\|> key' => 'bksl',
 	'qwerty' => 'qwerty',
 	'qwerty, extended Backslash' => 'qwerty_bksl',
@@ -550,7 +541,6 @@ package KeyboardNames;
     },
     'jp' => {
 	'Kana' => 'kana',
-	'Macintosh' => 'mac',
 	'OADG 109A' => 'OADG109A',
     },
     'kg' => {
@@ -563,10 +553,6 @@ package KeyboardNames;
 	'Kazakh with Russian' => 'kazrus',
 	'Russian with Kazakh' => 'ruskaz',
     },
-    'la' => {
-	'Laos' => 'basic',
-	'Laos - STEA (proposed standard layout)' => 'stea',
-    },
     'latam' => {
 	'Eliminate dead keys' => 'nodeadkeys',
 	'Include dead tilde' => 'deadtilde',
@@ -577,6 +563,7 @@ package KeyboardNames;
 	'Tamil Unicode' => 'tam_unicode',
     },
     'lt' => {
+	'Baltic+' => 'balticplus',
 	'IBM (LST 1205-92)' => 'ibm',
 	'LEKP' => 'lekp',
 	'LEKPa' => 'lekpa',
@@ -609,11 +596,6 @@ package KeyboardNames;
     'mk' => {
 	'Eliminate dead keys' => 'nodeadkeys',
     },
-    'ml' => {
-	'English (USA International)' => 'us-intl',
-	'English (USA Macintosh)' => 'us-mac',
-	'Français (France Alternative)' => 'fr-oss',
-    },
     'mt' => {
 	'Maltese keyboard with US layout' => 'us',
     },
@@ -645,7 +627,6 @@ package KeyboardNames;
 	'Dvorak, Polish quotes on key 1' => 'dvorak_altquotes',
 	'Dvorak, Polish quotes on quotemark key' => 'dvorak_quotes',
 	'Kashubian' => 'csb',
-	'Programmer Dvorak' => 'dvp',
 	'Russian phonetic Dvorak' => 'ru_phonetic_dvorak',
 	'qwertz' => 'qwertz',
     },
@@ -690,10 +671,8 @@ package KeyboardNames;
 	'Ossetian, legacy' => 'os_legacy',
 	'Phonetic' => 'phonetic',
 	'Phonetic Winkeys' => 'phonetic_winkeys',
-	'Serbian' => 'srp',
 	'Tatar' => 'tt',
 	'Typewriter' => 'typewriter',
-	'Typewriter, legacy' => 'typewriter-legacy',
 	'Udmurt' => 'udm',
 	'Yakut' => 'sah',
     },
@@ -744,10 +723,6 @@ package KeyboardNames;
 	'Kurdish, Latin Q' => 'ku',
 	'Sun dead keys' => 'sundeadkeys',
     },
-    'tw' => {
-	'Indigenous' => 'indigenous',
-	'Saisiyat' => 'saisiyat',
-    },
     'ua' => {
 	'Crimean Tatar (Turkish Alt-Q)' => 'crh_alt',
 	'Crimean Tatar (Turkish F)' => 'crh_f',
@@ -775,7 +750,6 @@ package KeyboardNames;
 	'Programmer Dvorak' => 'dvp',
 	'Right handed Dvorak' => 'dvorak-r',
 	'Russian phonetic' => 'rus',
-	'Serbian' => 'srp',
 	'With EuroSign on 5' => 'euro',
     },
     'uz' => {

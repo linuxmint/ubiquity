@@ -11,7 +11,7 @@ ROOT="$1"
 logoutput="log-output -t load-install-cd"
 
 check_id() {
-	cd_ids=$($logoutput --pass-stdout chroot $ROOT \
+	cd_ids=$(LC_ALL=C $logoutput --pass-stdout chroot $ROOT \
 		 apt-cdrom ident | grep "^Identifying" | cut -d" " -f2)
 
 	for cd_id in $cd_ids; do
@@ -25,7 +25,7 @@ check_id() {
 cd_label=$(tail -n1 /var/lib/install-cd.id)
 db_subst apt-setup/cdrom/media-change LABEL "$cd_label"
 while ! check_id; do
-	db_input high apt-setup/cdrom/media-change || true
+	db_input critical apt-setup/cdrom/media-change || true
 	db_go || exit 10
 done
 

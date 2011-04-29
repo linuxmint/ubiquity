@@ -1,48 +1,53 @@
-#!/bin/sh
-#make -C d-i update
-#make -C d-i build
-#make -C d-i install
-# Need to install python-pyicu
-# For loading the console-setup plugin.  This is needed for at least testing
-# loading of plugins.
-./debian/rules ubiquity/keyboard_names.py
-rebuild=false
-for x in d-i/templates debian/ubiquity.templates \
-	debian/ubiquity.templates-imported; do
-	if [ $x -nt tests/debconfdb ]; then
-		rebuild=:
-		break
-	fi
-done
-$rebuild && (cat d-i/templates; echo;
-	po2debconf debian/ubiquity.templates; echo;
-	po2debconf debian/ubiquity.templates-imported \
-		--podir=debian/imported-po) > tests/debconfdb
-cat > tests/debconf.conf << EOF
-Config: configdb
-Templates: templatedb
+#!/usr/bin/python
 
-Name: configdb
-Driver: File
-Mode: 644
-Filename: tests/config.dat
+import unittest
+import os
+import sys
+import subprocess
+import fnmatch
 
-Name: templatedb
-Driver: File
-Mode: 644
-Filename: tests/templates.dat
-EOF
-export DEBCONF_SYSTEMRC=tests/debconf.conf
-$rebuild && debconf-loadtemplate ubiquity tests/debconfdb
-[ -e ubiquity/Makefile ] || ./configure && (cd ubiquity; make)
-# For log-output
-export PATH="d-i/source/debian-installer-utils:$PATH"
 
-# SUDO UID and SUDO_GID are for KDE
-SUDO_UID=$(id -u) \
-SUDO_GID=$(id -g) \
-UBIQUITY_PATH=. \
-UBIQUITY_PLUGIN_PATH=ubiquity/plugins \
-PIXMAPS=desktop \
-UBIQUITY_GLADE=gui/gtk \
-fakeroot xvfb-run ./tests/run-frontend
+def find_files(directory, pattern):
+    for root, dirs, files in os.walk(directory):
+        for basename in files:
+            if fnmatch.fnmatch(basename, pattern):
+                filename = os.path.join(root, basename)
+                yield filename
+
+os.environ['DEBCONF_SYSTEMRC'] = 'tests/debconf.conf'
+sys.path.insert(0, '.')
+
+# Build dependencies for the tests.
+subprocess.check_call(['tests/build'])
+
+# Parts borrowed from jockey.
+
+if len(sys.argv) > 1 and sys.argv[1] == 'coverage':
+    from coverage import coverage
+    cov = coverage()
+    cov.start()
+    use_coverage = True
+    sys.argv = sys.argv[0:1] + sys.argv[2:]
+else:
+    use_coverage = False
+
+if len(sys.argv) > 1:
+    filter = sys.argv[1]
+    sys.argv = sys.argv[0:1] + sys.argv[2:]
+else:
+    filter = ''
+
+tests = [t[:-3] for t in os.listdir('tests')
+         if t.startswith('test_') and t.endswith('.py') and filter in t]
+tests.sort()
+suite = unittest.TestLoader().loadTestsFromNames(tests)
+res = unittest.TextTestRunner(verbosity=2).run(suite)
+if use_coverage:
+    cov.stop()
+    from itertools import chain
+    include = chain(find_files('ubiquity', '*.py'),
+                    find_files('scripts', '*.py'))
+    cov.html_report(include=include, directory='tests/coverage')
+
+if res.errors or res.failures:
+    sys.exit(1)

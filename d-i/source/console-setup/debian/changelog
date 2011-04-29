@@ -1,3 +1,745 @@
+console-setup (1.57ubuntu20) natty; urgency=low
+
+  * Weaken test for whether /usr is mounted; testing for /usr/share is
+    sufficient, and fixes operation in d-i.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 20 Apr 2011 15:29:46 +0100
+
+console-setup (1.57ubuntu19) natty; urgency=low
+
+  * Don't copy keyboard-configuration questions to /target in OEM mode.
+    oem-config will ask them later, and copying these confuses it
+    (LP: #741304).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 15 Apr 2011 12:43:41 +0100
+
+console-setup (1.57ubuntu18) natty; urgency=low
+
+  * Don't use the default keyboard variant if the layout is overridden by
+    preseeding (LP: #758584).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 12 Apr 2011 15:21:11 +0100
+
+console-setup (1.57ubuntu17) natty; urgency=low
+
+  * debian/vtrgb: Design team wanted a slightly different grey; more contrast
+    when white on grey
+  * debian/console-setup.postinst: fix failure to find file to md5sum;
+    go back to installing the original vtrgb as a lower priority alternative
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Mon, 21 Mar 2011 21:38:00 -0500
+
+console-setup (1.57ubuntu16) natty; urgency=low
+
+  * debian/console-setup.postinst: don't add the vtrgb.vga 
+    alternate to update-alternatives;  let other packages or humans do this;
+    otherwise, every time this package upgrades, it would overwrite others'
+    overiding choices
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Sun, 20 Mar 2011 17:54:21 -0500
+
+console-setup (1.57ubuntu15) natty; urgency=low
+
+  * debian/vtrgb.vga, debian/rules, debian/console-setup.postinst:
+    - install a vga configuration, for easy reference by others who want to go
+      back to legacy mode
+    - relocate the stock vtrgb from /usr to /etc, such that it can be edited
+      by an admin, LP: #738992
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Sun, 20 Mar 2011 17:19:34 -0500
+
+console-setup (1.57ubuntu14) natty; urgency=low
+
+  * Install setvtrgb job with --no-start --upstart-only (LP: #738159).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 19 Mar 2011 12:07:57 +0000
+
+console-setup (1.57ubuntu13) natty; urgency=low
+
+  * debian/rules, debian/console-setup.postinst: use update-alternatives
+    to allow other packages to install different console color values,
+    LP: #737948
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Fri, 18 Mar 2011 22:02:12 -0500
+
+console-setup (1.57ubuntu12) natty; urgency=low
+
+  * Tolerate absence of setupcon in keyboard-configuration.postinst
+    (LP: #733497).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 18 Mar 2011 11:28:34 +0000
+
+console-setup (1.57ubuntu11) natty; urgency=low
+
+  * Address console-setup portion of LP: #730672, by installing
+    the conffile and applying it at upstart
+    - debian/vtrgb: Ubuntu's virtual terminal color scheme
+    - debian/console-setup.setvtrgb.upstart: run setvtrgb during upstart
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Thu, 17 Mar 2011 17:10:50 -0500
+
+console-setup (1.57ubuntu10) natty; urgency=low
+
+  * Don't fail to configure keyboard-configuration if setxkbmap fails to
+    talk to the X display (LP: #728764).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 04 Mar 2011 13:40:49 +0000
+
+console-setup (1.57ubuntu9) natty; urgency=low
+
+  * The console-setup udev rule accidentally went missing in 1.57ubuntu1.
+    Reinstall it, this time in keyboard-configuration (LP: #713746).
+  * Load the new keyboard configuration immediately when running
+    'dpkg-reconfigure keyboard-configuration' in an installed system
+    (LP: #713062).
+  * Make setupcon explicitly exit 0, so that postinsts don't fail in the
+    event that loadkeys can't find a console.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 03 Mar 2011 16:14:06 +0000
+
+console-setup (1.57ubuntu8) natty; urgency=low
+
+  * Move keyboard detection templates from console-setup.templates to
+    keyboard-configuration.templates.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 28 Feb 2011 19:21:18 +0000
+
+console-setup (1.57ubuntu7) natty; urgency=low
+
+  * No change build to pick up xkeyboard-config 2.1-1ubuntu3.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Tue, 08 Feb 2011 15:05:54 +0000
+
+console-setup (1.57ubuntu6) natty; urgency=low
+
+  * Allow underscores in rules variables ($sun_t6_custom).
+
+ -- Evan Dandrea <ev@ubuntu.com>  Mon, 07 Feb 2011 15:14:44 +0000
+
+console-setup (1.57ubuntu5) natty; urgency=low
+
+  * Drop misguided Ubuntu-specific code to migrate from console-setup/* to
+    keyboard-configuration/* question names.  This is already handled on
+    upgrade by reading the old /etc/default/console-setup file
+    (LP: #698263).
+  * console-setup-udeb (<< 1.53) didn't set the seen flag in the installed
+    system.  Cope with this and avoid asking the layout and variant
+    questions again if the default debconf priority is at least high
+    (LP: #705883).
+  * If we detect the above breakage (upgrading from anything between
+    1.57ubuntu1 and 1.57ubuntu4 inclusive, and the XKB* values in
+    /etc/default/keyboard differ from the commented-out values in
+    /etc/default/console-setup), reset to the commented-out values in
+    /etc/default/console-setup.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 28 Jan 2011 12:19:42 +0000
+
+console-setup (1.57ubuntu4) natty; urgency=low
+
+  * Include pc105.tree for ubiquity.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Mon, 24 Jan 2011 16:53:59 +0000
+
+console-setup (1.57ubuntu3) natty; urgency=low
+
+  * Correct fix for LP: #634402: explicitly check readability of
+    /etc/default/keyboard and /etc/default/console-setup in initramfs hooks,
+    rather than trying to guard '.' with '||' which doesn't work
+    (LP: #701954).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 20 Jan 2011 20:55:01 +0000
+
+console-setup (1.57ubuntu2) natty; urgency=low
+
+  * Make keyboard-configuration replace old console-setup/console-setup-mini
+    versions as well as conflicting with them (thanks, Martin Pitt).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 06 Jan 2011 12:24:45 +0000
+
+console-setup (1.57ubuntu1) natty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Use keymapper to generate decision trees for a restricted subset of
+      the pc105 model.
+    - If the detect-keyboard debconf plugin is available
+      (cdebconf-newt-detect-keys in the installer), then offer to use it to
+      detect the keyboard layout.
+    - Reset keyboard-configuration/toggle to the default if it's set to "No
+      toggling" and you select a non-Latin layout.
+    - Change the default font from Fixed to VGA for Lat15; while it's not
+      entirely complete, it looks better and is largely good enough.
+    - Automatically save the font and keymap to /etc in
+      /etc/init.d/console-setup if it isn't being run from init. Similarly,
+      ensure that the font and keymap are saved to /etc during initial
+      installation.
+    - Set keymap and font in the initramfs if possible and sensible.
+    - Set default variant for French to oss.
+    - Set default for Dutch to us(intl), not just us.
+    - Set default layout for Vietnam to 'us'.
+    - Set default layout for Kurdish to tr(ku).
+    - Stop running debconf-updatepo on clean.
+    - Update for new layouts and variants for Montenegro and Serbia, and
+      migrate configuration files from the old layouts.
+    - Add a "Do not configure keyboard; keep kernel keymap" model option,
+      preseedable by keyboard-configuration/modelcode=SKIP.
+    - Drop the layout/variant priority to high on fresh installs.
+    - Honour OVERRIDE_ALLOW_PRESEEDING environment variable when deciding
+      whether to allow preseeding, which is ordinarily only allowed in d-i.
+    - If keyboard-configuration/layoutcode is preseeded but not marked as
+      seen, then set the default layout but don't lower the layout question
+      priority or preseed console-setup/ask_detect.
+    - Add an apport hook.
+    - Generate a locale locally for translating keyboard names in
+      kbdnames-maker.
+    - Replace usplash detection code with Plymouth detection code.
+    - Move boot tasks to a combination of two udev rules and a single
+      Upstart job, ensuring that they're run at points when we are able to
+      satisfy the constraints on the relevant ioctls.
+    - Depend on kbd (>= 1.15-1ubuntu3) for a valuable loadkeys improvement.
+    - Don't try to call update-rc.d if it doesn't exist, such as in d-i.
+    - Don't gzip font or ACM files in /etc/console-setup/.  The space saving
+      is negligible, and it's more efficient not to need to uncompress them
+      at boot time.
+    - Remove iconv transliteration.  We don't use non-UTF-8 locales, and it
+      breaks ubiquity as we haven't generated the configured locale by the
+      time we hit console-setup.
+  * Go back to always asking layout before variant.
+  * Migrate from old console-setup/* to new keyboard-configuration/*
+    question names.
+  * Use the default keyboard model if an existing configuration file sets
+    XKBMODEL="".
+  * Exit cleanly from initramfs hook if /etc/default/keyboard or
+    /etc/default/console-setup don't exist for some reason (LP: #634402).
+  * Fix description of upstart job to not incorrectly claim that it sets the
+    font (LP: #632366).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 05 Jan 2011 17:02:40 +0000
+
+console-setup (1.57) unstable; urgency=low
+
+  * udeb: properly preseed system based on installer values.
+
+  [ Updated translations ]
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 15 Oct 2010 14:50:22 -0300
+
+console-setup (1.56) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Set default layout for Guernsey, Jersey, and the Isle of Man to gb
+    (LP: #533003).
+
+  [ Samuel Thibault ]
+  * config: Add SCREEN_WIDTH and SCREEN_HEIGHT variables.
+  * setupcon: When these are provided, call stty to adjust the screen size
+    (Closes: Bug#594817).
+
+  [ Anton Zinoviev]
+  * setupcon (console-setup-mini): in verbose mode, issue a warning that
+    FONTFACE and FONTSIZE are ignored.  Document the issue in a
+    README.Debian file.  Thanks to ael, closes: #575806.
+  * keyboard-configuration.config: while reading defaults from xorg.conf
+    do not turn the option values to lowercase.  Thanks to Soeren
+    Sonnenburg who discovered the problem and to Julien Cristau and
+    Olivier Schwander for the patches, closes: #596547.
+  * Do not mention HAL in the comment of /etc/default/keyboard.  Suggest a
+    reboot instead.
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Tue, 14 Sep 2010 13:06:38 +0300
+
+console-setup (1.55) unstable; urgency=low
+
+  [ Cyril Brulebois ]
+  * Drop trailing comma in choices that confuses cdebconf and
+    prevented choosing anything but the default keymap in the
+    graphiccal installer. Closes: #583388.
+  
+  [ Frans Pop ]
+  * Add auto-install support for console-setup-udeb.
+    Requires preseed (>= 1.45).
+  
+  [ Anton Zinoviev]
+  * *.init: add a comment to make clear that the init scripts are not used
+    by keyboard-configuration, only by console-setup(-mini).
+  * setupcon: muffle properly the warnings /etc is read-only.  Thanks to
+    Marc (maintainer of PureOS, http://pureos.org).
+
+  [ Updated translations ]
+  * Amharic (am.po) by Tegegne Tefera
+  * Asturian (ast.po) by astur
+  * Belarusian (be.po) by Viktar Siarheichyk
+  * Bosnian (bs.po) by Armin Beširović
+  * Catalan (ca.po) by Jordi Mallach
+  * Danish (da.po) by Jacob Sparre Andersen
+  * German (de.po) by Holger Wansing
+  * Dzongkha (dz.po) by Jurmey Rabgay
+  * Persian (fa.po) by acathur
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Kumar Appaiah
+  * Croatian (hr.po) by Josip Rodin
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Italian (it.po) by Milo Casagrande
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Central Khmer (km.po) by Khoem Sokhem
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Macedonian (mk.po) by Arangel Angov
+  * Malayalam (ml.po) by Praveen Arimbrathodiyil
+  * Nepali (ne.po)
+  * Dutch (nl.po) by Frans Pop
+  * Norwegian Nynorsk (nn.po) by Eirik U. Birkeland
+  * Panjabi (pa.po) by A S Alam
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Romanian (ro.po) by ioan-eugen stan
+  * Tamil (ta.po) by Dr,T,Vasudevan
+  * Ukrainian (uk.po) by Borys Yanovych
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 11 Jul 2010 11:04:29 +0200
+
+console-setup (1.54) unstable; urgency=low
+
+  * keyboard-configuration.postinst (udeb): use existing variables for the
+    arguments of setxkbmap.  Patch provided by Cyril Brulebois.
+  * Correct the svn address of the repository in the copyright file.
+    Thanks to Daniel Richard G. for finding the problem.
+  * Build resized VGA32x16 and VGA28x16 fonts.  Thanks to Daniel Richard G.
+    for the suggestion and the initial patch.
+  * Improved text of the keyboard-configuration/layout (origin) question.
+    Suggestion given by Frans Pop.
+  * Debconf: leave the "Other" choice unsorted as last option.  Thanks to
+    Frans Pop, closes: #573987.
+  * Finally properly working (I hope) workaround for #352697.
+  * keyboard-configuration.config: initialise the *_allocated variables.
+    This is important in case the user backs up to the previous dialog.
+  * No need to use XKBMODEL=pc104 as default when debian-installer/keymap
+    is br, dvorak or us.  Thanks to Piotr Engelking, closes: #568475.
+  * console-setup(-mini).postinst: do not attempt to configure the
+    console.  s/leaved/left/ in setupcon.  Thanks to Sven Joachim, 
+    closes: #570341.
+  * console-setup-udeb: do not configure the console if used from X.
+  * keyboard-configuration.postinst: properly test for the udeb and
+    execute setupcon and setxkbmap only there.
+  * bdf2psf: correct some false warnings for no space in the font when in
+    fact no gliph is defined in the source bdf font.
+  * bdf2psf: fix a bug in the computation of %equiv causing some fonts
+    (for example VGA14) to be compiled with inconsistent look of the
+    characters (different characters were taken from different fonts).
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Tue, 23 Mar 2010 22:10:32 +0200
+
+console-setup (1.53) unstable; urgency=low
+
+  * console-setup-udeb.base-installer: fix bad package name for the
+    templates to mark as seen (keyboard-configuration instead of
+    keyboard-setup).
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Wed, 17 Feb 2010 19:55:24 +0200
+
+console-setup (1.52) unstable; urgency=low
+
+  * Use lv3:ralt_alt only if there is no other option for the right Alt
+    key.  Thanks to GW, closes: #566009.
+  * Some installer related changes (thanks to Cyril Brulebois for finding
+    the problems and proposing some patches):
+    - keyboard-configuration.config: properly test that we are in the
+      installer (in which case the model question has to be skipped).
+    - mark the questions of keyboard-configuration as seen in
+      console-setup-udeb.base-installer to avoid asking them by the main
+      package.
+    - run setxkbmap in the postinst of the udeb.
+  * setupcon: print error message when not started from the console.
+    Thanks to Michal Suchanek, closes: #569057.
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Wed, 17 Feb 2010 17:59:38 +0200
+
+console-setup (1.51) unstable; urgency=low
+
+  * Correct typo in the FAQ.  Thanks to Luís Picciochi Oliveira, 
+    closes: #559036.
+  * Remove Fonts/bdf/legacy8h.bdf.  This font was produced from
+    lat2u-08.psf which is also broken.  This should fix the Ubuntu bug
+    #190746.
+  * Midnight Commander is not mecriful to the console.  Add support (by
+    approximations) for WHITE DIAMOND CONTAINING BLACK SMALL DIAMOND and
+    BLACK (up, down, left and right) SMALL TRIANGLEs.
+  * Treat af and iq as non-Latin layouts.  This probably fixes the Ubuntu
+    bug #209703.
+  * Add default keyboard layouts for South Africa and Liechtenstein.
+  * Do not load fonts when usplash is active.  Thanks to Daniel Schepler,
+    closes: #560262.
+  * Do not use soft link for Keyboard/ckb/rules/base.xml.  Thanks to Lucas
+    Nussbaum and Samuel Thibault, closes: #560570.
+  * When the layout has three groups swithch them in the following order:
+    group1 -> group2 -> group1 -> group3.  Document this problem in the
+    FAQ.  Thanks to Goran Vulić, closes: #560814.
+  * Do not remove /etc/console-setup in the postrm script if one of
+    console-setup or console-setup-mini is still installed.  Thanks to
+    Francesco Poli, closes: #561005.
+  * setupcon: do not test for the existence of ckbcomp.  Thanks to Eric
+    Valette, closes: #562557.
+  * Install ckbcomp-mini in /bin.  Otherwise before /usr is mounted it
+    would be impossible to test whether console-setup is installed or
+    console-setup-mini.
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Thu, 14 Jan 2010 22:25:13 +0200
+
+console-setup (1.50) unstable; urgency=low
+
+  * When deciding about whether cached.kmap.gz is actual test against
+    /etc/default/keyboard rather than agains /etc/default/console-setup.
+    Thanks to Kurt Roeckx and Renato S. Yamane, closes: #558448, #558475.
+  * Do not use files in /usr/share/doc as templates.  Thanks to Trent
+    W. Buck, closes: #558229.
+  * Update the FAQ.  Thanks to Luís Picciochi Oliveira, closes: #548837.
+  * bdf2psf: do not discard gliphs with zero rows in the bitmap matrix.
+    Thanks to Tim Allen, closes: #539108.
+  * Fix a bug causing the 'unsupported_layout' question to be asked on
+    every other installation.
+  * Changes in the template file in order to close some bugs:
+    - The AltGr question.  Also add a new option 'Do not use AltGr key'.
+      Rename 'Right Alt' => 'Right Alt (AltGr)'.  Thanks to Kurt Roeckx,
+      closes: #524235.
+    - Do not use 'configuration program' and 'unsupported'.  Thanks to GSR
+      and Yann Dirson, closes: #535965, #538397.
+    - Add long descriptions to keyboard-configuration/model and
+      keyboard-configuration/layout.  Thanks to Paul Vojta, closes: #531646.
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Mon, 30 Nov 2009 21:04:24 +0200
+
+console-setup (1.49) unstable; urgency=low
+
+  * Extend Fonts/standard.equivalents in order to support the symbols
+    required by toilet-fonts.  Thanks to Francesco Poli.
+  * New version of the Terminus font in the source package.
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Fri, 20 Nov 2009 13:05:43 +0200
+
+console-setup (1.48) unstable; urgency=low
+
+  [ Frans Pop ]
+  * When console-setup.config is run in the D-I environment, simply set the
+    charmap to UTF-8; the installer internally always uses the locale C.UTF-8.
+
+  [ Anton Zinoviev]
+  * config file: document that Goha and GohaClassic are available only
+    with CODESET=Ethiopian.
+  * When repairing errors in the config file cause by previous versions do
+    not ask unconditionaly the layout/variant questions if there are
+    values in the configuration file.
+  * Do not install kbdnames.gz in console-setup-mini but only in the
+    udeb.
+  * keyboard-configuration(config): do not give --mini option to the
+    preprocessor.  This returns back the keyboard model names in the
+    file.  Thanks to Mario 'BitKoenig' Holbe, closes: #557001.
+  * setupcon: Do not substitute empty FONTFACE and FONTSIZE (I had
+    forgotten that setupcon supported this mode of operation).  Thanks to
+    Josh Triplett, closes: #556882.
+  * There is no need to escape the single quotes in kbdnames-maker.
+    Thanks to Gerfried Fuchs, closes: #548332.
+  * (Debconf) Do not overwrite non-standard keyboard layouts.  Thanks to
+    Shai Berger, closes: #556426.
+  * console-setup: Ensure that /etc/default/keyboard is sourced in
+    /etc/default/console-setup.
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Thu, 19 Nov 2009 22:17:42 +0200
+
+console-setup (1.47) unstable; urgency=low
+
+  * Separate the keyboard configuration in a new package
+    keyboard-configuration.  No font configuration in console-setup-mini
+    and console-setup-udeb.  Thanks to Celejar, Luís Picciochi Oliveira,
+    Francesco Poli and Bill Brelsford.  
+    Closes: #542003, #548837, #546983, #548262, #536600, #536614.
+  * Use CONSOLE_MAP configuration variable instead of ACM (to be the same
+    as kbd).
+  * Use Uni2 instead of Uni1 when no good default codeset can be detected.
+    Its better to have one more fully supported language (Greek) than two
+    unsupported right to left languages (Arabic and Hebrew).
+  * Configuration variable KMAP for personnal keymaps.  Thanks to Samuel
+    Thibault, closes: #546740.
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Fri, 13 Nov 2009 18:03:11 +0200
+
+console-setup (1.46) unstable; urgency=low
+
+  [ Christian Perrier ]
+  * Add kbd to Should-Start in init script. Thanks to Michael Schutte
+    for the patch. Closes: #548101
+
+  [ Colin Watson ]
+  * Add default codeset/layout/variant for Asturian.
+  * Forbid Unicode keysyms in the range 0xf000-0xffff, as kbd 1.15-1 rejects
+    the entire keymap if it contains any keysyms in that range (LP:
+    #416949).
+
+  [ Jordi Mallach ]
+  * Set XKBVARIANT to "cat" for Catalan.
+
+  [ Anton Zinoviev]
+  * Protect the special symbols in the regular expressions of ask_debconf.
+    Thanks to Tibor Zenis, Rogério Brito, Michael Gold, W. Goesgens, Martin
+    Ziegler, Andreas Juch, Colin Tuckley, Samuel Thibault and Arnaud Giersch.  
+    Closes: #536683, #546654, #551586.
+  * Do not load fonts when splashy is active.  Thanks to Mathieu Parent and
+    Adam Trickett, closes: #510211, #548354.
+  * Make keys of type ONE_LEVEL, TWO_LEVEL or THREE_LEVEL realy such.
+    Thanks to Samuel Thibault and aCaB, closes: #542832, #536723.
+  * New configuration option: UNIMAP.  Thanks to Samuel Thibault, 
+    closes: #543478.
+  * Execute kbd_mode for all consoles (doesn't work with console-tools).
+    Thanks to Samuel Thibault, closes: #546702.
+  * New question in the FAQ: "The non-ASCII characters don't work".
+    Thanks to Harald Braumann, closes: #541291.
+  * Use LC_MESSAGES in order to determine the output language of the
+    keyboard models and layouts.  Thanks to Harald Braumann, 
+    closes: #543214.  
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Wed, 11 Nov 2009 23:30:08 +0200
+
+console-setup (1.45) unstable; urgency=low
+
+  [ Anton Zinoviev ]
+  * Do not issue warnings when writing cached.kmap.gz and /etc is mounted
+    read-only.
+  * Detection of Atari keyboards.  Use case-insensitive grep to make the
+    tests more robust.
+
+  [ Petter Reinholdtsen ]
+  * Make sure init.d/keyboard-setup can be installed when udev isn't
+    installed (Closes: #545070).
+  * Flag init.d/keyboard-setup and init.d/console-setup as interactive
+    scripts, to make sure they have direct access to the tty when using
+    concurrent booting (Closes: #538438).
+
+  [ Christian Perrier ]
+  * Add ${misc:Depends} to binary packages dependencies as we're using
+    debhelper
+  * Update Standards to 3.8.3 (checked, no change)
+  * Reformat extended description of bdf2psf to avoid exceeding 80
+    columns
+  * Bump debhelper compatibility to 7
+  * Use dh_prep in place of deprecated "dh_clean -k"
+
+  [ Updated translations ]
+  * Amharic (am.po) by Tegegne Tefera
+  * Asturian (ast.po) by Marcos Antonio Alvarez Costales
+  * Czech (cs.po) by Miroslav Kure
+  * German (de.po) by Holger Wansing
+  * Greek (el.po) by Emmanuel Galatoulas
+  * Esperanto (eo.po) by Felipe Castro
+  * Estonian (et.po) by Mattias Põldaru
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Italian (it.po) by Milo Casagrande
+  * Japanese (ja.po) by Kenshi Muto
+  * Korean (ko.po) by Changwoo Ryu
+  * Marathi (mr.po) by Sampada
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Romanian (ro.po) by Eddy Petrișor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Ivan Masár
+  * Swedish (sv.po) by Daniel Nylander
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Turkish (tr.po) by Mert Dirik
+  * Simplified Chinese (zh_CN.po) by Deng Xiyue
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 05 Sep 2009 13:53:59 +0200
+
+console-setup (1.44) unstable; urgency=low
+
+  * console-setup-udeb: postinst preserve the exit code of the config
+    script.  For example 10 is leaved as 10.
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Fri, 10 Jul 2009 15:43:49 +0300
+
+console-setup (1.43) unstable; urgency=low
+
+  * I build 1.42 in the wrong tree.  Sorry.
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Fri, 10 Jul 2009 15:33:48 +0300
+
+console-setup (1.42) unstable; urgency=low
+
+  * Never use 'unknown' as keyboard model because the udeb and mini do not
+    have model question.
+  * Both entering a choice and backing from the layout question goes to
+    the variant question.
+  * Backing from layout question goes to model question even when the
+    variant is not 'other'.
+  * String change: 'The default for the keyboard layout' instead of
+    'No AltGr key'.
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Fri, 10 Jul 2009 14:32:28 +0300
+
+console-setup (1.41) unstable; urgency=low
+
+  * Read the default value for the codeset from console-setup/codesetcode,
+    not from console-setup/codeset (part of preseeding support). 
+  * Remove most default values from the template file or else they are
+    interfering with the guess-work in the config script.
+  * Activate the preseeding code for the regular packages too.  This is in
+    order to catch easier the future bugs related to the preseeding.
+  * Change the default AltGr key to 'No AltGr key' as the layouts that
+    need AltGr define their own AltGr.
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Thu, 09 Jul 2009 18:16:24 +0300
+
+console-setup (1.40) unstable; urgency=low
+
+  * Do not reask the "unsupported layout/option" question on every
+    upgrade.  Thanks to GSR, closes: 535966.
+  * Support for terminate:ctrl_alt_bksp option.  Thanks to GSR, 
+    closes: #535908.
+  * The postinst of the udeb was looking for console-setup.config although
+    in 1.37 this file was renamed as console-setup-mini.config.
+  * Remove the Provides: console-setup from console-setup-mini.
+  * bdf2psf: support fonts that do not cover the whole ASCII set.  Thanks
+    to Samuel Thibault, closes: #533096.
+  * bdf2psf: ignore double-width symbols.
+  * ckbcomp: do not fail when empty string is given as layout.
+  * Ask c-s/variant before c-s/layout.  Do not ask c-s/layout unless the
+    user has requested this by selecting 'Other' in c-s/variant.  The
+    priority of c-s/layout is still critical but most users won't see this
+    question. Thanks to Christian Perrier, closes: #529649.
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Tue, 07 Jul 2009 19:38:13 +0300
+
+console-setup (1.39) unstable; urgency=low
+
+  * Remove the dependency on sharutils in console-setup.  Thanks to Josh
+    Triplett and Helmut Grohne, closes: #535805.
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Sun, 05 Jul 2009 14:51:41 +0300
+
+console-setup (1.38) unstable; urgency=low
+
+  * Add build-dependency and dependency on sharutils for console-setup.
+    Reask the questions for model/layout/variant with critical priority if
+    version 1.37 has destroyed the value of XKBMODEL or XKBLAYOUT (due to
+    missing uudecode).  Thanks to Max, closes: #535709.
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Sat, 04 Jul 2009 21:58:34 +0300
+
+console-setup (1.37) unstable; urgency=low
+
+  [ Otavio Salvador ]
+  * Use 'dpkg --print-architecture' in debconf config script. Closes: #529574
+
+  [ Christian Perrier ]
+  * Add D-I localization sublevels markers.
+
+  [ Debconf translations ]
+  * Swedish. Closes: #529860
+
+  [ Anton Zinoviev ]
+  * ask_debconf function in the config script: do not ask the question
+    when there is only one available option.  Thanks to Christian Perrier,
+    closes: #529643.
+  * config.proto: use explicitely pc105 as keyboard model on hppa.  Thanks
+    to Samuel Thibault, closes: #531482.  I think hil keyboards were
+    used only with old kernels and we won't find volunteer to test
+    console-setup with such keyboards.
+  * Add support for evdev keycodes.  Thanks to Samuel Thibault.
+  * Do not define keys with only VoidSymbols.
+  * Document in README.Debian which package configures the console when
+    several console-configuring packages are installed.  Thanks to Kurt
+    Roeckx, closes: #524233, #524239.
+  * Compressed translations (size reduced from 1.1M to 200K).
+  * Install uncompressed fonts in console-setup-fonts-udeb and
+    console-setup-mini (setfont can not load compressed fonts if gunzip is
+    not installed).  Thanks to Miroslav Kure.
+  * Do not change the priority of the layout questions if preseeding is
+    used.  This was the reason why keyboard could not be reconfigured in
+    d-i.  Thanks to Christian Perrier.
+  * Document in the default configuration file that HAL needs to be
+    restarted if the file is changed.  Thanks to Petr Baudis, 
+    closes: #527620. 
+  * Do not issue warnings for unknown keycodes with AT keyboards (these
+    are multimedia keys and they are unnecessary on the console).  Thanks
+    to Anders Lagerås, closes: #531292.
+  * Support for /etc/console-setup/remap.inc.  Thanks to Adeodato Simó,
+    closes: #531478.
+  * Respect the selected choices on <Go Back>.  Thanks to Frans Pop.
+  * Do not ask charmap question in the udeb.  Thanks to Frans Pop.
+  * Remove comments and indentation space from the scripts in
+    console-setup-udeb and console-setup-mini in order to save space.
+    Thanks to Frans Pop.
+  * Allow Debconf to save charmap != UTF-8 in the configuration file even
+    when console-setup-udeb or console-setup-mini is used.
+  * Remove the model question from console-setup-udeb and console-setup-mini.
+    By default do not change the keyboard when the model is unknown.
+  * Remove the ttys question.
+  * Do not ask questions when no keyboard is present.  Thanks for Frans
+    Pop for requesting the feature and providing information.
+  * Some code cleanup in the config script.
+  * Delete .cvsignore and .svn in all udebs.
+  * Remove the dependency on console-setup-fonts-udeb in console-setup-udeb.
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Sat, 04 Jul 2009 13:11:07 +0300
+
+console-setup (1.36) unstable; urgency=low
+
+  [ Anton Zinoviev ]
+  * Document the empty FONTFACE/FONTSIZE in the comments of the
+    configuration file.
+  * Remove obsoleted sentence from the README file.
+  * Update Keyboard/ckb directory.
+  * Rearrange the code in config.proto to make easier to specify
+    selectively the priority of the layout question depending on the
+    source of the default value.
+  * Simply execute the config script in udebs postinst, do not source.
+    Thanks to Christian Perrier, closes: #439633.
+  * Use 'type' builtin instead of the 'which' tool that is not available
+    in d-i.  Thanks to Samuel Thibauld for the suggestion.
+  * Use /bin/sh as shell for the config script (instead of /bin/bash).
+    Make the script /usr/share/console-setup-mini executable.  Thanks to
+    Christian Perrier for the testing and finding these problems.
+  * Give //TRANSLIT to iconv in the config script.  Thanks to yanu for
+    reporting the problem and to Samuel Thibault for providing a patch.
+    Closes: #529012.
+
+  [ Debconf translations ]
+  * Spanish. Closes: #529031
+
+  [ Christian Perrier ]
+  * Change debian-installer/console-setup/title to
+    debian-installer/console-setup-udeb/title so that
+    menu item localization works
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Fri, 15 May 2009 21:41:13 +0300
+
+console-setup (1.35) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Merge from Ubuntu:
+    - Treat the Kazakh layout (kz) as non-Latin (LP: #356816).
+    - Set default layout for Morocco to 'ma'.
+  * Handle temporary output files better in kbdcompiler (closes: #524556).
+
+  [ Samuel Thibault ]
+  * Fetch keyboard names translations from xkeyboard-config.
+  
+  [ Anton Zinoviev ]
+  * Escape commas in Debconf questions.  Thanks to Raphaël Hertzog,
+    closes: #528033.
+  * Support unset font in Debconf configurator.  Thanks Dave Witbrodt,
+    closes: #527641.
+  * Kyrgyz keyboard is non-latin.  Proper defaults with ky_KG locale.
+    Closes: #527643.
+  * Correct a mistake in the manpage.  Thanks to Phil Endecott and
+    Matthew King, closes: #527955, #528186.
+
+  [ Debconf translations ]
+  * Italian (new translation by Vincenzo Campanella). Closes: #521799.
+  * Swedish. Closes: #528576
+  * Russian. Closes: #528676  
+  * French
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Thu, 14 May 2009 21:42:14 +0300
+
 console-setup (1.34ubuntu15) lucid; urgency=low
 
   * Make /usr/share/initramfs-tools/scripts/panic/console_setup executable.

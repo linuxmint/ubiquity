@@ -1,0 +1,113 @@
+#!/bin/sh
+
+set -e
+
+# Source debconf library.
+. /usr/share/debconf/confmodule
+
+# The same as /usr/bin/which - in order to make "which" available before
+# /usr is mounted
+which () {
+    local IFS
+    IFS=:
+    for i in $PATH; do
+	if [ -x "$i/$1" ]; then
+	    echo "$i/$1"
+	    return 0
+	fi
+    done
+    return 1
+}
+
+# In d-i the config script is not executed automatically
+if [ -f /usr/share/console-setup-mini/keyboard-configuration.config ]; then
+    /usr/share/console-setup-mini/keyboard-configuration.config || exit $?
+fi
+
+## KEYBOARD_PRESENT ## Will be replaced by keyboard_present function
+
+# keyboard_present () {
+#     if there is a keyboard; then
+# 	return 0
+#     else
+# 	return 1
+#     fi
+# }
+
+CONFIGFILE=/etc/default/keyboard
+
+if [ "$1" = "configure" ]; then
+    
+    db_get keyboard-configuration/modelcode
+    model="$RET"
+
+    db_get keyboard-configuration/layoutcode
+    layout="$RET"
+
+    db_get keyboard-configuration/variantcode
+    variant="$RET"
+
+    db_get keyboard-configuration/optionscode
+    options="$RET"
+
+    if [ ! -e $CONFIGFILE ]; then
+	cat /usr/share/console-setup/keyboard \
+	    /usr/share/console-setup-mini/keyboard \
+	    2>/dev/null >$CONFIGFILE || true
+    fi
+
+    # Ensure we do not mess up the config file's ownership and permissions.
+    cp -a -f $CONFIGFILE $CONFIGFILE.tmp
+
+    # If the admin deleted or commented some variables but then set
+    # them via debconf, (re-)add them to the conffile.
+    for var in XKBMODEL XKBLAYOUT XKBVARIANT XKBOPTIONS; do
+        if ! grep "^ *${var}=" $CONFIGFILE >/dev/null; then
+	    echo "${var}=" >>$CONFIGFILE
+	fi
+    done    
+    
+    sed \
+	-e "s|^ *XKBMODEL=.*|XKBMODEL=\"$model\"|" \
+	-e "s|^ *XKBLAYOUT=.*|XKBLAYOUT=\"$layout\"|" \
+	-e "s|^ *XKBVARIANT=.*|XKBVARIANT=\"$variant\"|" \
+	-e "s|^ *XKBOPTIONS=.*|XKBOPTIONS=\"$options\"|" \
+	<$CONFIGFILE >$CONFIGFILE.tmp
+    
+    mv -f $CONFIGFILE.tmp $CONFIGFILE
+
+    db_set keyboard-configuration/store_defaults_in_debconf_db true
+fi
+
+if type plymouth >/dev/null && plymouth --ping; then
+    # setting the keymap breaks with plymouth in raw mode, and setting the
+    # font will currently also break if on vgacon
+    if type setupcon >/dev/null 2>&1; then
+	setupcon --save-only
+    fi
+elif keyboard_present; then
+    if [ "$DISPLAY" ] && which setxkbmap >/dev/null; then
+	setxkbmap -option '' -model "$model" "$layout" "$variant" "$options" || true
+	# setting the font corrupts X
+	if type setupcon >/dev/null 2>&1; then
+	    setupcon --save-only
+	    setupcon --force -k
+	    cat >&2 <<EOF
+Your console font configuration will be updated the next time your system
+boots. If you want to update it now, run 'setupcon' from a virtual console.
+EOF
+	fi
+    else
+	if type setupcon >/dev/null 2>&1; then
+	    setupcon --force --save
+	fi
+    fi
+fi
+
+#DEBHELPER#
+
+if type update-initramfs >/dev/null 2>&1; then
+    update-initramfs -u
+fi
+
+exit 0

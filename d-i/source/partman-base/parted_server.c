@@ -82,7 +82,7 @@ xasprintf(const char *format, ...)
         return result;
 }
 
-enum {
+enum alignment {
         ALIGNMENT_CYLINDER,
         ALIGNMENT_MINIMAL,
         ALIGNMENT_OPTIMAL
@@ -440,6 +440,7 @@ struct devdisk {
         bool changed;
         PedGeometry *geometries;
         int number_geometries;
+        enum alignment alignment;
 };
 
 /* We store the accessed devices from `devices[0]' to
@@ -484,7 +485,19 @@ index_of_name(const char *name)
         devices[i].changed = false;
         devices[i].geometries = NULL;
         devices[i].number_geometries = 0;
+        devices[i].alignment = alignment;
         return i;
+}
+
+int
+index_of_device(const PedDevice *dev)
+{
+        int i;
+        assert(dev != NULL);
+        for (i = 0; i < number_devices; i++)
+                if (dev == devices[i].dev)
+                        return i;
+        return -1;
 }
 
 /* Mangle fstype to abstract changes in parted code */
@@ -593,7 +606,13 @@ set_disk_named(const char *name, PedDisk *disk)
                 if (ped_disk_is_flag_available(disk,
                                                PED_DISK_CYLINDER_ALIGNMENT))
                         ped_disk_set_flag(disk, PED_DISK_CYLINDER_ALIGNMENT,
-                                          alignment == ALIGNMENT_CYLINDER);
+                                          devices[index].alignment ==
+                                                ALIGNMENT_CYLINDER);
+                else
+                        /* If the PED_DISK_CYLINDER_ALIGNMENT flag isn't
+                           available, then (confusingly) we should assume
+                           that *only* cylinder alignment is available. */
+                        devices[index].alignment = ALIGNMENT_CYLINDER;
         }
 }
 
@@ -649,6 +668,17 @@ unchange_named(const char *name)
         remember_geometries_named(name);
 }
 
+/* Return the desired alignment for dev. */
+enum alignment
+alignment_of_device(const PedDevice *dev)
+{
+        int index = index_of_device(dev);
+        if (index >= 0)
+                return devices[index].alignment;
+        else
+                return ALIGNMENT_CYLINDER;
+}
+
 
 /**********************************************************************
    Partition creation
@@ -682,10 +712,11 @@ partition_creation_constraint(const PedDevice *cdev)
         PedSector md_grain_size;
         PedConstraint *aligned, *gap_at_end, *combined;
         PedGeometry gap_at_end_geom;
+        enum alignment cdev_alignment = alignment_of_device(cdev);
 
-        if (alignment == ALIGNMENT_OPTIMAL)
+        if (cdev_alignment == ALIGNMENT_OPTIMAL)
                 aligned = ped_device_get_optimal_aligned_constraint(cdev);
-        else if (alignment == ALIGNMENT_MINIMAL)
+        else if (cdev_alignment == ALIGNMENT_MINIMAL)
                 aligned = ped_device_get_minimal_aligned_constraint(cdev);
         else
                 aligned = ped_device_get_constraint(cdev);
@@ -2336,7 +2367,7 @@ command_alignment_offset()
                 critical_error("Expected partition id");
         part = partition_with_id(disk, id);
         oprintf("OK\n");
-        if (alignment == ALIGNMENT_CYLINDER)
+        if (alignment_of_device(dev) == ALIGNMENT_CYLINDER)
                 /* None of this is useful when using cylinder alignment. */
                 oprintf("0\n");
         else {

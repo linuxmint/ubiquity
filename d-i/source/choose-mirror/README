@@ -1,11 +1,12 @@
-This little program allows the user to pick a http (could support ftp too)
-mirror, by choosing first a country, then a mirror, or by manually entering
-mirror info. The mirror list is built into it at compile time.
+This little program allows the user to pick mirror, by choosing first a
+country, then a mirror, or by manually entering mirror info.
+The mirror list is built into it at compile time based on the canonical
+Debian mirrors list, Mirrors.masterlist.
 
-After it has run, the debconf question http/hostname will have the mirror 
-host, http/directory will have the base of the mirror, and http/proxy may
-contain proxy info in standard form. These values can be used by
-retrievers, and eventually, I'd hope, by apt-setup.
+After it has run, the debconf question mirror/http/hostname will have
+the mirror host, mirror/http/directory will have the base of the mirror,
+and mirror/http/proxy may contain proxy info in standard form. These
+are used by retrievers and by apt-setup.
 
 The system for building the country list
 ----------------------------------------
@@ -24,10 +25,10 @@ The system for building the country list
    Create the translated templates file
   
  The Choices list are first grabbed from 
- Mirrors.masterlist (this file is fetched at build time if possible).
+ Mirrors.masterlist (this file is refreshed at build time if possible).
 
  Then, the codes list is transformed into a country name list (in English)
- by using the iso_3166.xml file from the iso-codes package.
+ by using the iso_3166.tab file from the iso-codes package.
 
  This list is transformed into a comma-separated list (NOTE : country "names"
  may contain commas which need to be escaped) and inserted into the Choices
@@ -40,20 +41,10 @@ The system for building the country list
  The po2debconf utility inserts these translations into the templates
  file
 
-3) sort-countries script
- For each language and each protocol, sort the country list according to
- the language's sorting rules
-
- This uses Indices-xx fields, which is a special debconf feature currently
+ To ensure the list of countries is sorted appropriatly for each language,
+ this uses Indices-xx fields, which is a special debconf feature currently
  only implemented in cdebconf, the debconf flavour used in Debian Installer
  first stage.
-
- Beware of the early hack replacing commas *inside* country names by
- double dashes, temporarily, so that the number of choices is not
- broken by these extra commas.
-
- This script directly edits the final templates file, AFTER running po2debconf.
- So, be aware of the very specific place for it to be called in debian/rules.
 
 The result is very sensitive to strange errors. For instance, one
 common symptom during the early development of this script was Indices-xx

@@ -1,39 +1,38 @@
 # -*- coding: utf-8 -*-
 
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from PyQt4 import QtGui
 
-class ProgressDialog(QDialog):
+class ProgressDialog(QtGui.QDialog):
     def __init__(self, min, max, parent = None):
-        QDialog.__init__(self, parent)
+        QtGui.QDialog.__init__(self, parent)
 
         #self.setWindowFlags(Qt.SplashScreen | Qt.FramelessWindowHint)
         #self.setWindowFlags(Qt.SplashScreen | Qt.WindowStaysOnTopHint | Qt.WindowTitleHint)
         #self.setWindowFlags(Qt.WindowTitleHint | Qt.WindowCloseButtonHint)
 
-        self.progressLabel = QLabel()
+        self.progressLabel = QtGui.QLabel()
 
-        self.progressBar = QProgressBar()
+        self.progressBar = QtGui.QProgressBar()
         self.progressBar.setMinimum(min)
         self.setMaximum(max)
 
-        self.cancelButton = QPushButton()
+        self.cancelButton = QtGui.QPushButton()
         self.cancelButton.clicked.connect(self.reject)
 
-        progressWidget = QWidget()
-        progressWidget.setLayout(QHBoxLayout())
+        progressWidget = QtGui.QWidget()
+        progressWidget.setLayout(QtGui.QHBoxLayout())
         progressWidget.layout().setContentsMargins(0,0,0,0)
         progressWidget.layout().addWidget(self.progressBar)
         progressWidget.layout().addWidget(self.cancelButton)
 
-        self.extraFrame = QFrame()
-        self.extraFrame.setFrameStyle(QFrame.StyledPanel)
-        self.extraFrame.setFrameShadow(QFrame.Sunken)
-        self.extraFrame.setLayout(QVBoxLayout())
+        self.extraFrame = QtGui.QFrame()
+        self.extraFrame.setFrameStyle(QtGui.QFrame.StyledPanel)
+        self.extraFrame.setFrameShadow(QtGui.QFrame.Sunken)
+        self.extraFrame.setLayout(QtGui.QVBoxLayout())
         self.extraFrame.layout().setContentsMargins(0,0,0,0)
         self.extraFrame.setVisible(False)
 
-        self.setLayout(QVBoxLayout())
+        self.setLayout(QtGui.QVBoxLayout())
         self.layout().addWidget(self.progressLabel)
         self.layout().addWidget(progressWidget)
         self.layout().addWidget(self.extraFrame)

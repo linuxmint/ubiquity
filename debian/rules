@@ -58,25 +58,19 @@ clean: check
 	$(MAKE) -C d-i clean
 	dh_auto_clean
 	dh_clean
-	rm -f debian/kbdnames.gz
 	rm -rf build-locale
 
 	$(MAKE) -C d-i check
 
 d-i/source/console-setup/Keyboard/MyKeyboardNames.pl:
 	$(MAKE) -C d-i/source/console-setup/Keyboard MyKeyboardNames.pl \
-		pc105.tree xkbdir=/usr/share/X11/xkb
-
-debian/kbdnames.gz: d-i/source/console-setup/Keyboard/MyKeyboardNames.pl
-	( cd d-i/source/console-setup/Keyboard \
-	&& ./kbdnames-maker MyKeyboardNames.pl \
-	| grep -v '^C[*]' | grep -v '[*]model[*]' | sort | gzip -9 ) >$@
+		xkbdir=/usr/share/X11/xkb
 
 ubiquity/keyboard_names.py: d-i/source/console-setup/Keyboard/MyKeyboardNames.pl
 	d-i/make-keyboard-names $< > $@
 
 install: DH_OPTIONS=
-install: build ubiquity/keyboard_names.py debian/kbdnames.gz
+install: build ubiquity/keyboard_names.py
 	dh_testdir
 	dh_testroot
 	dh_prep
@@ -141,27 +135,34 @@ endif
 		d-i/source/clock-setup/finish-install.d/10clock-setup \
 		> debian/ubiquity/usr/lib/ubiquity/clock-setup/finish-install
 	chmod +x debian/ubiquity/usr/lib/ubiquity/clock-setup/finish-install
-	sed -e 's,/usr/share/console-setup-mini/console-setup.config,/var/lib/dpkg/info/console-setup.config,g' \
+	sed -e 's,/usr/share/console-setup-mini/keyboard-configuration.config,/var/lib/dpkg/info/keyboard-configuration.config,g' \
 	    -e 's,^\([[:space:]]*\)update-initramfs,\1: update-initramfs,' \
-		d-i/source/console-setup/debian/console-setup.postinst \
-		> debian/ubiquity/usr/lib/ubiquity/console-setup/console-setup.postinst
-	chmod +x debian/ubiquity/usr/lib/ubiquity/console-setup/console-setup.postinst
+		d-i/source/console-setup/debian/keyboard-configuration.postinst \
+		> debian/ubiquity/usr/lib/ubiquity/console-setup/keyboard-configuration.postinst
+	(cd d-i/source/console-setup && \
+	 debian/preprocessor $(CURDIR)/debian/ubiquity/usr/lib/ubiquity/console-setup/keyboard-configuration.postinst && \
+	 debian/preprocessor $(CURDIR)/debian/ubiquity/usr/share/ubiquity/console-setup-apply)
+	chmod +x debian/ubiquity/usr/lib/ubiquity/console-setup/keyboard-configuration.postinst
 	sed 's,\(finish-install=\).*,\1/dev/null,' \
 		d-i/source/hw-detect/debian/hw-detect/bin/hw-detect \
 		> debian/ubiquity/bin/hw-detect
 	chmod +x debian/ubiquity/bin/hw-detect
-	set -e; for x in languagemap localechooser post-base-installer; do \
+	set -e; for x in languagemap localechooser; do \
 		sed 's,/usr/share/localechooser,/usr/lib/ubiquity/localechooser,g' \
 			d-i/source/localechooser/$$x \
 			> debian/ubiquity/usr/lib/ubiquity/localechooser/$$x; \
 		chmod +x debian/ubiquity/usr/lib/ubiquity/localechooser/$$x; \
 	done
+	sed 's,/usr/share/localechooser,/usr/lib/ubiquity/localechooser,g' \
+		d-i/source/localechooser/post-base-installer.d/05localechooser \
+		> debian/ubiquity/usr/lib/ubiquity/localechooser/post-base-installer
+	chmod +x debian/ubiquity/usr/lib/ubiquity/localechooser/post-base-installer
 	sed 's/\\\$${!TAB}/ /g' \
 		debian/ubiquity/usr/lib/ubiquity/localechooser/localechooser \
 		> debian/ubiquity/usr/lib/ubiquity/localechooser/localechooser-debconf
 	chmod +x debian/ubiquity/usr/lib/ubiquity/localechooser/localechooser-debconf
-	install d-i/source/localechooser/finish-install \
-		debian/ubiquity/usr/lib/ubiquity/localechooser/
+	install d-i/source/localechooser/finish-install.d/05localechooser \
+		debian/ubiquity/usr/lib/ubiquity/localechooser/finish-install
 	install d-i/source/tzsetup/post-base-installer.d/*tzsetup \
 		debian/ubiquity/usr/lib/ubiquity/tzsetup/post-base-installer
 	sed -e 's,/target/,/,g;s,/target,/,g' \
@@ -211,6 +212,11 @@ endif
 		cp desktop/hi$${size}-app-ubiquity.png debian/ubiquity-frontend-kde/usr/share/icons/hicolor/$${size}x$${size}/apps/ubiquity.png; \
 	done
 
+tests: install
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+	./tests/run
+endif
+
 BINARY_INDEP_OPTIONS := -i
 ifdef UBIQUITY_NO_GTK
 BINARY_INDEP_OPTIONS += -Noem-config-gtk
@@ -229,9 +235,11 @@ binary-indep: install
 	dh_installdebconf
 	# oem-config
 	dh_installinit -n --name=oem-config
+	dh_installinit -n --name=oem-config-debconf
 	dh_installman
 	dh_lintian
 	dh_link
+	dh_scour
 	dh_strip
 	dh_compress
 	dh_fixperms
@@ -249,7 +257,7 @@ endif
 
 # Build architecture-dependent files here.
 binary-arch: DH_OPTIONS=$(BINARY_ARCH_OPTIONS)
-binary-arch: install
+binary-arch: tests install
 	dh_testdir
 	dh_testroot
 	dh_installchangelogs
@@ -272,6 +280,7 @@ binary-arch: install
 	dh_installinit --no-start --name=ubiquity
 	dh_installman
 	dh_link
+	dh_scour
 	dh_strip
 	dh_compress
 	dh_fixperms

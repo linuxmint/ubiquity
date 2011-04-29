@@ -10,15 +10,15 @@ registry.o : registry.c registry.h
 # TODO: Split XML utils out of regular utils.
 ma-search-users : registry.o utils.o ma-search-users.c
 	$(CC) $(ARGS) -c ma-search-users.c
-	$(CC) $(ARGS) $(LIBXML_LIBS) -o ma-search-users ma-search-users.o registry.o utils.o
+	$(CC) $(ARGS) -o ma-search-users ma-search-users.o registry.o utils.o $(LIBXML_LIBS) 
 
 ma-search-items : registry.o utils.o search-items.c
 	$(CC) $(ARGS) -c search-items.c
-	$(CC) $(ARGS) $(LIBXML_LIBS) -o ma-search-items search-items.o registry.o utils.o
+	$(CC) $(ARGS) -o ma-search-items search-items.o registry.o utils.o $(LIBXML_LIBS)
 
 ma-import : gaim-import.o windows-import.o evolution-import.o firefox-import.o import.o utils.o
 	$(CC) $(ARGS) -c import.c
-	$(CC) $(ARGS) $(LIBXML_LIBS) -o ma-import gaim-import.o windows-import.o firefox-import.o evolution-import.o registry.o import.o utils.o
+	$(CC) $(ARGS) -o ma-import gaim-import.o windows-import.o firefox-import.o evolution-import.o registry.o import.o utils.o $(LIBXML_LIBS)
 
 evolution-import.o : registry.o utils.o evolution-import.c
 	$(CC) $(ARGS) $(LIBXML_CFLAGS) -c evolution-import.c

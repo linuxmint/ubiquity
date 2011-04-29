@@ -183,9 +183,7 @@ scan_disk () {
 	done 9<"$tmpfile"
 }
 
-replace=""
-nl=""
-marker="replace="
+found=
 get_resize_use_free_on_dev() {
 	cd $dev
 
@@ -196,13 +194,7 @@ get_resize_use_free_on_dev() {
 		db_subst partman-auto/text/resize_use_free PARTITION "$(humandev "$diskpath")"
 		db_metaget partman-auto/text/resize_use_free description
 		printf "%s\t%s\n" "$diskpart" "$RET"
-		nl="$NL"
-		# We do this inside resize_use_free rather than its own
-		# partitioning method because we only want to offer to replace
-		# partitions that we are offering to resize.
-		db_subst partman-auto/text/some_partition PARTITION "$(humandev "$diskpath")"
-		db_metaget partman-auto/text/some_partition description
-		replace="$replace$NL$marker$diskpart$TAB$RET"
+		found=:
 	else
 		log "Found resizable partition '$diskpart' ($diskpath), but not offering because only $diskfree bytes free"
 	fi
@@ -224,8 +216,6 @@ else
 	get_resize_use_free_on_dev
 fi
 
-if [ -n "$replace" ]; then
-	printf %s "$replace"
-else
+if ! $found; then
 	log "Found no resizable partitions"
 fi

@@ -1,0 +1,30 @@
+#! /bin/sh
+
+set -e
+
+. /usr/share/debconf/confmodule
+
+ARCH=`udpkg --print-architecture`
+
+db_get debian-installer/locale
+LOCALE="$RET"
+
+# Set locale to C if it has not yet been set
+# This can happen during e.g. s390 installs where localechooser is not run
+[ -z "$LOCALE" ] && LOCALE="C"
+
+LANGUAGE=${LOCALE%%_*}
+
+# Install specific packages depending on selected language
+
+if [ "$LOCALE" != "C" ] ; then
+	# Other language specific packages
+	case "$LANGUAGE" in
+	    ar|he|fa)
+		# RTL languages (Arabic, Hebrew, Farsi)
+		apt-install libfribidi0 || true
+		;;
+	esac
+fi
+
+exit 0

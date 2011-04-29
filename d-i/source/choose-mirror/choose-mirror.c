@@ -84,20 +84,21 @@ static struct mirror_t *mirror_list(void) {
 	return 0; // should never happen
 }
 
-/* Returns an array of hostnames of mirrors in the specified country. */
+/* Returns an array of hostnames of mirrors in the specified country
+ * or using GeoDNS. */
 static char **mirrors_in(char *country) {
 	static char **ret;
 	int i, j, num = 1;
 	struct mirror_t *mirrors = mirror_list();
 
 	ret = malloc(num * sizeof(char *));
-	for (i = j = 0; mirrors[i].country != NULL; i++) {
+	for (i = j = 0; mirrors[i].site != NULL; i++) {
 		if (j == num - 1) {
 			num *= 2;
 			ret = realloc(ret, num * sizeof(char*));
 		}
-		if (strcmp(mirrors[i].country, country) == 0 ||
-		    mirrors[i].wildcard)
+		if (! mirrors[i].country ||
+		    strcmp(mirrors[i].country, country) == 0)
 			ret[j++] = mirrors[i].site;
 	}
 	ret[j] = NULL;
@@ -515,22 +516,7 @@ static int choose_country(void) {
 	char *countries;
 	countries = add_protocol("countries");
 	if (has_mirror(country)) {
-		const char *default_country = MANUAL_ENTRY;
-		/* TODO: duplicates much of mirrors_in and has_mirror, since
-		 * those don't let us get the country at the moment
-		 */
-		if (strcmp(country, MANUAL_ENTRY) != 0) {
-			int i = 0;
-			struct mirror_t *mirrors = mirror_list();
-			for (i = 0; mirrors[i].country != NULL; i++) {
-				if (strcmp(mirrors[i].country, country) == 0 ||
-				    mirrors[i].wildcard) {
-					default_country = mirrors[i].country;
-					break;
-				}
-			}
-		}
-		debconf_set(debconf, countries, default_country);
+		debconf_set(debconf, countries, country);
 		debconf_fget(debconf, DEBCONF_BASE "country", "seen");
 		debconf_fset(debconf, countries, "seen", debconf->value);
 	}

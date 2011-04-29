@@ -9,7 +9,7 @@ update: templates.pot
 		echo "Set GTK_PO to the location of a current GTK+ po/ directory." >&2; \
 		exit 1; \
 	fi
-	if [ -z "$(PANEL_PO)" ]; then \
+	@if [ -z "$(PANEL_PO)" ]; then \
 		echo "Set PANEL_PO to the location of a current gnome-panel po/ directory." >&2; \
 		exit 1; \
 	fi

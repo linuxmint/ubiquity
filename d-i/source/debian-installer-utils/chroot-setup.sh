@@ -4,6 +4,27 @@ mountpoints () {
 	cut -d" " -f2 /proc/mounts | sort | uniq
 }
 
+# Make sure mtab in the chroot reflects the currently mounted partitions.
+update_mtab() {
+	mtab=/target/etc/mtab
+
+	if [ -h "$mtab" ]; then
+		logger -t $0 "warning: $mtab won't be updated since it is a symlink."
+		return 0
+	fi
+
+	egrep '^[^ ]+ /target' /proc/mounts | (
+	while read devpath mountpoint fstype options n1 n2 ; do
+		devpath=`mapdevfs $devpath || echo $devpath`
+		mountpoint="${mountpoint#/target}"
+		# mountpoint for root will be empty
+		if [ -z "$mountpoint" ] ; then
+			mountpoint="/"
+		fi
+		echo $devpath $mountpoint $fstype $options $n1 $n2
+	done ) > $mtab
+}
+
 chroot_setup () {
 	# Bail out if directories we need are not there
 	if [ ! -d /target/sbin ] || [ ! -d /target/usr/sbin ] || \
@@ -94,6 +115,10 @@ EOF
 		;;
 	esac
 
+	mountpoints > /tmp/mount.post
+
+	update_mtab
+
 	# Try to enable proxy when using HTTP.
 	# What about using ftp_proxy for FTP sources?
 	RET=$(debconf-get mirror/protocol || true)
@@ -146,7 +171,30 @@ chroot_cleanup () {
 			logger -t $0 "warning: Unable to umount '$dir'"
 		fi
 	done
-	rm -f /tmp/mount.pre
+	rm -f /tmp/mount.pre /tmp/mount.post
+
+	rm -f /var/run/chroot-setup.lock
+}
+
+# Variant of chroot_cleanup that only cleans up chroot_setup's mounts.
+chroot_cleanup_localmounts () {
+	rm -f /target/usr/sbin/policy-rc.d
+	mv /target/sbin/start-stop-daemon.REAL /target/sbin/start-stop-daemon
+	if [ -x /target/sbin/initctl.REAL ]; then
+		mv /target/sbin/initctl.REAL /target/sbin/initctl
+	fi
+
+	# Undo the mounts done by the packages during installation.
+	# Reverse sorting to umount the deepest mount points first.
+	# Items with count of 1 are new.
+	for dir in $( (cat /tmp/mount.pre /tmp/mount.pre /tmp/mount.post ) | \
+		     sort -r | uniq -c | grep "^[[:space:]]*1[[:space:]]" | \
+		     sed "s/^[[:space:]]*[0-9][[:space:]]//"); do
+		if ! umount $dir; then
+			logger -t $0 "warning: Unable to umount '$dir'"
+		fi
+	done
+	rm -f /tmp/mount.pre /tmp/mount.post
 
 	rm -f /var/run/chroot-setup.lock
 }

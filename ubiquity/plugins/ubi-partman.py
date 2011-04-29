@@ -24,11 +24,12 @@ import signal
 
 import debconf
 
-from ubiquity.plugin import *
+from ubiquity import plugin
 from ubiquity import parted_server
-from ubiquity.misc import *
+from ubiquity import misc
 from ubiquity import osextras
 from ubiquity.install_misc import archdetect
+from collections import namedtuple
 
 NAME = 'partman'
 AFTER = 'prepare'
@@ -36,13 +37,13 @@ WEIGHT = 11
 # Not useful in oem-config.
 OEM = False
 
-class PageBase(PluginUI):
+PartitioningOption = namedtuple('PartitioningOption', ['title', 'desc'])
+Partition = namedtuple('Partition', ['device', 'size', 'id', 'filesystem'])
+
+
+class PageBase(plugin.PluginUI):
     def __init__(self, *args, **kwargs):
-        PluginUI.__init__(self)
-        self.resize_choice = None
-        self.manual_choice = None
-        self.biggest_free_choice = None
-        pass
+        plugin.PluginUI.__init__(self)
 
     def show_page_advanced(self):
         pass
@@ -54,15 +55,11 @@ class PageBase(PluginUI):
         '''The default filesystem used when creating partitions.'''
         self.default_filesystem = fs
 
-    def set_autopartition_choices(self, choices, extra_options,
-                                  resize_choice, manual_choice,
-                                  biggest_free_choice, use_device_choice):
-        """Set available autopartitioning choices."""
-        self.resize_choice = resize_choice
-        self.manual_choice = manual_choice
-        self.biggest_free_choice = biggest_free_choice
-        self.use_device_choice = use_device_choice
-        self.extra_options = extra_options
+    def set_autopartition_heading(self, heading):
+        pass
+
+    def set_autopartition_options(self, options, extra_options):
+        pass
 
     def get_autopartition_choice(self):
         """Get the selected autopartitioning choice."""
@@ -77,7 +74,7 @@ class PageBase(PluginUI):
         pass
 
     def get_grub_choice(self):
-        return grub_default()
+        return misc.grub_default()
 
 class PageGtk(PageBase):
     plugin_title = 'ubiquity/text/part_auto_heading_label'
@@ -86,8 +83,6 @@ class PageGtk(PageBase):
         self.controller = controller
         try:
             import gtk
-            from ubiquity.gtkwidgets import ResizeWidget, PartitionBox
-            from ubiquity import segmented_bar
             builder = gtk.Builder()
             self.controller.add_builder(builder)
             builder.add_from_file(os.path.join(os.environ['UBIQUITY_GLADE'], 'stepPartAsk.ui'))
@@ -95,7 +90,7 @@ class PageGtk(PageBase):
             builder.add_from_file(os.path.join(os.environ['UBIQUITY_GLADE'], 'stepPartAdvanced.ui'))
             builder.connect_signals(self)
 
-            self.page = builder.get_object('stepPartAsk')
+            self.page_ask = builder.get_object('stepPartAsk')
             self.page_auto = builder.get_object('stepPartAuto')
             self.page_advanced = builder.get_object('stepPartAdvanced')
 
@@ -111,11 +106,47 @@ class PageGtk(PageBase):
             self.resize_use_free = builder.get_object('resize_use_free')
             self.custom_partitioning = builder.get_object('custom_partitioning')
             self.use_device = builder.get_object('use_device')
+            self.reuse_partition = builder.get_object('reuse_partition')
             self.part_auto_allocate_label = builder.get_object('part_auto_allocate_label')
-            self.part_auto_use_entire_disk = builder.get_object('part_auto_use_entire_disk')
-            self.part_auto_use_entire_partition = builder.get_object('part_auto_use_entire_partition')
             self.part_auto_hidden_label = builder.get_object('part_auto_hidden_label')
             self.part_advanced_vbox = builder.get_object('part_advanced_vbox')
+
+            # Ask page
+            self.part_ask_heading = builder.get_object('part_ask_heading')
+            self.use_device_title = builder.get_object('use_device_title')
+            self.use_device_desc = builder.get_object('use_device_desc')
+            self.replace_partition = builder.get_object('replace_partition')
+            self.replace_partition_title = builder.get_object('replace_partition_title')
+            self.replace_partition_desc = builder.get_object('replace_partition_desc')
+            self.reuse_partition_title = builder.get_object('reuse_partition_title')
+            self.reuse_partition_desc = builder.get_object('reuse_partition_desc')
+            self.resize_use_free_title = builder.get_object('resize_use_free_title')
+            self.resize_use_free_desc = builder.get_object('resize_use_free_desc')
+            self.custom_partitioning_title = builder.get_object('custom_partitioning_title')
+            self.custom_partitioning_desc = builder.get_object('custom_partitioning_desc')
+
+            # Ask page accessibility
+            import atk
+            self.atk_use_device = self.use_device.get_accessible()
+            self.atk_use_device_title = self.use_device_title.get_accessible()
+            self.atk_use_device_title.add_relationship(atk.RELATION_LABEL_FOR, self.atk_use_device)
+            self.atk_use_device.add_relationship(atk.RELATION_LABELLED_BY, self.atk_use_device_title)
+            self.atk_replace_partition = self.replace_partition.get_accessible()
+            self.atk_replace_partition_title = self.replace_partition_title.get_accessible()
+            self.atk_replace_partition_title.add_relationship(atk.RELATION_LABEL_FOR, self.atk_replace_partition)
+            self.atk_replace_partition.add_relationship(atk.RELATION_LABELLED_BY, self.atk_replace_partition_title)
+            self.atk_reuse_partition = self.reuse_partition.get_accessible()
+            self.atk_reuse_partition_title = self.reuse_partition_title.get_accessible()
+            self.atk_reuse_partition_title.add_relationship(atk.RELATION_LABEL_FOR, self.atk_reuse_partition)
+            self.atk_reuse_partition.add_relationship(atk.RELATION_LABELLED_BY, self.atk_reuse_partition_title)
+            self.atk_resize_use_free = self.resize_use_free.get_accessible()
+            self.atk_resize_use_free_title = self.resize_use_free_title.get_accessible()
+            self.atk_resize_use_free_title.add_relationship(atk.RELATION_LABEL_FOR, self.atk_resize_use_free)
+            self.atk_resize_use_free.add_relationship(atk.RELATION_LABELLED_BY, self.atk_resize_use_free_title)
+            self.atk_custom_partitioning = self.custom_partitioning.get_accessible()
+            self.atk_custom_partitioning_title = self.custom_partitioning_title.get_accessible()
+            self.atk_custom_partitioning_title.add_relationship(atk.RELATION_LABEL_FOR, self.atk_custom_partitioning)
+            self.atk_custom_partitioning.add_relationship(atk.RELATION_LABELLED_BY, self.atk_custom_partitioning_title)
 
             # Advanced page
             self.partition_create_mount_combo = builder.get_object('partition_create_mount_combo')
@@ -148,94 +179,167 @@ class PageGtk(PageBase):
 
             self.partition_bars = {}
             self.segmented_bar_vbox = None
-            self.format_warnings = {}
-            self.format_warning = None
-            self.format_warning_align = None
-            self.autopartition_extras = {}
             self.resize_min_size = None
             self.resize_max_size = None
             self.resize_pref_size = None
             self.resize_path = ''
-            self.new_size_scale = None
-            self.use_entire_disk = False
-            # FIXME: Grab this from the GTK theme.
-            self.release_color = '87cf3e'
-            self.auto_colors = ['8b94ef', 'eeef2f', 'ef8b8b']
-            self.dev_colors = {}
+            self.auto_colors = ['3465a4', '73d216', 'f57900']
+            self.extra_options = {}
 
             self.partition_create_mount_combo.child.set_activates_default(True)
             self.partition_edit_mount_combo.child.set_activates_default(True)
 
             self.plugin_optional_widgets = [self.page_auto, self.page_advanced]
-            self.current_page = self.page
+            self.current_page = self.page_ask
 
             # Set some parameters that do not change between runs of the plugin
-            release = get_release()
+            release = misc.get_release()
             self.partitionbox.set_property('title', release.name)
+
             # New partition
             self.resizewidget.get_child2().child.set_property('title', release.name)
+
+            # Annoyingly, you can't set packing properties for cell renderers
+            # in Glade.
+            cell = gtk.CellRendererText()
+            self.part_auto_select_drive.pack_start(cell, False)
+            self.part_auto_select_drive.add_attribute(cell, 'text', 0)
+            cell = gtk.CellRendererText()
+            cell.set_property('xalign', 1.0)
+            cell.set_property('sensitive', False)
+            self.part_auto_select_drive.pack_start(cell, True)
+            self.part_auto_select_drive.add_attribute(cell, 'markup', 1)
         except Exception, e:
             self.debug('Could not create partman page: %s', e)
-            self.page = None
-        self.plugin_widgets = self.page
+            self.page_ask = None
+        self.plugin_widgets = self.page_ask
 
     def plugin_get_current_page(self):
-        if self.current_page == self.page:
+        if self.current_page == self.page_ask:
             self.plugin_is_install = False
         else:
             self.plugin_is_install = True
         return self.current_page
+    
+    def configure_wubi_and_reboot(self):
+        self.controller.allow_change_step(False)
+        device = self.extra_options['wubi']
+        import tempfile
+        import subprocess
+        import shutil
+        mount_path = tempfile.mkdtemp()
+        try:
+            subprocess.check_call(['mount', device, mount_path])
+            startup = misc.windows_startup_folder(mount_path)
+            shutil.copy('/cdrom/wubi.exe', startup)
+            self.controller._wizard.reboot()
+        except subprocess.CalledProcessError:
+            pass
+        finally:
+            subprocess.call(['umount', mount_path])
+            if os.path.exists(mount_path):
+                os.rmdir(mount_path)
+
+    def plugin_on_next_clicked(self):
+        reuse = self.reuse_partition.get_active()
+        replace = self.replace_partition.get_active()
+        resize = self.resize_use_free.get_active()
+        custom = self.custom_partitioning.get_active()
+        use_device = self.use_device.get_active()
+        biggest_free = 'biggest_free' in self.extra_options
+
+        # We already have all that we need from the user.
+        done_partitioning = (resize and biggest_free) or reuse or replace
+
+        if self.current_page == self.page_ask and not done_partitioning:
+            if custom:
+                title = self.custom_partitioning_title.get_text()
+            elif resize:
+                title = self.resize_use_free_title.get_text()
+            elif use_device:
+                title = self.use_device_title.get_text()
+            self.controller._wizard.page_title.set_markup(
+                '<span size="xx-large">%s</span>' % title)
+            
+            if resize and 'wubi' in self.extra_options:
+                self.configure_wubi_and_reboot()
+                return True
+            elif resize:
+                m = self.part_auto_select_drive.get_model()
+                m.clear()
+                extra_resize = self.extra_options['resize']
+                disk_ids = extra_resize.keys()
+                disks = self.extra_options['use_device'][1]
+                # FIXME: perhaps it makes more sense to store the disk
+                # description.
+                for disk in disks:
+                    key = disks[disk][0].rsplit('/', 1)[1]
+                    if key in disk_ids:
+                        min_size  = extra_resize[key][1]
+                        part_size = extra_resize[key][5]
+                        m.append([disk, '<small>%s</small>' %
+                                  misc.format_size(part_size - min_size)])
+                self.part_auto_select_drive.set_active(0)
+                self.initialize_resize_mode()
+            elif use_device:
+                m = self.part_auto_select_drive.get_model()
+                m.clear()
+                for disk in self.extra_options['use_device'][1]:
+                    m.append([disk, ''])
+                self.part_auto_select_drive.set_active(0)
+                self.initialize_use_disk_mode()
+
+            if not custom:
+                self.current_page = self.page_auto
+                self.controller.go_to_page(self.current_page)
+                self.controller.toggle_next_button('install_button')
+                self.plugin_is_install = True
+                return True
+            else:
+                self.current_page = self.page_advanced
+                self.controller.go_to_page(self.current_page)
+                self.controller.toggle_next_button('install_button')
+                self.plugin_is_install = True
+                return False
+        else:
+            # Return control to partman, which will call
+            # get_autopartition_choice and start partitioninging the device.
+            if not custom:
+                self.controller.switch_to_install_interface()
+            return False
+
+    def plugin_on_back_clicked(self):
+        if self.current_page == self.page_auto:
+            title = self.controller.get_string(self.plugin_title)
+            self.controller._wizard.page_title.set_markup(
+                '<span size="xx-large">%s</span>' % title)
+            self.current_page = self.page_ask
+            self.controller.go_to_page(self.current_page)
+            # If we arrived at a second partitioning page, then the option
+            # selected on the first page would not cause the forward button to
+            # be marked as Install Now.
+            self.controller.toggle_next_button()
+            self.plugin_is_install = False
+            return True
+        else:
+            # If we're on the first page (ask), then we want to go back to
+            # prepare. If we're on the advanced page, then we want to go back
+            # to the first page (ask).
+            return False
 
     def set_disk_layout(self, layout):
         self.disk_layout = layout
 
     # Automatic partitioning page
 
-    def part_auto_use_entire_partition_clicked(self, unused_widget):
-        '''The user has clicked on 'Use Entire Partition'''
-        self.part_auto_use_entire_partition.set_sensitive(False)
-        self.partition_container.set_current_page(1)
-        s = self.controller.get_string('part_auto_split_largest_partition')
-        self.part_auto_use_entire_disk.set_label(s)
-        # TODO need to set the correct size back and forth between this and
-        # use_entire_disk_clicked.
-
-    def part_auto_use_entire_disk_clicked(self, unused_widget):
-        '''The user has clicked on the toggle between "Use Entire Disk" and
-        "Split Largest Partition".  Switch to either the "use entire disk"
-        widget, or the resize widget, respectively.'''
-
-        use_entire_part = \
-            not self.part_auto_use_entire_partition.get_property('sensitive')
-        if self.use_device.get_active() or use_entire_part:
-            # Switch back to resizing.
-            use_disk = self.controller.get_string('part_auto_use_entire_disk')
-            allocate = self.controller.get_string('part_auto_allocate_label')
-            hidden = self.controller.get_string('part_auto_hidden_label')
-            self.part_auto_use_entire_disk.set_label(use_disk)
-            self.part_auto_allocate_label.set_text(allocate)
-            self.set_part_auto_hidden_label()
-            self.partition_container.set_current_page(0)
-            # part_auto_use_entire_partition_clicked may have set this
-            # insensitive.
-            self.part_auto_use_entire_partition.set_sensitive(True)
-        else:
-            # Switch back to 'use entire disk.'
-            self.initialize_use_disk_mode()
-            # And give the user a way to get back to resizing, unlike when
-            # we're in 'use entire disk' mode.
-            s = self.controller.get_string('part_auto_split_largest_partition')
-            self.part_auto_use_entire_disk.set_label(s)
-            self.part_auto_use_entire_disk.set_sensitive(True)
-
     def get_current_disk_partman_id (self):
         i = self.part_auto_select_drive.get_active_iter()
         if not i:
             return None
         m = self.part_auto_select_drive.get_model()
-        val = m.get_value(i, 0)
+        val = unicode(m.get_value(i, 0))
 
-        partman_id = self.extra_options[self.use_device_choice][val][0]
+        partman_id = self.extra_options['use_device'][1][val][0]
         disk_id = partman_id.rsplit('/', 1)[1]
         return disk_id
 
@@ -258,39 +362,41 @@ class PageGtk(PageBase):
             self.part_auto_hidden_label.set_markup(hidden % partition_count)
 
     def part_ask_option_changed (self, unused_widget):
-        '''The use has selected either the resize or use entire disk option on
-        the ask page.'''
-        self.part_auto_select_drive_changed(None)
+        '''The use has selected one of the automatic partitioning options.'''
+        about_to_install = False
+
+        if (self.reuse_partition.get_active() or
+            self.replace_partition.get_active()):
+            about_to_install = True
+        elif (self.resize_use_free.get_active() and
+            'biggest_free' in self.extra_options):
+            about_to_install = True
+
+        if 'wubi' in self.extra_options and self.resize_use_free.get_active():
+            self.controller.toggle_next_button('restart_to_continue')
+        else:
+            if about_to_install:
+                self.controller.toggle_next_button('install_button')
+            else:
+                self.controller.toggle_next_button()
+            self.plugin_is_install = about_to_install
 
     def initialize_resize_mode(self):
-        self.use_entire_disk = False
         disk_id = self.get_current_disk_partman_id()
         if not disk_id:
             return
 
-        resize_min_size, resize_max_size, resize_pref_size, resize_path = \
-            self.extra_options[self.resize_choice][disk_id][1:]
+        (resize_min_size, resize_max_size, resize_pref_size,
+         resize_path, size, fs) = self.extra_options['resize'][disk_id][1:]
         self.resizewidget.set_property('min_size', int(resize_min_size))
         self.resizewidget.set_property('max_size', int(resize_max_size))
 
-        # Lets gather some data.
-        size, fs = None, None
-        # TODO at some point we should re-evaluate the structure of
-        # self.disk_layout
-        for partition in self.disk_layout[disk_id]:
-            if partition[0] == resize_path:
-                size = partition[1]
-                fs = partition[3]
-                break
-        assert size is not None, 'Could not find size for %s:\n%s\n%s' % \
-            (str(resize_path), str(disk_id), str(self.disk_layout))
-
-        title = find_in_os_prober(resize_path)
+        title = misc.find_in_os_prober(resize_path)
         icon = self.resizewidget.get_child1().child
         if not title:
             # This is most likely a partition with some files on it.
-            # TODO i18n
-            title = 'Files (%s)' % format_size(resize_min_size)
+            title = self.controller.get_string('ubiquity/text/part_auto_files')
+            title = title.replace('${SIZE}', misc.format_size(resize_min_size))
             icon.set_property('icon-name', 'folder')
         else:
             if 'windows' in title.lower():
@@ -322,10 +428,6 @@ class PageGtk(PageBase):
         self.resizewidget.get_child2().child.set_property('extra', extra)
 
         self.partition_container.set_current_page(0)
-        self.part_auto_use_entire_partition.set_sensitive(True)
-        self.part_auto_use_entire_disk.set_sensitive(True)
-        s = self.controller.get_string('part_auto_use_entire_disk')
-        self.part_auto_use_entire_disk.set_label(s)
         allocate = self.controller.get_string('part_auto_allocate_label')
         self.part_auto_allocate_label.set_text(allocate)
 
@@ -333,13 +435,9 @@ class PageGtk(PageBase):
         '''The selected partman ID will now be completely formatted if the user
         presses next.'''
 
-        self.use_entire_disk = True
         disk_id = self.get_current_disk_partman_id()
         if not disk_id:
             return
-        # Use entire disk.
-        self.part_auto_use_entire_partition.set_sensitive(False)
-        self.part_auto_use_entire_disk.set_sensitive(False)
         # We don't want to hide it as we want to keep its size allocation.
         entire = self.controller.get_string('part_auto_allocate_entire_label')
         self.part_auto_allocate_label.set_text(entire)
@@ -362,24 +460,16 @@ class PageGtk(PageBase):
         if not i:
             return
         m = self.part_auto_select_drive.get_model()
-        val = m.get_value(i, 0)
-        size = self.extra_options[self.use_device_choice][val][1]
+        val = unicode(m.get_value(i, 0))
+        size = self.extra_options['use_device'][1][val][1]
         self.partitionbox.set_size(size)
 
     def part_auto_select_drive_changed (self, unused_widget):
-        '''The user has selected a different disk drive from the drop down.
-        Update the resize widget and the "use entire disk" widget to reflect
-        this.
-        This is initially called in set_autopartition_choices.'''
-
         self.set_part_auto_hidden_label()
         disk_id = self.get_current_disk_partman_id()
         if not disk_id:
             return
-        if (self.resize_choice in self.extra_options and
-           self.resize_use_free.get_active() and
-           disk_id in self.extra_options[self.resize_choice]):
-            # Resize.
+        if self.resize_use_free.get_active():
             self.initialize_resize_mode()
         else:
             self.initialize_use_disk_mode()
@@ -388,11 +478,10 @@ class PageGtk(PageBase):
         self.custom_partitioning.set_active(True)
         self.controller.go_forward()
 
-    def set_grub_options(self):
+    def set_grub_options(self, default):
         import gtk, gobject
         self.bootloader_vbox.show()
-        options = grub_options()
-        default = grub_default()
+        options = misc.grub_options()
         if default.startswith('/'):
             default = os.path.realpath(default)
         l = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
@@ -413,71 +502,89 @@ class PageGtk(PageBase):
             return self.grub_device_entry.get_model().get_value(i, 0)
         else:
             self.debug('No active iterator for grub device entry.')
-            return grub_default()
+            return misc.grub_default()
 
-    def set_autopartition_choices (self, choices, extra_options, resize_choice,
-                                   manual_choice, biggest_free_choice,
-                                   use_device_choice):
-        PageBase.set_autopartition_choices(self, choices, extra_options,
-                                           resize_choice, manual_choice,
-                                           biggest_free_choice,
-                                           use_device_choice)
+    def set_autopartition_heading(self, heading):
+        self.part_ask_heading.set_label(heading)
 
-        m = self.part_auto_select_drive.get_model()
-        m.clear()
-        selected = False
-        for disk in extra_options[use_device_choice]:
-            i = m.append([disk])
+    def set_autopartition_options(self, options, extra_options):
+        # TODO Need to select a radio button when resize isn't around.
+        self.extra_options = extra_options
 
-            # TODO move to ask page choice processing, so we don't set the
-            # combobox to sdb when we're formatting?
+        fmt = '<span size="small">%s</span>'
+        self.use_device_title.set_label(options['use_device'].title)
+        self.use_device_desc.set_markup(fmt % options['use_device'].desc)
+        # To give a nice text effect.
+        self.use_device_desc.set_sensitive(False)
+        self.custom_partitioning_title.set_label(options['manual'].title)
+        self.custom_partitioning_desc.set_markup(fmt % options['manual'].desc)
+        self.custom_partitioning_desc.set_sensitive(False)
 
-            # Make sure that we're setting the disk combo box to a disk that
-            # can be resized, should one exist, so that selecting resize and
-            # proceeding defaults to a resizable disk.
-            if resize_choice in extra_options:
-                disk_id = extra_options[use_device_choice][disk][0].rsplit('/', 1)[1]
-                if disk_id in extra_options[resize_choice] and not selected:
-                    selected = True
-                self.part_auto_select_drive.set_active_iter(i)
-        if not selected:
-            # No resizeable disks.  Select the first one.
-            self.part_auto_select_drive.set_active(0)
-
-        # TODO somehow remember previous choice on back press.
-        if not resize_choice in extra_options:
-            self.use_device.set_active(True)
-            self.resize_use_free.hide()
+        if 'replace' in options:
+            self.replace_partition.show()
+            self.replace_partition_title.set_label(options['replace'].title)
+            self.replace_partition_desc.set_markup(fmt % options['replace'].desc)
+            self.replace_partition_desc.set_sensitive(False)
         else:
-            self.resize_use_free.set_active(True)
-            self.resize_use_free.show()
+            self.replace_partition.hide()
 
-        # make sure we're on the autopartitioning page
-        self.current_page = self.page
+        if 'reuse' in options:
+            self.reuse_partition.show()
+            self.reuse_partition_title.set_markup(options['reuse'].title)
+            self.reuse_partition_desc.set_markup(fmt % options['reuse'].desc)
+            self.reuse_partition_desc.set_sensitive(False)
+        else:
+            self.reuse_partition.hide()
+
+        if 'resize' in options:
+            self.resize_use_free.show()
+            self.resize_use_free_title.set_label(options['resize'].title)
+            self.resize_use_free_desc.set_markup(fmt % options['resize'].desc)
+            self.resize_use_free_desc.set_sensitive(False)
+        else:
+            self.resize_use_free.hide()
+
+        for opt in (self.resize_use_free, self.reuse_partition,
+                    self.replace_partition, self.use_device):
+            if opt.get_property('visible'):
+                opt.set_active(True)
+                break
+
+        # Process the default selection
+        self.part_ask_option_changed(None)
+
+        # Make sure we're on the autopartitioning page.
+        self.current_page = self.page_ask
 
     def get_autopartition_choice (self):
-        if self.custom_partitioning.get_active():
-            return self.manual_choice, None
-        
-        if self.resize_use_free.get_active() and not self.use_entire_disk:
-            disk_id = self.get_current_disk_partman_id()
-            # Resize
-            if self.part_auto_use_entire_partition.get_property('sensitive'):
-                choice = self.extra_options[self.resize_choice][disk_id][0]
-                return choice, '%s B' % self.resizewidget.get_size()
-            # Use entire partition
-            else:
-                choice = self.extra_options['some_partition'][disk_id]
+        if self.reuse_partition.get_active():
+            return self.extra_options['reuse'][0][0], None
+
+        if self.replace_partition.get_active():
+            return self.extra_options['replace'][0], None
+
+        elif self.custom_partitioning.get_active():
+            return self.extra_options['manual'], None
+
+        elif self.resize_use_free.get_active():
+            if 'biggest_free' in self.extra_options:
+                choice = self.extra_options['biggest_free'][0]
                 return choice, None
-        if self.use_device.get_active() or self.use_entire_disk:
-            # Use disk
+            else:
+                disk_id = self.get_current_disk_partman_id()
+                choice = self.extra_options['resize'][disk_id][0]
+                return choice, '%s B' % self.resizewidget.get_size()
+
+        elif self.use_device.get_active():
             i = self.part_auto_select_drive.get_active_iter()
             m = self.part_auto_select_drive.get_model()
             disk = m.get_value(i, 0)
+            choice = self.extra_options['use_device'][0]
             # Is the encoding necessary?
-            return self.use_device_choice, unicode(disk, 'utf-8', 'replace')
+            return choice, unicode(disk, 'utf-8', 'replace')
+        
         else:
-            raise AssertionError, "Couldn't get autopartition choice"
+            raise AssertionError("Couldn't get autopartition choice")
 
     # Advanced partitioning page
 
@@ -529,7 +636,7 @@ class PageGtk(PageBase):
         else:
             cell.set_property('text', partition['method'])
 
-    @only_this_page
+    @plugin.only_this_page
     def partman_column_mountpoint (self, unused_column, cell, model, iterator):
         partition = model[iterator][1]
         mountpoint = self.controller.dbfilter.get_current_mountpoint(partition)
@@ -552,7 +659,7 @@ class PageGtk(PageBase):
             cell.set_property('active', False)
             cell.set_property('activatable', False)
 
-    @only_this_page
+    @plugin.only_this_page
     def partman_column_format_toggled (self, unused_cell, path, user_data):
         if not self.controller.allowed_change_step():
             return
@@ -587,7 +694,7 @@ class PageGtk(PageBase):
             size_mb = int(partition['resize_min_size']) / 1000000
             cell.set_property('text', '%d MB' % size_mb)
 
-    @only_this_page
+    @plugin.only_this_page
     def partman_popup (self, widget, event):
         import gtk
         if not self.controller.allowed_change_step():
@@ -643,7 +750,7 @@ class PageGtk(PageBase):
             time = 0
         partition_list_menu.popup(None, None, None, button, time)
 
-    @only_this_page
+    @plugin.only_this_page
     def partman_create_dialog (self, devpart, partition):
         import gtk, gobject
         if not self.controller.allowed_change_step():
@@ -735,7 +842,7 @@ class PageGtk(PageBase):
                 str(self.partition_create_size_spinbutton.get_value()),
                 prilog, place, method, mountpoint)
 
-    @only_this_page
+    @plugin.only_this_page
     def on_partition_create_use_combo_changed (self, combobox):
         model = combobox.get_model()
         iterator = combobox.get_active_iter()
@@ -754,7 +861,7 @@ class PageGtk(PageBase):
                     self.controller.dbfilter.default_mountpoint_choices(fs):
                     mount_model.append([mp])
 
-    @only_this_page
+    @plugin.only_this_page
     def partman_edit_dialog (self, devpart, partition):
         import gtk, gobject
         if not self.controller.allowed_change_step():
@@ -873,7 +980,7 @@ class PageGtk(PageBase):
                     edits['fmt'] = 'dummy'
                 self.controller.dbfilter.edit_partition(devpart, **edits)
 
-    @only_this_page
+    @plugin.only_this_page
     def on_partition_edit_use_combo_changed (self, combobox):
         model = combobox.get_model()
         iterator = combobox.get_active_iter()
@@ -910,7 +1017,7 @@ class PageGtk(PageBase):
             self.partman_popup(widget, event)
             return True
 
-    @only_this_page
+    @plugin.only_this_page
     def on_partition_list_treeview_key_press_event (self, widget, event):
         import gtk
         if event.type != gtk.gdk.KEY_PRESS:
@@ -929,7 +1036,7 @@ class PageGtk(PageBase):
         self.partman_popup(widget, None)
         return True
 
-    @only_this_page
+    @plugin.only_this_page
     def on_partition_list_treeview_selection_changed (self, selection):
         self.partition_button_new_label.set_sensitive(False)
         self.partition_button_new.set_sensitive(False)
@@ -961,7 +1068,7 @@ class PageGtk(PageBase):
                 self.partition_button_delete.set_sensitive(True)
         self.partition_button_undo.set_sensitive(True)
 
-    @only_this_page
+    @plugin.only_this_page
     def on_partition_list_treeview_row_activated (self, treeview,
                                                   path, unused_view_column):
         if not self.controller.allowed_change_step():
@@ -999,7 +1106,7 @@ class PageGtk(PageBase):
             partition = model[iterator][1]
         return (devpart, partition)
 
-    @only_this_page
+    @plugin.only_this_page
     def on_partition_list_new_label_activate (self, unused_widget):
         if not self.controller.allowed_change_step():
             return
@@ -1015,7 +1122,7 @@ class PageGtk(PageBase):
         devpart, partition = self.partition_list_get_selection()
         self.partman_edit_dialog(devpart, partition)
 
-    @only_this_page
+    @plugin.only_this_page
     def on_partition_list_delete_activate (self, unused_widget):
         if not self.controller.allowed_change_step():
             return
@@ -1023,7 +1130,7 @@ class PageGtk(PageBase):
         devpart, partition = self.partition_list_get_selection()
         self.controller.dbfilter.delete_partition(devpart)
 
-    @only_this_page
+    @plugin.only_this_page
     def on_partition_list_undo_activate (self, unused_widget):
         if not self.controller.allowed_change_step():
             return
@@ -1129,8 +1236,7 @@ class PageGtk(PageBase):
                 path = partition_cache[item]['parted']['path'].replace('/dev/','')
                 if fs == 'free':
                     c = partition_bar.remainder_color
-                    # TODO evand 2008-07-27: i18n
-                    txt = 'Free space'
+                    txt = self.controller.get_string('partition_free_space')
                 else:
                     i = (i + 1) % len(self.auto_colors)
                     c = self.auto_colors[i]
@@ -1174,9 +1280,8 @@ class PageKde(PageBase):
         self.disk_layout = layout
         self.partAuto.setDiskLayout(layout)
 
-    def set_grub_options(self):
-        options = grub_options()
-        default = grub_default()
+    def set_grub_options(self, default):
+        options = misc.grub_options()
         if default.startswith('/'):
             default = os.path.realpath(default)
         self.partMan.setGrubOptions(options, default)
@@ -1186,19 +1291,19 @@ class PageKde(PageBase):
         if choice:
             return choice
         else:
-            return grub_default()
+            return misc.grub_default()
 
-    def set_autopartition_choices (self, choices, extra_options,
-                                   resize_choice, manual_choice,
-                                   biggest_free_choice, use_device_choice):
-        PageBase.set_autopartition_choices(self, choices, extra_options,
-                                               resize_choice, manual_choice,
-                                               biggest_free_choice,
-                                               use_device_choice)
+    def set_autopartition_heading(self, heading):
+        pass
 
-        self.partAuto.setupChoices(choices, extra_options,
+    def set_autopartition_options(self, options, extra_options):
+        use_device = self.controller.dbfilter.some_device_desc
+        resize_choice = self.controller.dbfilter.resize_desc
+        manual_choice = extra_options['manual']
+
+        self.partAuto.setupChoices(None, extra_options,
                                    resize_choice, manual_choice,
-                                   biggest_free_choice, use_device_choice)
+                                   None, use_device)
 
         self.current_page = self.page
 
@@ -1226,12 +1331,12 @@ PARTITION_PLACE_END = 1
 class PartmanOptionError(LookupError):
     pass
 
-class Page(Plugin):
+class Page(plugin.Plugin):
     def prepare(self):
         self.some_device_desc = ''
         self.resize_desc = ''
         self.manual_desc = ''
-        with raised_privileges():
+        with misc.raised_privileges():
             # If an old parted_server is still running, clean it up.
             if os.path.exists('/var/run/parted_server.pid'):
                 try:
@@ -1349,8 +1454,8 @@ class Page(Plugin):
                 (want_arg is None or arg == want_arg)):
                 return (script, arg, option)
         else:
-            raise PartmanOptionError, ("%s should have %s (%s) option" %
-                                       (question, want_script, want_arg))
+            raise PartmanOptionError("%s should have %s (%s) option" %
+                                    (question, want_script, want_arg))
 
     def preseed_script(self, question, menu_options,
                        want_script, want_arg=None):
@@ -1382,7 +1487,7 @@ class Page(Plugin):
         try:
             return self.description_cache[question]
         except KeyError:
-            description = Plugin.description(self, question)
+            description = plugin.Plugin.description(self, question)
             self.description_cache[question] = description
             return description
 
@@ -1583,9 +1688,9 @@ class Page(Plugin):
                 self.editing_partition['bad_mountpoint'] = True
         self.frontend.error_dialog(self.description(question),
                                    self.extended_description(question))
-        return Plugin.error(self, priority, question)
+        return plugin.Plugin.error(self, priority, question)
 
-    @raise_privileges
+    @misc.raise_privileges
     def freeze_choices(self, menu):
         """Stop recalculating choices for a given menu. This is used to
         improve performance while rebuilding the cache. Be careful not to
@@ -1595,7 +1700,7 @@ class Page(Plugin):
         self.debug('Partman: Freezing choices for %s', menu)
         open('/lib/partman/%s/no_show_choices' % menu, 'w').close
 
-    @raise_privileges
+    @misc.raise_privileges
     def thaw_choices(self, menu):
         """Reverse the effects of freeze_choices."""
         self.debug('Partman: Thawing choices for %s', menu)
@@ -1627,6 +1732,216 @@ class Page(Plugin):
             if not self.update_partitions:
                 self.thaw_choices('choose_partition')
 
+    def calculate_reuse_option(self):
+        '''Takes the current Ubuntu version on disk and the release we're about
+        to install as parameters.'''
+
+        if self.db.get('ubiquity/online') != 'true':
+            self.debug('Not online, so not showing the upgrade option.')
+            return None
+        # TODO: verify that ubuntu is the same partition as one of the ones
+        #       offered in the reuse options.
+        release = misc.get_release()
+        if 'reuse' in self.extra_options:
+            reuse = self.extra_options['reuse']
+            if len(reuse) == 1:
+                ubuntu = misc.find_in_os_prober(reuse[0][1])
+                # TODO: come up with a better version check than this by using
+                # SUBST with DISTRIB_ID and DISTRIB_RELEASE in partman-auto.
+                # FIXME: this currently breaks as we now strip out "(11.04)".
+                if '(%s)' % release.version in ubuntu:
+                    # "Windows (or Mac, ...) and the current version of Ubuntu
+                    # are present" case
+                    q = 'ubiquity/partitioner/ubuntu_reinstall'
+                    self.db.subst(q, 'CURDISTRO', ubuntu)
+                    title = self.description(q)
+                    desc = self.extended_description(q)
+                    return PartitioningOption(title, desc)
+                else:
+                    # "Windows (or Mac, ...) and an older version of Ubuntu are
+                    # present" case
+                    # TODO: Verify that the version is in fact older.
+                    q = 'ubiquity/partitioner/ubuntu_upgrade'
+                    self.db.subst(q, 'CURDISTRO', ubuntu)
+                    self.db.subst(q, 'VER', release.version)
+                    title = self.description(q)
+                    desc = self.extended_description(q)
+                    return PartitioningOption(title, desc)
+        return None
+
+    def calculate_autopartitioning_heading(self, operating_systems,
+                                           has_ubuntu):
+        os_count = len(operating_systems)
+        if os_count == 0:
+            q = 'ubiquity/partitioner/heading_no_detected'
+            return self.extended_description(q)
+        if os_count == 1:
+            q = 'ubiquity/partitioner/heading_one'
+            self.db.subst(q, 'OS', operating_systems[0])
+            return self.extended_description(q)
+        elif os_count == 2 and has_ubuntu:
+            q = 'ubiquity/partitioner/heading_dual'
+            self.db.subst(q, 'OS1', operating_systems[0])
+            self.db.subst(q, 'OS2', operating_systems[1])
+            return self.extended_description(q)
+        else:
+            q = 'ubiquity/partitioner/heading_multiple'
+            return self.extended_description(q)
+
+    def calculate_operating_systems(self, layout):
+        # Get your #2 pencil ready, it's time to crunch some numbers.
+        operating_systems = []
+        for disk in layout:
+            for partition in layout[disk]:
+                system = misc.find_in_os_prober(partition.device)
+                if system and system != 'swap':
+                    if not system.startswith('Windows Recovery'):
+                        operating_systems.append(system)
+        ubuntu_systems = filter(lambda x: x.lower().find('buntu') != -1,
+                                operating_systems)
+        return (operating_systems, ubuntu_systems)
+
+    def calculate_autopartitioning_options(self, operating_systems,
+                                           ubuntu_systems):
+        '''
+        There are six possibilities we have to consider:
+        - Just Windows (or Mac, ...) is present
+        - An older version of Ubuntu is present
+        - There are no operating systems present
+        - Windows (or Mac, ...) and an older version of Ubuntu are present
+        - Windows (or Mac, ...) and the current version of Ubuntu are present
+        - There are multiple operating systems present
+
+        We leave ordering and providing icons for each option to the frontend,
+        since each option falls under a specific partman-auto operation of a
+        finite set.
+        '''
+        options = {}
+        release = misc.get_release()
+        os_count = len(operating_systems)
+        wubi_option = 'wubi' in self.extra_options
+
+        if wubi_option:
+            pass
+        elif ('resize' in self.extra_options and
+              'biggest_free' in self.extra_options):
+                self.debug('Partman: dropping resize option.')
+                del self.extra_options['resize']
+
+        resize_option = ('resize' in self.extra_options or
+                         'biggest_free' in self.extra_options)
+
+        # We always have the manual partitioner, and it always has the same
+        # title and description.
+        q = 'ubiquity/partitioner/advanced'
+        self.db.subst(q, 'DISTRO', release.name)
+        title = self.description(q)
+        desc = self.extended_description(q)
+        options['manual'] = PartitioningOption(title, desc)
+
+        if os_count == 0:
+            # "There are no operating systems present" case
+            q = 'ubiquity/partitioner/no_systems_format'
+            self.db.subst(q, 'DISTRO', release.name)
+            title = self.description(q)
+            desc = self.extended_description(q)
+            opt = PartitioningOption(title, desc)
+            options['use_device'] = opt
+        elif os_count == 1:
+            system = operating_systems[0]
+            if len(ubuntu_systems) == 1:
+                # "An older version of Ubuntu is present" case
+                q = 'ubiquity/partitioner/ubuntu_format'
+                self.db.subst(q, 'CURDISTRO', system)
+                title = self.description(q)
+                desc = self.extended_description(q)
+                opt = PartitioningOption(title, desc)
+                options['use_device'] = opt
+
+                if wubi_option:
+                    # We don't have a Wubi-like solution for Ubuntu yet (though
+                    # wubi_option is also a check for ntfs).
+                    pass
+                elif resize_option:
+                    q = 'ubiquity/partitioner/ubuntu_resize'
+                    self.db.subst(q, 'DISTRO', release.name)
+                    self.db.subst(q, 'VER', release.version)
+                    self.db.subst(q, 'CURDISTRO', system)
+                    title = self.description(q)
+                    desc = self.extended_description(q)
+                    opt = PartitioningOption(title, desc)
+                    options['resize'] = opt
+
+                reuse = self.calculate_reuse_option()
+                if reuse is not None:
+                    options['reuse'] = reuse
+            else:
+                # "Just Windows (or Mac, ...) is present" case
+                q = 'ubiquity/partitioner/single_os_replace'
+                self.db.subst(q, 'OS', system)
+                self.db.subst(q, 'DISTRO', release.name)
+                title = self.description(q)
+                desc = self.extended_description(q)
+                opt = PartitioningOption(title, desc)
+                options['use_device'] = opt
+
+                if wubi_option or resize_option:
+                    if resize_option:
+                        q = 'ubiquity/partitioner/single_os_resize'
+                    else:
+                        q = 'ubiquity/partitioner/ubuntu_inside'
+                    self.db.subst(q, 'OS', system)
+                    self.db.subst(q, 'DISTRO', release.name)
+                    title = self.description(q)
+                    desc = self.extended_description(q)
+                    opt = PartitioningOption(title, desc)
+                    options['resize'] = opt
+
+        elif os_count == 2 and len(ubuntu_systems) == 1:
+            # TODO: verify that ubuntu_systems[0] is the same partition as one
+            # of the ones offered in the replace options.
+            if 'replace' in self.extra_options:
+                ubuntu = ubuntu_systems[0]
+                q = 'ubiquity/partitioner/ubuntu_format'
+                self.db.subst(q, 'CURDISTRO', ubuntu)
+                title = self.description(q)
+                desc = self.extended_description(q)
+                opt = PartitioningOption(title, desc)
+                options['replace'] = opt
+
+            q = 'ubiquity/partitioner/ubuntu_and_os_format'
+            system = (set(operating_systems) - set(ubuntu_systems)).pop()
+            self.db.subst(q, 'OS', system)
+            self.db.subst(q, 'CURDISTRO', ubuntu)
+            title = self.description(q)
+            desc = self.extended_description(q)
+            opt = PartitioningOption(title, desc)
+            options['use_device'] = opt
+
+            reuse = self.calculate_reuse_option()
+            if reuse is not None:
+                options['reuse'] = reuse
+        else:
+            # "There are multiple operating systems present" case
+            q = 'ubiquity/partitioner/multiple_os_format'
+            self.db.subst(q, 'DISTRO', release.name)
+            title = self.description(q)
+            desc = self.extended_description(q)
+            opt = PartitioningOption(title, desc)
+            options['use_device'] = opt
+
+            if wubi_option:
+                pass
+            elif resize_option:
+                q = 'ubiquity/partitioner/multiple_os_resize'
+                self.db.subst(q, 'DISTRO', release.name)
+                title = self.description(q)
+                desc = self.extended_description(q)
+                opt = PartitioningOption(title, desc)
+                options['resize'] = opt
+
+        return options
+
     def run(self, priority, question):
         if self.done:
             # user answered confirmation question or backed up
@@ -1642,7 +1957,6 @@ class Page(Plugin):
             self.autopartition_question = question
             choices = self.choices(question)
 
-            mapping = self.choices_display_map(question)
             if self.auto_state is None:
                 self.some_device_desc = \
                     self.description('partman-auto/text/use_device')
@@ -1650,8 +1964,6 @@ class Page(Plugin):
                     self.description('partman-auto/text/resize_use_free')
                 self.manual_desc = \
                     self.description('partman-auto/text/custom_partitioning')
-                self.biggest_free_desc = \
-                    self.description('partman-auto/text/use_biggest_free')
                 self.extra_options = {}
                 if choices:
                     self.auto_state = [0, None]
@@ -1659,29 +1971,9 @@ class Page(Plugin):
                 self.auto_state[0] += 1
             while self.auto_state[0] < len(choices):
                 self.auto_state[1] = choices[self.auto_state[0]]
-                description_c = mapping[self.auto_state[1]]
                 if (self.auto_state[1] == self.some_device_desc or
                     self.auto_state[1] == self.resize_desc):
                     break
-                # TODO Check what template this comes from instead?
-                # How could we find out if it came from partman-auto/text/some_partition?
-                elif description_c[2:].startswith('resize_use_free'):
-                    replace = description_c.split('__________', 1)[1]
-                    replace = replace.startswith('replace=')
-                    if not replace:
-                        break
-                    else:
-                        #desc = self.description('ubiquity/text/resize_use_free')
-                        desc = 'some_partition'
-                        if desc not in self.extra_options:
-                            self.extra_options[desc] = {}
-                        disk = self.translate_to_c(self.autopartition_question, self.auto_state[1])
-                        disk = re.search('/var/lib/partman/devices/(.*)//', disk).group(1)
-                        self.extra_options[desc][disk] = self.auto_state[1]
-                        # We assume that the partition being replaced is the
-                        # same as the partition being resized for the disk in
-                        # question.
-                        self.auto_state[0] += 1
                 else:
                     self.auto_state[0] += 1
             if self.auto_state[0] < len(choices):
@@ -1691,69 +1983,141 @@ class Page(Plugin):
             else:
                 self.auto_state = None
 
-            if self.resize_desc not in self.extra_options:
-                try:
-                    del choices[choices.index(self.resize_desc)]
-                except ValueError:
-                    pass
-            with raised_privileges():
+
+            # You know what they say about assumptions.
+            has_wubi = os.path.exists('/cdrom/wubi.exe')
+            has_resize = 'resize' in self.extra_options
+            try_for_wubi = has_wubi and not has_resize
+            # Let's assume all disks are full unless we find a disk with
+            # space for another partition.
+            partition_table_full = True
+
+            with misc.raised_privileges():
                 # {'/dev/sda' : ('/dev/sda1', 24973242, '32256-2352430079'), ...
-                # TODO evand 2009-04-16: We should really use named tuples
-                # here.
                 parted = parted_server.PartedServer()
                 layout = {}
                 for disk in parted.disks():
                     parted.select_disk(disk)
+                    if try_for_wubi and partition_table_full:
+                        primary_count = 0
+                        ntfs_count = 0
+                        parted.open_dialog('GET_MAX_PRIMARY')
+                        try:
+                            max_primary = int(parted.read_line()[0])
+                        except ValueError:
+                            max_primary = None
+                        finally:
+                            parted.close_dialog()
+
                     ret = []
                     for partition in parted.partitions():
+                        if try_for_wubi and partition_table_full:
+                            if partition[3] == 'primary':
+                                primary_count += 1
+                                if partition[4] == 'ntfs':
+                                    ntfs_count += 1
+
                         size = int(partition[2])
                         if partition[4] == 'free':
                             dev = 'free'
                         else:
                             dev = partition[5]
-                        ret.append((dev, size, partition[1], partition[4]))
+
+                        ret.append(Partition(dev, size,
+                                             partition[1],
+                                             partition[4]))
                     layout[disk] = ret
+                    if try_for_wubi and partition_table_full:
+                        if (max_primary is not None and
+                            primary_count >= max_primary and ntfs_count > 0):
+                            pass
+                        else:
+                            partition_table_full = False
+
+                # TODO try the wubi check as a partman-auto choice.
+                if try_for_wubi and partition_table_full:
+                    import tempfile
+                    import subprocess
+                    mount_path = tempfile.mkdtemp()
+                    for device, name in misc.os_prober().iteritems():
+                        if name.find('indows') == -1:
+                            continue
+                        try:
+                            subprocess.check_call(['mount', device, mount_path])
+                            if misc.windows_startup_folder(mount_path):
+                                self.extra_options['wubi'] = device
+                                break
+                        except subprocess.CalledProcessError:
+                            pass
+                        finally:
+                            subprocess.call(['umount', mount_path])
+                            if os.path.exists(mount_path):
+                                os.rmdir(mount_path)
+
+                biggest_free = self.find_script(menu_options, 'biggest_free')
+                if biggest_free:
+                    dev, p_id = self.split_devpart(biggest_free[0][1])
+                    parted.select_disk(dev)
+                    size = int(parted.partition_info(p_id)[2])
+                    key = biggest_free[0][2]
+                    filesystem_size = 5 * 1024 * 1024 * 1024 # 5GB
+                    try:
+                        with open('/cdrom/casper/filesystem.size') as fp:
+                            filesystem_size = int(fp.readline())
+                    except IOError:
+                        self.debug('Could not determine filesystem size.')
+                    fudge = 200 * 1024 * 1024 # 200 MB
+                    if size > filesystem_size + fudge:
+                        self.extra_options['biggest_free'] = (key, size)
+
+                # TODO: Add misc.find_in_os_prober(info[5]) ...and size?
+                reuse = self.find_script(menu_options, 'reuse')
+                if reuse:
+                    self.extra_options['reuse'] = []
+                    r = self.extra_options['reuse']
+                    for option in reuse:
+                        dev, p_id = self.split_devpart(option[1])
+                        parted.select_disk(dev)
+                        info = parted.partition_info(p_id)
+                        r.append((option[2], info[5]))
+
+                replace = self.find_script(menu_options, 'replace')
+                if replace:
+                    self.extra_options['replace'] = []
+                    for option in replace:
+                        self.extra_options['replace'].append(option[2])
+
+            # We always have the manual option.
+            self.extra_options['manual'] = self.manual_desc
             self.ui.set_disk_layout(layout)
-
-            # Set up translation mappings to avoid debian-installer
-            # specific text ('Guided -').
-            self.translation_mappings = {}
-            def map_trans(di_string, ubiquity_string):
-                ubiquity_string = self.description(ubiquity_string)
-                self.translation_mappings[ubiquity_string] = di_string
-                try:
-                    choices[choices.index(di_string)] = ubiquity_string
-                except ValueError:
-                    pass
-                if di_string in self.extra_options:
-                    t = self.extra_options[di_string]
-                    del self.extra_options[di_string]
-                    self.extra_options[ubiquity_string] = t
-                return ubiquity_string
-
-            self.some_device_desc = map_trans(self.some_device_desc, 'ubiquity/text/use_device')
-            self.biggest_free_desc = map_trans(self.biggest_free_desc, 'ubiquity/text/biggest_free')
-            self.resize_desc = self.description('ubiquity/text/resize_use_free')
-            self.manual_desc = map_trans(self.manual_desc, 'ubiquity/text/custom_partitioning')
-
-            biggest_free = self.find_script(menu_options, 'biggest_free')
-            if biggest_free:
-                biggest_free = biggest_free[0][1]
-                biggest_free = self.split_devpart(biggest_free)[1]
-            self.extra_options[self.biggest_free_desc] = biggest_free
-
             self.ui.set_default_filesystem(self.db.get('partman/default_filesystem'))
-            self.ui.set_autopartition_choices(
-                choices, self.extra_options, self.resize_desc,
-                self.manual_desc, self.biggest_free_desc,
-                self.some_device_desc)
+
+            operating_systems, ubuntu_systems = \
+                self.calculate_operating_systems(layout)
+            has_ubuntu = len(ubuntu_systems) > 0
+            heading = self.calculate_autopartitioning_heading(
+                            operating_systems, has_ubuntu)
+            options = self.calculate_autopartitioning_options(
+                            operating_systems, ubuntu_systems)
+            if self.debug_enabled():
+                import pprint
+                self.debug('options:')
+                printer = pprint.PrettyPrinter()
+                for line in printer.pformat(options).split('\n'):
+                    self.debug('%s', line)
+                self.debug('extra_options:')
+                printer = pprint.PrettyPrinter()
+                for line in printer.pformat(self.extra_options).split('\n'):
+                    self.debug('%s', line)
+            self.ui.set_autopartition_heading(heading)
+            self.ui.set_autopartition_options(options, self.extra_options)
 
         elif question == 'partman-auto/select_disk':
             if self.auto_state is not None:
                 disks = {}
                 choices = self.choices(question)
                 choices_c = self.choices_untranslated(question)
-                with raised_privileges():
+                with misc.raised_privileges():
                     for i in range(len(choices)):
                         size = 0
                         # It seemingly doesn't make sense to go through parted
@@ -1763,7 +2127,7 @@ class Page(Plugin):
                             size = fp.readline()
                         size = int(size)
                         disks[choices[i]] = (choices_c[i], size)
-                self.extra_options[self.auto_state[1]] = disks
+                self.extra_options['use_device'] = (self.some_device_desc, disks)
                 # Back up to autopartitioning question.
                 self.succeeded = False
                 return False
@@ -1818,7 +2182,7 @@ class Page(Plugin):
                             self.cache_order)
                 else:
                     self.debug('Partman: Building cache')
-                    regain_privileges()
+                    misc.regain_privileges()
                     parted = parted_server.PartedServer()
                     matches = self.find_script(menu_options, 'partition_tree')
 
@@ -1858,8 +2222,10 @@ class Page(Plugin):
                             if rebuild_all or arg not in self.disk_cache:
                                 device = parted.readline_device_entry('device')
                                 parted.open_dialog('GET_LABEL_TYPE')
-                                label = parted.read_line()
-                                parted.close_dialog()
+                                try:
+                                    label = parted.read_line()
+                                finally:
+                                    parted.close_dialog()
                                 self.disk_cache[arg] = {
                                     'dev': dev,
                                     'device': device,
@@ -1910,7 +2276,7 @@ class Page(Plugin):
                             'name': info[6]
                         }
 
-                    drop_privileges()
+                    misc.drop_privileges()
                     # We want to immediately show the UI.
                     self.ui.show_page_advanced()
                     self.frontend.set_page(NAME)
@@ -1962,7 +2328,7 @@ class Page(Plugin):
                         self.disk_cache, self.partition_cache,
                         self.cache_order)
             elif self.deleting_partition:
-                raise AssertionError, "Deleting partition didn't rebuild cache?"
+                raise AssertionError("Deleting partition didn't rebuild cache?")
 
             if self.debug_enabled():
                 import pprint
@@ -1985,7 +2351,7 @@ class Page(Plugin):
             self.undoing = False
             self.finish_partitioning = False
 
-            Plugin.run(self, priority, question)
+            plugin.Plugin.run(self, priority, question)
 
             if self.finish_partitioning or self.done:
                 if self.succeeded:
@@ -2029,8 +2395,8 @@ class Page(Plugin):
                 return True
 
             else:
-                raise AssertionError, ("Returned to %s with nothing to do" %
-                                       question)
+                raise AssertionError("Returned to %s with nothing to do" %
+                                     question)
 
         elif question == 'partman-partitioning/confirm_new_label':
             if self.creating_label:
@@ -2044,14 +2410,14 @@ class Page(Plugin):
                     self.preseed(question, 'false', seen=False)
                 return True
             else:
-                raise AssertionError, "Arrived at %s unexpectedly" % question
+                raise AssertionError("Arrived at %s unexpectedly" % question)
 
         elif question == 'partman/free_space':
             if self.creating_partition:
                 self.preseed_script(question, menu_options, 'new')
                 return True
             else:
-                raise AssertionError, "Arrived at %s unexpectedly" % question
+                raise AssertionError("Arrived at %s unexpectedly" % question)
 
         elif question == 'partman-partitioning/new_partition_size':
             if self.creating_partition:
@@ -2064,7 +2430,7 @@ class Page(Plugin):
                 self.preseed(question, size, seen=False)
                 return True
             else:
-                raise AssertionError, "Arrived at %s unexpectedly" % question
+                raise AssertionError("Arrived at %s unexpectedly" % question)
 
         elif question == 'partman-partitioning/new_partition_type':
             if self.creating_partition:
@@ -2074,7 +2440,7 @@ class Page(Plugin):
                     self.preseed(question, 'Logical', seen=False)
                 return True
             else:
-                raise AssertionError, "Arrived at %s unexpectedly" % question
+                raise AssertionError("Arrived at %s unexpectedly" % question)
 
         elif question == 'partman-partitioning/new_partition_place':
             if self.creating_partition:
@@ -2085,7 +2451,7 @@ class Page(Plugin):
                     self.preseed(question, 'End', seen=False)
                 return True
             else:
-                raise AssertionError, "Arrived at %s unexpectedly" % question
+                raise AssertionError("Arrived at %s unexpectedly" % question)
 
         elif question == 'partman/active_partition':
             if self.building_cache:
@@ -2113,7 +2479,7 @@ class Page(Plugin):
 
                 assert state[0] == 'partman/choose_partition'
 
-                with raised_privileges():
+                with misc.raised_privileges():
                     parted = parted_server.PartedServer()
 
                     parted.select_disk(partition['dev'])
@@ -2207,7 +2573,7 @@ class Page(Plugin):
                 return True
 
             else:
-                raise AssertionError, "Arrived at %s unexpectedly" % question
+                raise AssertionError("Arrived at %s unexpectedly" % question)
 
         elif question == 'partman-partitioning/confirm_resize':
             if self.autopartition_question is not None:
@@ -2245,19 +2611,26 @@ class Page(Plugin):
                     self.preseed(question, 'false', seen=False)
                 return True
             else:
-                raise AssertionError, "Arrived at %s unexpectedly" % question
+                raise AssertionError("Arrived at %s unexpectedly" % question)
 
         elif question == 'partman-partitioning/new_size':
             if self.autopartition_question is not None:
                 if self.auto_state is not None:
-                    desc = self.description('ubiquity/text/resize_use_free')
-                    if desc not in self.extra_options:
-                        self.extra_options[desc] = {}
+                    if 'resize' not in self.extra_options:
+                        self.extra_options['resize'] = {}
+                    p_id = self.translate_to_c(self.autopartition_question,
+                                               self.auto_state[1])
+                    p_id = p_id.rsplit('//')[1]
                     disk = self.translate_to_c(self.autopartition_question, self.auto_state[1])
                     disk = re.search('/var/lib/partman/devices/(.*)//', disk).group(1)
-                    self.extra_options[desc][disk] = \
+                    with misc.raised_privileges():
+                        parted = parted_server.PartedServer()
+                        parted.select_disk(disk)
+                        size = int(parted.partition_info(p_id)[2])
+                        fs   = parted.partition_info(p_id)[4]
+                    self.extra_options['resize'][disk] = \
                         (self.auto_state[1], self.resize_min_size, self.resize_max_size,
-                            self.resize_pref_size, self.resize_path)
+                            self.resize_pref_size, self.resize_path, size, fs)
                     # Back up to autopartitioning question.
                     self.succeeded = False
                     return False
@@ -2283,7 +2656,7 @@ class Page(Plugin):
                 self.preseed(question, size, seen=False)
                 return True
             else:
-                raise AssertionError, "Arrived at %s unexpectedly" % question
+                raise AssertionError("Arrived at %s unexpectedly" % question)
 
         elif question == 'partman-target/choose_method':
             if self.creating_partition or self.editing_partition:
@@ -2296,7 +2669,7 @@ class Page(Plugin):
                                     None, request['method'])
                 return True
             else:
-                raise AssertionError, "Arrived at %s unexpectedly" % question
+                raise AssertionError("Arrived at %s unexpectedly" % question)
 
         elif question in ('partman-basicfilesystems/mountpoint',
                           'partman-basicfilesystems/fat_mountpoint',
@@ -2316,7 +2689,7 @@ class Page(Plugin):
                     self.preseed(question, 'Enter manually', seen=False)
                 return True
             else:
-                raise AssertionError, "Arrived at %s unexpectedly" % question
+                raise AssertionError("Arrived at %s unexpectedly" % question)
 
         elif question == 'partman-basicfilesystems/mountpoint_manual':
             if self.creating_partition or self.editing_partition:
@@ -2330,7 +2703,7 @@ class Page(Plugin):
                 self.preseed(question, request['mountpoint'], seen=False)
                 return True
             else:
-                raise AssertionError, "Arrived at %s unexpectedly" % question
+                raise AssertionError("Arrived at %s unexpectedly" % question)
 
         elif question.startswith('partman/confirm'):
             self.db.set('ubiquity/partman-confirm', question[8:])
@@ -2354,7 +2727,7 @@ class Page(Plugin):
             if priority == 'critical' or priority == 'high':
                 self.frontend.error_dialog(self.description(question),
                                            self.extended_description(question))
-                return Plugin.error(self, priority, question)
+                return plugin.Plugin.error(self, priority, question)
             else:
                 return True
 
@@ -2388,25 +2761,25 @@ class Page(Plugin):
                 self.preseed(question, 'false', seen=False)
             return True
 
-        return Plugin.run(self, priority, question)
+        return plugin.Plugin.run(self, priority, question)
 
     def ok_handler(self):
-        # TODO how do we ask this question again (for the resize page)?
         if self.current_question.endswith('automatically_partition'):
             (autopartition_choice, self.extra_choice) = \
                 self.ui.get_autopartition_choice()
-            if autopartition_choice in self.translation_mappings:
-                autopartition_choice = \
-                    self.translation_mappings[autopartition_choice]
             self.preseed_as_c(self.current_question, autopartition_choice,
                               seen=False)
             # Don't exit partman yet.
         else:
             self.finish_partitioning = True
         self.succeeded = True
+        self.exit_ui_loops()
+
+    def exit_ui_loops(self):
         if self.install_bootloader:
             self.preseed('grub-installer/bootdev', self.ui.get_grub_choice())
-        self.exit_ui_loops()
+
+        plugin.Plugin.exit_ui_loops(self)
 
     # TODO cjwatson 2006-11-01: Do we still need this?
     def rebuild_cache(self):
@@ -2463,7 +2836,7 @@ class Page(Plugin):
             self.ui.progress_start(self.description(progress_title))
         else:
             self.local_progress = True
-            Plugin.progress_start(self, progress_min, progress_max, progress_title)
+            plugin.Plugin.progress_start(self, progress_min, progress_max, progress_title)
 
     def progress_info(self, progress_title, progress_info):
         if (progress_info != 'partman-partitioning/progress_resizing' and
@@ -2476,18 +2849,23 @@ class Page(Plugin):
             # so always return True.
             return True
         else:
-            Plugin.progress_info(self, progress_title, progress_info)
+            plugin.Plugin.progress_info(self, progress_title, progress_info)
 
     def progress_stop(self):
         if not self.local_progress and hasattr(self.ui, 'progress_stop'):
             self.ui.progress_stop()
         else:
-            Plugin.progress_stop(self)
+            plugin.Plugin.progress_stop(self)
             self.local_progress = False
 
     def maybe_update_grub(self):
         if self.install_bootloader:
-            self.ui.set_grub_options()
+            grub_bootdev=self.db.get("grub-installer/bootdev")
+            if grub_bootdev and grub_bootdev in (part[0] for part in misc.grub_options()):
+                default = grub_bootdev
+            else:
+                default = misc.grub_default()
+            self.ui.set_grub_options(default)
 
 # Notes:
 #

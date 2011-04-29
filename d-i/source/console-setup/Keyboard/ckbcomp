@@ -146,6 +146,7 @@ EOT
 	if (! @layouts) {
 	    $_ =~ s/[[:space:]]//g;
 	    @layouts = split (/,/, $_, -1);
+	    @layouts = ('us') if (! @layouts);
 	} elsif (! @variants) {
 	    $_ =~ s/[[:space:]]//g;
 	    @variants = split (/,/, $_, -1);
@@ -2460,7 +2461,7 @@ if (@layouts) {
 	    $oldline = $_;
 	    next;
 	}
-	if (/^! ?\$([a-zA-Z0-9]+) ?= ?(.+)$/) {
+	if (/^! ?\$([a-zA-Z0-9_]+) ?= ?(.+)$/) {
 	    $rules_variables{$1} = [ split ' ', $2 ];
 	    next;
 	}
@@ -2595,6 +2596,8 @@ if ($keycodes =~ /(^|\+|\|)macintosh\(old\)($|\+|\|)/) {
     $arch = 'amiga';
 } elsif ($keycodes =~ /(^|\+|\|)sun(\(type[45][^\)]*\))?($|\+|\|)/) {
     $arch = 'sun';
+} elsif ($keycodes =~ /(^|\+|\|)evdev(\([^\)]*\))?($|\+|\|)/) {
+    $arch = 'evdev';
 }
 
 ########### READ ACM ###############################################
@@ -3271,23 +3274,27 @@ sub flatten {
     my $key = $_[0];
     @vector = ();
     @quality = ();
+    my @real_group_table = ([-1, -1, -1, -1],
+			    [0, 0, 0, 0], # gr1 -> gr1 -> gr1 -> gr1
+			    [0, 1, 1, 0], # gr1 -> gr2 -> gr1 -> gr2
+			    [0, 1, 2, 0], # gr1 -> gr2 -> gr1 -> gr3
+			    [0, 1, 3, 2]);# gr1 -> gr2 -> gr3 -> gr4
     for my $group (0..3) {
-	my $real_group = $group;
-	if ($real_group == 3) {
-	    $real_group = 2;
-	} elsif ($real_group == 2) {
-	    $real_group = 3;
-	}
-	while ($real_group > $#{$symbols_table{$key}}) {
-	    if ($real_group >= 2) {
-		$real_group = $real_group - 2;
-	    } else {
-		$real_group = $real_group - 1;
-	    }
-	}
+	my $real_group = $real_group_table[1+$#{$symbols_table{$key}}][$group];
 	next if ($real_group < 0);
 	for my $level (0..3) {
 	    my $real_level = $level;
+	    if ($types_table{$key} eq 'ONE_LEVEL') {
+		$real_level = 0;
+	    } elsif ($types_table{$key} eq 'TWO_LEVEL') {
+		if ($real_level > 1) {
+		    $real_level = 1;
+		}
+	    } elsif ($types_table{$key} eq 'THREE_LEVEL') {
+		if ($real_level > 2) {
+		    $real_level = 2;
+		}
+	    }
 	    while ($real_level > $#{$symbols_table{$key}[$real_group]}) {
 		if ($real_level == 2) {
 		    $real_level = $real_level - 2;
@@ -3605,7 +3612,15 @@ sub flatten {
 
 sub print_vector {
     my $kernel_code = $_[0];
+    my $only_VoidSymbol = 1;
     my $no_NoSymbol = 1;
+    for my $mask (0 .. 63) {
+	if ($vector[$mask] ne 'VoidSymbol' && $vector[$mask] ne 'NoSymbol') {
+	    $only_VoidSymbol = 0;
+	    last;
+	}
+    }
+    return if ($only_VoidSymbol);
     for my $mask (0 .. 63) {
 	if ($vector[$mask] eq 'NoSymbol') {
 	    $no_NoSymbol = 0;
@@ -3791,9 +3806,9 @@ if ($compact) {
 } else {
     $KEYMAP .= "keymaps 0-127\n";
 }
-if ($arch eq 'at') {
+if ($arch eq 'at' || $arch eq 'evdev') {
     foreach my $key (sort {$a <=> $b} (keys %symbols_table)) {
-	my $kernel_code = $at_scancodes{$key};
+	my $kernel_code = (($arch eq 'at') ? $at_scancodes{$key} : $key - 8);
 	next if (! defined $kernel_code || $kernel_code < 0);
  	if ($kernel_code == 84) {
  	    @vector = ('Last_Console') x 64;
@@ -3889,6 +3904,10 @@ print "strings as usual\n";
 
 if ($charmap && -f "/etc/console-setup/compose.${charmap}.inc") {
     system("cat /etc/console-setup/compose.${charmap}.inc");
+}
+
+if (! $compact && -f "/etc/console-setup/remap.inc") {
+    system("cat /etc/console-setup/remap.inc");
 }
 
 exit 0;

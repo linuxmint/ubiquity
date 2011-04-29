@@ -20,6 +20,12 @@ findfs () {
 	mount | grep "on /target${1%/} " | tail -n1 | cut -d' ' -f1
 }
 
+install_mkimage() {
+	if ! apt-install u-boot-tools && ! apt-install uboot-mkimage; then
+		error "apt-install uboot-mkimage failed"
+	fi
+}
+
 # Are we writing to flash or constructing an image on disk?
 write_to_flash() {
 	case "$machine" in
@@ -61,9 +67,7 @@ machine=$(grep "^Hardware" /proc/cpuinfo | sed 's/Hardware\s*:\s*//')
 
 dove_flash_kernel_installer() {
 	in-target update-initramfs -u || true
-	if ! apt-install uboot-mkimage; then
-		error "apt-install uboot-mkimage failed"
-	fi
+	install_mkimage
 
 	# Add the rootfs to the flash-kernel.conf file
 	rootfs=$(findfs /)
@@ -74,9 +78,7 @@ dove_flash_kernel_installer() {
 omap_flash_kernel_installer() {
 	in-target update-initramfs -u || true
 
-	if ! apt-install uboot-mkimage; then
-		error "apt-install uboot-mkimage failed"
-	fi
+	install_mkimage
 
 	# Add the u-boot partition to the flash-kernl.conf file
 	# FIXME: figure out how to properly autodetect this
@@ -108,15 +110,11 @@ db_progress STEP 1
 case "$machine" in
 	"Buffalo Linkstation Pro/Live" | "Buffalo/Revogear Kurobox Pro")
 		in-target update-initramfs -u || true
-		if ! apt-install uboot-mkimage; then
-			error "apt-install uboot-mkimage failed"
-		fi
+		install_mkimage
 	;;
 	"D-Link DNS-323")
 		in-target update-initramfs -u || true
-		if ! apt-install uboot-mkimage; then
-			error "apt-install uboot-mkimage failed"
-		fi
+		install_mkimage
 	;;
 	"Freescale MX51 Babbage Board")
 		if ! anna-install redboot-tools-udeb; then
@@ -179,9 +177,7 @@ case "$machine" in
 			log "apt-install mv2120-utils failed"
 		fi
 		in-target update-initramfs -u || true
-		if ! apt-install uboot-mkimage; then
-			error "apt-install uboot-mkimage failed"
-		fi
+		install_mkimage
 		# The firmware loads /boot/uImage from the first partition
 		# but uImage will be in / if a separate boot partition is
 		# used.  In this case, create a /boot/boot -> /boot symlink.
@@ -219,18 +215,14 @@ case "$machine" in
 	;;
 	"Marvell OpenRD Base Board" | "Marvell OpenRD Client Board" | "Marvell SheevaPlug Reference Board" | "Marvell eSATA SheevaPlug Reference Board")
 		in-target update-initramfs -u || true
-		if ! apt-install uboot-mkimage; then
-			error "apt-install uboot-mkimage failed"
-		fi
+		install_mkimage
 	;;
 	"Thecus N2100" | "Thecus N4100")
 		in-target update-initramfs -u || true
 	;;
 	"QNAP TS-109/TS-209" | "QNAP TS-119/TS-219" | "QNAP TS-409" | "QNAP TS-41x")
 		in-target update-initramfs -u || true
-		if ! apt-install uboot-mkimage; then
-			error "apt-install uboot-mkimage failed"
-		fi
+		install_mkimage
 	;;
 	"Lanner EM7210")
 		in-target update-initramfs -u || true

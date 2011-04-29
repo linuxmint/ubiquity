@@ -1,3 +1,293 @@
+netcfg (1.60ubuntu3) natty; urgency=low
+
+  * Move release-dhcp-lease finish-install script after unmounting
+    filesystems, to avoid interfering with iSCSI.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 07 Apr 2011 15:06:17 +0100
+
+netcfg (1.60ubuntu2) natty; urgency=low
+
+  * Build for ppc64.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 08 Feb 2011 19:23:18 +0000
+
+netcfg (1.60ubuntu1) natty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Drop priority of netcfg/get_domain to medium for non-static
+      configurations.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Call /usr/lib/network-manager/ifblacklist_migrate.sh from
+      finish-install if present, so that 'auto dhcp' interfaces are disabled
+      if network-manager is in use. May be preseeded away with
+      netcfg/network-manager.
+    - Bump the DHCP timeout to 30 seconds.
+    - Strip trailing dots from domain when writing to /etc/hosts.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 08 Feb 2011 13:00:39 +0000
+
+netcfg (1.60) unstable; urgency=low
+
+  [ Matt Palmer ]
+  * Increase the frequency of DHCP discover packets sent during DHCP
+    configuration using udhcpc.  This should ameliorate some problems with
+    DHCP configuration when a link is slow to become available.
+    Thanks to Ferenc Wagner for the patch.
+  * Clarify the requirements for hostnames.  Closes: #399071.
+  * Modify ethtool-lite so that it distinguishes between "ethtool failed"
+    and "ethtool says link is down".  This should reduce link up/link down
+    confusion.  Closes: #496647.
+  * Wait for up to 3 seconds (in 0.25s increments) looking for the link on
+    an interface.  Add a progress bar to show the progress of this
+    operation.  Closes: #414117.
+  * Wait for link detection on static interface configuration.
+    Closes: #606515.
+  * Release DHCP lease at the completion of the install.  Closes: #610553.
+
+  [ Updated translations ]
+  * Czech (cs.po) by Miroslav Kure
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Nepali (ne.po)
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Ivan Masár
+  * Swedish (sv.po) by Daniel Nylander
+  * Telugu (te.po) by Arjuna Rao Chavala
+  * Thai (th.po) by Theppitak Karoonboonyanan
+
+ -- Matt Palmer <mpalmer@debian.org>  Sun, 06 Feb 2011 12:59:07 +1100
+
+netcfg (1.59ubuntu1) natty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Drop priority of netcfg/get_domain to medium for non-static
+      configurations.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Call /usr/lib/network-manager/ifblacklist_migrate.sh from
+      finish-install if present, so that 'auto dhcp' interfaces are disabled
+      if network-manager is in use. May be preseeded away with
+      netcfg/network-manager.
+    - Bump the DHCP timeout to 30 seconds.
+    - Strip trailing dots from domain when writing to /etc/hosts.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 05 Jan 2011 17:16:06 +0000
+
+netcfg (1.59) unstable; urgency=low
+
+  [ Matt Palmer ]
+  * Modify the DHCP configuration process to write out elements of
+    resolv.conf that the user has entered manually, because the DHCP server
+    didn't supply them.  Closes: #362029.
+  * Add an ethtool-lite Makefile target, to assist people in building a
+    standalone ethtool-lite for debugging purposes.  Closes: #608452.
+
+  [ Updated translations ]
+  * Northern Sami (se.po) by Børre Gaup
+
+ -- Otavio Salvador <otavio@ossystems.com.br>  Sun, 02 Jan 2011 14:29:22 -0200
+
+netcfg (1.58) unstable; urgency=low
+
+  [ Updated translations ]
+  * Lao (lo.po) by Anousak Souphavanh
+  * Northern Sami (se.po) by Børre Gaup
+  * Sinhala (si.po) by Danishka Navin
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 24 Dec 2010 20:06:41 -0200
+
+netcfg (1.57ubuntu3) natty; urgency=low
+
+  * Revert <net/if.h> avoidance from 1.57ubuntu2; linux-libc-dev has been
+    fixed.
+  * Strip trailing dots from domain when writing to /etc/hosts
+    (LP: #255117).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 17 Dec 2010 14:24:55 +0000
+
+netcfg (1.57ubuntu2) natty; urgency=low
+
+  * Temporarily include <linux/if.h> rather than <net/if.h> on Linux, to
+    work around LP #673073.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 15 Nov 2010 12:04:04 +0000
+
+netcfg (1.57ubuntu1) natty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Drop priority of netcfg/get_domain to medium for non-static
+      configurations.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Call /usr/lib/network-manager/ifblacklist_migrate.sh from
+      finish-install if present, so that 'auto dhcp' interfaces are disabled
+      if network-manager is in use. May be preseeded away with
+      netcfg/network-manager.
+    - Bump the DHCP timeout to 30 seconds.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 15 Nov 2010 10:54:21 +0000
+
+netcfg (1.57) unstable; urgency=low
+
+  [ Otavio Salvador ]
+  * Don't duplicate localhost definition for IPv4 and IPv6. Closes:
+    #595107.
+
+  [ Petter Reinholdtsen ]
+  * Log detected link status to make it possible to see if link
+    detection work properly or not.
+
+  [ Otavio Salvador ]
+  * netcfg: do not provide an empty /etc/dhcp3 dir.
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Israt Jahan
+  * Catalan (ca.po) by Jordi Mallach
+  * Danish (da.po) by Anders Jenbo
+  * Persian (fa.po) by Behrad Eslamifar
+  * Icelandic (is.po) by Sveinn  Felli
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Romanian (ro.po) by Andrei Popescu
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 12 Nov 2010 14:27:38 -0200
+
+netcfg (1.56ubuntu1) natty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Drop priority of netcfg/get_domain to medium for non-static
+      configurations.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Call /usr/lib/network-manager/ifblacklist_migrate.sh from
+      finish-install if present, so that 'auto dhcp' interfaces are disabled
+      if network-manager is in use. May be preseeded away with
+      netcfg/network-manager.
+    - Bump the DHCP timeout to 30 seconds.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 15 Oct 2010 11:26:45 +0100
+
+netcfg (1.56) unstable; urgency=low
+
+  [ Aurelien Jarno ]
+  * Add sparc64 to the architectures list.
+
+  [ Updated translations ]
+  * Asturian (ast.po) by maacub
+  * Bulgarian (bg.po) by Damyan Ivanov
+
+ -- Aurelien Jarno <aurel32@debian.org>  Fri, 27 Aug 2010 19:35:49 +0200
+
+netcfg (1.55) unstable; urgency=low
+
+  [ Jeremie Koenig ]
+  * More fixes for Hurd support, including network device detection
+    (closes: 588761).
+
+  [ Aurelien Jarno ]
+  * dhcp: ask udhcpc for dns and not namesrv.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Fri, 06 Aug 2010 17:54:02 +0200
+
+netcfg (1.54) unstable; urgency=low
+
+  [ Samuel Thibault ]
+  * Fixes for Hurd support.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Viktar Siarheichyk
+  * Croatian (hr.po) by Josip Rodin
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Macedonian (mk.po) by Arangel Angov
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 11 Jul 2010 17:12:11 +0200
+
+netcfg (1.53) unstable; urgency=low
+
+  [ Samuel Thibault ]
+  * Fixes for Hurd support. Closes: #573878.
+
+  [ Joey Hess ]
+  * Do not assume that debhelper acts on packages not relevant to build arch.
+    (See #576885)
+
+  [ Frans Pop ]
+  * Revert workaround for FTBFS on s390 which is no longer needed as of
+    debhelper version 7.4.17.
+
+  [ Otavio Salvador ]
+  * kfreebsd-{amd64,i386}: depends on isc-dhcp-client-udeb (as it replaces
+    the dhcp3-client-udeb).
+  * dhcp: drop dhcp3 compatibility since isc-dhcp looks exactly as
+    regular dhclient.
+
+  [ Aurelien Jarno ]
+  * simplify kfreebsd dependencies.
+  * depends on freebsd-net-tools-udeb on kfreebsd.
+  * add support for GNU/kFreeBSD.
+
+  [ Updated translations ]
+  * Asturian (ast.po) by astur
+  * Danish (da.po) by Jacob Sparre Andersen
+  * German (de.po) by Holger Wansing
+  * Persian (fa.po) by acathur
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jorge Barreiro
+  * Hebrew (he.po) by Lior Kaplan
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Central Khmer (km.po) by Khoem Sokhem
+  * Korean (ko.po) by Changwoo Ryu
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Norwegian Nynorsk (nn.po) by Eirik U. Birkeland
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Romanian (ro.po) by Andrei Popescu
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Thai (th.po) by Theppitak Karoonboonyanan
+
+ -- Otavio Salvador <otavio@debian.org>  Mon, 05 Jul 2010 19:08:45 -0300
+
+netcfg (1.52) unstable; urgency=low
+
+  [ Aurelien Jarno ]
+  * Loopback network interface name is lo on GNU/Linux and lo0 on
+    GNU/kFreeBSD; generalize it with a macro.
+  * Build the netcfg binary package on sh4.
+
+  [ Otavio Salvador ]
+  * Add support to disable network configuration using preseeding in
+    netcfg/enable template. Thanks to Anthony L. Awtrey
+    <tony@awtrey.com> for the patch. Closes: #538265
+
+  [ Colin Watson ]
+  * On Linux, feed the output of 'ip addr show' into /dev/random after the
+    network is up to improve entropy. Idea picked up from Theodore Y. Ts'o,
+    http://lkml.org/lkml/2007/12/8/108.
+  * Upgrade to debhelper v7.
+  * Tell dhclient to wait for netcfg/dhcp_timeout seconds before exiting
+    (closes: #566006, LP: #315231).
+
+  [ Otavio Salvador ]
+  * Use busybox' udhcpc by default but kfreebsd-amd64 and kfreebsd-i386
+    since they lack support in busybox at this moment.
+
+  [ Frans Pop ]
+  * Remove no longer needed Lintian override for missing Standards-
+    Version field.
+  * Disable wireless support for s390.
+  * Fix FTBS on s390 caused by upgrade to debhelper v7.
+  * Drop support for the discontinued lpia architecture.
+  * Improve test for presence of dhcp/dhcp3.
+  * Don't ship unnecessary/unused dhcp directories.
+
+ -- Otavio Salvador <otavio@debian.org>  Sun, 21 Feb 2010 23:02:42 -0300
+
 netcfg (1.51ubuntu2) lucid; urgency=low
 
   * Rebuild against libiw30.

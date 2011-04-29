@@ -108,7 +108,7 @@ load_module() {
 	else   
 		log "Error loading '$module'"
 		if [ "$module" != floppy ] && [ "$module" != ide-floppy ] && \
-		   [ "$module" != ide-cd ]; then
+		   [ "$module" != ide-cd ] && [ "$module" != ide-generic ]; then
 			db_subst hw-detect/modprobe_error CMD_LINE_PARAM "modprobe -v $module"
 			db_input medium hw-detect/modprobe_error || [ $? -eq 30 ]
 			db_go
@@ -140,7 +140,7 @@ get_detected_hw_info() {
 	if [ "${SUBARCH%%/*}" = sparc ]; then
 		discover-sbus
 	fi
-	if [ -d /proc/bus/usb ]; then
+	if [ -d /sys/bus/usb ]; then
 		echo "usb-storage:USB storage"
 	fi
 }
@@ -193,39 +193,10 @@ get_manual_hw_info() {
 	esac
 }
 
-# Based on syslog from #486298
-megaraid_complete() {
-	dmesg | grep -Eq "megaraid mbox: (Wait for 0 commands to complete|reset sequence completed sucessfully)"
-}
-wait_megaraid_complete() {
-	local wait=300
-
-	if megaraid_complete; then
-		return 0
-	fi
-
-	sleep 10 # Early initialization phase
-	if dmesg | grep -q "megaraid mbox: Wait for [0-9]*[1-9] commands to complete"; then
-		log "Megaraid initialization: waiting for reset to complete"
-		while [ $wait -gt 0 ]; do
-			sleep 1
-			if megaraid_complete; then
-				log "Megaraid initialization: reset complete"
-				sleep 1
-				break
-			fi
-			wait=$(($wait - 1))
-		done
-		if [ $wait -eq 0 ]; then
-			log "Megaraid initialization: failed to complete reset!"
-		fi
-	fi
-}
-
 # Should be greater than the number of kernel modules we can reasonably
 # expect it will ever need to load.
 MAX_STEPS=1000
-OTHER_STEPS=5
+OTHER_STEPS=4
 # Use 1/10th of the progress bar for the non-module-load steps.
 OTHER_STEPSIZE=$(expr $MAX_STEPS / 10 / $OTHER_STEPS)
 db_progress START 0 $MAX_STEPS $PROGRESSBAR
@@ -245,6 +216,18 @@ if [ -d /sys/bus/pci/devices ] && \
 	load_module yenta_socket
 	# Ugly hack, but what's the alternative?
 	sleep 3 || true
+fi
+
+# Load the ethernet gadget network driver (g_ether) on S3C2410/S3C2440 (Openmoko GTA01/02)
+if [ -d /sys/bus/platform/devices/s3c2440-usbgadget -o \
+	-d /sys/bus/platform/devices/s3c2410-usbgadget ] ; then
+	db_subst hw-detect/load_progress_step CARDNAME "S3C2410/S3C2440 SoC"
+	db_subst hw-detect/load_progress_step MODULE "g_ether"
+	db_progress INFO hw-detect/load_progress_step
+	
+	log "Detected S3C2410/S3C2440 SoC, loading g_ether"
+	load_module g_ether
+	register-module g_ether
 fi
 
 # If using real hotplug, re-run the rc scripts to pick up new modules.
@@ -361,9 +344,9 @@ if [ -z "$LOAD_IDE" ] && is_not_loaded ide-generic && \
 		if db_get debian-installer/add-kernel-opts && [ "$RET" ]; then
 			kopts="$RET"
 		fi
-		if ! echo "$kopt" | grep -Eq "(^| )all_generic_ide( |$)"; then
+		if ! echo "$kopt" | grep -Eq "(^| )all_generic_ide(=1|)( |$)"; then
 			db_set debian-installer/add-kernel-opts \
-				"${kopts:+$kopts }all_generic_ide"
+				"${kopts:+$kopts }all_generic_ide=1"
 		fi
 	fi
 fi
@@ -500,7 +483,11 @@ fi
 # Install udev into target
 apt-install udev || true
 
-# Install usbutils
+# Install pciutils/usbutils
+if [ -d /sys/bus/pci ]; then
+	apt-install pciutils || true
+fi
+
 if [ -d /sys/bus/usb ]; then
 	apt-install usbutils || true
 fi
@@ -550,28 +537,6 @@ case $SUBARCH in
 		apt-install elfspe2 || true
 		;;
 esac
-
-# Some hardware may need extra time to initialize:
-
-# megaraid_mbox hardware RAID
-if lsmod | grep -q megaraid_mbox; then
-	db_progress INFO hw-detect/hardware_init_step
-	wait_megaraid_complete
-
-	# Add rootdelay boot option for target system
-	if [ -z "$LOAD_IDE" ]; then
-		kopts=
-		if db_get debian-installer/add-kernel-opts && [ "$RET" ]; then
-			kopts="$RET"
-			# remove any existing rootdelay= option
-			kopts="$(echo "$kopts" | sed -r "s/(^| )rootdelay=[^ ]*//")"
-		fi
-		db_set debian-installer/add-kernel-opts \
-			"${kopts:+$kopts }rootdelay=10"
-	fi
-fi
-db_progress STEP $OTHER_STEPSIZE
-
 
 db_progress SET $MAX_STEPS
 db_progress STOP

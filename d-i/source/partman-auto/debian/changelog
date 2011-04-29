@@ -1,3 +1,183 @@
+partman-auto (93ubuntu15) natty; urgency=low
+
+  * Add $reusemethod internal specifier, which excludes the partition if a
+    partition with the same method already exists.
+  * If there is an existing BIOS Boot Partition, reuse it rather than
+    creating a new one (LP: #746313).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 20 Apr 2011 17:50:59 +0100
+
+partman-auto (93ubuntu14) natty; urgency=low
+
+  * Fix reuse and replace options to umount using the path name
+    instead of the device name to work around a bug where ntfs-3g
+    on dmraid can not be unmounted with the device name, which
+    then caused the installer to hang (LP: #725408).
+
+ -- Phillip Susi <psusi@cfl.rr.com>  Sun, 10 Apr 2011 12:27:57 -0400
+
+partman-auto (93ubuntu13) natty; urgency=low
+
+  * Make sure we have a partition selected for autopartitioning, not the
+    disk, when using the replace option (LP: #738366).
+  * Lazily unmount partitions in reuse/replace.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Wed, 23 Mar 2011 16:36:49 +0000
+
+partman-auto (93ubuntu12) natty; urgency=low
+
+  * Disable swap partitions on the same disk before deleting the
+    partition in the replace option (LP: #740881).
+
+ -- Evan Dandrea <ev@ubuntu.com>  Wed, 23 Mar 2011 11:36:14 +0000
+
+partman-auto (93ubuntu11) natty; urgency=low
+
+  * Fix a bug whereby reuse/do_option was filling debconf with garbage by not
+    using the correct delimeter for read_paragraph.
+  * Refactor reuse/do_option so that it doesn't call blkid in an O(n^2)
+    fashion.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Tue, 22 Mar 2011 03:00:55 +0000
+
+partman-auto (93ubuntu10) natty; urgency=low
+
+  * Guard against blkid returning non-zero (LP: #729394).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 14 Mar 2011 13:39:58 +0000
+
+partman-auto (93ubuntu9) natty; urgency=low
+
+  * Handle detected_filesystems not existing.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Tue, 01 Mar 2011 06:22:14 +0000
+
+partman-auto (93ubuntu8) natty; urgency=low
+
+  [ Evan Dandrea ]
+  * Signal to clear_partitions in partman-target that it should not
+    notify the user about the unformatted partitions we have set up.
+
+  [ Colin Watson ]
+  * Guard against 'grep -s DISTRIB_ID $mountpoint/etc/lsb-release' returning
+    false and causing parted_server communications to get out of sync
+    (LP: #726131).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 28 Feb 2011 16:22:32 +0000
+
+partman-auto (93ubuntu7) natty; urgency=low
+
+  * Split out the replace option from resize_use_free.
+  * Don't warn about partitions not marked for formatting when using the
+    reuse choice.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Sun, 27 Feb 2011 01:44:25 +0000
+
+partman-auto (93ubuntu6) natty; urgency=low
+
+  * Don't explode on unpartitioned space in the reuse option (LP:
+    #722198).
+
+ -- Evan Dandrea <ev@ubuntu.com>  Thu, 24 Feb 2011 15:29:10 +0000
+
+partman-auto (93ubuntu5) natty; urgency=low
+
+  * Set the executable bit on reuse/*.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Tue, 15 Feb 2011 12:15:40 +0000
+
+partman-auto (93ubuntu4) natty; urgency=low
+
+  * Add an option to reuse an existing installation.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Tue, 15 Feb 2011 09:51:15 +0000
+
+partman-auto (93ubuntu3) natty; urgency=low
+
+  * Change the x86 atomic recipes to make the minimum swap size be 100% of
+    RAM, so that hibernate always works (LP: #345126).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 17 Dec 2010 14:43:31 +0000
+
+partman-auto (93ubuntu2) natty; urgency=low
+
+  * Fix memory size calculations to use the total of the sizes of all memory
+    modules rather than the highest address (LP: #675665).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 29 Nov 2010 16:07:06 +0000
+
+partman-auto (93ubuntu1) natty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Adjust default partition sizes for Ubuntu.
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Offer resize_use_free autopartitioning method, except on armel.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+    - Drop the bootable flag from i386/amd64 recipes; it can break existing
+      Windows installations when autopartitioning only free space rather
+      than a whole disk.
+    - Make biggest_free respect the selection made in partman-auto/disk.
+    - Exclude devices containing the installation medium from automatic
+      partitioning.
+    - Add armel/dove recipes.
+    - Use new get_real_resize_range function from partman-partitioning
+      72ubuntu3, which caches calls to tune2fs and ntfsresize.
+    - Add i386/efi (and amd64/efi, kfreebsd-i386/efi, and
+      kfreebsd-amd64/efi) recipes that create an EFI System Partition.
+    - Support resizing the largest partition on multiple disks.
+    - Support formatting the entire partition for any partition that can be
+      resized.
+    - Determine memory size for RAM-dependent recipe elements more
+      accurately on i386.
+  * Get memory size from /sys/firmware/memmap/* rather than using
+    dmi-available-memory, in line with current base-installer.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 21 Oct 2010 17:12:03 +0100
+
+partman-auto (93) unstable; urgency=low
+
+  * Team upload
+
+  [ Colin Watson ]
+  * Use 'dh $@ --options' rather than 'dh --options $@', for
+    forward-compatibility with debhelper v8.
+
+  [ Christian Perrier ]
+  * Limit swap to 200% of physical memory. Closes: #597087
+
+  [ Updated translations ]
+  * Asturian (ast.po) by maacub
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bosnian (bs.po) by Armin Beširović
+  * Danish (da.po) by Jacob Sparre Andersen
+  * Persian (fa.po) by Ebrahim Byagowi
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Telugu (te.po) by Arjuna Rao Chavala
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 10 Oct 2010 10:01:02 +0200
+
+partman-auto (92) unstable; urgency=low
+
+  [ Petter Reinholdtsen ]
+  * Increase max size for /usr/ in the multi recipe from 5000 to 6000
+    MB, based on feedback from Nima Azarbayjany on debian-boot@.
+
+  [ Colin Watson ]
+  * Remove stray error message text left around from version 90.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Viktar Siarheichyk
+  * Persian (fa.po) by acathur
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Central Khmer (km.po) by Khoem Sokhem
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Macedonian (mk.po) by Arangel Angov
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 11 Jul 2010 18:54:33 +0200
+
 partman-auto (91ubuntu4) maverick; urgency=low
 
   * Use /usr/lib/base-installer/dmi-available-memory if available to

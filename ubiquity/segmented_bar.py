@@ -528,7 +528,6 @@ class SegmentedBar(gtk.Widget):
         else:
             fd.set_size(self.pango_size_normal)
 
-
         if bold:
             fd.set_weight(pango.WEIGHT_BOLD)
         else:
@@ -610,7 +609,6 @@ class SegmentedBarSlider(SegmentedBar):
             x, y, state = event.window.get_pointer()
         else:
             x = event.x
-            y = event.y
             state = event.state
 
         if not (state & gtk.gdk.BUTTON1_MASK) or self.resize == -1:

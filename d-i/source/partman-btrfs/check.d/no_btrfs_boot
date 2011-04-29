@@ -2,6 +2,14 @@
 # grub and other bootloaders that read the filesystem do not support /boot
 # on btrfs. (lilo should work). Detect and warn.
 
+# grub2 works now.
+ARCH="$(archdetect)"
+case $ARCH in
+    amd64/*|*-amd64/*|i386/*|*-i386/*)
+	exit 0
+	;;
+esac
+
 . /lib/partman/lib/base.sh
 
 get_btrfs_root_boot () {

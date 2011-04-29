@@ -24,6 +24,7 @@ import os
 import platform
 import stat
 import re
+import pwd
 import textwrap
 import shutil
 import subprocess
@@ -48,6 +49,7 @@ from ubiquity import plugin_manager
 from ubiquity.casper import get_casper
 from ubiquity.components import apt_setup, hw_detect, check_kernels
 
+
 def cleanup_after(func):
     def wrapper(self):
         try:
@@ -61,6 +63,7 @@ def cleanup_after(func):
             except:
                 pass
     return wrapper
+
 
 class Install(install_misc.InstallBase):
     def __init__(self):
@@ -92,8 +95,26 @@ class Install(install_misc.InstallBase):
                            os.path.join(self.target, 'var/lib/dpkg/status'))
         apt_pkg.Config.set("APT::GPGV::TrustedKeyring",
                            os.path.join(self.target, 'etc/apt/trusted.gpg'))
+
+        # Keep this in sync with configure_apt.
+        # TODO cjwatson 2011-03-03: consolidate this.
+        apt_pkg.Config.set("APT::Authentication::TrustCDROM", "true")
         apt_pkg.Config.set("Acquire::gpgv::Options::",
                            "--ignore-time-conflict")
+        try:
+            if self.db.get('debian-installer/allow_unauthenticated') == 'true':
+                apt_pkg.Config.set("APT::Get::AllowUnauthenticated", "true")
+                apt_pkg.Config.set(
+                    "Aptitude::CmdLine::Ignore-Trust-Violations", "true")
+        except debconf.DebconfError:
+            pass
+        apt_pkg.Config.set("APT::CDROM::NoMount", "true")
+        apt_pkg.Config.set("Acquire::cdrom::mount", "/cdrom")
+        apt_pkg.Config.set("Acquire::cdrom::/cdrom/::Mount", "true")
+        apt_pkg.Config.set("Acquire::cdrom::/cdrom/::UMount", "true")
+        apt_pkg.Config.set("Acquire::cdrom::AutoDetect", "false")
+        apt_pkg.Config.set("Dir::Media::MountPath", "/cdrom")
+
         apt_pkg.Config.set("DPkg::Options::", "--root=%s" % self.target)
         # We don't want apt-listchanges or dpkg-preconfigure, so just clear
         # out the list of pre-installation hooks.
@@ -133,11 +154,7 @@ class Install(install_misc.InstallBase):
 
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/apt')
-        #self.configure_apt()
-        try:
-            shutil.rmtree(os.path.join(self.target, 'var/lib/apt-xapian-index'), ignore_errors=True)
-        except OSError:
-            pass
+        self.configure_apt()
 
         self.configure_plugins()
 
@@ -168,16 +185,16 @@ class Install(install_misc.InstallBase):
         apt_install_direct.close()
 
         self.next_region()
-        self.db.progress('INFO', 'ubiquity/install/bootloader')
-        self.configure_bootloader()
-
-        self.next_region()
         self.db.progress('INFO', 'ubiquity/install/installing')
 
         if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
             self.install_oem_extras()
         else:
             self.install_extras()
+
+        self.next_region()
+        self.db.progress('INFO', 'ubiquity/install/bootloader')
+        self.configure_bootloader()
 
         self.next_region(size=4)
         self.db.progress('INFO', 'ubiquity/install/removing')
@@ -190,6 +207,20 @@ class Install(install_misc.InstallBase):
         else:
             self.remove_extras()
 
+        self.next_region()
+        if 'UBIQUITY_OEM_USER_CONFIG' not in os.environ:
+            self.install_restricted_extras()
+
+        self.db.progress('INFO', 'ubiquity/install/apt_clone_restore')
+        try:
+            self.apt_clone_restore()
+        except:
+            syslog.syslog(syslog.LOG_WARNING,
+                'Could not restore packages from the previous install:')
+            for line in traceback.format_exc().split('\n'):
+                syslog.syslog(syslog.LOG_WARNING, line)
+            self.db.input('critical', 'ubiquity/install/broken_apt_clone')
+            self.db.go()
         try:
             self.copy_network_config()
         except:
@@ -246,11 +277,11 @@ class Install(install_misc.InstallBase):
         except debconf.DebconfError:
             hostname = ''
         try:
-            domain = self.db.get('netcfg/get_domain')
+            domain = self.db.get('netcfg/get_domain').rstrip('.')
         except debconf.DebconfError:
             domain = ''
         if hostname == '':
-            hostname = 'mint'
+            hostname = 'ubuntu'
 
         hosts = open(os.path.join(self.target, 'etc/hosts'), 'w')
         print >>hosts, "127.0.0.1\tlocalhost"
@@ -262,12 +293,11 @@ class Install(install_misc.InstallBase):
         print >>hosts, textwrap.dedent("""\
 
             # The following lines are desirable for IPv6 capable hosts
-            ::1     localhost ip6-localhost ip6-loopback
+            ::1     ip6-localhost ip6-loopback
             fe00::0 ip6-localnet
             ff00::0 ip6-mcastprefix
             ff02::1 ip6-allnodes
-            ff02::2 ip6-allrouters
-            ff02::3 ip6-allhosts""")
+            ff02::2 ip6-allrouters""")
         hosts.close()
 
         # Network Manager's ifupdown plugin has an inotify watch on
@@ -340,10 +370,13 @@ class Install(install_misc.InstallBase):
         class Progress:
             def __init__(self, db):
                 self._db = db
+
             def info(self, title):
                 self._db.progress('INFO', title)
+
             def get(self, question):
                 return self._db.get(question)
+
             def substitute(self, template, substr, data):
                 self._db.subst(template, substr, data)
 
@@ -372,6 +405,8 @@ class Install(install_misc.InstallBase):
         # TODO cjwatson 2007-07-06: Much of the following is
         # cloned-and-hacked from base-installer/debian/postinst. Perhaps we
         # should come up with a way to avoid this.
+
+        # Keep this in sync with __init__.
 
         # Make apt trust CDs. This is not on by default (we think).
         # This will be left in place on the installed system.
@@ -424,7 +459,8 @@ class Install(install_misc.InstallBase):
                 UMount "true";
               };
               AutoDetect "false";
-            }""")
+            };
+            Dir::Media::MountPath "/cdrom";""")
         apt_conf_nmc.close()
 
         # This will be reindexed after installation based on the full
@@ -492,6 +528,7 @@ class Install(install_misc.InstallBase):
                 continue
             cachedpkg = install_misc.get_cache_pkg(cache, pkg)
             if cachedpkg is None or not cachedpkg.is_installed:
+                syslog.syslog('incomplete language support: %s missing' % pkg)
                 incomplete = True
                 break
         if incomplete:
@@ -514,7 +551,7 @@ class Install(install_misc.InstallBase):
         if kern is None:
             return None
         pkc = cache._depcache.GetCandidateVer(kern._pkg)
-        if pkc.depends_list.has_key('Depends'):
+        if 'Depends' in pkc.depends_list:
             dependencies = pkc.depends_list['Depends']
         else:
             # Didn't find.
@@ -606,7 +643,10 @@ class Install(install_misc.InstallBase):
     def get_resume_partition(self):
         biggest_size = 0
         biggest_partition = None
-        swaps = open('/proc/swaps')
+        try:
+            swaps = open('/proc/swaps')
+        except:
+            return None
         for line in swaps:
             words = line.split()
             if words[1] != 'partition':
@@ -771,6 +811,14 @@ class Install(install_misc.InstallBase):
         hardware system."""
 
         if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
+            #the language might be different than initial install.
+            #recopy translations if we have them now
+            full_lang = self.db.get('debian-installer/locale').split('.')[0]
+            for lang in [full_lang.split('.')[0], full_lang.split('_')[0]]:
+                source = '/usr/share/locale-langpack/%s/LC_MESSAGES/grub.mo' % lang
+                if os.path.exists(source) and os.path.isdir('/boot/grub/locale'):
+                    shutil.copy(source, '/boot/grub/locale/%s.mo' % lang)
+                    break
             return
 
         inst_boot = self.db.get('ubiquity/install_bootloader')
@@ -991,6 +1039,47 @@ class Install(install_misc.InstallBase):
         if inst_langpacks:
             self.verify_language_packs()
 
+    def install_restricted_extras(self):
+        if self.db.get('ubiquity/use_nonfree') == 'true':
+            self.db.progress('INFO', 'ubiquity/install/nonfree')
+            package = self.db.get('ubiquity/nonfree_package')
+            self.do_install([package])
+            try:
+                install_misc.chrex(self.target,'dpkg-divert', '--package',
+                        'ubiquity', '--rename', '--quiet', '--add',
+                        '/usr/sbin/update-initramfs')
+                try:
+                    os.symlink('/bin/true', os.path.join(self.target,
+                        'usr/sbin/update-initramfs'))
+                except OSError:
+                    pass
+                env = os.environ.copy()
+                env['LC_ALL'] = 'C'
+                misc.execute('mount', '--bind', '/proc', self.target + '/proc')
+                misc.execute('mount', '--bind', '/sys', self.target + '/sys')
+                misc.execute('mount', '--bind', '/dev', self.target + '/dev')
+                inst_composite = ['chroot', self.target, 'jockey-text',
+                                  '-C', '--no-dbus', '-k', self.kernel_version]
+                p = subprocess.Popen(inst_composite, stdin=subprocess.PIPE,
+                                     stdout=sys.stderr, env=env)
+                p.communicate('y\n')
+            except OSError:
+                syslog.syslog(syslog.LOG_WARNING,
+                    'Could not install a composited driver:')
+                for line in traceback.format_exc().split('\n'):
+                    syslog.syslog(syslog.LOG_WARNING, line)
+            finally:
+                misc.execute('umount', '-f', self.target + '/proc')
+                misc.execute('umount', '-f', self.target + '/sys')
+                misc.execute('umount', '-f', self.target + '/dev')
+                osextras.unlink_force(os.path.join(self.target,
+                    'usr/sbin/update-initramfs'))
+                install_misc.chrex(self.target,'dpkg-divert', '--package',
+                        'ubiquity', '--rename', '--quiet', '--remove',
+                        '/usr/sbin/update-initramfs')
+                install_misc.chrex(self.target,'update-initramfs', '-c', '-k',
+                        self.kernel_version)
+
     def install_extras(self):
         """Try to install additional packages requested by installer
         components."""
@@ -1014,10 +1103,6 @@ class Install(install_misc.InstallBase):
 
         if found_cdrom:
             os.rename("%s.apt-setup" % sources_list, sources_list)
-
-        if self.db.get('ubiquity/use_nonfree') == 'true':
-            package = self.db.get('ubiquity/nonfree_package')
-            self.do_install([package])
 
         # TODO cjwatson 2007-08-09: python reimplementation of
         # oem-config/finish-install.d/07oem-config-user. This really needs
@@ -1074,7 +1159,7 @@ class Install(install_misc.InstallBase):
             for line in manifest_file:
                 if line.strip() != '' and not line.startswith('#'):
                     keep.add(line.split()[0])
-        # Lets not rip out the ground beneath our feet.
+        # Let's not rip out the ground beneath our feet.
         keep.add('ubiquity')
         keep.add('oem-config')
 
@@ -1231,6 +1316,30 @@ class Install(install_misc.InstallBase):
                 for line in installed:
                     print >>fp, line
 
+    def apt_clone_restore(self):
+        if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
+            return
+        import lsb_release
+        working = os.path.join(self.target, 'ubiquity-apt-clone')
+        working = os.path.join(working,
+                               'apt-clone-state-%s.tar.gz' % os.uname()[1])
+        codename = lsb_release.get_distro_information()['CODENAME']
+        if not os.path.exists(working):
+            return
+        install_misc.chroot_setup(self.target)
+        try:
+            misc.execute('mount', '--bind', '/proc', self.target + '/proc')
+            misc.execute('mount', '--bind', '/sys', self.target + '/sys')
+            misc.execute('mount', '--bind', '/dev', self.target + '/dev')
+            subprocess.check_call(['apt-clone', 'restore-new-distro',
+                working, codename, '--destination', self.target],
+                preexec_fn=install_misc.debconf_disconnect)
+        finally:
+            install_misc.chroot_cleanup(self.target)
+            misc.execute('umount', '-f', self.target + '/proc')
+            misc.execute('umount', '-f', self.target + '/sys')
+            misc.execute('umount', '-f', self.target + '/dev')
+
     def copy_network_config(self):
         if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
             return
@@ -1242,8 +1351,8 @@ class Install(install_misc.InstallBase):
         target_user = self.db.get('passwd/username')
 
         # GTK
-        # FIXME evand 2009-12-11: We assume /home here, but determine it below.
-        target_keyrings = os.path.join(self.target, 'home', target_user,
+        homedir = '/home/%s' % target_user
+        target_keyrings = os.path.join(self.target, homedir[1:],
                                        '.gnome2/keyrings')
 
         # Sanity checks.  We don't want to do anything if a network
@@ -1251,7 +1360,7 @@ class Install(install_misc.InstallBase):
         # selected to install without formatting.
         if os.path.exists(target_keyrings):
             return
-        config_source = 'xml:readwrite:$HOME/.gconf'
+        config_source = 'xml:readwrite:%s/.gconf' % homedir
         subp = subprocess.Popen(['chroot', self.target, 'sudo', '-i', '-n',
             '-u', target_user, '--', 'gconftool-2', '--direct',
             '--config-source', config_source, '--dir-exists',
@@ -1312,7 +1421,7 @@ class Install(install_misc.InstallBase):
 
         # we don't use copy_network_config casper user trick as it's not and not
         # ubuntu in install mode
-        casper_user = 'mint'
+        casper_user = 'ubuntu'
         casper_user_home = os.path.expanduser('~%s' % casper_user)
         casper_user_wallpaper_cache_dir = os.path.join(casper_user_home,
                                                        '.cache', 'wallpaper')
@@ -1406,6 +1515,13 @@ class Install(install_misc.InstallBase):
                 oem_id_file.close()
         except (debconf.DebconfError, IOError):
             pass
+        try:
+            path = os.path.join(self.target, 'ubiquity-apt-clone')
+            if os.path.exists(path):
+                shutil.move(path,
+                            os.path.join(self.target, 'var/log/installer'))
+        except IOError:
+            pass
 
     def cleanup(self):
         """Miscellaneous cleanup tasks."""
@@ -1423,6 +1539,9 @@ class Install(install_misc.InstallBase):
                 self.target, 'etc/apt/apt.conf.d', apt_conf))
 
 if __name__ == '__main__':
+    if not os.path.exists('/var/lib/ubiquity'):
+        os.makedirs('/var/lib/ubiquity')
+
     install = Install()
     sys.excepthook = install_misc.excepthook
     install.run()

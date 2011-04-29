@@ -661,7 +661,7 @@ class TimezoneMap(gtk.Widget):
 
     def mapped(self, unused_widget, unused_event):
         if self.update_timeout is None:
-            self.update_timeout = gobject.timeout_add(1000, self.timeout)
+            self.update_timeout = gobject.timeout_add_seconds(1, self.timeout)
 
     def unmapped(self, unused_widget, unused_event):
         if self.update_timeout is not None:

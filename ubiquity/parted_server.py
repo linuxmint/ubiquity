@@ -203,20 +203,25 @@ class PartedServer(object):
     def partitions(self):
         partitions = []
         self.open_dialog('PARTITIONS')
-        while True:
-            (p_num, p_id, p_size, p_type,
-             p_fs, p_path, p_name) = self.read_line(7)
-            if p_id == '':
-                break
-            partitions.append((p_num, p_id, p_size, p_type,
-                               p_fs, p_path, p_name))
-        self.close_dialog()
+        try:
+            while True:
+                (p_num, p_id, p_size, p_type,
+                 p_fs, p_path, p_name) = self.read_line(7)
+                if p_id == '':
+                    break
+                partitions.append((p_num, p_id, p_size, p_type,
+                                   p_fs, p_path, p_name))
+        finally:
+            self.close_dialog()
         return partitions
 
     def partition_info(self, partition):
         self.open_dialog('PARTITION_INFO', partition)
-        (p_num, p_id, p_size, p_type, p_fs, p_path, p_name) = self.read_line(7)
-        self.close_dialog()
+        try:
+            (p_num, p_id, p_size, p_type,
+             p_fs, p_path, p_name) = self.read_line(7)
+        finally:
+            self.close_dialog()
         if p_id == '':
             return ()
         return (p_num, p_id, p_size, p_type, p_fs, p_path, p_name)

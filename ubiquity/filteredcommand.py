@@ -321,7 +321,7 @@ class FilteredCommand(UntrustedBase):
         for i in range(len(choices)):
             if choices[i] == value:
                 return choices_c[i]
-        raise ValueError, value
+        raise ValueError(value)
 
     def value_index(self, question):
         value = self.db.get(question)
@@ -329,7 +329,7 @@ class FilteredCommand(UntrustedBase):
         for i in range(len(choices_c)):
             if choices_c[i] == value:
                 return i
-        raise ValueError, value
+        raise ValueError(value)
 
     def preseed(self, name, value, seen=True):
         value = misc.debconf_escape(value)
@@ -349,7 +349,6 @@ class FilteredCommand(UntrustedBase):
             self.preseed(name, 'true', seen)
         else:
             self.preseed(name, 'false', seen)
-
 
     def preseed_as_c(self, name, value, seen=True):
         self.preseed(name, self.translate_to_c(name, value), seen)

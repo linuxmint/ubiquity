@@ -21,7 +21,7 @@
 import re
 import os
 
-from ubiquity.plugin import *
+from ubiquity import plugin
 from ubiquity import keyboard_names
 from ubiquity import misc
 from ubiquity import osextras
@@ -30,14 +30,13 @@ NAME = 'console_setup'
 AFTER = 'timezone'
 WEIGHT = 10
 
-class PageGtk(PluginUI):
+class PageGtk(plugin.PluginUI):
     plugin_title = 'ubiquity/text/keyboard_heading_label'
     def __init__(self, controller, *args, **kwargs):
         self.controller = controller
         self.current_layout = None
         try:
             import gtk
-            from ubiquity.gtkwidgets import LabelledEntry
             builder = gtk.Builder()
             self.controller.add_builder(builder)
             builder.add_from_file(os.path.join(os.environ['UBIQUITY_GLADE'], 'stepKeyboardConf.ui'))
@@ -60,7 +59,7 @@ class PageGtk(PluginUI):
         test_label = self.controller.get_string('keyboard_test_label', lang)
         self.keyboard_test.set_label(test_label)
 
-    @only_this_page
+    @plugin.only_this_page
     def calculate_result(self, w, keymap):
         l = self.controller.dbfilter.get_locale()
         keymap = keymap.split(':')
@@ -95,7 +94,7 @@ class PageGtk(PluginUI):
     def on_keyboardlayoutview_row_activated(self, *args):
         self.controller.go_forward()
 
-    @only_this_page
+    @plugin.only_this_page
     def on_keyboard_layout_selected(self, *args):
         layout = self.get_keyboard()
         if layout is not None:
@@ -105,7 +104,7 @@ class PageGtk(PluginUI):
     def on_keyboardvariantview_row_activated(self, *args):
         self.controller.go_forward()
 
-    @only_this_page
+    @plugin.only_this_page
     def on_keyboard_variant_selected(self, *args):
         layout = self.get_keyboard()
         variant = self.get_keyboard_variant()
@@ -195,7 +194,7 @@ def utf8(str):
         return str
     return unicode(str, 'utf-8')
 
-class PageKde(PluginUI):
+class PageKde(plugin.PluginUI):
     plugin_breadcrumb = 'ubiquity/text/breadcrumb_keyboard'
 
     def __init__(self, controller, *args, **kwargs):
@@ -220,7 +219,7 @@ class PageKde(PluginUI):
             self.page = None
         self.plugin_widgets = self.page
 
-    @only_this_page
+    @plugin.only_this_page
     def on_keyboard_layout_selected(self, *args):
         layout = self.get_keyboard()
         l = self.controller.dbfilter.get_locale()
@@ -231,13 +230,13 @@ class PageKde(PluginUI):
                 self.keyboardDisplay.setLayout(ly)
 
                 #no variants, force update by setting none
-                #if not keyboard_names.lang[l]['variants'].has_key(ly):
+                #if ly not in keyboard_names.lang[l]['variants']:
                 #    self.keyboardDisplay.setVariant(None)
 
             self.current_layout = layout
             self.controller.dbfilter.change_layout(layout)
 
-    @only_this_page
+    @plugin.only_this_page
     def on_keyboard_variant_selected(self, *args):
         layout = self.get_keyboard()
         variant = self.get_keyboard_variant()
@@ -246,7 +245,7 @@ class PageKde(PluginUI):
             var = None
             l = self.controller.dbfilter.get_locale()
             ly = keyboard_names.lang[l]['layouts'][layout]
-            if variant and keyboard_names.lang[l]['variants'].has_key(ly):
+            if variant and ly in keyboard_names.lang[l]['variants']:
                 variantMap = keyboard_names.lang[l]['variants'][ly]
                 var = variantMap[utf8(variant)]
 
@@ -264,7 +263,7 @@ class PageKde(PluginUI):
         if self.current_layout is not None:
             self.set_keyboard(self.current_layout)
 
-    @only_this_page
+    @plugin.only_this_page
     def set_keyboard (self, layout):
         from PyQt4.QtCore import QString
         index = self.page.keyboard_layout_combobox.findText(QString(utf8(layout)))
@@ -289,7 +288,7 @@ class PageKde(PluginUI):
         for choice in sorted(choices):
             self.page.keyboard_variant_combobox.addItem(QString(utf8(choice)))
 
-    @only_this_page
+    @plugin.only_this_page
     def set_keyboard_variant(self, variant):
         from PyQt4.QtCore import QString
         index = self.page.keyboard_variant_combobox.findText(QString(utf8(variant)))
@@ -301,7 +300,7 @@ class PageKde(PluginUI):
             var = None
             l = self.controller.dbfilter.get_locale()
             layout = keyboard_names.lang[l]['layouts'][self.get_keyboard()]
-            if variant and keyboard_names.lang[l]['variants'].has_key(layout):
+            if variant and layout in keyboard_names.lang[l]['variants']:
                 variantMap = keyboard_names.lang[l]['variants'][layout]
                 var = variantMap[utf8(variant)]
 
@@ -313,10 +312,10 @@ class PageKde(PluginUI):
 
         return unicode(self.page.keyboard_variant_combobox.currentText())
 
-class PageDebconf(PluginUI):
+class PageDebconf(plugin.PluginUI):
     plugin_title = 'ubiquity/text/keyboard_heading_label'
 
-class PageNoninteractive(PluginUI):
+class PageNoninteractive(plugin.PluginUI):
     def set_keyboard_choices(self, choices):
         """Set the available keyboard layout choices."""
         pass
@@ -340,31 +339,32 @@ class PageNoninteractive(PluginUI):
     def get_keyboard_variant(self):
         return self.keyboard_variant
 
-class Page(Plugin):
+class Page(plugin.Plugin):
     def prepare(self, unfiltered=False):
         self.preseed('console-setup/ask_detect', 'false')
 
-        # We need to get rid of /etc/default/console-setup, or console-setup
-        # will think it's already configured and behave differently. Try to
-        # save the old file for interest's sake, but it's not a big deal if
-        # we can't.
+        # We need to get rid of /etc/default/keyboard, or console-setup will
+        # think it's already configured and behave differently. Try to save
+        # the old file for interest's sake, but it's not a big deal if we
+        # can't.
         with misc.raised_privileges():
-            osextras.unlink_force('/etc/default/console-setup.pre-ubiquity')
+            osextras.unlink_force('/etc/default/keyboard.pre-ubiquity')
             try:
-                os.rename('/etc/default/console-setup',
-                          '/etc/default/console-setup.pre-ubiquity')
+                os.rename('/etc/default/keyboard',
+                          '/etc/default/keyboard.pre-ubiquity')
             except OSError:
-                osextras.unlink_force('/etc/default/console-setup')
+                osextras.unlink_force('/etc/default/keyboard')
         # Make sure debconf doesn't do anything with crazy "preseeded"
         # answers to these questions. If you want to preseed these, use the
         # *code variants.
-        self.db.fset('console-setup/layout', 'seen', 'false')
-        self.db.fset('console-setup/variant', 'seen', 'false')
-        self.db.fset('console-setup/model', 'seen', 'false')
-        self.db.fset('console-setup/codeset', 'seen', 'false')
+        self.db.fset('keyboard-configuration/layout', 'seen', 'false')
+        self.db.fset('keyboard-configuration/variant', 'seen', 'false')
+        self.db.fset('keyboard-configuration/model', 'seen', 'false')
+        self.db.fset('console-setup/codeset47', 'seen', 'false')
 
         # Roughly taken from console-setup's config.proto:
-        l = self.db.get('debian-installer/locale').rsplit('.', 1)[0]
+        di_locale = self.db.get('debian-installer/locale')
+        l = di_locale.rsplit('.', 1)[0]
         if l not in keyboard_names.lang:
             self.debug("Untranslated layout '%s'" % l)
             l = l.rsplit('_', 1)[0]
@@ -373,46 +373,82 @@ class Page(Plugin):
             l = 'C'
         self._locale = l
 
+        self.has_variants = False
+
         # Technically we should provide a version as the second argument,
         # but that isn't currently needed and it would require querying
         # apt/dpkg for the current version, which would be slow, so we don't
         # bother for now.
-        return (['/usr/lib/ubiquity/console-setup/console-setup.postinst',
+        return (['/usr/lib/ubiquity/console-setup/keyboard-configuration.postinst',
                  'configure'],
-                ['^console-setup/layout', '^console-setup/variant',
-                 '^console-setup/unsupported_'],
-                {'OVERRIDE_ALLOW_PRESEEDING': '1'})
+                ['^keyboard-configuration/layout', '^keyboard-configuration/variant',
+                 '^keyboard-configuration/model', '^keyboard-configuration/altgr$',
+                 '^keyboard-configuration/unsupported_'],
+                {'OVERRIDE_ALLOW_PRESEEDING': '1',
+                 'LC_ALL': di_locale,
+                 'PATH': '/usr/lib/ubiquity/console-setup:' +
+                         os.environ['PATH']})
+
+    # keyboard-configuration has a complex model of whether to store defaults
+    # in debconf, induced by its need to run well both in an installer context
+    # and as a package.  We need to adjust this while we're running in order
+    # that we can go back and forward without keyboard-configuration
+    # overwriting our answers with default values.
+    def store_defaults(self, store):
+        self.preseed_bool(
+            'keyboard-configuration/store_defaults_in_debconf_db', store,
+            seen=False)
 
     def run(self, priority, question):
         if self.done:
             return self.succeeded
 
-        if question == 'console-setup/layout':
-            # Reset this in case we just backed up from the variant
-            # question.
-            self.succeeded = True
-            # TODO cjwatson 2006-09-07: no console-setup support for layout
-            # choice translation yet
+        if question == 'keyboard-configuration/layout':
+            # TODO cjwatson 2006-09-07: no keyboard-configuration support
+            # for layout choice translation yet
             self.ui.set_keyboard_choices(
                 self.choices_untranslated(question))
             self.ui.set_keyboard(self.db.get(question))
+            # Reset these in case we just backed up from the variant
+            # question.
+            self.store_defaults(True)
+            self.has_variants = False
+            self.succeeded = True
             return True
-        elif question == 'console-setup/variant':
-            # TODO cjwatson 2006-10-02: no console-setup support for variant
-            # choice translation yet
-            self.ui.set_keyboard_variant_choices(
-                self.choices_untranslated(question))
-            self.ui.set_keyboard_variant(self.db.get(question))
-            # console-setup preseeding is special, and needs to be checked
-            # by hand. The seen flag on console-setup/layout is used
-            # internally by console-setup, so we can't just force it to
-            # true.
+        elif question in ('keyboard-configuration/variant',
+                          'keyboard-configuration/altgr'):
+            if question == 'keyboard-configuration/altgr':
+                if self.has_variants:
+                    return True
+                else:
+                    # If there's only one variant, it is always the same as
+                    # the layout name.
+                    single_variant = self.db.get(
+                        'keyboard-configuration/layout')
+                    self.ui.set_keyboard_variant_choices([single_variant])
+                    self.ui.set_keyboard_variant(single_variant)
+            else:
+                # TODO cjwatson 2006-10-02: no keyboard-configuration
+                # support for variant choice translation yet
+                self.has_variants = True
+                self.ui.set_keyboard_variant_choices(
+                    self.choices_untranslated(question))
+                self.ui.set_keyboard_variant(self.db.get(question))
+            # keyboard-configuration preseeding is special, and needs to be
+            # checked by hand. The seen flag on
+            # keyboard-configuration/layout is used internally by
+            # keyboard-configuration, so we can't just force it to true.
             if ('UBIQUITY_AUTOMATIC' in os.environ and
-                self.db.fget('console-setup/layoutcode', 'seen') == 'true'):
+                self.db.fget('keyboard-configuration/layoutcode', 'seen') == 'true'):
                 return True
             else:
-                return Plugin.run(self, priority, question)
-        elif question.startswith('console-setup/unsupported_'):
+                return plugin.Plugin.run(self, priority, question)
+        elif question == 'keyboard-configuration/model':
+            # Backing up from the variant question inconveniently goes back
+            # to the model question.  Catch this and go forward again so
+            # that we can reach the layout question.
+            return True
+        elif question.startswith('keyboard-configuration/unsupported_'):
             response = self.frontend.question_dialog(
                 self.description(question),
                 self.extended_description(question),
@@ -426,23 +462,25 @@ class Page(Plugin):
             return True
 
     def change_layout(self, layout):
-        self.preseed('console-setup/layout', layout)
-        # Back up in order to get console-setup to recalculate the list of
-        # possible variants.
+        self.preseed('keyboard-configuration/layout', layout)
+        self.store_defaults(False)
+        # Back up in order to get keyboard-configuration to recalculate the
+        # list of possible variants.
         self.succeeded = False
         self.exit_ui_loops()
 
     def ok_handler(self):
         variant = self.ui.get_keyboard_variant()
         if variant is not None:
-            self.preseed('console-setup/variant', variant)
-        return Plugin.ok_handler(self)
+            self.preseed('keyboard-configuration/variant', variant)
+        return plugin.Plugin.ok_handler(self)
 
-    # TODO cjwatson 2006-09-07: This is duplication from console-setup, but
-    # currently difficult to avoid; we need to apply the keymap immediately
-    # when the user selects it in the UI (and before they move to the next
-    # page), so this needs to be fast and moving through console-setup to
-    # get the corrections it applies will be too slow.
+    # TODO cjwatson 2006-09-07: This is duplication from
+    # keyboard-configuration, but currently difficult to avoid; we need to
+    # apply the keymap immediately when the user selects it in the UI (and
+    # before they move to the next page), so this needs to be fast and
+    # moving through keyboard-configuration to get the corrections it
+    # applies will be too slow.
     def adjust_keyboard(self, model, layout, variant, options):
         """Apply any necessary tweaks to the supplied model, layout, variant,
         and options."""
@@ -533,7 +571,7 @@ class Page(Plugin):
         return self._locale
 
     def apply_keyboard(self, layout, variant):
-        model = self.db.get('console-setup/modelcode')
+        model = self.db.get('keyboard-configuration/modelcode')
 
         l = self.get_locale()
         if layout not in keyboard_names.lang[l]['layouts']:
@@ -661,27 +699,27 @@ class Page(Plugin):
         # always supported that up to now). So we get this horrible mess
         # instead ...
 
-        model = self.db.get('console-setup/modelcode')
-        layout = self.db.get('console-setup/layoutcode')
-        variant = self.db.get('console-setup/variantcode')
-        options = self.db.get('console-setup/optionscode')
+        model = self.db.get('keyboard-configuration/modelcode')
+        layout = self.db.get('keyboard-configuration/layoutcode')
+        variant = self.db.get('keyboard-configuration/variantcode')
+        options = self.db.get('keyboard-configuration/optionscode')
         if options:
             options_list = options.split(',')
         else:
             options_list = []
         self.apply_real_keyboard(model, layout, variant, options_list)
 
-        Plugin.cleanup(self)
+        plugin.Plugin.cleanup(self)
 
         if layout == '':
             return
 
         self.rewrite_xorg_conf(model, layout, variant, options)
 
-class Install(InstallPlugin):
+class Install(plugin.InstallPlugin):
     def prepare(self, unfiltered=False):
         return (['/usr/share/ubiquity/console-setup-apply'], [])
 
     def install(self, target, progress, *args, **kwargs):
         progress.info('ubiquity/install/keyboard')
-        return InstallPlugin.install(self, target, progress, *args, **kwargs)
+        return plugin.InstallPlugin.install(self, target, progress, *args, **kwargs)

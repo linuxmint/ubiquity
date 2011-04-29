@@ -1,3 +1,260 @@
+base-installer (1.116ubuntu2) natty; urgency=low
+
+  [ Hsin-Yi, Chen ]
+  * Support AMD CPU family 18 (LP: #760490).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 14 Apr 2011 18:07:46 +0100
+
+base-installer (1.116ubuntu1) natty; urgency=low
+
+  * Resynchronise with Debian (LP: #724822).  Remaining changes:
+    - Use and depend on the Ubuntu keyring.
+    - Enable the restricted component by default, unless
+      apt-setup/restricted is preseeded to false.
+    - Set up the default sources.list to look in -updates and -security (the
+      latter from apt-setup/security_host) as well as the unadorned suite;
+      also -proposed if apt-setup/proposed is true.
+    - Use Ubuntu kernel image names.
+    - Allow preseeding base-installer/kernel/override-image to force a given
+      kernel to be used.
+    - Install busybox-initramfs rather than busybox.
+    - Revert Joey's patch to call base-installer.d hooks after running
+      debootstrap, which broke console-setup's expectation of being able to
+      insert its configuration file into /target before console-setup is
+      installed by debootstrap.
+    - Add armel/imx51, armel/dove, and armel/omap subarchitectures.
+    - Install kernel headers to match the kernel. This may be overridden by
+      setting base-installer/kernel/headers to false.
+    - Add base-installer/kernel/backports-modules template, which may be
+      preseeded to install selected linux-backports-modules-* packages.
+    - Run dpkg with --force-unsafe-io during installation.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 25 Feb 2011 10:22:02 +0000
+
+base-installer (1.116) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Support AMD CPU family 20 (thanks, Keng-Yü Lin; LP: #676838).
+
+  [ Joey Hess ]
+  * pkgdetails: Return the value of the field specified by the
+    DEBOOTSTRAP_CHECKSUM_FIELD environment variable.
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 21 Feb 2011 20:26:59 -0400
+
+base-installer (1.115ubuntu1) natty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Use and depend on the Ubuntu keyring.
+    - Enable the restricted component by default, unless
+      apt-setup/restricted is preseeded to false.
+    - Set up the default sources.list to look in -updates and -security (the
+      latter from apt-setup/security_host) as well as the unadorned suite;
+      also -proposed if apt-setup/proposed is true.
+    - Use Ubuntu kernel image names.
+    - Allow preseeding base-installer/kernel/override-image to force a given
+      kernel to be used.
+    - Install busybox-initramfs rather than busybox.
+    - Revert Joey's patch to call base-installer.d hooks after running
+      debootstrap, which broke console-setup's expectation of being able to
+      insert its configuration file into /target before console-setup is
+      installed by debootstrap.
+    - Add armel/imx51, armel/dove, and armel/omap subarchitectures.
+    - Install kernel headers to match the kernel. This may be overridden by
+      setting base-installer/kernel/headers to false.
+    - Add base-installer/kernel/backports-modules template, which may be
+      preseeded to install selected linux-backports-modules-* packages.
+    - Support AMD CPU family 20.
+    - Run dpkg with --force-unsafe-io during installation.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 31 Jan 2011 14:38:47 +0000
+
+base-installer (1.115) unstable; urgency=low
+
+  [ Miguel Figueiredo ]
+  * add title to pick_kernel and driver-policy
+
+  [ Otávio Salvador ]
+  * warn when used with an unknown OS value.
+
+  [ Updated translations ]
+  * Lao (lo.po) by Anousak Souphavanh
+  * Northern Sami (se.po) by Børre Gaup
+  * Sinhala (si.po) by Danishka Navin
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Telugu (te.po) by Arjuna Rao Chavala
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 24 Dec 2010 19:08:53 -0200
+
+base-installer (1.114ubuntu3) natty; urgency=low
+
+  * Run dpkg with --force-unsafe-io during installation; syncing is
+    unnecessary in this context and can slow things down quite a bit.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 10 Jan 2011 12:39:20 -0600
+
+base-installer (1.114ubuntu2) natty; urgency=low
+
+  * Support AMD CPU family 20 (thanks, Keng-Yü Lin; LP: #676838).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 06 Jan 2011 22:24:50 +0000
+
+base-installer (1.114ubuntu1) natty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Use and depend on the Ubuntu keyring.
+    - Enable the restricted component by default, unless
+      apt-setup/restricted is preseeded to false.
+    - Set up the default sources.list to look in -updates and -security (the
+      latter from apt-setup/security_host) as well as the unadorned suite;
+      also -proposed if apt-setup/proposed is true.
+    - Use Ubuntu kernel image names.
+    - Allow preseeding base-installer/kernel/override-image to force a given
+      kernel to be used.
+    - Install busybox-initramfs rather than busybox.
+    - Revert Joey's patch to call base-installer.d hooks after running
+      debootstrap, which broke console-setup's expectation of being able to
+      insert its configuration file into /target before console-setup is
+      installed by debootstrap.
+    - Add armel/imx51, armel/dove, and armel/omap subarchitectures.
+    - Install kernel headers to match the kernel. This may be overridden by
+      setting base-installer/kernel/headers to false.
+    - Add base-installer/kernel/backports-modules template, which may be
+      preseeded to install selected linux-backports-modules-* packages.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 15 Nov 2010 10:07:26 +0000
+
+base-installer (1.114) unstable; urgency=low
+
+  [ Petter Reinholdtsen ]
+  * Prefer 686 kernel over 486 kernel for VIA C7-D CPUs, ie family 6
+    model 13 (Closes: #517121).
+
+  [ Colin Watson ]
+  * Unset MACHINE before running tests, to avoid environment pollution.
+
+  [ Otavio Salvador ]
+  * Avoid using UUID for swap partitions stored at LVM. Closes: #568877.
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Israt Jahan
+  * Catalan (ca.po) by Jordi Mallach
+  * Persian (fa.po) by Behrad Eslamifar
+  * Icelandic (is.po) by Sveinn í Felli
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+
+ -- Otavio Salvador <otavio@ossystems.com.br>  Sat, 13 Nov 2010 08:58:32 -0200
+
+base-installer (1.113ubuntu1) natty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Use and depend on the Ubuntu keyring.
+    - Enable the restricted component by default, unless
+      apt-setup/restricted is preseeded to false.
+    - Set up the default sources.list to look in -updates and -security (the
+      latter from apt-setup/security_host) as well as the unadorned suite;
+      also -proposed if apt-setup/proposed is true.
+    - Use Ubuntu kernel image names.
+    - Allow preseeding base-installer/kernel/override-image to force a given
+      kernel to be used.
+    - Install busybox-initramfs rather than busybox.
+    - Revert Joey's patch to call base-installer.d hooks after running
+      debootstrap, which broke console-setup's expectation of being able to
+      insert its configuration file into /target before console-setup is
+      installed by debootstrap.
+    - Add armel/imx51, armel/dove, and armel/omap subarchitectures.
+    - Install kernel headers to match the kernel. This may be overridden by
+      setting base-installer/kernel/headers to false.
+    - Add base-installer/kernel/backports-modules template, which may be
+      preseeded to install selected linux-backports-modules-* packages.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 21 Oct 2010 16:29:45 +0100
+
+base-installer (1.113) unstable; urgency=low
+
+  * Move base-installer/install-recommends from bootstrap-base.templates
+    to base-installer.templates.
+
+ -- Otavio Salvador <otavio@debian.org>  Sun, 26 Sep 2010 14:56:54 -0300
+
+base-installer (1.112) unstable; urgency=low
+
+  * Set Dir::Media::MountPath to /media/cdrom as well as
+    Acquire::cdrom::mount, as otherwise apt doesn't consistently read from
+    the right one.
+
+  [ Updated translations ]
+  * Danish (da.po) by Anders Jenbo
+
+ -- Colin Watson <cjwatson@debian.org>  Sun, 19 Sep 2010 23:09:20 +0100
+
+base-installer (1.111) unstable; urgency=low
+
+  * Team upload
+  * Really add kernel/tests/i386/pentium-4M-bigmem-2.test
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 05 Sep 2010 11:51:14 +0200
+
+base-installer (1.110) unstable; urgency=low
+
+  * Team upload.
+  
+  [ Ben Hutchings ]
+  * Improve i386 kernel flavour selection. Closes: #589579
+    - Prefer 686-bigmem flavour if it is needed to access all RAM
+    - Prefer 686 or 686-bigmem flavour for all AMD K7 processors
+    - Offer 686-bigmem and amd64 flavours for processors that support them
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 04 Sep 2010 07:05:32 +0200
+
+base-installer (1.109) unstable; urgency=low
+
+  [ Jeremie Koenig ]
+  * Don't check /proc/mounts if it does not exist (ie. on Hurd) (Closes:
+    Bug#588776).
+  
+  [ Aurelien Jarno ]
+  * Teach library.sh how to do a bind mount on Hurd and GNU/kFreeBSD.
+
+  [ Updated translations ]
+  * Asturian (ast.po) by maacub
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bosnian (bs.po) by Armin Beširović
+  * Danish (da.po) by Jacob Sparre Andersen
+  * Persian (fa.po) by Ebrahim Byagowi
+  * Finnish (fi.po) by Esko Arajärvi
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Panjabi (pa.po) by A S Alam
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Serbian (sr.po) by Karolina Kalic
+  * Telugu (te.po) by Arjuna Rao Chavala
+
+ -- Aurelien Jarno <aurel32@debian.org>  Mon, 23 Aug 2010 11:23:24 +0200
+
+base-installer (1.108) unstable; urgency=low
+
+  [ Martin Michlmayr ]
+  * Add support for loongson-2e and loongson-2f.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Viktar Siarheichyk
+  * Danish (da.po) by Jacob Sparre Andersen
+  * Persian (fa.po) by acathur
+  * Galician (gl.po) by Jorge Barreiro
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Central Khmer (km.po) by Khoem Sokhem
+  * Korean (ko.po) by Changwoo Ryu
+  * Kurdish (ku.po) by Changwoo Ryu
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Macedonian (mk.po) by Arangel Angov
+  * Nepali (ne.po)
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Romanian (ro.po) by ioan-eugen stan
+  * Ukrainian (uk.po) by Borys Yanovych
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 10 Jul 2010 20:23:41 +0200
+
 base-installer (1.107ubuntu3) maverick; urgency=low
 
   * Backport from trunk:

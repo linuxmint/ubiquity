@@ -3,15 +3,15 @@ Section: debian-installer
 Priority: standard
 Maintainer: Ubuntu Installer Team <ubuntu-installer@lists.ubuntu.com>
 XSBC-Original-Maintainer: Debian Install System Team <debian-boot@lists.debian.org>
-Uploaders: Petter Reinholdtsen <pere@debian.org>, Joey Hess <joeyh@debian.org>, Colin Watson <cjwatson@debian.org>
-Build-Depends: debhelper (>= 5.0.22), dpkg-dev (>= 1.9.0), po-debconf (>= 0.5.0), libdebian-installer4-dev (>= 0.76)
+Uploaders: Petter Reinholdtsen <pere@debian.org>, Colin Watson <cjwatson@debian.org>
+Build-Depends: debhelper (>= 7.0.50), dpkg-dev (>= 1.9.0), po-debconf (>= 0.5.0), libdebian-installer4-dev (>= 0.76)
 XS-Debian-Vcs-Svn: svn://svn.debian.org/d-i/trunk/packages/hw-detect
 Vcs-Bzr: http://bazaar.launchpad.net/~ubuntu-core-dev/hw-detect/ubuntu
 
 Package: hw-detect
 XC-Package-Type: udeb
 Architecture: any
-Depends: rootskel (>= 1.30), archdetect, cdebconf-udeb (>= 0.75), di-utils (>= 1.66), pciutils-udeb
+Depends: rootskel (>= 1.30), archdetect, cdebconf-udeb (>= 0.75), di-utils (>= 1.73), pciutils-udeb
 Description: Detect hardware and load kernel drivers for it
 
 Package: ethdetect
@@ -36,7 +36,7 @@ Description: Detect disk drives
 Package: driver-injection-disk-detect
 XC-Package-Type: udeb
 Architecture: all
-Depends: hw-detect, mountmedia
+Depends: cdebconf-udeb (>= 0.38), hw-detect, mountmedia
 Priority: optional
 Enhances: hw-detect
 XB-Installer-Menu-Item: 1500
@@ -47,3 +47,17 @@ XC-Package-Type: udeb
 Architecture: any
 Depends: ${shlibs:Depends}
 Description: Hardware architecture detector
+
+Package: archdetect-deb
+Section: utils
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: Hardware architecture detector
+ This package provides the 'archdetect' tool, which displays the current
+ machine architecture and subarchitecture.  The architecture corresponds to
+ that built into dpkg, and describes the CPU (and possibly kernel) types;
+ the subarchitecture distinguishes machines with different boot arrangements
+ that require special handling.
+ .
+ This package would be called 'archdetect', but a udeb of that name already
+ existed for use in the installer.

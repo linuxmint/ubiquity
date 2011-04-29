@@ -3,6 +3,8 @@
 use warnings 'all';
 use strict;
 
+use File::Temp ();
+
 BEGIN {
     my $file;
     if ($ARGV[1]) {
@@ -24,8 +26,8 @@ if ($ARGV[2]) {
 }
 
 # Don't forget to update also the list in config.proto
-my $nonlatin = ' am ara ben bd bg bt by deva ge gh gr guj guru \
-                 il in ir iku kan kh kz la lao lk mk mm mn mv mal \
+my $nonlatin = ' af am ara ben bd bg bt by deva ge gh gr guj guru \
+                 il in iq ir iku kan kh kz la lao lk kg ma mk mm mn mv mal \
                  ori pk ru scc sy syr tel th tj tam ua uz ';
 
 my %keymaps;
@@ -47,6 +49,10 @@ sub ensuredir {
     }
 }
 
+sub checkrename {
+    rename $_[0], $_[1] or die "$0: failed to rename $_[0] to $_[1]: $!\n";
+}
+
 sub read_temp_kmap {
     my $name = $_[0];
     open (KMAP, "$dir/$model-$name") or die  "$0: $dir/$model-$name: $!\n"; 
@@ -66,52 +72,40 @@ for my $layout (values %KeyboardNames::layouts) {
     next if ($layout eq 'nec/jp');
     next if ($layout eq 'nec_vndr/jp');
     my $actual_layout = (($layout eq 'lt') ? 'lt,lt'
-			 : (($layout eq 'jp') ? 'jp,jp'
-			    : (($layout eq 'me') ? 'me,me'
-			       : (($layout eq 'rs') ? 'rs,rs'
-				  : (($nonlatin =~ / $layout /)
-				     ? "us,$layout"
-				     : $layout)))));
+			 : (($layout eq 'me') ? 'me,me'
+			    : (($layout eq 'rs') ? 'rs,rs'
+			       : (($nonlatin =~ / $layout /)
+				  ? "us,$layout" : $layout))));
     if (! -f "$dir/$model-$layout") {
-	if ($layout eq 'jp') {
-	    execute ("./ckbcomp -compact -I. -I${xkbdir} -rules xorg"
-		     ." -model $model"
-		     ." -layout $actual_layout -variant 106,"
-		     ." >$dir/$model-$layout");
-	} elsif ($layout eq 'lt') {
+	if ($layout eq 'lt') {
 	    execute ("./ckbcomp -compact -I. -I${xkbdir} -rules xorg"
 		     ." -model $model"
 		     ." -layout $actual_layout -variant ,us"
-		     ." >$dir/$model-$layout");
+		     ." >$dir/$model-$layout.new");
 	} elsif ($layout eq 'me') {
 	    execute ("./ckbcomp -compact -I. -I${xkbdir} -rules xorg"
 		     ." -model $model"
 		     ." -layout $actual_layout -variant basic,"
-		     ." >$dir/$model-$layout");
+		     ." >$dir/$model-$layout.new");
 	} elsif ($layout eq 'rs') {
 	    execute ("./ckbcomp -compact -I. -I${xkbdir} -rules xorg"
 		     ." -model $model"
 		     ." -layout $actual_layout -variant latin,"
-		     ." >$dir/$model-$layout");
+		     ." >$dir/$model-$layout.new");
 	} else {
 	    execute ("./ckbcomp -compact -I. -I${xkbdir} -rules xorg"
 		     ." -model $model -layout $actual_layout"
-		     ." >$dir/$model-$layout");
+		     ." >$dir/$model-$layout.new");
 	}
-	die "$0: ckbcomp failed\n" if (! -f "$dir/$model-$layout");
+	die "$0: ckbcomp failed\n" if (! -f "$dir/$model-$layout.new");
+	checkrename "$dir/$model-$layout.new", "$dir/$model-$layout";
     }
     if (-f "$dir/$model-$layout") {
 	read_temp_kmap $layout;
     }
     for my $variant (values %{$KeyboardNames::variants{$layout}}) {
 	my $actual_variant;
-	if ($actual_layout eq 'jp,jp') {
-	    if ($variant eq 'common' or $variant eq 'OADG109A' or $variant eq 'nicola_f_bs') {
-		$actual_variant = "$variant,$variant";
-	    } else {
-		$actual_variant = "106,$variant";
-	    }
-	} elsif ($actual_layout eq 'lt,lt') {
+	if ($actual_layout eq 'lt,lt') {
 	    if ($variant eq 'us') {
 		$actual_variant = "us,basic";
 	    } else {
@@ -146,8 +140,9 @@ for my $layout (values %KeyboardNames::layouts) {
 	    execute ("./ckbcomp -compact -I. -I${xkbdir} -rules xorg"
 		     ." -model $model"
 		     ." -layout $actual_layout -variant $actual_variant"
-		     ." >$dir/$model-$layout:$variant")
-		and die "$0: ckbcomp failed\n" if (! -f "$dir/$model-$layout:$variant");
+		     ." >$dir/$model-$layout:$variant.new")
+		and die "$0: ckbcomp failed\n" if (! -f "$dir/$model-$layout:$variant.new");
+	    checkrename "$dir/$model-$layout:$variant.new", "$dir/$model-$layout:$variant";
 	}
 	if (-f "$dir/$model-$layout:$variant") {
 	    read_temp_kmap "$layout:$variant";
@@ -313,12 +308,12 @@ for my $option (keys %options) {
     } elsif ($option =~ /eurosign:(.*)/) {
 	$layout = $layout . "+eurosign($1)";
     }
+    my $tmp = new File::Temp(TEMPLATE => 'kbdcompilerXXXXXX');
     execute ("./ckbcomp -compact -I. -I${xkbdir}"
-	     ." -keycodes '$keycodes' -symbols '$layout' >temp.kmap");
-    if (! -f 'temp.kmap') {
-	die "$0: ckbcomp failed\n" if (! -f 'temp.kmap');
+	     ." -keycodes '$keycodes' -symbols '$layout' >$tmp");
+    if (! -f $tmp->filename) {
+	die "$0: ckbcomp failed\n" if (! -f $tmp->filename);
     } else {
-	execute ("grep '^keycode' temp.kmap | sed 's/^/". $option ."::/'");
-	unlink('temp.kmap');
+	execute ("grep '^keycode' $tmp | sed 's/^/". $option ."::/'");
     }
 }

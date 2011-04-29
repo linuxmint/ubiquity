@@ -17,7 +17,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-from ubiquity.plugin import *
+from ubiquity import plugin
 import os
 
 NAME = 'wireless'
@@ -28,7 +28,7 @@ WEIGHT = 10
 # to skip the page.
 # TODO on run(), check for a wireless card, and then for APs.  If none, go to
 # next page.
-class PageGtk(PluginUI):
+class PageGtk(plugin.PluginUI):
     plugin_title = 'ubiquity/text/wireless_heading_label'
     def __init__(self, controller, *args, **kwargs):
         from ubiquity.gtkwidgets import WirelessWidget
@@ -51,7 +51,7 @@ class PageGtk(PluginUI):
         # TODO select ssid
 
 
-class Page(Plugin):
+class Page(plugin.Plugin):
     def prepare(self):
         return (['/usr/share/ubiquity/simple-plugins', 'wireless'], ['ubiquity/ssid'])
 
@@ -72,10 +72,10 @@ class Page(Plugin):
         #ssid = self.db.get('ubiquity/ssid')
         #self.ui.set_ssid(ssid)
 
-        return Plugin.run(self, priority, question)
+        return plugin.Plugin.run(self, priority, question)
 
     def ok_handler(self):
         #ssid = self.ui.get_ssid()
         #self.preseed('ubiquity/ssid', ssid)
-        Plugin.ok_handler(self)
+        plugin.Plugin.ok_handler(self)
 

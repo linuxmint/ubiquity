@@ -6,11 +6,19 @@ dev=$1
 id=$2
 part=$dev/$id
 filesystem=$(cat $part/acting_filesystem)
+os=$(udpkg --print-os)
 
 cd $dev
 
+optionsfile=''
+if [ -f /lib/partman/mountoptions/$filesystem.$os ] ; then
+	optionsfile="/lib/partman/mountoptions/$filesystem.$os"
+else
+	optionsfile="/lib/partman/mountoptions/$filesystem"
+fi
+
 options=''
-for op in $(cat /lib/partman/mountoptions/$filesystem); do
+for op in $(cat $optionsfile); do
 	if [ -f $part/options/$op ]; then
 		options="${options:+$options,}$op"
 	fi

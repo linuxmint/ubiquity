@@ -6,6 +6,8 @@ set -e
 . /usr/share/debconf/confmodule
 . /usr/share/migration-assistant/ma-script-utils
 
+newns "$@"
+
 if [ -z "$1" ]; then
     mapath="/usr/bin"
 else
@@ -22,6 +24,14 @@ for line in `os-prober`;
 do
     dist=$(LC_ALL=C expr match "$line" '.*:\(.*\):.*:.*')
     location=${line%%:*}
+    # Don't present the target filesystem
+    target="$(grep ' /target ' /proc/mounts | cut -d' ' -f1)"
+    target="$(readlink -e "$target")" || target=
+    home="$(grep ' /target/home ' /proc/mounts | cut -d' ' -f1)"
+    home="$(readlink -e "$home")" || home=
+    if [ "$target" = "$location" ] || "$home" = "$location" ]; then
+	    continue
+    fi
     if [ -z "$tmp" ]; then
         tmp="$dist ($location)"
     else

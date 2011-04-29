@@ -1,5 +1,5 @@
 import gtk, gobject
-from ubiquity.keyboard_detector import *
+from ubiquity import keyboard_detector
 
 class Keyrow(gtk.HBox):
     def __init__(self):
@@ -61,7 +61,7 @@ class KeyboardQuery(gtk.Window):
         no.connect('clicked', self.no_have_key)
         self.connect('key_press_event', self.key_press_event)
 
-        self.keyboard_detect = KeyboardDetector()
+        self.keyboard_detect = keyboard_detector.KeyboardDetector()
         self.buttons.hide()
 
     def run(self, *args):
@@ -73,18 +73,18 @@ class KeyboardQuery(gtk.Window):
         self.keyrow.clear()
         for k in self.keyboard_detect.symbols:
             self.keyrow.add_character(k)
-        if r == KeyboardDetector.PRESS_KEY:
+        if r == keyboard_detector.KeyboardDetector.PRESS_KEY:
             self.heading.set_label(self.press_string)
             self.buttons.hide()
-        elif (r == KeyboardDetector.KEY_PRESENT or
-              r == KeyboardDetector.KEY_PRESENT_P):
+        elif (r == keyboard_detector.KeyboardDetector.KEY_PRESENT or
+              r == keyboard_detector.KeyboardDetector.KEY_PRESENT_P):
             self.heading.set_label(self.present_string)
             self.buttons.show()
-        elif r == KeyboardDetector.RESULT:
+        elif r == keyboard_detector.KeyboardDetector.RESULT:
             self.emit('layout_result', self.keyboard_detect.result)
             self.hide()
         else:
-            raise Exception, 'should not have got here'
+            raise Exception('should not have got here')
 
     def have_key(self, *args):
         try:

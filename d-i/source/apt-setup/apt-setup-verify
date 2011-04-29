@@ -109,6 +109,7 @@ fi
 
 items=0
 gooditems=0
+spacer=0
 
 OLDIFS="$IFS"
 IFS="$NL"
@@ -120,8 +121,9 @@ for line in $(sed 's/^/:/' $file); do
 	if echo "$line" | grep -Evq "^(#.*|)[[:space:]]*$"; then
 		items=$(expr $items + 1)
 		# Write blank line between generators
-		if [ $items = 1 ] && [ -f "$saveto" ]; then
+		if [ $spacer = 0 ] && [ -f "$saveto" ]; then
 			saveline ""
+			spacer=1
 		fi
 
 		if [ "$PROGRESS" ]; then
@@ -140,6 +142,10 @@ for line in $(sed 's/^/:/' $file); do
 			saveline "#$line"
 		fi
 	else
+		if [ "$line" ] && [ $spacer = 0 ] && [ -f "$saveto" ]; then
+			saveline ""
+			spacer=1
+		fi
 		# Ignore leading empty lines
 		if [ $items -ne 0 ] || [ "$line" ]; then
 			saveline "$line"

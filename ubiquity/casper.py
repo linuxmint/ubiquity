@@ -23,6 +23,7 @@ import errno
 
 _casper_config = None
 
+
 def get_casper(key, default=None):
     global _casper_config
     if _casper_config is None:

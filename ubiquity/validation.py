@@ -134,4 +134,3 @@ def human_password_strength(password):
         hint = 'strong'
         color = 'darkgreen'
     return (hint, color)
-

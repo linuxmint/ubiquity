@@ -240,6 +240,27 @@ map_of_path() {
     chroot /target ofpath "$1" || return 1
 }
 
+# Get a symlink which always points to the correct block device.
+# If it does not exist, give the unix block device name back.
+devsymlink() {
+  [ "$2" != "nobyid" ] && BYID="/dev/disk/by-id/scsi* /dev/disk/by-id/*"
+  for SYMLINK in $BYID /dev/disk/by-uuid/* /dev/disk/by-label/*; do
+    [ "`readlink -f "$SYMLINK"`" = "$1" ] && {
+      echo $SYMLINK
+      return
+    }
+  done
+  echo $1
+}
+
+# Get UUID= or LABEL= for the given unix partition block device.
+# If it could not be determined, give the unix partition block device back.
+uuidlabel() {
+  echo `devsymlink "$1" nobyid` \
+  | sed -e "s,/dev/disk/by-uuid/,UUID=," \
+        -e "s,/dev/disk/by-label/,LABEL=,"
+}
+
 OLDIFS="$IFS"
 IFS=:
 # Note that this creates a subshell, so variables set inside this loop won't
@@ -255,10 +276,10 @@ cat /tmp/os-probed | while read partition title label loadertype; do
 	linux)
 	    IFS=:
 	    linux-boot-prober "$partition" | while read \
-		    rootpart bootpart label kernel initrd params; do
+		    rootpart bootpart oldlabel kernel initrd params; do
 		IFS="$OLDIFS"
 		info "linux-boot-probed:" \
-		     "$rootpart:$bootpart:$label:$kernel:$initrd:$params"
+		     "$rootpart:$bootpart:$oldlabel:$kernel:$initrd:$params"
 		ofrootpart="$(map_of_path "$mappedpartition")" || continue
 		debug "OF root partition: $ofrootpart"
 		# bootpart may or may not be in devfs syntax.
@@ -267,26 +288,21 @@ cat /tmp/os-probed | while read partition title label loadertype; do
 		debug "mapped boot partition: $mappedbootpart"
 		ofbootpart="$(map_of_path "$mappedbootpart")" || continue
 		debug "OF boot partition: $ofbootpart"
-		if [ -z "$label" ]; then
-		    label="$title"
-		fi
-		# Prepend the last part of the partition name to the label,
-		# for uniqueness and (I hope) clarity, given that we don't
-		# have a way to display a useful description in yaboot.
-		label="${mappedbootpart##*/}-$label"
 		if echo "$kernel" | grep -q '^/boot/' && \
 		   [ "$mappedbootpart" != "$mappedpartition" ]; then
 		    # separate /boot partition
 		    kernel="${kernel#/boot}"
 		    initrd="${initrd#/boot}"
 		fi
+		# remove root parameter from params
+		params="`echo $params | sed -e "s,root=[^[:space:]]*,,"`"
 		writeimages <<EOF
 
 # This entry automatically added by the Ubuntu installer for an existing
 # Linux installation on $mappedpartition.
 image=$ofbootpart,$kernel
-    label=$label
-    root=$ofrootpart
+    label=$label${oldlabel:+-${oldlabel}}
+    root="`uuidlabel "$mappedpartition"`"
     append="$params"
 EOF
 		if [ -n "$initrd" ]; then
@@ -301,13 +317,13 @@ EOF
 	macosx)
 	    if ! [ "$macosx" ]; then
 		macosx=1
-		echo "macosx=$mappedpartition" | writeglobals
+		echo "macosx=\"`devsymlink "$mappedpartition"`\"" | writeglobals
 	    fi
 	    ;;
 	macos)
 	    if ! [ "$macos" ]; then
 		macos=1
-		echo "macos=$mappedpartition" | writeglobals
+		echo "macos=\"`devsymlink "$mappedpartition"`\"" | writeglobals
 	    fi
 	    ;;
 	*)
@@ -416,7 +432,7 @@ EOF
 
 if [ "$boot" ]; then
     writeyabootconf <<EOF
-boot=$boot
+boot="`devsymlink "$boot"`"
 EOF
 fi
 
@@ -429,7 +445,7 @@ else
 fi
 writeyabootconf <<EOF
 partition=$partnr
-root=$root
+root="`uuidlabel "$root"`"
 timeout=$timeout
 install=$yaboot_location
 EOF

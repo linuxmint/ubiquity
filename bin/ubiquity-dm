@@ -21,7 +21,7 @@ from ubiquity.misc import create_bool
 from ubiquity.casper import get_casper
 from ubiquity.debconfcommunicator import DebconfCommunicator
 
-background = '/usr/share/backgrounds/linuxmint/default_background.jpg'
+background = '/usr/share/backgrounds/warty-final-ubuntu.png'
 
 def ck_open_session(uid):
     import dbus
@@ -121,8 +121,8 @@ class DM:
             except ImportError:
                 pass
         else:
-            raise AttributeError, ('No frontend available; tried %s' %
-                                   ', '.join(frontend_names))
+            raise AttributeError('No frontend available; tried %s' %
+                                 ', '.join(frontend_names))
 
         db = DebconfCommunicator('ubiquity', cloexec=True)
         try:
@@ -241,13 +241,13 @@ EndSection
                     if type(status) is int and status != 0:
                         if plymouth_running:
                             subprocess.call(['plymouth', 'quit'])
-                        raise XStartupError, \
-                            "X server exited with return code " + str(status)
+                        raise XStartupError('X server exited with return code '
+                                            + str(status))
                     if timeout == 0:
                         if plymouth_running:
                             subprocess.call(['plymouth', 'quit'])
-                        raise XStartupError, \
-                            "X server failed to start after 60 seconds"
+                        raise XStartupError('X server failed to start after 60'
+                                            ' seconds')
                     time.sleep(1)
                     timeout -= 1
                 if plymouth_running:
@@ -265,6 +265,9 @@ EndSection
         os.environ['SUDO_UID'] = str(self.uid)
         os.environ['SUDO_GID'] = str(self.gid)
         os.environ['GVFS_DISABLE_FUSE' ] = '1'
+        # Share Orbit between ubiquity (running as root) and the non-root GNOME
+        # applications.  This lets ubiquity communicate with ATI-SPI.
+        os.environ['ORBIT_SOCKETDIR'] = '/tmp/orbit-%s' % self.username
 
         ck_open_session(self.uid)
 
@@ -320,28 +323,25 @@ EndSection
                 if os.path.exists('/usr/lib/at-spi/at-spi-registryd'):
                     extras.append(subprocess.Popen(
                         ['/usr/lib/at-spi/at-spi-registryd'],
-                        stdin=null, stdout=logfile, stderr=logfile))
+                        stdin=null, stdout=logfile, stderr=logfile,
+                        preexec_fn=self.drop_privileges))
                     os.environ['GTK_MODULES'] = 'gail:atk-bridge'
-
-            maybe_drop_privileges = {}
-            if accessibility != 'true':
-                maybe_drop_privileges['preexec_fn'] = self.drop_privileges
 
             # Don't show the background image in v1 accessibility profile. It
             # is not shown in the GNOME desktop after all.
-            fp = open('/proc/cmdline', 'r')
-            if (os.access(background, os.R_OK) and
-                not 'access=v1' in fp.readline()):
-                import gtk
-                pixbuf = gtk.gdk.pixbuf_new_from_file(background)
-                root = gtk.gdk.get_default_root_window()
-                (root_width, root_height) = root.get_size()
-                scaled = pixbuf.scale_simple(root_width, root_height, gtk.gdk.INTERP_BILINEAR)
-                (pixmap, mask) = scaled.render_pixmap_and_mask(0)
-                root.set_back_pixmap(pixmap, False)
-                root.clear()
-                gtk.gdk.flush()
-            fp.close()
+            with open('/proc/cmdline', 'r') as fp:
+                exists = os.access(background, os.R_OK)
+                if (exists and not 'access=v1' in fp.readline()):
+                    import gtk
+                    pixbuf = gtk.gdk.pixbuf_new_from_file(background)
+                    root = gtk.gdk.get_default_root_window()
+                    (root_width, root_height) = root.get_size()
+                    scaled = pixbuf.scale_simple(root_width, root_height,
+                                                 gtk.gdk.INTERP_BILINEAR)
+                    (pixmap, mask) = scaled.render_pixmap_and_mask(0)
+                    root.set_back_pixmap(pixmap, False)
+                    root.clear()
+                    gtk.gdk.flush()
 
         if self.frontend == 'gtk_ui':
             if gconfd_running and osextras.find_on_path('metacity'):
@@ -350,19 +350,21 @@ EndSection
                 wm_cmd = ['xfwm4']
             elif osextras.find_on_path('matchbox-window-manager'):
                 wm_cmd = ['matchbox-window-manager']
+            elif osextras.find_on_path('openbox-lubuntu'):
+                wm_cmd = ['openbox-lubuntu']
             else:
-                raise MissingProgramError, \
-                    ("No window manager found (tried metacity, xfwm4, "
-                     "matchbox-window-manager)")
+                raise MissingProgramError('No window manager found (tried '
+                    'metacity, xfwm4, matchbox-window-manager, '
+                    'openbox-lubuntu)')
             wm = subprocess.Popen(wm_cmd,
                 stdin=null, stdout=logfile, stderr=logfile,
-                **maybe_drop_privileges)
+                preexec_fn=self.drop_privileges)
 
             if os.path.exists('/usr/lib/gnome-settings-daemon/gnome-settings-daemon'):
                 proc = subprocess.Popen(
                     ['/usr/lib/gnome-settings-daemon/gnome-settings-daemon'],
                     stdin=null, stdout=logfile, stderr=logfile,
-                    **maybe_drop_privileges)
+                    preexec_fn=self.drop_privileges)
                 proc.wait()
                 extras.append(proc)
 
@@ -370,41 +372,50 @@ EndSection
                 extras.append(subprocess.Popen(
                     ['xsetroot', '-solid', 'black'],
                     stdin=null, stdout=logfile, stderr=logfile,
-                    **maybe_drop_privileges))
+                    preexec_fn=self.drop_privileges))
                 extras.append(subprocess.Popen(
                     ['/usr/bin/xfsettingsd'],
                     stdin=null, stdout=logfile, stderr=logfile,
-                    **maybe_drop_privileges))
+                    preexec_fn=self.drop_privileges))
+
+            if osextras.find_on_path('lxsession'):
+                proc = subprocess.Popen(
+                    ['lxsession','-s','Lubuntu', '-e', 'LXDE', '-a'],
+                    stdin=null, stdout=logfile, stderr=logfile,
+                    preexec_fn=self.drop_privileges)
+                extras.append(proc)
 
             if os.path.exists('/usr/lib/ubiquity/panel') and "xfwm4" not in wm_cmd:
-                extras.append(subprocess.Popen(
-                    ['/usr/lib/ubiquity/panel'],
-                    stdin=null, stdout=logfile, stderr=logfile,
-                    **maybe_drop_privileges))
+                if  "openbox-lubuntu" not in wm_cmd:
+                    extras.append(subprocess.Popen(
+                        ['/usr/lib/ubiquity/panel'],
+                        stdin=null, stdout=logfile, stderr=logfile,
+                        preexec_fn=self.drop_privileges))
 
             if osextras.find_on_path('nm-applet'):
                 extras.append(subprocess.Popen(
                     ['nm-applet'],
                     stdin=null, stdout=logfile, stderr=logfile,
-                    **maybe_drop_privileges))
+                    preexec_fn=self.drop_privileges))
             # Accessibility tools
             if accessibility == 'true':
-                fp = open('/proc/cmdline', 'r')
-                if 'access=m2' in fp.readline():
-                    if osextras.find_on_path('onboard'):
-                        extras.append(subprocess.Popen(['onboard'],
-                            stdin=null, stdout=logfile, stderr=logfile))
-                else:
-                    if osextras.find_on_path('orca'):
-                        time.sleep(15)
-                        extras.append(subprocess.Popen(['orca', '-sudo', self.username, '-n'],
-                            stdin=null, stdout=logfile, stderr=logfile))
-                fp.close()
+                with open('/proc/cmdline', 'r') as fp:
+                    if 'access=m2' in fp.readline():
+                        if osextras.find_on_path('onboard'):
+                            extras.append(subprocess.Popen(['onboard'],
+                                stdin=null, stdout=logfile, stderr=logfile,
+                                preexec_fn=self.drop_privileges))
+                    else:
+                        if osextras.find_on_path('orca'):
+                            time.sleep(15)
+                            extras.append(subprocess.Popen(['orca', '-n'],
+                                stdin=null, stdout=logfile, stderr=logfile,
+                                preexec_fn=self.drop_privileges))
         elif self.frontend == 'kde_ui':
             # Don't show the background image in v1 accessibility profile.
             os.setegid(self.gid)
             os.seteuid(self.uid)
-            path = '/usr/share/wallpapers/Ethais/contents/images/1920x1200.png'
+            path = '/usr/share/wallpapers/kde-default.png'
             with open('/proc/cmdline', 'r') as fp:
                 if (os.access(path, os.R_OK)
                     and not 'access=v1' in fp.readline()):
@@ -471,6 +482,7 @@ EndSection
                                   'utf-8', 'replace')
             except debconf.DebconfError:
                 pass
+            db.shutdown()
 
             if title and message:
                 if self.frontend == 'gtk_ui':

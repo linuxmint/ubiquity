@@ -51,4 +51,3 @@ for device in $(list-devices usb-partition); do
 		fi
 	fi
 done
-

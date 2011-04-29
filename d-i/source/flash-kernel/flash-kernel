@@ -118,34 +118,88 @@ cleanup() {
 }
 
 # generic flash-kernel routines for specific subarchs
+
+omap_flash_kernel_and_initrd() {
+	printf "Creating backups of uImage and uInitrd... " >&2
+	if [ -e $TMPMOUNT/uImage ]; then
+		cp $TMPMOUNT/uImage $TMPMOUNT/uImage.bak
+	fi
+	if [ -e $TMPMOUNT/uInitrd ]; then
+		cp $TMPMOUNT/uInitrd $TMPMOUNT/uInitrd.bak
+	fi
+	echo "done." >&2
+	printf "Generating kernel u-boot image... " >&2
+	mkimage -A arm -O linux -T kernel -C none -a 0x80008000 \
+		-e 0x80008000 -n "Ubuntu Kernel" -d $kfile $TMPMOUNT/uImage >&2 1>/dev/null
+	echo "done." >&2
+	printf "Generating Initramfs u-boot image... " >&2
+	mkimage -A arm -O linux -T ramdisk -C none -a 0x0 -e 0x0 \
+		-n "Ubuntu Initrd" -d $ifile $TMPMOUNT/uInitrd >&2 1>/dev/null
+		echo "done." >&2
+	if [ -e /boot/boot.script ];then
+		printf "Generating u-boot configuration from /boot/boot.script... " >&2
+		cp $TMPMOUNT/boot.scr $TMPMOUNT/boot.scr.bak
+		mkimage -A arm -T script -C none -n "Ubuntu boot script" -d /boot/boot.script \
+			$TMPMOUNT/boot.scr >&2 1>/dev/null
+		echo "done." >&2
+	fi
+}
+
+omap_flash_bootloader() {
+	case "$machine" in
+		"IGEP v2 board")
+			XLOADERDIR=igep0020
+			UBOOTDIR=igep0020
+		;;
+		"OMAP3 Beagle Board")
+			XLOADERDIR=omap3530beagle
+			UBOOTDIR=omap3_beagle
+		;;
+		"OMAP4430 Panda Board" | "OMAP4 Panda board")
+			XLOADERDIR=omap4430panda
+			UBOOTDIR=omap4_panda
+		;;
+		*)
+			error "Bootloader update not supported on $machine."
+		;;
+	esac
+
+	XLOADER=/usr/lib/x-loader/$XLOADERDIR/MLO
+	UBOOT=/usr/lib/u-boot/$UBOOTDIR/u-boot.bin
+
+	if [ -z "$BOOTLOADER_FILES" ];then
+		BOOTLOADER_FILES="$XLOADER $UBOOT"
+	fi
+
+	for f in $BOOTLOADER_FILES;do
+		F=$(basename $f)
+		#Check whether the file is already written to the boot partition
+		S1=$(md5sum $f 2>/dev/null|cut -f1 -d\ )
+		S2=$(md5sum $TMPMOUNT/$F 2>/dev/null|cut -f1 -d\ )
+		if [ "$S1" != "$S2" ];then
+			if [ -e $TMPMOUNT/$F ];then
+				mv -f $TMPMOUNT/$F $TMPMOUNT/$F.bak
+			fi
+			cp $f $TMPMOUNT/
+			echo $f copied to the boot partition. >&2
+		else
+			echo $f is already installed in the boot partition. >&2
+		fi
+	done
+}
+
 omap_flash_kernel() {
 	if [ -n "${UBOOT_PART}" ]; then
 		echo "Using u-boot partition: ${UBOOT_PART}" >&2
 		TMPMOUNT=$(mktemp -d)
 		mount $UBOOT_PART $TMPMOUNT
-		printf "Creating backups of uImage and uInitrd... " >&2
-		if [ -e $TMPMOUNT/uImage ]; then
-			cp $TMPMOUNT/uImage $TMPMOUNT/uImage.bak
+
+		if [ -n "$UPDATE_BOOTLOADER" ];then
+			omap_flash_bootloader
+		else
+			omap_flash_kernel_and_initrd
 		fi
-		if [ -e $TMPMOUNT/uInitrd ]; then
-			cp $TMPMOUNT/uInitrd $TMPMOUNT/uInitrd.bak
-		fi
-		echo "done." >&2
-		printf "Generating kernel u-boot image... " >&2
-		mkimage -A arm -O linux -T kernel -C none -a 0x80008000 \
-			-e 0x80008000 -n "Ubuntu Kernel" -d $kfile $TMPMOUNT/uImage >&2 1>/dev/null
-		echo "done." >&2
-		printf "Generating Initramfs u-boot image... " >&2
-		mkimage -A arm -O linux -T ramdisk -C none -a 0x0 -e 0x0 \
-			-n "Ubuntu Initrd" -d $ifile $TMPMOUNT/uInitrd >&2 1>/dev/null
-			echo "done." >&2
-		if [ -e /boot/boot.script ];then
-			printf "Generating u-boot configuration from /boot/boot.script... " >&2
-			cp $TMPMOUNT/boot.scr $TMPMOUNT/boot.scr.bak
-			mkimage -A arm -T script -C none -n "Ubuntu boot script" -d /boot/boot.script \
-				$TMPMOUNT/boot.scr >&2 1>/dev/null
-			echo "done." >&2
-		fi
+
 		umount $TMPMOUNT
 		rm -rf $TMPMOUNT
 	else
@@ -160,13 +214,13 @@ omap_flash_kernel() {
 		check_size "Kernel" $(($kfilesize + 8 + 64)) $kmtdsize
 
 		printf "Generating kernel u-boot image... " >&2
-		tmp=$(tempfile) 
+		tmp=$(tempfile)
 		cat $kfile >> $tmp
 		mkimage -A arm -O linux -T kernel -C none -a 0x80008000 \
 			-e 0x80008000 -n "Ubuntu Kernel" -d $tmp $tmp.uboot >&2 1>/dev/null
 		echo "done." >&2
 
-		printf "Erasing Kernel NAND space... " >&2 
+		printf "Erasing Kernel NAND space... " >&2
 		dd if=/dev/zero of=$kmtd bs=$kmtdsize count=1 2>/dev/null
 		echo "done." >&2
 
@@ -183,7 +237,7 @@ omap_flash_kernel() {
 		check_size "Initramfs" $ifilesize $initrd_nand_size
 
 		printf "Generating Initramfs u-boot image... " >&2
-		tmp=$(tempfile) 
+		tmp=$(tempfile)
 		cat $ifile >> $tmp
 		mkimage -A arm -O linux -T ramdisk -C none -a 0x0 -e 0x0 \
 			-n "Ubuntu Initrd" -d $tmp $tmp.uboot >&2 1>/dev/null
@@ -195,7 +249,7 @@ omap_flash_kernel() {
 
 		printf "Flashing Initramfs... " >&2
 		cat $tmp.uboot > $imtd || error "failed."
-		echo "done." >&2 
+		echo "done." >&2
 		rm -f $tmp.uboot $tmp
 	fi
 }
@@ -247,7 +301,7 @@ if test -e \${reinitalize_devices}; then
 	ide reset;
 fi
 
-for i in usb ide; do 
+for i in usb ide; do
 	for j in 0 1; do
 		for l in / /boot/; do
 			for m in fat ext2; do
@@ -287,11 +341,86 @@ EOF
 	rm -f "$tmp.boot.script" "$tmp.boot.scr"
 }
 
+efikamx_flash_kernel() {
+	tmp=$(tempfile)
+	printf "Generating kernel u-boot image... " >&2
+	mkimage -A arm -O linux -T kernel -C none -a 0x90008000 \
+		-e 0x90008000 -d $kfile $tmp.uboot >&2 1>/dev/null
+	echo "done." >&2
+
+	if [ -e /boot/uImage ]; then
+		mv /boot/uImage /boot/uImage.bak
+	fi
+	mv $tmp.uboot /boot/uImage
+
+	if [ -e /boot/uInitrd ]; then
+		printf "Generating initrd u-boot image... " >&2
+		mkimage -A arm -O linux -T ramdisk -C gzip -a 0x0 \
+			-e 0x0 -n "$idesc" -d "$ifile" "$tmp.uboot" >&2 1>/dev/null
+		echo "done." >&2
+		mv /boot/uInitrd /boot/uInitrd.bak
+		echo "Creating new /boot/uInitrd." >&2
+		mv "$tmp.uboot" /boot/uInitrd
+		rm -f "$tmp.uboot"
+	fi
+
+	if [ -e /boot/boot.script ];then
+		cp /boot/boot.scr /boot/boot.scr.bak
+		printf "Generating u-boot configuration from /boot/boot.script... " >&2
+		mkimage -A arm -T script -C none -n "Ubuntu boot script" -d /boot/boot.script \
+			/boot/boot.scr >&2 1>/dev/null
+		echo "done." >&2
+	fi
+	rm -f "$tmp"
+}
+
+imx_flash_kernel() {
+	echo "Using u-boot partition: ${UBOOT_PART}" >&2
+	TMPMOUNT=$(mktemp -d)
+	mount $UBOOT_PART $TMPMOUNT
+	tmp=$(tempfile)
+	printf "Generating kernel u-boot image... " >&2
+	mkimage -A arm -O linux -T kernel -C none -a $IMX_KERNEL_ADDR \
+		-e $IMX_KERNEL_ADDR -d $kfile $tmp >&2 1>/dev/null
+	echo "done." >&2
+
+	if [ -e $TMPMOUNT/uImage ]; then
+		mv $TMPMOUNT/uImage $TMPMOUNT/uImage.bak
+	fi
+	cp $tmp $TMPMOUNT/uImage
+	rm -f $tmp
+
+	tmp=$(tempfile)
+	printf "Generating initrd u-boot image... " >&2
+	mkimage -A arm -O linux -T ramdisk -C gzip -a 0x0 \
+		-e 0x0 -n "$idesc" -d "$ifile" "$tmp" >&2 1>/dev/null
+	echo "done." >&2
+	if [ -e $TMPMOUNT/uInitrd ]; then
+		mv $TMPMOUNT/uInitrd $TMPMOUNT/uInitrd.bak
+	fi
+	cp "$tmp" $TMPMOUNT/uInitrd
+	rm -f "$tmp"
+
+	if [ -e /boot/boot.script ];then
+		if [ -e $TMPMOUNT/boot.scr ]; then
+			mv $TMPMOUNT/boot.scr $TMPMOUNT/boot.scr.bak
+		fi
+		printf "Generating u-boot configuration from /boot/boot.script... " >&2
+		mkimage -A arm -T script -C none -n "Ubuntu boot script" -d /boot/boot.script \
+			$TMPMOUNT/boot.scr >&2 1>/dev/null
+		echo "done." >&2
+	fi
+
+	umount $TMPMOUNT
+	rmdir $TMPMOUNT
+}
+
+
 trap "cleanup" 0 HUP INT QUIT KILL SEGV PIPE TERM
 
 config="/etc/flash-kernel.conf"
 if [ -r "$config" ]; then
-    . "$config"
+	. "$config"
 fi
 
 if [ "x$1" = "x--machine" ]; then
@@ -315,13 +444,16 @@ if [ "x$1" = "x--supported" ]; then
 		"Buffalo/Revogear Kurobox Pro")		exit 0 ;;
 		"D-Link DNS-323")			exit 0 ;;
 		"Freescale MX51 Babbage Board")		exit 0 ;;
+		"Freescale MX53 LOCO Board")		exit 0 ;;
 		"GLAN Tank")				exit 0 ;;
+		"Genesi Efika MX (Smartbook)")		exit 0 ;;
+		"Genesi Efika MX (Smarttop)")		exit 0 ;;
 		"HP Media Vault mv2120")		exit 0 ;;
-		"IGEP v2 board")            exit 0 ;;
+		"IGEP v2 board")			exit 0 ;;
 		"Marvell DB-MV88F6781-BP Development Board") exit 0 ;;
 		"Linksys NSLU2")			exit 0 ;;
 		"OMAP3 Beagle Board")			exit 0 ;;
-		"OMAP4430 Panda Board")			exit 0 ;;
+		"OMAP4430 Panda Board" | "OMAP4 Panda board")	exit 0 ;;
 		"OMAP4430 4430SDP board")		exit 0 ;;
 		"Marvell OpenRD Base Board")		exit 0 ;;
 		"Marvell OpenRD Client Board")		exit 0 ;;
@@ -344,6 +476,13 @@ fi
 
 if [ -n "$FLASH_KERNEL_SKIP" ]; then
 	exit 0
+fi
+
+if [ "x$1" = "x--update-bootloader" ]; then
+	UPDATE_BOOTLOADER=y
+	shift
+	BOOTLOADER_FILES=$@
+	shift $#
 fi
 
 if [ -n "$1" ]; then
@@ -405,14 +544,14 @@ case "$machine" in
 		fi
 		check_dev_mtdblock "$imtd"
 		imtdsize=$(mtdsize "initrd")
-		check_size "initrd" $ifilesize $imtdsize 
+		check_size "initrd" $ifilesize $imtdsize
 		printf "Generating u-boot compatible initrd image... " >&2
 		mkimage -A arm -O linux -T ramdisk -C none -a 0x81000000 \
 			-e 0x81000000 -n "$idesc" -d $ifile $ifile.uboot \
 			>&2 1>/dev/null
 		printf "Writing initrd to flash... " >&2
 		cat $ifile.uboot > $imtd || error "failed."
-		echo "done." >&2 
+		echo "done." >&2
 		rm -f $ifile.uboot
 	;;
 	"Buffalo Linkstation Pro/Live" | "Buffalo/Revogear Kurobox Pro")
@@ -490,80 +629,23 @@ case "$machine" in
 		rm -f "$tmp.uboot"
 	;;
 	"Freescale MX51 Babbage Board")
-		check_subarch "imx51"
-
-		for c in fis_dev fis_offset_hex fis_size_hex; do
-			if [ -z "`eval echo \$$c`" ]; then
-				error "$c not set in $config"
-			fi
-		done
-		check_dev_mtdblock "$fis_dev"
-		check_fis "$fis_dev" "$fis_offset_hex" "$fis_size_hex"
-
-		# check for an "initrd" entry
-		initrd="initrd"
-		ifisinfo=$(fis_info "$fis_dev" "$fis_offset_hex" "$fis_size_hex" "initrd")
-		# fallback on "initramfs"
-		if [ -z "$ifisinfo" ]; then
-			initrd="initramfs"
-			ifisinfo=$(fis_info "$fis_dev" "$fis_offset_hex" "$fis_size_hex" "$initrd")
-			if [ -z "$ifisinfo" ]; then
-				error "Cannot find FIS partition '$initrd'"
-			fi
-		fi
-		ifissize=$(fis_size $ifisinfo)
-		check_size "$initrd" $ifilesize $ifissize
-
-		kfisinfo=$(fis_info "$fis_dev" "$fis_offset_hex" "$fis_size_hex" "kernel")
-		if [ -z "$kfisinfo" ]; then
-			error "Cannot find FIS partition 'kernel'"
-		fi
-		kfissize=$(fis_size $kfisinfo)
-		check_size "kernel" $kfilesize $kfissize
-
-		kfisoffset=$(fis_offset $kfisinfo)
-		kfisentry=$(fis_entry $kfisinfo)
-		# the kernel is started at its load address so kfisram ==
-		# kfisentry
-		kfisram="$kfisentry"
-
-		ifisoffset=$(fis_offset $ifisinfo)
-		# not used
-		ifisentry=$(printf %d 0xffffffff)
-		# XXX hardcoded, should be read from RedBoot; but fis command
-		# currently doesn't return that info
-		ifisram=$(printf %d 0x1000000)
-
-		printf "Flashing kernel... " >&2
-		fis -d "$fis_dev" -o "$fis_offset_hex" -s "$fis_size_hex" create "kernel" -f $kfisoffset -l $kfissize -e $kfisentry -r $kfisram -c "$kfile" || error "FIS create failed."
-		dd if="$kfile" of="$fis_dev" bs=$kfisoffset seek=1 2>/dev/null || error "update failed."
-		echo "done." >&2
-
-		printf "Generating padded initramfs... " >&2
-		# padded initramfs; we need to use a temp file because of the
-		# fis command which needs to see a padded datalength
-		ipadded=""
-		# cleanup handler which removes the generated temp file when
-		# this script finished
-		cleanup_ipadded() {
-			if [ -n "$ipadded" ]; then
-				rm -f "$ipadded"
-			fi
-		}
-		cleanup_funcs="cleanup_ipadded $cleanup_funcs"
-		ipadded=$(mktemp -t flash-kernel.XXXXXXXXXX)
-		pad=$(expr $ifissize - $ifilesize)
-		(
-			cat $ifile
-			# pad with zeroes; this uses $pad mem, not very elegant
-			dd if=/dev/zero bs=$pad count=1 2>/dev/null
-		) | dd of="$ipadded" bs=4k 2>/dev/null || error "failed."
-		echo "done." >&2
-
-		printf "Flashing initramfs... " >&2
-		fis -d "$fis_dev" -o "$fis_offset_hex" -s "$fis_size_hex" create "$initrd" -f $ifisoffset -l $ifissize -e $ifisentry -r $ifisram -c "$ipadded" || error "FIS create failed."
-		dd if="$ipadded" of="$fis_dev" bs=$ifisoffset seek=1 2>/dev/null || error "failed."
-		echo "done." >&2
+		case $subarch in
+			"mx5"|"mx51")
+				:
+			;;
+			*)
+				# Not actually the real expected kfile
+				# subarch, but will raise a sensible error
+				check_subarch "mx5 or mx51"
+			;;
+		esac
+		IMX_KERNEL_ADDR=0x90008000
+		imx_flash_kernel
+	;;
+	"Freescale MX53 LOCO Board")
+		check_subarch "mx5"
+		IMX_KERNEL_ADDR=0x70008000
+		imx_flash_kernel
 	;;
 	"GLAN Tank")
 		rm -f /boot/initrd /boot/zImage
@@ -703,12 +785,12 @@ case "$machine" in
 		check_subarch "dove"
 		dove_flash_kernel
 	;;
-	"IGEP v2 board" | "OMAP3 Beagle Board" | "OMAP4430 4430SDP board" | "OMAP4430 Panda Board")
+	"IGEP v2 board" | "OMAP3 Beagle Board" | "OMAP4430 4430SDP board" | "OMAP4430 Panda Board" | "OMAP4 Panda board")
 		case "$machine" in
 			"IGEP v2 board"|"OMAP3 Beagle Board")
 				check_subarch "omap"
 			;;
-			"OMAP4430 4430SDP board" | "OMAP4430 Panda Board")
+			"OMAP4430 4430SDP board" | "OMAP4430 Panda Board" | "OMAP4 Panda board")
 				check_subarch "omap4"
 			;;
 		esac
@@ -837,6 +919,9 @@ case "$machine" in
 			dd if=/dev/zero bs=$pad count=1 2>/dev/null
 		) > "$imtd" || error "failed."
 		echo "done." >&2
+	;;
+	"Genesi Efika MX (Smartbook)" | "Genesi Efika MX (Smarttop)")
+		efikamx_flash_kernel
 	;;
 	*)
 		case "$running_subarch" in

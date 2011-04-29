@@ -37,6 +37,7 @@ UBIQUITY_PKGS = ["ubiquity-casper",
                  "ubiquity-ubuntu-artwork",
                  "ubiquity"]
 
+
 class CacheProgressDebconfProgressAdapter(apt.progress.OpProgress):
     def __init__(self, frontend):
         self.frontend = frontend
@@ -51,6 +52,7 @@ class CacheProgressDebconfProgressAdapter(apt.progress.OpProgress):
         # Unfortunately the process of opening a Cache calls done() twice,
         # so we have to take care of this manually.
         self.frontend.debconf_progress_stop()
+
 
 class FetchProgressDebconfProgressAdapter(apt.progress.FetchProgress):
     def __init__(self, frontend):
@@ -78,6 +80,7 @@ class FetchProgressDebconfProgressAdapter(apt.progress.FetchProgress):
         self.frontend.debconf_progress_start(
             0, 100, self.frontend.get_string('updating_package_information'))
 
+
 class InstallProgressDebconfProgressAdapter(apt.progress.InstallProgress):
     def __init__(self, frontend):
         apt.progress.InstallProgress.__init__(self)
@@ -97,6 +100,7 @@ class InstallProgressDebconfProgressAdapter(apt.progress.InstallProgress):
         apt.progress.InstallProgress.updateInterface(self)
         self.frontend.refresh()
 
+
 @misc.raise_privileges
 def update(frontend):
     frontend.debconf_progress_start(
@@ -113,7 +117,7 @@ def update(frontend):
         cache = apt.Cache(cache_progress)
         cache_progress.really_done()
         updates = filter(
-            lambda pkg: cache.has_key(pkg) and cache[pkg].isUpgradable,
+            lambda pkg: pkg in cache and cache[pkg].isUpgradable,
             UBIQUITY_PKGS)
     except IOError, e:
         print "ERROR: cache.update() returned: '%s'" % e
@@ -174,6 +178,7 @@ def update(frontend):
         if stopped_debconf:
             frontend.start_debconf()
             frontend.dbfilter.db = frontend.db
+
 
 def already_updated():
     return os.path.exists(MAGIC_MARKER)

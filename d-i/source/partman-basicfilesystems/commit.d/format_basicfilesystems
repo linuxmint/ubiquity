@@ -48,7 +48,14 @@ for dev in $DEVICES/*; do
 			db_subst $template DEVICE $(humandev $(cat device))
 			case $filesystem in
 			    ext2)
-				if [ ! -f $id/usage ]; then
+				options=''
+				if [ -f $id/usage ]; then
+					options="$options -T $(cat $id/usage)"
+				fi
+				if [ "$(udpkg --print-os)" = hurd ]; then
+					options="$options -b 4096 -I 128 -o hurd"
+				fi
+				if [ -z "$options" ]; then
 					name_progress_bar $template
 					open_dialog CREATE_FILE_SYSTEM $id $filesystem
 					read_line status
@@ -61,12 +68,8 @@ for dev in $DEVICES/*; do
 					db_progress START 0 3 partman/text/formatting
 					db_progress INFO $template
 					db_progress SET 1
-					usage=''
-					if [ -f $id/usage ]; then
-						usage="-T $(cat $id/usage)"
-					fi
 					if log-output -t partman --pass-stdout \
-					   mkfs.ext2 $device $usage >/dev/null; then
+					   mkfs.ext2 $device $options >/dev/null; then
 						sync
 						status=OK
 					else

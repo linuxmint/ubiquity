@@ -1,10 +1,9 @@
 # -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from PyQt4 import QtCore
 
-from ubiquity.misc import *
 from ubiquity import i18n
+import os
 
 def get_string(name, lang=None, prefix=None):
     """Get the string name in the given lang or a default."""
@@ -13,21 +12,21 @@ def get_string(name, lang=None, prefix=None):
     return i18n.get_string(name, lang, prefix)
 
 # describes the display for the manual partition view widget
-class PartitionModel(QAbstractItemModel):
+class PartitionModel(QtCore.QAbstractItemModel):
     def __init__(self, ubiquity, parent=None):
-        QAbstractItemModel.__init__(self, parent)
+        QtCore.QAbstractItemModel.__init__(self, parent)
 
         self.rootItem = None
         self.clear()
 
     def clear(self):
         rootData = []
-        rootData.append(QVariant(get_string('partition_column_device')))
-        rootData.append(QVariant(get_string('partition_column_type')))
-        rootData.append(QVariant(get_string('partition_column_mountpoint')))
-        rootData.append(QVariant(get_string('partition_column_format')))
-        rootData.append(QVariant(get_string('partition_column_size')))
-        rootData.append(QVariant(get_string('partition_column_used')))
+        rootData.append(QtCore.QVariant(get_string('partition_column_device')))
+        rootData.append(QtCore.QVariant(get_string('partition_column_type')))
+        rootData.append(QtCore.QVariant(get_string('partition_column_mountpoint')))
+        rootData.append(QtCore.QVariant(get_string('partition_column_format')))
+        rootData.append(QtCore.QVariant(get_string('partition_column_size')))
+        rootData.append(QtCore.QVariant(get_string('partition_column_used')))
         self.rootItem = TreeItem(rootData)
 
     def append(self, data, ubiquity):
@@ -41,46 +40,46 @@ class PartitionModel(QAbstractItemModel):
 
     def data(self, index, role):
         if not index.isValid():
-            return QVariant()
+            return QtCore.QVariant()
 
         item = index.internalPointer()
 
-        if role == Qt.CheckStateRole and index.column() == 3:
-            return QVariant(item.data(index.column()))
-        elif role == Qt.DisplayRole and index.column() != 3:
-            return QVariant(item.data(index.column()))
+        if role == QtCore.Qt.CheckStateRole and index.column() == 3:
+            return QtCore.QVariant(item.data(index.column()))
+        elif role == QtCore.Qt.DisplayRole and index.column() != 3:
+            return QtCore.QVariant(item.data(index.column()))
         else:
-            return QVariant()
+            return QtCore.QVariant()
 
     def setData(self, index, value, role):
         item = index.internalPointer()
-        if role == Qt.CheckStateRole and index.column() == 3:
+        if role == QtCore.Qt.CheckStateRole and index.column() == 3:
             item.partman_column_format_toggled(value.toBool())
-        self.emit(SIGNAL("dataChanged(const QModelIndex&, const QModelIndex&)"), index, index)
+        self.emit(QtCore.SIGNAL("dataChanged(const QModelIndex&, const QModelIndex&)"), index, index)
         return True
 
     def flags(self, index):
         if not index.isValid():
-            return Qt.ItemIsEnabled
+            return QtCore.Qt.ItemIsEnabled
 
-        #self.setData(index, QVariant(Qt.Checked), Qt.CheckStateRole)
-        #return Qt.ItemIsEnabled | Qt.ItemIsSelectable
+        #self.setData(index, QtCore.QVariant(QtCore.Qt.Checked), QtCore.Qt.CheckStateRole)
+        #return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
         if index.column() == 3:
             item = index.internalPointer()
             if item.formatEnabled():
-                return Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsUserCheckable
+                return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsUserCheckable
             else:
-                return Qt.ItemIsSelectable | Qt.ItemIsUserCheckable
+                return QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsUserCheckable
         else:
-            return Qt.ItemIsEnabled | Qt.ItemIsSelectable
+            return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
     def headerData(self, section, orientation, role):
-        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
             return self.rootItem.data(section)
 
-        return QVariant()
+        return QtCore.QVariant()
 
-    def index(self, row, column, parent = QModelIndex()):
+    def index(self, row, column, parent = QtCore.QModelIndex()):
         if not parent.isValid():
             parentItem = self.rootItem
         else:
@@ -90,17 +89,17 @@ class PartitionModel(QAbstractItemModel):
         if childItem:
             return self.createIndex(row, column, childItem)
         else:
-            return QModelIndex()
+            return QtCore.QModelIndex()
 
     def parent(self, index):
         if not index.isValid():
-            return QModelIndex()
+            return QtCore.QModelIndex()
 
         childItem = index.internalPointer()
         parentItem = childItem.parent()
 
         if parentItem == self.rootItem:
-            return QModelIndex()
+            return QtCore.QModelIndex()
 
         return self.createIndex(parentItem.row(), 0, parentItem)
 
@@ -146,21 +145,21 @@ class TreeItem:
 
     def data(self, column):
         if self.parentItem is None:
-            return QVariant(self.itemData[column])
+            return QtCore.QVariant(self.itemData[column])
         elif column == 0:
-            return QVariant(self.partman_column_name())
+            return QtCore.QVariant(self.partman_column_name())
         elif column == 1:
-            return QVariant(self.partman_column_type())
+            return QtCore.QVariant(self.partman_column_type())
         elif column == 2:
-            return QVariant(self.partman_column_mountpoint())
+            return QtCore.QVariant(self.partman_column_mountpoint())
         elif column == 3:
-            return QVariant(self.partman_column_format())
+            return QtCore.QVariant(self.partman_column_format())
         elif column == 4:
-            return QVariant(self.partman_column_size())
+            return QtCore.QVariant(self.partman_column_size())
         elif column == 5:
-            return QVariant(self.partman_column_used())
+            return QtCore.QVariant(self.partman_column_used())
         else:
-            return QVariant("other")
+            return QtCore.QVariant("other")
 
     def parent(self):
         return self.parentItem
@@ -216,11 +215,11 @@ class TreeItem:
             return ''
         elif 'method' in partition:
             if partition['method'] == 'format':
-                return Qt.Checked
+                return QtCore.Qt.Checked
             else:
-                return Qt.Unchecked
+                return QtCore.Qt.Unchecked
         else:
-            return Qt.Unchecked  ##FIXME should be enabled(False)
+            return QtCore.Qt.Unchecked # FIXME should be enabled(False)
 
     def formatEnabled(self):
         """is the format tickbox enabled"""

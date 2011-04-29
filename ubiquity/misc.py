@@ -11,10 +11,10 @@ import shutil
 import contextlib
 
 from ubiquity import osextras
-from ubiquity.parted_server import PartedServer
 
 def is_swap(device):
     swap = False
+    fp = None
     try:
         fp = open('/proc/swaps')
         for line in fp:
@@ -129,6 +129,8 @@ def raise_privileges(func):
 def grub_options():
     """ Generates a list of suitable targets for grub-installer
         @return empty list or a list of ['/dev/sda1','Ubuntu Hardy 8.04'] """
+    from ubiquity.parted_server import PartedServer
+
     l = []
     try:
         oslist = {}
@@ -182,6 +184,8 @@ def grub_options():
     return l
 
 def boot_device():
+    from ubiquity.parted_server import PartedServer
+
     boot = None
     root = None
     try:
@@ -333,21 +337,16 @@ def grub_default():
 
     return target
 
-@raise_privileges
+_os_prober_oslist = {}
+_os_prober_called = False
+
 def find_in_os_prober(device):
     '''Look for the device name in the output of os-prober.
        Returns the friendly name of the device, or the empty string on error.'''
     try:
-        if not find_in_os_prober.called:
-            find_in_os_prober.called = True
-            subp = subprocess.Popen(['os-prober'], stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE)
-            result = subp.communicate()[0].splitlines()
-            for res in result:
-                res = res.split(':')
-                find_in_os_prober.oslist[res[0]] = res[1]
-        if device in find_in_os_prober.oslist:
-            ret = find_in_os_prober.oslist[device]
+        oslist = os_prober()
+        if device in oslist:
+            ret = oslist[device]
         elif is_swap(device):
             ret = 'swap'
         else:
@@ -362,8 +361,27 @@ def find_in_os_prober(device):
         for line in traceback.format_exc().split('\n'):
             syslog.syslog(syslog.LOG_ERR, line)
     return unicode('')
-find_in_os_prober.oslist = {}
-find_in_os_prober.called = False
+
+@raise_privileges
+def os_prober():
+    global _os_prober_oslist
+    global _os_prober_called
+    
+    if not _os_prober_called:
+        _os_prober_called = True
+        subp = subprocess.Popen(['os-prober'], stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        result = subp.communicate()[0].splitlines()
+        for res in result:
+            res = res.split(':')
+            if res[2] == 'Ubuntu':
+                # Get rid of the superfluous (development version) (11.04)
+                text = re.sub('\s*\(.*\).*', '', res[1])
+                _os_prober_oslist[res[0]] = text
+            else:
+                # Get rid of the bootloader indication. It's not relevant here.
+                _os_prober_oslist[res[0]] = res[1].replace(' (loader)', '')
+    return _os_prober_oslist
 
 @raise_privileges
 def remove_os_prober_cache():
@@ -372,22 +390,39 @@ def remove_os_prober_cache():
                   ignore_errors=True)
 
 from collections import namedtuple
-def get_release():
-    ReleaseInfo = namedtuple('ReleaseInfo', 'name, version')
-    if get_release.release_info is None:
-        #try:
-        #    with open('/cdrom/.disk/info') as fp:
-        #        line = fp.readline()
-        #        if line:
-        #            line = line.split()
-        #            if line[2] == 'LTS':
-        #                line[1] += ' LTS'
-        #            get_release.release_info = ReleaseInfo(name=line[0], version=line[1])
-        #except:
-        #    syslog.syslog(syslog.LOG_ERR, 'Unable to determine the release.')
 
-        #if not get_release.release_info:
-        get_release.release_info = ReleaseInfo(name='Linux Mint', version='10')
+def windows_startup_folder(mount_path):
+    locations = [
+        # Windows 7
+        'ProgramData/Microsoft/Windows/Start Menu/Programs/Startup',
+        # Windows XP
+        'Documents and Settings/All Users/Start Menu/Programs/Startup',
+        # Windows NT
+        'Winnt/Profiles/All Users/Start Menu/Programs/Startup',
+                ]
+    for location in locations:
+        path = os.path.join(mount_path, location)
+        if os.path.exists(path):
+            return path
+    return ''
+
+ReleaseInfo = namedtuple('ReleaseInfo', 'name, version')
+
+def get_release():
+    if get_release.release_info is None:
+        try:
+            with open('/cdrom/.disk/info') as fp:
+                line = fp.readline()
+                if line:
+                    line = line.split()
+                    if line[2] == 'LTS':
+                        line[1] += ' LTS'
+                    get_release.release_info = ReleaseInfo(name=line[0], version=line[1])
+        except:
+            syslog.syslog(syslog.LOG_ERR, 'Unable to determine the release.')
+
+        if not get_release.release_info:
+            get_release.release_info = ReleaseInfo(name='Ubuntu', version='')
     return get_release.release_info
 get_release.release_info = None
 
@@ -519,6 +554,8 @@ def dmimodel():
         # Replace each gap of non-alphanumeric characters with a dash.
         # Ensure the resulting string does not begin or end with a dash.
         model = re.sub('[^a-zA-Z0-9]+', '-', model).rstrip('-').lstrip('-')
+        if model.lower() == 'not-available':
+            return
     except Exception:
         syslog.syslog(syslog.LOG_ERR, 'Unable to determine the model from DMI')
     return model

@@ -43,6 +43,9 @@ tests.sort()
 suite = unittest.TestLoader().loadTestsFromNames(tests)
 res = unittest.TextTestRunner(verbosity=2).run(suite)
 if use_coverage:
+    if os.path.exists('tests/coverage'):
+        import shutil
+        shutil.rmtree('tests/coverage')
     cov.stop()
     from itertools import chain
     include = chain(find_files('ubiquity', '*.py'),

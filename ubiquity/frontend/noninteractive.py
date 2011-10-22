@@ -6,7 +6,7 @@
 #
 # Authors:
 #
-# - Evan Dandrea <evand@ubuntu.com>
+# - Evan Dandrea <ev@ubuntu.com>
 #
 # This file is part of Ubiquity.
 #
@@ -28,7 +28,7 @@ import os
 import sys
 import signal
 
-import gobject
+from gi.repository import GObject
 
 from ubiquity import filteredcommand, i18n
 from ubiquity import misc
@@ -51,7 +51,7 @@ class Wizard(BaseFrontend):
         self.progress_position = ubiquity.progressposition.ProgressPosition()
         self.progress_val = 0
         self.progress_info = ''
-        self.mainloop = gobject.MainLoop()
+        self.mainloop = GObject.MainLoop()
 
         self.pages = []
         for mod in self.modules:
@@ -135,17 +135,17 @@ class Wizard(BaseFrontend):
         from the filtered command and a process_input callback which should
         be called when input events are received."""
 
-        gobject.io_add_watch(from_debconf,
-                             gobject.IO_IN | gobject.IO_ERR | gobject.IO_HUP,
+        GObject.io_add_watch(from_debconf,
+                             GObject.IO_IN | GObject.IO_ERR | GObject.IO_HUP,
                              self.watch_debconf_fd_helper, process_input)
 
     def watch_debconf_fd_helper (self, source, cb_condition, callback):
         debconf_condition = 0
-        if (cb_condition & gobject.IO_IN) != 0:
+        if (cb_condition & GObject.IO_IN) != 0:
             debconf_condition |= filteredcommand.DEBCONF_IO_IN
-        if (cb_condition & gobject.IO_ERR) != 0:
+        if (cb_condition & GObject.IO_ERR) != 0:
             debconf_condition |= filteredcommand.DEBCONF_IO_ERR
-        if (cb_condition & gobject.IO_HUP) != 0:
+        if (cb_condition & GObject.IO_HUP) != 0:
             debconf_condition |= filteredcommand.DEBCONF_IO_HUP
 
         return callback(source, debconf_condition)

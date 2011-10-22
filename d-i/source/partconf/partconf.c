@@ -266,7 +266,6 @@ sanity_checks(void)
         // XXX something like "Partitions 1, 3 and 7 on IDE3 master", but this
         // XXX is probably hard, especially for i18n. :-( If multi-line
         // XXX substitutions worked, we could just list the partitions.
-        debconf_set(debconf, "partconf/confirm", "false");
         debconf_input(debconf, "critical", "partconf/confirm");
         if (debconf_go(debconf) == 30)
             return 0;
@@ -602,7 +601,6 @@ main(void)
 
     if (check_proc_mounts("")) {
         // Chicken out if /target is already mounted
-        debconf_set(debconf,"partconf/already-mounted", "no");
         debconf_input(debconf, "critical", "partconf/already-mounted");
         debconf_go(debconf);
         debconf_get(debconf,"partconf/already-mounted");

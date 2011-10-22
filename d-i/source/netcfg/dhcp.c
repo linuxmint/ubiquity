@@ -14,11 +14,11 @@
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/ioctl.h>
 #include <sys/utsname.h>
 #include <sys/wait.h>
 #include <arpa/inet.h>
 #include <net/if.h>
+#include <ifaddrs.h>
 #include <time.h>
 #include <netdb.h>
 
@@ -47,50 +47,50 @@ const char* dhclient_request_options_udhcpc[] = { "subnet",
 static int dhcp_exit_status = 1;
 static pid_t dhcp_pid = -1;
 
-
-/*
- * Add DHCP-related lines to /etc/network/interfaces
- */
-static void netcfg_write_dhcp (char *iface, char *dhostname)
-{
-    FILE *fp;
-
-    if ((fp = file_open(INTERFACES_FILE, "a"))) {
-        fprintf(fp, "\n# The primary network interface\n");
-        fprintf(fp, "auto %s\n", iface);
-        fprintf(fp, "iface %s inet dhcp\n", iface);
-        if (dhostname) {
-            fprintf(fp, "\thostname %s\n", dhostname);
-        }
-        if (is_wireless_iface(iface)) {
-            fprintf(fp, "\t# wireless-* options are implemented by the wireless-tools package\n");
-            fprintf(fp, "\twireless-mode %s\n",
-                    (mode == MANAGED) ? "managed" : "ad-hoc");
-            fprintf(fp, "\twireless-essid %s\n",
-                    (essid && *essid) ? essid : "any");
-            if (wepkey != NULL)
-                fprintf(fp, "\twireless-key1 %s\n", wepkey);
-        }
-        fclose(fp);
-    }
-}
-
 /* Returns 1 if no default route is available */
 static short no_default_route (void)
 {
 #if defined(__FreeBSD_kernel__)
-    int status;
+    int status4, status6;
 
-    status = system("exec /lib/freebsd/route show default >/dev/null 2>&1");
+    status4 = system("exec /lib/freebsd/route show default >/dev/null 2>&1");
+    status6 = system("exec /lib/freebsd/route show -inet6 default >/dev/null 2>&1");
 
-    return WEXITSTATUS(status) != 0;
+    return (WEXITSTATUS(status4) != 0) && (WEXITSTATUS(status6) != 0);
+#elif defined(__GNU__)
+    FILE* pfinet = NULL;
+    char buf[1024] = { 0 };
+
+    pfinet = popen("fsysopts /servers/socket/2", "r");
+    if (!pfinet)
+        return 1;
+
+    if (fgets (buf, 1024, pfinet) == NULL) {
+        pclose (pfinet);
+        return 1;
+    }
+    pclose (pfinet);
+
+    return !strstr (buf, "--gateway=");
 #else
     FILE* iproute = NULL;
     char buf[256] = { 0 };
 
+    /* IPv4 default route? */
     if ((iproute = popen("ip route", "r")) != NULL) {
         while (fgets (buf, 256, iproute) != NULL) {
-            if (buf[0] == 'd' && strstr (buf, "default via ")) {
+            if (strncmp(buf, "default via ", 12) == 0) {
+                pclose(iproute);
+                return 0;
+            }
+        }
+        pclose(iproute);
+    }
+
+    /* IPv6 default route? */
+    if ((iproute = popen("ip -6 route", "r")) != NULL) {
+        while (fgets (buf, 256, iproute) != NULL) {
+            if (strncmp(buf, "default via ", 12) == 0) {
                 pclose(iproute);
                 return 0;
             }
@@ -109,23 +109,26 @@ static short no_default_route (void)
  * lease or because it succeeded and daemonized itself), this
  * gets the child's exit status and sets dhcp_pid to -1
  */
-static void dhcp_client_sigchld(int sig __attribute__ ((unused)))
+static void cleanup_dhcp_client(void)
 {
-    di_debug("dhcp_client_sigchld() called");
     if (dhcp_pid <= 0)
         /* Already cleaned up */
         return;
 
-    /*
-     * I hope it's OK to call waitpid() from the SIGCHLD signal handler
-     */
-    di_debug("Waiting for dhcp_pid = %i", dhcp_pid);
     waitpid(dhcp_pid, &dhcp_exit_status, WNOHANG);
-    if (WIFEXITED(dhcp_exit_status)) {
+    if (WIFEXITED(dhcp_exit_status))
         dhcp_pid = -1;
-    }
 }
 
+/* Run through the available client process handlers we're running, and tell
+ * them to cleanup if required.
+ */
+void sigchld_handler(int sig __attribute__ ((unused)))
+{
+    cleanup_dhcp_client();
+    cleanup_rdnssd();
+    cleanup_dhcpv6_client();
+}
 
 /*
  * This function will start whichever DHCP client is available
@@ -133,7 +136,7 @@ static void dhcp_client_sigchld(int sig __attribute__ ((unused)))
  *
  * The client's PID is stored in dhcp_pid.
  */
-int start_dhcp_client (struct debconfclient *client, char* dhostname)
+int start_dhcp_client (struct debconfclient *client, char* dhostname, const char *if_name)
 {
     FILE *dc = NULL;
     const char **ptr;
@@ -167,9 +170,9 @@ int start_dhcp_client (struct debconfclient *client, char* dhostname)
         switch (dhcp_client) {
         case PUMP:
             if (dhostname)
-                execlp("pump", "pump", "-i", interface, "-h", dhostname, NULL);
+                execlp("pump", "pump", "-i", if_name, "-h", dhostname, NULL);
             else
-                execlp("pump", "pump", "-i", interface, NULL);
+                execlp("pump", "pump", "-i", if_name, NULL);
 
             break;
 
@@ -180,7 +183,7 @@ int start_dhcp_client (struct debconfclient *client, char* dhostname)
                 fprintf(dc, "request ");
 
                 for (ptr = dhclient_request_options_dhclient; *ptr; ptr++) {
-                    fprintf(dc, *ptr);
+                    fprintf(dc, "%s", *ptr);
 
                     /* look ahead to see if it is the last entry */
                     if (*(ptr + 1))
@@ -193,10 +196,11 @@ int start_dhcp_client (struct debconfclient *client, char* dhostname)
                     fprintf(dc, "send host-name \"%s\";\n", dhostname);
                 }
                 fprintf(dc, "timeout %d;\n", dhcp_seconds);
+                fprintf(dc, "initial-interval 1;\n");
                 fclose(dc);
             }
 
-            execlp("dhclient", "dhclient", "-1", interface, NULL);
+            execlp("dhclient", "dhclient", "-1", if_name, "-cf", DHCLIENT_CONF, NULL);
             break;
 
         case UDHCPC:
@@ -215,7 +219,7 @@ int start_dhcp_client (struct debconfclient *client, char* dhostname)
             options_count = 0;
             arguments[options_count++] = "udhcpc";
             arguments[options_count++] = "-i";
-            arguments[options_count++] = interface;
+            arguments[options_count++] = (char *)if_name;
             arguments[options_count++] = "-V";
             arguments[options_count++] = "d-i";
             arguments[options_count++] = "-T";
@@ -249,23 +253,22 @@ int start_dhcp_client (struct debconfclient *client, char* dhostname)
     } else {
         /* dhcp_pid contains the child's PID */
         di_warning("Started DHCP client; PID is %i", dhcp_pid);
-        signal(SIGCHLD, &dhcp_client_sigchld);
+        signal(SIGCHLD, &sigchld_handler);
         return 0;
     }
 }
 
-
 static int kill_dhcp_client(void)
 {
-    system("killall.sh");
+    if (system("killall.sh")) {
+        /* We can't do much about errors anyway, so ignore them. */
+    }
     return 0;
 }
 
-
 /*
  * Poll the started DHCP client for netcfg/dhcp_timeout seconds (def. 30)
- * and return 0 if a lease is known to have been acquired,
- * 1 otherwise.
+ * and return true if a lease is known to have been acquired, 0 otherwise.
  *
  * The client should be run such that it exits once a lease is acquired
  * (although its child continues to run as a daemon)
@@ -276,7 +279,7 @@ static int kill_dhcp_client(void)
 int poll_dhcp_client (struct debconfclient *client)
 {
     int seconds_slept = 0;
-    int ret = 1;
+    int ret = 0;
     int dhcp_seconds;
 
     debconf_get(client, "netcfg/dhcp_timeout");
@@ -286,9 +289,10 @@ int poll_dhcp_client (struct debconfclient *client)
     /* show progress bar */
     debconf_capb(client, "backup progresscancel");
     debconf_progress_start(client, 0, dhcp_seconds, "netcfg/dhcp_progress");
-    if (debconf_progress_info(client, "netcfg/dhcp_progress_note") == 30)
+    if (debconf_progress_info(client, "netcfg/dhcp_progress_note") == 30) {
+        kill_dhcp_client();
         goto stop;
-    netcfg_progress_displayed = 1;
+    }
 
     /* wait between 2 and dhcp_seconds seconds for a DHCP lease */
     while ( ((dhcp_pid > 0) || (seconds_slept < 2))
@@ -302,7 +306,7 @@ int poll_dhcp_client (struct debconfclient *client)
 
     /* got a lease? display a success message */
     if (!(dhcp_pid > 0) && (dhcp_exit_status == 0)) {
-        ret = 0;
+        ret = 1;
 
         debconf_capb(client, "backup"); /* stop displaying cancel button */
         if (debconf_progress_set(client, dhcp_seconds) == 30)
@@ -316,7 +320,6 @@ int poll_dhcp_client (struct debconfclient *client)
     /* stop progress bar */
     debconf_progress_stop(client);
     debconf_capb(client, "backup");
-    netcfg_progress_displayed = 0;
 
     return ret;
 }
@@ -331,11 +334,11 @@ int poll_dhcp_client (struct debconfclient *client)
 #define REPLY_CHECK_DHCP             6
 #define REPLY_ASK_OPTIONS            7
 
-int ask_dhcp_options (struct debconfclient *client)
+int ask_dhcp_options (struct debconfclient *client, const char *if_name)
 {
     int ret;
 
-    if (is_wireless_iface(interface)) {
+    if (is_wireless_iface(if_name)) {
         debconf_metaget(client, "netcfg/internal-wifireconf", "description");
         debconf_subst(client, "netcfg/dhcp_options", "wifireconf", client->value);
     }
@@ -369,22 +372,60 @@ int ask_dhcp_options (struct debconfclient *client)
         return REPLY_DONT_CONFIGURE;
 }
 
-int ask_wifi_configuration (struct debconfclient *client)
+int ask_wifi_configuration (struct debconfclient *client, struct netcfg_interface *interface)
 {
-    enum { ABORT, DONE, ESSID, WEP } wifistate = ESSID;
+    enum { ABORT, ESSID, SECURITY_TYPE, WEP, WPA, START, DONE } wifistate = ESSID;
+
+    if (interface->wpa_supplicant_status != WPA_UNAVAIL)
+        kill_wpa_supplicant();
+
     for (;;) {
         switch (wifistate) {
         case ESSID:
-            wifistate = (netcfg_wireless_set_essid(client, interface, "high") == GO_BACK) ?
-                ABORT : WEP;
+            if (interface->wpa_supplicant_status == WPA_UNAVAIL)
+                wifistate = (netcfg_wireless_set_essid(client, interface, "high") == GO_BACK) ?
+                    ABORT : WEP;
+            else
+                wifistate = (netcfg_wireless_set_essid(client, interface, "high") == GO_BACK) ?
+                    ABORT : SECURITY_TYPE;
             break;
+        
+        case SECURITY_TYPE:
+            {
+                int ret;
+                ret = wireless_security_type(client, interface->name);
+                if (ret == GO_BACK)
+                    wifistate = ESSID;
+                else if (ret == REPLY_WPA)
+                    wifistate = WPA;
+                else
+                    wifistate = WEP;
+                break;
+            }
+        
         case WEP:
-            wifistate = (netcfg_wireless_set_wep(client, interface) == GO_BACK) ?
+            if (interface->wpa_supplicant_status == WPA_UNAVAIL)
+                wifistate = (netcfg_wireless_set_wep(client, interface) == GO_BACK) ?
+                    ESSID : DONE;
+            else
+                wifistate = (netcfg_wireless_set_wep(client, interface) == GO_BACK) ?
+                    SECURITY_TYPE : DONE;
+            break;
+        
+        case WPA:
+            wifistate = (netcfg_set_passphrase(client, interface) == GO_BACK) ?
+                SECURITY_TYPE : START;
+            break;
+        
+        case START:
+            wifistate = (wpa_supplicant_start(client, interface) == GO_BACK) ?
                 ESSID : DONE;
             break;
+            
         case ABORT:
             return REPLY_ASK_OPTIONS;
             break;
+        
         case DONE:
             return REPLY_CHECK_DHCP;
             break;
@@ -392,182 +433,106 @@ int ask_wifi_configuration (struct debconfclient *client)
     }
 }
 
-
-int netcfg_activate_dhcp (struct debconfclient *client)
+/* Back in the day, this function was the main entry point for DHCP-enabled
+ * netcfg; now it's slowly dying, doing quadruple duty handling all manner of
+ * autoconfiguration and the associated stuffing around, much of which is
+ * duplicated with static configuration.  Eventually, this whole mess will be
+ * merged with the static configuration code, and there will be much
+ * rejoicing.
+ */
+int netcfg_activate_dhcp (struct debconfclient *client, struct netcfg_interface *interface)
 {
-    char* dhostname = NULL;
-    enum { START, POLL, ASK_OPTIONS, DHCP_HOSTNAME, HOSTNAME, DOMAIN, HOSTNAME_SANS_NETWORK } state = START;
+    enum { AUTOCONFIG, DEFAULT_GATEWAY, NAMESERVERS,
+           ASK_OPTIONS, DHCP_HOSTNAME, HOSTNAME, DOMAIN, HOSTNAME_SANS_NETWORK
+           } state = AUTOCONFIG;
+    char *if_name = interface->name;
 
     kill_dhcp_client();
     loop_setup();
+    
+    interface_up(interface->name);
 
     for (;;) {
+        di_debug("State is now %i", state);
         switch (state) {
-        case START:
-            if (start_dhcp_client(client, dhostname))
-                netcfg_die(client); /* change later */
-            else
-                state = POLL;
-            break;
-
-        case POLL:
-            if (poll_dhcp_client(client)) {
-                /* could not get a lease, show the error, present options */
+        case AUTOCONFIG:
+            if (!netcfg_autoconfig(client, interface)) {
+                /* autoconfiguration has most definitely failed */
                 debconf_capb(client, "");
                 debconf_input(client, "critical", "netcfg/dhcp_failed");
                 debconf_go(client);
                 debconf_capb(client, "backup");
                 state = ASK_OPTIONS;
             } else {
-                /* got a lease */
-                /*
-                 * That means that the DHCP client has exited, although its
-                 * child is still running as a daemon
-                 */
-
-                /* Before doing anything else, check for a default route */
-
-                if (no_default_route()) {
-                    debconf_input(client, "critical", "netcfg/no_default_route");
-                    debconf_go(client);
-                    debconf_get(client, "netcfg/no_default_route");
-
-                    if (!strcmp(client->value, "false")) {
-                        state = ASK_OPTIONS;
-                        break;
-                    }
-                }
-
-                /*
-                 * Set defaults for domain name and hostname
-                 */
-                char buf[MAXHOSTNAMELEN + 1] = { 0 };
-                char *ptr = NULL;
-                FILE *d = NULL;
-
-                have_domain = 0;
-
-                /*
-                 * Default to the domain name returned via DHCP, if any
-                 */
-                if ((d = fopen(DOMAIN_FILE, "r")) != NULL) {
-                    char domain[_UTSNAME_LENGTH + 1] = { 0 };
-                    fgets(domain, _UTSNAME_LENGTH, d);
-                    fclose(d);
-                    unlink(DOMAIN_FILE);
-
-                    if (!empty_str(domain) && valid_domain(domain)) {
-                        debconf_set(client, "netcfg/get_domain", domain);
-                        have_domain = 1;
-                    }
-                }
-
-                /*
-                 * Record any ntp server information from DHCP for later
-                 * verification and use by clock-setup
-                 */
-                if ((d = fopen(NTP_SERVER_FILE, "r")) != NULL) {
-                    char ntpservers[DHCP_OPTION_LEN + 1] = { 0 };
-                    fgets(ntpservers, DHCP_OPTION_LEN, d);
-                    fclose(d);
-                    unlink(NTP_SERVER_FILE);
-
-                    if (!empty_str(ntpservers)) {
-                        debconf_set(client, "netcfg/dhcp_ntp_servers",
-                                    ntpservers);
-                    }
-                }
-
-                /*
-                 * Default to the hostname returned via DHCP, if any,
-                 * otherwise to the requested DHCP hostname
-                 * otherwise to the hostname found in DNS for the IP address
-                 * of the interface
-                 */
-                if (gethostname(buf, sizeof(buf)) == 0
-                    && !empty_str(buf)
-                    && strcmp(buf, "(none)")
-                    && valid_domain(buf)
-                    ) {
-                    di_info("DHCP hostname: \"%s\"", buf);
-                    debconf_set(client, "netcfg/get_hostname", buf);
-                }
-                else if (dhostname) {
-                    debconf_set(client, "netcfg/get_hostname", dhostname);
-                } else {
-                    struct ifreq ifr;
-                    struct in_addr d_ipaddr = { 0 };
-
-                    ifr.ifr_addr.sa_family = AF_INET;
-                    strncpy(ifr.ifr_name, interface, IFNAMSIZ);
-                    if (ioctl(skfd, SIOCGIFADDR, &ifr) == 0) {
-                        d_ipaddr = ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr;
-                        seed_hostname_from_dns(client, &d_ipaddr);
-                    }
-                    else
-                        di_warning("ioctl failed (%s)", strerror(errno));
-                }
-
-                /*
-                 * Default to the domain name that is the domain part
-                 * of the hostname, if any
-                 */
-                if (have_domain == 0 && (ptr = strchr(buf, '.')) != NULL) {
-                    debconf_set(client, "netcfg/get_domain", ptr + 1);
-                    have_domain = 1;
-                }
-
-                /* Make sure we have NS going if the DHCP server didn't serve it up */
-                if (resolv_conf_entries() <= 0) {
-                    char *nameservers = NULL;
-
-                    if (netcfg_get_nameservers (client, &nameservers) == GO_BACK) {
-                        state = ASK_OPTIONS;
-                        break;
-                    }
-
-                    netcfg_nameservers_to_array (nameservers, nameserver_array);
-                    netcfg_write_resolv (domain, nameserver_array);
-                }
-
-                state = HOSTNAME;
+                state = DEFAULT_GATEWAY;
             }
+            break;
+
+	case DEFAULT_GATEWAY:
+            if (no_default_route()) {
+                debconf_input(client, "critical", "netcfg/no_default_route");
+                debconf_go(client);
+                debconf_get(client, "netcfg/no_default_route");
+
+                if (!strcmp(client->value, "false")) {
+                    state = ASK_OPTIONS;
+                    break;
+                }
+            }
+            state = NAMESERVERS;
+            break;
+
+        case NAMESERVERS:
+            /* Make sure we have NS going if the DHCP server didn't serve it up */
+            if (nameserver_count(interface) == 0) {
+                char *nameservers = NULL;
+
+                if (netcfg_get_nameservers (client, &nameservers, NULL) == GO_BACK) {
+                    state = ASK_OPTIONS;
+                    break;
+                }
+
+                netcfg_nameservers_to_array (nameservers, interface);
+                free(nameservers);
+                nameservers = NULL;
+            }
+
+            /* We don't have a domain name yet, but we need to write out the
+             * nameservers now so we can do rDNS lookups later to possibly
+             * find out the domain.
+             */
+            netcfg_write_resolv(NULL, interface);
+            state = HOSTNAME;
             break;
 
         case ASK_OPTIONS:
             /* DHCP client may still be running */
-            switch (ask_dhcp_options (client)) {
+            switch (ask_dhcp_options (client, if_name)) {
             case GO_BACK:
                 kill_dhcp_client();
+                stop_rdnssd();
+                interface->dhcp = 0;
                 return 10;
             case REPLY_RETRY_WITH_HOSTNAME:
                 state = DHCP_HOSTNAME;
                 break;
             case REPLY_CONFIGURE_MANUALLY:
                 kill_dhcp_client();
+                stop_rdnssd();
+                interface->dhcp = 0;
                 return 15;
                 break;
             case REPLY_DONT_CONFIGURE:
                 kill_dhcp_client();
-                netcfg_write_loopback();
+                stop_rdnssd();
                 state = HOSTNAME_SANS_NETWORK;
                 break;
             case REPLY_RETRY_AUTOCONFIG:
-                if (dhcp_pid > 0)
-                    state = POLL;
-                else {
-                    kill_dhcp_client();
-                    state = START;
-                }
+                state = AUTOCONFIG;
                 break;
             case REPLY_RECONFIGURE_WIFI:
-                if (ask_wifi_configuration(client) == REPLY_CHECK_DHCP) {
-                    if (dhcp_pid > 0)
-                        state = POLL;
-                    else {
-                        kill_dhcp_client();
-                        state = START;
-                    }
+                if (ask_wifi_configuration(client, interface) == REPLY_CHECK_DHCP) {
+                    state = AUTOCONFIG;
                 }
                 else
                     state = ASK_OPTIONS;
@@ -577,59 +542,76 @@ int netcfg_activate_dhcp (struct debconfclient *client)
 
         case DHCP_HOSTNAME:
             /* DHCP client may still be running */
-            if (netcfg_get_hostname(client, "netcfg/dhcp_hostname", &dhostname, 0))
+            if (netcfg_get_hostname(client, "netcfg/dhcp_hostname", interface->dhcp_hostname, 0))
                 state = ASK_OPTIONS;
             else {
-                if (empty_str(dhostname)) {
-                    free(dhostname);
-                    dhostname = NULL;
-                }
                 kill_dhcp_client();
-                state = START;
+                stop_rdnssd();
+                state = AUTOCONFIG;
             }
             break;
 
         case HOSTNAME:
-            if (netcfg_get_hostname (client, "netcfg/get_hostname", &hostname, 1)) {
+            {
+                char buf[MAXHOSTNAMELEN + 1] = { 0 };
                 /*
-                 * Going back to POLL wouldn't make much sense.
-                 * However, it does make sense to go to the retry
-                 * screen where the user can elect to retry DHCP with
-                 * a requested DHCP hostname, etc.
+                 * Default to the hostname returned via DHCP, if any,
+                 * otherwise to the requested DHCP hostname
+                 * otherwise to the hostname found in DNS for the IP address
+                 * of the interface
                  */
-                state = ASK_OPTIONS;
+                if (gethostname(buf, sizeof(buf)) == 0
+                    && !empty_str(buf)
+                    && strcmp(buf, "(none)")
+                    ) {
+                    di_info("DHCP hostname: \"%s\"", buf);
+                    preseed_hostname_from_fqdn(client, buf);
+                }
+                else if (!empty_str(interface->dhcp_hostname)) {
+                    di_debug("Defaulting hostname to provided DHCP hostname");
+                    debconf_set(client, "netcfg/get_hostname", interface->dhcp_hostname);
+                } else {
+                    di_debug("Using DNS to try and obtain default hostname");
+                    if (get_hostname_from_dns(interface, buf, sizeof(buf)))
+                        preseed_hostname_from_fqdn(client, buf);
+                }
+
+                if (netcfg_get_hostname (client, "netcfg/get_hostname", hostname, 1)) {
+                    /*
+                     * Going back to POLL wouldn't make much sense.
+                     * However, it does make sense to go to the retry
+                     * screen where the user can elect to retry DHCP with
+                     * a requested DHCP hostname, etc.
+                     */
+                    state = ASK_OPTIONS;
+                }
+                else
+                    state = DOMAIN;
             }
-            else
-                state = DOMAIN;
             break;
 
         case DOMAIN:
-            if (!have_domain && netcfg_get_domain (client, &domain, "medium"))
+            if (!have_domain && netcfg_get_domain (client, domain, "medium"))
                 state = HOSTNAME;
             else {
-                netcfg_write_common(ipaddress, hostname, domain);
-                netcfg_write_dhcp(interface, dhostname);
-                /* If the resolv.conf was written by udhcpc, then nameserver_array
-                 * will be empty and we'll need to populate it.  If we asked for
-                 * the nameservers, then it'll be full, but nobody will care if we
-                 * refill it.
-                 */
-                if (read_resolv_conf_nameservers(nameserver_array))
-                    netcfg_write_resolv(domain, nameserver_array);
-                else
-                    printf("Error reading resolv.conf for nameservers\n");
+                di_debug("Network config complete");
+                netcfg_write_common("", hostname, domain);
+                netcfg_write_loopback();
+                netcfg_write_interface(interface);
+                netcfg_write_resolv(domain, interface);
+                kill_dhcp_client();
+                stop_rdnssd();
 
                 return 0;
             }
             break;
 
         case HOSTNAME_SANS_NETWORK:
-            if (netcfg_get_hostname (client, "netcfg/get_hostname", &hostname, 0))
+            if (netcfg_get_hostname (client, "netcfg/get_hostname", hostname, 0))
                 state = ASK_OPTIONS;
             else {
-                struct in_addr null_ipaddress;
-                null_ipaddress.s_addr = 0;
-                netcfg_write_common(null_ipaddress, hostname, NULL);
+                netcfg_write_common("", hostname, NULL);
+                interface->dhcp = 0;
                 return 0;
             }
             break;
@@ -637,55 +619,41 @@ int netcfg_activate_dhcp (struct debconfclient *client)
     }
 }
 
-/* returns number of 'nameserver' entries in resolv.conf */
-int resolv_conf_entries (void)
+/* Count the number of actual entries in the nameservers array */
+int nameserver_count (const struct netcfg_interface *interface)
 {
-    FILE *f;
-    int count = 0;
-
-    if ((f = fopen(RESOLV_FILE, "r")) != NULL) {
-        char buf[256];
-
-        while (fgets(buf, 256, f) != NULL) {
-            char *ptr;
-
-            if ((ptr = strchr(buf, ' ')) != NULL) {
-                *ptr = '\0';
-                if (strcmp(buf, "nameserver") == 0)
-                    count++;
-            }
-        }
-
-        fclose(f);
+    unsigned int count = 0, i;
+    
+    for (i = 0; i < NETCFG_NAMESERVERS_MAX; i++) {
+        if (!empty_str(interface->nameservers[i])) count++;
     }
-    else
-        count = -1;
 
     return count;
 }
 
 /* Read the nameserver entries out of resolv.conf and stick them into
- * nameservers_array, so we can write out a newer, shinier resolv.conf
+ * array, so we can write out a newer, shinier resolv.conf
  */
-int read_resolv_conf_nameservers(struct in_addr array[])
+int read_resolv_conf_nameservers(char *resolv_conf_file, struct netcfg_interface *interface)
 {
     FILE *f;
-    int i = 0;
+    unsigned int i = 0;
     
-    if ((f = fopen(RESOLV_FILE, "r")) != NULL) {
+    di_debug("Reading nameservers from %s", resolv_conf_file);
+    if ((f = fopen(resolv_conf_file, "r")) != NULL) {
         char buf[256];
 
         while (fgets(buf, 256, f) != NULL) {
             char *ptr;
 
             if (strncmp(buf, "nameserver ", strlen("nameserver ")) == 0) {
-                /* Chop off trailing \n */
-                if (buf[strlen(buf)-1] == '\n')
-                    buf[strlen(buf)-1] = '\0';
+            	rtrim(buf);
 
                 ptr = buf + strlen("nameserver ");
-                inet_pton(AF_INET, ptr, &array[i++]);
-                if (i == 3) {
+                strncpy(interface->nameservers[i], ptr, NETCFG_ADDRSTRLEN);
+                di_debug("Read nameserver %s", interface->nameservers[i]);
+                i++;
+                if (i >= NETCFG_NAMESERVERS_MAX) {
                     /* We can only hold so many nameservers, and we've reached
                      * our limit.  Sorry.
                      */
@@ -695,9 +663,82 @@ int read_resolv_conf_nameservers(struct in_addr array[])
         }
 
         fclose(f);
-        array[i].s_addr = 0;
+        /* Null out any remaining elements in array */
+        for (; i < NETCFG_NAMESERVERS_MAX; i++) *(interface->nameservers[i]) = '\0';
+
         return 1;
     }
     else
         return 0;
+}
+
+/* Start a DHCP(v4) client, and see if we get a meaningful response back.
+ *
+ * Return 1 if the DHCP client appears to have worked, or 0 if we should
+ * use another method to get our network configuration.
+ */
+int netcfg_dhcp(struct debconfclient *client, struct netcfg_interface *interface)
+{
+    FILE *d;
+    
+    if (start_dhcp_client(client, interface->dhcp_hostname, interface->name)) {
+        di_warning("DHCP client failed to start.  Aborting DHCP configuration.");
+        return 0;
+    }
+    
+    interface->dhcp = poll_dhcp_client(client);
+
+    /*
+     * Default to the domain name returned via DHCP, if any
+     */
+    if (!have_domain && (d = fopen(DOMAIN_FILE, "r")) != NULL) {
+        di_debug("Reading domain name returned via DHCP");
+        domain[0] = '\0';
+        if (fgets(domain, sizeof(domain), d) == NULL) {
+            /* ignore errors; we check for empty strings later */
+        }
+        rtrim(domain);
+        fclose(d);
+        unlink(DOMAIN_FILE);
+        di_debug("DHCP domain name is '%s'", domain);
+        if (!empty_str(domain)) {
+            have_domain = 1;
+        }
+    }
+
+    /*
+     * Record any ntp server information from DHCP for later
+     * verification and use by clock-setup
+     */
+    if ((d = fopen(NTP_SERVER_FILE, "r")) != NULL) {
+        char ntpservers[DHCP_OPTION_LEN + 1] = { 0 }, *ptr, *srv;
+        int i;
+        
+        di_debug("Reading NTP servers from DHCP info");
+        
+        if (fgets(ntpservers, DHCP_OPTION_LEN, d) == NULL) {
+            /* ignore errors; we check for empty strings later */
+        }
+        rtrim(ntpservers);
+        fclose(d);
+        unlink(NTP_SERVER_FILE);
+
+        if (!empty_str(ntpservers)) {
+            ptr = ntpservers;
+            for (i = 0; i < NETCFG_NTPSERVERS_MAX; i++) {
+                srv = strtok_r(ptr, " \n\t", &ptr);
+                if (srv) {
+                    di_debug("Read NTP server %s", srv);
+                    strncpy(interface->ntp_servers[i], srv, NETCFG_ADDRSTRLEN);
+                } else {
+                    *(interface->ntp_servers[i]) = '\0';
+                }
+            }
+        }
+    }
+    
+    /* Get a copy of the DNS servers that the DHCP server got */
+    read_resolv_conf_nameservers(RESOLV_FILE, interface);
+
+    return interface->dhcp;
 }

@@ -1015,6 +1015,12 @@ humandev () {
 	    db_metaget partman/text/scsi_simple_disk description
 	    printf "$RET" "$drive" "$kfreebsd"
 	    ;;
+	/dev/zvol/*)
+	    pool=`echo "$1" | sed -e 's,/dev/zvol/\([^/]*\)/[^/]*,\1,'`
+	    zvol=`echo "$1" | sed -e 's,/dev/zvol/[^/]*/\([^/]*\),\1,'`
+	    db_metaget partman/text/zfs_volume description
+	    printf "$RET" "$pool" "$zvol"
+	    ;;
 	*)
 	    # Check if it's an LVM1 device
 	    vg=`echo "$1" | sed -e 's,/dev/\([^/]\+\).*,\1,'`
@@ -1100,7 +1106,7 @@ disable_swap () {
 		  swapoff $path
 	      done
     else
-	grep '^/dev' /proc/swaps | grep -v '^/dev/ramzswap' \
+	grep '^/dev' /proc/swaps | egrep -v '^/dev/(ramzswap|zram)' \
 	    | while read path x; do
 		  swapoff $path
 	      done
@@ -1110,6 +1116,7 @@ disable_swap () {
 # Lock a device or partition against further modifications
 partman_lock_unit() {
 	local device message cwd dev testdev
+	local num id size type fs path name
 	device="$1"
 	message="$2"
 
@@ -1146,6 +1153,7 @@ partman_lock_unit() {
 # Unlock a device or partition to allow further modifications
 partman_unlock_unit() {
 	local device cwd dev testdev
+	local num id size type fs path name
 	device="$1"
 
 	# See partman_lock_unit() for details about $cwd.

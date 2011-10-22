@@ -12,7 +12,7 @@
 # - Antonio Olmo Titos <aolmo#emergya._info>
 # - Gumer Coronel Pérez <gcoronel#emergya._info>
 # - Colin Watson <cjwatson@ubuntu.com>
-# - Evan Dandrea <evand@ubuntu.com>
+# - Evan Dandrea <ev@ubuntu.com>
 # - Mario Limonciello <superm1@ubuntu.com>
 #
 # This file is part of Ubiquity.
@@ -41,18 +41,16 @@ import gettext
 import ConfigParser
 
 import dbus
-import pygtk
-import gtk
-pygtk.require('2.0')
-import pango
-import warnings
-warnings.filterwarnings('ignore', 'error opening config file', pango.Warning)
-import gobject
-gobject.threads_init()
-import glib
+from dbus.mainloop.glib import DBusGMainLoop
+DBusGMainLoop(set_as_default=True)
 
-from ubiquity import filteredcommand, gconftool, i18n, validation, misc
-from ubiquity import gtkwidgets
+#in query mode we won't be in X, but import needs to pass
+if 'DISPLAY' in os.environ:
+    from gi.repository import Gtk, Gdk, GObject
+    GObject.threads_init()
+    from ubiquity import gtkwidgets
+
+from ubiquity import filteredcommand, gconftool, gsettings, i18n, validation, misc
 from ubiquity.plugin import Plugin
 from ubiquity.components import install, plugininstall, partman_commit
 import ubiquity.progressposition
@@ -77,36 +75,14 @@ os.environ['UBIQUITY_GLADE'] = UIDIR
 # Define locale path
 LOCALEDIR = "/usr/share/locale"
 
-def wrap_fix(w, allocation):
-    # Until the extended layout branch of GTK+ gets merged (bgo #101968).
-    # We cannot short circuit this function if the layout width or height is
-    # unchanged as we might have switched text direction (by selecting an RTL
-    # language) since the last time the label was processed.  Fortunately,
-    # size-allocate is not called often once past the language page.
-    layout = w.get_layout()
-    old_width, old_height = layout.get_size()
-    layout.set_width(allocation.width * pango.SCALE)
-    unused, height = layout.get_size()
-    w.set_size_request(-1, height / pango.SCALE)
-
-def process_labels(w):
-    if isinstance(w, gtk.Container):
-        children = w.get_children()
-        for c in children:
-            process_labels(c)
-    elif isinstance(w, gtk.Label):
-        if w.get_line_wrap():
-            w.connect_after('size-allocate', wrap_fix)
-        w.set_property('can-focus', False)
-
 def set_root_cursor(cursor=None):
     if cursor is None:
-        cursor = gtk.gdk.Cursor(gtk.gdk.ARROW)
-    win = gtk.gdk.get_default_root_window()
+        cursor = Gdk.Cursor.new(Gdk.CursorType.ARROW)
+    win = Gdk.get_default_root_window()
     if win:
         win.set_cursor(cursor)
-    while gtk.events_pending():
-        gtk.main_iteration()
+    while Gtk.events_pending():
+        Gtk.main_iteration()
 
 class Controller(ubiquity.frontend.base.Controller):
     def add_builder(self, builder):
@@ -188,19 +164,20 @@ class Wizard(BaseFrontend):
             if os.path.exists(uifile):
                 self.builder.add_from_file(uifile)
                 widget = self.builder.get_object(name)
-                steps.append_page(widget)
+                steps.append_page(widget, None)
             else:
                 print >>sys.stderr, 'Could not find ui file %s' % name
             return widget
 
         def add_widget(self, widget):
             """Make a widget callable by the toplevel."""
-            if not isinstance(widget, gtk.Widget):
+            if not isinstance(widget, Gtk.Widget):
                 return
-            name = gtk.Buildable.get_name(widget)
+            name = Gtk.Buildable.get_name(widget)
             widget.set_name(name)
-            atk_desc = widget.get_accessible()
-            atk_desc.set_name(name)
+            if 'UBIQUITY_LDTP' in os.environ:
+                atk_desc = widget.get_accessible()
+                atk_desc.set_name(name)
             self.all_widgets.add(widget)
             setattr(self, widget.get_name(), widget)
             # We generally want labels to be selectable so that people can
@@ -209,8 +186,16 @@ class Wizard(BaseFrontend):
             # selectable labels in the focus chain, and I can't seem to turn
             # this off in glade and have it stick. Accordingly, make sure
             # labels are unfocusable here.
-            if isinstance(widget, gtk.Label):
-                widget.set_property('can-focus', False)
+            label = None
+            if isinstance(widget, Gtk.Label):
+                label = widget
+            elif isinstance(widget, gtkwidgets.StateBox):
+                label = widget.label
+
+            # If we're runing Orca, we want to be able to read labels.
+            if label:
+                label.set_property('can-focus', self.screen_reader)
+                label.set_selectable(self.screen_reader)
 
         BaseFrontend.__init__(self, distro)
         self.previous_excepthook = sys.excepthook
@@ -219,6 +204,7 @@ class Wizard(BaseFrontend):
         # declare attributes
         self.all_widgets = set()
         self.gconf_previous = {}
+        self.gsettings_previous = {}
         self.thunar_previous = {}
         self.language_questions = ('live_installer', 'quit', 'back', 'next',
                                    'warning_dialog', 'warning_dialog_label',
@@ -236,40 +222,43 @@ class Wizard(BaseFrontend):
         self.installing_no_return = False
         self.returncode = 0
         self.history = []
-        self.builder = gtk.Builder()
-        self.grub_options = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
+        self.builder = Gtk.Builder()
+        self.grub_options = Gtk.ListStore(GObject.TYPE_STRING, GObject.TYPE_STRING)
         self.finished_installing = False
         self.finished_pages = False
         self.parallel_db = None
+        self.timeout_id = None
+        self.screen_reader = False
 
         # To get a "busy mouse":
-        self.watch = gtk.gdk.Cursor(gtk.gdk.WATCH)
+        self.watch = Gdk.Cursor.new(Gdk.CursorType.WATCH)
         set_root_cursor(self.watch)
         atexit.register(set_root_cursor)
 
         self.laptop = misc.execute("laptop-detect")
 
+        # Are we running alongside Orca?
+        with open('/proc/cmdline') as fp:
+            if 'access=v3' in fp.read():
+                self.screen_reader = True
+
         # set default language
         self.locale = i18n.reset_locale(self)
 
-        gobject.timeout_add_seconds(30, self.poke_screensaver)
+        GObject.timeout_add_seconds(30, self.poke_screensaver)
 
         # set custom language
         self.set_locales()
 
-        gtk.window_set_default_icon_from_file('/usr/share/pixmaps/'
-                                              'ubiquity.png')
+        # Thin progress bar
+        provider = Gtk.CssProvider()
+        provider.load_from_data(
+            '''GtkProgressBar {
+              -GtkProgressBar-min-horizontal-bar-height : 10
+              }''')
 
-        # This needs to be done before the GtkBuilder objects are created.
-        style = gtk.MenuBar().rc_get_style()
-        bg = style.bg[gtk.STATE_NORMAL]
-        gtk.rc_parse_string('''
-        style "ubiquity" {
-            GtkProgressBar::min-horizontal-bar-height = 10
-            bg[ACTIVE] = "%s"
-        }
-        class "GtkProgressBar" style "ubiquity"
-        ''' % bg)
+        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),
+            provider, Gtk.STYLE_PROVIDER_PRIORITY_USER)
 
         # load the main interface
         self.builder.add_from_file('%s/ubiquity.ui' % UIDIR)
@@ -301,18 +290,17 @@ class Wizard(BaseFrontend):
                             if isinstance(w, str):
                                 w = add_subpage(self, steps, w)
                             else:
-                                steps.append_page(w)
+                                steps.append_page(w, None)
                             rv.append(w)
                         return rv
                     mod.widgets = fill_out(widgets)
                     mod.optional_widgets = fill_out(optional_widgets)
                     mod.all_widgets = mod.widgets + mod.optional_widgets
-                    for w in mod.all_widgets:
-                        process_labels(w)
                     self.pageslen += 1
                     self.pages.append(mod)
 
-        #If no plugins declare they are install, then we'll say the last one is
+        # If no plugins declare they are install, then we'll say the last one
+        # is
         if not found_install:
             self.pages[self.pageslen - 1].ui.plugin_is_install = True
 
@@ -320,7 +308,7 @@ class Wizard(BaseFrontend):
         for builder in self.builders:
             for widget in builder.get_objects():
                 add_widget(self, widget)
-                if isinstance(widget, gtk.Window):
+                if isinstance(widget, Gtk.Window):
                     self.toplevels.add(widget)
         self.builder.connect_signals(self)
 
@@ -328,9 +316,24 @@ class Wizard(BaseFrontend):
         self.translate_widgets(reget=True)
 
         self.customize_installer()
+        misc.add_connection_watch(self.network_change)
+
+        # Put up the a11y indicator in maybe-ubiquity mode
+        if ('UBIQUITY_GREETER' in os.environ and os.path.exists('/usr/bin/casper-a11y-enable')):
+            try:
+                from gi.repository import AppIndicator3 as AppIndicator
+                self.indicator = AppIndicator.Indicator.new('ubiquity', 'accessibility-directory',
+                    AppIndicator.IndicatorCategory.OTHER)
+                self.indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE)
+                self.indicator.set_menu(self.builder.get_object('a11y_indicator_menu'))
+                self.live_installer.connect('key-press-event', self.a11y_profile_keys)
+                if os.path.exists('/usr/bin/canberra-gtk-play'):
+                    subprocess.Popen(['/usr/bin/canberra-gtk-play', '--id=system-ready'], preexec_fn=misc.drop_all_privileges)
+            except:
+                print >>sys.stderr, "Unable to set up accessibility profile support."
 
     def all_children(self, parent):
-        if isinstance(parent, gtk.Container):
+        if isinstance(parent, Gtk.Container):
             def recurse(x, y):
                 return x + self.all_children(y)
             rv = reduce(recurse, parent.get_children(), [parent])
@@ -359,7 +362,7 @@ class Wizard(BaseFrontend):
                     widgets.append((c, prefix))
         if not just_current:
             for toplevel in self.toplevels:
-                if toplevel.name != 'live_installer':
+                if toplevel.get_name() != 'live_installer':
                     for c in self.all_children(toplevel):
                         widgets.append((c, None))
         self.translate_widgets(lang=lang, widgets=widgets, reget=False)
@@ -408,8 +411,25 @@ class Wizard(BaseFrontend):
             self.crash_detail_label.set_text(tbtext)
             self.crash_dialog.run()
             self.crash_dialog.hide()
-
+            self.live_installer.hide()
+            while Gtk.events_pending():
+                Gtk.main_iteration()
+            misc.execute_root("apport-bug", "ubiquity")
             sys.exit(1)
+
+    def network_change(self, online=False):
+        from gi.repository import GObject
+        if not online:
+            self.set_online_state(False)
+            return
+        if self.timeout_id:
+            GObject.source_remove(self.timeout_id)
+        self.timeout_id = GObject.timeout_add(300, self.check_returncode)
+
+    def set_online_state(self, state):
+        for p in self.pages:
+            if hasattr(p.ui, 'plugin_set_online_state'):
+                p.ui.plugin_set_online_state(state)
 
     def thunar_set_volmanrc (self, fields):
         previous = {}
@@ -457,40 +477,48 @@ class Wizard(BaseFrontend):
                           self.gconf_previous[terminal_key])
 
     def disable_logout_indicator(self):
-        logout_key = '/apps/indicator-session/suppress_logout_menuitem'
-        self.gconf_previous[logout_key] = gconftool.get(logout_key)
-        if self.gconf_previous[logout_key] != 'true':
-            gconftool.set(logout_key, 'bool', 'true')
+        gs_schema = 'com.canonical.indicator.session'
+        gs_key = 'suppress-logout-menuitem'
+        gs_previous = '%s/%s' % (gs_schema, gs_key)
+        if gs_previous in self.gsettings_previous:
+            return
+
+        gs_value = gsettings.get(gs_schema, gs_key)
+        self.gsettings_previous[gs_previous] = gs_value
+
+        if gs_value != True:
+            gsettings.set(gs_schema, gs_key, True)
+
         atexit.register(self.enable_logout_indicator)
 
     def enable_logout_indicator(self):
-        logout_key = '/apps/indicator-session/suppress_logout_menuitem'
-        if self.gconf_previous[logout_key] == '':
-            gconftool.unset(logout_key)
-        elif self.gconf_previous[logout_key] != 'true':
-            gconftool.set(logout_key, 'bool',
-                          self.gconf_previous[logout_key])
+        gs_schema = 'com.canonical.indicator.session'
+        gs_key = 'suppress-logout-menuitem'
+        gs_previous = '%s/%s' % (gs_schema, gs_key)
+        gs_value = self.gsettings_previous[gs_previous]
+
+        gsettings.set(gs_schema, gs_key, gs_value)
 
     # Disable gnome-volume-manager automounting to avoid problems during
     # partitioning.
     def disable_volume_manager(self):
-        gvm_root = '/desktop/gnome/volume_manager'
-        gvm_automount_drives = '%s/automount_drives' % gvm_root
-        gvm_automount_media = '%s/automount_media' % gvm_root
-        volumes_visible = '/apps/nautilus/desktop/volumes_visible'
-        media_automount = '/apps/nautilus/preferences/media_automount'
-        media_automount_open = '/apps/nautilus/preferences/media_automount_open'
-        media_autorun_never = '/apps/nautilus/preferences/media_autorun_never'
-        for gconf_key in (gvm_automount_drives, gvm_automount_media,
-                          volumes_visible,
-                          media_automount, media_automount_open):
-            self.gconf_previous[gconf_key] = gconftool.get(gconf_key)
-            if self.gconf_previous[gconf_key] != 'false':
-                gconftool.set(gconf_key, 'bool', 'false')
-        for gconf_key in (media_autorun_never,):
-            self.gconf_previous[gconf_key] = gconftool.get(gconf_key)
-            if self.gconf_previous[gconf_key] != 'true':
-                gconftool.set(gconf_key, 'bool', 'true')
+        volumes_visible = ('org.gnome.nautilus.desktop', 'volumes-visible', False)
+        media_automount = ('org.gnome.desktop.media-handling', 'automount', False)
+        media_automount_open = ('org.gnome.desktop.media-handling', 'automount-open', False)
+        media_autorun_never = ('org.gnome.desktop.media-handling', 'autorun-never', True)
+        for keys in (volumes_visible, media_automount, media_automount_open, media_autorun_never):
+            gs_schema = keys[0]
+            gs_key = keys[1]
+            gs_wantedvalue = keys[2]
+            gs_previous = '%s/%s' % (gs_schema, gs_key)
+            if gs_previous in self.gsettings_previous:
+                continue
+
+            gs_value = gsettings.get(gs_schema, gs_key)
+            self.gsettings_previous[gs_previous] = gs_value
+
+            if gs_value != gs_wantedvalue:
+                gsettings.set(gs_schema, gs_key, gs_wantedvalue)
 
         self.thunar_previous = self.thunar_set_volmanrc(
             {'AutomountDrives': 'FALSE', 'AutomountMedia': 'FALSE'})
@@ -498,30 +526,54 @@ class Wizard(BaseFrontend):
         atexit.register(self.enable_volume_manager)
 
     def enable_volume_manager(self):
-        gvm_root = '/desktop/gnome/volume_manager'
-        gvm_automount_drives = '%s/automount_drives' % gvm_root
-        gvm_automount_media = '%s/automount_media' % gvm_root
-        volumes_visible = '/apps/nautilus/desktop/volumes_visible'
-        media_automount = '/apps/nautilus/preferences/media_automount'
-        media_automount_open = '/apps/nautilus/preferences/media_automount_open'
-        media_autorun_never = '/apps/nautilus/preferences/media_autorun_never'
-        for gconf_key in (gvm_automount_drives, gvm_automount_media,
-                          volumes_visible,
-                          media_automount, media_automount_open):
-            if self.gconf_previous[gconf_key] == '':
-                gconftool.unset(gconf_key)
-            elif self.gconf_previous[gconf_key] != 'false':
-                gconftool.set(gconf_key, 'bool',
-                              self.gconf_previous[gconf_key])
-        for gconf_key in (media_autorun_never,):
-            if self.gconf_previous[gconf_key] == '':
-                gconftool.unset(gconf_key)
-            elif self.gconf_previous[gconf_key] != 'true':
-                gconftool.set(gconf_key, 'bool',
-                              self.gconf_previous[gconf_key])
+        volumes_visible = ('org.gnome.nautilus.desktop', 'volumes-visible')
+        media_automount = ('org.gnome.desktop.media-handling', 'automount')
+        media_automount_open = ('org.gnome.desktop.media-handling', 'automount-open')
+        media_autorun_never = ('org.gnome.desktop.media-handling', 'autorun-never')
+        for keys in (volumes_visible, media_automount, media_automount_open, media_autorun_never):
+            gs_schema = keys[0]
+            gs_key = keys[1]
+            gs_previous = '%s/%s' % (gs_schema, gs_key)
+            gs_value = self.gsettings_previous[gs_previous]
+
+            gsettings.set(gs_schema, gs_key, gs_value)
 
         if self.thunar_previous:
             self.thunar_set_volmanrc(self.thunar_previous)
+
+    def a11y_profile_keys(self, window, event):
+        if event.state & Gdk.ModifierType.CONTROL_MASK and event.keyval == Gdk.keyval_from_name('h'):
+            self.a11y_profile_high_contrast_activate()
+        elif event.state & Gdk.ModifierType.CONTROL_MASK and event.keyval == Gdk.keyval_from_name('s'):
+            self.a11y_profile_screen_reader_activate()
+
+    def a11y_profile_high_contrast_activate(self, widget=None):
+        subprocess.call(['log-output', '-t', 'ubiquity',
+                         '--pass-stdout', '/usr/bin/casper-a11y-enable',
+                         'high-contrast'], preexec_fn=misc.drop_all_privileges)
+        os.environ['UBIQUITY_A11Y_PROFILE'] = 'high-contrast'
+
+    def a11y_profile_screen_reader_activate(self, widget=None):
+        subprocess.call(['log-output', '-t', 'ubiquity',
+                         '--pass-stdout', '/usr/bin/casper-a11y-enable',
+                         'blindness'], preexec_fn=misc.drop_all_privileges)
+        os.environ['UBIQUITY_A11Y_PROFILE'] = 'screen-reader'
+        if os.path.exists('/usr/bin/orca'):
+            subprocess.Popen(['/usr/bin/orca', '-n'], preexec_fn=misc.drop_all_privileges)
+             
+    def a11y_profile_keyboard_modifiers_activate(self, widget=None):
+        subprocess.call(['log-output', '-t', 'ubiquity',
+                         '--pass-stdout', '/usr/bin/casper-a11y-enable',
+                         'keyboard-modifiers'], preexec_fn=misc.drop_all_privileges)
+        os.environ['UBIQUITY_A11Y_PROFILE'] = 'keyboard-modifiers'
+
+    def a11y_profile_onscreen_keyboard_activate(self, widget=None):
+        subprocess.call(['log-output', '-t', 'ubiquity',
+                         '--pass-stdout', '/usr/bin/casper-a11y-enable',
+                         'onscreen-keyboard'], preexec_fn=misc.drop_all_privileges)
+        os.environ['UBIQUITY_A11Y_PROFILE'] = 'onscreen-keyboard'
+        if os.path.exists('/usr/bin/onboard'):
+            subprocess.Popen(['/usr/bin/onboard'], preexec_fn=misc.drop_all_privileges)
 
     def run(self):
         """run the interface."""
@@ -529,8 +581,8 @@ class Wizard(BaseFrontend):
         if os.getuid() != 0:
             title = ('This installer must be run with administrative '
                      'privileges, and cannot continue without them.')
-            dialog = gtk.MessageDialog(self.live_installer, gtk.DIALOG_MODAL,
-                                       gtk.MESSAGE_ERROR, gtk.BUTTONS_CLOSE,
+            dialog = Gtk.MessageDialog(self.live_installer, Gtk.DialogFlags.MODAL,
+                                       Gtk.MessageType.ERROR, Gtk.ButtonsType.CLOSE,
                                        title)
             dialog.run()
             sys.exit(1)
@@ -578,10 +630,10 @@ class Wizard(BaseFrontend):
 
                 if self.dbfilter is not None and self.dbfilter != old_dbfilter:
                     self.allow_change_step(False)
-                    glib.idle_add(lambda: self.dbfilter.start(auto_process=True))
+                    GObject.idle_add(lambda: self.dbfilter.start(auto_process=True))
 
                 self.pages[self.pagesindex].controller.dbfilter = self.dbfilter
-                gtk.main()
+                Gtk.main()
                 self.pages[self.pagesindex].controller.dbfilter = None
 
             if self.backup or self.dbfilter_handle_status():
@@ -596,14 +648,14 @@ class Wizard(BaseFrontend):
                 if self.backup:
                     self.pagesindex = self.pop_history()
 
-            while gtk.events_pending():
-                gtk.main_iteration()
+            while Gtk.events_pending():
+                Gtk.main_iteration()
 
         # There's still work to do (postinstall).  Let's keep the user
         # entertained.
         self.start_slideshow()
-        gtk.main()
-        # postinstall will exit here by calling gtk.main_quit in
+        Gtk.main()
+        # postinstall will exit here by calling Gtk.main_quit in
         # find_next_step.
 
         self.unlock_environment()
@@ -644,6 +696,7 @@ class Wizard(BaseFrontend):
             self.page_mode.hide()
             return
 
+        self.page_section.hide()
         slideshow_locale = self.slideshow_get_available_locale(self.slideshow, self.locale)
         slideshow_main = self.slideshow + '/slides/index.html'
 
@@ -654,8 +707,8 @@ class Wizard(BaseFrontend):
             if ltr == 'default:RTL':
                 slides += '?rtl'
 
-        import webkit
-        webview = webkit.WebView()
+        from gi.repository import WebKit
+        webview = WebKit.WebView()
         # WebKit puts file URLs in their own domain by default.
         # This means that anything which checks for the same origin,
         # such as creating a XMLHttpRequest, will fail unless this
@@ -664,6 +717,8 @@ class Wizard(BaseFrontend):
         s = webview.get_settings()
         s.set_property('enable-file-access-from-file-uris', True)
         s.set_property('enable-default-context-menu', False)
+        if (os.environ.get('UBIQUITY_A11Y_PROFILE') == 'screen-reader'):
+            s.set_property('enable-caret-browsing', True)
         
         webview.connect('new-window-policy-decision-requested',
                         self.on_slideshow_link_clicked)
@@ -679,38 +734,33 @@ class Wizard(BaseFrontend):
     def customize_installer(self):
         """Initial UI setup."""
 
-        style = gtk.MenuBar().rc_get_style()
-        self.live_installer.set_style(style)
-        self.page_title.set_style(style)
-        self.install_progress_text.set_style(style)
-        self.install_details_expander.set_style(style)
+        self.live_installer.set_default_icon_from_file(os.path.join(PIXMAPS,
+                                                        'ubiquity.png'))
+        provider = Gtk.CssProvider()
+        provider.load_from_data('''#live_installer,
+#page_title,
+#install_progress_text,
+#install_details_expander {
+color : @dark_fg_color;
+background-color : @dark_bg_color;
+}
+
+GtkEntry, GtkButton, GtkLabel, GtkIconView, GtkTreeView row, GtkComboBox *, GtkDrawingArea {
+color : @fg_color
+}''')
+        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),
+            provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         # TODO lazy load
-        from vte import Terminal
-        self.vte = Terminal()
+        from gi.repository import Vte
+        self.vte = Vte.Terminal()
         self.install_details_sw.add(self.vte)
-        self.vte.fork_command('tail',
-                             ['tail', '-f', '/var/log/installer/debug',
-                                      '-f', '/var/log/syslog', '-q'])
+        self.vte.fork_command_full(0, None,
+            ['/usr/bin/tail', '-f', '/var/log/installer/debug',
+                              '-f', '/var/log/syslog', '-q'],
+            None, 0, None, None)
         self.vte.show()
         # FIXME shrink the window horizontally instead of locking the window size.
-        self.live_installer.set_property('allow_grow', False)
-        # TODO move this into gtkwidgets as a subclass of GtkExpander or use a
-        # GtkFixed.
-        def do_allocate(widget, allocation):
-            child = self.install_details_expander.get_label_widget()
-            a = child.get_allocation()
-            expander_size = widget.style_get_property('expander-size')
-            expander_spacing = widget.style_get_property('expander-spacing')
-            border_width = widget.get_property('border-width')
-            #focus_width = widget.style_get_property('focus-line-width')
-            focus_pad = widget.style_get_property('focus-padding')
-
-            w = allocation.width - 2 * border_width - expander_size - \
-                2 * expander_spacing - 2 * focus_pad # - 2 * focus_width
-            a = gtk.gdk.Rectangle(a.x, a.y, w, child.size_request()[1])
-            child.size_allocate(a)
-        self.install_details_expander.connect('size-allocate', do_allocate)
-
+        self.live_installer.set_resizable(False)
         def expand(widget):
             if widget.get_property('expanded'):
                 self.progress_cancel_button.show()
@@ -737,8 +787,8 @@ class Wizard(BaseFrontend):
         # The default instantiation of GtkComboBoxEntry creates a
         # GtkCellRenderer, so reuse it.
         self.grub_new_device_entry.set_model(self.grub_options)
-        self.grub_new_device_entry.set_text_column(0)
-        renderer = gtk.CellRendererText()
+        self.grub_new_device_entry.set_entry_text_column(0)
+        renderer = Gtk.CellRendererText()
         self.grub_new_device_entry.pack_start(renderer, True)
         self.grub_new_device_entry.add_attribute(renderer, 'text', 1)
 
@@ -747,7 +797,7 @@ class Wizard(BaseFrontend):
             self.shutdown_button.hide()
 
         # Parse the slideshow size early to prevent the window from growing
-        if self.oem_user_config:
+        if self.oem_user_config and os.path.exists('/usr/share/oem-config-slideshow'):
             self.slideshow = '/usr/share/oem-config-slideshow'
         else:
             self.slideshow = '/usr/share/ubiquity-slideshow'
@@ -780,57 +830,68 @@ class Wizard(BaseFrontend):
         for key, value in os.environ.iteritems():
             if key != 'LC_ALL':
                 env.append('%s=%s' % (key, value))
-        gobject.spawn_async(command, envp=env,
-                            flags=(gobject.SPAWN_SEARCH_PATH |
-                                   gobject.SPAWN_STDOUT_TO_DEV_NULL |
-                                   gobject.SPAWN_STDERR_TO_DEV_NULL))
+        GObject.spawn_async(command, envp=env,
+                            flags=(GObject.SPAWN_SEARCH_PATH |
+                                   GObject.SPAWN_STDOUT_TO_DEV_NULL |
+                                   GObject.SPAWN_STDERR_TO_DEV_NULL))
         return True
 
     def set_window_hints(self, widget):
         if (self.oem_user_config or
             'UBIQUITY_ONLY' in os.environ or
             'UBIQUITY_GREETER' in os.environ):
-            f = gtk.gdk.FUNC_RESIZE | gtk.gdk.FUNC_MAXIMIZE | gtk.gdk.FUNC_MOVE
+            f = Gdk.WMFunction.RESIZE | Gdk.WMFunction.MAXIMIZE | Gdk.WMFunction.MOVE
             if not self.oem_user_config:
-                f |= gtk.gdk.FUNC_CLOSE
-            widget.window.set_functions(f)
+                f |= Gdk.WMFunction.CLOSE
+            widget.get_window().set_functions(f)
 
     def lockdown_environment(self):
         atexit.register(self.unlock_environment)
-        for key in ('/apps/indicator-session/suppress_logout_menuitem',
-                    '/apps/indicator-session/suppress_logout_restart_menuitem',
-                    '/apps/indicator-session/suppress_restart_menuitem',
-                    '/apps/indicator-session/suppress_shutdown_menuitem',
-                    '/desktop/gnome/lockdown/disable_user_switching'):
-            self.gconf_previous[key] = gconftool.get(key)
-            gconftool.set(key, 'bool', 'true')
+        for key in (('com.canonical.indicator.session', 'suppress-logout-menuitem'),
+                    ('com.canonical.indicator.session', 'suppress-logout-restart-shutdown'),
+                    ('com.canonical.indicator.session', 'suppress-restart-menuitem'),
+                    ('com.canonical.indicator.session', 'suppress-shutdown-menuitem'),
+                    ('org.gnome.desktop.lockdown','disable-user-switching')):
+            gs_schema = key[0]
+            gs_key = key[1]
+            gs_previous = '%s/%s' % (gs_schema, gs_key)
+            if gs_previous in self.gsettings_previous:
+                continue
+
+            gs_value = gsettings.get(gs_schema, gs_key)
+            self.gsettings_previous[gs_previous] = gs_value
+
+            gsettings.set(gs_schema, gs_key, True)
 
         self.quit.hide()
-        f = gtk.gdk.FUNC_RESIZE | gtk.gdk.FUNC_MAXIMIZE | gtk.gdk.FUNC_MOVE
+        f = Gdk.WMFunction.RESIZE | Gdk.WMFunction.MAXIMIZE | Gdk.WMFunction.MOVE
         if not 'UBIQUITY_ONLY' in os.environ:
-            f |= gtk.gdk.FUNC_MINIMIZE
-        self.live_installer.window.set_functions(f)
+            f |= Gdk.WMFunction.MINIMIZE
+        self.live_installer.get_window().set_functions(f)
         self.allow_change_step(False)
         self.refresh()
 
     def unlock_environment(self):
-        syslog.syslog('Reverting lockdown the desktop environment.')
-        for key in ('/apps/indicator-session/suppress_logout_menuitem',
-                    '/apps/indicator-session/suppress_logout_restart_menuitem',
-                    '/apps/indicator-session/suppress_restart_menuitem',
-                    '/apps/indicator-session/suppress_shutdown_menuitem',
-                    '/desktop/gnome/lockdown/disable_user_switching'):
-            if key in self.gconf_previous:
-                if self.gconf_previous[key] == '':
-                    gconftool.unset(key)
-                else:
-                    gconftool.set(key, 'bool', self.gconf_previous[key])
+        syslog.syslog('Reverting lockdown of the desktop environment.')
+        for key in (('com.canonical.indicator.session', 'suppress-logout-menuitem'),
+                    ('com.canonical.indicator.session', 'suppress-logout-restart-shutdown'),
+                    ('com.canonical.indicator.session', 'suppress-restart-menuitem'),
+                    ('com.canonical.indicator.session', 'suppress-shutdown-menuitem'),
+                    ('org.gnome.desktop.lockdown','disable-user-switching')):
+            gs_schema = key[0]
+            gs_key = key[1]
+            gs_previous = '%s/%s' % (gs_schema, gs_key)
+
+            if gs_previous in self.gsettings_previous:
+                gs_value = self.gsettings_previous[gs_previous]
+                gsettings.set(gs_schema, gs_key, gs_value)
+
         if not self.oem_user_config:
             self.quit.show()
-        f = gtk.gdk.FUNC_RESIZE | gtk.gdk.FUNC_MAXIMIZE | \
-            gtk.gdk.FUNC_MOVE | gtk.gdk.FUNC_CLOSE
+        f = Gdk.WMFunction.RESIZE | Gdk.WMFunction.MAXIMIZE | \
+            Gdk.WMFunction.MOVE | Gdk.WMFunction.CLOSE
         if not 'UBIQUITY_ONLY' in os.environ:
-            f |= gtk.gdk.FUNC_MINIMIZE
+            f |= Gdk.WMFunction.MINIMIZE
         self.refresh()
 
     def set_locales(self):
@@ -892,7 +953,7 @@ class Wizard(BaseFrontend):
             self.translate_widget(widget[0], lang=lang, prefix=widget[1])
 
     def translate_widget(self, widget, lang=None, prefix=None):
-        if isinstance(widget, gtk.Button) and widget.get_use_stock():
+        if isinstance(widget, Gtk.Button) and widget.get_use_stock():
             widget.set_label(widget.get_label())
 
         text = self.get_string(widget.get_name(), lang, prefix)
@@ -900,36 +961,10 @@ class Wizard(BaseFrontend):
             return
         name = widget.get_name()
 
-        if isinstance(widget, gtk.Label):
+        if isinstance(widget, Gtk.Label):
             widget.set_markup(text)
 
-            # Ideally, these attributes would be in the ui file (and can be if
-            # we bump required gtk+ to 2.16), but as long as we support glade
-            # files, we can't make the change.
-            textlen = len(text.encode("UTF-8"))
-            if 'heading_label' in name:
-                attrs = pango.AttrList()
-                attrs.insert(pango.AttrScale(pango.SCALE_LARGE, 0, textlen))
-                attrs.insert(pango.AttrWeight(pango.WEIGHT_BOLD, 0, textlen))
-                widget.set_attributes(attrs)
-            elif 'extra_label' in name:
-                attrs = pango.AttrList()
-                attrs.insert(pango.AttrScale(pango.SCALE_SMALL, 0, textlen))
-                widget.set_attributes(attrs)
-            elif ('group_label' in name or 'warning_label' in name or
-                  name in ('prepare_best_results',
-                           'drives_label',
-                           'partition_method_label')):
-                attrs = pango.AttrList()
-                attrs.insert(pango.AttrWeight(pango.WEIGHT_BOLD, 0, textlen))
-                widget.set_attributes(attrs)
-            elif 'part_auto_hidden_label' in name or 'part_auto_deleted_label' in name:
-                attrs = pango.AttrList()
-                attrs.insert(pango.AttrScale(pango.SCALE_SMALL, 0, textlen))
-                attrs.insert(pango.AttrWeight(pango.WEIGHT_BOLD, 0, textlen))
-                widget.set_attributes(attrs)
-
-        elif isinstance(widget, gtk.Button):
+        elif isinstance(widget, Gtk.Button):
             question = i18n.map_widget_name(prefix, widget.get_name())
             widget.set_label(text)
 
@@ -940,10 +975,10 @@ class Wizard(BaseFrontend):
             if question.startswith('ubiquity/imported/'):
                 stock_id = question[18:]
                 widget.set_use_stock(False)
-                widget.set_image(gtk.image_new_from_stock(
-                    'gtk-%s' % stock_id, gtk.ICON_SIZE_BUTTON))
+                widget.set_image(Gtk.Image.new_from_stock(
+                    'gtk-%s' % stock_id, Gtk.IconSize.BUTTON))
 
-        elif isinstance(widget, gtk.Window):
+        elif isinstance(widget, Gtk.Window):
             if name == 'live_installer':
                 if self.custom_title:
                     text = self.custom_title
@@ -958,9 +993,9 @@ class Wizard(BaseFrontend):
             cursor = None
         else:
             cursor = self.watch
-        if self.live_installer.window:
-            self.live_installer.window.set_cursor(cursor)
-            set_root_cursor(cursor)
+        if self.live_installer.get_parent_window():
+            self.live_installer.get_parent_window().set_cursor(cursor)
+        set_root_cursor(cursor)
         self.back.set_sensitive(allowed and self.allowed_go_backward)
         self.next.set_sensitive(allowed and self.allowed_go_forward)
         self.allowed_change_step = allowed
@@ -989,23 +1024,23 @@ class Wizard(BaseFrontend):
                 'step again before continuing? If you do not, your '
                 'installation may fail entirely or may be broken.' %
                 (self.dbfilter_status[0], self.dbfilter_status[1]))
-        dialog = gtk.Dialog('%s crashed' % self.dbfilter_status[0],
-                            self.live_installer, gtk.DIALOG_MODAL,
-                            (gtk.STOCK_QUIT, gtk.RESPONSE_CLOSE,
+        dialog = Gtk.Dialog('%s crashed' % self.dbfilter_status[0],
+                            self.live_installer, Gtk.DialogFlags.MODAL,
+                            (Gtk.STOCK_QUIT, Gtk.ResponseType.CLOSE,
                              'Continue anyway', 1,
                              'Try again', 2))
         self.dbfilter_status = None
-        label = gtk.Label(text)
+        label = Gtk.Label(label=text)
         label.set_line_wrap(True)
         label.set_selectable(False)
-        dialog.vbox.add(label)
+        dialog.get_content_area().add(label)
         dialog.show_all()
         response = dialog.run()
         dialog.hide()
         syslog.syslog('dbfilter_handle_status: response %d' % response)
         if response == 1:
             return True
-        elif response == gtk.RESPONSE_CLOSE:
+        elif response == Gtk.ResponseType.CLOSE:
             self.quit_installer()
         else:
             step = self.step_name(self.steps.get_current_page())
@@ -1023,42 +1058,6 @@ class Wizard(BaseFrontend):
 
     def page_name(self, step_index):
         return self.steps.get_nth_page(step_index).get_name()
-
-    def add_history(self, page, widget):
-        history_entry = (page, widget)
-        if self.history:
-            # We may have skipped past child pages of the component.  Remove
-            # the history between the page we're on and the end of the list in
-            # that case.
-            if history_entry in self.history:
-                idx = self.history.index(history_entry)
-                if idx + 1 < len(self.history):
-                    self.history = self.history[:idx+1]
-                    return # The page is now effectively a dup
-            # We may have either jumped backward or forward over pages.
-            # Correct history in that case
-            new_index = self.pages.index(page)
-            old_index = self.pages.index(self.history[-1][0])
-            # First, pop if needed
-            if new_index < old_index:
-                while self.history[-1][0] != page and len(self.history) > 1:
-                    self.pop_history()
-            # Now push fake history if needed
-            i = old_index + 1
-            while i < new_index:
-                for _ in self.pages[i].widgets: # add 1 for each always-on widgets
-                    self.history.append((self.pages[i], None))
-                i += 1
-
-            if history_entry == self.history[-1]:
-                return # Don't add the page if it's a dup
-        self.history.append(history_entry)
-
-    def pop_history(self):
-        if len(self.history) < 2:
-            return self.pagesindex
-        self.history.pop()
-        return self.pages.index(self.history[-1][0])
 
     def toggle_next_button(self, label='gtk-go-forward'):
         if label != 'gtk-go-forward':
@@ -1150,13 +1149,13 @@ class Wizard(BaseFrontend):
         # focusable item is a label or a button (often, the welcome text label
         # and the quit button), set the focus to the next button.
         if not self.live_installer.get_focus():
-            self.live_installer.child_focus(gtk.DIR_TAB_FORWARD)
+            self.live_installer.child_focus(Gtk.DirectionType.TAB_FORWARD)
         focus = self.live_installer.get_focus()
         if focus:
-            if focus.__class__ == gtk.Label:
+            if focus.__class__ == Gtk.Label:
                 focus.select_region(-1, -1) # when it got focus, whole text was selected
                 self.next.grab_focus()
-            elif focus.__class__ == gtk.Button:
+            elif focus.__class__ == Gtk.Button:
                 self.next.grab_focus()
         return True
 
@@ -1218,7 +1217,7 @@ class Wizard(BaseFrontend):
         """quit installer cleanly."""
 
         # Let the user know we're shutting down.
-        self.finished_dialog.window.set_cursor(self.watch)
+        self.finished_dialog.get_window().set_cursor(self.watch)
         set_root_cursor(self.watch)
         self.quit_button.set_sensitive(False)
         self.reboot_button.set_sensitive(False)
@@ -1258,18 +1257,12 @@ class Wizard(BaseFrontend):
                 self.allow_change_step(True)
                 return
 
-        step = self.page_name(self.steps.get_current_page())
-
-        # Beware that 'step' is the step we're leaving, not the one we're
-        # entering. At present it's a little awkward to define actions that
-        # occur upon entering a page without unwanted side-effects when the
-        # user tries to go forward but fails due to validation.
-
         if self.dbfilter is not None:
             self.dbfilter.ok_handler()
             # expect recursive main loops to be exited and
             # debconffilter_done() to be called when the filter exits
         else:
+            self.find_next_step(self.pages[self.pagesindex].module.__name__)
             self.quit_main_loop()
 
     def process_step(self):
@@ -1305,6 +1298,7 @@ class Wizard(BaseFrontend):
             # expect recursive main loops to be exited and
             # debconffilter_done() to be called when the filter exits
         else:
+            self.find_next_step(self.pages[self.pagesindex].module.__name__)
             self.quit_main_loop()
 
     def on_steps_switch_page (self, unused_notebook, unused_page, current):
@@ -1321,17 +1315,17 @@ class Wizard(BaseFrontend):
     # Callbacks provided to components.
 
     def watch_debconf_fd (self, from_debconf, process_input):
-        gobject.io_add_watch(from_debconf,
-                             gobject.IO_IN | gobject.IO_ERR | gobject.IO_HUP,
+        GObject.io_add_watch(from_debconf,
+                             GObject.IO_IN | GObject.IO_ERR | GObject.IO_HUP,
                              self.watch_debconf_fd_helper, process_input)
 
     def watch_debconf_fd_helper (self, source, cb_condition, callback):
         debconf_condition = 0
-        if (cb_condition & gobject.IO_IN) != 0:
+        if (cb_condition & GObject.IO_IN) != 0:
             debconf_condition |= filteredcommand.DEBCONF_IO_IN
-        if (cb_condition & gobject.IO_ERR) != 0:
+        if (cb_condition & GObject.IO_ERR) != 0:
             debconf_condition |= filteredcommand.DEBCONF_IO_ERR
-        if (cb_condition & gobject.IO_HUP) != 0:
+        if (cb_condition & GObject.IO_HUP) != 0:
             debconf_condition |= filteredcommand.DEBCONF_IO_HUP
 
         return callback(source, debconf_condition)
@@ -1394,6 +1388,10 @@ class Wizard(BaseFrontend):
             # dialog instead.
             self.crash_dialog.run()
             self.crash_dialog.hide()
+            self.live_installer.hide()
+            while Gtk.events_pending():
+                Gtk.main_iteration()
+            misc.execute_root("apport-bug", "ubiquity")
             sys.exit(1)
         if BaseFrontend.debconffilter_done(self, dbfilter):
             self.quit_main_loop()
@@ -1459,7 +1457,7 @@ class Wizard(BaseFrontend):
 
     def grub_verify_loop(self, widget, okbutton):
         if widget is not None:
-            if validation.check_grub_device(widget.child.get_text()):
+            if validation.check_grub_device(widget.get_child().get_text()):
                 okbutton.set_sensitive(True)
             else:
                 okbutton.set_sensitive(False)
@@ -1469,6 +1467,7 @@ class Wizard(BaseFrontend):
         stage, then errors can safely return us to partitioning.
         """
 
+        self.page_section.show()
         if self.installing and not self.installing_no_return:
             # Stop the currently displayed page.
             if self.dbfilter is not None:
@@ -1503,8 +1502,8 @@ class Wizard(BaseFrontend):
         self.allow_change_step(True)
         if not msg:
             msg = title
-        dialog = gtk.MessageDialog(self.live_installer, gtk.DIALOG_MODAL,
-                                   gtk.MESSAGE_ERROR, gtk.BUTTONS_OK, msg)
+        dialog = Gtk.MessageDialog(self.live_installer, Gtk.DialogFlags.MODAL,
+                                   Gtk.MessageType.ERROR, Gtk.ButtonsType.OK, msg)
         dialog.set_title(title)
         dialog.run()
         self.allow_change_step(saved_allowed_change_step)
@@ -1530,13 +1529,13 @@ class Wizard(BaseFrontend):
         l = self.skip_label.get_label()
         l = l.replace('${RELEASE}', misc.get_release().name)
         self.skip_label.set_label(l)
-        self.grub_new_device_entry.child.set_text(current_device)
-        self.grub_new_device_entry.child.grab_focus()
+        self.grub_new_device_entry.get_child().set_text(current_device)
+        self.grub_new_device_entry.get_child().grab_focus()
         response = self.bootloader_fail_dialog.run()
         self.bootloader_fail_dialog.hide()
-        if response == gtk.RESPONSE_OK:
+        if response == Gtk.ResponseType.OK:
             if self.grub_new_device.get_active():
-                return self.grub_new_device_entry.child.get_text()
+                return self.grub_new_device_entry.get_child().get_text()
             elif self.grub_no_new_device.get_active():
                 return 'skip'
             else:
@@ -1561,19 +1560,16 @@ class Wizard(BaseFrontend):
                 text = option
             if text is None:
                 text = option
-            # Work around PyGTK bug; each button text must actually be a
-            # subtype of str, which unicode isn't.
-            text = str(text)
             buttons.extend((text, len(buttons) / 2 + 1))
-        dialog = gtk.Dialog(title, self.live_installer, gtk.DIALOG_MODAL, tuple(buttons))
-        vbox = gtk.VBox()
+        dialog = Gtk.Dialog(title, self.live_installer, Gtk.DialogFlags.MODAL, tuple(buttons))
+        vbox = Gtk.VBox()
         vbox.set_border_width(5)
-        label = gtk.Label(msg)
+        label = Gtk.Label(label=msg)
         label.set_line_wrap(True)
         label.set_selectable(False)
-        vbox.pack_start(label)
+        vbox.pack_start(label, True, True, 0)
         vbox.show_all()
-        dialog.vbox.pack_start(vbox)
+        dialog.get_content_area().pack_start(vbox, True, True, 0)
         response = dialog.run()
         self.allow_change_step(saved_allowed_change_step)
         dialog.hide()
@@ -1584,14 +1580,14 @@ class Wizard(BaseFrontend):
             return options[response - 1]
 
     def refresh (self):
-        while gtk.events_pending():
-            gtk.main_iteration()
+        while Gtk.events_pending():
+            Gtk.main_iteration()
 
     # Run the UI's main loop until it returns control to us.
     def run_main_loop (self):
         self.allow_change_step(True)
         self.set_focus()
-        gtk.main()
+        Gtk.main()
 
     # Return control to the next level up.
     pending_quits = 0
@@ -1606,13 +1602,13 @@ class Wizard(BaseFrontend):
             return False
         def idle_quit():
             if self.pending_quits > 1:
-                gtk.quit_add(0, quit_quit)
-            if gtk.main_level() > 0:
-                gtk.main_quit()
+                quit_quit()
+            if Gtk.main_level() > 0:
+                Gtk.main_quit()
             return quit_decrement()
         def quit_quit():
             # Wait until we're actually out of this main loop
-            glib.idle_add(idle_quit)
+            GObject.idle_add(idle_quit)
             return False
 
         if self.pending_quits == 0:

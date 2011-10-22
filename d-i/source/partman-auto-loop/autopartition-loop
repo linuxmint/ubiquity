@@ -159,9 +159,10 @@ else
 		fi
 	done
 fi
-if [ -d /var/run ]; then
-	pidof mount.ntfs >> /var/run/sendsigs.omit
-	pidof mount.ntfs-3g >> /var/run/sendsigs.omit
+if [ -d /run ]; then
+	mkdir -p /run/sendsigs.omit.d
+	pidof mount.ntfs >> /run/sendsigs.omit.d/ntfs-3g
+	pidof mount.ntfs-3g >> /run/sendsigs.omit.d/ntfs-3g
 fi
 
 # TODO: handle errors if no mount succeeded

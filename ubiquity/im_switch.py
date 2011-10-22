@@ -124,10 +124,10 @@ def start_im():
     if (cfg_has('GTK_IM_MODULE') and
         'UBIQUITY_FRONTEND' in os.environ and
         os.environ['UBIQUITY_FRONTEND'] == 'gtk_ui'):
-        import gtk
-        settings = gtk.settings_get_default()
+        from gi.repository import Gtk
+        settings = Gtk.Settings.get_default()
         try:
-            settings.set_string_property('gtk-im-module', cfg['GTK_IM_MODULE'])
+            settings.set_string_property('gtk-im-module', cfg['GTK_IM_MODULE'], '')
         except TypeError:
             pass
 

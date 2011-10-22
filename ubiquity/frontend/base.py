@@ -22,15 +22,19 @@
 import sys
 import os
 import syslog
-
 import debconf
+import subprocess
 from ubiquity.debconfcommunicator import DebconfCommunicator
 from ubiquity.misc import drop_privileges, execute_root
 from ubiquity import i18n
 from ubiquity import plugin_manager
+from hashlib import md5
 
 # Lots of intentionally unused arguments here (abstract methods).
 __pychecker__ = 'no-argsused'
+
+WGET_URL = 'http://start.ubuntu.com/connectivity-check.html'
+WGET_HASH = '4589f42e1546aa47ca181e5d949d310b'
 
 class Controller:
     def __init__(self, wizard):
@@ -86,6 +90,8 @@ class BaseFrontend:
         self.resize_choice = None
         self.manual_choice = None
         self.locale = None
+        self.wget_retcode = None
+        self.wget_proc = None
 
         # Drop privileges so we can run the frontend as a regular user, and
         # thus talk to a11y applications running as a regular user.
@@ -181,6 +187,42 @@ class BaseFrontend:
         if lang is None and 'LANG' in os.environ:
             lang = os.environ['LANG']
         return i18n.get_string(name, lang, prefix)
+
+    def add_history(self, page, widget):
+        history_entry = (page, widget)
+        if self.history:
+            # We may have skipped past child pages of the component.  Remove
+            # the history between the page we're on and the end of the list in
+            # that case.
+            if history_entry in self.history:
+                idx = self.history.index(history_entry)
+                if idx + 1 < len(self.history):
+                    self.history = self.history[:idx+1]
+                    return # The page is now effectively a dup
+            # We may have either jumped backward or forward over pages.
+            # Correct history in that case
+            new_index = self.pages.index(page)
+            old_index = self.pages.index(self.history[-1][0])
+            # First, pop if needed
+            if new_index < old_index:
+                while self.history[-1][0] != page and len(self.history) > 1:
+                    self.pop_history()
+            # Now push fake history if needed
+            i = old_index + 1
+            while i < new_index:
+                for _ in self.pages[i].widgets: # add 1 for each always-on widgets
+                    self.history.append((self.pages[i], None))
+                i += 1
+
+            if history_entry == self.history[-1]:
+                return # Don't add the page if it's a dup
+        self.history.append(history_entry)
+
+    def pop_history(self):
+        if len(self.history) < 2:
+            return self.pagesindex
+        self.history.pop()
+        return self.pages.index(self.history[-1][0])
 
     def watch_debconf_fd(self, from_debconf, process_input):
         """Event loop interface to debconffilter.
@@ -401,3 +443,25 @@ class BaseFrontend:
                 locale_choice = ll
 
         return locale_choice
+
+    def check_returncode(self, *args):
+        if self.wget_retcode is not None or self.wget_proc is None:
+            self.wget_proc = subprocess.Popen(
+                ['wget', '-q', WGET_URL, '--timeout=15', '--tries=1', '-O', '-'],
+                stdout=subprocess.PIPE)
+        self.wget_retcode = self.wget_proc.poll()
+        if self.wget_retcode is None:
+            return True
+        else:
+            state = False
+            if self.wget_retcode == 0:
+                h = md5()
+                h.update(self.wget_proc.stdout.read())
+                if WGET_HASH == h.hexdigest():
+                    state = True
+            self.set_online_state(state)
+            return False
+
+    def set_online_state(self, state):
+        pass
+

@@ -230,6 +230,20 @@ if [ -d /sys/bus/platform/devices/s3c2440-usbgadget -o \
 	register-module g_ether
 fi
 
+# Load xenbus_probe_frontend if we're running under the Xen hypervisor, so
+# that it can deal with autoloading such things as xen-blkfront and
+# xen-netfront.
+if [ "$(cat /sys/hypervisor/type 2>/dev/null || true)" = xen ] && \
+   [ ! -d /sys/bus/xen ]; then
+	db_subst hw-detect/load_progress_step CARDNAME "Xen frontend"
+	db_subst hw-detect/load_progress_step MODULE "xenbus_probe_frontend"
+	db_progress INFO hw-detect/load_progress_step
+
+	log "Detected Xen hypervisor, loading xenbus_probe_frontend"
+	load_module xenbus_probe_frontend
+	register-module -i xenbus_probe_frontend
+fi
+
 # If using real hotplug, re-run the rc scripts to pick up new modules.
 # TODO: this just loads modules itself, rather than handing back a list
 # Since we've just run depmod, new modules might be available, so we

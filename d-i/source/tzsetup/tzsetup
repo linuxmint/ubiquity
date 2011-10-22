@@ -30,7 +30,7 @@ while :; do
 			detected=$(wget "$server" -T 15 -t 1 -O - 2>/dev/null | grep "TimeZone" \
 				| LC_ALL=C sed 's,.*<TimeZone>\(.*\)</TimeZone>.*,\1,')
 		fi
-		if [ -n "$detected" ]; then
+		if [ -n "$detected" ] && [ "$detected" != "None" ]; then
 			db_register time/zone time/zone # might be registered to something else
 			db_set time/zone "$detected"
 			db_subst tzsetup/detected ZONE $detected

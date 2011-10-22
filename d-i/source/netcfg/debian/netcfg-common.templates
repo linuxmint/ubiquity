@@ -4,17 +4,18 @@ Default: true
 Description: for internal use; can be preseeded
  Set to false to disable netcfg entirely via preseed.
 
-Template: netcfg/use_dhcp
+Template: netcfg/use_autoconfig
 Type: boolean
 Default: true
 # :sl1:
-_Description: Auto-configure network with DHCP?
- Networking can either be configured by DHCP or by manually
- entering all the information. If you choose to use DHCP and
- the installer is unable to get a working configuration
- from a DHCP server on your network, you will be given the
- opportunity to configure your network manually after the attempt
- to configure it by DHCP.
+_Description: Auto-configure networking?
+ Networking can be configured by either manually entering all the
+ information, or automatically detecting your networking settings using DHCP
+ or a variety of IPv6-specific methods.  If you choose to use
+ autoconfiguration and the installer is unable to get a working
+ configuration from your network, you will be given the opportunity to
+ configure your network manually after the attempt to automatically
+ configure it.
 
 Template: netcfg/get_domain
 Type: string
@@ -46,7 +47,7 @@ _Description: Primary network interface:
 
 Template: netcfg/wireless_essid
 Type: string
-# :sl1:
+# :sl2:
 _Description: Wireless ESSID for ${iface}:
  ${iface} is a wireless network interface. Please enter the name (the ESSID)
  of the wireless network you would like ${iface} to use. If you would like
@@ -54,7 +55,7 @@ _Description: Wireless ESSID for ${iface}:
 
 Template: netcfg/wireless_essid_again
 Type: string
-# :sl1:
+# :sl2:
 _Description: Wireless ESSID for ${iface}:
  Attempting to find an available wireless network failed.
  .
@@ -62,9 +63,18 @@ _Description: Wireless ESSID for ${iface}:
  of the wireless network you would like ${iface} to use. To skip wireless
  configuration and continue, leave this field blank.
 
+Template: netcfg/wireless_security_type
+Type: select
+Choices-C: wep/open, wpa 
+__Choices: WEP/Open Network, WPA PSK
+# :sl2:
+_Description: Wireless network type for ${iface}:
+ Choose WEP/Open if the network is open or secured with WEP.
+ Choose WPA if the network is a WPA PSK protected network.
+
 Template: netcfg/wireless_wep
 Type: string
-# :sl1:
+# :sl2:
 _Description: WEP key for wireless device ${iface}:
  If applicable, please enter the WEP security key for the wireless
  device ${iface}. There are two ways to do this:
@@ -86,12 +96,48 @@ _Description: Invalid WEP key
  the next screen carefully on how to enter your WEP key correctly, and try
  again.
 
+Template: netcfg/invalid_pass
+Type: error
+# :sl2:
+_Description: Invalid passphrase
+ The WPA PSK passphrase was either too long (more than 64 characters)
+ or too short (less than 8 characters).
+
+Template: netcfg/wireless_wpa
+Type: string
+# :sl2:
+_Description: WPA passphrase for wireless device ${iface}:
+ Enter the passphrase for WPA PSK authentication. This should be the
+ passphrase defined for the wireless network you are trying to use.
+
 Template: netcfg/invalid_essid
 Type: error
 # :sl2:
 _Description: Invalid ESSID
  The ESSID "${essid}" is invalid. ESSIDs may only be up to 32 characters,
  but may contain all kinds of characters.
+
+Template: netcfg/wpa_progress
+Type: text
+# :sl2:
+_Description: Attempting to exchange keys with the access point...
+
+Template: netcfg/wpa_progress_note
+Type: text
+# :sl2:
+_Description: This may take some time.
+
+Template: netcfg/wpa_success_note
+Type: text
+# :sl2:
+_Description: WPA connection succeeded
+
+Template: netcfg/wpa_supplicant_failed
+Type: note
+# :sl2:
+_Description: Failure of key exchange and association
+ The exchange of keys and association with the access point failed.
+ Please check the WPA parameters you provided.
 
 Template: netcfg/get_hostname
 Type: string
@@ -160,12 +206,12 @@ _Description: Type of wireless network:
 
 Template: netcfg/wifi_progress_title
 Type: text
-# :sl1:
+# :sl2:
 _Description: Wireless network configuration
 
 Template: netcfg/wifi_progress_info
 Type: text
-# :sl1:
+# :sl2:
 _Description: Searching for wireless access points...
 
 Template: netcfg/disable_dhcp

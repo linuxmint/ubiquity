@@ -9,9 +9,11 @@ import sys
 import os
 sys.path.insert(0, 'ubiquity/plugins')
 ubi_partman = __import__('ubi-partman')
-sys.path.pop()
+sys.path.pop(0)
 from ubiquity import misc
 import debconf
+
+os.environ['UBIQUITY_GLADE'] = 'gui/gtk'
 
 def question_has_variables(question, lookup_variables):
     existing_variables = []
@@ -198,9 +200,6 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         title = self.page.description(question)
         desc = self.page.extended_description(question)
         self.manual = ubi_partman.PartitioningOption(title, desc)
-        
-        # Pretend to be online.
-        self.page.db.set('ubiquity/online', 'true')
 
     # 'This computer currently has Windows on it.'
     def test_windows_only(self):
@@ -382,6 +381,20 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
 
         self.assertIn('manual', options)
         self.assertItemsEqual(self.manual, options['manual'])
+
+from gi.repository import Gtk, GObject
+class TestPageGtk(unittest.TestCase):
+    def setUp(self):
+        # FIXME Not sure why this is needed.
+        from ubiquity import gtkwidgets
+        controller = mock.Mock()
+        self.gtk = ubi_partman.PageGtk(controller)
+
+    def test_advanced_page_link(self):
+        self.gtk.part_auto_hidden_label.emit('activate-link', '')
+        GObject.timeout_add(500, Gtk.main_quit)
+        Gtk.main()
+        self.gtk.controller.go_forward.assert_called_once_with()
 
 if __name__ == '__main__':
     test_support.run_unittest(TestCalculateAutopartitioningOptions, TestPage, PartmanPageDirectoryTests)

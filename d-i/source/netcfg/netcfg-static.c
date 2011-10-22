@@ -18,6 +18,7 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
+#include "netcfg.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -25,19 +26,20 @@
 #include <sys/types.h>
 #include <cdebconf/debconfclient.h>
 #include <debian-installer.h>
-#include "netcfg.h"
 
 int main(int argc, char** argv)
 {
     int num_interfaces = 0;
     static struct debconfclient *client;
     static int requested_wireless_tools = 0;
+    struct netcfg_interface interface;
 
     enum { BACKUP, GET_INTERFACE, GET_HOSTNAME_ONLY, GET_STATIC, WCONFIG, WCONFIG_ESSID, WCONFIG_WEP, QUIT} state = GET_INTERFACE;
 
     /* initialize libd-i */
     di_system_init("netcfg-static");
-    di_info("Starting netcfg v.%s (built %s)", NETCFG_VERSION, NETCFG_BUILD_DATE);
+    if (strcmp(basename(argv[0]), "ptom") != 0)
+	di_info("Starting netcfg v.%s (built %s)", NETCFG_VERSION, NETCFG_BUILD_DATE);
 
     parse_args(argc, argv);
     reap_old_files();
@@ -52,29 +54,27 @@ int main(int argc, char** argv)
         case BACKUP:
             return 10;
         case GET_INTERFACE:
-            if (netcfg_get_interface(client, &interface, &num_interfaces, NULL))
+            if (netcfg_get_interface(client, &(interface.name), &num_interfaces, NULL))
                 state = BACKUP;
-            else if (! interface || ! num_interfaces)
+            else if (! interface.name || ! num_interfaces)
                 state = GET_HOSTNAME_ONLY;
             else {
-                if (is_wireless_iface(interface))
+                if (is_wireless_iface(interface.name))
                     state = WCONFIG;
                 else
                     state = GET_STATIC;
             }
             break;
         case GET_HOSTNAME_ONLY:
-            if(netcfg_get_hostname(client, "netcfg/get_hostname", &hostname, 0))
+            if(netcfg_get_hostname(client, "netcfg/get_hostname", hostname, 0))
                 state = BACKUP;
             else {
-                struct in_addr null_ipaddress;
-                null_ipaddress.s_addr = 0;
-                netcfg_write_common(null_ipaddress, hostname, NULL);
+                netcfg_write_common("", hostname, NULL);
                 return 0;
             }
             break;
         case GET_STATIC:
-            if (netcfg_get_static(client))
+            if (netcfg_get_static(client, &interface))
                 state = (num_interfaces == 1) ? BACKUP : GET_INTERFACE;
             else
                 state = QUIT;
@@ -89,14 +89,14 @@ int main(int argc, char** argv)
             break;
 
         case WCONFIG_ESSID:
-            if (netcfg_wireless_set_essid (client, interface, NULL))
+            if (netcfg_wireless_set_essid (client, &interface, NULL))
                 state = BACKUP;
             else
                 state = WCONFIG_WEP;
             break;
 
         case WCONFIG_WEP:
-            if (netcfg_wireless_set_wep (client, interface))
+            if (netcfg_wireless_set_wep (client, &interface))
                 state = WCONFIG_ESSID;
             else
                 state = GET_STATIC;

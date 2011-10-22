@@ -25,8 +25,15 @@ os_needs_local_clock () {
 	while read line; do
 		shortname=$(echo "$line" | cut -d : -f 3)
 		case $shortname in
-		MS-DOS*|Windows*|FreeDOS*|Solaris*) # keep in sync with os-prober
+		MS-DOS*|Windows*|FreeDOS*) # keep in sync with os-prober
 			return 0
+		;;
+		Solaris*)
+			case "$(udpkg --print-architecture)" in
+			*i386*|*amd64*)
+				return 0
+			;;
+			esac
 		;;
 		esac
 	done

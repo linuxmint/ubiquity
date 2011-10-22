@@ -5,7 +5,7 @@
 #   Aaron Bockover <abockover@novell.com>
 #
 # Translated to Python and further modifications by:
-#   Evan Dandrea <evand@ubuntu.com>
+#   Evan Dandrea <ev@ubuntu.com>
 #
 # Copyright (C) 2008 Novell, Inc.
 # Copyright (C) 2008 Canonical Ltd.
@@ -30,12 +30,9 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-import gobject
-import gtk
+from gi.repository import Gtk, GObject, PangoCairo, Gdk
 import math
 import cairo
-import pango
-import pangocairo
 from ubiquity.misc import format_size
 from ubiquity.misc import find_in_os_prober
 
@@ -58,13 +55,6 @@ class CairoExtensions:
     @staticmethod
     def modula(number, divisor):
         return int((number % divisor) + (number - int(number)))
-
-    @staticmethod
-    def gdk_color_to_cairo_color(color, alpha=1.0):
-        return Color((color.red >> 8) / 255.0,
-            (color.green >> 8) / 255.0,
-            (color.blue >> 8) / 255.0,
-            alpha)
 
     @staticmethod
     def color_from_hsb(hue, saturation, brightness):
@@ -220,10 +210,10 @@ class CairoExtensions:
             else:
                 cr.line_to(x, y)
 
-class SegmentedBar(gtk.Widget):
+class SegmentedBar(Gtk.DrawingArea):
     __gtype_name__ = 'SegmentedBar'
     def __init__(self):
-        gtk.Widget.__init__(self)
+        GObject.GObject.__init__(self)
 
         # State
         self.segments = []
@@ -246,6 +236,8 @@ class SegmentedBar(gtk.Widget):
         self.remainder_color = 'eeeeee'
 
         self.disk_size = 0
+        self.context = None
+        self.fd = None
 
     def add_segment(self, title, size, color, show_in_bar=True):
         self.do_size_allocate(self.get_allocation())
@@ -265,41 +257,17 @@ class SegmentedBar(gtk.Widget):
         requisition.width = 200
         requisition.height = 0
 
-    def do_realize(self):
-        self.set_flags(self.flags() | gtk.REALIZED)
-        self.window = gtk.gdk.Window(
-            self.get_parent_window(),
-            width=self.allocation.width,
-            height=self.allocation.height,
-            window_type=gtk.gdk.WINDOW_CHILD,
-            wclass=gtk.gdk.INPUT_OUTPUT,
-            event_mask=self.get_events() |
-                        gtk.gdk.EXPOSURE_MASK)
-        self.window.set_user_data(self)
-        self.style.attach(self.window)
-        self.style.set_background(self.window, gtk.STATE_NORMAL)
-        self.window.move_resize(*self.allocation)
-
-    #def do_unrealize(self):
-    #    # FIXME evand 2008-07-19: Is overloading this function really
-    #    # necessary?  Python's garbage collector should be able to handle
-    #    # destroying the window.  Check other PyGTK programs.
-    #    self.window.set_user_data(None)
-    #    self.window.destroy()
-
     def compute_layout_size(self):
-        layout = None
         self.layout_height = 0
         self.layout_width = 0
 
+        layout = self.create_pango_layout('')
         for i in range(len(self.segments)):
-            layout = self.create_adapt_layout(layout, False, True)
             title = self.segments[i].title
-            layout.set_text(title)
+            layout.set_markup('<b>%s</b>' % title, -1)
             aw, ah = layout.get_pixel_size()
 
-            layout = self.create_adapt_layout(layout, True, False)
-            layout.set_text(self.segments[i].subtitle)
+            layout.set_markup('<small>%s</small>' % self.segments[i].subtitle, -1)
             bw, bh = layout.get_pixel_size()
 
             w = max(aw, bw)
@@ -331,7 +299,7 @@ class SegmentedBar(gtk.Widget):
             self.set_size_request(w, h)
         else:
             self.set_size_request(bar_height, self.bar_height + (2 * self.h_padding))
-        gtk.Widget.do_size_allocate(self, allocation)
+        Gtk.DrawingArea.do_size_allocate(self, allocation)
 
     def render_bar_segments(self, cr, w, h, r):
         grad = cairo.LinearGradient(0, 0, w, 0)
@@ -397,10 +365,10 @@ class SegmentedBar(gtk.Widget):
     def render_labels(self, cr):
         if len(self.segments) == 0:
             return
-        text_color = CairoExtensions.gdk_color_to_cairo_color(self.get_style().fg[self.state])
-        box_stroke_color = Color(0, 0, 0, 0.6)
+        text_color = self.get_style_context().get_color(Gtk.StateFlags.ACTIVE)
+        box_stroke_color = Gdk.RGBA(0, 0, 0, 0.6)
         x = 0
-        layout = None
+        layout = self.create_pango_layout('')
 
         for segment in self.segments:
             cr.set_line_width(1)
@@ -408,30 +376,26 @@ class SegmentedBar(gtk.Widget):
             grad = self.make_segment_gradient(self.segment_box_size, segment.color)
             cr.set_source(grad)
             cr.fill_preserve()
-            cr.set_source_rgba(box_stroke_color.r, box_stroke_color.g, box_stroke_color.b, box_stroke_color.a)
+            Gdk.cairo_set_source_rgba(cr, box_stroke_color)
             cr.stroke()
 
             x = x + self.segment_box_size + self.segment_box_spacing
 
-            layout = self.create_adapt_layout(layout, False, True)
-            layout.set_text(segment.title)
+            layout.set_markup('<b>%s</b>' % segment.title, -1)
             (lw, lh) = layout.get_pixel_size()
 
             cr.move_to(x, 0)
             text_color.a = 0.9
-            cr.set_source_rgba(text_color.r, text_color.g, text_color.b, text_color.a)
-            pc = pangocairo.CairoContext(cr)
-            pc.show_layout(layout)
+            Gdk.cairo_set_source_rgba(cr, text_color)
+            PangoCairo.show_layout(cr, layout)
             cr.fill()
 
-            layout = self.create_adapt_layout(layout, True, False)
-            layout.set_text(segment.subtitle)
+            layout.set_markup('<small>%s</small>' % segment.subtitle, -1)
 
             cr.move_to(x, lh)
             text_color.a = 0.75
-            cr.set_source_rgba(text_color.r, text_color.g, text_color.b, text_color.a)
-            pc = pangocairo.CairoContext(cr)
-            pc.show_layout(layout)
+            Gdk.cairo_set_source_rgba(cr, text_color)
+            PangoCairo.show_layout(cr, layout)
             cr.fill()
             x = x + segment.layout_width + self.segment_label_spacing
 
@@ -443,25 +407,17 @@ class SegmentedBar(gtk.Widget):
         pattern = cairo.SurfacePattern(s)
         return pattern
 
-    def do_expose_event(self, event):
-        if not isinstance(event.window, gtk.gdk.Window):
-            # FIXME evand 2008-07-19: This will fail as Widget.do_expose_event
-            # is a virtual function.  Why do we even need to do this anyway?
-            # Are we not guaranteed that the event has a parent window?
-            print 'The event did not possess a gdk window.'
-            return gtk.Widget.do_expose_event(self, event)
-
-        cr = self.window.cairo_create()
+    def do_draw(self, cr):
         if self.reflect:
             cr.push_group()
         cr.set_operator(cairo.OPERATOR_OVER)
-        cr.translate(self.allocation.x + self.h_padding, self.allocation.y)
-        cr.rectangle(0, 0, self.allocation.width - self.h_padding,
+        cr.translate(self.get_allocation().x + self.h_padding, self.get_allocation().y)
+        cr.rectangle(0, 0, self.get_allocation().width - self.h_padding,
             max(2 * self.bar_height,
             self.bar_height + self.bar_label_spacing + self.layout_height))
         cr.clip()
 
-        bar = self.render_bar(self.allocation.width - 2 * self.h_padding,
+        bar = self.render_bar(self.get_allocation().width - 2 * self.h_padding,
             self.bar_height)
 
         cr.save()
@@ -471,7 +427,7 @@ class SegmentedBar(gtk.Widget):
 
         if self.reflect:
             cr.save()
-            cr.rectangle(0, self.bar_height, self.allocation.width - self.h_padding, self.bar_height)
+            cr.rectangle(0, self.bar_height, self.get_allocation().width - self.h_padding, self.bar_height)
             cr.clip()
             matrix = cairo.Matrix(xx=1, yy=-1)
             matrix.translate(0, -(2 * self.bar_height) + 1)
@@ -495,45 +451,20 @@ class SegmentedBar(gtk.Widget):
         if self.show_labels:
             if self.reflect:
                 if self.center_labels:
-                    cr.translate(self.allocation.x + (self.allocation.width -
-                                 self.layout_width) / 2, self.allocation.y +
+                    cr.translate(self.get_allocation().x + (self.get_allocation().width -
+                                 self.layout_width) / 2, self.get_allocation().y +
                                  self.bar_height + self.bar_label_spacing)
                 else:
-                    cr.translate(self.allocation.x + self.h_padding,
-                                 self.allocation.y + self.bar_height +
+                    cr.translate(self.get_allocation().x + self.h_padding,
+                                 self.get_allocation().y + self.bar_height +
                                  self.bar_label_spacing)
             else:
-                cr.translate(-self.h_padding + (self.allocation.width - \
+                cr.translate(-self.h_padding + (self.get_allocation().width - \
                     self.layout_width) / 2, self.bar_height + \
                     self.bar_label_spacing)
             self.render_labels(cr)
 
         return True
-
-    pango_size_normal = 0
-    def create_adapt_layout(self, layout, small, bold):
-        # FIXME evand 2008-07-19: Is this still broken?  Boldfaced text does
-        # not seem to be working, and while it renders properly otherwise, that
-        # may just be dumb luck.
-        if not layout:
-            context = self.create_pango_context()
-            layout = pango.Layout(context)
-            fd = layout.get_context().get_font_description()
-            self.pango_size_normal = fd.get_size()
-        else:
-            fd = layout.get_context().get_font_description()
-
-        if small:
-            fd.set_size(int(fd.get_size() * pango.SCALE_SMALL))
-        else:
-            fd.set_size(self.pango_size_normal)
-
-        if bold:
-            fd.set_weight(pango.WEIGHT_BOLD)
-        else:
-            fd.set_weight(pango.WEIGHT_NORMAL)
-        layout.context_changed()
-        return layout
 
     class Segment:
         def __init__(self, device, size, color, show_in_bar=True):
@@ -565,168 +496,5 @@ class SegmentedBar(gtk.Widget):
             else:
                 self.subtitle = ''
 
-gobject.type_register(SegmentedBar)
+GObject.type_register(SegmentedBar)
 
-class SegmentedBarSlider(SegmentedBar):
-    __gtype_name__ = 'SegmentedBarSlider'
-
-    def __init__(self):
-        SegmentedBar.__init__(self)
-        self.slider_size = 16
-        self.resize = -1
-        self.device = None
-        self.connect('motion-notify-event', self.motion_notify_event)
-
-        self.part_size = 0
-
-    def set_device(self, device):
-        self.device = device
-        self.resize = -1
-
-    def add_segment_rgb(self, title, percent, rgb_color):
-        SegmentedBar.add_segment_rgb(self, title, percent, rgb_color)
-        i = 0
-        for s in self.segments:
-            if self.device == s:
-                self.resize = i
-                break
-            i = i + 1
-
-        # FIXME: Should be done in some sort of expose event, so it doesn't
-        # matter if the min_size is set after the segments are added.
-        if self.resize != -1 and len(self.segments) > self.resize + 1:
-            total = self.segments[self.resize].size + self.segments[self.resize + 1].size
-            self.segments[self.resize].set_size(self.part_size)
-            self.segments[self.resize + 1].set_size(total - self.part_size)
-            self.queue_draw()
-
-    def remove_all(self):
-        SegmentedBar.remove_all(self)
-        self.resize = -1
-
-    def motion_notify_event(self, unused_widget, event):
-        if event.is_hint:
-            x, y, state = event.window.get_pointer()
-        else:
-            x = event.x
-            state = event.state
-
-        if not (state & gtk.gdk.BUTTON1_MASK) or self.resize == -1:
-            return
-
-        i = 0
-        resize_part_start = 0
-        while i < self.resize:
-            resize_part_start += self.segments[i].size
-            i += 1
-        total = self.segments[self.resize].size + \
-                self.segments[self.resize + 1].size
-        b = x / float(self.allocation.width - self.h_padding)
-
-        # The minimum size the old partition can be.
-        if self.min_size != -1:
-            a = ((self.min_size + resize_part_start) /
-                float(self.disk_size))
-            if b < a:
-                self.segments[self.resize].set_size(self.min_size)
-                self.segments[self.resize + 1].set_size(total - self.min_size)
-                self.queue_draw()
-                return
-        else:
-            # FIXME
-            return
-
-        # The maximum size the old partition can be.
-        if self.max_size != -1:
-            a = ((self.max_size + resize_part_start) /
-                float(self.disk_size))
-            if b > a:
-                self.segments[self.resize].set_size(self.max_size)
-                self.segments[self.resize + 1].set_size(total - self.max_size)
-                self.queue_draw()
-                return
-        else:
-            # FIXME
-            return
-
-        s = (b - (resize_part_start / float(self.disk_size))) * self.disk_size
-        self.segments[self.resize].set_size(s)
-        self.segments[self.resize + 1].set_size(total - s)
-
-        self.queue_draw()
-
-    def set_min(self, m):
-        self.min_size = m
-
-    def set_max(self, m):
-        self.max_size = m
-
-    def set_part_size(self, size):
-        self.part_size = size
-
-    def get_size(self):
-        return int(self.segments[self.resize].size)
-
-    def do_realize(self):
-        self.set_flags(self.flags() | gtk.REALIZED)
-        self.window = gtk.gdk.Window(
-            self.get_parent_window(),
-            width=self.allocation.width,
-            height=self.allocation.height,
-            window_type=gtk.gdk.WINDOW_CHILD,
-            wclass=gtk.gdk.INPUT_OUTPUT,
-            event_mask=self.get_events() |
-                        gtk.gdk.EXPOSURE_MASK |
-                        gtk.gdk.BUTTON1_MOTION_MASK |
-                        gtk.gdk.BUTTON_PRESS_MASK |
-                        gtk.gdk.POINTER_MOTION_MASK |
-                        gtk.gdk.POINTER_MOTION_HINT_MASK)
-        self.window.set_user_data(self)
-        self.style.attach(self.window)
-        self.style.set_background(self.window, gtk.STATE_NORMAL)
-        self.window.move_resize(*self.allocation)
-
-    def render_slider(self, cr, w, h, r):
-        i = 0
-        size = 0.0
-        while i <= self.resize:
-            size += self.segments[i].size
-            i += 1
-        t = size / float(self.disk_size)
-        p = (t * w) - ((self.slider_size / w) / 2)
-
-        grad = cairo.LinearGradient(0, 0, 0, h)
-        c = CairoExtensions.rgb_to_color('f4f1ef')
-        grad.add_color_stop_rgb(0, c.r, c.g, c.b)
-        c = CairoExtensions.rgb_to_color('f2efec')
-        grad.add_color_stop_rgb(0.5, c.r, c.g, c.b)
-        c = CairoExtensions.rgb_to_color('ece7e2')
-        grad.add_color_stop_rgb(0.5, c.r, c.g, c.b)
-        c = CairoExtensions.rgb_to_color('e8e2dc')
-        grad.add_color_stop_rgb(1, c.r, c.g, c.b)
-        CairoExtensions.rounded_rectangle(cr, p - (self.slider_size / 2), 0,
-            self.slider_size, h, r / 2, corners=CairoCorners.all)
-        cr.set_source(grad)
-        cr.fill_preserve()
-        c = CairoExtensions.rgb_to_color('9f9890')
-        cr.set_source_rgb(c.r, c.g, c.b)
-        cr.set_line_width(1)
-
-        # Handle
-        cr.move_to(p - 2, (h / 4))
-        cr.line_to(p - 2, h - (h / 4))
-        cr.move_to(p + 2, (h / 4))
-        cr.line_to(p + 2, h - (h / 4))
-        cr.stroke()
-
-    def render_bar(self, w, h):
-        s = cairo.ImageSurface(cairo.FORMAT_ARGB32, w, h)
-        cr = cairo.Context(s)
-        self.render_bar_segments(cr, w, h, h / 2)
-        self.render_bar_strokes(cr, w, h, h / 2)
-        if self.resize != -1:
-            self.render_slider(cr, w, h, h / 2)
-        pattern = cairo.SurfacePattern(s)
-        return pattern
-
-gobject.type_register(SegmentedBarSlider)

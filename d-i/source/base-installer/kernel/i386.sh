@@ -7,7 +7,7 @@ arch_get_kernel_flavour () {
 		HAVE_LM=n
 	fi
 
-	# Should we offer a bigmem kernel?
+	# Should we offer a PAE kernel?
 	local HAVE_PAE
 	if grep -q '^flags.*\bpae\b' "$CPUINFO"; then
 		HAVE_PAE=y
@@ -15,7 +15,7 @@ arch_get_kernel_flavour () {
 		HAVE_PAE=n
 	fi
 
-	# Should we prefer a bigmem/amd64 kernel - is there RAM above 4GB?
+	# Should we prefer a PAE/amd64 kernel - is there RAM above 4GB?
 	local WANT_PAE
 	if [ -z "$RAM_END" ]; then
 		local MAP MAP_END
@@ -34,31 +34,31 @@ arch_get_kernel_flavour () {
 	else
 		WANT_PAE=n
 	fi
-	# or is the installer running a 686-bigmem kernel?
+	# or is the installer running a PAE kernel?
 	case "$KERNEL_FLAVOUR" in
-	    686-bigmem*|generic-pae|xen)
+	    686-bigmem* | 686-pae* | generic-pae | xen)
 		WANT_PAE=y
 		;;
 	esac
 
 	case "$HAVE_LM$HAVE_PAE$WANT_PAE" in
 	    yyy)
-		echo 686-bigmem amd64 686 486
+		echo 686-pae 686-bigmem amd64 686 486
 		return 0
 		;;
 	    yyn)
-		echo 686 686-bigmem amd64 486
+		echo 686 686-pae 686-bigmem amd64 486
 		return 0
 		;;
 	    yn?)
 		warning "Processor with LM but no PAE???"
 		;;
 	    nyy)
-		echo 686-bigmem 686 486
+		echo 686-pae 686-bigmem 686 486
 		return 0
 		;;
 	    nyn)
-		echo 686 686-bigmem 486
+		echo 686 686-pae 686-bigmem 486
 		return 0
 		;;
 	    nn?)
@@ -66,47 +66,12 @@ arch_get_kernel_flavour () {
 		;;
 	esac
 
-	local VENDOR FAMILY MODEL
-	VENDOR=$(sed -n 's/^vendor_id\s*: //; T; p; q' "$CPUINFO")
-	FAMILY=$(sed -n 's/^cpu family\s*: //; T; p; q' "$CPUINFO")
-	MODEL=$(sed -n 's/^model\s*: //; T; p; q' "$CPUINFO")
-
-	case "$VENDOR" in
-	    AuthenticAMD*)
-		case "$FAMILY" in
-		    6|15|16|17|18|20)	echo 686 486 ;;
-		    *)			echo 486 ;;
-		esac
-		;;
-	    GenuineIntel)
-		case "$FAMILY" in
-		    6|15)	echo 686 486 ;;
-		    *)		echo 486 ;;
-		esac
-		;;
-	    GenuineTMx86*)
-		case "$FAMILY" in
-		    # Do all of these have cmov?
-		    6|15)	echo 686 486 ;;
-		    *)		echo 486 ;;
-		esac
-		;;
-	    CentaurHauls)
-		case "$FAMILY" in
-		    6)
-			case "$MODEL" in
-			    9|10|13)	echo 686 486 ;;
-			    *)		echo 486 ;;
-			esac
-			;;
-		    *)
-			echo 486 ;;
-		esac
-		;;
-	    *)
-		echo 486 ;;
-	esac
-	return 0
+	# Should we offer a 686 kernel?
+	if grep -q '^flags.*\bfpu\b.*\btsc\b.*\bcx8\b.*\bcmov\b' "$CPUINFO"; then
+		echo 686 486
+	else
+		echo 486
+	fi
 }
 
 arch_check_usable_kernel () {
@@ -115,25 +80,33 @@ arch_check_usable_kernel () {
 	set -- $2
 	while [ $# -ge 1 ]; do
 		case "$1:$NAME" in
-		    486:*-386|486:*-386-*)
+		    *:*-"$1")
+			return 0;
+			;;
+		    *:*-"$1"-bigmem* | *:*-"$1"-pae*)
+			# Don't allow -bigmem or -pae suffix, as these
+			# require extra CPU features
+			;;
+		    *:*-"$1"-*)
+			# Do allow any other hyphenated suffix
 			return 0
 			;;
-		    686-bigmem:*-generic-pae|686-bigmem:*-generic-pae-*)
+		    686-pae:*-generic-pae | 686-pae:*-generic-pae-*)
 			return 0
 			;;
-		    *:*-generic-pae|*:*-generic-pae-*)
-			# Don't allow -generic-pae for non-bigmem
+		    *:*-generic-pae | *:*-generic-pae-*)
+			# Don't allow -generic-pae for non-pae
 			;;
-		    686*:*-generic|686*:*-generic-*)
+		    686*:*-generic | 686*:*-generic-*)
 			return 0
 			;;
-		    686*:*-virtual|686*:*-virtual-*)
+		    686*:*-virtual | 686*:*-virtual-*)
 			return 0
 			;;
-		    686*:*-rt|686*:*-rt-*)
+		    686*:*-rt | 686*:*-rt-*)
 			return 0
 			;;
-		    686-bigmem:*-xen|686-bigmem:*-xen-*)
+		    686-pae:*-xen | 686-pae:*-xen-*)
 			return 0
 			;;
 		esac
@@ -148,7 +121,7 @@ arch_get_kernel () {
 	set -- $1
 	while [ $# -ge 1 ]; do
 		case $1 in
-		    686-bigmem)
+		    686-pae)
 			echo "linux-generic-pae"
 			echo "linux-image-generic-pae"
 			echo "linux-xen"
@@ -161,10 +134,6 @@ arch_get_kernel () {
 			echo "linux-image-virtual"
 			echo "linux-rt"
 			echo "linux-image-rt"
-			;;
-		    486)
-			echo "linux-386"
-			echo "linux-image-386"
 			;;
 		esac
 		shift

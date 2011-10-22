@@ -45,7 +45,9 @@ def disable_autologin():
     import traceback
 
     # Reverse actions of user-setup-apply.
-    for name in ('/etc/gdm/custom.conf', '/etc/kde4/kdm/kdmrc'):
+    for name in ('/etc/gdm/custom.conf', '/etc/kde4/kdm/kdmrc',
+                 '/etc/lxdm/lxdm.conf', '/etc/xdg/lubuntu/lxdm/lxdm.conf',
+                 '/etc/lightdm/lightdm.conf'):
         if os.path.exists('%s.oem' % name):
             try:
                 os.rename('%s.oem' % name, name)
@@ -260,9 +262,9 @@ def apply_keyboard():
     '''Set the keyboard layout to the default layout for the language selected.
     If a user wants a different layout, they can be reasonably expected to
     change it in System -> Preferences -> Keyboard.'''
-    
+
     # Mostly taken from ubi-console-setup.
-    
+
     # We need to get rid of /etc/default/keyboard, or keyboard-configuration
     # will think it's already configured and behave differently. Try to save
     # the old file for interest's sake, but it's not a big deal if we can't.
@@ -293,7 +295,7 @@ def apply_keyboard():
     finally:
         dccomm.stdin.close()
         dccomm.wait()
-    
+
     # Accept all the defaults, given the preseeded language.
     child_env = dict(os.environ)
     child_env['OVERRIDE_ALLOW_PRESEEDING'] = '1'
@@ -337,7 +339,7 @@ def copy_debconf():
     for q in patterns:
         misc.execute_root('debconf-copydb', 'configdb', 'targetdb', '-p', q,
                      '--config=Name:targetdb', '--config=Driver:File',
-                     '--config=Filename:%s' % targetdb)
+                     '--config=Mode:0644', '--config=Filename:%s' % targetdb)
 
 def unmount_target():
     if not TARGET:
@@ -453,6 +455,10 @@ def main(oem_config):
     parser.add_option('-b', '--no-bootloader', dest='bootloader',
                       action='store_true',
                       help='Do not install a bootloader.')
+    parser.add_option('--ldtp', dest='ldtp',
+                      action='store_true',
+                      help='Name widgets in ATK by their GtkBuilder names,' \
+                           'to support LDTP testing.')
     (options, args) = parser.parse_args()
 
     if options.debug:
@@ -487,6 +493,9 @@ def main(oem_config):
         os.environ['UBIQUITY_OEM_USER_CONFIG'] = '1'
         global TARGET
         TARGET = ''
+
+    if options.ldtp:
+        os.environ['UBIQUITY_LDTP'] = '1'
 
     acquire_lock()
 

@@ -75,15 +75,63 @@ dove_flash_kernel_installer() {
 	echo "rootfs='root=UUID=$uuid'" > /target/etc/flash-kernel.conf
 }
 
+omap_install_uboot() {
+	# Find the rootfs
+	rootfs=$(findfs /)
+
+        if ! apt-install $uboot_pkg; then
+                error "apt-install u-boot failed"
+        fi
+
+	# Add the u-boot partition to the flash-kernl.conf file
+	# FIXME: figure out how to properly autodetect this
+	echo "UBOOT_PART=/dev/mmcblk0p1" > /target/etc/flash-kernel.conf
+
+	# Add the root
+        uuid="$(block-attr --uuid "$rootfs")"
+	rootfs="root=UUID=$uuid"
+
+	# Write out the boot script
+        cat >"/target/boot/boot.script" <<EOF
+echo Starting Ubuntu...
+fatload mmc 0:1 0x80000000 uImage
+fatload mmc 0:1 0x81600000 uInitrd
+setenv bootargs $rootfs ro quiet splash
+bootm 0x80000000 0x81600000
+fi
+EOF
+
+	# HACK: need to reinstall f-k to install the bootloader
+	cp /target/tmp/flash-kernel.$$ /target/usr/sbin/flash-kernel
+	if ! in-target flash-kernel --update-bootloader; then
+		error "bootloader installation failure"
+	fi
+	rm -f /target/usr/sbin/flash-kernel
+
+}
+
 omap_flash_kernel_installer() {
 	in-target update-initramfs -u || true
 
 	install_mkimage
 
-	# Add the u-boot partition to the flash-kernl.conf file
-	# FIXME: figure out how to properly autodetect this
-	echo "UBOOT_PART=/dev/mmcblk0p1" > /target/etc/flash-kernel.conf
+	# xloader is still a separate package for beagle
+	if ! apt-install x-loader-omap3-beagle; then
+		error "apt-install x-loader-omap3-beagle failed"
+	fi
+
+	uboot_pkg="u-boot-linaro-omap3-beagle"
+	omap_install_uboot
 }
+
+omap4_flash_kernel_installer() {
+	in-target update-initramfs -u || true
+
+	install_mkimage
+	uboot_pkg="u-boot-linaro-omap4-panda"
+	omap_install_uboot
+}
+
 	# Add the rootfs to the flash-kernel.conf file
 if write_to_flash; then
 	db_progress START 0 3 flash-kernel-installer/progress
@@ -211,7 +259,10 @@ case "$machine" in
 		dove_flash_kernel_installer
 	;;
 	"OMAP3 Beagle Board")
-	omap_flash_kernel_installer
+		omap_flash_kernel_installer
+	;;
+	"OMAP4 Panda board")
+		omap4_flash_kernel_installer
 	;;
 	"Marvell OpenRD Base Board" | "Marvell OpenRD Client Board" | "Marvell SheevaPlug Reference Board" | "Marvell eSATA SheevaPlug Reference Board")
 		in-target update-initramfs -u || true

@@ -32,16 +32,27 @@ fi
 db_get debian-installer/country
 country="$RET"
 db_set mirror/country "$country" || true
-db_get debian-installer/locale
-newlocale="$(echo "$RET" | sed "s/_[A-Z][A-Z]*/_$country/")"
-if grep -q "^${newlocale%%[.@]*}[.@ ]" /usr/share/i18n/SUPPORTED; then
-	db_set debian-installer/locale "$newlocale"
-	db_fset debian-installer/locale seen true
-	# Let localechooser know that we're using the same language as
-	# before, so that it doesn't set a default country again.
-	db_fset localechooser/languagelist seen false
-	rm -f /var/lib/localechooser/preseeded
-	PATH="/usr/lib/ubiquity/localechooser:$PATH" \
-		OVERRIDE_SHOW_ALL_LANGUAGES=1 \
-		/usr/lib/ubiquity/localechooser/localechooser
-fi
+db_get localechooser/languagelist
+requested_lang="$RET"
+case $requested_lang in
+    pt|pt_*|zh_*)
+	# Portuguese and Chinese are special cases; selecting a different
+	# location may imply a different dialect of the language.  We will
+	# handle these separately (see scripts/localechooser-apply).
+	;;
+    *)
+	db_get debian-installer/locale
+	newlocale="$(echo "$RET" | sed "s/_[A-Z][A-Z]*/_$country/")"
+	if grep -q "^${newlocale%%[.@]*}[.@ ]" /usr/share/i18n/SUPPORTED; then
+		db_set debian-installer/locale "$newlocale"
+		db_fset debian-installer/locale seen true
+		# Let localechooser know that we're using the same language as
+		# before, so that it doesn't set a default country again.
+		db_fset localechooser/languagelist seen false
+		rm -f /var/lib/localechooser/preseeded
+		PATH="/usr/lib/ubiquity/localechooser:$PATH" \
+			OVERRIDE_SHOW_ALL_LANGUAGES=1 \
+			/usr/lib/ubiquity/localechooser/localechooser
+	fi
+	;;
+esac

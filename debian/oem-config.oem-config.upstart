@@ -10,6 +10,7 @@ start on (starting gdm
 	  or starting kdm
 	  or starting xdm
 	  or starting lxdm
+	  or starting lightdm
 	  or starting uxlaunch
 	  or starting oem-config-debconf)
 stop on (runlevel [06]
@@ -17,6 +18,7 @@ stop on (runlevel [06]
 	 or stopping kdm
 	 or stopping xdm
 	 or stopping lxdm
+	 or stopping lightdm
 	 or stopping uxlaunch)
 
 emits starting-dm
@@ -28,9 +30,9 @@ console output
 
 script
     [ -f /var/lib/oem-config/run ]
-    type oem-config-firstboot >/dev/null 2>&1 || exit 0
 
-    >/var/run/oem-config.upstarted
+    frontend=
+    type oem-config-firstboot >/dev/null 2>&1 || exit 0
 
     debug=
     for x in $(cat /proc/cmdline); do
@@ -43,6 +45,10 @@ script
 	    # mode.
 	    boot=casper|single)
 		exit 0
+		;;
+	    ubiquity/frontend=*)
+		frontend="${x#*=}"
+		export FRONTEND=$frontend
 		;;
 	esac
     done

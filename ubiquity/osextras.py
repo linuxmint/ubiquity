@@ -113,3 +113,18 @@ def unlink_force(path):
         os.unlink(path)
     except OSError:
         pass
+
+
+def glob_root(root, pathname):
+    """Like glob.iglob, but resolved relative to root.
+    pathname must be absolute."""
+    import glob
+
+    fullpathname = os.path.join(root, pathname[1:])
+    for path in glob.iglob(fullpathname):
+        if not path.startswith(root):
+            continue
+        path = path[len(root):]
+        if path and path[0] != '/':
+            continue
+        yield path

@@ -18,30 +18,28 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 from ubiquity import plugin
-from ubiquity import misc, osextras, i18n
-from hashlib import md5
+from ubiquity import misc, osextras, i18n, upower
 import os
 import sys
-import subprocess
 import dbus
+import subprocess
 
 NAME = 'prepare'
 AFTER = 'language'
 WEIGHT = 11
 OEM = False
 
-UPOWER = 'org.freedesktop.UPower'
-UPOWER_PATH = '/org/freedesktop/UPower'
-PROPS = 'org.freedesktop.DBus.Properties'
-
-NM = 'org.freedesktop.NetworkManager'
-NM_PATH = '/org/freedesktop/NetworkManager'
-
 JOCKEY = 'com.ubuntu.DeviceDriver'
 JOCKEY_PATH = '/DeviceDriver'
 
-WGET_URL = 'http://start.ubuntu.com/connectivity-check.html'
-WGET_HASH = '4589f42e1546aa47ca181e5d949d310b'
+# From dbus-python:
+#  if (timeout_s > ((double)INT_MAX) / 1000.0) {
+#     PyErr_SetString(PyExc_ValueError, "Timeout too long");
+#     return NULL;
+# }
+# timeout_ms = (int)(timeout_s * 1000.0);
+from IN import INT_MAX
+MAX_DBUS_TIMEOUT = INT_MAX / 1000.0
 
 # TODO: This cannot be a non-debconf plugin after all as OEMs may want to
 # preseed the 'install updates' and 'install non-free software' options.  So?
@@ -51,47 +49,11 @@ WGET_HASH = '4589f42e1546aa47ca181e5d949d310b'
 class PreparePageBase(plugin.PluginUI):
     plugin_title = 'ubiquity/text/prepare_heading_label'
 
-    def setup_power_watch(self):
-        bus = dbus.SystemBus()
-        upower = bus.get_object(UPOWER, UPOWER_PATH)
-        upower = dbus.Interface(upower, PROPS)
-        def power_state_changed():
-            self.prepare_power_source.set_state(
-                upower.Get(UPOWER_PATH, 'OnBattery') == False)
-        bus.add_signal_receiver(power_state_changed, 'Changed', UPOWER, UPOWER)
-        power_state_changed()
-
-    def setup_network_watch(self):
-        # TODO abstract so we can support connman.
-        bus = dbus.SystemBus()
-        bus.add_signal_receiver(self.network_change, 'DeviceNoLongerActive',
-                                NM, NM, NM_PATH)
-        bus.add_signal_receiver(self.network_change, 'StateChange',
-                                NM, NM, NM_PATH)
-        self.timeout_id = None
-        self.wget_retcode = None
-        self.wget_proc = None
-        self.network_change()
-
-    @plugin.only_this_page
-    def check_returncode(self, *args):
-        if self.wget_retcode is not None or self.wget_proc is None:
-            self.wget_proc = subprocess.Popen(
-                ['wget', '-q', WGET_URL, '--timeout=15', '-O', '-'],
-                stdout=subprocess.PIPE)
-        self.wget_retcode = self.wget_proc.poll()
-        if self.wget_retcode is None:
-            return True
-        else:
-            state = False
-            if self.wget_retcode == 0:
-                h = md5()
-                h.update(self.wget_proc.stdout.read())
-                if WGET_HASH == h.hexdigest():
-                    state = True
-            self.prepare_network_connection.set_state(state)
-            self.controller.dbfilter.set_online_state(state)
-            return False
+    def plugin_set_online_state(self, state):
+        self.prepare_network_connection.set_state(state)
+        self.enable_download_updates(state)
+        if not state:
+            self.set_download_updates(False)
 
     def set_sufficient_space(self, state):
         if not state:
@@ -116,51 +78,34 @@ class PageGtk(PreparePageBase):
             self.page = None
             return
         self.controller = controller
-        try:
-            import gtk
-            builder = gtk.Builder()
-            self.controller.add_builder(builder)
-            builder.add_from_file(os.path.join(os.environ['UBIQUITY_GLADE'], 'stepPrepare.ui'))
-            builder.connect_signals(self)
-            self.page = builder.get_object('stepPrepare')
-            self.prepare_download_updates = builder.get_object('prepare_download_updates')
-            self.prepare_nonfree_software = builder.get_object('prepare_nonfree_software')
-            self.prepare_sufficient_space = builder.get_object('prepare_sufficient_space')
-            self.prepare_foss_disclaimer = builder.get_object('prepare_foss_disclaimer')
-            self.prepare_foss_disclaimer_extra = builder.get_object('prepare_foss_disclaimer_extra_label')
-            # TODO we should set these up and tear them down while on this page.
-            try:
-                from dbus.mainloop.glib import DBusGMainLoop
-                DBusGMainLoop(set_as_default=True)
-                self.prepare_power_source = builder.get_object('prepare_power_source')
-                self.setup_power_watch()
-            except Exception, e:
-                # TODO use an inconsistent state?
-                print 'unable to set up power source watch:', e
-            try:
-                self.prepare_network_connection = builder.get_object('prepare_network_connection')
-                self.setup_network_watch()
-            except Exception, e:
-                print 'unable to set up network connection watch:', e
-        except Exception, e:
-            self.debug('Could not create prepare page: %s', e)
-            self.page = None
+        from gi.repository import Gtk
+        builder = Gtk.Builder()
+        self.controller.add_builder(builder)
+        builder.add_from_file(os.path.join(os.environ['UBIQUITY_GLADE'], 'stepPrepare.ui'))
+        builder.connect_signals(self)
+        self.page = builder.get_object('stepPrepare')
+        self.prepare_download_updates = builder.get_object('prepare_download_updates')
+        self.prepare_nonfree_software = builder.get_object('prepare_nonfree_software')
+        self.prepare_sufficient_space = builder.get_object('prepare_sufficient_space')
+        self.prepare_foss_disclaimer = builder.get_object('prepare_foss_disclaimer')
+        self.prepare_foss_disclaimer_extra = builder.get_object('prepare_foss_disclaimer_extra_label')
+        self.prepare_power_source = builder.get_object('prepare_power_source')
+        if upower.has_battery():
+            upower.setup_power_watch(self.prepare_power_source)
+        else:
+            self.prepare_power_source.hide()
+        self.prepare_network_connection = builder.get_object('prepare_network_connection')
         self.plugin_widgets = self.page
 
-    def network_change(self, state=None):
-        import gobject
-        if state and (state != 4 and state != 3):
-            return
-        if self.timeout_id:
-            gobject.source_remove(self.timeout_id)
-        self.timeout_id = gobject.timeout_add(300, self.check_returncode)
+    def enable_download_updates(self, val):
+        self.prepare_download_updates.set_sensitive(val)
 
     def set_download_updates(self, val):
         self.prepare_download_updates.set_active(val)
 
     def get_download_updates(self):
         return self.prepare_download_updates.get_active()
-    
+
     def set_allow_nonfree(self, allow):
         if not allow:
             self.prepare_nonfree_software.set_active(False)
@@ -181,9 +126,9 @@ class PageGtk(PreparePageBase):
     def plugin_translate(self, lang):
         PreparePageBase.plugin_translate(self, lang)
         release = misc.get_release()
-        import gtk
+        from gi.repository import Gtk
         for widget in [self.prepare_foss_disclaimer]:
-            text = i18n.get_string(gtk.Buildable.get_name(widget), lang)
+            text = i18n.get_string(Gtk.Buildable.get_name(widget), lang)
             text = text.replace('${RELEASE}', release.name)
             widget.set_label(text)
 
@@ -208,15 +153,17 @@ class PageKde(PreparePageBase):
             # TODO we should set these up and tear them down while on this page.
             try:
                 self.prepare_power_source = StateBox(self.page)
-                self.page.vbox1.addWidget(self.prepare_power_source)
-                self.setup_power_watch()
+                if upower.has_battery():
+                    upower.setup_power_watch(self.prepare_power_source)
+                    self.page.vbox1.addWidget(self.prepare_power_source)
+                else:
+                    self.prepare_power_source.hide()
             except Exception, e:
                 # TODO use an inconsistent state?
                 print 'unable to set up power source watch:', e
             try:
                 self.prepare_network_connection = StateBox(self.page)
                 self.page.vbox1.addWidget(self.prepare_network_connection)
-                self.setup_network_watch()
             except Exception, e:
                 print 'unable to set up network connection watch:', e
         except Exception, e:
@@ -225,20 +172,8 @@ class PageKde(PreparePageBase):
             self.page = None
         self.plugin_widgets = self.page
 
-    def network_change(self, state=None):
-        from PyQt4.QtCore import QTimer, SIGNAL
-        if state and (state != 4 and state != 3):
-            return
-        QTimer.singleShot(300, self.check_returncode)
-        self.timer = QTimer(self.page)
-        self.timer.connect(self.timer, SIGNAL("timeout()"), self.check_returncode)
-        self.timer.start(300)
-
-    def check_returncode(self, *args):
-        from PyQt4.QtCore import SIGNAL
-        if not super(PageKde, self).check_returncode(args):
-            self.timer.disconnect(self.timer, SIGNAL("timeout()"),
-                self.check_returncode)
+    def enable_download_updates(self, val):
+        self.prepare_download_updates.setEnabled(val)
 
     def set_download_updates(self, val):
         self.prepare_download_updates.setChecked(val)
@@ -299,15 +234,26 @@ class Page(plugin.Plugin):
         self.ui.set_sufficient_space_text(space)
 
     def min_size(self):
-        # Default to 5 GB
+        # Fallback size to 5 GB
         size = 5 * 1024 * 1024 * 1024
+
+        # Maximal size to 8 GB
+        max_size = 8 * 1024 * 1024 * 1024
+
         try:
             with open('/cdrom/casper/filesystem.size') as fp:
                 size = int(fp.readline())
         except IOError, e:
             self.debug('Could not determine squashfs size: %s' % e)
+
         # TODO substitute into the template for the state box.
         min_disk_size = size * 2 # fudge factor.
+
+        # Set minimum size to 8GB if current minimum size is larger
+        # than 8GB and we still have an extra 20% of free space
+        if min_disk_size > max_size and size * 1.2 < max_size:
+            min_disk_size = max_size
+
         return min_disk_size
 
     def big_enough(self, size):
@@ -331,19 +277,15 @@ class Page(plugin.Plugin):
                 # Install ubuntu-restricted-addons.
                 self.preseed_bool('apt-setup/universe', True)
                 self.preseed_bool('apt-setup/multiverse', True)
-                self.preseed('ubiquity/nonfree_package',
-                    self.ui.restricted_package_name)
+                if self.db.fget('ubiquity/nonfree_package', 'seen') != 'true':
+                    self.preseed('ubiquity/nonfree_package',
+                        self.ui.restricted_package_name)
                 bus = dbus.SystemBus()
                 obj = bus.get_object(JOCKEY, JOCKEY_PATH)
                 i = dbus.Interface(obj, JOCKEY)
-                i.shutdown()
+                i.shutdown(timeout=MAX_DBUS_TIMEOUT)
                 env = os.environ.copy()
                 env['DEBCONF_DB_REPLACE'] = 'configdb'
                 env['DEBCONF_DB_OVERRIDE'] = 'Pipe{infd:none outfd:none}'
                 subprocess.Popen(['/usr/share/jockey/jockey-backend', '--timeout=120'], env=env)
         plugin.Plugin.ok_handler(self)
-
-    def set_online_state(self, state):
-        # We maintain this state in debconf so that plugins, specficially the
-        # timezone plugin and apt-setup, can be told to not hit the Internet.
-        self.preseed_bool('ubiquity/online', state)

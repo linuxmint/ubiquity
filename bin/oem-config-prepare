@@ -11,13 +11,26 @@ for f in gtk_ui kde_ui debconf_ui; do
 	fi
 done
 
+quiet=
+if [ "$1" = --quiet ]; then
+	quiet=1
+	shift
+fi
+
 if [ "$(id -u)" = 0 ]; then
-	# no privilege escalation required
-	:
+	# Machine-specific, so remove in case this system is going to be
+	# cloned.  These will be regenerated on the first boot.
+	rm -f /etc/udev/rules.d/70-persistent-cd.rules \
+	      /etc/udev/rules.d/70-persistent-net.rules
+
+	# Potentially sensitive.
+	rm -f /home/oem/.ssh/known_hosts
+
+	touch /var/lib/oem-config/run
 else
 	case $frontend in
 		gtk_ui)
-			exec gksudo --desktop /usr/share/applications/oem-config-prepare-gtk.desktop -- "$0" "$@"
+			gksudo --desktop /usr/share/applications/oem-config-prepare-gtk.desktop -- "$0" ${quiet:---quiet} "$@"
 			;;
 		kde_ui)
                         echo kde_ui
@@ -29,32 +42,16 @@ else
 			        kdesu=/usr/lib/kde4/libexec/kdesu
 			fi
 			if [ "$kdesu" ]; then
-				exec $kdesu -- "$0" "$@"
+				$kdesu -- "$0" ${quiet:---quiet} "$@"
 			else
-				exec sudo "$0" "$@"
+				sudo -- "$0" ${quiet:---quiet} "$@"
 			fi
 			;;
 		*)
-			exec sudo "$0" "$@"
+			sudo -- "$0" ${quiet:---quiet} "$@"
 			;;
 	esac
 fi
-
-quiet=
-if [ "$1" = --quiet ]; then
-	quiet=1
-	shift
-fi
-
-# Machine-specific, so remove in case this system is going to be cloned.
-# These will be regenerated on the first boot.
-rm -f /etc/udev/rules.d/70-persistent-cd.rules \
-      /etc/udev/rules.d/70-persistent-net.rules
-
-# Potentially sensitive.
-rm -f /home/oem/.ssh/known_hosts
-
-touch /var/lib/oem-config/run
 
 if [ -z "$quiet" ]; then
 	MESSAGE='oem-config will run the next time the system boots.'

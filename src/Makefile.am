@@ -1,1 +1,1 @@
-SUBDIRS = panel cheese
+SUBDIRS = panel webcam wallpaper

@@ -169,7 +169,6 @@ string_questions = {
     # TODO: it would be nice to have a neater way to handle stock buttons
     'quit': 'ubiquity/imported/quit',
     'back': 'ubiquity/imported/go-back',
-    'next': 'ubiquity/imported/go-forward',
     'cancelbutton': 'ubiquity/imported/cancel',
     'exitbutton': 'ubiquity/imported/quit',
     'closebutton1': 'ubiquity/imported/close',

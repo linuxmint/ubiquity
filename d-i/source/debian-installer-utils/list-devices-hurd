@@ -27,19 +27,24 @@ esac
 # of devices. Some heuristics are then used to refine the result.
 #
 
+is_cd_kernel() {
+	dev="${1#/dev/}"
+	grep -q "kernel: $dev: .* CDROM drive" /var/log/syslog
+}
+
 is_cd() {
 	# FIXME: this also detect hard drives, but anyway the mount will
 	# later fail
 
 	echo "$1" | egrep -q '^/dev/hd[0-9]+$' || return 1
 	
-	return 0
+	is_cd_kernel "$1"
 }
 
 is_disk() {
 	echo "$1" | egrep -q '^/dev/hd[0-9]+$' || return 1
 	
-	return 0
+	! is_cd_kernel "$1"
 }
 
 is_partition() {

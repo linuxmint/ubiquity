@@ -1,8 +1,671 @@
-ubiquity (2.6.10-1mint1) katya; urgency=low
+ubiquity (2.8.7) oneiric; urgency=low
 
-  * Linux Mint release based on 2.6.10 from Ubuntu.
+  * If oem-config/enable doesn't exist, assume it's not set
+    (LP: #872119).
 
- -- Clement Lefebvre <root@linuxmint.com>  Fri, 29 Apr 2011 11:58:00 +0000
+ -- Evan Dandrea <ev@ubuntu.com>  Tue, 11 Oct 2011 09:08:21 +0100
+
+ubiquity (2.8.6) oneiric; urgency=low
+
+  * Don't crash if the user selects the wireless card header and presses
+    next (LP: #838048).
+  * If the user selects a wireless card header, the next button text
+    should not be 'Connect.'
+  * Don't copy the wireless configuration if this is an OEM install
+    (LP: #870177).
+  * Make sure the connecting spinner goes away before leaving the
+    wireless page.
+  * Account for the 'asleep' network-manager state.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Mon, 10 Oct 2011 17:58:39 +0100
+
+ubiquity (2.8.5) oneiric; urgency=low
+
+  * Disable alpha warning for release.
+  * Automatic update of included source packages: netcfg 1.68ubuntu7.
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Mon, 10 Oct 2011 11:18:56 +0100
+
+ubiquity (2.8.4) oneiric; urgency=low
+
+  [ Evan Dandrea ]
+  * Handle the keyboard query window closed callback being fired twice
+    (LP: #865493).
+  * Allow focusing of labels when we're in the screen reader
+    acessibility profile, so that Orca can read them
+    (LP: #856782, LP: #856773).
+  * Make sure we account for the size of the installation and swap
+    partition when calculating the bounds for the partition resizer
+    (LP: #769350).
+
+  [ Colin Watson ]
+  * Don't install duplicate copies of console-setup-apply,
+    localechooser-apply, and netcfg-wrapper.
+  * Bump fallback Ubuntu version number in ubi-language to 11.10.
+  * Update translations from Launchpad.
+  * For cases where selecting a different location may imply a different
+    dialect of the language, i.e. Portuguese and Chinese, take care to set
+    LANG to something reflecting the location and
+    LANGUAGE/LC_MESSAGES/LC_CTYPE/LC_COLLATE to something reflecting the
+    language (LP: #590108).  This roughly matches the behaviour of
+    language-selector.
+  * Automatic update of included source packages: localechooser 2.37ubuntu2,
+    partman-partitioning 81ubuntu3.
+
+  [ Stéphane Graber ]
+  * Update ubiquity-dm to export self.username as SUDO_USER.
+    Make gsettings work properly later on during the install.
+  * Whenever we call wget, set --tries=1 instead of the default
+    of 20.
+  * If we think we're offline, don't try to contact geoip or run
+    rdate. (LP: #868668)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 06 Oct 2011 02:20:53 +0100
+
+ubiquity (2.8.3) oneiric; urgency=low
+
+  * Skip LTSP from the list of networks to copy to the target.
+    This is a temporary network created by Edubuntu's LTSP live.
+  * Fix PROXY url as the gsettings host key already contains http://
+  * Only disable set the gsettings keys once in gtk_ui (LP: #657086)
+  * Properly handle keys in gsettings that are empty/not set.
+  * Don't crash when the no-proxy list is empty. (LP: #867620)
+  * Clear the console just before killing X in ubiquity-dm. (LP: #813065)
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Tue, 04 Oct 2011 21:01:09 -0400
+
+ubiquity (2.8.2) oneiric; urgency=low
+
+  [ Colin Watson ]
+  * Preserve ordering of disks returned by partman-auto rather than
+    shuffling them based on dictionary ordering (LP: #770711).  This uses
+    collections.OrderedDict, which requires Python >= 2.7.
+  * Run only those parts of oem-config-prepare that require root access as
+    root; in particular displaying confirmation dialogs is now done as the
+    calling user, which avoids KDE confusion (LP: #856418).
+  * Go back to killing update-apt-cache's process group, but this time make
+    sure that it's in a separate process group and make more of an effort to
+    ensure that it terminates (LP: #743359).
+  * Update translations from Launchpad.
+
+  [ Stéphane Graber ]
+  * Make ubiquity also update gsettings (LP: #800760)
+    - Add a new gsettings module similar to the gconftool one
+    - Update ubiquity-dm for gconf to gsettings migration
+    - Get PROXY configuration from gsettings
+    - Update gtk_ui to set/restore gsettings values
+  * Update copy_network_config to work with Network Manager now storing
+    everything system wide.
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Mon, 03 Oct 2011 17:31:46 -0400
+
+ubiquity (2.8.1) oneiric; urgency=low
+
+  * Build-depend on gir1.2-soup-2.4 for timezone tests.
+  * Update translations from Launchpad.
+  * Update imported translations from gtk+3.0 3.2.0-0ubuntu1 and gnome-panel
+    1:3.2.0-0ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 01 Oct 2011 23:20:53 +0100
+
+ubiquity (2.8.0) oneiric; urgency=low
+
+  * Fix SSID UTF-8 decoding, and replace any still-invalid characters with
+    the Unicode replacement character just in case (LP: #839143).
+  * GTK frontend:
+    - Fetch geoname data asynchronously (LP: #837217).
+  * Always start oem-config with LANG=en_US.UTF-8; this doesn't affect
+    translations since we use debconf for those, but forces Qt to use UTF-8
+    encoding for text fields (LP: #837042).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 01 Oct 2011 20:44:44 +0100
+
+ubiquity (2.7.38) oneiric; urgency=low
+
+  [ Mario Limonciello ]
+  * Preseed a bootloader target if one hasn't been set but running in 
+    automatic mode. (LP: #861465)
+
+  [ Adam Conrad ]
+  * Allow fallback from oem-config-slideshow to ubiquity-slideshow for
+    cases where the former doesn't exist.
+  * Automatic update of included source packages: console-setup
+    1.57ubuntu27, flash-kernel 2.28ubuntu34, grub-installer 1.68ubuntu4,
+    netcfg 1.68ubuntu6.  Fixes FTBFS.
+
+  [ Evan Dandrea ]
+  * Use the default signal handler for SIGPIPE, hopefully fixing the
+    child processes of update-apt-cache not getting killed along with
+    it (LP: #743359).
+  * Don't rely on the DBus main loop being set in the prepare plugin
+    before it's used elsewhere.
+  * Pressing enter in the keyboard test entry should proceed to the next
+    page (LP: #862309).
+
+ -- Adam Conrad <adconrad@ubuntu.com>  Wed, 28 Sep 2011 16:43:42 -0600
+
+ubiquity (2.7.37) oneiric; urgency=low
+
+  [ Evan Dandrea ]
+  * Only set the ATK widget names to their GtkBuilder counterparts when
+    --ldtp is set (LP: #781385)
+  * Provide a means of preseeding an oem-config frontend (LP: #820514).
+  * Terminate the updates download process before we get to
+    remove_extras (LP: #743359).
+  * Automatic update of included source packages: console-setup
+    1.57ubuntu26, grub-installer 1.68ubuntu2, hw-detect 1.81ubuntu3,
+    netcfg 1.68ubuntu5, partman-base 151ubuntu2.
+  * Update translations from Launchpad.
+
+  [ Colin Watson ]
+  * Install new files from grub-installer >= 1.66.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Wed, 28 Sep 2011 12:15:46 +0100
+
+ubiquity (2.7.36) oneiric; urgency=low
+
+  * Showing and hiding the release notes and update the instaler links
+    are now handled in the Internet connectivity callback (LP: #856213).
+  * Enter the GTK main loop to avoid the wallpaper setting resources
+    being cleaned up (LP: #854179).
+
+ -- Evan Dandrea <ev@ubuntu.com>  Thu, 22 Sep 2011 17:59:55 +0100
+
+ubiquity (2.7.35) oneiric; urgency=low
+
+  [ Evan Dandrea ]
+  * Don't show the battery warning when the system is not battery
+    powered (LP: #848000).
+  * Move network watch initialization for the KDE frontend to the
+    correct place (LP: #855763).
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Wed, 21 Sep 2011 15:52:42 -0400
+
+ubiquity (2.7.34) oneiric; urgency=low
+
+  * Disable setting the ubiquity/online debconf question for now. We're
+    not actually using it for anything yet (LP: #855277).
+  * Disable the power indicator as it's causing g-s-d to spawn, which
+    races against our own spawning of it (LP: #854717).
+
+ -- Evan Dandrea <ev@ubuntu.com>  Wed, 21 Sep 2011 10:00:45 +0100
+
+ubiquity (2.7.33) oneiric; urgency=low
+
+  * Move watching Internet connectivity to the frontends themselves,
+    which then ask each plugin to act accordingly (LP: #854706).
+  * Update translations from Launchpad.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Tue, 20 Sep 2011 19:22:01 +0100
+
+ubiquity (2.7.32) oneiric; urgency=low
+
+  * Also show the Ubiquity launcher on Unity.
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Tue, 20 Sep 2011 09:52:32 -0400
+
+ubiquity (2.7.31) oneiric; urgency=low
+
+  [ Evan Dandrea ]
+  * Build-depend on the GTK3 version of libindicator.
+
+  [ Colin Watson ]
+  * Move setup_power_watch out of the ubi-prepare plugin into a new
+    ubiquity.upower module, allowing us to patch it out more easily while
+    running tests.  Patch ubiquity.nm.add_connection_watch and
+    ubiquity.nm.has_connection in the GTK frontend tests as well.
+  * Automatic update of included source packages: apt-setup 1:0.49ubuntu9,
+    netcfg 1.68ubuntu4.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 20 Sep 2011 01:10:22 +0100
+
+ubiquity (2.7.30) oneiric; urgency=low
+
+  [ Harald Sitter ]
+  * [KDE] Fix language selection comobox position within grid (LP: #743062)
+  * [KDE] Make intro label miminum expanding, otherwise word wrap will not
+    work for vast amounts of text
+
+  [ Evan Dandrea ]
+  * Unset UBUNTU_MENUPROXY so our custom panel doesn't lose its
+    indicators (LP: #837287).
+  * Port the panel to GTK3.
+  * Manually connect the activate-link signal on the advanced
+    partitioning tool link on the automatic partitioning page.
+    GtkBuilder signal mapping appears to be broken (LP: #852054).
+  * The first partitioning page does not translate its options ahead of
+    time, so ensure that the placeholder text isn't so long as to create
+    the installer window to grow excessively large before partitioning
+    is reached (LP: #837406).
+  * Use the new network-manager interface on the prepare page to disable
+    options that need an Internet connection when one is not available
+    (LP: #848938).
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: flash-kernel
+    2.28ubuntu33.
+
+  [ Stéphane Graber ]
+  * Change wallpaper C program to accept a path to a wallpaper as a parameter.
+  * Update ubiquity-dm to set the right wallpaper for Edubuntu.
+  * Fix ibus in Ubiquity (LP: #838850)
+
+  [ Aurélien Gâteau ]
+  * gui/qt/stepKeyboardConf.ui
+   - Put keyboard variable combobox on separate line (LP: #851160)
+
+  [ Jonathan Riddell ]
+  * kde_ui.py
+   - Fix breakage in debfilter crash dialogue
+
+ -- Evan Dandrea <ev@ubuntu.com>  Mon, 19 Sep 2011 19:37:28 +0100
+
+ubiquity (2.7.29) oneiric; urgency=low
+
+  * Add power indicator to the installer panel.
+  * Handle APs going away while trying to query their properties
+    (LP: #838068).
+  * Use a small C program to set the desktop wallpaper (LP: #830061).
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: flash-kernel
+    2.28ubuntu31, partman-base 151ubuntu1.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Thu, 15 Sep 2011 10:47:19 +0100
+
+ubiquity (2.7.28) oneiric; urgency=low
+
+  [ Stéphane Graber ]
+  * Update stepUserInfo.ui to trigger info_loop() when the hostname is changed.
+    (LP: #828181)
+
+  [ Mario Limonciello ]
+  * Reorder the imports in oem-config-remove-gtk to fix an import error due
+    the fallbacks in aptdaemon. (LP: #837288)
+  * Show the wireless page after either prepare or language to make sure
+    it shows in both ubiquity and oem-config modes.
+  * Call out to find_next_step even on non debconf driven pages. (LP: #843237)
+  * Don't assume /target is where the new face is being put.
+  * When the installer crashes, file a bug using apport-bug rather than
+    directing users to a terminal window. (LP: #843933)
+  * Fix the colors in the oem-config language selector. (LP: #838672)
+  * Automatic update of included source packages: netcfg 1.68ubuntu2,
+    user-setup 1.28ubuntu20.
+
+ -- Mario Limonciello <Mario_Limonciello@Dell.com>  Wed, 07 Sep 2011 16:55:46 -0500
+
+ubiquity (2.7.27) oneiric; urgency=low
+
+  * Disable test_set_indicator_keymaps as set_indicator_keymaps itself is
+    disabled for now.
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Mon, 05 Sep 2011 13:47:25 -0400
+
+ubiquity (2.7.26) oneiric; urgency=low
+
+  [ Evan Dandrea ]
+  * Don't show the wireless page if there's already a network connection
+    (LP: #838549).
+
+  [ Martin Pitt ]
+  * ubiquity/gtkwidgets.py: Fix return value evaluation of Gdk.color_parse()
+    (API was fixed to not return a separate "success" flag any more).
+  * ubiquity/misc.py: Disable set_indicator_keymaps() for now. It does not
+    work with either the old (2.28) nor the current (2.90) pygobject, and
+    still uses gconf. (LP: #829186)
+
+  [ Stéphane Graber ]
+  * Fix crash in the KDE crash dialog.
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Mon, 05 Sep 2011 10:56:43 -0400
+
+ubiquity (2.7.25) oneiric; urgency=low
+
+  [ Colin Watson ]
+  * /apps/metacity/general/num_workspaces should be an int, not a boolean.
+  * Automatic update of included source packages: flash-kernel 2.28ubuntu29.
+
+  [ Evan Dandrea ]
+  * Don't try to connect signals on the release notes label in the oem-
+    config version of the language page, as it doesn't exist there.
+  * Construct a GtkTreeCellDataFunc with the correct number of arguments
+    in the migration assistant plugin (LP: #829987).
+  * Don't let the text wrap for the language names in oem-config.
+
+  [ Stéphane Graber ]
+  * Properly sort the keyboard list (LP: #770320)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 31 Aug 2011 20:52:07 +0100
+
+ubiquity (2.7.24) oneiric; urgency=low
+
+  * Use only gtk3 in oem-config-remove-gtk (2.7.23 was also using gtk2).
+  * Update the directory for the panel to search for indicators.
+
+ -- Mario Limonciello <Mario_Limonciello@Dell.com>  Tue, 30 Aug 2011 14:04:25 -0500
+
+ubiquity (2.7.23) oneiric; urgency=low
+
+  * Use the correct API for manipulating the finished dialog for oem-
+    config-remove-gtk.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Tue, 30 Aug 2011 19:03:16 +0100
+
+ubiquity (2.7.22) oneiric; urgency=low
+
+  * Add back accidentally deleted build_timezone_list call.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Tue, 30 Aug 2011 18:34:51 +0100
+
+ubiquity (2.7.21) oneiric; urgency=low
+
+  [ Stéphane Graber ]
+  * Explicitly bind "activate-link" as it seems to be the only way to actually
+    catch that signal. (LP: #830895)
+  * If the user didn't select a photo, just continue without configuring it.
+    (LP: #836934)
+  * Instead of forcing the color on all elements, only do it for elements
+    where it's actually required. Fixes weird backgrounds in ComboBoxes (LP: #830923)
+  * Set a maximum install size of 8GB as long as the user still has 20% of free
+    space. (LP: #771401)
+
+  [ Evan Dandrea ]
+  * Set the timezone location to the default (LP: #830940).
+  * Automatic update of included source packages: user-setup
+    1.28ubuntu19.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Tue, 30 Aug 2011 17:16:54 +0100
+
+ubiquity (2.7.20) oneiric; urgency=low
+
+  * Raise permissions for writing out webcam picture. (LP: #836802)
+
+ -- Mario Limonciello <Mario_Limonciello@Dell.com>  Mon, 29 Aug 2011 12:34:37 -0500
+
+ubiquity (2.7.19) oneiric; urgency=low
+
+  [ Stéphane Graber ]
+  * Properly handle unicode in calls to preseed (LP: #831455)
+  * Properly handle unicode for device and mountpoints name (LP: #833813)
+  * Port Ubiquity's accessibility indicator to gobject introspection
+  * Fix a minor gobject introspection port issue (Gdk.CONTROL_MASK should
+    be Gdk.ModifierType.CONTROL_MASK)
+  * Fix ubi-timezone changed() function missing a parameter
+
+  [ Colin Watson ]
+  * Adjust timezone tests for change in timezone changed() signature.
+  * Mock ubiquity.misc.drop_privileges and ubiquity.misc.regain_privileges
+    during test_face_selector_save_to.
+  * Mock ubiquity.frontend.base.drop_privileges in GTK frontend tests to
+    cope with 'from ubiquity.misc import drop_privileges' form.
+  * Mock ubiquity.nm.wireless_hardware_present in GTK frontend tests, as it
+    may not be able to talk to D-Bus.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 29 Aug 2011 17:26:51 +0100
+
+ubiquity (2.7.18) oneiric; urgency=low
+
+  * Properly handle unicode around the hostname (LP: #831309).
+  * Properly handle unicode around the timezone entry box (LP: #831533).
+  * Properly handle unicode in the question dialog (LP: #831419).
+  * Disable the background setting code for beta 1.
+  * Wait forever for jockey to shutdown (LP: #653571).
+  * Bump indicators to v6 (LP: #819979).
+
+ -- Evan Dandrea <ev@ubuntu.com>  Fri, 26 Aug 2011 17:56:37 +0100
+
+ubiquity (2.7.17) oneiric; urgency=low
+
+  [ Evan Dandrea ]
+  * Make sure the webcam module is built before running tests.
+
+  [ Colin Watson ]
+  * Use a stamp file for 'debian/rules install' to try to avoid duplicate
+    runs (e.g. when repeatedly running tests).
+  * Mark the debian/rules tests target as phony, to allow repeated runs more
+    easily.
+  * Don't fail gtkwidgets tests if /usr/share/pixmaps/faces doesn't exist
+    (i.e. gnome-control-center-data isn't installed).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 25 Aug 2011 00:09:32 +0100
+
+ubiquity (2.7.16) oneiric; urgency=low
+
+  [ Colin Watson ]
+  * Update translations from Launchpad.
+  * Enable code in console-setup 1.57ubuntu24 to fix default keyboard
+    selection for language/country combinations lacking a proper combined
+    locale (LP: #814448).
+  * Rename libwebcam to libubiwebcam to avoid clashing with the existing
+    libwebcam0 package.
+
+  [ Evan Dandrea ]
+  * Move noninteractive frontend to PyGI bindings for GObject (LP:
+    #829186).
+  * Make the webcam page match its specified design.
+  * Automatic update of included source packages: console-setup
+    1.57ubuntu25.
+
+  [ Jeremy Bicha ]
+  * Allow users to enter their own mount point in the partitoner (LP: #831431)
+
+ -- Evan Dandrea <ev@ubuntu.com>  Wed, 24 Aug 2011 13:58:08 +0100
+
+ubiquity (2.7.15) oneiric; urgency=low
+
+  [ Colin Watson ]
+  * Remove dead code from debian/oem-config.oem-config.upstart.
+  * Prefer recent versions of ntfs-3g to ntfsprogs, as ntfsresize has moved
+    to ntfs-3g.
+
+  [ Evan Dandrea ]
+  * Change the first partitioning page title to 'Installation Type.'
+    Thanks Matthew Paul Thomas.
+  * Merge PyGI branch. Ubiquity now uses PyGI and GTK+3.
+  * Feature Freeze exception (LP: #825274).
+  * Automatic update of included source packages: base-installer
+    1.119ubuntu4, console-setup 1.57ubuntu23, flash-kernel 2.28ubuntu28,
+    netcfg 1.68ubuntu1, partman-auto-loop 0ubuntu20, partman-
+    basicfilesystems 71ubuntu1, partman-efi 24ubuntu2, partman-
+    partitioning 81ubuntu2, tzsetup 1:0.26ubuntu10, user-setup
+    1.28ubuntu18.
+
+  [ Brian Murray ]
+  * Instead of sending people to +filebug recommend using apport
+
+  [ Luke Yelavich ]
+  * Add support for launching high contrast, screen reader, keyboard modifiers,
+    and onscreen keyboard accessibility profiles in maybe-ubiquity mode, high
+    contrast and screen reader profiles being launcheable either from an
+    indicator, or via keyboard shortcut, the rest of the profiles available
+    via the indicator only
+  * bin/ubiquity-dm:
+    - Start at-spi either when an appropriate accessibility profile is enabled,
+      or when maybe-ubiquity mode is enabled
+    - Remove references to orbit, as the a11y stack now uses dbus
+  * debian/control: Add python-appindicator as a dependency of
+    ubiquity-frontend-gtk
+  * Play the system-ready sound once accessibility profile support code has
+    been run to signal the user that a profile shortcut key can be pressed
+  * Enable caret browsing/text cursor movement in the slideshow if the screen
+    reader accessibility profile is enabled
+
+  [ Mario Limonciello ]
+  * Fix calls to get_size() in ubiquity-dm from pygi transition.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Thu, 18 Aug 2011 17:56:46 +0100
+
+ubiquity (2.7.14) oneiric; urgency=low
+
+  * When copying symlinks, just try unlinking and handle exceptions, rather
+    than statting them first to find out what to do.
+  * Automatic update of included source packages: apt-setup 1:0.49ubuntu7,
+    partman-target 73ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 15 Jul 2011 17:13:15 +0100
+
+ubiquity (2.7.13) oneiric; urgency=low
+
+  [ Evan Dandrea ]
+  * Change the forward button text to Continue. Thanks to Matthew Paul
+    Thomas for the suggestion.
+
+  [ Mario Limonciello ]
+  * Don't try to unlink directories during file copy routine that were
+    created by partman (/var/lock, /var/run), rmdir them instead. 
+    (LP: #810700)
+  * Don't assume that gsettings is on PATH just because gconftool-2 is.
+    They come from separate packages.
+  * Automatic update of included source packages: flash-kernel
+    2.28ubuntu27.
+
+ -- Mario Limonciello <Mario_Limonciello@Dell.com>  Fri, 15 Jul 2011 00:14:00 -0500
+
+ubiquity (2.7.12) oneiric; urgency=low
+
+  * Update disable_autologin to match current user-setup-apply, including
+    lxdm and lightdm handling (LP: #806247).
+  * Upgrade to indicator-0.4.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 09 Jul 2011 16:52:42 +0100
+
+ubiquity (2.7.11) oneiric; urgency=low
+
+  [ Luke Yelavich ]
+  * Use at-spi2 dbus launcher to start the at-spi2 daemon
+  * Determine accessibility state from gsettings using the gsettings command,
+    to make sure privileges are dropped
+
+  [ Colin Watson ]
+  * Handle the case where one of the packages returned by 'pyversions -s' or
+    'py3versions -s' is not installed (LP: #806349).
+  * Add --config=Mode:0644 to debconf-copydb call, as otherwise we leave
+    /var/cache/debconf/config.dat mode 0600 in the installed system,
+    breaking the first run of some package management frontends
+    (LP: #442941).
+  * Provide build-arch and build-indep debian/rules targets.
+  * Automatic update of included source packages: console-setup
+    1.57ubuntu21, flash-kernel 2.28ubuntu26.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 07 Jul 2011 23:28:05 +0100
+
+ubiquity (2.7.10) oneiric; urgency=low
+
+  * Fix reversed calls to enable_download_updates and set_download_updates,
+    broken in 2.7.9 (LP: #800261).
+  * Recreate .pyc modules excluded from the live filesystem.
+  * Automatic update of included source packages: grub-installer
+    1.64ubuntu3, user-setup 1.28ubuntu16.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 22 Jun 2011 13:52:45 +0100
+
+ubiquity (2.7.9) oneiric; urgency=low
+
+  [ Colin Watson ]
+  * Use pycompile (python-minimal) rather than py_compilefiles
+    (python-central).
+  * Add lightdm to lists of display managers in Upstart jobs (LP: #798328).
+  * Automatic update of included source packages: base-installer
+    1.119ubuntu3, netcfg 1.63ubuntu1.
+
+  [ Mackenzie Morgan ]
+  * make ubi-prepare.py handle cases where prepare_download_updates
+    is Qt too (LP: #791446)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 16 Jun 2011 23:20:29 +0100
+
+ubiquity (2.7.8) oneiric; urgency=low
+
+  * Fix xvfb-run error handling.
+  * Don't run xvfb-run under fakeroot, as that confuses the X server.
+  * Exclude everything under debian/ from tests/run-pyflakes, as otherwise
+    it's impossible to clean a built tree.
+  * Convert to dh_python2.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 15 Jun 2011 15:09:46 +0100
+
+ubiquity (2.7.7) oneiric; urgency=low
+
+  * Show output from xauth and Xrdb after calling xvfb-run.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 13 Jun 2011 14:52:59 +0100
+
+ubiquity (2.7.6) oneiric; urgency=low
+
+  * Support filesystem.manifest-remove (equivalent to the difference between
+    filesystem.manifest and filesystem.manifest-desktop in the old style),
+    generated by live-build >= 3.0~a20-1.
+  * Remove /target/etc/apt/sources.list.d/dvd.list before creating new apt
+    configuration.  The livecd-rootfs live-build integration will create
+    this in DVD images.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 12 Jun 2011 00:23:14 +0100
+
+ubiquity (2.7.5) oneiric; urgency=low
+
+  * Stop installing earth.jpg; it's 250KiB and we no longer use it.
+  * Automatic update of included source packages: apt-setup 1:0.49ubuntu6,
+    base-installer 1.119ubuntu1, choose-mirror 2.38ubuntu2, clock-setup
+    0.108ubuntu1, debian-installer-utils 1.84ubuntu1, grub-installer
+    1.64ubuntu2, localechooser 2.37ubuntu1, netcfg 1.62ubuntu2, partconf
+    1.37, partman-base 150ubuntu1, partman-basicfilesystems 70ubuntu1,
+    partman-basicmethods 48, partman-btrfs 6ubuntu1, partman-efi 24ubuntu1,
+    partman-ext3 64ubuntu1, partman-jfs 34, partman-partitioning 81ubuntu1,
+    partman-reiserfs 51, partman-xfs 48, preseed 1.49ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 08 Jun 2011 15:47:52 +0100
+
+ubiquity (2.7.4) oneiric; urgency=low
+
+  * Fix sys.path handling in test_ubi_partman.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 31 May 2011 20:55:01 +0100
+
+ubiquity (2.7.3) oneiric; urgency=low
+
+  * Ugh. Add python-libxml2 and python-xklavier to build dependencies.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Tue, 31 May 2011 17:42:44 +0100
+
+ubiquity (2.7.2) oneiric; urgency=low
+
+  * Add a pyflakes run to the check build target.
+  * Add dependency on python-libxml2. Fixes FTBFS (again).
+
+ -- Evan Dandrea <ev@ubuntu.com>  Tue, 31 May 2011 17:03:20 +0100
+
+ubiquity (2.7.1) oneiric; urgency=low
+
+  * Add build dependency on xvfb.  Fixes FTBFS.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Tue, 31 May 2011 15:40:21 +0100
+
+ubiquity (2.7.0) oneiric; urgency=low
+
+  [ Evan Dandrea ]
+  * Prevent the OOM killer from selecting ubiquity.  See  LP #770865.
+  * Ensure that the partition ComboBoxEntry can be focused
+    (LP: #769043).
+  * Hide the other pages when starting the slideshow so that verbose
+    languages that cause the window to grow do not leave lots of
+    whitespace on the slideshow (LP: #770253).
+  * Don't offer the download updates option when there is no Internet
+    connection. See LP: 651932.
+  * Provide access to the keymaps most-relevant for the currently
+    selected language in the keyboard indicator (LP: #656777).
+  * gnome-settings-daemon no longer daemonizes (LP: #788859).
+  * Automatic update of included source packages: partman-auto
+    93ubuntu16.
+
+  [ Colin Watson ]
+  * Re-enable alpha warning for oneiric.
+  * Make ubiquity/nonfree_package preseedable, and allow it to contain
+    multiple whitespace-separated package names.
+
+  [ Mario Limonciello ]
+  * In automatic ubiquity mode, don't clobber grub-installer/bootdev
+    because of the U/I widget not being populated.  Fixes preseeded
+    grub-installer/bootdev.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Tue, 31 May 2011 14:56:14 +0100
 
 ubiquity (2.6.10) natty; urgency=low
 

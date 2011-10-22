@@ -1,5 +1,5 @@
 AC_PREREQ(2.52)
-AC_INIT([ubiquity], [2.6], [https://launchpad.net/ubuntu/+source/ubiquity/+filebug])
+AC_INIT([ubiquity], [2.8], [https://launchpad.net/ubuntu/+source/ubiquity/+filebug])
 AC_CONFIG_SRCDIR([src/panel/panel.c])
 AC_CONFIG_AUX_DIR([build])
 AC_CONFIG_MACRO_DIR([m4])
@@ -23,34 +23,43 @@ AC_HEADER_STDC
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 
-GTK_REQUIRED=2.10.0
+GTK3_REQUIRED=3.1.4
+GIO_REQUIRED=2.5.11
 AM_PATH_PYTHON([2.5])
 
 if test "x$UBIQUITY_NO_GTK" = x; then
+  PKG_CHECK_MODULES(WEBCAM, [gtk+-3.0 >= $GTK3_REQUIRED
+			  gio-2.0 >= $GIO_REQUIRED
+			  gstreamer-0.10
+			  gstreamer-interfaces-0.10
+			  gudev-1.0])
+  AC_SUBST(WEBCAM_CFLAGS)
+  AC_SUBST(WEBCAM_LIBS)
   PKG_CHECK_MODULES(PANEL, [glib-2.0
-			  gtk+-2.0 >= $GTK_REQUIRED
-			  indicator
+			  gtk+-3.0 >= $GTK3_REQUIRED
+			  indicator3-0.4
 			  x11])
   AC_SUBST(PANEL_CFLAGS)
   AC_SUBST(PANEL_LIBS)
-  PKG_CHECK_MODULES(CHEESE, [glib-2.0
-			     gtk+-2.0 >= $GTK_REQUIRED
-			     gobject-2.0
-			     pygobject-2.0
-			     cheese-gtk])
-  AC_SUBST(CHEESE_CFLAGS)
-  AC_SUBST(CHEESE_LIBS)
-  AM_PATH_GTK_2_0([$GTK_REQUIRED])
+  PKG_CHECK_MODULES(WALLPAPER, [glib-2.0
+			  gtk+-3.0 >= $GTK3_REQUIRED
+			  x11])
+  AC_SUBST(WALLPAPER_CFLAGS)
+  AC_SUBST(WALLPAPER_LIBS)
+  GOBJECT_INTROSPECTION_CHECK([0.6.7])
   AC_CONFIG_FILES(
 	src/Makefile
+	src/wallpaper/Makefile
+	src/webcam/Makefile
 	src/panel/Makefile
-	src/cheese/Makefile
 	)
 else
-  AC_SUBST(BASE_CFLAGS, [""])
-  AC_SUBST(BASE_LIBS, [""])
-  AC_SUBST(CHEESE_CFLAGS, [""])
-  AC_SUBST(CHEESE_LIBS, [""])
+  AC_SUBST(WEBCAM_CFLAGS, [""])
+  AC_SUBST(WEBCAM_LIBS, [""])
+  AC_SUBST(PANEL_CFLAGS, [""])
+  AC_SUBST(PANEL_LIBS, [""])
+  AC_SUBST(WALLPAPER_CFLAGS, [""])
+  AC_SUBST(WALLPAPER_LIBS, [""])
 fi
 
 
@@ -89,18 +98,6 @@ AC_SUBST(PYGOBJECT_H2DEF)
 AC_MSG_RESULT($PYGOBJECT_H2DEF)
 
 
-#*******************************************************************************
-# Check for PYGTK
-#*******************************************************************************
-
-AC_MSG_CHECKING(for pygtk defs)
-PYGTK_DEFS_DIR="`$PKG_CONFIG --variable=defsdir pygtk-2.0`"
-AC_SUBST(PYGTK_DEFS_DIR)
-AC_MSG_RESULT($PYGTK_DEFS_DIR)
-
-
-
-#*******************************************************************************
 AC_CONFIG_FILES([
 	Makefile
 	desktop/Makefile

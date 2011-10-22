@@ -1,12 +1,12 @@
-import gtk, gobject
+from gi.repository import Gtk, GObject, Gdk
 from ubiquity import keyboard_detector
 
-class Keyrow(gtk.HBox):
+class Keyrow(Gtk.HBox):
     def __init__(self):
-        gtk.HBox.__init__(self, spacing=24)
+        GObject.GObject.__init__(self, spacing=24)
 
     def add_character(self, key):
-        l = gtk.Label('<big>%s</big>' % key)
+        l = Gtk.Label(label='<big>%s</big>' % key)
         l.set_use_markup(True)
         self.add(l)
         l.show()
@@ -15,42 +15,42 @@ class Keyrow(gtk.HBox):
         for ch in self.get_children():
             self.remove(ch)
 
-class KeyboardQuery(gtk.Window):
+class KeyboardQuery(Gtk.Window):
     __gtype_name__ = 'KeyboardQuery'
-    __gsignals__ = { 'layout_result' : (gobject.SIGNAL_RUN_FIRST,
-                    gobject.TYPE_NONE, (gobject.TYPE_STRING,)) }
+    __gsignals__ = { 'layout_result' : (GObject.SignalFlags.RUN_FIRST,
+                    None, (GObject.TYPE_STRING,)) }
     def __init__(self, frontend):
-        gtk.Window.__init__(self)
+        Gtk.Window.__init__(self)
 
         self.set_title(
             frontend.get_string('ubiquity/text/keyboard_query_title'))
         self.set_keep_above(True)
         self.set_modal(True)
         self.set_border_width(20)
-        self.set_property('allow_grow', False)
+        self.set_property('resizable', False)
         # TODO if we can allocate the space we'll need ahead of time, we can
         # use center_on_parent here.
-        self.set_position(gtk.WIN_POS_CENTER_ALWAYS)
-        self.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_DIALOG)
-        self.vbox = gtk.VBox(spacing=10)
+        self.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
+        self.set_type_hint(Gdk.WindowTypeHint.DIALOG)
+        self.vbox = Gtk.VBox(spacing=10)
 
         self.press_string = \
             frontend.get_string('ubiquity/text/keyboard_query_press')
         self.present_string = \
             frontend.get_string('ubiquity/text/keyboard_query_present')
-        self.heading = gtk.Label(self.press_string)
+        self.heading = Gtk.Label(label=self.press_string)
         self.heading.set_alignment(0, 0.5)
-        self.vbox.pack_start(self.heading, expand=False)
+        self.vbox.pack_start(self.heading, False, True, 0)
 
         self.keyrow = Keyrow()
-        self.vbox.pack_start(self.keyrow, expand=False)
+        self.vbox.pack_start(self.keyrow, False, True, 0)
 
-        self.buttons = gtk.HButtonBox()
+        self.buttons = Gtk.HButtonBox()
         self.buttons.set_spacing(12)
-        self.buttons.set_layout(gtk.BUTTONBOX_START)
+        self.buttons.set_layout(Gtk.ButtonBoxStyle.START)
         # FIXME evand 2009-12-16: i18n
-        no = gtk.Button(stock=gtk.STOCK_NO)
-        yes = gtk.Button(stock=gtk.STOCK_YES)
+        no = Gtk.Button(stock=Gtk.STOCK_NO)
+        yes = Gtk.Button(stock=Gtk.STOCK_YES)
         self.buttons.add(no)
         self.buttons.add(yes)
         self.vbox.add(self.buttons)
@@ -119,4 +119,4 @@ class KeyboardQuery(gtk.Window):
             except:
                 self.hide()
 
-gobject.type_register(KeyboardQuery)
+GObject.type_register(KeyboardQuery)

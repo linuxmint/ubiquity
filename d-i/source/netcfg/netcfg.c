@@ -21,6 +21,7 @@
 
 */
 
+#include "netcfg.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -31,7 +32,6 @@
 #ifdef WIRELESS
 #include <iwlib.h>
 #endif
-#include "netcfg.h"
 
 static method_t netcfg_method = DHCP;
 
@@ -39,13 +39,13 @@ response_t netcfg_get_method(struct debconfclient *client)
 {
     int iret, ret;
 
-    iret = debconf_input(client, "medium", "netcfg/use_dhcp");
+    iret = debconf_input(client, "medium", "netcfg/use_autoconfig");
     ret = debconf_go(client);
 
     if (ret == 30)
         return GO_BACK;
 
-    debconf_get(client, "netcfg/use_dhcp");
+    debconf_get(client, "netcfg/use_autoconfig");
 
     if (strcmp(client->value, "true") == 0)
         netcfg_method = DHCP;
@@ -69,19 +69,28 @@ int main(int argc, char *argv[])
            GET_STATIC,
            WCONFIG,
            WCONFIG_ESSID,
+           WCONFIG_SECURITY_TYPE,
            WCONFIG_WEP,
+           WCONFIG_WPA,
+           START_WPA,
            QUIT } state = GET_INTERFACE;
 
     static struct debconfclient *client;
     static int requested_wireless_tools = 0;
+    int num_ifaces;
     char **ifaces;
     char *defiface = NULL, *defwireless = NULL;
     response_t res;
+    struct netcfg_interface interface;
+    char buf[256];
+    int rv = 0;
 
     /* initialize libd-i */
     di_system_init("netcfg");
+    netcfg_interface_init(&interface);
 
-    di_info("Starting netcfg v.%s (built %s)", NETCFG_VERSION, NETCFG_BUILD_DATE);
+    if (strcmp(basename(argv[0]), "ptom") != 0)
+        di_info("Starting netcfg v.%s (built %s)", NETCFG_VERSION, NETCFG_BUILD_DATE);
 
     parse_args (argc, argv);
     reap_old_files ();
@@ -94,33 +103,67 @@ int main(int argc, char *argv[])
     /* Check to see if netcfg should be run at all */
     debconf_get(client, "netcfg/enable");
     if (!strcmp(client->value, "false")) {
-        struct in_addr null_ipaddress;
         char *hostname = NULL;
 
-        null_ipaddress.s_addr = 0;
-        netcfg_get_hostname(client, "netcfg/get_hostname", &hostname, 0);
+        netcfg_get_hostname(client, "netcfg/get_hostname", hostname, 0);
 
-        netcfg_write_common(null_ipaddress, hostname, NULL);
+        netcfg_write_common("", hostname, NULL);
         return 0;
     }
 
-    /* always always always default back to DHCP, unless you've specified
-     * disable_dhcp on the command line. */
-    debconf_get(client, "netcfg/disable_dhcp");
+    /* always always always default back to autoconfig, unless you've specified
+     * disable_autoconfig on the command line. */
+    debconf_get(client, "netcfg/disable_autoconfig");
 
     if (!strcmp(client->value, "true"))
-        debconf_set(client, "netcfg/use_dhcp", "false");
+        debconf_set(client, "netcfg/use_autoconfig", "false");
     else
-        debconf_set(client, "netcfg/use_dhcp", "true");
+        debconf_set(client, "netcfg/use_autoconfig", "true");
 
     for (;;) {
         switch(state) {
         case BACKUP:
             return 10;
         case GET_INTERFACE:
-            /* Choose a default by looking for link */
-            if (get_all_ifs(1, &ifaces) > 1) {
+            /* If we have returned from outside of netcfg and want to
+             * reconfigure networking, check to see if wpasupplicant is
+             * running, and kill it if it is. If left running when
+             * the interfaces are taken up and down, it appears to
+             * leave it in an inconsistant state */
+            kill_wpa_supplicant();
+
+            /* Reset all interfaces first */
+            num_ifaces = get_all_ifs(1, &ifaces);
+            if (num_ifaces > 0) {
                 while (*ifaces) {
+                    di_debug("Flushing addresses and routes on interface: %s\n", *ifaces);
+
+                    /* Flush all IPv4 addresses */
+                    snprintf(buf, sizeof(buf), "ip -f inet addr flush dev %s", *ifaces);
+                    rv |= di_exec_shell_log(buf);
+
+                    /* Flush all IPv6 addresses */
+                    snprintf(buf, sizeof(buf), "ip -f inet6 addr flush dev %s", *ifaces);
+                    rv |= di_exec_shell_log(buf);
+
+                    /* Flush all IPv4 routes */
+                    snprintf(buf, sizeof(buf), "ip -f inet route flush dev %s", *ifaces);
+                    rv |= di_exec_shell_log(buf);
+
+                    /* Flush all IPv6 routes */
+                    snprintf(buf, sizeof(buf), "ip -f inet6 route flush dev %s", *ifaces);
+                    rv |= di_exec_shell_log(buf);
+
+                    ifaces++;
+                }
+            }
+
+
+            /* Choose a default by looking for link */
+            if (num_ifaces > 1) {
+                while (*ifaces) {
+                    struct netcfg_interface link_interface;
+
                     if (check_kill_switch(*ifaces)) {
                         debconf_subst(client, "netcfg/kill_switch_enabled", "iface", *ifaces);
                         debconf_input(client, "high", "netcfg/kill_switch_enabled");
@@ -136,9 +179,12 @@ int main(int argc, char *argv[])
                     }
 
                     interface_up(*ifaces);
-                    if (netcfg_detect_link (client, *ifaces) == 1) /* CONNECTED */ {
+                    netcfg_interface_init(&link_interface);
+                    link_interface.name = strdup(*ifaces);
+                    if (netcfg_detect_link (client, &link_interface) == 1) /* CONNECTED */ {
                         di_info("found link on interface %s, making it the default.", *ifaces);
                         defiface = strdup(*ifaces);
+                        free(link_interface.name);
                         break;
                     } else {
 #ifdef WIRELESS
@@ -175,6 +221,7 @@ int main(int argc, char *argv[])
 #endif
                     }
 
+                    free(link_interface.name);
                     interface_down(*ifaces);
 
                     ifaces++;
@@ -187,24 +234,22 @@ int main(int argc, char *argv[])
             if (!defiface && defwireless)
                 defiface = defwireless;
 
-            if(netcfg_get_interface(client, &interface, &num_interfaces, defiface))
+            if(netcfg_get_interface(client, &(interface.name), &num_interfaces, defiface))
                 state = BACKUP;
-            else if (! interface || ! num_interfaces)
+            else if (! interface.name || ! num_interfaces)
                 state = GET_HOSTNAME_ONLY;
             else {
-                if (is_wireless_iface (interface))
+                if (is_wireless_iface (interface.name))
                     state = WCONFIG;
                 else
                     state = GET_METHOD;
             }
             break;
         case GET_HOSTNAME_ONLY:
-            if(netcfg_get_hostname(client, "netcfg/get_hostname", &hostname, 0))
+            if(netcfg_get_hostname(client, "netcfg/get_hostname", hostname, 0))
                 state = BACKUP;
             else {
-                struct in_addr null_ipaddress;
-                null_ipaddress.s_addr = 0;
-                netcfg_write_common(null_ipaddress, hostname, NULL);
+                netcfg_write_common("", hostname, NULL);
                 state = QUIT;
             }
             break;
@@ -220,7 +265,7 @@ int main(int argc, char *argv[])
             break;
 
         case GET_DHCP:
-            switch (netcfg_activate_dhcp(client)) {
+            switch (netcfg_activate_dhcp(client, &interface)) {
             case 0:
                 state = QUIT;
                 break;
@@ -244,7 +289,7 @@ int main(int argc, char *argv[])
             {
                 int ret;
                 /* Misnomer - this should actually take care of activation */
-                if ((ret = netcfg_get_static(client)) == 10)
+                if ((ret = netcfg_get_static(client, &interface)) == 10)
                     state = GET_INTERFACE;
                 else if (ret)
                     state = GET_METHOD;
@@ -262,18 +307,58 @@ int main(int argc, char *argv[])
             break;
 
         case WCONFIG_ESSID:
-            if (netcfg_wireless_set_essid(client, interface, NULL) == GO_BACK)
+            if (netcfg_wireless_set_essid(client, &interface, NULL) == GO_BACK)
                 state = BACKUP;
-            else
-                state = WCONFIG_WEP;
+            else {
+                init_wpa_supplicant_support(&interface);
+                if (interface.wpa_supplicant_status == WPA_UNAVAIL)
+                    state = WCONFIG_WEP;
+                else
+                    state = WCONFIG_SECURITY_TYPE;
+            }
             break;
 
+        case WCONFIG_SECURITY_TYPE:
+            {
+                int ret;
+                ret = wireless_security_type(client, interface.name);
+                if (ret == GO_BACK)
+                    state = WCONFIG_ESSID;
+                else if (ret == REPLY_WPA)
+                    state = WCONFIG_WPA;
+                else
+                    state = WCONFIG_WEP;
+                break;
+            }
+
         case WCONFIG_WEP:
-            if (netcfg_wireless_set_wep(client, interface) == GO_BACK)
-                state = WCONFIG_ESSID;
+            if (netcfg_wireless_set_wep(client, &interface) == GO_BACK) 
+                if (interface.wpa_supplicant_status == WPA_UNAVAIL)
+                    state = WCONFIG_ESSID;
+                else
+                    state = WCONFIG_SECURITY_TYPE;
             else
                 state = GET_METHOD;
             break;
+
+        case WCONFIG_WPA:
+            if (interface.wpa_supplicant_status == WPA_OK) {
+                di_exec_shell_log("apt-install wpasupplicant");
+                interface.wpa_supplicant_status = WPA_QUEUED;
+            }
+
+            if (netcfg_set_passphrase(client, &interface) == GO_BACK)
+                state = WCONFIG_SECURITY_TYPE;
+            else
+                state = START_WPA;
+            break;
+
+        case START_WPA:
+            if (wpa_supplicant_start(client, &interface) == GO_BACK)
+                state = WCONFIG_ESSID;
+            else
+                state = GET_METHOD;
+            break; 
 
         case QUIT:
             netcfg_update_entropy();

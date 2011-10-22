@@ -1,6 +1,4 @@
-/* -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
- *
- * «panel» - Installer session panel
+/* «panel» - Installer session panel
  *
  * Copyright (C) 2010 Canonical Ltd.
  *
@@ -27,25 +25,13 @@
 /* Mostly stolen from gnome-panel and unity. */
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
+#include <cairo/cairo.h>
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <libindicator/indicator-object.h>
 
-#include "na-tray-manager.h"
-#include "na-tray.h"
-
 #define ENTRY_DATA_NAME "indicator-custom-entry-data"
-
-typedef struct
-{
-  GdkScreen *screen;
-  guint screen_num;
-  GtkWidget *window;
-  NaTray *tray;
-  GtkWidget *box;
-  GtkLabel *count_label;
-} TrayData;
 
 enum {
 	STRUT_LEFT = 0,
@@ -86,7 +72,7 @@ set_strut (GtkWindow *gtk_window,
 
   gdk_window = gtk_widget_get_window (GTK_WIDGET (gtk_window));
   display = GDK_WINDOW_XDISPLAY (gdk_window);
-  window  = GDK_WINDOW_XWINDOW (gdk_window);
+  window  = GDK_WINDOW_XID (gdk_window);
 
   if (net_wm_strut == None)
     net_wm_strut = XInternAtom (display, "_NET_WM_STRUT", False);
@@ -206,87 +192,76 @@ on_realize(GtkWidget *win, gpointer data) {
 	gtk_window_set_decorated (GTK_WINDOW (win), FALSE);
 	set_strut(GTK_WINDOW(win), width, 0, allocation.height, allocation.height, 0, width);
 	// We don't care about showing the panel on all desktops just yet.
-	//gtk_window_stick (GTK_WINDOW (win));
+	gtk_window_stick (GTK_WINDOW (win));
 	gtk_window_set_type_hint(GTK_WINDOW(win), GDK_WINDOW_TYPE_HINT_DOCK);
-	gdk_window_set_geometry_hints (win->window, NULL, GDK_HINT_POS);
-	gdk_window_move_resize(win->window, 0, 0, width, allocation.height);
+	gdk_window_set_geometry_hints (gtk_widget_get_window(win), NULL, GDK_HINT_POS);
+	gdk_window_move_resize(gtk_widget_get_window(win), 0, 0, width, allocation.height);
 	gtk_window_set_has_resize_grip(GTK_WINDOW(win), FALSE);
 }
 
 static const char* indicators[] = {
-	//TODO: dynamically fill in the ABI version at build time
-	// Reboot, shut down, ...
-	"/usr/lib/indicators/5/libsession.so",
+	"/usr/lib/indicators3/6/libsession.so",
 	// Bluetooth
-	"/usr/lib/indicators/5/libapplication.so",
-	"/usr/lib/indicators/5/libsoundmenu.so",
+	"/usr/lib/indicators3/6/libapplication.so",
+	"/usr/lib/indicators3/6/libsoundmenu.so",
 	NULL
 };
+
 static void
-set_background(GtkWidget *win) {
+draw_child (GtkWidget *child, gpointer client_data) {
+	struct {
+		GtkWidget *container;
+		cairo_t *cr;
+	} *data = client_data;
+	
+	gtk_container_propagate_draw (GTK_CONTAINER (data->container), child, data->cr);
+}
+
+static gint
+on_draw(GtkWidget *widget, cairo_t *cr, gpointer userdata) {
 	GdkPixbuf *pixbuf;
-	GtkPixmap *pixmap;
 	pixbuf = gdk_pixbuf_new_from_file("/usr/share/themes/Ambiance/gtk-2.0/apps/img/panel.png", NULL);
 	if (!pixbuf) {
 		pixbuf = gdk_pixbuf_new_from_file("/usr/share/lxpanel/images/lubuntu-background.png", NULL);
 	}
 	if (pixbuf) {
-		gdk_pixbuf_render_pixmap_and_mask(pixbuf, &pixmap, NULL, 0);
-		if (pixmap)
-			gdk_window_set_back_pixmap(win->window, pixmap, FALSE);
+		gdk_cairo_set_source_pixbuf(cr, pixbuf, 0, 0);
+		cairo_pattern_set_extend(cairo_get_source(cr), CAIRO_EXTEND_REPEAT);
+		cairo_paint(cr);
 		gdk_pixbuf_unref(pixbuf);
-		g_object_unref(pixmap);
 	} else {
 		g_warning("Could not find background image.");
 	}
-	/* Implicated in major memory leak - See LP: #714829 */
-	/* gtk_widget_queue_draw(win); */
-}
-
-static gint
-on_expose(GtkWidget* widget, gpointer userdata) {
-	set_background(widget);
+	struct {
+		GtkWidget *container;
+		cairo_t *cr;
+	} data;
+	data.container = widget;
+	data.cr = cr;
+	gtk_container_forall (GTK_CONTAINER(widget), draw_child, &data);
 	return FALSE;
-}
-
-static TrayData*
-create_tray(GtkWidget* parent) {
-	TrayData *data;
-	GdkScreen* screen = gtk_widget_get_screen (parent);
-	if (na_tray_manager_check_running(screen)) {
-		g_warning("Another tray manager is running; overriding.");
-	}
-	data = g_new0 (TrayData, 1);
-	data->screen = screen;
-	data->screen_num = gdk_screen_get_number (screen);
-	data->tray = na_tray_new_for_screen (screen, GTK_ORIENTATION_HORIZONTAL);
-	gtk_box_pack_end (GTK_BOX (parent), GTK_WIDGET (data->tray), FALSE, FALSE, 0);
-
-	data->box = GTK_BIN (GTK_BIN (data->tray)->child)->child;
-	gtk_widget_show_all (parent);
-	return data;
 }
 
 int
 main(int argc, char* argv[]) {
 	GtkWidget *win;
+	/* Disable global menus */
+	g_unsetenv ("UBUNTU_MENUPROXY");
 	gtk_init(&argc, &argv);
 	win = gtk_window_new (GTK_WINDOW_TOPLEVEL);
 	g_signal_connect(win, "realize", G_CALLBACK(on_realize), NULL);
 
-    gtk_rc_parse_string (
-        "style \"panel-menubar-style\"\n"
-        "{\n"
-		"    ythickness = 0\n"
-        "    GtkMenuBar::shadow-type = none\n"
-        "    GtkMenuBar::internal-padding = 0\n"
-        "    GtkWidget::focus-line-width = 0\n"
-        "    GtkWidget::focus-padding = 0\n"
-        "}\n"
-		"widget_class \"*<GtkMenuBar>*\" style \"panel-menubar-style\"");
+	gtk_css_provider_load_from_data(gtk_css_provider_get_default(),
+			"GtkMenuBar {\n"
+			"-GtkMenuBar-internal-padding: 0;\n"
+			"-GtkMenuBar-shadow-type: none;\n"
+			"}\nGtkWidget {\n"
+			"-GtkWidget-focus-line-width: 0;\n"
+			"-GtkWidget-focus-padding: 0;\n"
+			"}", -1, NULL);
 
 	GtkWidget* menubar = gtk_menu_bar_new();
-	gtk_menu_bar_set_pack_direction(menubar, GTK_PACK_DIRECTION_RTL);
+	gtk_menu_bar_set_pack_direction(GTK_MENU_BAR(menubar), GTK_PACK_DIRECTION_RTL);
 	int i;
 	for(i = 0; indicators[i]; i++) {
 		if (!load_module(indicators[i], menubar)) {
@@ -295,13 +270,11 @@ main(int argc, char* argv[]) {
 	}
 	GtkWidget* hbox = gtk_hbox_new(FALSE, 3);
 	gtk_container_add(GTK_CONTAINER(win), hbox);
-	gtk_box_pack_end(hbox, menubar, FALSE, FALSE, 0);
-	TrayData* tray = create_tray(hbox);
-	g_signal_connect(menubar, "expose-event", G_CALLBACK(on_expose), NULL);
-	g_signal_connect(win, "expose-event", G_CALLBACK(on_expose), NULL);
-	gtk_widget_show(menubar);
-	gtk_widget_show(win);
-	gdk_window_process_updates(win->window, TRUE);
+	gtk_box_pack_end(GTK_BOX(hbox), menubar, FALSE, FALSE, 0);
+	g_signal_connect_after(menubar, "draw", G_CALLBACK(on_draw), NULL);
+	g_signal_connect(win, "draw", G_CALLBACK(on_draw), NULL);
+	gtk_widget_show_all(win);
+	gdk_window_process_updates(gtk_widget_get_window(win), TRUE);
 	gtk_widget_set_app_paintable(win, TRUE);
 	gtk_main();
 	return 0;

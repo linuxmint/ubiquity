@@ -18,7 +18,7 @@ endif
 DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
 DEB_HOST_ARCH_OS ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
 
-PYTHON := $(shell pyversions -r)
+PYTHON := $(shell pyversions -d)
 
 console-setup-depends := console-setup (>= $(shell cd d-i/source/console-setup && dpkg-parsechangelog | awk '/Version:/ {print $$2}'))
 
@@ -28,7 +28,9 @@ update:
 update-local:
 	$(MAKE) -C d-i update UPDATE_LOCAL=1
 
-build: build-stamp
+build: build-arch build-indep
+build-arch: build-stamp
+build-indep: build-stamp
 
 build-stamp:
 	dh_testdir
@@ -41,12 +43,14 @@ build-stamp:
 
 check:
 	# Sanity-check before upload.
-	find -name debian -prune -o -name \*.py -print | xargs py_compilefiles
+	find -name debian -prune -o -name \*.py -print | xargs pycompile
 	find -type f \( -name \*.pyc -o -name \*.pyo \) -print0 | xargs -0r rm -f
 	# Check the syntax of any shell scripts.
 	set -e; for x in $$(find -type f -print0 | xargs -0 file -i | grep "text/x-shellscript" | cut -d':' -f1); do \
 		sh -n $$x; \
 	done
+	# Check the syntax of any Python scripts.
+	./tests/run-pyflakes
 
 pychecker:
 	./run-pychecker
@@ -69,8 +73,10 @@ d-i/source/console-setup/Keyboard/MyKeyboardNames.pl:
 ubiquity/keyboard_names.py: d-i/source/console-setup/Keyboard/MyKeyboardNames.pl
 	d-i/make-keyboard-names $< > $@
 
-install: DH_OPTIONS=
-install: build ubiquity/keyboard_names.py
+install: install-stamp
+
+install-stamp: DH_OPTIONS=
+install-stamp: build-stamp ubiquity/keyboard_names.py
 	dh_testdir
 	dh_testroot
 	dh_prep
@@ -90,8 +96,6 @@ ifndef UBIQUITY_NO_GTK
 		debian/ubiquity-frontend-gtk/usr/share/ubiquity/pixmaps
 	mv -n debian/ubiquity-frontend-gtk/usr/lib/ubiquity/ubiquity \
 		debian/ubiquity/usr/lib/ubiquity/
-	mv -n debian/ubiquity/usr/lib/ubiquity/ubiquity/cheese* \
-		debian/ubiquity-frontend-gtk/usr/lib/ubiquity/
 	rm -f debian/ubiquity/usr/lib/ubiquity/ubiquity/_osextras.a \
 		debian/ubiquity/usr/lib/ubiquity/ubiquity/_osextras.la
 endif
@@ -212,10 +216,15 @@ endif
 		cp desktop/hi$${size}-app-ubiquity.png debian/ubiquity-frontend-kde/usr/share/icons/hicolor/$${size}x$${size}/apps/ubiquity.png; \
 	done
 
-tests: install
+	touch install-stamp
+
+tests: install-stamp
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
-	#./tests/run
-	echo "no tests"
+	CODE=0; env -u LD_PRELOAD LD_LIBRARY_PATH=src/webcam/.libs GI_TYPELIB_PATH=src/webcam xvfb-run -e debian/xvfb.log ./tests/run || CODE=$$?; \
+	echo "xauth/Xrdb output:"; \
+	cat debian/xvfb.log; \
+	rm -f debian/xvfb.log; \
+	exit $$CODE
 endif
 
 BINARY_INDEP_OPTIONS := -i
@@ -228,7 +237,7 @@ endif
 
 # Build architecture-independent files here.
 binary-indep: DH_OPTIONS=$(BINARY_INDEP_OPTIONS)
-binary-indep: install
+binary-indep: install-stamp
 	dh_testdir
 	dh_testroot
 	dh_installchangelogs
@@ -244,7 +253,7 @@ binary-indep: install
 	dh_strip
 	dh_compress
 	dh_fixperms
-	DH_OPTIONS= dh_pycentral -i
+	dh_python2 /usr/lib/ubiquity
 	dh_installdeb
 	dh_shlibdeps
 	dh_gencontrol -- -Vmangled-version='$(MANGLED_VERSION)'
@@ -258,7 +267,7 @@ endif
 
 # Build architecture-dependent files here.
 binary-arch: DH_OPTIONS=$(BINARY_ARCH_OPTIONS)
-binary-arch: tests install
+binary-arch: tests install-stamp
 	dh_testdir
 	dh_testroot
 	dh_installchangelogs
@@ -285,7 +294,7 @@ binary-arch: tests install
 	dh_strip
 	dh_compress
 	dh_fixperms
-	DH_OPTIONS= dh_pycentral -a
+	dh_python2 /usr/lib/ubiquity
 	dh_installdeb
 	dh_shlibdeps
 	dh_gencontrol -- -V'console-setup-depends=$(console-setup-depends)' -Vmangled-version='$(MANGLED_VERSION)'
@@ -293,4 +302,4 @@ binary-arch: tests install
 	dh_builddeb
 
 binary: binary-indep binary-arch
-.PHONY: build clean binary-indep binary-arch binary install
+.PHONY: build clean binary-indep binary-arch binary install tests

@@ -410,20 +410,19 @@ ReleaseInfo = namedtuple('ReleaseInfo', 'name, version')
 
 def get_release():
     if get_release.release_info is None:
-        #try:
-        #    with open('/cdrom/.disk/info') as fp:
-        #        line = fp.readline()
-        #        if line:
-        #            line = line.split()
-        #            if line[2] == 'LTS':
-        #                line[1] += ' LTS'
-        #            get_release.release_info = ReleaseInfo(name=line[0], version=line[1])
-        #except:
-        #    syslog.syslog(syslog.LOG_ERR, 'Unable to determine the release.')
-        #
-        #if not get_release.release_info:
-        #    get_release.release_info = ReleaseInfo(name='Ubuntu', version='')    
-        get_release.release_info = ReleaseInfo(name='Linux Mint', version='11')
+        try:
+            with open('/cdrom/.disk/info') as fp:
+                line = fp.readline()
+                if line:
+                    line = line.split()
+                    if line[2] == 'LTS':
+                        line[1] += ' LTS'
+                    get_release.release_info = ReleaseInfo(name=line[0], version=line[1])
+        except:
+            syslog.syslog(syslog.LOG_ERR, 'Unable to determine the release.')
+
+        if not get_release.release_info:
+            get_release.release_info = ReleaseInfo(name='Ubuntu', version='')
     return get_release.release_info
 get_release.release_info = None
 
@@ -560,5 +559,70 @@ def dmimodel():
     except Exception:
         syslog.syslog(syslog.LOG_ERR, 'Unable to determine the model from DMI')
     return model
+
+def set_indicator_keymaps(locale):
+    import warnings
+    warnings.warn('set_indicator_keymaps: this function currently does not work')
+    return
+
+    import libxml2
+    import xklavier
+    from gi.repository import Gdk
+    from ubiquity import gconftool
+
+    # FIXME: Code below needs porting to gsettings (not done yet as the function is disabled)
+    xpath = "//iso_639_3_entry[@part1_code='%s']"
+    gconf_key = '/desktop/gnome/peripherals/keyboard/kbd/layouts'
+    variants = []
+    def process_variant(*args):
+        if hasattr(args[2], 'get_name'):
+            variants.append('%s\t%s' % (args[1].get_name(), args[2].get_name()))
+        else:
+            variants.append(args[1].get_name())
+
+    lang = locale.split('_')[0]
+    fp = libxml2.parseFile('/usr/share/xml/iso-codes/iso_639_3.xml')
+    context = fp.xpathNewContext()
+    nodes = context.xpathEvalExpression(xpath % lang)
+    if nodes:
+        code = nodes[0].prop('part2_code')
+        display = Gdk.Display.get_default()
+        engine = xklavier.Engine(display)
+        configreg = xklavier.ConfigRegistry(engine)
+        configreg.load(False)
+        configreg.foreach_language_variant(code, process_variant)
+        if variants:
+            gconftool.set_list(gconf_key, 'string', variants)
+            return
+    # Use the system default if no other keymaps can be determined.
+    gconftool.set_list(gconf_key, 'string', '')
+
+NM = 'org.freedesktop.NetworkManager'
+NM_STATE_CONNECTED_GLOBAL = 70
+
+def get_prop(obj, iface, prop):
+    import dbus
+    try:
+        return obj.Get(iface, prop, dbus_interface=dbus.PROPERTIES_IFACE)
+    except dbus.DBusException, e:
+        if e.get_dbus_name() == 'org.freedesktop.DBus.Error.UnknownMethod':
+            return None
+        else:
+            raise
+
+def has_connection():
+    import dbus
+    bus = dbus.SystemBus()
+    manager = bus.get_object(NM, '/org/freedesktop/NetworkManager')
+    state = get_prop(manager, NM, 'state')
+    return state == NM_STATE_CONNECTED_GLOBAL
+
+def add_connection_watch(func):
+    import dbus
+    def connection_cb(state):
+        func(state == NM_STATE_CONNECTED_GLOBAL)
+    bus = dbus.SystemBus()
+    bus.add_signal_receiver(connection_cb, 'StateChanged', NM, NM)
+    func(has_connection())
 
 # vim:ai:et:sts=4:tw=80:sw=4:

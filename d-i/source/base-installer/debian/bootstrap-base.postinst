@@ -74,10 +74,11 @@ install_base_system () {
 	if [ "${EXCLUDES}" ]; then
 		exclude="--exclude=${EXCLUDES}"
 	fi
+	sigcheck="--no-check-gpg"
 	if [ "$PROTOCOL" = http ] || [ "$PROTOCOL" = ftp ]; then
-		if type gpgv >/dev/null && [ -f "$KEYRING" ]; then
+		if type gpgv >/dev/null; then
 			if ! db_get debian-installer/allow_unauthenticated || [ "$RET" != true ]; then
-				keyring="--keyring=${KEYRING}"
+				sigcheck="--keyring=${KEYRING}"
 			fi
 		else
 			warning "gpgv not found, not authenticating archive"
@@ -116,7 +117,7 @@ install_base_system () {
 			--debian-installer \
 			--resolve-deps \
 			${include} ${exclude} \
-			${keyring} \
+			${sigcheck} \
 			${DISTRIBUTION} /target \
 			"$PROTOCOL://$MIRROR$DIRECTORY" \
 			${DEBOOTSTRAP_SCRIPT} \

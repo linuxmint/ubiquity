@@ -40,7 +40,9 @@ if [ "${RET%% *}" = 0 ]; then
 fi
 
 # TODO: will this work for X-based frontends when X isn't up yet?
-FRONTEND="$(/usr/sbin/oem-config -q)"
+if [ -z "$FRONTEND" ]; then
+	FRONTEND="$(/usr/sbin/oem-config -q)"
+fi
 
 if [ ! -e '/var/log/installer' ]; then
 	mkdir -p /var/log/installer

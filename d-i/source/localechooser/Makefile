@@ -26,7 +26,7 @@ debian/short-tmp/shortlists: debian/iso_3166.tab debian/iso-codes
 check-scripts:
 	@set -e ; \
 	if [ -x /bin/ash ] ; then SH=ash ; else SH=dash; fi ; \
-	for s in finish-install.d/05localechooser debian/postinst languagemap localechooser ; do \
+	for s in finish-install.d/05localechooser post-base-installer.d/05localechooser debian/postinst languagemap localechooser ; do \
 		echo "Checking syntax of $$s" ; \
 		$$SH -n $$s ; \
 	done

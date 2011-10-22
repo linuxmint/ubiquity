@@ -12,7 +12,7 @@ arch_get_kernel_flavour () {
 	case "$VENDOR" in
 	    " AuthenticAMD"*)
 		case "$FAMILY" in
-		    " 15"|" 16"|" 17"|" 20")		# k8
+		    " 15"|" 16"|" 17"|" 18"|" 20")	# k8
 			echo 686$SMP
 			;;
 		    " 6")				# k7

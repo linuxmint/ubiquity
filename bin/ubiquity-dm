@@ -17,11 +17,10 @@ import ubiquity.frontend
 import pwd
 
 from ubiquity import osextras
+from ubiquity import gsettings
 from ubiquity.misc import create_bool
 from ubiquity.casper import get_casper
 from ubiquity.debconfcommunicator import DebconfCommunicator
-
-background = '/usr/share/backgrounds/linuxmint/default_background.jpg'
 
 def ck_open_session(uid):
     import dbus
@@ -99,6 +98,7 @@ class DM:
                           self.username)
             self.username = 'root'
             self.uid, self.gid = 0, 0
+        os.environ['SUDO_USER'] = self.username
         self.homedir = pwd.getpwnam(self.username)[5]
         self.uid = int(self.uid)
         self.gid = int(self.gid)
@@ -265,9 +265,6 @@ EndSection
         os.environ['SUDO_UID'] = str(self.uid)
         os.environ['SUDO_GID'] = str(self.gid)
         os.environ['GVFS_DISABLE_FUSE' ] = '1'
-        # Share Orbit between ubiquity (running as root) and the non-root GNOME
-        # applications.  This lets ubiquity communicate with ATI-SPI.
-        os.environ['ORBIT_SOCKETDIR'] = '/tmp/orbit-%s' % self.username
 
         ck_open_session(self.uid)
 
@@ -300,48 +297,49 @@ EndSection
             gconf_dir = ('xml:readwrite:%s' %
                 os.path.expanduser('~%s/.gconf' %
                 self.username))
-            accessibility = 'false'
-            if osextras.find_on_path('gconftool-2'):
+            accessibility = False
+            if (osextras.find_on_path('gconftool-2') and
+               gsettings._gsettings_exists()):
+                # Set number of workspaces to 1 in metacity
+                # (still using gconf, GNOME: #621204)
                 subprocess.call(
                     ['gconftool-2', '--config-source', gconf_dir,
                      '--type', 'int', '--set',
-                     '/apps/metacity/general/num_workspaces', '1',
-                     '--type', 'boolean', '--set',
-                     '/desktop/gnome/lockdown/disable_user_switching', 'true',
-                     '--type', 'boolean', '--set',
-                     '/desktop/gnome/lockdown/disable_lock_screen', 'true'],
+                     '/apps/metacity/general/num_workspaces', '1',],
                     stdin=null, stdout=logfile, stderr=logfile,
                     preexec_fn=self.drop_privileges)
-                subp = subprocess.Popen(
-                    ['gconftool-2', '--config-source', gconf_dir,
-                     '--get', '/desktop/gnome/interface/accessibility'],
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                    preexec_fn=self.drop_privileges)
-                accessibility = subp.communicate()[0].rstrip('\n')
-            # Accessibility infrastructure
-            if accessibility == 'true':
-                if os.path.exists('/usr/lib/at-spi/at-spi-registryd'):
-                    extras.append(subprocess.Popen(
-                        ['/usr/lib/at-spi/at-spi-registryd'],
-                        stdin=null, stdout=logfile, stderr=logfile,
-                        preexec_fn=self.drop_privileges))
-                    os.environ['GTK_MODULES'] = 'gail:atk-bridge'
 
-            # Don't show the background image in v1 accessibility profile. It
-            # is not shown in the GNOME desktop after all.
+                # Set gsettings keys
+                gsettings_keys = [
+                    ('org.gnome.desktop.lockdown', 'disable-lock-screen', 'true'),
+                    ('org.gnome.desktop.lockdown', 'disable-user-switching', 'true'),
+                ]
+                for gs_schema, gs_key, gs_value in gsettings_keys:
+                    gsettings.set(gs_schema, gs_key, gs_value, self.username)
+
+                accessibility = gsettings.get('org.gnome.desktop.interface',
+                    'toolkit-accessibility', self.username)
+            # Accessibility infrastructure
             with open('/proc/cmdline', 'r') as fp:
-                exists = os.access(background, os.R_OK)
-                if (exists and not 'access=v1' in fp.readline()):
-                    import gtk
-                    pixbuf = gtk.gdk.pixbuf_new_from_file(background)
-                    root = gtk.gdk.get_default_root_window()
-                    (root_width, root_height) = root.get_size()
-                    scaled = pixbuf.scale_simple(root_width, root_height,
-                                                 gtk.gdk.INTERP_BILINEAR)
-                    (pixmap, mask) = scaled.render_pixmap_and_mask(0)
-                    root.set_back_pixmap(pixmap, False)
-                    root.clear()
-                    gtk.gdk.flush()
+                if (accessibility == True or 'maybe-ubiquity' in fp.readline()):
+                    if os.path.exists('/usr/lib/at-spi2-core/at-spi-bus-launcher'):
+                        extras.append(subprocess.Popen(
+                            ['/usr/lib/at-spi2-core/at-spi-bus-launcher',
+                            '--launch-immediately'],
+                            stdin=null, stdout=logfile, stderr=logfile,
+                            preexec_fn=self.drop_privileges))
+                        os.environ['GTK_MODULES'] = 'gail:atk-bridge'
+
+            # Set a desktop wallpaper.
+            with open('/proc/cmdline', 'r') as fp:
+                for background in ('/usr/share/backgrounds/edubuntu_default.png',
+                    '/usr/share/backgrounds/warty-final-ubuntu.png'):
+                    exists = os.access(background, os.R_OK)
+                    if (exists and not 'access=v1' in fp.readline()):
+                        extras.append(subprocess.Popen(['/usr/lib/ubiquity/wallpaper', background],
+                                stdin=null, stdout=logfile, stderr=logfile,
+                                preexec_fn=self.drop_privileges))
+                        break
 
         if self.frontend == 'gtk_ui':
             if gconfd_running and osextras.find_on_path('metacity'):
@@ -365,7 +363,6 @@ EndSection
                     ['/usr/lib/gnome-settings-daemon/gnome-settings-daemon'],
                     stdin=null, stdout=logfile, stderr=logfile,
                     preexec_fn=self.drop_privileges)
-                proc.wait()
                 extras.append(proc)
 
             if os.path.exists('/usr/bin/xfsettingsd'):
@@ -398,7 +395,7 @@ EndSection
                     stdin=null, stdout=logfile, stderr=logfile,
                     preexec_fn=self.drop_privileges))
             # Accessibility tools
-            if accessibility == 'true':
+            if accessibility == True:
                 with open('/proc/cmdline', 'r') as fp:
                     if 'access=m2' in fp.readline():
                         if osextras.find_on_path('onboard'):
@@ -461,14 +458,14 @@ EndSection
                     subprocess.call(['sh', '-c', error_cmd])
             except debconf.DebconfError:
                 pass
-            
+
             reboot = False
             try:
                 if '--automatic' in program:
                     reboot = db.get('ubiquity/reboot_on_failure') == 'true'
             except debconf.DebconfError:
                 pass
-            
+
             if reboot:
                 question = 'ubiquity/install_failed_reboot'
             else:
@@ -534,6 +531,14 @@ EndSection
                     raise
             processes -= done
         signal.alarm(0)
+
+        # Clear the console so we don't see boot-time messages on switch
+        try:
+            vthandle = open('/dev/tty' + self.vt[2:], 'r+')
+            subprocess.call(['clear'], stdin=vthandle, stdout=vthandle)
+        except IOError:
+            pass
+
         kill_if_exists(server.pid, signal.SIGTERM)
         server.wait()
 

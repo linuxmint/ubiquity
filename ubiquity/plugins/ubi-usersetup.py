@@ -7,7 +7,7 @@
 # Authors:
 #
 # - Colin Watson <cjwatson@ubuntu.com>
-# - Evan Dandrea <evand@ubuntu.com>
+# - Evan Dandrea <ev@ubuntu.com>
 # - Roman Shtylman <shtylman@gmail.com>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -42,7 +42,7 @@ def check_hostname(hostname):
     e = []
     # Ahem.  We can cheat here by inserting newlines where needed.  Hopefully
     # by the time we translate this, GTK+ will have decent layout management.
-    for result in validation.check_hostname(unicode(hostname)):
+    for result in validation.check_hostname(hostname.decode('utf-8')):
         if result == validation.HOSTNAME_LENGTH:
             e.append("Must be between 1 and 63 characters long.")
         elif result == validation.HOSTNAME_BADCHAR:
@@ -58,20 +58,19 @@ def check_username(username):
     """Returns a newline separated string of reasons why the username is
     invalid."""
     # TODO: i18n
-    e = []
     # Ahem.  We can cheat here by inserting newlines where needed.  Hopefully
     # by the time we translate this, GTK+ will have decent layout management.
     if username:
         if not re.match('[a-z]', username[0]):
-            e.append("Must start with a lower-case letter.")
+            return "Must start with a lower-case letter."
         # Technically both these conditions might hold.  However, the common
         # case seems to be that somebody starts typing their name beginning
         # with an upper-case letter, and it's probably sufficient to just
         # issue the first error in that case.
         elif not re.match('^[-a-z0-9_]+$', username):
-            e.append("May only contain lower-case letters,\n"
-                     "digits, hyphens, and underscores.")
-    return "\n".join(e)
+            return ("May only contain lower-case letters,\n"
+                    "digits, hyphens, and underscores.")
+    return ''
 
 class PageBase(plugin.PluginUI):
     def __init__(self):
@@ -169,10 +168,10 @@ class PageGtk(PageBase):
         self.hostname_edited = False
         self.hostname_timeout_id = 0
 
-        import gtk
-        builder = gtk.Builder()
+        from gi.repository import Gtk
+        builder = Gtk.Builder()
         self.controller.add_builder(builder)
-        builder.add_from_file('/usr/share/ubiquity/gtk/stepUserInfo.ui')
+        builder.add_from_file(os.path.join(os.environ['UBIQUITY_GLADE'], 'stepUserInfo.ui'))
         builder.connect_signals(self)
         self.page = builder.get_object('stepUserInfo')
         self.username = builder.get_object('username')
@@ -199,7 +198,7 @@ class PageGtk(PageBase):
         # okay check icon and the hostname error messages.
         paddingbox = builder.get_object('paddingbox')
         def func(box):
-            box.parent.child_set_property(box, 'expand', False)
+            box.get_parent().child_set_property(box, 'expand', False)
             box.set_size_request(box.get_allocation().width / 2, -1)
         paddingbox.connect('realize', func)
 
@@ -236,10 +235,10 @@ class PageGtk(PageBase):
         pasw = self.controller.get_string('password_inactive_label', lang)
         vpas = self.controller.get_string('password_again_inactive_label',
                                           lang)
-        self.username.set_label(user)
-        self.fullname.set_label(full)
-        self.password.set_label(pasw)
-        self.verified_password.set_label(vpas)
+        self.username.set_placeholder_text(user)
+        self.fullname.set_placeholder_text(full)
+        self.password.set_placeholder_text(pasw)
+        self.verified_password.set_placeholder_text(vpas)
 
     # Functions called by the Page.
 
@@ -318,7 +317,7 @@ class PageGtk(PageBase):
         if (widget is not None and widget.get_name() == 'fullname' and
             not self.username_edited):
             self.username.handler_block(self.username_changed_id)
-            new_username = widget.get_text().split(' ')[0]
+            new_username = widget.get_text().split(' ')[0].decode('utf-8')
             new_username = new_username.encode('ascii', 'ascii_transliterate')
             new_username = new_username.lower()
             self.username.set_text(new_username)
@@ -411,17 +410,17 @@ class PageGtk(PageBase):
         self.hostname_edited = (widget.get_text() != '')
 
         # Let's not call this every time the user presses a key.
-        import gobject
+        from gi.repository import GObject
         if self.hostname_timeout_id:
-            gobject.source_remove(self.hostname_timeout_id)
-        self.hostname_timeout_id = gobject.timeout_add(300,
+            GObject.source_remove(self.hostname_timeout_id)
+        self.hostname_timeout_id = GObject.timeout_add(300,
                                         self.hostname_timeout, widget)
 
-    def lookup_result(self, resolver, result):
-        import glib
+    def lookup_result(self, resolver, result, unused):
+        from gi.repository import GObject
         try:
             resolver.lookup_by_name_finish(result)
-        except glib.GError:
+        except GObject.GError:
             pass
         else:
             # FIXME: i18n
@@ -429,12 +428,12 @@ class PageGtk(PageBase):
             self.hostname_ok.hide()
 
     def hostname_timeout(self, widget):
-        import gio
+        from gi.repository import Gio
         if self.hostname_ok.get_property('visible'):
-            res = gio.resolver_get_default()
+            res = Gio.Resolver.get_default()
             hostname = widget.get_text()
             for host in (hostname, '%s.local' % hostname):
-                res.lookup_by_name_async(self.lookup_result, host)
+                res.lookup_by_name_async(host, None, self.lookup_result, None)
 
     def on_authentication_toggled(self, w):
         if w == self.login_auto and w.get_active():
@@ -442,7 +441,7 @@ class PageGtk(PageBase):
         elif w == self.login_encrypt and w.get_active():
             # TODO why is this so slow to activate the login_pass radio button
             # when checking encrypted home?
-            self.login_pass.activate()
+            self.login_pass.set_active(True)
 
 class PageKde(PageBase):
     plugin_breadcrumb = 'ubiquity/text/breadcrumb_user'

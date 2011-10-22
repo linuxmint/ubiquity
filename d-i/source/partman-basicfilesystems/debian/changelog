@@ -1,3 +1,79 @@
+partman-basicfilesystems (71ubuntu1) oneiric; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - If partman/automount is preseeded to true, automatically mount
+      partitions with usefully-mountable filesystems on subdirectories of
+      /media.
+    - Add minimal support for NTFS partitions using ntfs-3g.
+    - Mount FAT filesystems at boot (fstab pass 1).
+    - Mount FAT (other than EFI System Partitions) and NTFS with
+      umask=007,gid=46 (static group plugdev).
+    - When formatting over the top of an existing swap partition, preserve
+      its UUID to avoid leaving systems that use UUIDs in /etc/fstab without
+      swap.
+    - mount.d/basic: Close mount's fd 3 so that it doesn't inherit a debconf
+      file descriptor, to prevent log-output hanging when ntfs-3g is in use.
+    - Special case loopmounted filesystems as it's safer to format the
+      underlying file, not the device.
+    - Allow armel/omap to use FAT for /boot, since the problems with it can
+      be worked around while it's difficult to use anything else given uboot
+      limitations.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 23 Jul 2011 17:11:47 +0100
+
+partman-basicfilesystems (71) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Merge from Ubuntu:
+    - Stop checking ext2 filesystems using libparted, since it can't deal
+      with those created with recent versions of mke2fs (LP: #517349).  We
+      were already refraining from checking ext3 and ext4 filesystems using
+      libparted for the same reason.
+
+  [ Samuel Thibault ]
+  * Fix mounting filesystems at reboot on hurd-i386.
+
+  [ Wouter Verhelst ]
+  * Allow device types to specify mount options, too. This is so that
+    NBD can specify _netdev, which it needs to do in order for things to
+    work correctly.
+
+ -- Wouter Verhelst <wouter@debian.org>  Thu, 21 Jul 2011 16:42:18 +0200
+
+partman-basicfilesystems (70ubuntu1) oneiric; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - If partman/automount is preseeded to true, automatically mount
+      partitions with usefully-mountable filesystems on subdirectories of
+      /media.
+    - Add minimal support for NTFS partitions using ntfs-3g.
+    - Mount FAT filesystems at boot (fstab pass 1).
+    - Mount FAT (other than EFI System Partitions) and NTFS with
+      umask=007,gid=46 (static group plugdev).
+    - When formatting over the top of an existing swap partition, preserve
+      its UUID to avoid leaving systems that use UUIDs in /etc/fstab without
+      swap.
+    - mount.d/basic: Close mount's fd 3 so that it doesn't inherit a debconf
+      file descriptor, to prevent log-output hanging when ntfs-3g is in use.
+    - Special case loopmounted filesystems as it's safer to format the
+      underlying file, not the device.
+    - Stop checking ext2 filesystems using libparted, since it can't deal
+      with those created with recent versions of mke2fs.  We were already
+      refraining from checking ext3 and ext4 filesystems using libparted for
+      the same reason.
+    - Allow armel/omap to use FAT for /boot, since the problems with it can
+      be worked around while it's difficult to use anything else given uboot
+      limitations.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 03 May 2011 16:34:51 +0100
+
+partman-basicfilesystems (70) unstable; urgency=low
+
+  [ Updated translations ]
+  * Uyghur (ug.po) by Shankhar
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 23 Apr 2011 21:24:27 +0200
+
 partman-basicfilesystems (69ubuntu1) natty; urgency=low
 
   * Resynchronise with Debian.  Remaining changes:
@@ -38,7 +114,7 @@ partman-basicfilesystems (69) unstable; urgency=low
   * Sinhala (si.po) by Danishka Navin
   * Slovenian (sl.po) by Vanja Cvelbar
 
- -- Otavio Salvador <otavio@debian.org>  Fri, 24 Dec 2010 20:20:05 -0200
+ -- Christian Perrier <bubulle@debian.org>  Thu, 21 Apr 2011 22:31:43 +0200
 
 partman-basicfilesystems (68ubuntu1) natty; urgency=low
 

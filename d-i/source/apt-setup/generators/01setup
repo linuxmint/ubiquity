@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+. /usr/share/debconf/confmodule
+
 file="$1"
 
 # add old file as comments
@@ -11,4 +13,10 @@ if [ -e $ROOT/etc/apt/apt.conf ]; then
 	cp -a $ROOT/etc/apt/apt.conf $ROOT/etc/apt/apt.conf.new
 else
 	>$ROOT/etc/apt/apt.conf.new
+fi
+
+db_get apt-setup/multiarch
+if [ "$RET" ]; then
+	mkdir -p $ROOT/etc/dpkg/dpkg.cfg.d
+	echo "foreign-architecture $RET" >$ROOT/etc/dpkg/dpkg.cfg.d/multiarch
 fi

@@ -91,6 +91,20 @@ def set(key, keytype, value):
                      '--type', keytype, value],
                     preexec_fn=misc.drop_all_privileges)
 
+def set_list(key, listtype, value):
+    if not _gconftool_exists():
+        return
+
+    if value:
+        value_string = ','.join(value)
+    else:
+        value_string = ''
+    gconf_dir = _gconf_dir()
+    subprocess.call(['gconftool-2', '--config-source', gconf_dir, '--set', key,
+                     '--type', 'list', '--list-type', listtype,
+                     '[%s]' % value_string],
+                     preexec_fn=misc.drop_all_privileges)
+
 def unset(key):
     if not _gconftool_exists():
         return

@@ -6,6 +6,7 @@ set -e
 
 NO_RECOMMENDS=
 WITH_RECOMMENDS=
+ALLOW_REMOVE=
 OPTS=
 while :; do
 	case $1 in
@@ -15,6 +16,10 @@ while :; do
 		;;
 	    --with-recommends)
 		WITH_RECOMMENDS=1
+		OPTS="$OPTS $1"
+		;;
+	    --allow-remove)
+		ALLOW_REMOVE=1
 		OPTS="$OPTS $1"
 		;;
 	    -*)
@@ -53,7 +58,10 @@ if [ -e /var/lib/install-cd.id ] && \
 	log-output -t apt-install umount /cdrom || true
 fi
 
-apt_opts="-q -y --no-remove"
+apt_opts="-q -y"
+if [ -z "$ALLOW_REMOVE" ]; then
+	apt_opts="$apt_opts --no-remove"
+fi
 if db_get base-installer/install-recommends && [ "$RET" = false ]; then
 	if [ "$WITH_RECOMMENDS" ]; then
 		apt_opts="$apt_opts -o APT::Install-Recommends=true"

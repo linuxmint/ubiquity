@@ -120,13 +120,17 @@ cleanup() {
 # generic flash-kernel routines for specific subarchs
 
 omap_flash_kernel_and_initrd() {
-	printf "Creating backups of uImage and uInitrd... " >&2
+	printf "Creating backups of boot files ... " >&2
 	if [ -e $TMPMOUNT/uImage ]; then
 		cp $TMPMOUNT/uImage $TMPMOUNT/uImage.bak
 	fi
 	if [ -e $TMPMOUNT/uInitrd ]; then
 		cp $TMPMOUNT/uInitrd $TMPMOUNT/uInitrd.bak
 	fi
+	if [ -e $TMPMOUNT/boot.scr ]; then
+		cp $TMPMOUNT/boot.scr $TMPMOUNT/boot.scr.bak
+	fi
+
 	echo "done." >&2
 	printf "Generating kernel u-boot image... " >&2
 	mkimage -A arm -O linux -T kernel -C none -a 0x80008000 \
@@ -138,7 +142,6 @@ omap_flash_kernel_and_initrd() {
 		echo "done." >&2
 	if [ -e /boot/boot.script ];then
 		printf "Generating u-boot configuration from /boot/boot.script... " >&2
-		cp $TMPMOUNT/boot.scr $TMPMOUNT/boot.scr.bak
 		mkimage -A arm -T script -C none -n "Ubuntu boot script" -d /boot/boot.script \
 			$TMPMOUNT/boot.scr >&2 1>/dev/null
 		echo "done." >&2
@@ -148,15 +151,15 @@ omap_flash_kernel_and_initrd() {
 omap_flash_bootloader() {
 	case "$machine" in
 		"IGEP v2 board")
-			XLOADERDIR=igep0020
+			XLOADERDIR=x-loader/igep0020
 			UBOOTDIR=igep0020
 		;;
 		"OMAP3 Beagle Board")
-			XLOADERDIR=omap3530beagle
+			XLOADERDIR=x-loader/omap3530beagle
 			UBOOTDIR=omap3_beagle
 		;;
 		"OMAP4430 Panda Board" | "OMAP4 Panda board")
-			XLOADERDIR=omap4430panda
+			XLOADERDIR=u-boot/omap4_panda
 			UBOOTDIR=omap4_panda
 		;;
 		*)
@@ -164,9 +167,16 @@ omap_flash_bootloader() {
 		;;
 	esac
 
-	XLOADER=/usr/lib/x-loader/$XLOADERDIR/MLO
+	XLOADER=/usr/lib/$XLOADERDIR/MLO
 	UBOOT=/usr/lib/u-boot/$UBOOTDIR/u-boot.bin
 
+	# Ensure that the input files EXIST
+	if [ ! -e "$XLOADER" ]; then
+		error "$XLOADER doesn't exist. Make sure proper x-loader package is installed"
+	fi
+	if [ ! -e "$UBOOT" ]; then
+		error "$UBOOT doesn't exist. Make sure proper u-boot package is installed"
+	fi
 	if [ -z "$BOOTLOADER_FILES" ];then
 		BOOTLOADER_FILES="$XLOADER $UBOOT"
 	fi
@@ -196,11 +206,11 @@ omap_flash_kernel() {
 
 		if [ -n "$UPDATE_BOOTLOADER" ];then
 			omap_flash_bootloader
-		else
-			omap_flash_kernel_and_initrd
 		fi
 
-		umount $TMPMOUNT
+		omap_flash_kernel_and_initrd
+
+		umount -l $TMPMOUNT
 		rm -rf $TMPMOUNT
 	else
 		initrd_nand_size="16777216"
@@ -411,7 +421,7 @@ imx_flash_kernel() {
 		echo "done." >&2
 	fi
 
-	umount $TMPMOUNT
+	umount -l $TMPMOUNT
 	rmdir $TMPMOUNT
 }
 
@@ -463,6 +473,7 @@ if [ "x$1" = "x--supported" ]; then
 		"QNAP TS-119/TS-219")			exit 0 ;;
 		"QNAP TS-41x")				exit 0 ;;
 		"Thecus N2100")				exit 0 ;;
+		"Toshiba AC100 / Dynabook AZ")			exit 0 ;;
 		"Lanner EM7210")			exit 0 ;;
 		*)
 			# we're supported if we have a generic fallback
@@ -887,6 +898,66 @@ case "$machine" in
 			dd if=/dev/zero bs=$pad count=1 2>/dev/null
 		) > "$imtd" || error "failed."
 		echo "done." >&2
+	;;
+	"Toshiba AC100 / Dynabook AZ")
+		AC_IMG=""
+		AC_SIZE=""
+		AC_MMC="/dev/mmcblk0"
+
+		TMPIMAGE=$(tempfile)
+		CONFIG=""
+
+		find_ac100_bootpart()
+		{
+			for dev in $(ls ${AC_MMC}?? 2>/dev/null); do
+				if abootimg -i $dev >/dev/null 2>&1; then
+					size=$(abootimg -i $dev |grep "image size"|cut -d ' ' -f5)
+					 if [ $size -gt 5242880 ]; then
+						 AC_IMG=$dev
+						 AC_SIZE=$size
+						 return 0
+					 fi
+				fi
+			done
+			return 1
+		}
+
+		build_ac100_bootimage()
+		{
+			if [ -e /boot/bootimg.cfg ]; then
+				abootimg --create $TMPIMAGE -f /boot/bootimg.cfg -k $kfile \
+					-r $ifile >/dev/null 2>&1 || return 1
+				imagesize=$(wc -c "$TMPIMAGE" | awk '{print $1}')
+				check_size "Bootimage" $imagesize $AC_SIZE
+			else
+				printf "Could not find /boot/bootimg.cfg."
+				return 1
+			fi
+		}
+
+		write_ac100_bootimage()
+		{
+			printf "Writing boot image to $AC_IMG ... "
+			dd if=$TMPIMAGE of=$AC_IMG >/dev/null 2>&1 || return 1
+			echo "done." >&2
+		}
+
+		if ! find_ac100_bootpart; then
+			rm -rf $TMPIMAGE
+			error "Could not find boot image partition on $AC_MMC."
+		fi
+
+		if ! build_ac100_bootimage; then
+			rm -rf $TMPIMAGE
+			error "Could not create temporary boot image."
+		fi
+
+		if ! write_ac100_bootimage; then
+			rm -rf $TMPIMAGE
+			error "Can not flash to $AC_IMG"
+		fi
+
+		rm -rf $TMPIMAGE
 	;;
 	"Lanner EM7210")
 		# Really: Intel SS4000-e and compatibles

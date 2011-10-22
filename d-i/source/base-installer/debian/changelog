@@ -1,3 +1,105 @@
+base-installer (1.119ubuntu4) oneiric; urgency=low
+
+  * Honour apt-setup/security_path when constructing initial security
+    entries in sources.list (LP: #820306).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 16 Aug 2011 10:53:17 +0100
+
+base-installer (1.119ubuntu3) oneiric; urgency=low
+
+  * Adjust for Linux 3.0.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 16 Jun 2011 20:54:48 +0100
+
+base-installer (1.119ubuntu2) oneiric; urgency=low
+
+  * Added omap4 subarchitecture
+
+ -- Michael Casadevall <mcasadevall@ubuntu.com>  Thu, 16 Jun 2011 19:19:27 +0000
+
+base-installer (1.119ubuntu1) oneiric; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Use and depend on the Ubuntu keyring.
+    - Enable the restricted component by default, unless
+      apt-setup/restricted is preseeded to false.
+    - Set up the default sources.list to look in -updates and -security (the
+      latter from apt-setup/security_host) as well as the unadorned suite;
+      also -proposed if apt-setup/proposed is true.
+    - Use Ubuntu kernel image names.
+    - Allow preseeding base-installer/kernel/override-image to force a given
+      kernel to be used.
+    - Install busybox-initramfs rather than busybox.
+    - Revert Joey's patch to call base-installer.d hooks after running
+      debootstrap, which broke console-setup's expectation of being able to
+      insert its configuration file into /target before console-setup is
+      installed by debootstrap.
+    - Add armel/imx51, armel/dove, and armel/omap subarchitectures.
+    - Install kernel headers to match the kernel. This may be overridden by
+      setting base-installer/kernel/headers to false.
+    - Add base-installer/kernel/backports-modules template, which may be
+      preseeded to install selected linux-backports-modules-* packages.
+    - Run dpkg with --force-unsafe-io during installation.
+  * Explicitly drop code supporting -386 kernels, which were dropped from
+    Ubuntu some time ago.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 26 May 2011 15:54:12 +0100
+
+base-installer (1.119) unstable; urgency=low
+
+  [ Ben Hutchings ]
+  * Correct i386 kernel package selection tests for Transmeta TM5800
+  * Fix i386 kernel package compatibility check: a suffix of '-pae' means
+    the package is incompatible, just as '-bigmem' does
+  * Fix i386 feature tests for '686' kernel flavour
+  * Add VIA C3 'Nehemiah' as 686-class processor without PAE
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 25 Apr 2011 07:22:47 +0200
+
+base-installer (1.118) unstable; urgency=low
+
+  * Team upload
+
+  [ Ben Hutchings ]
+  * Update i386 kernel selection for new flavours in wheezy.
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 24 Apr 2011 17:18:41 +0200
+
+base-installer (1.117) unstable; urgency=low
+
+  * Team upload
+
+  [ Samuel Thibault ]
+  * Add hurd-i386 kernel support.
+
+  [ Joey Hess ]
+  * If archive.gpg is missing for some reason, still pass the keyring
+    parameter to debootstrap. If you absolutely must run the installer
+    w/o a keyring and bootstrap from the network, you can preseed
+    debian-installer/allow_unauthenticated.
+  * Pass --no-check-gpg to debootstrap when not using http/ftp,
+    or when allow_unauthenticated is set, since debootstrap has
+    changed to validating the keyring when present by default.
+  * Needs debootstrap 1.0.30
+
+  [ Colin Watson ]
+  * Support AMD CPU family 18 (thanks, Hsin-Yi, Chen; LP: #760490).
+
+  [ Hector Oron ]
+  * Add armhf architecture support 
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Esperanto (eo.po) by Felipe Castro
+  * Estonian (et.po) by Mattias Põldaru
+  * Korean (ko.po) by Changwoo Ryu
+  * Romanian (ro.po) by Eddy Petrișor
+  * Slovak (sk.po) by Ivan Masár
+  * Swedish (sv.po) by Daniel Nylander
+  * Uyghur (ug.po) by Sahran
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 24 Apr 2011 08:43:29 +0200
+
 base-installer (1.116ubuntu2) natty; urgency=low
 
   [ Hsin-Yi, Chen ]

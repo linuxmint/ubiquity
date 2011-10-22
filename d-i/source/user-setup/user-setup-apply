@@ -99,9 +99,9 @@ if ! root_password; then
 	db_set passwd/root-password-crypted ''
 	db_set passwd/root-password ''
 	db_set passwd/root-password-again ''
-	#if [ "$ROOT_PW" ]; then
-	#	setpassword root "$ROOT_PW" "$PRECRYPTED"
-	#fi
+	if [ "$ROOT_PW" ]; then
+		setpassword root "$ROOT_PW" "$PRECRYPTED"
+	fi
 	ROOT_PW=
 else
 	# Just in case, clear any preseeded root password from the database
@@ -203,6 +203,7 @@ if [ "$RET" = true ] && ! is_system_user; then
 			$log $chroot $ROOT mount -t sysfs sysfs /sys
 			umountsys=:
 		fi
+		mkdir -p $ROOT/dev/shm
 		$log $chroot $ROOT mount -t tmpfs tmpfs /dev/shm
 	fi
 	if [ -x $ROOT/usr/sbin/adduser ]; then
@@ -216,7 +217,6 @@ if [ "$RET" = true ] && ! is_system_user; then
 	db_set passwd/user-password ''
 	db_set passwd/user-password-again ''
 	setpassword "$USER" "$USER_PW" "$USER_PW_CRYPTED" "$ENCRYPT_HOME"
-	setpassword root "$USER_PW" "$USER_PW_CRYPTED"
 	if [ -n "$ENCRYPT_HOME_OPT" ]; then
 		if $umountsys; then
 			$log $chroot $ROOT umount /sys
@@ -303,6 +303,24 @@ TimedLoginDelay=10"
 			        	-e "s/^# session/session/" \
 			        	-e "s/startlxde/startlubuntu/" \
 			        	/etc/xdg/lubuntu/lxdm/lxdm.conf
+			fi
+
+			if $chroot $ROOT [ -d /etc/lightdm ]; then
+				# Configure LightDM autologin
+				LightDMCustomFile=$ROOT/etc/lightdm/lightdm.conf
+				AutologinParameters="autologin-guest=false\n\
+autologin-user=$USER\n\
+autologin-user-timeout=0\n\
+autologin-session=lightdm-autologin"
+				if ! grep -qs '^autologin-user' $LightDMCustomFile; then
+					if ! grep -qs '^\[SeatDefaults\]' $LightDMCustomFile; then
+						echo '[SeatDefaults]' >> $LightDMCustomFile
+					fi
+					sed -i "s/\[SeatDefaults\]/\[SeatDefaults\]\n$AutologinParameters/" $LightDMCustomFile
+				#oem config scenario
+				else
+					sed -i "s/^\(\(str  *\)\?autologin-user\)=.*$/\1=$USER/g;" $ROOT/etc/lightdm/lightdm.conf
+				fi
 			fi
 		fi
 	fi

@@ -501,7 +501,8 @@ static int choose_country(void) {
 	if (! strlen(debconf->value)) {
 		/* Not set yet. Seed with a default value. */
 		if ((debconf_get(debconf, "debian-installer/country") == 0) &&
-		    (debconf->value != NULL) ) {
+		    (debconf->value != NULL) &&
+		    has_mirror(debconf->value)) {
 			country = strdup (debconf->value);
 			debconf_set(debconf, DEBCONF_BASE "country", country);
 		}
@@ -683,7 +684,7 @@ static int set_proxy(void) {
 
 	debconf_get(debconf, px);
 	if (debconf->value != NULL && strlen(debconf->value)) {
-		if (strchr(debconf->value, ':')) {
+		if (strchr(debconf->value, '://')) {
 			setenv(proxy_var, debconf->value, 1);
 		} else {
 			char *proxy_value;

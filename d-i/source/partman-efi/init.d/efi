@@ -35,7 +35,8 @@ for dev in /var/lib/partman/devices/*; do
 	while { read_line num id size type fs path name; [ "$id" ]; }; do
 		if [ "$fs" = fat16 ]; then
 			partitions="$partitions $id"
-		elif [ "$fs" = fat32 ] && [ "$name" = "EFI System Partition" ]; then
+		elif [ "$fs" = fat32 ] && echo "$name" |
+                     grep -i "^EFI System Partition" >/dev/null; then
 			partitions="$partitions $id"
 		fi
 	done

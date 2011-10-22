@@ -18,7 +18,7 @@ default_disk_label () {
 		else
 			echo msdos
 		fi;;
-	    arm|armeb|armel)
+	    arm|armeb|armel|armhf)
 		echo msdos;;
 	    amd64|kfreebsd-amd64)
 		case "$sub" in

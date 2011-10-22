@@ -9,6 +9,10 @@ ifneq ($(ARCH), s390)
 RDATE_DEPENDS = configured-network, rdate-udeb
 endif
 
+override_dh_auto_test:
+	sh -n debian/clock-setup.postinst
+	sh -n finish-install.d/10clock-setup
+
 override_dh_install:
 	dh_install
 # On s390 we're not allowed to change the system clock

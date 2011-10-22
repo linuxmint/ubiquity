@@ -90,8 +90,8 @@ class MiscTests(unittest.TestCase):
     def test_get_release_fail(self, mock_open):
         mock_open.side_effect = Exception('Pow!')
         release = misc.get_release()
-        self.assertEqual(release.name, 'Linux Mint')
-        self.assertEqual(release.version, '11')
+        self.assertEqual(release.name, 'Ubuntu')
+        self.assertEqual(release.version, '')
 
     #@mock.patch('__builtin__.os.path.exists')
     #def windows_startup_folder(self, mock_exists):
@@ -131,6 +131,19 @@ class MiscTests(unittest.TestCase):
     def test_debconf_escape(self):
         self.assertEqual(misc.debconf_escape('\\A test string\n'),
                          '\\\\A\\ test\\ string\\n')
+
+    @mock.patch('ubiquity.gconftool.set_list')
+    @unittest.skipIf(True, 'functionality currently broken.')
+    def test_set_indicator_keymaps(self, mock_set_list):
+        misc.set_indicator_keymaps('en_US.UTF-8')
+        self.assertEqual(mock_set_list.call_count, 1)
+        self.assertEqual(mock_set_list.call_args[0][0],
+            '/desktop/gnome/peripherals/keyboard/kbd/layouts')
+        self.assertEqual(mock_set_list.call_args[0][1], 'string')
+        self.assertIn('us', mock_set_list.call_args[0][2])
+        self.assertIn('gb', mock_set_list.call_args[0][2])
+        self.assertIn('gb\tintl', mock_set_list.call_args[0][2])
+        self.assertIn('gb\tmac', mock_set_list.call_args[0][2])
 
 #class PartedServerTests(unittest.TestCase):
 #    def setUp(self):
@@ -205,5 +218,4 @@ class PrivilegeTests(unittest.TestCase):
             self.assertEqual(os.environ['HOME'], 'fakeusr')
 
 if __name__ == '__main__':
-    pass
-    #test_support.run_unittest(MiscTests, PrivilegeTests)
+    test_support.run_unittest(MiscTests, PrivilegeTests)

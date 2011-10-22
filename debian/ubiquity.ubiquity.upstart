@@ -11,12 +11,14 @@ start on (starting gdm
 	  or starting kdm
 	  or starting xdm
 	  or starting lxdm
+	  or starting lightdm
 	  or starting uxlaunch)
 stop on (runlevel [06]
 	 or stopping gdm
 	 or stopping kdm
 	 or stopping xdm
 	 or stopping lxdm
+	 or stopping lightdm
 	 or stopping uxlaunch)
 
 task
@@ -30,6 +32,7 @@ script
     ubiquity=
     automatic=
     debug=
+    ldtp=
     noninteractive=
     choose=
     frontend=
@@ -46,6 +49,10 @@ script
 	    maybe-ubiquity)
 		ubiquity=1
 		choose="--greeter"
+		;;
+	    ldtp-ubiquity)
+		ubiquity=1
+		ldtp="--ldtp"
 		;;
 	    only-ubiquity)
 		ubiquity=1
@@ -79,7 +86,7 @@ script
 	plymouth quit || :
 	exec ubiquity noninteractive $debug
     else
-	if ! ubiquity-dm vt7 :0 ubuntu /usr/bin/ubiquity $debug $automatic $choose --only $frontend; then
+	if ! ubiquity-dm vt7 :0 ubuntu /usr/bin/ubiquity $debug $automatic $choose $ldtp --only $frontend; then
 	    # has X crashed, or has ubiquity?
             if [ "$automatic" ] && ! [ -f /var/log/installer/version ]; then
                 # in case we crashed before the X startup sequence

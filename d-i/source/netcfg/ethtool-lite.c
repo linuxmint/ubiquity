@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 #include <net/if.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
@@ -61,6 +62,7 @@ int ethtool_lite (const char * iface)
 	if (argc < 2)
 	{
 		fprintf(stderr, "ethtool-lite: Error: must pass an interface name\n");
+		close(fd);
 		return 1;
 	}
 	iface = argv[1];
@@ -79,6 +81,7 @@ int ethtool_lite (const char * iface)
 	{
 		di_info("ethtool-lite: %s is %sconnected.\n", iface,
 		        (edata.data) ? "" : "dis");
+		close(fd);
 		return (edata.data) ? CONNECTED : DISCONNECTED;
 	}
 	else
@@ -95,6 +98,7 @@ int ethtool_lite (const char * iface)
 		else
 		{
 			di_warning("ethtool-lite: couldn't determine MII ioctl to use for %s\n", iface);
+			close(fd);
 			return UNKNOWN;
 		}
 
@@ -107,6 +111,7 @@ int ethtool_lite (const char * iface)
 			di_info ("ethtool-lite: %s is %sconnected. (MII)\n", iface,
 				(ret) ? "dis" : "");
 
+			close(fd);
 			return ret ? DISCONNECTED : CONNECTED;
 		}
 	}
@@ -121,20 +126,24 @@ int ethtool_lite (const char * iface)
 
 	if (ioctl(fd, SIOCGIFMEDIA, (caddr_t)&ifmr) < 0) {
 		di_warning("ethtool-lite: SIOCGIFMEDIA ioctl on %s failed\n", iface);
+		close(fd);
 		return UNKNOWN;
 	}
 
 	if (ifmr.ifm_status & IFM_AVALID) {
 		if (ifmr.ifm_status & IFM_ACTIVE) {
 			di_info("ethtool-lite: %s is connected.\n", iface);
+			close(fd);
 			return CONNECTED;
 		} else {
 			di_info("ethtool-lite: %s is disconnected.\n", iface);
+			close(fd);
 			return DISCONNECTED;
 		}
 	}
 
 	di_warning("ethtool-lite: couldn't determine status for %s\n", iface);
 #endif
+	close(fd);
 	return UNKNOWN;
 }

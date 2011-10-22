@@ -40,44 +40,47 @@ class PageGtk(plugin.PluginUI):
     plugin_title = 'ubiquity/text/timezone_heading_label'
     def __init__(self, controller, *args, **kwargs):
         self.controller = controller
-        try:
-            import gtk
-            builder = gtk.Builder()
-            self.controller.add_builder(builder)
-            builder.add_from_file(os.path.join(os.environ['UBIQUITY_GLADE'], 'stepLocation.ui'))
-            builder.connect_signals(self)
-            self.page = builder.get_object('stepLocation')
-            self.city_entry = builder.get_object('timezone_city_entry')
-            self.map_window = builder.get_object('timezone_map_window')
-            self.setup_page()
-            self.timezone = None
-            self.zones = []
-        except Exception, e:
-            self.debug('Could not create timezone page: %s', e)
-            self.page = None
+        from gi.repository import Gtk
+        builder = Gtk.Builder()
+        self.controller.add_builder(builder)
+        builder.add_from_file(os.path.join(os.environ['UBIQUITY_GLADE'], 'stepLocation.ui'))
+        builder.connect_signals(self)
+        self.page = builder.get_object('stepLocation')
+        self.city_entry = builder.get_object('timezone_city_entry')
+        self.map_window = builder.get_object('timezone_map_window')
+        self.setup_page()
+        self.timezone = None
+        self.zones = []
         self.plugin_widgets = self.page
+        self.geoname_cache = {}
+        self.geoname_session = None
+        self.geoname_timeout_id = None
+        self.online = False
+
+    def plugin_set_online_state(self, state):
+        self.online = state
 
     def plugin_translate(self, lang):
-        c = self.controller
-        if c.get_string('ubiquity/imported/time-format', lang) == '12-hour':
-            fmt = c.get_string('ubiquity/imported/12-hour', lang)
-        else:
-            fmt = c.get_string('ubiquity/imported/24-hour', lang)
-        self.tzmap.set_time_format(fmt)
+        #c = self.controller
+        #if c.get_string('ubiquity/imported/time-format', lang) == '12-hour':
+        #    fmt = c.get_string('ubiquity/imported/12-hour', lang)
+        #else:
+        #    fmt = c.get_string('ubiquity/imported/24-hour', lang)
+        #self.tzmap.set_time_format(fmt)
         inactive = self.controller.get_string(
             'timezone_city_entry_inactive_label', lang)
-        self.city_entry.set_label(inactive)
+        self.city_entry.set_placeholder_text(inactive)
 
     def set_timezone(self, timezone):
         self.zones = self.controller.dbfilter.build_timezone_list()
-        self.select_city(None, timezone)
+        self.tzmap.set_timezone(timezone)
 
     def get_timezone(self):
         return self.timezone
 
     def select_city(self, unused_widget, city):
+        city = city.get_property('zone')
         loc = self.tzdb.get_loc(city)
-        self.tzmap.select_city(city)
         if not loc:
             self.controller.allow_go_forward(False)
         else:
@@ -86,77 +89,119 @@ class PageGtk(plugin.PluginUI):
             self.timezone = city
             self.controller.allow_go_forward(True)
 
+
+    def changed(self, entry):
+        import urllib
+        from gi.repository import Gtk, GObject, Soup
+
+        text = self.city_entry.get_text().decode('utf-8')
+        if not text:
+            return
+        # TODO if the completion widget has a selection, return?  How do we
+        # determine this?
+        if text in self.geoname_cache:
+            model = self.geoname_cache[text]
+            self.city_entry.get_completion().set_model(model)
+        else:
+            model = Gtk.ListStore(GObject.TYPE_STRING, GObject.TYPE_STRING,
+                                  GObject.TYPE_STRING, GObject.TYPE_STRING,
+                                  GObject.TYPE_STRING)
+
+            if self.geoname_session is None:
+                self.geoname_session = Soup.SessionAsync()
+            url = _geoname_url % (urllib.quote(text.encode('UTF-8')),
+                                  misc.get_release().version)
+            message = Soup.Message.new('GET', url)
+            message.request_headers.append('User-agent', 'Ubiquity/1.0')
+            self.geoname_session.abort()
+            if self.geoname_timeout_id is not None:
+                GObject.source_remove(self.geoname_timeout_id)
+            self.geoname_timeout_id = \
+                GObject.timeout_add_seconds(2, self.geoname_timeout,
+                                            (text, model))
+            self.geoname_session.queue_message(message, self.geoname_cb,
+                                               (text, model))
+
+    def geoname_add_tzdb(self, text, model):
+        if len(model):
+            # already added
+            return
+
+        # TODO benchmark this
+        results = [(name, self.tzdb.get_loc(city))
+                    for (name, city) in
+                        [(x[0], x[1]) for x in self.zones
+                            if x[0].lower().split('(', 1)[-1] \
+                                            .startswith(text.lower())]]
+        for result in results:
+            # We use name rather than loc.human_zone for i18n.
+            # TODO this looks pretty awful for US results:
+            # United States (New York) (United States)
+            # Might want to match the debconf format.
+            name, loc = result
+            model.append([name, '', loc.human_country,
+                          str(loc.latitude), str(loc.longitude)])
+
+    def geoname_timeout(self, user_data):
+        text, model = user_data
+        self.geoname_add_tzdb(text, model)
+        self.geoname_timeout_id = None
+        self.city_entry.get_completion().set_model(model)
+        return False
+
+    def geoname_cb(self, session, message, user_data):
+        import syslog
+        import json
+        from gi.repository import GObject, Soup
+
+        text, model = user_data
+
+        if self.geoname_timeout_id is not None:
+            GObject.source_remove(self.geoname_timeout_id)
+            self.geoname_timeout_id = None
+        self.geoname_add_tzdb(text, model)
+
+        if message.status_code == Soup.KnownStatusCode.CANCELLED:
+            # Silently ignore cancellation.
+            pass
+        elif message.status_code != Soup.KnownStatusCode.OK:
+            # Log but otherwise ignore failures.
+            syslog.syslog('Geoname lookup for "%s" failed: %d %s' %
+                          (text, message.status_code, message.reason_phrase))
+        else:
+            for result in json.loads(message.response_body.data):
+                model.append([result['name'],
+                              result['admin1'],
+                              result['country'],
+                              result['latitude'],
+                              result['longitude']])
+
+            # Only cache positive results.
+            self.geoname_cache[text] = model
+
+        self.city_entry.get_completion().set_model(model)
+
     def setup_page(self):
         # TODO Put a frame around the completion to add contrast (LP: #605908)
-        import gobject, gtk
-        from ubiquity import timezone_map
+        from gi.repository import Gtk, GObject
+        from gi.repository import TimezoneMap
         self.tzdb = ubiquity.tz.Database()
-        PATH = os.environ.get('UBIQUITY_PATH', False) or '/usr/share/ubiquity'
-        self.tzmap = timezone_map.TimezoneMap(self.tzdb,
-                                        os.path.join(PATH, 'pixmaps/timezone'))
-        self.tzmap.connect('city-selected', self.select_city)
+        self.tzmap = TimezoneMap.TimezoneMap()
+        self.tzmap.connect('location-changed', self.select_city)
         self.map_window.add(self.tzmap)
         self.tzmap.show()
 
         def is_separator(m, i):
             return m[i][0] is None
 
-        def changed(entry):
-            text = entry.get_text()
-            if not text:
-                return
-            # TODO if the completion widget has a selection, return?  How do we determine this?
-            if text in changed.cache:
-                model = changed.cache[text]
-            else:
-                # fetch
-                model = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING,
-                                      gobject.TYPE_STRING, gobject.TYPE_STRING,
-                                      gobject.TYPE_STRING)
-                changed.cache[text] = model
-                # TODO benchmark this
-                results = [(name, self.tzdb.get_loc(city))
-                            for (name, city) in
-                                [(x[0], x[1]) for x in self.zones
-                                    if x[0].lower().split('(', 1)[-1] \
-                                                    .startswith(text.lower())]]
-                for result in results:
-                    # We use name rather than loc.human_zone for i18n.
-                    # TODO this looks pretty awful for US results:
-                    # United States (New York) (United States)
-                    # Might want to match the debconf format.
-                    name, loc = result
-                    model.append([name, '', loc.human_country,
-                                  str(loc.latitude), str(loc.longitude)])
-
-                try:
-                    import urllib2, urllib, json
-                    opener = urllib2.build_opener()
-                    opener.addheaders = [('User-agent', 'Ubiquity/1.0')]
-                    url = opener.open(_geoname_url %
-                        (urllib.quote(text), misc.get_release().version))
-                    for result in json.loads(url.read()):
-                        model.append([result['name'],
-                                      result['admin1'],
-                                      result['country'],
-                                      result['latitude'],
-                                      result['longitude']])
-                except Exception, e:
-                    print 'exception:', e
-                    # TODO because we don't return here, we could cache a
-                    # result that doesn't include the geonames results because
-                    # of a network error.
-            entry.get_completion().set_model(model)
-        changed.cache = {}
-
         self.timeout_id = 0
         def queue_entry_changed(entry):
             if self.timeout_id:
-                gobject.source_remove(self.timeout_id)
-            self.timeout_id = gobject.timeout_add(300, changed, entry)
+                GObject.source_remove(self.timeout_id)
+            self.timeout_id = GObject.timeout_add(300, self.changed, entry)
 
         self.city_entry.connect('changed', queue_entry_changed)
-        completion = gtk.EntryCompletion()
+        completion = Gtk.EntryCompletion()
         self.city_entry.set_completion(completion)
         completion.set_inline_completion(True)
         completion.set_inline_selection(True)
@@ -165,18 +210,18 @@ class PageGtk(plugin.PluginUI):
             # Select on map.
             lat = float(model[iterator][3])
             lon = float(model[iterator][4])
-            self.tzmap.select_coords(lat, lon)
+            self.tzmap.set_coords(lon, lat)
 
             self.city_entry.set_text(model[iterator][0])
             self.city_entry.set_position(-1)
             return True
         completion.connect('match-selected', match_selected)
 
-        def match_func(completion, key, iterator):
+        def match_func(completion, key, iterator, data):
             # We've already determined that it's a match in entry_changed.
             return True
 
-        def data_func(column, cell, model, iterator):
+        def data_func(column, cell, model, iterator, data):
             row = model[iterator]
             if row[1]:
                 # The result came from geonames, and thus has an administrative
@@ -185,10 +230,10 @@ class PageGtk(plugin.PluginUI):
             else:
                 text = '%s <small>(%s)</small>' % (row[0], row[2])
             cell.set_property('markup', text)
-        cell = gtk.CellRendererText()
-        completion.pack_start(cell)
-        completion.set_match_func(match_func)
-        completion.set_cell_data_func(cell, data_func)
+        cell = Gtk.CellRendererText()
+        completion.pack_start(cell, True)
+        completion.set_match_func(match_func, None)
+        completion.set_cell_data_func(cell, data_func, None)
 
 class PageKde(plugin.PluginUI):
     plugin_breadcrumb = 'ubiquity/text/breadcrumb_timezone'
@@ -211,6 +256,10 @@ class PageKde(plugin.PluginUI):
             self.page = None
 
         self.plugin_widgets = self.page
+        self.online = False
+
+    def plugin_set_online_state(self, state):
+        self.online = state
 
     @plugin.only_this_page
     def refresh_timezones(self):
@@ -306,10 +355,18 @@ class PageDebconf(plugin.PluginUI):
 
     def __init__(self, controller, *args, **kwargs):
         self.controller = controller
+        self.online = False
+
+    def plugin_set_online_state(self, state):
+        self.online = state
 
 class PageNoninteractive(plugin.PluginUI):
     def __init__(self, controller, *args, **kwargs):
         self.controller = controller
+        self.online = False
+
+    def plugin_set_online_state(self, state):
+        self.online = state
 
     def set_timezone(self, timezone):
         """Set the current selected timezone."""
@@ -321,6 +378,11 @@ class PageNoninteractive(plugin.PluginUI):
 
 class Page(plugin.Plugin):
     def prepare(self, unfiltered=False):
+        # TODO: This can go away once we have the ability to abort wget/rdate
+        if not self.ui.online:
+            self.preseed('tzsetup/geoip_server', '')
+            self.preseed('clock-setup/ntp', 'false')
+
         clock_script = '/usr/share/ubiquity/clock-setup'
         env = {'PATH': '/usr/share/ubiquity:' + os.environ['PATH']}
 

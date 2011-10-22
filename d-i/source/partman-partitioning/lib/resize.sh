@@ -1,5 +1,6 @@
 . /lib/partman/lib/base.sh
 . /lib/partman/lib/commit.sh
+. /lib/partman/lib/recipes.sh
 
 # Sets $virtual; used by other functions here.
 check_virtual () {
@@ -159,6 +160,21 @@ human_resize_range () {
 	minpercent="$(expr 100 \* "$minsize" / "$maxsize")"
 }
 
+decode_swap_size () {
+	if [ "$4" = linux-swap ]; then
+		echo "$1"
+	fi
+}
+
+find_swap_size_val=
+find_swap_size () {
+	if [ -z "$find_swap_size_val" ]; then
+		decode_recipe $(get_recipedir)/[0-9][0-9]atomic linux-swap
+		find_swap_size_val=$(foreach_partition 'decode_swap_size $*')
+	fi
+	echo "$find_swap_size_val"
+}
+
 ask_for_size () {
 	local noninteractive digits minmb minsize_rounded maxsize_rounded
 
@@ -168,6 +184,7 @@ ask_for_size () {
 	close_dialog
 
 	noninteractive=true
+	swap_size="$(find_swap_size)"
 	minsize_rounded="$(human2longint "$hminsize")"
 	maxsize_rounded="$(human2longint "$hmaxsize")"
 	while true; do
@@ -182,6 +199,7 @@ ask_for_size () {
 			db_subst partman-partitioning/new_size RAWPREFSIZE "$prefsize"
 			db_subst partman-partitioning/new_size RAWMAXSIZE "$maxsize"
 			db_subst partman-partitioning/new_size PATH "$path"
+			db_subst partman-partitioning/new_size SWAPSIZE "$swap_size"
 			db_input critical partman-partitioning/new_size || $noninteractive
 			noninteractive="return 1"
 			db_go || return 1

@@ -102,8 +102,9 @@ live boot process is responsible for installing hooks in
 After copying the live filesystem, certain unnecessary packages (such as
 Ubiquity itself) will be removed. The set of packages to be removed is
 computed by taking those packages present in
-/cdrom/casper/filesystem.manifest but not present in
-/cdrom/casper/filesystem.manifest-desktop, and removing any packages
+/cdrom/casper/filesystem.manifest-remove (or, in older versions of Ubuntu,
+those packages present in /cdrom/casper/filesystem.manifest but not present
+in /cdrom/casper/filesystem.manifest-desktop), and removing any packages
 explicitly requested for installation by installer code. Language packs for
 languages which are not to be supported on the installed system will also be
 removed.
@@ -133,15 +134,12 @@ ubiquity/install/filesystem-images with a space-separated list of image
 paths to override this; if you provide more than one image, then they will
 be overlaid using unionfs.
 
-/cdrom/casper/filesystem.manifest and
-/cdrom/casper/filesystem.manifest-desktop should be, respectively, a list of
-packages in the full live filesystem and a list of packages that should be
-installed in the target system; the format is that produced by running
-"dpkg-query -W --showformat='${Package} ${Version}\n'". Ubiquity will remove
-any packages present in filesystem.manifest but not present in
-filesystem.manifest-desktop after copying the live filesystem. This allows
-it to ensure that, for example, Ubiquity itself doesn't end up on the target
-system.
+/cdrom/casper/filesystem.manifest should be a list of packages in the full
+live filesystem; the format is that produced by running "dpkg-query -W".
+/cdrom/casper/filesystem.manifest-remove should be a list of packages to
+remove from the target system after copying the live filesystem. This allows
+Ubiquity to ensure that, for example, Ubiquity itself doesn't end up on the
+target system.
 
 Language packs for the selected language are installed by default, using the
 Ubuntu naming scheme of language-pack-$LL and language-support-$LL. If you

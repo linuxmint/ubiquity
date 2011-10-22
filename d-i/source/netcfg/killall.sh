@@ -1,7 +1,7 @@
 #!/bin/sh
 # Killall for dhcp clients.
 
-for client in dhclient udhcpc pump; do
+for client in dhclient udhcpc pump dhcp6c; do
 	pid=$(pidof $client) || true
 	[ "$pid" ] || continue
 

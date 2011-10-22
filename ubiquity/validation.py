@@ -11,7 +11,7 @@
 # - Javier Carranza <javier.carranza#interactors._coop>
 # - Juan Jesús Ojeda Croissier <juanje#interactors._coop>
 # - Colin Watson <cjwatson@ubuntu.com>
-# - Evan Dandrea <evand@ubuntu.com>
+# - Evan Dandrea <ev@ubuntu.com>
 #
 # This file is part of Ubiquity.
 #

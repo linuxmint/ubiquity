@@ -11,16 +11,6 @@
 #include <iwlib.h>
 #include <sys/types.h>
 #include <assert.h>
-#endif
-
-/* Wireless mode */
-wifimode_t mode = MANAGED;
-
-/* wireless config */
-char* wepkey = NULL;
-char* essid = NULL;
-
-#ifdef WIRELESS
 
 int is_wireless_iface (const char* iface)
 {
@@ -28,17 +18,17 @@ int is_wireless_iface (const char* iface)
     return (iw_get_basic_config (wfd, (char*)iface, &wc) == 0);
 }
 
-int netcfg_wireless_set_essid (struct debconfclient * client, char *iface, char* priority)
+int netcfg_wireless_set_essid (struct debconfclient * client, struct netcfg_interface *interface, char* priority)
 {
     int ret, couldnt_associate = 0;
     wireless_config wconf;
     char* tf = NULL, *user_essid = NULL, *ptr = wconf.essid;
 
-    iw_get_basic_config (wfd, iface, &wconf);
+    iw_get_basic_config (wfd, interface->name, &wconf);
 
-    debconf_subst(client, "netcfg/wireless_essid", "iface", iface);
-    debconf_subst(client, "netcfg/wireless_essid_again", "iface", iface);
-    debconf_subst(client, "netcfg/wireless_adhoc_managed", "iface", iface);
+    debconf_subst(client, "netcfg/wireless_essid", "iface", interface->name);
+    debconf_subst(client, "netcfg/wireless_essid_again", "iface", interface->name);
+    debconf_subst(client, "netcfg/wireless_adhoc_managed", "iface", interface->name);
 
     debconf_input(client, priority ? priority : "low", "netcfg/wireless_adhoc_managed");
 
@@ -48,12 +38,12 @@ int netcfg_wireless_set_essid (struct debconfclient * client, char *iface, char*
     debconf_get(client, "netcfg/wireless_adhoc_managed");
 
     if (!strcmp(client->value, "Ad-hoc network (Peer to peer)"))
-        mode = ADHOC;
+        interface->mode = ADHOC;
 
     wconf.has_mode = 1;
-    wconf.mode = mode;
+    wconf.mode = interface->mode;
 
-    debconf_input(client, priority ? priority : "low", "netcfg/wireless_essid");
+    debconf_input(client, priority ? priority : "high", "netcfg/wireless_essid");
 
     if (debconf_go(client) == 30)
         return GO_BACK;
@@ -71,7 +61,7 @@ automatic:
         wconf.essid[0] = '\0';
         wconf.essid_on = 0;
 
-        iw_set_basic_config (wfd, iface, &wconf);
+        iw_set_basic_config (wfd, interface->name, &wconf);
 
         /* Wait for association.. (MAX_SECS seconds)*/
 #define MAX_SECS 3
@@ -80,14 +70,13 @@ automatic:
         debconf_progress_start(client, 0, MAX_SECS, "netcfg/wifi_progress_title");
         if (debconf_progress_info(client, "netcfg/wifi_progress_info") == 30)
             goto stop;
-        netcfg_progress_displayed = 1;
 
         for (i = 0; i <= MAX_SECS; i++) {
             int progress_ret;
 
-            interface_up(iface);
+            interface_up(interface->name);
             sleep (1);
-            iw_get_basic_config (wfd, iface, &wconf);
+            iw_get_basic_config (wfd, interface->name, &wconf);
 
             if (!empty_str(wconf.essid)) {
                 /* Save for later */
@@ -98,7 +87,7 @@ automatic:
             }
 
             progress_ret = debconf_progress_step(client, 1);
-            interface_down(iface);
+            interface_down(interface->name);
             if (progress_ret == 30)
                 break;
         }
@@ -106,7 +95,6 @@ automatic:
     stop:
         debconf_progress_stop(client);
         debconf_capb(client, "backup");
-        netcfg_progress_displayed = 0;
 
         if (success)
             return 0;
@@ -162,22 +150,21 @@ automatic:
         user_essid = strdup(client->value);
     }
 
-    essid = user_essid;
+    interface->essid = user_essid;
 
     memset(ptr, 0, IW_ESSID_MAX_SIZE + 1);
-    snprintf(wconf.essid, IW_ESSID_MAX_SIZE + 1, "%s", essid);
+    snprintf(wconf.essid, IW_ESSID_MAX_SIZE + 1, "%s", interface->essid);
     wconf.has_essid = 1;
     wconf.essid_on = 1;
 
-    iw_set_basic_config (wfd, iface, &wconf);
+    iw_set_basic_config (wfd, interface->name, &wconf);
 
     return 0;
 }
 
-static void unset_wep_key (char* iface)
+static void unset_wep_key (const char *iface)
 {
     wireless_config wconf;
-    int ret;
 
     iw_get_basic_config(wfd, iface, &wconf);
 
@@ -186,10 +173,10 @@ static void unset_wep_key (char* iface)
     wconf.key_flags = IW_ENCODE_DISABLED | IW_ENCODE_NOKEY;
     wconf.key_size = 0;
 
-    ret = iw_set_basic_config (wfd, iface, &wconf);
+    iw_set_basic_config (wfd, iface, &wconf);
 }
 
-int netcfg_wireless_set_wep (struct debconfclient * client, char* iface)
+int netcfg_wireless_set_wep (struct debconfclient * client, struct netcfg_interface *interface)
 {
     wireless_config wconf;
     char* rv = NULL;
@@ -197,9 +184,9 @@ int netcfg_wireless_set_wep (struct debconfclient * client, char* iface)
     unsigned char buf [IW_ENCODING_TOKEN_MAX + 1];
     struct iwreq wrq;
 
-    iw_get_basic_config (wfd, iface, &wconf);
+    iw_get_basic_config (wfd, interface->name, &wconf);
 
-    debconf_subst(client, "netcfg/wireless_wep", "iface", iface);
+    debconf_subst(client, "netcfg/wireless_wep", "iface", interface->name);
     debconf_input (client, "high", "netcfg/wireless_wep");
     ret = debconf_go(client);
 
@@ -210,11 +197,11 @@ int netcfg_wireless_set_wep (struct debconfclient * client, char* iface)
     rv = client->value;
 
     if (empty_str(rv)) {
-        unset_wep_key (iface);
+        unset_wep_key (interface->name);
 
-        if (wepkey != NULL) {
-            free(wepkey);
-            wepkey = NULL;
+        if (interface->wepkey != NULL) {
+            free(interface->wepkey);
+            interface->wepkey = NULL;
         }
 
         return 0;
@@ -236,14 +223,14 @@ int netcfg_wireless_set_wep (struct debconfclient * client, char* iface)
     }
 
     /* Now rv is safe to store since it parsed fine */
-    wepkey = strdup(rv);
+    interface->wepkey = strdup(rv);
 
     wrq.u.data.pointer = buf;
     wrq.u.data.flags = 0;
     wrq.u.data.length = keylen;
 
-    if ((err = iw_set_ext(skfd, iface, SIOCSIWENCODE, &wrq)) < 0) {
-        di_warning("setting WEP key on %s failed with code %d", iface, err);
+    if ((err = iw_set_ext(skfd, interface->name, SIOCSIWENCODE, &wrq)) < 0) {
+        di_warning("setting WEP key on %s failed with code %d", interface->name, err);
         return -1;
     }
 
@@ -258,18 +245,18 @@ int is_wireless_iface (const char *iface)
     return 0;
 }
 
-int netcfg_wireless_set_essid (struct debconfclient *client, char *iface, char *priority)
+int netcfg_wireless_set_essid (struct debconfclient *client, struct netcfg_interface *interface, char *priority)
 {
     (void) client;
-    (void) iface;
+    (void) interface;
     (void) priority;
     return 0;
 }
 
-int netcfg_wireless_set_wep (struct debconfclient *client, char *iface)
+int netcfg_wireless_set_wep (struct debconfclient *client, struct netcfg_interface *interface)
 {
     (void) client;
-    (void) iface;
+    (void) interface;
     return 0;
 }
 

@@ -28,10 +28,54 @@ fi
 
 LANGUAGE="${LOCALE%%_*}"
 
+LOCALE_TRANSLATIONS="$LOCALE"
+
+case ${LOCALE%%_*} in
+    pt|zh)
+	# In the special cases of Portuguese and Chinese, selecting a
+	# different location may imply a different dialect of the language.
+	# In such cases, make LANG reflect the selected location (for
+	# numeric, monetary, etc.) and make LC_MESSAGES, LC_CTYPE, and
+	# LC_COLLATE reflect the selected language.
+	db_get localechooser/languagelist
+	ORIG_LANGUAGE="$RET"
+	db_get debian-installer/country
+	COUNTRY="$RET"
+
+	if grep -q "^$ORIG_LANGUAGE;" /usr/share/localechooser/languagelist; then
+		SUPPORTEDLOCALES=/usr/share/localechooser/SUPPORTED
+		if [ ! -f "$SUPPORTEDLOCALES" ]; then
+			SUPPORTEDLOCALES=/usr/share/i18n/SUPPORTED
+		fi
+
+		LOCALE_TRANSLATIONS="$(grep "^$ORIG_LANGUAGE;" /usr/share/localechooser/languagelist | cut -d';' -f5)"
+		newlocale="$(echo "$LOCALE" | sed "s/_[A-Z][A-Z]*/_$COUNTRY/")"
+		if grep -q "^${newlocale%%[.@]*}[.@ ]" $SUPPORTEDLOCALES && \
+		   [ "$newlocale" != "$LOCALE_TRANSLATIONS" ]; then
+			LOCALE="$newlocale"
+			LANGLIST="$(grep "^$ORIG_LANGUAGE;" /usr/share/localechooser/languagelist | cut -d';' -f6)"
+		fi
+	fi
+	;;
+esac
+
 # Enable translations
 if [ "$LOCALE" != "C" ] || [ "$EXTRAS" ]; then
 	apt-install locales || true
 fi
+
+set_field () {
+	local file category value
+	file="$1"
+	category="$2"
+	value="$3"
+
+	if grep -qs "^#* *$category=" "$file"; then
+		sed -i "s,^#* *$category=.*,$category=\"$value\"," "$file"
+	else
+		echo "$category=\"$value\"" >> "$file"
+	fi
+}
 
 # Set global locale and language, and make sure the glibc locale is
 # generated.
@@ -52,6 +96,11 @@ if [ ! -e "$DESTFILE" ] || ! grep -q '^LANG=' $DESTFILE; then
 	if echo "$LANGLIST" | grep -q ":"; then
 		echo "LANGUAGE=\"$LANGLIST\"" >> $DESTFILE
 	fi
+fi
+if [ "$LOCALE_TRANSLATIONS" != "$LOCALE" ]; then
+	set_field /target/etc/default/locale LC_MESSAGES "$LOCALE_TRANSLATIONS"
+	set_field /target/etc/default/locale LC_CTYPE "$LOCALE_TRANSLATIONS"
+	set_field /target/etc/default/locale LC_COLLATE "$LOCALE_TRANSLATIONS"
 fi
 
 # For languages that have no chance to be displayed at the Linux console

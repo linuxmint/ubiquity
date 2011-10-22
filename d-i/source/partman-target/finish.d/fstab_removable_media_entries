@@ -33,13 +33,20 @@ populate_media () {
 	options=$3
 	shift; shift; shift
 	mkdir -p /target$MEDIA
-	if [ "$1" ]; then
+	symlink_to_0=1
+	if [ "`udpkg --print-os`" = kfreebsd ]; then
+		symlink_to_0=""
+	fi
+	if [ "$1" ] && [ "$symlink_to_0" ] ; then
 		rm_dir_or_link /target$MEDIA/$category
 		ln -s ${category}0 /target$MEDIA/$category
 	fi
 	number=0
 	while [ "$1" ]; do
 		mount_point="$MEDIA/$category$number"
+		if [ ! "$symlink_to_0" ] && [ "$number" = 0 ]; then
+			mount_point="$MEDIA/$category"
+		fi
 		addfstab "$1" "$mount_point" "$fs" "$options" 0 0
 		rm_dir_or_link /target$mount_point
 		mkdir -p /target$mount_point

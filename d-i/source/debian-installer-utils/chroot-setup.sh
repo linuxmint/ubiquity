@@ -100,6 +100,10 @@ EOF
 				mount -t devpts devpts -o noexec,nosuid,gid=5,mode=620 \
 					/target/dev/pts
 			fi
+
+			if [ -d /target/run ] && [ ! -d /target/run/lock ]; then
+				mount --bind /run /target/run
+			fi
 		;;
 	        "kfreebsd")
 			# Some packages (eg. the kernel-image package) require a mounted

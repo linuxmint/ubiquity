@@ -1,6 +1,6 @@
 # -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
-# Copyright (C) 2006 Evan Dandrea <evand@ubuntu.com>.
+# Copyright (C) 2006 Evan Dandrea <ev@ubuntu.com>.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -50,8 +50,8 @@ class PageGtk(PageBase):
         self.controller = controller
         self.ma_choices = []
         try:
-            import gtk
-            builder = gtk.Builder()
+            from gi.repository import Gtk
+            builder = Gtk.Builder()
             self.controller.add_builder(builder)
             builder.add_from_file(os.path.join(os.environ['UBIQUITY_GLADE'], 'stepMigrationAssistant.ui'))
             builder.connect_signals(self)
@@ -101,9 +101,9 @@ class PageGtk(PageBase):
                 items.remove(item)
 
     def ma_set_choices(self, choices):
-        import gtk
+        from gi.repository import Gtk
 
-        def cell_data_func(unused_column, cell, model, iterator):
+        def cell_data_func(unused_column, cell, model, iterator, unused):
             val = model.get_value(iterator, 1)
             if model.iter_children(iterator):
                 # Windows XP...
@@ -132,13 +132,13 @@ class PageGtk(PageBase):
             # TODO cjwatson 2009-04-01: i18n
             msg = 'There were no users or operating systems suitable for ' \
                   'importing from.'
-            liststore = gtk.ListStore(str)
+            liststore = Gtk.ListStore(str)
             liststore.append([msg])
             self.matreeview.set_model(liststore)
-            column = gtk.TreeViewColumn('item', gtk.CellRendererText(), text=0)
+            column = Gtk.TreeViewColumn('item', Gtk.CellRendererText(), text=0)
             self.matreeview.append_column(column)
         else:
-            treestore = gtk.TreeStore(bool, object)
+            treestore = Gtk.TreeStore(bool, object)
 
             # We save the choices list so we can preserve state, should the user
             # decide to move back through the interface.  We cannot just put the
@@ -173,15 +173,15 @@ class PageGtk(PageBase):
 
             self.matreeview.set_model(treestore)
 
-            renderer = gtk.CellRendererToggle()
+            renderer = Gtk.CellRendererToggle()
             renderer.connect('toggled', self.ma_cb_toggle, treestore)
-            column = gtk.TreeViewColumn('boolean', renderer, active=0)
+            column = Gtk.TreeViewColumn('boolean', renderer, active=0)
             column.set_clickable(True)
-            column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+            column.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
             self.matreeview.append_column(column)
 
-            renderer = gtk.CellRendererText()
-            column = gtk.TreeViewColumn('item', renderer)
+            renderer = Gtk.CellRendererText()
+            column = Gtk.TreeViewColumn('item', renderer)
             column.set_cell_data_func(renderer, cell_data_func)
             self.matreeview.append_column(column)
 

@@ -35,4 +35,4 @@ class Page(plugin.Plugin):
         if not unfiltered:
             raise NetworkUnfilteredOnly(
                 "network component only usable with debconf frontend")
-        return ['/usr/lib/ubiquity/netcfg-wrapper']
+        return ['/usr/share/ubiquity/netcfg-wrapper']

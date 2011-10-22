@@ -1,0 +1,25 @@
+#! /bin/sh
+set -e
+
+i=0
+for srv in $new_domain_name_servers; do
+	echo "nameserver[$i] $srv"
+	i=$(($i+1))
+done
+
+i=0
+for srv in $new_domain_name; do
+	echo "Domain search list[$i] $srv"
+	i=$(($i+1))
+done
+
+i=0
+for srv in $new_ntp_servers; do
+	echo "NTP server[$i] $srv"
+	i=$(($i+1))
+done
+
+echo "end"
+touch /var/lib/netcfg/dhcp6c-finished
+
+exit 0

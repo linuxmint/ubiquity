@@ -160,7 +160,11 @@ class Install(install_misc.InstallBase):
 
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/apt')
-        self.configure_apt()
+        #self.configure_apt()
+        try:
+            shutil.rmtree(os.path.join(self.target, 'var/lib/apt-xapian-index'), ignore_errors=True)
+        except OSError:
+            pass
 
         self.configure_plugins()
         self.configure_face()
@@ -429,7 +433,7 @@ class Install(install_misc.InstallBase):
         except debconf.DebconfError:
             domain = ''
         if hostname == '':
-            hostname = 'ubuntu'
+            hostname = 'mint'
 
         hosts = open(os.path.join(self.target, 'etc/hosts'), 'w')
         print >>hosts, "127.0.0.1\tlocalhost"
@@ -1602,13 +1606,7 @@ class Install(install_misc.InstallBase):
 
         # we don't use copy_network_config casper user trick as it's not and not
         # ubuntu in install mode
-        try:
-            casper_user = pwd.getpwuid(999).pw_name
-        except KeyError:
-            # We're on a weird system where the casper user isn't uid 999
-            # just stop there
-            return
-
+        casper_user = 'mint'
         casper_user_home = os.path.expanduser('~%s' % casper_user)
         casper_user_wallpaper_cache_dir = os.path.join(casper_user_home,
                                                        '.cache', 'wallpaper')

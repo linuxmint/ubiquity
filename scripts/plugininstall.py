@@ -184,7 +184,7 @@ class Install(install_misc.InstallBase):
             pass
 
         self.next_region()
-        self.remove_unusable_kernels()
+        #self.remove_unusable_kernels()
 
         self.next_region(size=4)
         self.db.progress('INFO', 'ubiquity/install/hardware')
@@ -198,10 +198,10 @@ class Install(install_misc.InstallBase):
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/installing')
 
-        if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
-            self.install_oem_extras()
-        else:
-            self.install_extras()
+        #if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
+        #    self.install_oem_extras()
+        #else:
+        #    self.install_extras()
 
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/bootloader')

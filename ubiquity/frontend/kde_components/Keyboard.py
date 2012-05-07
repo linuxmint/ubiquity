@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-from PyQt4.QtCore import Qt, QRectF
-from PyQt4.QtGui import QWidget, QFont, QPainter, QPen, QPainterPath, QColor
 
 import subprocess
 import sys
+
+from PyQt4.QtCore import Qt, QRectF
+from PyQt4.QtGui import QWidget, QFont, QPainter, QPen, QPainterPath, QColor
 
 IMG_DIR = "/usr/share/ubiquity/qt/images"
 

@@ -123,7 +123,7 @@ class Controller(ubiquity.frontend.base.Controller):
 
     def allow_go_backward(self, allowed):
         self._wizard.allow_go_backward(allowed)
-    
+
     def allow_change_step(self, allowed):
         self._wizard.allow_change_step(allowed)
 
@@ -541,7 +541,7 @@ class Wizard(BaseFrontend):
         slideshow_locale = self.slideshow_get_available_locale(slideshow_dir,
                                                                self.locale)
         slideshow_main = slideshow_dir + '/slides/index.html'
-        if not os.path.exists(slideshow_main):
+        if not os.path.exists(slideshow_main) or self.hide_slideshow:
             self.ui.pageMode.hide()
             return
 
@@ -647,6 +647,8 @@ class Wizard(BaseFrontend):
             core_names.append('ubiquity/text/breadcrumb_install')
             core_names.append('ubiquity/text/release_notes_only')
             core_names.append('ubiquity/text/update_installer_only')
+            core_names.append('ubiquity/text/USB')
+            core_names.append('ubiquity/text/CD')
             for stock_item in ('cancel', 'close', 'go-back', 'go-forward',
                                'ok', 'quit', 'yes', 'no'):
                 core_names.append('ubiquity/imported/%s' % stock_item)
@@ -1160,6 +1162,7 @@ class Wizard(BaseFrontend):
         if finished_step == last_page and not self.backup:
             self.finished_pages = True
             if self.finished_installing or self.oem_user_config:
+                self.debconf_progress_info('')
                 self.ui.progressBar.show()
                 dbfilter = plugininstall.Install(self)
                 dbfilter.start(auto_process=True)
@@ -1194,6 +1197,8 @@ class Wizard(BaseFrontend):
             if self.finished_pages:
                 dbfilter = plugininstall.Install(self)
                 dbfilter.start(auto_process=True)
+            else:
+                self.ui.progressBar.hide()
 
         elif finished_step == 'ubiquity.components.plugininstall':
             self.installing = False

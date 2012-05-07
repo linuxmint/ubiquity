@@ -12,6 +12,13 @@ import contextlib
 
 from ubiquity import osextras
 
+def utf8(s, errors="strict"):
+    """Decode a string as UTF-8 if it isn't already Unicode."""
+    if isinstance(s, unicode):
+        return s
+    else:
+        return unicode(s, "utf-8", errors)
+
 def is_swap(device):
     swap = False
     fp = None
@@ -94,15 +101,15 @@ def drop_privileges_save():
         set_groups_for_uid(uid)
     if gid is not None:
         gid = int(gid)
-        osextras.setresgid(gid, gid, 0)
+        os.setresgid(gid, gid, 0)
     if uid is not None:
-        osextras.setresuid(uid, uid, 0)
+        os.setresuid(uid, uid, 0)
 
 def regain_privileges_save():
     """Recover our real UID/GID after calling drop_privileges_save."""
     assert _dropped_privileges is not None and _dropped_privileges > 0
-    osextras.setresuid(0, 0, 0)
-    osextras.setresgid(0, 0, 0)
+    os.setresuid(0, 0, 0)
+    os.setresgid(0, 0, 0)
     os.setgroups([])
 
 @contextlib.contextmanager
@@ -183,6 +190,7 @@ def grub_options():
             syslog.syslog(syslog.LOG_ERR, line)
     return l
 
+@raise_privileges
 def boot_device():
     from ubiquity.parted_server import PartedServer
 
@@ -253,7 +261,7 @@ def mount_info(path):
     fsname = ''
     fstype = ''
     writable = ''
-    with contextlib.closing(open('/proc/mounts')) as fp:
+    with open('/proc/mounts') as fp:
         for line in fp:
             line = line.split()
             if line[1] == path:
@@ -286,7 +294,27 @@ def partition_to_disk(partition):
     udevadm_disk = udevadm_info(['-p', disk_syspath])
     return udevadm_disk.get('DEVNAME', partition)
 
+def is_boot_device_removable():
+    return is_removable(boot_device())
+
+def cdrom_mount_info():
+    """Return mount information for /cdrom.
+
+    This is the same as mount_info, except that the partition is converted to
+    its containing disk, and we don't care whether the mount point is
+    writable.
+    """
+    cdsrc, cdfs, _ = mount_info('/cdrom')
+    cdsrc = partition_to_disk(cdsrc)
+    return cdsrc, cdfs
+
 @raise_privileges
+def grub_device_map():
+    """Return the contents of the default GRUB device map."""
+    subp = subprocess.Popen(['grub-mkdevicemap', '--no-floppy', '-m', '-'],
+                            stdout=subprocess.PIPE)
+    return subp.communicate()[0].splitlines()
+
 def grub_default():
     """Return the default GRUB installation target."""
 
@@ -295,13 +323,11 @@ def grub_default():
     # grub-installer is run.  Pursuant to that, we intentionally run this in
     # the installer root as /target might not yet be available.
 
-    bootremovable = is_removable(boot_device())
+    bootremovable = is_boot_device_removable()
     if bootremovable is not None:
         return bootremovable
 
-    subp = subprocess.Popen(['grub-mkdevicemap', '--no-floppy', '-m', '-'],
-                            stdout=subprocess.PIPE)
-    devices = subp.communicate()[0].splitlines()
+    devices = grub_device_map()
     target = None
     if devices:
         try:
@@ -312,15 +338,15 @@ def grub_default():
     if target is None:
         target = '(hd0)'
 
-    cdsrc, cdfs, type = mount_info('/cdrom')
-    cdsrc = partition_to_disk(cdsrc)
+    cdsrc, cdfs = cdrom_mount_info()
     try:
         # The target is usually under /dev/disk/by-id/, so string equality
         # is insufficient.
         same = os.path.samefile(cdsrc, target)
     except OSError:
         same = False
-    if (same or target == '(hd0)') and cdfs and cdfs != 'iso9660':
+    if ((same or target == '(hd0)') and
+        (cdfs and cdfs != 'iso9660') or is_removable(cdsrc)):
         # Installing from removable media other than a CD.  Make sure that
         # we don't accidentally install GRUB to it.
         boot = boot_device()
@@ -352,7 +378,7 @@ def find_in_os_prober(device):
         else:
             syslog.syslog('Device %s not found in os-prober output' % str(device))
             ret = ''
-        return unicode(ret, 'utf-8', 'replace')
+        return utf8(ret, errors='replace')
     except (KeyboardInterrupt, SystemExit):
         pass
     except:
@@ -366,7 +392,7 @@ def find_in_os_prober(device):
 def os_prober():
     global _os_prober_oslist
     global _os_prober_called
-    
+
     if not _os_prober_called:
         _os_prober_called = True
         subp = subprocess.Popen(['os-prober'], stdout=subprocess.PIPE,
@@ -393,6 +419,8 @@ from collections import namedtuple
 
 def windows_startup_folder(mount_path):
     locations = [
+        # Windows 8
+        'ProgramData/Microsoft/Windows/Start Menu/Programs/StartUp',
         # Windows 7
         'ProgramData/Microsoft/Windows/Start Menu/Programs/Startup',
         # Windows XP
@@ -410,19 +438,19 @@ ReleaseInfo = namedtuple('ReleaseInfo', 'name, version')
 
 def get_release():
     if get_release.release_info is None:
-        #try:
-        #    with open('/cdrom/.disk/info') as fp:
-        #        line = fp.readline()
-        #        if line:
-        #            line = line.split()
-        #            if line[2] == 'LTS':
-        #                line[1] += ' LTS'
-        #            get_release.release_info = ReleaseInfo(name=line[0], version=line[1])
-        #except:
-        #    syslog.syslog(syslog.LOG_ERR, 'Unable to determine the release.')
-        #
-        #if not get_release.release_info:
-        get_release.release_info = ReleaseInfo(name='Linux Mint', version='12')
+        try:
+            with open('/cdrom/.disk/info') as fp:
+                line = fp.readline()
+                if line:
+                    line = line.split()
+                    if line[2] == 'LTS':
+                        line[1] += ' LTS'
+                    get_release.release_info = ReleaseInfo(name=line[0], version=line[1])
+        except:
+            syslog.syslog(syslog.LOG_ERR, 'Unable to determine the release.')
+
+        if not get_release.release_info:
+            get_release.release_info = ReleaseInfo(name='Ubuntu', version='')
     return get_release.release_info
 get_release.release_info = None
 
@@ -431,7 +459,7 @@ def get_release_name():
     warnings.warn('get_release_name() is deprecated, '
                   'use get_release().name instead.',
                   category=DeprecationWarning)
-    
+
     if not get_release_name.release_name:
         fp = None
         try:
@@ -527,9 +555,13 @@ def create_bool(text):
 @raise_privileges
 def dmimodel():
     model = ''
+    kwargs = {}
+    if os.geteuid() != 0:
+        # Silence annoying warnings during the test suite.
+        kwargs['stderr'] = open('/dev/null', 'w')
     try:
         proc = subprocess.Popen(['dmidecode', '--string',
-            'system-manufacturer'], stdout=subprocess.PIPE)
+            'system-manufacturer'], stdout=subprocess.PIPE, **kwargs)
         manufacturer = proc.communicate()[0]
         if not manufacturer:
             return
@@ -558,44 +590,157 @@ def dmimodel():
             return
     except Exception:
         syslog.syslog(syslog.LOG_ERR, 'Unable to determine the model from DMI')
+    finally:
+        if 'stderr' in kwargs:
+            kwargs['stderr'].close()
     return model
 
-def set_indicator_keymaps(locale):
-    import warnings
-    warnings.warn('set_indicator_keymaps: this function currently does not work')
-    return
-
+def set_indicator_keymaps(lang):
     import libxml2
-    import xklavier
-    from gi.repository import Gdk
-    from ubiquity import gconftool
+    from gi.repository import Xkl, GdkX11
+    # GdkX11.x11_get_default_xdisplay() segfaults if Gtk hasn't been
+    # imported; possibly finer-grained than this, but anything using this
+    # will already have imported Gtk anyway ...
+    from gi.repository import Gtk
+    from ubiquity import gsettings
 
-    # FIXME: Code below needs porting to gsettings (not done yet as the function is disabled)
+    # pacify pyflakes
+    Gtk
+
     xpath = "//iso_639_3_entry[@part1_code='%s']"
-    gconf_key = '/desktop/gnome/peripherals/keyboard/kbd/layouts'
+    gsettings_key = ['org.gnome.libgnomekbd.keyboard','layouts']
+    lang = lang.split('_')[0]
     variants = []
-    def process_variant(*args):
-        if hasattr(args[2], 'get_name'):
-            variants.append('%s\t%s' % (args[1].get_name(), args[2].get_name()))
-        else:
-            variants.append(args[1].get_name())
 
-    lang = locale.split('_')[0]
+    # Map inspired from that of gfxboot-theme-ubuntu that's itself
+    # based on console-setup's. This one has been restricted to
+    # language => keyboard layout not locale => keyboard layout as
+    # we don't actually know the exact locale
+    default_keymap = {
+        'ar': 'ara',
+        'bs': 'ba',
+        'de': 'de',
+        'el': 'gr',
+        'en': 'us',
+        'eo': 'epo',
+        'fr': 'fr_oss',
+        'gu': 'in_guj',
+        'hi': 'in',
+        'hr': 'hr',
+        'hy': 'am',
+        'ka': 'ge',
+        'kn': 'in_kan',
+        'lo': 'la',
+        'ml': 'in_mal',
+        'pa': 'in_guru',
+        'sr': 'rs',
+        'sv': 'se',
+        'ta': 'in_tam',
+        'te': 'in_tel',
+        'zh': 'cn',
+    }
+
+    def item_str(s):
+        '''Convert a zero-terminated byte array to a proper str'''
+        i = s.find(b'\x00')
+        return s[:i].decode()
+
+    def process_variant(*args):
+        if hasattr(args[2], 'name'):
+            variants.append('%s\t%s' % (item_str(args[1].name), item_str(args[2].name)))
+        else:
+            variants.append(item_str(args[1].name))
+
+    def restrict_list(variants):
+        new_variants = []
+
+        # Start by looking by an explicit default layout in the keymap
+        if lang in default_keymap:
+            if default_keymap[lang] in variants:
+                variants.remove(default_keymap[lang])
+                new_variants.append(default_keymap[lang])
+            else:
+                tab_keymap = default_keymap[lang].replace('_', '\t')
+                if tab_keymap in variants:
+                    variants.remove(tab_keymap)
+                    new_variants.append(tab_keymap)
+
+        # Prioritize the layout matching the language (if any)
+        if lang in variants:
+            variants.remove(lang)
+            new_variants.append(lang)
+
+        # Uniquify our list (just in case)
+        variants = list(set(variants))
+
+        if len(variants) > 4:
+            # We have a problem, X only supports 4
+
+            # Add as many entry as we can that are layouts without variant
+            country_variants = sorted([entry for entry in variants if '\t' not in entry])
+            for entry in country_variants[:4-len(new_variants)]:
+                new_variants.append(entry)
+                variants.remove(entry)
+
+            if len(new_variants) < 4:
+                # We can add some more
+                simple_variants = sorted([entry for entry in variants if '_' not in entry])
+                for entry in simple_variants[:4-len(new_variants)]:
+                    new_variants.append(entry)
+                    variants.remove(entry)
+
+            if len(new_variants) < 4:
+                # Now just add anything left
+                for entry in variants[:4-len(new_variants)]:
+                    new_variants.append(entry)
+                    variants.remove(entry)
+        else:
+            new_variants += list(variants)
+
+        # gsettings doesn't understand utf8
+        new_variants = [str(variant) for variant in new_variants]
+
+        return new_variants
+
+    def call_setxkbmap(variants):
+        kb_layouts = []
+        kb_variants = []
+
+        for entry in variants:
+            fields = entry.split('\t')
+            if len(fields) > 1:
+                kb_layouts.append(fields[0])
+                kb_variants.append(fields[1])
+            else:
+                kb_layouts.append(fields[0])
+                kb_variants.append("")
+
+        execute("setxkbmap", "-layout", ",".join(kb_layouts), "-variant", ",".join(kb_variants))
+
     fp = libxml2.parseFile('/usr/share/xml/iso-codes/iso_639_3.xml')
     context = fp.xpathNewContext()
     nodes = context.xpathEvalExpression(xpath % lang)
+    display = GdkX11.x11_get_default_xdisplay()
+    engine = Xkl.Engine.get_instance(display)
     if nodes:
-        code = nodes[0].prop('part2_code')
-        display = Gdk.Display.get_default()
-        engine = xklavier.Engine(display)
-        configreg = xklavier.ConfigRegistry(engine)
+        configreg = Xkl.ConfigRegistry.get_instance(engine)
         configreg.load(False)
-        configreg.foreach_language_variant(code, process_variant)
-        if variants:
-            gconftool.set_list(gconf_key, 'string', variants)
-            return
-    # Use the system default if no other keymaps can be determined.
-    gconftool.set_list(gconf_key, 'string', '')
+
+        # Apparently part2_code doesn't always work (fails with French)
+        for prop in ('part2_code', 'id', 'part1_code'):
+            if nodes[0].hasProp(prop):
+                code = nodes[0].prop(prop)
+                configreg.foreach_language_variant(code, process_variant, None)
+                if variants:
+                    restricted_variants = restrict_list(variants)
+                    call_setxkbmap(restricted_variants)
+                    gsettings.set_list(gsettings_key[0], gsettings_key[1], restricted_variants)
+                    break
+        else:
+            # Use the system default if no other keymaps can be determined.
+            gsettings.set_list(gsettings_key[0], gsettings_key[1], [])
+
+    engine.lock_group(0)
 
 NM = 'org.freedesktop.NetworkManager'
 NM_STATE_CONNECTED_GLOBAL = 70
@@ -623,6 +768,39 @@ def add_connection_watch(func):
         func(state == NM_STATE_CONNECTED_GLOBAL)
     bus = dbus.SystemBus()
     bus.add_signal_receiver(connection_cb, 'StateChanged', NM, NM)
-    func(has_connection())
+    try:
+        func(has_connection())
+    except dbus.DBusException:
+        # We can't talk to NM, so no idea.  Wild guess: we're connected
+        # using ssh with X forwarding, and are therefore connected.  This
+        # allows us to proceed with a minimum of complaint.
+        func(True)
+
+def install_size():
+    if min_install_size:
+        return min_install_size
+
+    # Fallback size to 5 GB
+    size = 5 * 1024 * 1024 * 1024
+
+    # Maximal size to 8 GB
+    max_size = 8 * 1024 * 1024 * 1024
+
+    try:
+        with open('/cdrom/casper/filesystem.size') as fp:
+            size = int(fp.readline())
+    except IOError:
+        pass
+
+    # TODO substitute into the template for the state box.
+    min_disk_size = size * 2 # fudge factor.
+
+    # Set minimum size to 8GB if current minimum size is larger
+    # than 8GB and we still have an extra 20% of free space
+    if min_disk_size > max_size and size * 1.2 < max_size:
+        min_disk_size = max_size
+
+    return min_disk_size
+min_install_size = None
 
 # vim:ai:et:sts=4:tw=80:sw=4:

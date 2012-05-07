@@ -952,6 +952,15 @@ humandev () {
 	        printf "$RET" $vg $lv
 	    fi
 	    ;;
+	/dev/linux_lvm/*)
+	      # On GNU/kFreeBSD, LVM devices are found as /dev/linux_lvm/<vg>-<lv>.
+	      vglv=${1#/dev/linux_lvm/}
+	      vglv=`echo "$vglv" | sed 's/\([^-]\)-\([^-]\)/\1 \2/; s/--/-/g'`
+	      vg=`echo "$vglv" | cut -d" " -f1`
+	      lv=`echo "$vglv" | cut -d" " -f2`
+	      db_metaget partman/text/lvm_lv description
+	      printf "$RET" $vg $lv
+	    ;;
 	/dev/loop/*|/dev/loop*)
 	    n=${1#/dev/loop}
 	    n=${n#/}

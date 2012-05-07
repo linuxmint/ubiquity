@@ -1,0 +1,11 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+# In rescue mode, skip setting up a user.
+if db_get rescue/enable && [ "$RET" = true ]; then
+	exit 1
+fi
+
+exit 0

@@ -18,6 +18,7 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 import os
+
 import debconf
 
 from ubiquity import plugin
@@ -34,7 +35,7 @@ try:
     import lsb_release
     _ver = lsb_release.get_distro_information()['RELEASE']
 except:
-    _ver = '11.10'
+    _ver = '12.04'
 _wget_url = 'http://changelogs.ubuntu.com/ubiquity/%s-update-available' % _ver
 
 _release_notes_url_path = '/cdrom/.disk/release_notes_url'
@@ -128,6 +129,10 @@ class PageGtk(PageBase):
 
     @plugin.only_this_page
     def on_try_ubuntu_clicked(self, *args):
+        if not self.controller.allowed_change_step():
+            # The button's already been clicked once, so stop reacting to it.
+            # LP: #911907.
+            return
         # Spinning cursor.
         self.controller.allow_change_step(False)
         # Queue quit.
@@ -174,7 +179,7 @@ class PageGtk(PageBase):
             model = self.iconview.get_model()
             iterator = model.iter_children(None)
             while iterator is not None:
-                if model.get_value(iterator, 0).decode('utf-8') == language:
+                if misc.utf8(model.get_value(iterator, 0)) == language:
                     path = model.get_path(iterator)
                     self.iconview.select_path(path)
                     self.iconview.scroll_to_path(path, True, 0.5, 0.5)
@@ -184,14 +189,14 @@ class PageGtk(PageBase):
             model = self.treeview.get_model()
             iterator = model.iter_children(None)
             while iterator is not None:
-                if model.get_value(iterator, 0).decode('utf-8') == language:
+                if misc.utf8(model.get_value(iterator, 0)) == language:
                     path = model.get_path(iterator)
                     self.treeview.get_selection().select_path(path)
                     self.treeview.scroll_to_cell(
                         path, use_align=True, row_align=0.5)
                     break
                 iterator = model.iter_next(iterator)
-        
+
         if not self.only and 'UBIQUITY_GREETER' in os.environ:
             self.try_ubuntu.set_sensitive(True)
             self.install_ubuntu.set_sensitive(True)
@@ -210,7 +215,7 @@ class PageGtk(PageBase):
         if iterator is None:
             return None
         else:
-            value = model.get_value(iterator, 0).decode('utf-8')
+            value = misc.utf8(model.get_value(iterator, 0))
             return self.language_choice_map[value][1]
 
     def on_language_activated(self, *args, **kwargs):
@@ -221,7 +226,8 @@ class PageGtk(PageBase):
         self.controller.allow_go_forward(bool(lang))
         if not lang:
             return
-        misc.set_indicator_keymaps(lang)
+        if 'UBIQUITY_GREETER' in os.environ:
+            misc.set_indicator_keymaps(lang)
         # strip encoding; we use UTF-8 internally no matter what
         lang = lang.split('.')[0]
         self.controller.translate(lang)
@@ -344,6 +350,8 @@ class PageGtk(PageBase):
     def on_link_clicked(self, widget, uri):
         # Connected in glade.
         lang = self.get_language()
+        if not lang:
+            lang = 'C'
         lang = lang.split('.')[0] # strip encoding
         if uri == 'update':
             if not auto_update.update(self.controller._wizard):
@@ -382,7 +390,7 @@ class PageKde(PageBase):
             if not self.controller.oem_config:
                 self.page.oem_id_label.hide()
                 self.page.oem_id_entry.hide()
-            
+
             def inst(*args):
                 self.page.try_ubuntu.setEnabled(False)
                 self.controller.go_forward()
@@ -442,6 +450,10 @@ class PageKde(PageBase):
 
     @plugin.only_this_page
     def on_try_ubuntu_clicked(self, *args):
+        if not self.controller.allowed_change_step():
+            # The button's already been clicked once, so stop reacting to it.
+            # LP: #911907.
+            return
         # Spinning cursor.
         self.controller.allow_change_step(False)
         # Queue quit.
@@ -492,7 +504,7 @@ class PageKde(PageBase):
             self.combobox.addItem("C")
         else:
             self.combobox.setCurrentIndex(index)
-        
+
         if not self.only and 'UBIQUITY_GREETER' in os.environ:
             self.page.try_ubuntu.setEnabled(True)
             self.page.install_ubuntu.setEnabled(True)
@@ -528,7 +540,7 @@ class PageKde(PageBase):
                 text = text.replace('${MEDIUM}', install_medium)
                 text = text.replace('Ubuntu', 'Kubuntu')
                 widget.setText(text)
-                
+
         self.update_release_notes_label()
         for w in self.widgetHidden:
             w.show()

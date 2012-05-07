@@ -27,9 +27,16 @@ fi
 
 . /lib/partman/lib/base.sh
 
+gpt_efi_type=c12a7328-f81f-11d2-ba4b-00a0c93ec93b
+
 for dev in /var/lib/partman/devices/*; do
 	[ -d "$dev" ] || continue
 	cd $dev
+
+	open_dialog GET_LABEL_TYPE
+	read_line label_type
+	close_dialog
+
 	partitions=
 	open_dialog PARTITIONS
 	while { read_line num id size type fs path name; [ "$id" ]; }; do
@@ -37,6 +44,9 @@ for dev in /var/lib/partman/devices/*; do
 			partitions="$partitions $id"
 		elif [ "$fs" = fat32 ] && echo "$name" |
                      grep -i "^EFI System Partition" >/dev/null; then
+			partitions="$partitions $id"
+		elif [ "$label_type" = gpt ] && \
+		     [ "$(blkid -o value -s PART_ENTRY_TYPE -p "$path" 2>/dev/null)" = "$gpt_efi_type" ]; then
 			partitions="$partitions $id"
 		fi
 	done

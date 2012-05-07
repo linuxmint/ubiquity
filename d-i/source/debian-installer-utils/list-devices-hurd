@@ -36,19 +36,19 @@ is_cd() {
 	# FIXME: this also detect hard drives, but anyway the mount will
 	# later fail
 
-	echo "$1" | egrep -q '^/dev/hd[0-9]+$' || return 1
+	echo "$1" | egrep -q '^/dev/[sh]d[0-9]+$' || return 1
 	
 	is_cd_kernel "$1"
 }
 
 is_disk() {
-	echo "$1" | egrep -q '^/dev/hd[0-9]+$' || return 1
+	echo "$1" | egrep -q '^/dev/[sh]d[0-9]+$' || return 1
 	
 	! is_cd_kernel "$1"
 }
 
 is_partition() {
-	echo "$1" | egrep -q '^/dev/hd[0-9]+s[0-9]+$' || return 1
+	echo "$1" | egrep -q '^/dev/[sh]d[0-9]+s[0-9]+$' || return 1
 	
 	return 0
 }
@@ -60,7 +60,7 @@ is_floppy() {
 }
 
 # Loop through some /dev/ entries and test all the character ones
-for x in /dev/fd* /dev/hd* ; do
+for x in /dev/fd* /dev/hd* /dev/sd* ; do
 	[ -b "$x" ] || continue
 
 	if is_$TYPE "$x" ; then

@@ -26,12 +26,11 @@ import stat
 import subprocess
 import time
 import syslog
+import signal
+
 import debconf
-import warnings
-warnings.filterwarnings("ignore", "apt API not stable yet", FutureWarning)
 import apt_pkg
 from apt.cache import Cache
-import signal
 
 sys.path.insert(0, '/usr/lib/ubiquity')
 
@@ -77,19 +76,19 @@ class Install(install_misc.InstallBase):
             self.db.progress('INFO', 'ubiquity/install/blacklist')
             self.generate_blacklist()
 
-        apt_pkg.InitConfig()
-        apt_pkg.Config.set("Dir", self.target)
-        apt_pkg.Config.set("Dir::State::status",
+        apt_pkg.init_config()
+        apt_pkg.config.set("Dir", self.target)
+        apt_pkg.config.set("Dir::State::status",
                            os.path.join(self.target, 'var/lib/dpkg/status'))
-        apt_pkg.Config.set("APT::GPGV::TrustedKeyring",
+        apt_pkg.config.set("APT::GPGV::TrustedKeyring",
                            os.path.join(self.target, 'etc/apt/trusted.gpg'))
-        apt_pkg.Config.set("Acquire::gpgv::Options::",
+        apt_pkg.config.set("Acquire::gpgv::Options::",
                            "--ignore-time-conflict")
-        apt_pkg.Config.set("DPkg::Options::", "--root=%s" % self.target)
+        apt_pkg.config.set("DPkg::Options::", "--root=%s" % self.target)
         # We don't want apt-listchanges or dpkg-preconfigure, so just clear
         # out the list of pre-installation hooks.
-        apt_pkg.Config.clear("DPkg::Pre-Install-Pkgs")
-        apt_pkg.InitSystem()
+        apt_pkg.config.clear("DPkg::Pre-Install-Pkgs")
+        apt_pkg.init_system()
 
     def run(self):
         """Run the install stage: copy everything to the target system, then
@@ -153,7 +152,6 @@ class Install(install_misc.InstallBase):
                     sys.exit(3)
                 else:
                     raise
-        self.db.progress('INFO', 'ubiquity/install/waiting')
 
         if self.source == '/var/lib/ubiquity/source':
             self.umount_source()
@@ -268,7 +266,7 @@ class Install(install_misc.InstallBase):
             else:
                 keep.add('grub')
                 keep.add('grub-pc')
-        elif (arch == 'armel' and
+        elif (arch in ('armel', 'armhf') and
               subarch in ('dove', 'imx51', 'iop32x', 'ixp4xx', 'orion5x', 'omap')):
             keep.add('flash-kernel')
             if subarch == 'dove':
@@ -337,9 +335,25 @@ class Install(install_misc.InstallBase):
         self.db.progress('INFO', 'ubiquity/install/copying')
 
         fs_size = os.path.join(self.casper_path, 'filesystem.size')
-        assert os.path.exists(fs_size), "Missing filesystem.size."
-        with open(fs_size) as total_size_fp:
-            total_size = int(total_size_fp.readline())
+        if os.path.exists(fs_size):
+            with open(fs_size) as total_size_fp:
+                total_size = int(total_size_fp.readline())
+        else:
+            # Fallback in case an Ubuntu derivative forgets to put
+            # /casper/filesystem.size on the CD, or to account for things
+            # like CD->USB transformation tools that don't copy this file.
+            # This is slower than just reading the size from a file, but
+            # better than crashing.
+            #
+            # Obviously doing os.walk() twice is inefficient, but I'd rather
+            # not suck the list into ubiquity's memory, and I'm guessing
+            # that the kernel's dentry cache will avoid most of the slowness
+            # anyway.
+            total_size = 0
+            for dirpath, dirnames, filenames in os.walk(self.source):
+                for name in dirnames + filenames:
+                    fqpath = os.path.join(dirpath, name)
+                    total_size += os.lstat(fqpath).st_size
 
         # Progress bar handling:
         # We sample progress every half-second (assuming time.time() gives
@@ -384,28 +398,42 @@ class Install(install_misc.InstallBase):
             for name in dirnames + filenames:
                 relpath = os.path.join(sp, name)
                 # /etc/fstab was legitimately created by partman, and
-                # shouldn't be copied again.
-                if relpath == "etc/fstab":
+                # shouldn't be copied again.  Similarly, /etc/crypttab may
+                # have been legitimately created by the user-setup plugin.
+                if relpath in ("etc/fstab", "etc/crypttab"):
                     continue
                 sourcepath = os.path.join(self.source, relpath)
                 targetpath = os.path.join(self.target, relpath)
                 st = os.lstat(sourcepath)
+
+                # Is the path blacklisted?
+                if (not stat.S_ISDIR(st.st_mode) and
+                    '/%s' % relpath in self.blacklist):
+                    if debug:
+                        syslog.syslog('Not copying %s' % relpath)
+                    continue
+
+                # Remove the target if necessary and if we can.
+                install_misc.remove_target(
+                    self.source, self.target, relpath, st)
+
+                # Now actually copy source to target.
                 mode = stat.S_IMODE(st.st_mode)
                 if stat.S_ISLNK(st.st_mode):
-                    try:
-                        os.unlink(targetpath)
-                    except OSError, e:
-                        if e.errno == errno.ENOENT:
-                            pass
-                        elif e.errno == errno.EISDIR:
-                            os.rmdir(targetpath)
-                        else:
-                            raise
                     linkto = os.readlink(sourcepath)
                     os.symlink(linkto, targetpath)
                 elif stat.S_ISDIR(st.st_mode):
                     if not os.path.isdir(targetpath):
-                        os.mkdir(targetpath, mode)
+                        try:
+                            os.mkdir(targetpath, mode)
+                        except OSError, e:
+                            # there is a small window where update-apt-cache
+                            # can race with us since it creates
+                            # "/target/var/cache/apt/...". Hence, ignore
+                            # failure if the directory does now exist where
+                            # brief moments before it didn't.
+                            if e.errno != errno.EEXIST:
+                                raise
                 elif stat.S_ISCHR(st.st_mode):
                     os.mknod(targetpath, stat.S_IFCHR | mode, st.st_rdev)
                 elif stat.S_ISBLK(st.st_mode):
@@ -415,13 +443,9 @@ class Install(install_misc.InstallBase):
                 elif stat.S_ISSOCK(st.st_mode):
                     os.mknod(targetpath, stat.S_IFSOCK | mode)
                 elif stat.S_ISREG(st.st_mode):
-                    if '/%s' % relpath in self.blacklist:
-                        if debug:
-                            syslog.syslog('Not copying %s' % relpath)
-                        continue
-                    osextras.unlink_force(targetpath)
                     install_misc.copy_file(self.db, sourcepath, targetpath, md5_check)
 
+                # Copy metadata.
                 copied_size += st.st_size
                 os.lchown(targetpath, st.st_uid, st.st_gid)
                 if not stat.S_ISLNK(st.st_mode):
@@ -430,7 +454,11 @@ class Install(install_misc.InstallBase):
                     directory_times.append((targetpath, st.st_atime, st.st_mtime))
                 # os.utime() sets timestamp of target, not link
                 elif not stat.S_ISLNK(st.st_mode):
-                    os.utime(targetpath, (st.st_atime, st.st_mtime))
+                    try:
+                        os.utime(targetpath, (st.st_atime, st.st_mtime))
+                    except Exception:
+                        # We can live with timestamps being wrong.
+                        pass
 
                 if int((copied_size * 90) / total_size) != copy_progress:
                     copy_progress = int((copied_size * 90) / total_size)
@@ -460,7 +488,7 @@ class Install(install_misc.InstallBase):
             (directory, atime, mtime) = dirtime
             try:
                 os.utime(directory, (atime, mtime))
-            except OSError:
+            except Exception:
                 # I have no idea why I've been getting lots of bug reports
                 # about this failing, but I really don't care. Ignore it.
                 pass
@@ -486,7 +514,11 @@ class Install(install_misc.InstallBase):
             os.lchown(target_kernel, 0, 0)
             os.chmod(target_kernel, 0644)
             st = os.lstat(kernel)
-            os.utime(target_kernel, (st.st_atime, st.st_mtime))
+            try:
+                os.utime(target_kernel, (st.st_atime, st.st_mtime))
+            except Exception:
+                # We can live with timestamps being wrong.
+                pass
 
         os.umask(old_umask)
 
@@ -647,6 +679,7 @@ class Install(install_misc.InstallBase):
                     break
 
 if __name__ == '__main__':
+    os.environ['DPKG_UNTRANSLATED_MESSAGES'] = '1'
     if not os.path.exists('/var/lib/ubiquity'):
         os.makedirs('/var/lib/ubiquity')
     osextras.unlink_force('/var/lib/ubiquity/install.trace')

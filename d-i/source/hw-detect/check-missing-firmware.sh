@@ -2,7 +2,7 @@
 set -e
 . /usr/share/debconf/confmodule
 
-MISSING=/dev/.udev/firmware-missing
+MISSING='/dev/.udev/firmware-missing /run/udev/firmware-missing'
 DENIED=/tmp/missing-firmware-denied
 
 if [ "x$1" = "x-n" ]; then
@@ -10,6 +10,8 @@ if [ "x$1" = "x-n" ]; then
 else
 	NONINTERACTIVE=""
 fi
+
+IFACES="$@"
 
 log () {
 	logger -t check-missing-firmware "$@"
@@ -32,14 +34,48 @@ get_module () {
 	fi
 }
 
+# Some modules only try to load firmware once brought up. So bring up and
+# then down any interfaces specified by ethdetect.
+upnics() {
+	for iface in $IFACES; do
+		ip link set "$iface" up || true
+		ip link set "$iface" down || true
+	done
+}
+
+# Checks if a given module is a nic module and has an interface that
+# is up and has an IP address. Such modules should not be reloaded,
+# to avoid taking down the network after it's been configured.
+nic_is_configured() {
+	module="$1"
+
+	for iface in $(ip -o link show up | cut -d : -f 2); do
+		dir="/sys/class/net/$iface/device/driver"
+		if [ -e "$dir" ] && [ "$(basename "$(readlink "$dir")")" = "$module" ]; then
+			if ip address show scope global dev "$iface" | grep -q 'scope global'; then
+				return 0
+			fi
+		fi
+	done
+
+	return 1
+}
+
 check_missing () {
+	upnics
+
 	# Give modules some time to request firmware.
 	sleep 1
 	
 	modules=""
 	files=""
-	if [ -d "$MISSING" ]; then
-		for file in $(find $MISSING -type l); do
+	for missing_dir in $MISSING
+	do
+		if [ ! -d "$missing_dir" ]; then
+			log "$missing_dir does not exist, skipping"
+			continue
+		fi
+		for file in $(find $missing_dir -type l); do
 			# decode firmware filename as encoded by
 			# udev firmware.agent
 			fwfile="$(basename $file | sed -e 's#\\x2f#/#g')"
@@ -62,11 +98,24 @@ check_missing () {
 			if grep -q "^$fwfile$" $DENIED 2>/dev/null; then
 				continue
 			fi
-
-			modules="$module${modules:+ $modules}"
+			
 			files="$fwfile${files:+ $files}"
+
+			if [ "$module" = usbcore ]; then
+				# Special case for USB bus, which puts the
+				# real module information in a subdir of
+				# the devpath.
+				for dir in $(find "$devpath" -maxdepth 1 -mindepth 1 -type d); do
+					module=$(get_module "$dir")
+					if [ -n "$module" ]; then
+						modules="$module${modules:+ $modules}"
+					fi
+				done
+			else
+				modules="$module${modules:+ $modules}"
+			fi
 		done
-	fi
+	done
 
 	if [ -n "$modules" ]; then
 		log "missing firmware files ($files) for $modules"
@@ -221,10 +270,12 @@ while check_missing && ask_load_firmware; do
 	fi
 
 	# remove and reload modules so they see the new firmware
-	# Sort to only reload a given module once if it ask for more
+	# Sort to only reload a given module once if it asks for more
 	# than one firmware file (example iwlagn)
 	for module in $(echo $modules | tr " " "\n" | sort -u); do
-		modprobe -r $module || true
-		modprobe $module || true
+		if ! nic_is_configured $module; then
+			modprobe -r $module || true
+			modprobe $module || true
+		fi
 	done
 done

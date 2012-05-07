@@ -11,6 +11,13 @@ if [ "$(uname)" != Linux ]; then
 	exit 0
 fi
 
+# Install mmc modules if no other disks are found
+# (ex: embedded device with µSD storage)
+# TODO: more checks?
+if [ -z "$(list-devices disk)" ]; then
+	anna-install mmc-modules || true
+fi
+
 log () { 
 	logger -t disk-detect "$@"
 }
@@ -37,7 +44,7 @@ list_disk_modules() {
 }
 
 disk_found() {
-	for try in 1 2 3; do
+	for try in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
 		if search-path parted_devices; then
 			# Use partman's parted_devices if available.
 			if [ -n "$(parted_devices)" ]; then
@@ -52,7 +59,7 @@ disk_found() {
 		fi
 
 		# Wait for disk to be activated.
-		if [ "$try" != 3 ]; then
+		if [ "$try" != 15 ]; then
 			sleep 2
 		fi
 	done

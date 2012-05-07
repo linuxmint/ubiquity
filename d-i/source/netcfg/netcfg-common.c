@@ -1130,7 +1130,7 @@ void netcfg_write_common(const char *ipaddress, const char *hostname, const char
             else
                 fprintf(fp, "%s\t%s\n", ipaddress, hostname);
         } else {
-            if (!empty_str(domain_nodot))
+            if (domain_nodot && !empty_str(domain_nodot))
                 fprintf(fp, "127.0.1.1\t%s.%s\t%s\n", hostname, domain_nodot, hostname);
             else
                 fprintf(fp, "127.0.1.1\t%s\n", hostname);

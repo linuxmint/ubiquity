@@ -16,10 +16,11 @@ DISTRIBUTION=
 # used by kernel installation code
 KERNEL=
 KERNEL_LIST=/tmp/available_kernels.txt
-case `udpkg --print-os` in
-	linux)		KERNEL_MAJOR="$(uname -r | cut -d . -f 1,2)" ;;
+KERNEL_NAME=`udpkg --print-os`
+case $KERNEL_NAME in
+	linux)		KERNEL_MAJOR="$(uname -r | cut -d - -f 1 | cut -d . -f 1,2)" ;;
 	kfreebsd)	KERNEL_MAJOR="$(uname -r | cut -d . -f 1)" ;;
-	hurd)		KERNEL_MAJOR="$(uname -v | cut -d ' ' -f 2 | cut -d . -f 1)" ;;
+	hurd)		KERNEL_NAME=gnumach ; KERNEL_MAJOR="$(uname -v | cut -d ' ' -f 2 | cut -d . -f 1)" ;;
 esac
 KERNEL_VERSION="$(uname -r | cut -d - -f 1)"
 KERNEL_ABI="$(uname -r | cut -d - -f 1,2)"
@@ -344,7 +345,7 @@ kernel_update_list () {
 	(set +e;
 	# Hack to get the metapackages in the right order; should be
 	# replaced by something better at some point.
-	chroot /target apt-cache search ^linux- | grep '^linux-\(amd64\|686\|k7\|generic\|server\|virtual\|preempt\|rt\|xen\|power\|cell\|ia64\|sparc\|hppa\|imx51\|dove\|omap\|omap4\)';
+	chroot /target apt-cache search ^linux- | grep '^linux-\(amd64\|686\|k7\|generic\|server\|virtual\|preempt\|rt\|xen\|power\|cell\|ia64\|sparc\|hppa\|imx51\|dove\|omap\|omap4\|armadaxp\)';
 	chroot /target apt-cache search ^linux-image- | grep -v '^linux-image-[2-9]\.';
 	chroot /target apt-cache search '^linux-image-[2-9]\.' | sort -r;
 	chroot /target apt-cache search ^kfreebsd-image;
@@ -517,6 +518,10 @@ install_kernel_linux () {
 		do_initrd=yes
 	fi
 
+	if [ `archdetect` = mipsel/loongson-2f ]; then
+	    do_initrd=yes
+	fi
+
 	if db_get base-installer/kernel/linux/link_in_boot ; then
 		if [ "$RET" = "true" ]; then
 			link_in_boot=yes
@@ -545,25 +550,15 @@ do_initrd = $do_initrd
 link_in_boot = $link_in_boot
 EOF
 
-	# TODO This should probably be restructured to better support
-	#      differences between initrd generators
 	rd_generator=""
 	if [ "$do_initrd" = yes ]; then
-		if generators="$(available_initramfs_generators)"; then
-			if echo "$generators" | grep -q " "; then
-				rd_generator="$(select_initramfs_generator "$generators")"
-			else
-				rd_generator="$generators"
-			fi
-		fi
+		rd_generator=initramfs-tools
 
 		# initramfs-tools needs busybox-initramfs pre-installed (and
 		# only recommends it)
-		if [ "$rd_generator" = initramfs-tools ]; then
-			if ! log-output -t base-installer apt-install busybox-initramfs; then
-				db_subst base-installer/kernel/failed-package-install PACKAGE busybox-initramfs
-				exit_error base-installer/kernel/failed-package-install
-			fi
+		if ! log-output -t base-installer apt-install busybox-initramfs; then
+			db_subst base-installer/kernel/failed-package-install PACKAGE busybox-initramfs
+			exit_error base-installer/kernel/failed-package-install
 		fi
 
 		# Make sure the ramdisk creation tool is installed before we
@@ -575,52 +570,38 @@ EOF
 			exit_error base-installer/kernel/failed-package-install
 		fi
 
-		# Figure out how to configure the ramdisk creation tool
-		# FJP 20070306: Possibly this can go completely
-		case "$rd_generator" in
-		    initramfs-tools|yaird)
-			: ;;
-		    *)
-			db_subst base-installer/initramfs/unsupported GENERATOR "$rd_generator"
-			exit_error base-installer/initramfs/unsupported
-			;;
-		esac
-
 		# Add modules that have been queued for inclusion in the initrd
 		FIRSTMODULE=1
 		for QUEUEFILE in /var/lib/register-module/*.initrd; do
 			[ ! -e $QUEUEFILE ] && break
 			MODULE=$(basename $QUEUEFILE ".initrd")
 			addmodule_initramfs_tools "$MODULE" $FIRSTMODULE
-			addmodule_yaird "$MODULE" $FIRSTMODULE
 			rm $QUEUEFILE
 			FIRSTMODULE=0
 		done
 
 		# Select and set driver inclusion policy for initramfs-tools
-		if [ "$rd_generator" = initramfs-tools ]; then
-			if db_get base-installer/initramfs-tools/driver-policy && \
-			   [ -z "$RET" ]; then
-				# Get default for architecture
-				db_get base-installer/kernel/linux/initramfs-tools/driver-policy
-				db_set base-installer/initramfs-tools/driver-policy "$RET"
-			fi
-			db_settitle debian-installer/bootstrap-base/title
-			db_input medium base-installer/initramfs-tools/driver-policy || true
-			if ! db_go; then
-				db_progress stop
-				exit 10
-			fi
+		if db_get base-installer/initramfs-tools/driver-policy && \
+		   [ -z "$RET" ]; then
+			# Get default for architecture
+			db_get base-installer/kernel/linux/initramfs-tools/driver-policy
+			db_set base-installer/initramfs-tools/driver-policy "$RET"
+		fi
+		db_settitle debian-installer/bootstrap-base/title
+		db_input medium base-installer/initramfs-tools/driver-policy || true
+		if ! db_go; then
+			db_progress stop
+			exit 10
+		fi
 
-			db_get base-installer/initramfs-tools/driver-policy
-			if [ "$RET" != most ]; then
-				cat > $IT_CONFDIR/driver-policy <<EOF
+		db_get base-installer/initramfs-tools/driver-policy
+		if [ "$RET" != most ]; then
+			cat > $IT_CONFDIR/driver-policy <<EOF
 # Driver inclusion policy selected during installation
 # Note: this setting overrides the value set in the file
 # /etc/initramfs-tools/initramfs.conf
 MODULES=$RET
 EOF
-			fi
 		fi
 	else
 		info "Not installing an initrd generator."
@@ -759,43 +740,6 @@ get_resume_partition () {
 	echo "$biggest_partition"
 }
 
-available_initramfs_generators () {
-	irf_list=""
-	db_get base-installer/kernel/linux/initramfs-generators || return 1
-
-	for irf in $RET; do
-		if LANG=C chroot /target apt-cache policy $irf 2>&1 | \
-			grep "Candidate:" | grep -v "(none)" >/dev/null 2>&1; then
-			if [ "$irf_list" ]; then
-				irf_list="$irf_list $irf"
-			else
-				irf_list="$irf"
-			fi
-		fi
-	done
-	info "Available initramfs generator(s): '$irf_list'"
-
-	[ "$irf_list" ] || return 1
-	echo "$irf_list"
-	return 0
-}
-
-select_initramfs_generator () {
-	irf_choices="$(echo "$1" | sed "s/ \+/, /g")"
-	irf_default="${1%% *}"
-	db_subst base-installer/initramfs/generator GENERATORS "$irf_choices"
-	db_set base-installer/initramfs/generator "$irf_default"
-
-	db_input low base-installer/initramfs/generator || [ $? -eq 30 ]
-	if ! db_go; then
-		db_progress stop
-		exit 10
-	fi
-
-	db_get base-installer/initramfs/generator
-	echo $RET
-}
-
 addmodule_easy () {
 	if [ -f "$CFILE" ]; then
 		if [ "$2" = 1 ]; then
@@ -808,16 +752,6 @@ addmodule_easy () {
 addmodule_initramfs_tools () {
 	CFILE='/target/etc/initramfs-tools/modules'
 	addmodule_easy "$1" "$2"
-}
-
-addmodule_yaird () {
-	CFILE='/target/etc/yaird/Default.cfg'
-	if [ -f "$CFILE" ]; then
-		if [ "$2" = 1 ]; then
-			sed -i "/END GOALS/s/^/\n\t\t#\n\t\t# Added by Debian Installer\n/" $CFILE
-		fi
-		sed -i "/END GOALS/s/^/\t\tMODULE $1\n/" $CFILE
-	fi
 }
 
 install_kernel_kfreebsd() {
@@ -934,7 +868,7 @@ configure_apt () {
 			fi
 			;;
 			hurd)
-			if ! mount -t firmlink $DIRECTORY $tdir ; then
+			if ! mount -t firmlink $DIRECTORY $tdir > /dev/null 2>&1 ; then
 				warning "failed to bind mount $tdir"
 			fi
 			;;
@@ -947,7 +881,7 @@ configure_apt () {
 		cat > $APT_CONFDIR/00CDMountPoint << EOT
 Acquire::cdrom {
   mount "/media/cdrom";
-}
+};
 Dir::Media::MountPath "/media/cdrom";
 EOT
 		# Make apt-cdrom and apt not unmount/mount CD-ROMs;

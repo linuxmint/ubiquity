@@ -1,3 +1,412 @@
+user-setup (1.42ubuntu3) precise; urgency=low
+
+  * user-setup-apply:
+    - Revert the change from 1.42ubuntu2.  We'll handle this in ubiquity
+      instead; in d-i, it seems to be too difficult to get right without the
+      aid of script libraries from cryptsetup.
+    - If OVERRIDE_ALREADY_ENCRYPTED_SWAP is set in the environment, assume
+      that encrypted swap has already been set up rather than re-creating
+      and re-zeroing swap (LP: #979350).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 19 Apr 2012 02:46:54 +0100
+
+user-setup (1.42ubuntu2) precise; urgency=low
+
+  * user-setup-apply: After zeroing to-be-encrypted swap devices, attempt to
+    format and enable the encrypted device (may help slightly with LP
+    #979350, and in any event should make things faster on systems that
+    don't run out of memory).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 18 Apr 2012 17:37:32 +0100
+
+user-setup (1.42ubuntu1) precise; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Add the initial user to the adm, lpadmin, and sambashare groups too.
+      Do not add them to the audio, video, floppy, netdev, powerdev,
+      scanner, or bluetooth groups.
+    - Default passwd/root-login to false.
+    - Create the spu group on powerpc/ps3 and powerpc/cell.
+    - Make is_system_user always return false if OVERRIDE_SYSTEM_USER is
+      set.
+    - Add preseedable passwd/auto-login question; if set to true, configure
+      gdm, kdm, lxdm, and lightdm for automatic login.  Add
+      passwd/auto-login-backup question which backs up the previous contents
+      of the files as well.
+    - Ask whether the user wants to encrypt their home directory.
+    - Allow forcing the encrypted home option.
+    - If a user requests an encrypted-home, we must have their login
+      passphrase, in order to wrap their mount passphrase; it's
+      fundamentally incompatible to preseed encrypted-home AND a crypted
+      password; if this happens, send the user back to password selection.
+    - Zero out swap devices at the end of install when encryption is
+      enabled.
+    - Provide a progress message for wiping swap space.
+    - If user-setup/allow-password-empty is preseeded to true, allow empty
+      passwords.
+    - Disable installation of pre-pkgsel.d/10kdesudo; it does nothing for
+      Ubuntu, and causes a confusing message that worries some people.
+    - Add weak password detection (purely length-based for now, matching
+      partman-crypto).
+    - Consider a password of '!' in shadow for root to be unset.
+    - Don't restrict guest login from login screen if autologin was
+      configured, just restrict autologin for guest specifically.
+  * Update Ubuntu-specific translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 11 Apr 2012 16:46:59 +0100
+
+user-setup (1.42) unstable; urgency=low
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Ayesha Akhtar
+  * Norwegian Bokmal (nb.po) by Hans Fredrik Nordhaug
+  * Telugu (te.po) by Arjuna Rao Chavala
+
+ -- Otavio Salvador <otavio@debian.org>  Thu, 15 Mar 2012 15:29:21 -0300
+
+user-setup (1.41ubuntu1) precise; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Add the initial user to the adm, lpadmin, and sambashare groups too.
+      Do not add them to the audio, video, floppy, netdev, powerdev,
+      scanner, or bluetooth groups.
+    - Default passwd/root-login to false.
+    - Create the spu group on powerpc/ps3 and powerpc/cell.
+    - Make is_system_user always return false if OVERRIDE_SYSTEM_USER is
+      set.
+    - Add preseedable passwd/auto-login question; if set to true, configure
+      gdm, kdm, lxdm, and lightdm for automatic login.  Add
+      passwd/auto-login-backup question which backs up the previous contents
+      of the files as well.
+    - Ask whether the user wants to encrypt their home directory.
+    - Allow forcing the encrypted home option.
+    - If a user requests an encrypted-home, we must have their login
+      passphrase, in order to wrap their mount passphrase; it's
+      fundamentally incompatible to preseed encrypted-home AND a crypted
+      password; if this happens, send the user back to password selection.
+    - Zero out swap devices at the end of install when encryption is
+      enabled.
+    - Provide a progress message for wiping swap space.
+    - If user-setup/allow-password-empty is preseeded to true, allow empty
+      passwords.
+    - Disable installation of pre-pkgsel.d/10kdesudo; it does nothing for
+      Ubuntu, and causes a confusing message that worries some people.
+    - Add weak password detection (purely length-based for now, matching
+      partman-crypto).
+    - Consider a password of '!' in shadow for root to be unset.
+    - Don't restrict guest login from login screen if autologin was
+      configured, just restrict autologin for guest specifically.
+  * Update Ubuntu-specific translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 13 Mar 2012 12:36:20 +0000
+
+user-setup (1.41) unstable; urgency=low
+
+  * Check that usernames are no more than 32 characters long (closes:
+    #571750).
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama Khayat
+  * Asturian (ast.po) by Mikel González
+  * Belarusian (be.po) by Viktar Siarheichyk
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bosnian (bs.po) by Armin Besirovic
+  * Catalan (ca.po) by Jordi Mallach
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Joe Hansen
+  * German (de.po) by Holger Wansing
+  * Greek, Modern (1453-) (el.po)
+  * Esperanto (eo.po) by Felipe Castro
+  * Spanish (es.po) by Javier Fernández-Sanguino
+  * Estonian (et.po) by Mattias Põldaru
+  * Persian (fa.po) by Hamid
+  * French (fr.po) by Christian Perrier
+  * Hindi (hi.po) by Kumar Appaiah
+  * Indonesian (id.po) by Mahyuddin Susanto
+  * Icelandic (is.po) by Sveinn í Felli
+  * Italian (it.po) by Milo Casagrande
+  * Japanese (ja.po) by Kenshi Muto
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Kannada (kn.po) by Prabodh C P
+  * Korean (ko.po) by Changwoo Ryu
+  * Marathi (mr.po) by sampada
+  * Dutch (nl.po) by Jeroen Schot
+  * Polish (pl.po) by Marcin Owsiany
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Russian (ru.po) by Yuri Kozlov
+  * Sinhala (si.po) by Danishka Navin
+  * Slovak (sk.po) by Ivan Masár
+  * Serbian (sr.po) by Karolina Kalic
+  * Swedish (sv.po) by Martin Bagge / brother
+  * Thai (th.po) by Kiatkachorn Ratanatharathorn
+  * Turkish (tr.po) by Mert Dirik
+  * Uyghur (ug.po) by Sahran
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+
+ -- Colin Watson <cjwatson@debian.org>  Wed, 07 Mar 2012 23:56:11 +0000
+
+user-setup (1.40) unstable; urgency=low
+
+  [ Christian Perrier ]
+  * Fix typo in German translation. Closes: #633553
+
+  [ Joey Hess ]
+  * Add first user to debian-tor group, which will allow vidalia to be used
+    to control tor.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Viktar Siarheichyk
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * German (de.po) by Holger Wansing
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Kumar Appaiah
+  * Italian (it.po) by Milo Casagrande
+  * Kannada (kn.po) by vignesh prabhu
+  * Macedonian (mk.po) by Arangel Angov
+  * Polish (pl.po) by Marcin Owsiany
+  * Romanian (ro.po) by Ioan Eugen Stan
+  * Sinhala (si.po) by Danishka Navin
+  * Turkish (tr.po) by Mert Dirik
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+
+ -- Otavio Salvador <otavio@debian.org>  Sat, 19 Nov 2011 16:21:23 -0200
+
+user-setup (1.39ubuntu2) precise; urgency=low
+
+  * apt-install ecryptfs-utils and cryptsetup in user-setup-apply, not
+    user-setup-ask (LP: #893014).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 21 Nov 2011 15:54:19 +0000
+
+user-setup (1.39ubuntu1) precise; urgency=low
+
+  * Merge from Debian testing, remaining changes:
+    - Add the initial user to the adm, lpadmin, and sambashare groups
+      too. Do not add them to the audio, video, floppy, netdev, powerdev,
+      scanner, or bluetooth groups.
+    - Default passwd/root-login to false.
+    - Create the spu group on powerpc/ps3 and powerpc/cell.
+    - Make is_system_user always return false if OVERRIDE_SYSTEM_USER is
+      set.
+    - Add preseedable passwd/auto-login question; if set to true, configure
+      gdm, kdm, lxdm, and lightdm for automatic login. Add
+      passwd/auto-login-backup question which backs up the previous contents
+      of the files as well.
+    - Ask whether the user wants to encrypt their home directory.
+    - Allow forcing the encrypted home option.
+    - user-setup-ask: if a user requests an encrypted-home, we must have
+      their login passphrase, in order to wrap their mount passphrase; its
+      fundamentally incompatible to preseed encrypted-home AND a crypted
+      password; if this happens, send the user back to the password
+      selection in the user-setup state machine
+    - Zero out swap devices at the end of install when encryption is
+      enabled.
+    - Provide a progress message for wiping swap space.
+    - If user-setup/allow-password-empty is preseeded to true, allow empty
+      passwords.
+    - Disable installation of pre-pkgsel.d/10kdesudo; it does nothing for
+      Ubuntu, and causes a confusing message that worries some people.
+    - Add weak password detection (purely length-based for now, matching
+      partman-crypto).
+    - Consider a password of '!' in shadow for root to be unset.
+    - Update Ubuntu-specific translations from Launchpad.
+    - Don't restrict guest login from login screen if autologin was configured, 
+      just restrict autologin for guest specifically.
+  * Dropped changes:
+    - Add the initial user to the dip group after all, not dialout; per
+      Debian bug #568895, dip is for pppd and dialout is for raw tty access
+      which users don't need.
+    - Don't set up the admin group or add the user to it; the sudo package
+      now always sets up the sudo group on install, so we can as well use
+      this group as the admin group.  This will be inconsistent with
+      previous Ubuntu releases, but consistent with Debian and compatible
+      with sudo.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Tue, 08 Nov 2011 05:45:11 +0000
+
+user-setup (1.39) unstable; urgency=low
+
+  * Bump Standards to 3.9.2
+  
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Czech (cs.po) by Miroslav Kure
+  * Esperanto (eo.po) by Felipe Castro
+  * Spanish (es.po) by Javier Fernández-Sanguino
+  * Korean (ko.po) by Changwoo Ryu
+  * Romanian (ro.po) by Eddy Petrișor
+  * Russian (ru.po) by Yuri Kozlov
+  * Northern Sami (se.po) by Børre Gaup
+  * Slovak (sk.po) by Ivan Masár
+  * Swedish (sv.po) by Daniel Nylander
+  * Telugu (te.po) by Arjuna Rao Chavala
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Uyghur (ug.po) by Sahran
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 24 Apr 2011 08:57:14 +0200
+
+user-setup (1.38) unstable; urgency=low
+
+  [ Updated translations ]
+  * Russian (ru.po) by Yuri Kozlov
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 30 Dec 2010 12:05:54 +0100
+
+user-setup (1.37) unstable; urgency=low
+
+  [ Updated translations ]
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Lao (lo.po) by Anousak Souphavanh
+  * Northern Sami (se.po) by Børre Gaup
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 24 Dec 2010 21:08:07 -0200
+
+user-setup (1.36) unstable; urgency=low
+
+  [ Otavio Salvador ]
+  * Configure aptitude to use sudo if possible. Thanks to Mehdi Dogguy
+    by reporting it.
+
+  [ Updated translations ]
+  * Sinhala (si.po) by Danishka Navin
+  * Slovenian (sl.po) by Vanja Cvelbar
+
+ -- Otavio Salvador <otavio@debian.org>  Wed, 24 Nov 2010 09:55:39 -0200
+
+user-setup (1.35) unstable; urgency=low
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Israt Jahan
+  * Icelandic (is.po) by Sveinn í Felli
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 12 Nov 2010 16:34:00 -0200
+
+user-setup (1.34) unstable; urgency=low
+
+  * Add the newly created user to the sudo group if root is disabled
+    to be inline with introduction of the sudo group in sudo
+    1.7.2-2. Closes: #597239
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 19 Sep 2010 08:58:26 +0200
+
+user-setup (1.33) unstable; urgency=low
+
+  * Drop Serbian Latin translation until issues related to debconf
+    have been solved. Closes: #591630
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 05 Aug 2010 14:11:59 +0200
+
+user-setup (1.32) unstable; urgency=low
+
+  [ Christian Perrier ]
+  * Extend the existing system user check to UIDs from 1000 to 59999
+    as per Policy 3.9.0.0. Thanks to Kazuhiro NISHIYAMA for reporting
+    Closes: #590489
+
+  [ Colin Watson ]
+  * Skip user-setup questions in rescue mode.
+
+  [ Updated translations ]
+  * Panjabi (pa.po) by A S Alam
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Serbian Latin (sr@latin.po) by Karolina Kalic
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 03 Aug 2010 08:24:00 +0100
+
+user-setup (1.31) unstable; urgency=low
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Viktar Siarheichyk
+  * Bosnian (bs.po) by Armin Beširović
+  * Dzongkha (dz.po) by Jurmey Rabgay
+  * Persian (fa.po) by acathur
+  * Croatian (hr.po) by Josip Rodin
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Central Khmer (km.po) by Khoem Sokhem
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Macedonian (mk.po) by Arangel Angov
+  * Malayalam (ml.po) by Praveen Arimbrathodiyil
+  * Nepali (ne.po)
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Tagalog (tl.po) by Eric Pareja
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 11 Jul 2010 18:19:09 +0200
+
+user-setup (1.30) unstable; urgency=low
+
+  [ Petter Reinholdtsen ]
+  * Move main-menu item before partitioning and installation of the base
+    system, to get more questions earlier during installation.
+
+  [ Updated translations ]
+  * Asturian (ast.po) by Iñigo Varela
+  * Catalan (ca.po) by Jordi Mallach
+  * Danish (da.po) by Jacob Sparre Andersen
+  * German (de.po) by Holger Wansing
+  * French (fr.po) by Christian Perrier
+  * Hebrew (he.po) by Omer Zak
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Norwegian Nynorsk (nn.po) by Eirik U. Birkeland
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Romanian (ro.po) by ioan-eugen stan
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Tamil (ta.po) by Dr,T,Vasudevan
+
+ -- Petter Reinholdtsen <pere@debian.org>  Mon, 14 Jun 2010 00:08:14 +0200
+
+user-setup (1.29) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Upgrade to debhelper v7.
+
+  [ Frans Pop ]
+  * Add first user to group dip instead of dialout (see #568895; with thanks
+    to Marco d'Itri).
+
+  [ Updated translations ]
+  * Amharic (am.po) by Tegegne Tefera
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Asturian (ast.po) by astur
+  * Belarusian (be.po) by Pavel Piatruk
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bengali (bn.po) by Israt Jahan
+  * Danish (da.po) by Ask Hjorth Larsen
+  * German (de.po) by Holger Wansing
+  * Greek, Modern (1453-) (el.po) by Emmanuel Galatoulas
+  * Estonian (et.po) by Mattias Põldaru
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Marce Villarino
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Italian (it.po) by Milo Casagrande
+  * Japanese (ja.po) by Kenshi Muto
+  * Korean (ko.po) by Changwoo Ryu
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Dutch (nl.po) by Frans Pop
+  * Panjabi (pa.po) by A S Alam
+  * Polish (pl.po) by Bartosz Fenski
+  * Romanian (ro.po) by Eddy Petrișor
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Simplified Chinese (zh_CN.po) by 苏运强
+
+ -- Otavio Salvador <otavio@debian.org>  Sun, 21 Feb 2010 23:56:30 -0300
+
+user-setup (1.28ubuntu21) UNRELEASED; urgency=low
+
+  [ Dustin Kirkland ]
+  * user-setup-ask: LP: #882314
+    - if a user requests an encrypted-home, we must have their login
+      passphrase, in order to wrap their mount passphrase; its fundamentally
+      incompatible to preseed encrypted-home AND a crypted password; if this
+      happens, send the user back to the password selection in the user-setup
+      state machine
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Fri, 28 Oct 2011 16:22:26 -0500
+
 user-setup (1.28ubuntu20) oneiric; urgency=low
 
   * In the oem-config scenario, just sed out the oem user for the correct user
@@ -268,11 +677,11 @@ user-setup (1.27ubuntu1) karmic; urgency=low
 
 user-setup (1.27) unstable; urgency=low
 
-  [ Updated translations ]                                                                                   
-  * Czech (cs.po) by Miroslav Kure                                                                           
-  * Basque (eu.po) by pi                                                                                     
-  * Finnish (fi.po) by Esko Arajärvi                                                                         
-  * Simplified Chinese (zh_CN.po) by Deng Xiyue                                                              
+  [ Updated translations ]
+  * Czech (cs.po) by Miroslav Kure
+  * Basque (eu.po) by pi
+  * Finnish (fi.po) by Esko Arajärvi
+  * Simplified Chinese (zh_CN.po) by Deng Xiyue
 
  -- Christian Perrier <bubulle@debian.org>  Sun, 14 Jun 2009 19:26:17 +0200
 

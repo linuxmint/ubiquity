@@ -31,6 +31,7 @@ import os
 import subprocess
 import signal
 import shlex
+
 from ubiquity import misc
 
 def get_language():

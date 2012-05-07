@@ -1,3 +1,59 @@
+partman-efi (25ubuntu1) precise; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Automatically use existing EFI system partitions on Intel Macs as EFI
+      boot partitions.
+    - Create fat32 EFI partitions with the name "EFI System Partition" by
+      default on Intel Macs.
+    - choose_method/efi/do_option: Make sure no mountpoint is set.
+    - Remove efi-modules dependency; it seems to be built into Ubuntu
+      kernels now.
+    - Require partman-base >= 129 to support a null value for the name.
+    - Automatically mount the first method=efi filesystem we see on
+      /boot/efi.
+    - On x86 architectures, create EFI system partitions using FAT32 rather
+      than FAT16, and require newly-created ones to have a minimum size of
+      34091008 bytes.
+    - Never format EFI system partitions that already contain a filesystem.
+  * Detect existing EFI system partitions more reliably on GPT partition
+    tables (LP: #972122, #900245).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 11 Apr 2012 15:06:07 +0100
+
+partman-efi (25) unstable; urgency=low
+
+  [ Updated translations ]
+  * Asturian (ast.po) by Mikel González
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * German (de.po) by Holger Wansing
+  * Dzongkha (dz.po) by Jurmey Rabgay
+  * Estonian (et.po) by Mattias Põldaru
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Kumar Appaiah
+  * Indonesian (id.po) by Mahyuddin Susanto
+  * Icelandic (is.po) by Sveinn í Felli
+  * Italian (it.po) by Milo Casagrande
+  * Kannada (kn.po) by vignesh prabhu
+  * Macedonian (mk.po) by Arangel Angov
+  * Polish (pl.po) by Marcin Owsiany
+  * Romanian (ro.po) by Ioan Eugen Stan
+  * Sinhala (si.po)
+  * Ukrainian (uk.po) by Borys Yanovych
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+
+ -- Otavio Salvador <otavio@debian.org>  Thu, 15 Mar 2012 15:01:44 -0300
+
+partman-efi (24ubuntu3) precise; urgency=low
+
+  * On x86 architectures, create EFI system partitions using FAT32 rather
+    than FAT16, and require newly-created ones to have a minimum size of
+    34091008 bytes, experimentally verified as the minimum libparted will
+    accept (LP: #811485).
+  * Never format EFI system partitions that already contain a filesystem
+    (LP: #769669).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 14 Mar 2012 14:31:13 +0000
+
 partman-efi (24ubuntu2) oneiric; urgency=low
 
   * Be case insensitive on matching the name EFI System Partition when 

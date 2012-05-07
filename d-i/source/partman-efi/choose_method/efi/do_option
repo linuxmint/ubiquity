@@ -6,7 +6,13 @@ id=$3
 mkdir -p $dev/$id
 
 echo efi >$dev/$id/method
->$dev/$id/format
+# See comment in commit.d/format_efi.  We check again here to make the
+# confirm-changes screen less scary.
+if [ -f $dev/$id/detected_filesystem ]; then
+	rm -f $dev/$id/format
+else
+	>$dev/$id/format
+fi
 >$dev/$id/bootable
 >$dev/$id/efi_bootable
 

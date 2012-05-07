@@ -1,9 +1,10 @@
 # -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
+import os
+
 from PyQt4 import QtCore
 
 from ubiquity import i18n
-import os
 
 def get_string(name, lang=None, prefix=None):
     """Get the string name in the given lang or a default."""

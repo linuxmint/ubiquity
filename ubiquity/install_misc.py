@@ -21,22 +21,26 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-import subprocess
+import errno
+import fcntl
+import hashlib
 import os
-import debconf
-from ubiquity import misc
-from ubiquity import osextras
 import re
 import shutil
-
-from apt.progress.text import AcquireProgress
-from apt.progress.base import InstallProgress
-import traceback
-import syslog
-import fcntl
+import stat
+import subprocess
 import sys
+import syslog
+import traceback
+
 from apt.cache import Cache
-from hashlib import md5
+from apt.progress.base import InstallProgress
+from apt.progress.text import AcquireProgress
+import apt_pkg
+import debconf
+
+from ubiquity import misc
+from ubiquity import osextras
 
 def debconf_disconnect():
     """Disconnect from debconf. This is only to be used as a subprocess
@@ -558,7 +562,7 @@ def get_remove_list(cache, to_remove, recursive=False):
             if cachedpkg is not None and cachedpkg.is_installed:
                 apt_error = False
                 try:
-                    cachedpkg.mark_delete(autoFix=False, purge=True)
+                    cachedpkg.mark_delete(auto_fix=False, purge=True)
                 except SystemError:
                     apt_error = True
                 if apt_error:
@@ -578,8 +582,8 @@ def get_remove_list(cache, to_remove, recursive=False):
                             if cachedpkg2 is not None:
                                 broken_removed_inner.add(pkg2)
                                 try:
-                                    cachedpkg2.mark_delete(autoFix=False,
-                                                          purge=True)
+                                    cachedpkg2.mark_delete(auto_fix=False,
+                                                           purge=True)
                                 except SystemError:
                                     apt_error = True
                                     break
@@ -605,6 +609,78 @@ def get_remove_list(cache, to_remove, recursive=False):
         all_removed |= removed
     return all_removed
 
+def remove_target(source_root, target_root, relpath, st_source):
+    """Remove a target file if necessary and if we can.
+
+    On the whole, we can assume that partman-target has arranged to clear
+    out the areas of the filesystem we're installing to.  However, in edge
+    cases it's possible that there is still some detritus left over, and we
+    want to steer a reasonable course between cavalierly destroying data and
+    crashing.  So, we remove non-directories and empty directories that are
+    in our way, but if a non-empty directory is in our way then we move it
+    aside (adding .bak suffixes until we find something unused) instead.
+    """
+    targetpath = os.path.join(target_root, relpath)
+    try:
+        st_target = os.lstat(targetpath)
+    except OSError:
+        # The target does not exist.  Boring.
+        return
+
+    if stat.S_ISDIR(st_source.st_mode) and stat.S_ISDIR(st_target.st_mode):
+        # One directory is as good as another, so we don't need to remove an
+        # existing directory just in order to create another one.
+        return
+
+    if not stat.S_ISDIR(st_target.st_mode):
+        # Installing over a non-directory is easy; just remove it.
+        osextras.unlink_force(targetpath)
+        return
+
+    try:
+        # Is it an empty directory?  That's easy too.
+        os.rmdir(targetpath)
+        return
+    except OSError, e:
+        if e.errno not in (errno.ENOTEMPTY, errno.EEXIST):
+            raise
+
+    # If we've got this far, then we must be trying to install a
+    # non-directory over an existing non-empty directory.  The slightly
+    # easier case is if it's a symlink, and if the prospective symlink
+    # target hasn't been copied yet or is empty; in that case, we should try
+    # to move the existing directory to the symlink target.
+    if stat.S_ISLNK(st_source.st_mode):
+        sourcepath = os.path.join(source_root, relpath)
+        linkto = os.path.join(
+            os.path.dirname(relpath), os.readlink(sourcepath))
+        if linkto.startswith('/'):
+            linkto = linkto[1:]
+        linktarget = os.path.join(target_root, linkto)
+        try:
+            os.rmdir(linktarget)
+        except OSError:
+            pass
+        if not os.path.exists(linktarget):
+            try:
+                os.makedirs(os.path.dirname(linktarget))
+            except OSError, e:
+                if e.errno != errno.EEXIST:
+                    raise
+            shutil.move(targetpath, linktarget)
+            return
+
+    # We're installing a non-directory over an existing non-empty directory,
+    # and we have no better strategy.  Move the existing directory to a
+    # backup location.
+    backuppath = targetpath + '.bak'
+    while True:
+        if not os.path.exists(backuppath):
+            os.rename(targetpath, backuppath)
+            break
+        else:
+            backuppath = backuppath + '.bak'
+
 def copy_file(db, sourcepath, targetpath, md5_check):
     sourcefh = None
     targetfh = None
@@ -613,7 +689,7 @@ def copy_file(db, sourcepath, targetpath, md5_check):
             sourcefh = open(sourcepath, 'rb')
             targetfh = open(targetpath, 'wb')
             if md5_check:
-                sourcehash = md5()
+                sourcehash = hashlib.md5()
             while 1:
                 buf = sourcefh.read(16 * 1024)
                 if not buf:
@@ -627,7 +703,7 @@ def copy_file(db, sourcepath, targetpath, md5_check):
             targetfh.close()
             targetfh = open(targetpath, 'rb')
             if md5_check:
-                targethash = md5()
+                targethash = hashlib.md5()
             while 1:
                 buf = targetfh.read(16 * 1024)
                 if not buf:
@@ -688,6 +764,75 @@ class InstallBase:
                              'ubiquity/install/title')
             self.db.progress('SET', self.prev_count)
 
+    def commit_with_verify(self, cache, fetch_progress, install_progress):
+        # Hack around occasional undetected download errors in apt by doing
+        # our own verification pass at the end.  See
+        # https://bugs.launchpad.net/bugs/922949.  Unfortunately this means
+        # clone-and-hacking most of cache.commit ...
+        pm = apt_pkg.PackageManager(cache._depcache)
+        fetcher = apt_pkg.Acquire(fetch_progress)
+        while True:
+            # fetch archives first
+            res = cache._fetch_archives(fetcher, pm)
+
+            # manually verify all the downloads
+            syslog.syslog('Verifying downloads ...')
+            for item in fetcher.items:
+                with open(item.destfile) as destfile:
+                    st = os.fstat(destfile.fileno())
+                    if st.st_size != item.filesize:
+                        osextras.unlink_force(item.destfile)
+                        raise IOError(
+                            "%s size mismatch: %ld != %ld" %
+                            (item.destfile, st.st_size, item.filesize))
+
+                    # Mapping back to the package object is an utter pain.
+                    # If we fail to find one, it's entirely possible it's a
+                    # programming error and not a download error, so skip
+                    # verification in such cases rather than failing.
+                    destfile_base = os.path.basename(item.destfile)
+                    try:
+                        name, version, arch = destfile_base.split('_')
+                        version = version.replace('%3a', ':')
+                        arch = arch.split('.')[0]
+                        if arch == 'all':
+                            fullname = name
+                        else:
+                            fullname = '%s:%s' % (name, arch)
+                        candidate = cache[fullname].versions[version]
+                    except (KeyError, ValueError), e:
+                        syslog.syslog(
+                            'Failed to find package object for %s: %s' %
+                            (item.destfile, e))
+                        continue
+
+                    if candidate.sha256 is not None:
+                        sha256 = hashlib.sha256()
+                        for chunk in iter(lambda: destfile.read(16384), b''):
+                            sha256.update(chunk)
+                        if sha256.hexdigest() != candidate.sha256:
+                            osextras.unlink_force(item.destfile)
+                            raise IOError(
+                                "%s SHA256 checksum mismatch: %s != %s" %
+                                (item.destfile, sha256.hexdigest(),
+                                 candidate.sha256))
+            syslog.syslog('Downloads verified successfully')
+
+            # then install
+            res = cache.install_archives(pm, install_progress)
+            if res == pm.RESULT_COMPLETED:
+                break
+            elif res == pm.RESULT_FAILED:
+                raise SystemError("installArchives() failed")
+            elif res == pm.RESULT_INCOMPLETE:
+                pass
+            else:
+                raise SystemError("internal-error: unknown result code "
+                                  "from InstallArchives: %s" % res)
+            # reload the fetcher for media swapping
+            fetcher.shutdown()
+        return (res == pm.RESULT_COMPLETED)
+
     def do_install(self, to_install, langpacks=False):
         self.nested_progress_start()
 
@@ -736,7 +881,8 @@ class InstallBase:
         commit_error = None
         try:
             try:
-                if not cache.commit(fetchprogress, installprogress):
+                if not self.commit_with_verify(cache,
+                                               fetchprogress, installprogress):
                     fetchprogress.stop()
                     installprogress.finishUpdate()
                     self.db.progress('STOP')
@@ -798,11 +944,11 @@ class InstallBase:
             try:
                 langpack_db = self.db.get('localechooser/supported-locales')
                 for locale in langpack_db.replace(',', '').split():
-                    langpack_set.add(locale_to_language_pack(locale))
+                    langpack_set.add(locale)
             except debconf.DebconfError:
                 pass
             langpack_db = self.db.get('debian-installer/locale')
-            langpack_set.add(locale_to_language_pack(langpack_db))
+            langpack_set.add(langpack_db)
             langpacks = sorted(langpack_set)
 
         no_install = '/var/lib/ubiquity/no-install-langpacks'
@@ -824,7 +970,8 @@ class InstallBase:
 
         to_install = []
         checker = osextras.find_on_path('check-language-support')
-        for lp in langpacks:
+        for lp_locale in langpacks:
+            lp = locale_to_language_pack(lp_locale)
             # Basic language packs, required to get localisation working at
             # all. We install these almost unconditionally; if you want to
             # get rid of even these, you can preseed pkgsel/language-packs
@@ -838,7 +985,8 @@ class InstallBase:
             # calling check-language-support just once.
             if not all_langpacks and checker:
                 check_lang = subprocess.Popen(
-                    ['check-language-support', '-l', lp, '--show-installed'],
+                    ['check-language-support', '-l', lp_locale.split('.')[0],
+                     '--show-installed'],
                     stdout=subprocess.PIPE)
                 to_install.extend(check_lang.communicate()[0].strip().split())
             else:
@@ -852,7 +1000,7 @@ class InstallBase:
                 toplevel_pkg = get_cache_pkg(cache, toplevel)
                 if toplevel_pkg and toplevel_pkg.is_installed:
                     to_install.append(toplevel)
-        if all_langpacks and osextras.find_on_path('check-language-support'):
+        if all_langpacks and checker:
             check_lang = subprocess.Popen(
                 ['check-language-support', '-a', '--show-installed'],
                 stdout=subprocess.PIPE)

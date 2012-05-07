@@ -1,24 +1,27 @@
 #!/usr/bin/python
 
 
+from itertools import izip, izip_longest
+import os
+from test import test_support
 import unittest
+
+import debconf
 # These tests require Mock 0.7.0
 import mock
-from test import test_support
-import sys
-import os
-sys.path.insert(0, 'ubiquity/plugins')
-ubi_partman = __import__('ubi-partman')
-sys.path.pop(0)
-from ubiquity import misc
-import debconf
 
-os.environ['UBIQUITY_GLADE'] = 'gui/gtk'
+from ubiquity import misc, plugin_manager
+
+ubi_partman = plugin_manager.load_plugin('ubi-partman')
 
 def question_has_variables(question, lookup_variables):
     existing_variables = []
     found_question = False
-    with open('tests/templates.dat') as templates:
+    if 'UBIQUITY_TEST_INSTALLED' in os.environ:
+        templates_dat = '/var/cache/debconf/templates.dat'
+    else:
+        templates_dat = 'tests/templates.dat'
+    with open(templates_dat) as templates:
         for line in templates:
             if found_question and line == '\n':
                 break
@@ -61,7 +64,9 @@ def question_has_variables(question, lookup_variables):
 # arguments to generate said dependencies, so neither need to know about the
 # inner workings of each other.
 
-@unittest.skipUnless(os.path.exists('tests/partman-tree'), 'Need /lib/partman.')
+@unittest.skipUnless('UBIQUITY_TEST_INSTALLED' in os.environ or
+                     os.path.exists('tests/partman-tree'),
+                     'Need /lib/partman.')
 class PartmanPageDirectoryTests(unittest.TestCase):
     def setUp(self):
         # We could mock out the db for this, but we ultimately want to make
@@ -70,6 +75,13 @@ class PartmanPageDirectoryTests(unittest.TestCase):
         self.page.db = debconf.DebconfCommunicator('ubi-test', cloexec=True)
         self.addCleanup(self.page.db.shutdown)
 
+        if 'UBIQUITY_TEST_INSTALLED' not in os.environ:
+            self.mock_partman_tree()
+
+        # Don't cache descriptions.
+        self.page.description_cache = {}
+
+    def mock_partman_tree(self):
         prefix = 'tests/partman-tree'
         def side_effect_factory(real_method):
             def side_effect(path, *args, **kw):
@@ -89,9 +101,6 @@ class PartmanPageDirectoryTests(unittest.TestCase):
             mocked_method.side_effect = side_effect_factory(real_method)
             self.addCleanup(method.stop)
 
-        # Don't cache descriptions.
-        self.page.description_cache = {}
-
     #def test_filesystem_description(self):
     #    for fs in self.page.scripts('/lib/partman/valid_filesystems'):
     #        print self.page.filesystem_description(fs)
@@ -102,18 +111,34 @@ class PartmanPageDirectoryTests(unittest.TestCase):
     #            self.assertNotEqual(method,
     #                                self.page.method_description(method))
 
+# A couple of mock helpers for some of the tests below.
+def _fake_grub_options(*paths):
+    # The interface expects a sequence-of-sequences, although the method
+    # only cares about sub-sequences of length 1, where the path is
+    # element zero.
+    def grub_options():
+        return [(path,) for path in paths]
+    return grub_options
+
+def _fake_grub_default(default):
+    def grub_default():
+        return default
+    return grub_default
+
+
 @unittest.skipUnless('DEBCONF_SYSTEMRC' in os.environ, 'Need a database.')
-class TestPage(unittest.TestCase):
+class TestPageBase(unittest.TestCase):
     def setUp(self):
         # We could mock out the db for this, but we ultimately want to make
-        # sure that the debconf questions its getting exist.
-        self.page = ubi_partman.Page(None)
+        # sure that the debconf questions it's getting exist.
+        self.page = ubi_partman.Page(None, ui=mock.Mock())
         self.page.db = debconf.DebconfCommunicator('ubi-test', cloexec=True)
         self.addCleanup(self.page.db.shutdown)
 
         # Don't cache descriptions.
         self.page.description_cache = {}
 
+class TestPage(TestPageBase):
     def test_description(self):
         question = 'partman-auto/init_automatically_partition'
         description = unicode(self.page.db.metaget(question, 'description'),
@@ -125,7 +150,7 @@ class TestPage(unittest.TestCase):
         pairs = [('partman-basicfilesystems/fat_mountpoint', 'ntfs'),
                  ('partman-basicfilesystems/mountpoint', 'ext4')]
         try:
-            # We cannot test uboot if we're not running on armel.
+            # We cannot test uboot if we're not running on armel/armhf.
             self.page.description('partman-uboot/mountpoint')
             pairs.append(('partman-uboot/mountpoint', 'uboot'))
         except debconf.DebconfError:
@@ -167,6 +192,239 @@ class TestPage(unittest.TestCase):
         q = 'ubiquity/partitioner/heading_no_detected'
         no_detected = self.page.extended_description(q)
         self.assertEqual(no_detected, head)
+
+@unittest.skipUnless(os.environ['DEB_HOST_ARCH'] in ('amd64', 'i386'),
+                     'GRUB-related tests are only relevant on x86')
+class TestPageGrub(TestPageBase):
+    def test_maybe_update_dont_install(self):
+        self.page.install_bootloader = False
+        self.page.maybe_update_grub()
+        self.assertEqual(self.page.ui.set_grub_options.call_count, 0)
+
+    @mock.patch('ubiquity.misc.grub_options', _fake_grub_options('/dev/vda1'))
+    @mock.patch('ubiquity.misc.grub_default', _fake_grub_default('/dev/vda'))
+    def test_maybe_update_install(self):
+        self.page.install_bootloader = True
+        self.page.disk_cache = {}
+        self.page.partition_cache = {}
+        self.page.maybe_update_grub()
+        self.assertEqual(self.page.ui.set_grub_options.call_count, 1)
+
+    @mock.patch('ubiquity.misc.grub_options', _fake_grub_options('/dev/vda1'))
+    @mock.patch('ubiquity.misc.grub_default', _fake_grub_default('/dev/vda'))
+    def test_install_grub_to_valid_filesystem(self):
+        # Return some fake grub options.
+        self.page.install_bootloader = True
+        self.page.disk_cache = {
+            'ignore-1': {
+                'device': '/dev/vda',
+                },
+            }
+        self.page.partition_cache = {
+            'ignore': {
+                'parted': {
+                    'path': '/dev/vda1',
+                    'fs': 'ext4',
+                    }
+                }
+            }
+        self.page.maybe_update_grub()
+        self.assertEqual(self.page.ui.set_grub_options.call_count, 1)
+        self.page.ui.set_grub_options.assert_called_once_with('/dev/vda', {
+            '/dev/vda': True,
+            '/dev/vda1': True,
+            })
+
+    @mock.patch('ubiquity.misc.grub_options', _fake_grub_options('/dev/vda1'))
+    @mock.patch('ubiquity.misc.grub_default', _fake_grub_default('/dev/vda'))
+    def test_install_grub_to_invalid_filesystem(self):
+        # Return some fake grub options.
+        self.page.install_bootloader = True
+        self.page.disk_cache = {
+            'ignore-1': {
+                'device': '/dev/vda',
+                },
+            }
+        self.page.partition_cache = {
+            'ignore': {
+                'parted': {
+                    'path': '/dev/vda1',
+                    'fs': 'xfs',
+                    }
+                }
+            }
+        self.page.maybe_update_grub()
+        self.assertEqual(self.page.ui.set_grub_options.call_count, 1)
+        self.page.ui.set_grub_options.assert_called_once_with('/dev/vda', {
+            '/dev/vda': True,
+            '/dev/vda1': False,
+            })
+
+    @mock.patch('ubiquity.misc.grub_options',
+                _fake_grub_options('/dev/vda1', '/dev/vda2'))
+    @mock.patch('ubiquity.misc.grub_default', _fake_grub_default('/dev/vda'))
+    def test_install_grub_to_mixed_filesystems(self):
+        # Return some fake grub options.
+        self.page.install_bootloader = True
+        self.page.disk_cache = {
+            'ignore-1': {
+                'device': '/dev/vda',
+                },
+            }
+        self.page.partition_cache = {
+            'ignore-1': {
+                'parted': {
+                    'path': '/dev/vda1',
+                    'fs': 'xfs',
+                    }
+                },
+            'ignore-2': {
+                'parted': {
+                    'path': '/dev/vda2',
+                    'fs': 'ext2',
+                    }
+                }
+            }
+        self.page.maybe_update_grub()
+        self.assertEqual(self.page.ui.set_grub_options.call_count, 1)
+        self.page.ui.set_grub_options.assert_called_once_with('/dev/vda', {
+            '/dev/vda': True,
+            '/dev/vda1': False,
+            '/dev/vda2': True,
+            })
+
+    @mock.patch('ubiquity.misc.grub_options',
+                _fake_grub_options('/dev/vda1', '/dev/vda2', '/dev/vdb1'))
+    @mock.patch('ubiquity.misc.grub_default', _fake_grub_default('/dev/vda'))
+    def test_install_grub_offers_to_install_to_disk(self):
+        # Return some fake grub options.
+        self.page.install_bootloader = True
+        self.page.disk_cache = {
+            'ignore-1': {
+                'device': '/dev/vda',
+                },
+            'ignore-2': {
+                'device': '/dev/vdb',
+                },
+            }
+        self.page.partition_cache = {
+            'ignore-1': {
+                'parted': {
+                    'path': '/dev/vda1',
+                    'fs': 'xfs',
+                    },
+                },
+            'ignore-2': {
+                'parted': {
+                    'path': '/dev/vda2',
+                    'fs': 'ext2',
+                    },
+                },
+            'ignore-3': {
+                'parted': {
+                    'path': '/dev/vdb1',
+                    'fs': 'xfs',
+                    },
+                },
+            }
+        self.page.maybe_update_grub()
+        self.assertEqual(self.page.ui.set_grub_options.call_count, 1)
+        self.page.ui.set_grub_options.assert_called_once_with('/dev/vda', {
+            '/dev/vda': True,
+            '/dev/vdb': True,
+            '/dev/vda1': False,
+            '/dev/vda2': True,
+            '/dev/vdb1': False,
+            })
+
+    @mock.patch('ubiquity.misc.grub_options',
+                _fake_grub_options('/dev/vda1', '/dev/vda2', '/dev/vdb1'))
+    @mock.patch('ubiquity.misc.grub_default', _fake_grub_default('/dev/vda'))
+    def test_install_grub_offers_to_install_to_all_but_jfs(self):
+        # Return some fake grub options.
+        self.page.install_bootloader = True
+        self.page.disk_cache = {
+            'ignore-1': {
+                'device': '/dev/vda',
+                },
+            'ignore-2': {
+                'device': '/dev/vdb',
+                },
+            }
+        self.page.partition_cache = {
+            'ignore-1': {
+                'parted': {
+                    'path': '/dev/vda1',
+                    'fs': 'ext4',
+                    },
+                },
+            'ignore-2': {
+                'parted': {
+                    'path': '/dev/vda2',
+                    'fs': 'ext2',
+                    },
+                },
+            'ignore-3': {
+                'parted': {
+                    'path': '/dev/vdb1',
+                    'fs': 'jfs',
+                    },
+                },
+            }
+        self.page.maybe_update_grub()
+        self.assertEqual(self.page.ui.set_grub_options.call_count, 1)
+        self.page.ui.set_grub_options.assert_called_once_with('/dev/vda', {
+            '/dev/vda': True,
+            '/dev/vdb': True,
+            '/dev/vda1': True,
+            '/dev/vda2': True,
+            '/dev/vdb1': False,
+            })
+
+    @mock.patch('ubiquity.misc.grub_options',
+                _fake_grub_options('/dev/vda1', '/dev/vda2', '/dev/vdb1'))
+    @mock.patch('ubiquity.misc.grub_default', _fake_grub_default('/dev/vda'))
+    def test_install_grub_offers_to_install_to_all(self):
+        # Return some fake grub options.
+        self.page.install_bootloader = True
+        self.page.disk_cache = {
+            'ignore-1': {
+                'device': '/dev/vda',
+                },
+            'ignore-2': {
+                'device': '/dev/vdb',
+                },
+            }
+        self.page.partition_cache = {
+            'ignore-1': {
+                'parted': {
+                    'path': '/dev/vda1',
+                    'fs': 'ext4',
+                    },
+                },
+            'ignore-2': {
+                'parted': {
+                    'path': '/dev/vda2',
+                    'fs': 'ext2',
+                    },
+                },
+            'ignore-3': {
+                'parted': {
+                    'path': '/dev/vdb1',
+                    'fs': 'fat16',
+                    },
+                },
+            }
+        self.page.maybe_update_grub()
+        self.assertEqual(self.page.ui.set_grub_options.call_count, 1)
+        self.page.ui.set_grub_options.assert_called_once_with('/dev/vda', {
+            '/dev/vda': True,
+            '/dev/vdb': True,
+            '/dev/vda1': True,
+            '/dev/vda2': True,
+            '/dev/vdb1': True,
+            })
+
 
 @unittest.skipUnless('DEBCONF_SYSTEMRC' in os.environ, 'Need a database.')
 class TestCalculateAutopartitioningOptions(unittest.TestCase):
@@ -300,10 +558,9 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         self.assertIn('reuse', options)
         self.assertItemsEqual(reuse, options['reuse'])
 
-    # 'This computer currently has Ubuntu 11.04 on it.'
-    @unittest.skipIf(True, 'functionality currently broken.')
+    # 'This computer currently has Ubuntu 12.04 on it.'
     def test_same_ubuntu_only(self):
-        operating_system = u'Ubuntu 11.04'
+        operating_system = u'Ubuntu 12.04'
         misc.find_in_os_prober.return_value = operating_system
         part = ubi_partman.Partition('/dev/sda1', 0, '1234-1234', 'ext4')
         layout = { '=dev=sda' : [part] }
@@ -324,7 +581,6 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         self.page.db.subst(question, 'CURDISTRO', operating_system)
         title = self.page.description(question)
         desc = self.page.extended_description(question)
-        reuse = ubi_partman.PartitioningOption(title, desc)
 
         operating_systems, ubuntu_systems = \
             self.page.calculate_operating_systems(layout)
@@ -336,8 +592,43 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         self.assertIn('manual', options)
         self.assertItemsEqual(self.manual, options['manual'])
 
-        self.assertIn('reuse', options)
-        self.assertItemsEqual(reuse, options['reuse'])
+        self.assertNotIn('reuse', options)
+
+    # 'This computer currently has Ubuntu 90.10 on it.'
+    def test_newer_ubuntu_only(self):
+        operating_system = u'Ubuntu 90.10'
+        misc.find_in_os_prober.return_value = operating_system
+        part = ubi_partman.Partition('/dev/sda1', 0, '1234-1234', 'ext4')
+        layout = { '=dev=sda' : [part] }
+        self.page.extra_options = {}
+        self.page.extra_options['use_device'] = ('debconf-return-value',
+                                                 [{'disk-desc': 0}])
+        self.page.extra_options['reuse'] = [(0, '/dev/sda1')]
+
+        question = 'ubiquity/partitioner/ubuntu_format'
+        question_has_variables(question, ['CURDISTRO'])
+        self.page.db.subst(question, 'CURDISTRO', operating_system)
+        title = self.page.description(question)
+        desc = self.page.extended_description(question)
+        use_device = ubi_partman.PartitioningOption(title, desc)
+
+        question = 'ubiquity/partitioner/ubuntu_reinstall'
+        question_has_variables(question, ['CURDISTRO'])
+        self.page.db.subst(question, 'CURDISTRO', operating_system)
+        title = self.page.description(question)
+        desc = self.page.extended_description(question)
+
+        operating_systems, ubuntu_systems = \
+            self.page.calculate_operating_systems(layout)
+        options = self.page.calculate_autopartitioning_options(
+                        operating_systems, ubuntu_systems)
+        self.assertIn('use_device', options)
+        self.assertItemsEqual(use_device, options['use_device'])
+
+        self.assertIn('manual', options)
+        self.assertItemsEqual(self.manual, options['manual'])
+
+        self.assertNotIn('reuse', options)
 
     # 'This computer currently has multiple operating systems on it.'
     def test_multiple_operating_systems(self):
@@ -382,19 +673,67 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         self.assertIn('manual', options)
         self.assertItemsEqual(self.manual, options['manual'])
 
-from gi.repository import Gtk, GObject
+
+def _fake_grub_options_pairs(paths, descriptions):
+    # The interface expects a sequence-of-sequences, although the method
+    # only cares about sub-sequences of length 1, where the path is
+    # element zero.
+    def grub_options():
+        return [(path, description)
+                for path, description
+                in izip_longest(paths, descriptions, fillvalue='')]
+    return grub_options
+
 class TestPageGtk(unittest.TestCase):
     def setUp(self):
-        # FIXME Not sure why this is needed.
+        # Without this, GtkBuilder cannot construct ResizeWidget and
+        # PartitionBox widgets.
         from ubiquity import gtkwidgets
+        gtkwidgets # pacify pyflakes
         controller = mock.Mock()
         self.gtk = ubi_partman.PageGtk(controller)
 
     def test_advanced_page_link(self):
+        from ubiquity import gtkwidgets
         self.gtk.part_auto_hidden_label.emit('activate-link', '')
-        GObject.timeout_add(500, Gtk.main_quit)
-        Gtk.main()
+        gtkwidgets.refresh()
         self.gtk.controller.go_forward.assert_called_once_with()
 
+    @mock.patch('ubiquity.misc.grub_options',
+                _fake_grub_options_pairs(
+                    ('/dev/vda', '/dev/vdb',
+                     '/dev/vda1', '/dev/vda2', '/dev/vdb1'),
+                    ('Virtio Block Device (108 GB)',
+                     'Virtio Block Device (801 GB)')))
+    @unittest.skipUnless(os.environ['DEB_HOST_ARCH'] in ('amd64', 'i386'),
+                         'GRUB-related tests are only relevant on x86')
+    def test_boot_loader_installation_combobox(self):
+        self.gtk.set_grub_options('/dev/vda', {
+            '/dev/vda': True,
+            '/dev/vda1': True,
+            '/dev/vda2': False,
+            '/dev/vdb': True,
+            '/dev/vdb1': True,
+            })
+        # The combo box should have everything but vda2.
+        expected = [
+            '/dev/vda Virtio Block Device (108 GB)',
+            '/dev/vdb Virtio Block Device (801 GB)',
+            '/dev/vda1 ',
+            '/dev/vdb1 ',
+            ]
+        row_text = []
+        for row in self.gtk.grub_device_entry.get_model():
+            row_text.append(' '.join(row))
+        for want, got in izip(expected, row_text):
+            self.assertEqual(want, got)
+
+
 if __name__ == '__main__':
-    test_support.run_unittest(TestCalculateAutopartitioningOptions, TestPage, PartmanPageDirectoryTests)
+    test_support.run_unittest(
+        TestCalculateAutopartitioningOptions,
+        TestPage,
+        TestPageGrub,
+        TestPageGtk,
+        PartmanPageDirectoryTests,
+        )

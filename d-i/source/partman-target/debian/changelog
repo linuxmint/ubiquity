@@ -1,3 +1,124 @@
+partman-target (77ubuntu2) precise; urgency=low
+
+  * Exit 0 at the end of finish.d/clear_partitions, so that partman-commit
+    will carry on even if the final rmdir fails (which is a bug in itself,
+    but shouldn't blow away the whole install; LP: #985526).
+  * Use 'umount -l' in finish.d/clear_partitions, to work around an as yet
+    unidentified race that keeps the filesystem busy (LP: #946663).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 19 Apr 2012 11:54:45 +0100
+
+partman-target (77ubuntu1) precise; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Disable automatic mounting of USB removable devices.
+    - Mount floppies with 'exec' and 'utf8'.
+    - Use the path of the file associated with a loop device in /etc/fstab,
+      rather than the filesystem's UUID or the loop device path.
+    - Always set the loop option for loop devices.
+    - Remove critical system files from the existing filesystem before
+      installing.
+    - Preserve the UID and GID of the initial user, if possible.  Requires a
+      patch to user-setup.
+    - Check that all system partitions are formatted.
+    - Stop adding removable devices to /etc/fstab, now that apt knows how to
+      find CD-ROM devices using libudev.
+    - Mount /proc with nodev,noexec,nosuid.
+    - Notify user-setup if there is an encrypted home partition present.
+    - Stop creating /var/run and /var/lock on the root filesystem, now that
+      these are symlinks into /run.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 11 Apr 2012 16:21:25 +0100
+
+partman-target (77) unstable; urgency=low
+
+  [ Updated translations ]
+  * Asturian (ast.po) by Mikel González
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Catalan (ca.po) by Jordi Mallach
+  * German (de.po) by Holger Wansing
+  * Estonian (et.po) by Mattias Põldaru
+  * Basque (eu.po) by Piarres Beobide
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Kumar Appaiah
+  * Indonesian (id.po) by Mahyuddin Susanto
+  * Icelandic (is.po) by Sveinn í Felli
+  * Italian (it.po) by Milo Casagrande
+  * Khmer (km.po) by Chan Sambathratanak
+  * Kannada (kn.po) by Prabodh C P
+  * Dutch (nl.po) by Jeroen Schot
+  * Polish (pl.po) by Marcin Owsiany
+  * Romanian (ro.po) by Ioan Eugen Stan
+  * Russian (ru.po) by Yuri Kozlov
+  * Sinhala (si.po)
+  * Serbian (sr.po) by Karolina Kalic
+  * Ukrainian (uk.po) by Borys Yanovych
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+
+ -- Otavio Salvador <otavio@debian.org>  Thu, 15 Mar 2012 15:13:07 -0300
+
+partman-target (76ubuntu2) precise; urgency=low
+
+  * check.d/encrypted_home_present, finish.d/clear_partitions: Close mount's
+    fd 3 so that it doesn't inherit a debconf file descriptor.
+  * Update Ubuntu-specific translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 07 Mar 2012 23:42:39 +0000
+
+partman-target (76ubuntu1) precise; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Disable automatic mounting of USB removable devices.
+    - Mount floppies with 'exec' and 'utf8'.
+    - Use the path of the file associated with a loop device in /etc/fstab,
+      rather than the filesystem's UUID or the loop device path.
+    - Always set the loop option for loop devices.
+    - Remove critical system files from the existing filesystem before
+      installing.
+    - Preserve the UID and GID of the initial user, if possible.  Requires a
+      patch to user-setup.
+    - Check that all system partitions are formatted.
+    - Stop adding removable devices to /etc/fstab, now that apt knows how to
+      find CD-ROM devices using libudev.
+    - Mount /proc with nodev,noexec,nosuid.
+    - Notify user-setup if there is an encrypted home partition present.
+    - Stop creating /var/run and /var/lock on the root filesystem, now that
+      these are symlinks into /run.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 27 Oct 2011 11:02:54 +0100
+
+partman-target (76) unstable; urgency=low
+
+  [ Robert Millan ]
+  * check.d/proper_mountpoints: List lib32 and lib64 explicitly instead
+    of using lib* wildcard, so that mountpoints like /lib/modules are
+    supported.  (Closes: #637032)
+
+  [ Samuel Thibault ]
+  * Set hdd partition hurd-i386 translators in installed system.
+
+ -- Robert Millan <rmh@debian.org>  Tue, 09 Aug 2011 13:28:45 +0200
+
+partman-target (75) unstable; urgency=low
+
+  [ Jérémy Bobbio ]
+  * Stop treating ISO hybrid images on USB sticks as real optical drives.
+    (Closes: #597223)
+
+  [ Updated translations ]
+  * Macedonian (mk.po) by Arangel Angov
+  * Sinhala (si.po) by Danishka Navin
+
+ -- Jérémy Bobbio <lunar@debian.org>  Wed, 27 Jul 2011 18:39:59 +0200
+
+partman-target (74) unstable; urgency=low
+
+  [ Samuel Thibault ]
+  * Remove user option on hurd-i386 and kfreebsd-i386 for removable media.
+  * Set filesystem type to fatfs on hurd-i386 for floppy/USB for now.
+
+ -- Otavio Salvador <otavio@debian.org>  Sun, 24 Jul 2011 01:55:04 +0200
+
 partman-target (73ubuntu1) oneiric; urgency=low
 
   * Resynchronise with Debian.  Remaining changes:
@@ -2061,6 +2182,3 @@ partman-target (2) unstable; urgency=low
 
  -- Anton Zinoviev <zinoviev@debian.org>  Wed, 10 Dec 2003 12:54:40 +0200
 
-Local Variables:
-coding: utf-8
-End:

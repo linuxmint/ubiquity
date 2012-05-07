@@ -24,6 +24,7 @@ for dev in $DEVICES/*; do
 				continue
 			fi
 			log "Try to format swap space in $dev/$id"
+			disable_swap "$dev" "$id" || true
 			template=partman-basicfilesystems/progress_swap_formatting
 			open_dialog PARTITION_INFO $id
 			read_line x1 x2 x3 x4 x5 device x6
@@ -39,26 +40,20 @@ for dev in $DEVICES/*; do
 			db_subst $template PARTITION "$num"
 			db_subst $template DEVICE $(humandev $(cat device))
 			name_progress_bar $template
-			open_dialog CREATE_FILE_SYSTEM $id linux-swap
-			read_line status
-			close_dialog
-			sync
-			if [ "$status" != OK ]; then
-				db_progress START 0 3 partman/text/formatting
-				db_progress INFO $template
-				db_progress SET 1
-				# According to Szabolcs Szakacsits, the NTFS-3g author, it is
-				# safer to format the loop file, rather than the device.
-				[ ! -s loop ] || device="$(cat loop)"
-				if log-output -t partman --pass-stdout \
-				   mkswap $device >/dev/null; then
-					sync
-					status=OK
-				else
-					status=failed
-				fi
-				db_progress STOP
+			db_progress START 0 3 partman/text/formatting
+			db_progress INFO $template
+			db_progress SET 1
+			# According to Szabolcs Szakacsits, the NTFS-3g author, it is
+			# safer to format the loop file, rather than the device.
+			[ ! -s loop ] || device="$(cat loop)"
+			if log-output -t partman --pass-stdout \
+			   mkswap $device >/dev/null; then
+				sync
+				status=OK
+			else
+				status=failed
 			fi
+			db_progress STOP
 
 			if [ "$status" != OK ]; then
 				db_subst partman-basicfilesystems/create_swap_failed TYPE linux-swap

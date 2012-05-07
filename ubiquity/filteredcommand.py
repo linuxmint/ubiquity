@@ -27,7 +27,6 @@ import subprocess
 import debconf
 
 from ubiquity.debconffilter import DebconfFilter
-
 from ubiquity import misc
 
 # We identify as this to debconf.
@@ -66,7 +65,8 @@ class UntrustedBase(object):
             # bizarre time formatting code per syslogd
             time_str = time.ctime()[4:19]
             message = fmt % args
-            print >>sys.stderr, '%s %s: %s' % (time_str, PACKAGE, message)
+            print >>sys.stderr, (u'%s %s: %s' %
+                (time_str, PACKAGE, message)).encode('utf-8')
 
 class FilteredCommand(UntrustedBase):
     def __init__(self, frontend, db=None, ui=None):
@@ -284,13 +284,13 @@ class FilteredCommand(UntrustedBase):
         return items
 
     def choices_untranslated(self, question):
-        choices = unicode(self.db.metaget(question, 'choices-c'),
-                          'utf-8', 'replace')
+        choices = misc.utf8(self.db.metaget(question, 'choices-c'),
+                            errors='replace')
         return self.split_choices(choices)
 
     def choices(self, question):
-        choices = unicode(self.db.metaget(question, 'choices'),
-                          'utf-8', 'replace')
+        choices = misc.utf8(self.db.metaget(question, 'choices'),
+                            errors='replace')
         return self.split_choices(choices)
 
     def choices_display_map(self, question):
@@ -308,12 +308,12 @@ class FilteredCommand(UntrustedBase):
         return _map
 
     def description(self, question):
-        return unicode(self.db.metaget(question, 'description'),
-                       'utf-8', 'replace')
+        return misc.utf8(self.db.metaget(question, 'description'),
+                         errors='replace')
 
     def extended_description(self, question):
-        return unicode(self.db.metaget(question, 'extended_description'),
-                       'utf-8', 'replace')
+        return misc.utf8(self.db.metaget(question, 'extended_description'),
+                         errors='replace')
 
     def translate_to_c(self, question, value):
         choices = self.choices(question)
@@ -365,6 +365,9 @@ class FilteredCommand(UntrustedBase):
         self.frontend.run_main_loop()
 
     # Exit any recursive main loops we caused the frontend to enter.
+    # Note that it is not safe for implementations of this method to attempt
+    # to talk to debconf.  Plugins looking for a way to preseed debconf on
+    # exit should override the cleanup method instead.
     def exit_ui_loops(self):
         while self.ui_loop_level > 0:
             self.ui_loop_level -= 1

@@ -18,6 +18,15 @@ if db_get mirror/codename && [ "$RET" ]; then
 	codename="$RET"
 	db_get mirror/suite
 	suite="$RET"
+
+	if [ "$codename" != "lenny" ]; then
+		db_get mirror/protocol
+		protocol="$RET"
+		db_get mirror/$protocol/hostname
+		host="$RET"
+		db_get mirror/$protocol/directory
+		directory="/${RET#/}"
+	fi
 else
 	db_get cdrom/codename
 	codename="$RET"
@@ -35,7 +44,11 @@ for dist in contrib non-free; do
 done
 
 # Don't test mirror if no network selected in netcfg
-echo "deb http://$host/debian-volatile $codename/volatile $dists" >> $file
+if [ "$codename" = "lenny" ]; then
+	echo "deb http://$host/debian-volatile $codename/volatile $dists" >> $file
+else
+	echo "deb $protocol://${host}${directory} ${codename}-updates $dists" >> $file
+fi
 if db_get netcfg/dhcp_options && \
    [ "$RET" = "Do not configure the network at this time" ]; then
 	CODE=9
@@ -52,6 +65,10 @@ else
 	fi
 fi
 
-echo "deb-src http://$host/debian-volatile $codename/volatile $dists" >> $file
+if [ "$codename" = "lenny" ]; then
+	echo "deb-src http://$host/debian-volatile $codename/volatile $dists" >> $file
+else
+	echo "deb-src $protocol://${host}${directory} ${codename}-updates $dists" >> $file
+fi
 
 exit $CODE

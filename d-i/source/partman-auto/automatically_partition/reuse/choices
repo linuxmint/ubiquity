@@ -23,7 +23,7 @@ for dev in $DEVICES/*; do
 	[ -d $dev ] || continue
 	if [ "$disks" ]; then
 		partman_disk="$(cat "$dev/device")"
-		local found=0
+		found=0
 		for preseed_disk in $disks; do
 			preseed_id=$(mapdevfs $preseed_disk)
 			case " $preseed_id " in
@@ -49,7 +49,7 @@ for dev in $DEVICES/*; do
 		cleanup_ro_partitions="$cleanup_ro_partitions $path"
 		t="$(blkid -o value -s TYPE $path)" || true
 		if [ -n "$t" ] && [ "$t" != "swap" ] && \
-		mount -o ro $path $mountpoint 3>&-; then
+		mount -o ro $path $mountpoint 3>&- 6>&- 7<&-; then
 			release="$(grep -s DISTRIB_ID $mountpoint/etc/lsb-release)" || true
 			umount -l $mountpoint || true
 			if [ "${release##DISTRIB_ID=}" = "Ubuntu" ]; then

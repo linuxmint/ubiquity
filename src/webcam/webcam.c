@@ -28,6 +28,11 @@
  * w = UbiquityWebcam.Webcam()
  */
 
+#include <assert.h>
+
+#include <glib-object.h>
+#include <gtk/gtk.h>
+
 #define G_UDEV_API_IS_SUBJECT_TO_CHANGE 1
 #include <gudev/gudev.h>
 
@@ -37,7 +42,7 @@ static void button_clicked_cb (GtkWidget *widget, GstElement *camerabin);
 static gboolean message_cb (GstBus *bus, GstMessage *msg, gpointer data);
 static GstBusSyncReply window_id_cb (GstBus *bus, GstMessage *msg, gpointer data);
 
-G_DEFINE_TYPE (UbiquityWebcam, ubiquity_webcam, GTK_TYPE_VBOX)
+G_DEFINE_TYPE (UbiquityWebcam, ubiquity_webcam, GTK_TYPE_BOX)
 
 #define UBIQUITY_WEBCAM_PRIVATE(o) \
 	(G_TYPE_INSTANCE_GET_PRIVATE ((o), UBIQUITY_TYPE_WEBCAM, UbiquityWebcamPrivate))
@@ -55,13 +60,44 @@ struct _UbiquityWebcamPrivate
 	GstBus *bus;
 };
 
+enum {
+	PROP_0,
+	PROP_BUTTON
+};
+
 static gulong video_window_xid = 0;
+
+static void
+ubiquity_webcam_get_property (GObject *object, guint prop_id, GValue *value,
+			      GParamSpec *pspec) {
+	UbiquityWebcamPrivate *priv = UBIQUITY_WEBCAM_PRIVATE (object);
+
+	switch (prop_id) {
+		case PROP_BUTTON:
+			g_value_set_object (value, (GObject *) priv->button);
+			break;
+		default:
+			G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id,
+							   pspec);
+	}
+}
 
 static void
 ubiquity_webcam_class_init (UbiquityWebcamClass *klass) {
 	GObjectClass *object_class = G_OBJECT_CLASS (klass);
 	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
-	GtkVBoxClass *vbox_class = GTK_VBOX_CLASS (klass);
+	GtkBoxClass *box_class = GTK_BOX_CLASS (klass);
+
+	object_class->get_property = ubiquity_webcam_get_property;
+
+	g_object_class_install_property (
+		object_class, PROP_BUTTON,
+		g_param_spec_object (
+			"take-button", "'Take Photo' button",
+			"The button that may be pressed to take a photo",
+			GTK_TYPE_WIDGET,
+			G_PARAM_READABLE | G_PARAM_STATIC_NAME |
+			G_PARAM_STATIC_NICK | G_PARAM_STATIC_BLURB));
 
 	g_type_class_add_private (klass, sizeof (UbiquityWebcamPrivate));
 }
@@ -74,11 +110,17 @@ drawing_area_realized_cb (GtkWidget *widget, gpointer data) {
 static void
 ubiquity_webcam_init (UbiquityWebcam *self) {
 	UbiquityWebcamPrivate *priv;
+	gint width = 172, height = 129;
+
+	assert (width * 3 == height * 4); /* 4x3 ratio */
+
 	priv = self->priv = UBIQUITY_WEBCAM_PRIVATE (self);
 
+	gtk_orientable_set_orientation (GTK_ORIENTABLE (self),
+					GTK_ORIENTATION_VERTICAL);
 	gtk_box_set_spacing (GTK_BOX (self), 1);
 	priv->drawing_area = gtk_drawing_area_new ();
-	gtk_widget_set_size_request (priv->drawing_area, 320, 240);
+	gtk_widget_set_size_request (priv->drawing_area, width, height);
 	g_signal_connect (priv->drawing_area, "realize",
 			G_CALLBACK(drawing_area_realized_cb), NULL);
 	gtk_widget_set_double_buffered (priv->drawing_area, FALSE);
@@ -91,7 +133,8 @@ ubiquity_webcam_init (UbiquityWebcam *self) {
 
 	priv->camerabin = gst_element_factory_make ("camerabin2" , "cam");
 	priv->viewfinder_caps = gst_caps_new_simple ("video/x-raw-rgb",
-		"width", G_TYPE_INT, 320, "height", G_TYPE_INT, 240, NULL);
+		"width", G_TYPE_INT, 640,
+		"height", G_TYPE_INT, 480, NULL);
 	g_object_set (G_OBJECT (priv->camerabin),
 		"viewfinder-caps", priv->viewfinder_caps, NULL);
     g_signal_new ("image-captured",
@@ -129,8 +172,8 @@ ubiquity_webcam_test (UbiquityWebcam *webcam) {
 	priv->testsrc = gst_element_factory_make ("videotestsrc", NULL);
 	g_object_set (G_OBJECT (priv->testsrc), "is-live", TRUE,
 		"peer-alloc", FALSE, NULL);
-	g_object_set (G_OBJECT (priv->src), "video-src", priv->testsrc, NULL);
-	g_object_set (G_OBJECT (priv->camerabin), "camera-src", priv->src, NULL);
+	g_object_set (G_OBJECT (priv->src), "video-source", priv->testsrc, NULL);
+	g_object_set (G_OBJECT (priv->camerabin), "camera-source", priv->src, NULL);
 	ubiquity_webcam_stop (webcam);
 	ubiquity_webcam_play (webcam);
 	gst_object_ref (priv->src);
@@ -156,6 +199,8 @@ ubiquity_webcam_available (void) {
 void
 ubiquity_webcam_play (UbiquityWebcam *webcam) {
 	UbiquityWebcamPrivate *priv = UBIQUITY_WEBCAM_PRIVATE (webcam);
+	if (!priv || !priv->camerabin)
+		return;
 	if (gst_element_set_state (priv->camerabin, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) {
 		g_print ("setting camerabin to PLAYING failed\n");
 		return;
@@ -165,6 +210,8 @@ ubiquity_webcam_play (UbiquityWebcam *webcam) {
 void
 ubiquity_webcam_stop (UbiquityWebcam *webcam) {
 	UbiquityWebcamPrivate *priv = UBIQUITY_WEBCAM_PRIVATE (webcam);
+	if (!priv || !priv->camerabin)
+		return;
 	if (gst_element_set_state (priv->camerabin, GST_STATE_NULL) == GST_STATE_CHANGE_FAILURE) {
 		g_print ("setting camerabin to STOPPED failed\n");
 		return;
@@ -213,7 +260,6 @@ button_clicked_cb (GtkWidget *widget, GstElement *camerabin) {
 		g_print ("Failed to create pngenc.\n");
 		return;
 	}
-	g_object_set (G_OBJECT(camerabin), "image-capture-encoder", camerabin, NULL);
 	g_object_set (G_OBJECT(camerabin), "location", "/tmp/webcam_photo.jpg", NULL);
 	g_object_set (G_OBJECT(camerabin), "post-previews", FALSE, NULL);
 	g_signal_emit_by_name (camerabin, "start-capture", NULL);

@@ -155,7 +155,7 @@ omap_flash_bootloader() {
 			UBOOTDIR=igep0020
 		;;
 		"OMAP3 Beagle Board")
-			XLOADERDIR=x-loader/omap3530beagle
+			XLOADERDIR=u-boot/omap3_beagle
 			UBOOTDIR=omap3_beagle
 		;;
 		"OMAP4430 Panda Board" | "OMAP4 Panda board")
@@ -266,10 +266,22 @@ omap_flash_kernel() {
 
 dove_flash_kernel() {
 	tmp=$(tempfile)
-	uboot_kernel_load_addr=0x00200000
-	uboot_initramfs_load_addr=0x01100000
-	script_load_addr=0x1000
-
+	case $subarch in
+		"dove")
+			uboot_kernel_load_addr=0x00200000
+			uboot_initramfs_load_addr=0x01100000
+			script_load_addr=0x1000
+			;;
+		"armadaxp")
+			uboot_kernel_load_addr=0x02000000
+			uboot_initramfs_load_addr=0x20000000
+			script_load_addr=0x1000
+			;;
+		"highbank")
+			uboot_kernel_load_addr=0x800000
+			uboot_initramfs_load_addr=0x01000000
+			;;
+	esac
 	printf "Generating kernel u-boot image... " >&2
 	cat $kfile >> $tmp
 	mkimage -A arm -O linux -T kernel -C none -n "$desc" -a 0x00008000 \
@@ -293,6 +305,9 @@ dove_flash_kernel() {
 	echo "Creating new /boot/uInitrd." >&2
 	mv "$tmp.uboot" /boot/uInitrd
 	rm -f "$tmp.uboot"
+	if [ -z "$script_load_addr" ]; then
+		return
+	fi
 	printf "Generating new u-boot boot script..." >&2
 	# The UUID will come from the flash-kernel config file
 	cat >"$tmp.boot.script" <<EOF
@@ -351,6 +366,25 @@ EOF
 	rm -f "$tmp.boot.script" "$tmp.boot.scr"
 }
 
+highbank_setup_dtb() {
+	dtbvers=$(echo "$kfile" | sed -e 's/[^-]*-//')
+	dtbdest="/boot/highbank.dtb"
+	dtbsrc="/boot/highbank.dtb-$dtbvers"
+
+	test -e "$dtbsrc" || return
+	if [ -e "$dtbdest" ]; then
+		mv "$dtbdest" "$dtbdest.bak"
+	fi
+	printf "Generating device tree dtb... " >&2
+	cp "$dtbsrc" "$dtbdest"
+	echo "done." >&2
+}
+
+highbank_flash_kernel() {
+	dove_flash_kernel
+	highbank_setup_dtb
+}
+
 efikamx_flash_kernel() {
 	tmp=$(tempfile)
 	printf "Generating kernel u-boot image... " >&2
@@ -382,6 +416,33 @@ efikamx_flash_kernel() {
 		echo "done." >&2
 	fi
 	rm -f "$tmp"
+}
+
+imx_update_dtb() {
+	model=""
+	if [ -e /proc/device-tree/model ]; then
+		model=$(cat /proc/device-tree/model)
+	fi
+	dtbvers=$(echo "$kfile" | sed -e 's/[^-]*-//')
+	case "$model" in
+		"Freescale i.MX6 Quad SABRE Lite Board")
+			dtbfile=/boot/dt-$dtbvers/imx6q-sabrelite.dtb
+		;;
+		"Freescale i.MX6 Quad Armadillo2 Board")
+			dtbfile=/boot/dt-$dtbvers/imx6q-arm2.dtb
+		;;
+		*)
+			dtbfile=""
+		;;
+	esac
+	if [ -e "$dtbfile" ]; then
+		if [ -e $TMPMOUNT/board.dtb ]; then 
+			mv $TMPMOUNT/board.dtb $TMPMOUNT/board.dtb.bak
+		fi
+		printf "Generating device tree dtb... " >&2
+		cp "$dtbfile" $TMPMOUNT/board.dtb
+		echo "done." >&2
+	fi
 }
 
 imx_flash_kernel() {
@@ -421,6 +482,8 @@ imx_flash_kernel() {
 		echo "done." >&2
 	fi
 
+	imx_update_dtb
+
 	umount -l $TMPMOUNT
 	rmdir $TMPMOUNT
 }
@@ -455,12 +518,13 @@ if [ "x$1" = "x--supported" ]; then
 		"D-Link DNS-323")			exit 0 ;;
 		"Freescale MX51 Babbage Board")		exit 0 ;;
 		"Freescale MX53 LOCO Board")		exit 0 ;;
+		"Freescale i.MX6 Quad (Device Tree)")	exit 0 ;;
 		"GLAN Tank")				exit 0 ;;
 		"Genesi Efika MX (Smartbook)")		exit 0 ;;
 		"Genesi Efika MX (Smarttop)")		exit 0 ;;
+		"Highbank")				exit 0 ;;
 		"HP Media Vault mv2120")		exit 0 ;;
 		"IGEP v2 board")			exit 0 ;;
-		"Marvell DB-MV88F6781-BP Development Board") exit 0 ;;
 		"Linksys NSLU2")			exit 0 ;;
 		"OMAP3 Beagle Board")			exit 0 ;;
 		"OMAP4430 Panda Board" | "OMAP4 Panda board")	exit 0 ;;
@@ -469,6 +533,8 @@ if [ "x$1" = "x--supported" ]; then
 		"Marvell OpenRD Client Board")		exit 0 ;;
 		"Marvell SheevaPlug Reference Board")	exit 0 ;;
 		"Marvell eSATA SheevaPlug Reference Board")	exit 0 ;;
+		"Marvell DB-MV88F6781-BP Development Board") exit 0 ;;
+		"Marvell Armada XP Development Board") exit 0 ;;
 		"QNAP TS-109/TS-209" | "QNAP TS-409")	exit 0 ;;
 		"QNAP TS-119/TS-219")			exit 0 ;;
 		"QNAP TS-41x")				exit 0 ;;
@@ -478,7 +544,7 @@ if [ "x$1" = "x--supported" ]; then
 		*)
 			# we're supported if we have a generic fallback
 			case "$running_subarch" in
-				"dove" | "omap" | "omap4") exit 0 ;;
+				"armadaxp" | "dove" | "highbank" | "omap" | "omap4") exit 0 ;;
 			esac
 		exit 1
 		;;
@@ -643,6 +709,9 @@ case "$machine" in
 		case $subarch in
 			"mx5"|"mx51")
 				:
+				if [ -n "${UBOOT_PART}" ]; then
+					UBOOT_PART=/dev/mmcblk0p1
+				fi
 			;;
 			*)
 				# Not actually the real expected kfile
@@ -658,6 +727,11 @@ case "$machine" in
 		IMX_KERNEL_ADDR=0x70008000
 		imx_flash_kernel
 	;;
+	"Freescale i.MX6 Quad (Device Tree)")
+		check_subarch "mx6"
+		IMX_KERNEL_ADDR=0x10008000
+		imx_flash_kernel
+	;;
 	"GLAN Tank")
 		rm -f /boot/initrd /boot/zImage
 		ln -s "$(basename "$ifile")" /boot/initrd
@@ -666,6 +740,9 @@ case "$machine" in
 			devio 'wl 0xe3a01c04,4' 'wl 0xe381104c,4'
 			cat "$kfile"
 		) > /boot/zImage
+	;;
+	"Highbank")
+		highbank_flash_kernel
 	;;
 	"HP Media Vault mv2120")
 		check_subarch "orion5x"
@@ -796,14 +873,26 @@ case "$machine" in
 		check_subarch "dove"
 		dove_flash_kernel
 	;;
+	"Marvell Armada XP Development Board")
+		check_subarch "armadaxp"
+		dove_flash_kernel
+	;;
 	"IGEP v2 board" | "OMAP3 Beagle Board" | "OMAP4430 4430SDP board" | "OMAP4430 Panda Board" | "OMAP4 Panda board")
 		case "$machine" in
 			"IGEP v2 board"|"OMAP3 Beagle Board")
 				check_subarch "omap"
 			;;
-			"OMAP4430 4430SDP board" | "OMAP4430 Panda Board" | "OMAP4 Panda board")
+			"OMAP4430 Panda Board" | "OMAP4 Panda board")
 				check_subarch "omap4"
+				if [ -z "${UBOOT_PART}" ]; then
+					export UBOOT_PART=/dev/mmcblk0p1
+				fi
 			;;
+			"OMAP4430 4430SDP board") 
+				check_subarch "omap4"
+				if [ -z "${UBOOT_PART}" ]; then
+					export UBOOT_PART=/dev/mmcblk1p1
+				fi
 		esac
 		omap_flash_kernel
 	;;
@@ -996,13 +1085,16 @@ case "$machine" in
 	;;
 	*)
 		case "$running_subarch" in
-			"dove" | "omap" | "omap4")
+			"armadaxp" | "dove" | "highbank" | "omap" | "omap4")
 				echo "warning: using generic subarchitecture fallback for $running_subarch"
 				check_subarch $running_subarch
 
 				case "$subarch" in
-					"dove")
+					"armadaxp" | "dove")
 						dove_flash_kernel
+					;;
+					"highbank")
+						highbank_flash_kernel
 					;;
 					"omap" | "omap4")
 						omap_flash_kernel

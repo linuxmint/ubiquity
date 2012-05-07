@@ -21,6 +21,7 @@ import subprocess
 import fcntl
 
 import debconf
+
 from ubiquity import misc
 
 class DebconfCommunicator(debconf.Debconf):

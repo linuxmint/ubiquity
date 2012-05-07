@@ -1,3 +1,215 @@
+partman-auto (101ubuntu2) precise; urgency=low
+
+  * Temporarily back out changes to recipes/atomic and recipes/home from
+    partman-auto 94.  These can be restored after precise when we have more
+    time to test them.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 12 Apr 2012 00:27:17 +0100
+
+partman-auto (101ubuntu1) precise; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Adjust default partition sizes for Ubuntu.
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Offer resize_use_free autopartitioning method, except on armel/armhf.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+    - Drop the bootable flag from i386/amd64 recipes; it can break existing
+      Windows installations when autopartitioning only free space rather
+      than a whole disk.
+    - Make biggest_free respect the selection made in partman-auto/disk.
+    - Exclude devices containing the installation medium from automatic
+      partitioning.
+    - Add armel/dove recipes.
+    - Use new get_real_resize_range function from partman-partitioning
+      72ubuntu3, which caches calls to tune2fs and ntfsresize.
+    - Add i386/efi (and amd64/efi, kfreebsd-i386/efi, and
+      kfreebsd-amd64/efi) recipes that create an EFI System Partition.
+    - Support resizing the largest partition on multiple disks.
+    - Support formatting the entire partition for any partition that can be
+      resized.
+    - Change the x86 atomic recipes to make the minimum swap size be 100% of
+      RAM, so that hibernate always works.
+    - Add an option to reuse an existing installation.
+    - Split out the replace option from resize_use_free.
+    - Signal to clear_partitions in partman-target that it should not notify
+      the user about the unformatted partitions we have set up.
+    - Add $reusemethod internal specifier, which excludes the partition if a
+      partition with the same method already exists.
+    - Reuse existing swap partitions, BIOS Boot Partitions, and EFI System
+      Partitions, if any, rather than creating new ones.
+    - Increase minimum size of EFI System Partitions to 100MB.
+    - Add a hack to stop EFI System Partitions showing up as to-be-formatted
+      in the confirm-changes screen when there's an existing filesystem that
+      would cause partman-efi to skip them.
+  * Update Ubuntu-specific translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 11 Apr 2012 12:25:18 +0100
+
+partman-auto (101) unstable; urgency=low
+
+  [ Updated translations ]
+  * Asturian (ast.po) by Mikel González
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Estonian (et.po) by Mattias Põldaru
+  * Hebrew (he.po) by Lior Kaplan
+  * Indonesian (id.po) by Mahyuddin Susanto
+  * Icelandic (is.po) by Sveinn í Felli
+  * Kannada (kn.po) by Prabodh C P
+
+ -- Otavio Salvador <otavio@debian.org>  Thu, 15 Mar 2012 14:54:05 -0300
+
+partman-auto (100) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Merge from Ubuntu:
+    - Determine memory size for RAM-dependent recipe elements more
+      accurately on i386 (LP: #604765).
+
+  [ Matt Kraai ]
+  * Enable LVM in mipsel/loongson-2f recipes (closes: #637970).
+
+  [ Philipp Kern ]
+  * Skip auto/choices on s390x.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Viktar Siarheichyk
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * German (de.po) by Holger Wansing
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Kumar Appaiah
+  * Italian (it.po) by Milo Casagrande
+  * Macedonian (mk.po) by Arangel Angov
+  * Polish (pl.po) by Marcin Owsiany
+  * Romanian (ro.po) by Ioan Eugen Stan
+  * Sinhala (si.po) by Danishka Navin
+  * Turkish (tr.po) by Mert Dirik
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+
+ -- Philipp Kern <pkern@debian.org>  Thu, 06 Oct 2011 18:50:22 +0200
+
+partman-auto (99) unstable; urgency=low
+
+  * Add mipsel/loongson-2f recipes.
+
+ -- Colin Watson <cjwatson@debian.org>  Fri, 03 Jun 2011 11:19:26 +0100
+
+partman-auto (98) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Update old comment about partman-auto-lvm and $iflabel.
+
+  [ Updated translations ]
+  * Uyghur (ug.po) by Sahran
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 23 Apr 2011 19:40:06 +0200
+
+partman-auto (97) unstable; urgency=low
+
+  [ Konstantinos Margaritis ]
+  * Added armhf recipe
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Czech (cs.po) by Miroslav Kure
+  * Spanish (es.po) by Javier Fernández-Sanguino
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Nepali (ne.po)
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Russian (ru.po) by Yuri Kozlov
+  * Northern Sami (se.po) by Børre Gaup
+  * Slovak (sk.po) by Ivan Masár
+  * Swedish (sv.po) by Daniel Nylander
+  * Telugu (te.po) by Arjuna Rao Chavala
+  * Thai (th.po) by Theppitak Karoonboonyanan
+
+ -- Hector Oron <zumbi@debian.org>  Tue, 22 Mar 2011 12:24:32 +0000
+
+partman-auto (96) unstable; urgency=low
+
+  [ Updated translations ]
+  * Lao (lo.po) by Anousak Souphavanh
+  * Northern Sami (se.po) by Børre Gaup
+  * Sinhala (si.po) by Danishka Navin
+
+ -- Hector Oron <zumbi@debian.org>  Tue, 22 Mar 2011 12:20:16 +0000
+
+partman-auto (95) unstable; urgency=low
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Israt Jahan
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 12 Nov 2010 16:18:15 -0200
+
+partman-auto (94) unstable; urgency=low
+
+  * Team upload
+  * Bump minimum root partition size to 900MiB in the home
+    recipe. 
+    This will allow installing the standard task and leave room for
+    and extra kernel package in later life of the machine
+    Closes: #528914
+  * Adapt minimum sizes for /var and / in the multi recipe:
+    /var must cope with about 150MiB downloads and has 125MiB data
+    for the standard task install
+    / has about 150MiB installed and should cope with an
+    extra kernel at least
+  * Adapt minimum size for / in the atomic recipe, to 900MiB
+    Same rationale than above.
+
+  [ Updated translations ]
+  * Catalan (ca.po) by Jordi Mallach
+  * Icelandic (is.po) by Sveinn í Felli
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 03 Nov 2010 22:00:19 +0100
+
+partman-auto (93ubuntu22) precise; urgency=low
+
+  * Add a hack to stop EFI System Partitions showing up as to-be-formatted
+    in the confirm-changes screen when there's an existing filesystem that
+    would cause partman-efi to skip them.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 14 Mar 2012 14:35:32 +0000
+
+partman-auto (93ubuntu21) precise; urgency=low
+
+  * Increase minimum size of EFI System Partitions to 100MB (LP: #811485).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 14 Mar 2012 12:38:13 +0000
+
+partman-auto (93ubuntu20) precise; urgency=low
+
+  * Reuse existing swap partitions and EFI System Partitions, if any, rather
+    than creating new ones (LP: #311299).
+  * Update Ubuntu-specific translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 09 Mar 2012 15:22:39 +0000
+
+partman-auto (93ubuntu19) precise; urgency=low
+
+  * Close mount's fds 6 and 7 when running within an
+    open_dialog/close_dialog pair, so that if ntfs-3g is in use it doesn't
+    keep those fds open in the background and cause havoc (LP: #912031).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 02 Feb 2012 14:47:27 +0000
+
+partman-auto (93ubuntu18) precise; urgency=low
+
+  * Remove the use of 'local' in shell scripts outside of functions.  Newer
+    shell script interpreters in precise complain otherwise.
+
+ -- Mario Limonciello <Mario_Limonciello@Dell.com>  Wed, 14 Dec 2011 14:23:35 -0600
+
+partman-auto (93ubuntu17) precise; urgency=low
+
+  * Don't offer resize_use_free autopartitioning method on armhf (already
+    excluded on armel).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 07 Dec 2011 17:58:00 +0000
+
 partman-auto (93ubuntu16) natty; urgency=low
 
   * If an LV contains a partition table, then libparted will see the

@@ -1,3 +1,345 @@
+console-setup (1.70ubuntu5) precise-proposed; urgency=low
+
+  * Update Ubuntu-specific translations from Launchpad (LP: #985605).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 19 Apr 2012 16:03:16 +0100
+
+console-setup (1.70ubuntu4) precise; urgency=low
+
+  * Add definitions for four (ignored) dead-keys: dead_belowcomma,
+    dead_currency, dead_doublegrave, and dead_invertedbreve.  Cherrypick
+    from Debian git.
+    (LP: #738314)
+  * Fix command injection in ckbcomp (thanks to Emanuel Bronshtein)
+    (LP: #782705)
+
+ -- Bryce Harrington <bryce@ubuntu.com>  Mon, 19 Mar 2012 21:13:39 -0700
+
+console-setup (1.70ubuntu3) precise; urgency=low
+
+  * No change rebuild for new xkb-data. (LP: #953328)
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Thu, 15 Mar 2012 11:48:58 -0400
+
+console-setup (1.70ubuntu2) precise; urgency=low
+
+  * Drop the simplified keyboard-configuration/xkb-keymap question; it
+    breaks existing preseeding, might confuse Ubiquity, and people are
+    already used to the layout/variant questions in Ubuntu (LP: #894187).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 24 Nov 2011 15:05:27 +0000
+
+console-setup (1.70ubuntu1) precise; urgency=low
+
+  * Merge from Debian testing, remaining changes:
+    - Include Terminus font in the compiled packages.  Do not depend, but
+      conflict/provide/replace console-terminus.  New upstream version of
+      the Terminus font (4.32).
+    - Add a "Do not configure keyboard; keep kernel keymap" model option,
+      preseedable by keyboard-configuration/modelcode=SKIP.
+    - Use keymapper to generate decision trees for a restricted subset of
+      the pc105 model.
+    - Update for new layouts and variants for Montenegro and Serbia, and
+      migrate configuration files from the old layouts.
+    - Generate a locale locally for translating keyboard names in
+      kbdnames-maker.
+    - Move boot tasks to a combination of two udev rules and a single
+      Upstart job, ensuring that they're run at points when we are able to
+      satisfy the constraints on the relevant ioctls.
+    - Don't gzip font or ACM files in /etc/console-setup/.  The space saving
+      is negligible, and it's more efficient not to need to uncompress them
+      at boot time.
+    - Don't copy keyboard-configuration questions to /target in OEM mode.
+      oem-config will ask them later, and copying these confuses it.
+    - Add an apport hook.
+    - Change the default font from Fixed to VGA for Lat15; while it's not
+      entirely complete, it looks better and is largely good enough.
+    - Set keymap and font in the initramfs if possible and sensible.
+    - Don't try to call update-rc.d if it doesn't exist, such as in d-i.
+    - debian/vtrgb, debian/vtrgb.vga, debian/console-setup.setvtrgb.upstart,
+      debian/rules, debian/console-setup.postinst: use Ubuntu's virtual
+      terminal color scheme by default, with a VGA color scheme available
+      as an alternative.
+    - Explicitly build-depend on liblocale-gettext-perl for kbdnames-maker,
+      and likewise have keyboard-configuration depend on
+      liblocale-gettext-perl.
+    - Depend on debconf instead of pre-depending, because pre-depends have
+      no effect on config scripts.
+    - Make keyboard-configuration replace old console-setup/console-setup-mini
+      versions as well as conflicting with them.
+    - Depend on kbd (>= 1.15-1ubuntu3) for a valuable loadkeys improvement.
+    - If the detect-keyboard debconf plugin is available
+      (cdebconf-newt-detect-keys in the installer), then offer to use it to
+      detect the keyboard layout.
+    - Fix default keyboard selection for language/country combinations
+      lacking a proper combined locale.
+    - Drop the layout/variant priority to high on fresh installs.
+    - Set default for Dutch to us(intl), not just us.
+    - Set default layout for Kurdish to tr(ku).
+    - Set default layout for Vietnam to 'us'.
+    - Set default variant for French to oss.
+    - Set default layout for Simplified Chinese to 'cn'.
+    - Don't use the default keyboard variant if the layout is overridden by
+      preseeding.
+    - If keyboard-configuration/layoutcode is preseeded but not marked as
+      seen, then set the default layout but don't lower the layout question
+      priority or preseed console-setup/ask_detect.
+    - Use the default keyboard model if an existing configuration file sets
+      XKBMODEL="".
+    - console-setup-udeb (<< 1.53) didn't set the seen flag in the installed
+      system.  Cope with this and avoid asking the layout and variant
+      questions again if the default debconf priority is at least high.
+      (squeeze has >> 1.53, so this can be dropped after 12.04.)
+    - Go back to always asking layout before variant.
+    - Fix keyboard layout detection to set the layout properly.
+    - Reset keyboard-configuration/toggle to the default if it's set to "No
+      toggling" and you select a non-Latin layout.
+    - Automatically save the font and keymap to /etc in
+      /etc/init.d/console-setup if it isn't being run from init. Similarly,
+      ensure that the font and keymap are saved to /etc during initial
+      installation.
+    - Replace usplash detection code with Plymouth detection code.
+    - Load the new keyboard configuration immediately when running
+      'dpkg-reconfigure keyboard-configuration' in an installed system.
+    - Don't fail to configure keyboard-configuration if setxkbmap fails to
+      talk to the X display.
+    - Tolerate absence of setupcon in keyboard-configuration.postinst.
+    - Move keyboard detection templates from console-setup.templates to
+      keyboard-configuration.templates.
+    - Stop running debconf-updatepo on clean.
+    - Include pc105.tree for ubiquity.
+    - Run kbd_mode on each tty in ACTIVE_CONSOLES rather than on the current
+      tty, since the current tty might belong to X and changing X's tty out
+      of raw mode is a very bad idea.
+    - Weaken test for whether /usr is mounted; testing for /usr/share is
+      sufficient, and fixes operation in d-i.
+    - Make setupcon explicitly exit 0, so that postinsts don't fail in the
+      event that loadkeys can't find a console.
+  * Dropped changes:
+    - Special KPDL handling: rewritten upstream in version 1.24.
+    - Upgrade handling for broken 1.57ubuntu1-1.57ubuntu4: prerelease
+      versions from natty, code dropped.
+    - Allow underscores in rules variables: included upstream.
+  * Restore plugin-detect-keyboard handling code, accidentally dropped in
+    a previous merge; keyboard detecting code was probably broken in the gtk
+    frontend by this.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Tue, 08 Nov 2011 09:34:02 -0800
+
+console-setup (1.70) unstable; urgency=low
+
+  * ckbcomp: permit '_' in all identifiers.  Thanks to Jonny, Javier
+    Vasquez and Eric Valette.
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Thu, 24 Feb 2011 18:31:21 +0200
+
+console-setup (1.69) unstable; urgency=low
+
+  [ Joey Hess ]
+  * rules: Remove obsolete commands to clean up when building from cvs, and
+    svn. (Now in git; pollution of subdirs should no longer be an issue.)
+
+  [ Samuel Thibault ]
+  * Use bg, ch, se instead of bg(bds), ch(de), se(basic), as those are not in
+    xorg.xml any more (closes: #610843).
+  * config: Use the braille font name from the console-braille package.
+
+ -- Julien Cristau <jcristau@debian.org>  Thu, 17 Feb 2011 22:54:58 +0100
+
+console-setup (1.68) unstable; urgency=high
+
+  * Fix el.po, it had question marks instead of non-ascii characters
+    (closes: #609624)
+  * Restore fa.po, he.po, zh_TW.po, same issue.
+  * Revert latest update to pa.po, same issue.
+  * Revert most of the last update to is.po, same issue.
+
+ -- Julien Cristau <jcristau@debian.org>  Tue, 11 Jan 2011 13:10:38 +0100
+
+console-setup (1.67) unstable; urgency=low
+
+  [ Anton Zinoviev ]
+  * ckbcomp: process properly %(v) and %_v.  Interpret Henkan, Hiragana,
+    Hiragana_Katakana, Muhenkan and some XF86... symbols as VoidSymbol.
+    Thanks to Sebastian Reichel, closes: #608227.
+
+  [ Christian Perrier ]
+  * Remove debconf-2.0 alternative from Pre-Depends.
+    Really Closes: #604153
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 31 Dec 2010 19:55:24 +0100
+
+console-setup (1.66) unstable; urgency=low
+
+  [ Samuel Thibault ] 
+  * Fix keyboard-configuration.templates translations: the template doesn't
+    have useless latin[1245]/nodeadkeys/etc. qualifiers any more.
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 29 Dec 2010 18:26:06 +0100
+
+console-setup (1.65) unstable; urgency=low
+
+  [ Samuel Thibault ]
+  * Fix fr-latin8 typo introduced in 1.64.
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 23 Dec 2010 20:46:39 +0100
+
+console-setup (1.64) unstable; urgency=low
+
+  * Use "fi" for Finnish keymap in the udeb instead of invalid "fi(fi)"
+    Closes: #606840
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 18 Dec 2010 18:06:51 +0100
+
+console-setup (1.63) unstable; urgency=low
+
+  [ Debconf translations ]
+  * Polish (Marcin Owsiany).  Closes: #604180
+  * Reinstate Serbian (Latin) debconf translation after fixing
+    the pre-dependency on debconf (>= 1.5.34)
+  * Marathi (Sampada). 
+  * Panjabi (A S Alam).
+  * Korean (Changwoo Ryu). Closes: #604258
+  * Traditional Chinese (Tetralet).
+  * Bengali (Israt Jahan).
+  * Belarusian (Viktar Siarheichyk).  Closes: #604788
+  * Croatian (Josip Rodin). 
+  * Italian (Milo Casagrande).  Closes: #604920
+  * Swedish (1 fuzzy unfuzzied by Christian Perrier)
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 05 Dec 2010 19:05:11 +0100
+
+console-setup (1.61) unstable; urgency=low
+
+  * Polish (Marcin Owsiany).  Closes: #604097
+  * Asturian (maacub).
+  * Basque (Iñaki Larrañaga Murgoitio).
+  * Greek (Emmanuel Galatoulas).  Closes: #604145
+  * Traditional Chinese (Tetralet).  Closes: #604148
+  * Serbian (Latin) translation dropped as not properly handled
+    by debconf. Closes: #604153
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 20 Nov 2010 20:05:50 +0100
+
+console-setup (1.60) unstable; urgency=low
+
+  [ Samuel Thibault ]
+  * debian/keyboard-configuration.templates: Fix typo in bg(bds) keymap name,
+    making it not working. Rename Bulgarian into Bulgarian (phonetic layout),
+    rename Bulgarian (BDS layout) into Bulgarian. Fix translations
+    accordingly.
+  * debian/keyboard-configuration.config: For Bulgary, use the BDS layout by
+    default, as this is what non-technical people usually know.
+
+  [ Christian Perrier ]
+  * Romanian (Andrei POPESCU).  Closes: #603716
+  * Galician (Jorge Barreiro).  Closes: #603636
+  * Dutch (Eric Spreen).  Closes: #603756
+  * Thai (Theppitak Karoonboonyanan).  Closes: #603664
+  * Khmer (Khoem Sokhem).
+  * Irish (Kevin Scannell).  Closes: #603833
+  * Tamil (Dr.T.Vasudevan). 
+  * Hungarian (SZERVÁC Attila). 
+  * Latvian (Aigars Mahinovs). 
+  * Ukrainian (Borys Yanovych).  Closes: #603863
+  * Indonesian (Arief S Fitrianto).  Closes: #603879
+  * Punjabi.
+  * Kurdish (Amed Çeko Jiyan).
+  * Swedish (Daniel Nylander). 
+  * Brazilian Portuguese (Felipe Augusto van de Wiel (faw)).  Closes: #603977
+  * Basque (Iñaki Larrañaga Murgoitio). 
+  * Asturian (ivarela). 
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 19 Nov 2010 19:33:54 -0200
+
+console-setup (1.59) unstable; urgency=low
+
+  * Team upload
+
+  [ Christian Perrier ]
+  * Activate keyboard-configuration.templates for translation.
+    Re-use old translations we had in the past. Thanks to
+    Samuel Thibault for the help. Closes: #581683
+
+  [ Anton Zinoviev]
+  * Fix the code detecting the presence of a hardware keyboard.  Thanks to
+    Thibaut GIRKA for the patch, closes: #602425.
+  * keyboard-configuration.config: default keyboard layout for Sinhala language
+
+  [ Debconf translations ]
+  * French (Christian Perrier)
+  * Simplified Chinese (YunQiang Su).  Closes: #603072
+  * Portuguese (Miguel Figueiredo).  Closes: #603071
+  * Russian (Yuri Kozlov).  Closes: #603073
+  * Catalan (Jordi Mallach).  Closes: #603086
+  * Greek (Lampropoulos Anastasios).
+  * Slovak (Ivan Masár).  Closes: #603108
+  * Spanish (Javier Fernández-Sanguino).  Closes: #603120
+  * Icelandic (Sveinn í Felli).
+  * Bulgarian (Damyan Ivanov).  Closes: #603149
+  * Japanese (Kenshi Muto).  Closes: #603154
+  * Bosnian (Armin Beširović).
+  * Finnish (Esko Arajärvi).  Closes: #603200
+  * Esperanto (Felipe Castro).  Closes: #603226
+  * Gujarati (Kartik Mistry).  Closes: #603238
+  * Hindi (Kumar Appaiah).  Closes: #603098
+  * Estonian (Mattias Põldaru).
+  * Dzongkha (Jurmey Rabgay).
+  * Persian (Behrad Eslamifar).  Closes: #603312
+  * Danish (Ask Hjorth Larsen).  Closes: #603365
+  * German (Holger Wansing).  Closes: #603404
+  * Czech (Miroslav Kure).  Closes: #603449
+  * Serbian (Janos Guljas).  Closes: #603497
+  * Serbian (Latin) (Janos Guljas).  Closes: #603498
+  * Arabic (Ossama Khayat).  Closes: #603519, #603520
+  * Turkish (Mert Dirik).  Closes: #603522
+  * Bengali (Israt Jahan). 
+  * Kazakh (Baurzhan Muftakhidinov).  Closes: #603539
+  * Bokmål, Norwegian (Hans Fredrik Nordhaug).  Closes: #603576
+  * Slovenian (Vanja Cvelbar).  Closes: #603689
+  * Macedonian (Georgi Stanojevski).
+
+  [ Samuel Thibault ]
+  * Keyboard/kbdcompiler: Add np to nonlatin layouts.
+  * debian/keyboard-configuration.templates: Add simplified
+    keyboard-configuration/xkb-keymap question (Closes: #581683).
+  * debian/keyboard-configuration.config:
+    - Set default layouts for Bhutan, Ethiopia, France (for Basque in France),
+    Cambodia, Korea, Kazakhstan, Sri Lanka, Nepal, Bengali, and Chinese,
+    Swiss German to handle all languages supported by d-i.
+    - Use latin9 variant of fr keyboard to get œ.
+    - Raise priority for Esperanto to critical as it's typically used on any
+    kind of keyboard.
+    - Add np to nonlatin layouts.
+    - Use phonetic variant by default for bg.
+    - In d-i, skip all questions except the simplified
+    keyboard-configuration/xkb-keymap and keyboard-configuration/toggle for
+    non-latin languages.
+  * Import keyboard layout translations from console-data.
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 16 Nov 2010 20:00:38 +0100
+
+console-setup (1.58) unstable; urgency=low
+
+  [ Samuel Thibault ]
+  * debian/keyboard-configuration.README.Debian: New file to contain
+    documentation on how changes can be enforced. Provide there the proper
+    udevadm incantation to make Xorg get the new Keyboard configuration without
+    rebooting.
+  * config.kbd: Reference the abovementioned README.
+  * debian/keyboard-configuration.config: Do not specify abnt2 and jp106
+    xkb models as the base model now has their keys (Closes: Bug#600490).
+  * debian/control: Bump xkb-data dependency version to >= 1.6 to make sure
+    the assumption above is true.
+
+  [ Anton Zinoviev]
+  * Do not enforce abnt2 and jp106 models for Brasilian and Japanese layouts.
+  * setupcon(console-setup-mini): do not expect /usr/share/X11/xkb when
+    testing if /usr is mounted.  Thanks to Marek Straka and Samuel
+    Thibault, closes: #600861.
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Sat, 23 Oct 2010 10:14:45 +0300
+
 console-setup (1.57ubuntu27) oneiric; urgency=low
 
   * Update Greek, Persian, Hebrew, Punjabi, and Traditional Chinese

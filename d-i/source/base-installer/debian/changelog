@@ -1,3 +1,162 @@
+base-installer (1.122ubuntu7) precise; urgency=low
+
+  * Backport from upstream (Joey Hess):
+    - Add missing semicolon to /etc/apt/apt.conf.d/00CDMountPoint.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 08 Apr 2012 09:54:41 +0100
+
+base-installer (1.122ubuntu6) precise; urgency=low
+
+  * Use -smp for both powerpc and powerpc64 variants in Ubuntu.
+
+ -- Adam Conrad <adconrad@ubuntu.com>  Tue, 20 Mar 2012 11:02:40 -0600
+
+base-installer (1.122ubuntu5) precise; urgency=low
+
+  * Correct test-suite to actually pass
+
+ -- Michael Casadevall <mcasadevall@ubuntu.com>  Fri, 17 Feb 2012 12:53:41 -0800
+
+base-installer (1.122ubuntu4) precise; urgency=low
+
+  * Add armadaxp to base-installer (LP: #934451)
+
+ -- Michael Casadevall <mcasadevall@ubuntu.com>  Fri, 17 Feb 2012 11:49:03 -0800
+
+base-installer (1.122ubuntu3) precise; urgency=low
+
+  * "Fix" mx5 test results to pass (we don't actually use this
+    subarch in Ubuntu's d-i right now, so the test is meaningless).
+
+ -- Adam Conrad <adconrad@ubuntu.com>  Thu, 15 Dec 2011 10:28:43 -0700
+
+base-installer (1.122ubuntu2) precise; urgency=low
+
+  * Move kernel/tests/armhf/* to armel/, and symlink armhf to armel.
+  * Symlink kernel/armhf.sh to kernel/armel.sh, to match above change.
+
+ -- Adam Conrad <adconrad@ubuntu.com>  Thu, 15 Dec 2011 10:08:57 -0700
+
+base-installer (1.122ubuntu1) precise; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Use and depend on the Ubuntu keyring.
+    - Enable the restricted component by default, unless
+      apt-setup/restricted is preseeded to false.
+    - Set up the default sources.list to look in -updates and -security (the
+      latter from apt-setup/security_host and apt-setup/security_path) as
+      well as the unadorned suite; also -proposed if apt-setup/proposed is
+      true.
+    - Use Ubuntu kernel image names.
+    - Allow preseeding base-installer/kernel/override-image to force a given
+      kernel to be used.
+    - Install busybox-initramfs rather than busybox.
+    - Revert Joey's patch to call base-installer.d hooks after running
+      debootstrap, which broke console-setup's expectation of being able to
+      insert its configuration file into /target before console-setup is
+      installed by debootstrap.
+    - Add armel/imx51, armel/dove, armel/omap, and armel/omap4
+      subarchitectures.
+    - Install kernel headers to match the kernel. This may be overridden by
+      setting base-installer/kernel/headers to false.
+    - Add base-installer/kernel/backports-modules template, which may be
+      preseeded to install selected linux-backports-modules-* packages.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 21 Nov 2011 13:45:55 +0000
+
+base-installer (1.122) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Remove base-installer/kernel/linux/initramfs-generators
+    and vestigial support for yaird.
+  
+  [ Matt Kraai ]
+  * Use an initrd on mipsel/loongson-2f systems. Closes: #640418
+
+  [ Milan Kupcevic ]
+  * Add POWER7 to the powerpc64 family. (Closes: #637519)
+
+  [ Samuel Thibault ]
+  * Fix kernel name on hurd-any.
+
+  [ Colin Watson ]
+  * pkgdetails: Use the last of a sequence of stanzas for the same package
+    name, rather than the first (closes: #649482).
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Viktar Siarheichyk
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Kumar Appaiah
+  * Kannada (kn.po) by Prabodh C P
+  * Korean (ko.po) by Changwoo Ryu
+  * Polish (pl.po) by Marcin Owsiany
+  * Romanian (ro.po) by Ioan Eugen Stan
+  * Sinhala (si.po) by Danishka Navin
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Colin Watson <cjwatson@debian.org>  Mon, 21 Nov 2011 13:32:00 +0000
+
+base-installer (1.121ubuntu1) precise; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Use and depend on the Ubuntu keyring.
+    - Enable the restricted component by default, unless
+      apt-setup/restricted is preseeded to false.
+    - Set up the default sources.list to look in -updates and -security (the
+      latter from apt-setup/security_host and apt-setup/security_path) as
+      well as the unadorned suite; also -proposed if apt-setup/proposed is
+      true.
+    - Use Ubuntu kernel image names.
+    - Allow preseeding base-installer/kernel/override-image to force a given
+      kernel to be used.
+    - Install busybox-initramfs rather than busybox.
+    - Revert Joey's patch to call base-installer.d hooks after running
+      debootstrap, which broke console-setup's expectation of being able to
+      insert its configuration file into /target before console-setup is
+      installed by debootstrap.
+    - Add armel/imx51, armel/dove, armel/omap, and armel/omap4
+      subarchitectures.
+    - Install kernel headers to match the kernel. This may be overridden by
+      setting base-installer/kernel/headers to false.
+    - Add base-installer/kernel/backports-modules template, which may be
+      preseeded to install selected linux-backports-modules-* packages.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 25 Oct 2011 01:19:23 +0100
+
+base-installer (1.121) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Merge from Ubuntu:
+    - Run dpkg with --force-unsafe-io during installation; syncing is
+      unnecessary in this context and can slow things down quite a bit
+      (closes: #605384).
+  * Consider 3.0 and later kernels as being like 2.6 for the purposes of
+    debconf template selection.
+
+  [ Samuel Thibault ]
+  * Propose kernels only of the same kind (closes: Bug#637432)
+
+  [ Joey Hess ]
+  * Treat 3.x the same as 2.6 in arch_get_kernel.
+
+  [ Updated translations ]
+  * German (de.po) by Holger Wansing
+  * Basque (eu.po)
+  * Italian (it.po) by Milo Casagrande
+  * Macedonian (mk.po) by Arangel Angov
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 24 Aug 2011 19:11:09 -0400
+
+base-installer (1.120) unstable; urgency=low
+
+  [ Samuel Thibault ]
+  * Redirect hurd-i386 active firmlink to null to avoid letting callers keep
+    trying reading from it.
+
+ -- Otavio Salvador <otavio@debian.org>  Sun, 24 Jul 2011 00:20:08 +0200
+
 base-installer (1.119ubuntu4) oneiric; urgency=low
 
   * Honour apt-setup/security_path when constructing initial security

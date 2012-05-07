@@ -44,17 +44,11 @@ cd_mountable=1
 db_get cdrom-detect/hybrid || true
 if [ "$RET" = true ] || [ -d /hd-media ]; then
 	cd_mountable=""
-fi
-
-fs=iso9660
-if db_get cdrom-detect/cdrom_fs && [ "$RET" ]; then
-	fs="$RET"
 else
-	fs=$(mount | grep "on /cdrom " | cut -d' ' -f5) || true
-fi
-
-if [ "$fs" != iso9660 ]; then
-	cd_mountable=""
+	db_get cdrom-detect/usb-hdd || true
+	if [ "$RET" = true ]; then
+		cd_mountable=""
+	fi
 fi
 
 if [ "$OVERRIDE_LEAVE_CD_MOUNTED" ]; then
@@ -69,8 +63,21 @@ esac
 
 remount_cd() {
 	if [ "$ROOT" ] && [ "$cd_mountable" ]; then
+		fs=iso9660
+		if db_get cdrom-detect/cdrom_fs && [ "$RET" ]; then
+			fs="$RET"
+		fi
+		OS=$(udpkg --print-os)
+		case "$OS" in
+			hurd)
+				OPTIONS=ro
+				;;
+			*)
+				OPTIONS=ro,exec
+				;;
+		esac
 		db_get cdrom-detect/cdrom_device
-		$logoutput mount -t "$fs" -o ro,exec $RET /cdrom || true
+		$logoutput mount -t "$fs" -o $OPTIONS $RET /cdrom || true
 	fi
 }
 
@@ -112,7 +119,7 @@ if [ "$ROOT" ]; then
 	if [ "$cd_mountable" ]; then
 		rm -f $ROOT/etc/apt/apt.conf.d/00NoMountCDROM
 
-		# Also removes the bind-mount in /target
+		$logoutput umount /target/media/cdrom* || true
 		$logoutput umount /cdrom || true
 	fi
 

@@ -103,7 +103,14 @@ reuse_partitions() {
 			db_progress STOP
 			autopartitioning_failed
 		fi
-		setup_partition $id $*'
+		setup_partition $id $*
+		# Hack to stop EFI partitions showing up as formatted when
+		# they will actually not be.  We do not have a good
+		# interface for this yet.
+		if [ -f $id/method ] && [ "$(cat $id/method)" = efi ] && \
+		   [ -f $id/detected_filesystem ]; then
+			rm -f $id/format
+		fi'
 }
 
 create_primary_partitions() {
@@ -256,9 +263,6 @@ select_auto_disk() {
 	echo "$RET"
 	return 0
 }
-
-# TODO: Add a select_auto_disks() function
-# Note: This needs a debconf_multiselect equiv.
 
 # Maps a devfs name to a partman directory
 dev_to_partman () {

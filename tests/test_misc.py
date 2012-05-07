@@ -1,15 +1,15 @@
 #!/usr/bin/python
 
-
-import unittest
-# These tests require Mock 0.7.0
-import mock
-from test import test_support
-from ubiquity import misc
-
+import grp
 import os
 import pwd
-import grp
+from test import test_support
+import unittest
+
+# These tests require Mock 0.7.0
+import mock
+
+from ubiquity import misc
 
 _proc_swaps = [
     'Filename\t\t\t\tType\t\tSize\tUsed\tPriority',
@@ -36,6 +36,19 @@ _proc_mounts = [
 'gvfs-fuse-daemon /home/evan/.gvfs fuse.gvfs-fuse-daemon '
     'rw,nosuid,nodev,relatime,user_id=1000,group_id=1000 0 0',
 ]
+
+
+class EnvironmentVarGuard(test_support.EnvironmentVarGuard):
+    """Stronger version of test_support.EnvironmentVarGuard.
+
+    This class restores os.environ even if something within its context
+    manipulates os.environ directly.
+    """
+
+    def __init__(self):
+        test_support.EnvironmentVarGuard.__init__(self)
+        self._environ = self._environ.copy()
+
 
 class MiscTests(unittest.TestCase):
 
@@ -90,8 +103,8 @@ class MiscTests(unittest.TestCase):
     def test_get_release_fail(self, mock_open):
         mock_open.side_effect = Exception('Pow!')
         release = misc.get_release()
-        self.assertEqual(release.name, 'Linux Mint')
-        self.assertEqual(release.version, '12')
+        self.assertEqual(release.name, 'Ubuntu')
+        self.assertEqual(release.version, '')
 
     #@mock.patch('__builtin__.os.path.exists')
     #def windows_startup_folder(self, mock_exists):
@@ -132,18 +145,78 @@ class MiscTests(unittest.TestCase):
         self.assertEqual(misc.debconf_escape('\\A test string\n'),
                          '\\\\A\\ test\\ string\\n')
 
-    @mock.patch('ubiquity.gconftool.set_list')
-    @unittest.skipIf(True, 'functionality currently broken.')
-    def test_set_indicator_keymaps(self, mock_set_list):
-        misc.set_indicator_keymaps('en_US.UTF-8')
+    @mock.patch('ubiquity.gsettings.set_list')
+    @mock.patch('ubiquity.misc.execute')
+    def test_set_indicator_keymaps_english(self, mock_execute, mock_set_list):
+        misc.set_indicator_keymaps('en')
+        self.assertEqual(mock_execute.call_count, 1)
+        self.assertEqual(mock_execute.call_args[0][0], 'setxkbmap')
         self.assertEqual(mock_set_list.call_count, 1)
         self.assertEqual(mock_set_list.call_args[0][0],
-            '/desktop/gnome/peripherals/keyboard/kbd/layouts')
-        self.assertEqual(mock_set_list.call_args[0][1], 'string')
-        self.assertIn('us', mock_set_list.call_args[0][2])
-        self.assertIn('gb', mock_set_list.call_args[0][2])
-        self.assertIn('gb\tintl', mock_set_list.call_args[0][2])
-        self.assertIn('gb\tmac', mock_set_list.call_args[0][2])
+            'org.gnome.libgnomekbd.keyboard')
+        self.assertEqual(mock_set_list.call_args[0][1], 'layouts')
+        self.assertEqual('us', mock_set_list.call_args[0][2][0])
+        self.assertEqual(len(mock_set_list.call_args[0][2]), 4)
+
+    @mock.patch('ubiquity.gsettings.set_list')
+    @mock.patch('ubiquity.misc.execute')
+    def test_set_indicator_keymaps_french(self, mock_execute, mock_set_list):
+        misc.set_indicator_keymaps('fr')
+        self.assertEqual(mock_execute.call_count, 1)
+        self.assertEqual(mock_execute.call_args[0][0], 'setxkbmap')
+        self.assertEqual(mock_set_list.call_count, 1)
+        self.assertEqual(mock_set_list.call_args[0][0],
+            'org.gnome.libgnomekbd.keyboard')
+        self.assertEqual(mock_set_list.call_args[0][1], 'layouts')
+        self.assertEqual('fr\toss', mock_set_list.call_args[0][2][0])
+        self.assertEqual(len(mock_set_list.call_args[0][2]), 4)
+
+    @mock.patch('ubiquity.gsettings.set_list')
+    @mock.patch('ubiquity.misc.execute')
+    def test_set_indicator_keymaps_variants(self, mock_execute, mock_set_list):
+        misc.set_indicator_keymaps('sv')
+        self.assertEqual(mock_execute.call_count, 1)
+        self.assertEqual(mock_execute.call_args[0][0], 'setxkbmap')
+        self.assertEqual(mock_set_list.call_count, 1)
+        self.assertEqual(mock_set_list.call_args[0][0],
+            'org.gnome.libgnomekbd.keyboard')
+        self.assertEqual(mock_set_list.call_args[0][1], 'layouts')
+        self.assertIn('se\tdvorak', mock_set_list.call_args[0][2])
+
+    @mock.patch('ubiquity.gsettings.set_list')
+    @mock.patch('ubiquity.misc.execute')
+    def test_set_indicator_keymaps_ta(self, mock_execute,
+                                        mock_set_list):
+        misc.set_indicator_keymaps('ta')
+        self.assertEqual(mock_execute.call_count, 1)
+        self.assertEqual(mock_execute.call_args[0][0], 'setxkbmap')
+        self.assertEqual(mock_set_list.call_count, 1)
+        self.assertEqual(mock_set_list.call_args[0][0],
+            'org.gnome.libgnomekbd.keyboard')
+        self.assertEqual(mock_set_list.call_args[0][1], 'layouts')
+        self.assertEqual('in\ttam', mock_set_list.call_args[0][2][0])
+        self.assertEqual(len(mock_set_list.call_args[0][2]), 4)
+
+    @mock.patch('ubiquity.gsettings.set_list')
+    @mock.patch('ubiquity.misc.execute')
+    def test_set_indicator_keymaps_simplified_chinese(self, mock_execute,
+                                                      mock_set_list):
+        misc.set_indicator_keymaps('zh_CN')
+        self.assertEqual(mock_execute.call_count, 1)
+        self.assertEqual(mock_execute.call_args[0][0], 'setxkbmap')
+        self.assertEqual(mock_set_list.call_count, 1)
+        self.assertEqual(mock_set_list.call_args[0][0],
+            'org.gnome.libgnomekbd.keyboard')
+        self.assertEqual(mock_set_list.call_args[0][1], 'layouts')
+        self.assertEqual('cn', mock_set_list.call_args[0][2][0])
+        self.assertEqual(len(mock_set_list.call_args[0][2]), 1)
+
+    @mock.patch('ubiquity.gsettings.set_list')
+    @mock.patch('ubiquity.misc.execute')
+    def test_set_indicator_keymaps_unknown(self, mock_execute, mock_set_list):
+        misc.set_indicator_keymaps('unknownlanguage')
+        self.assertEqual(mock_execute.call_count, 0)
+        self.assertEqual(mock_set_list.call_count, 0)
 
 #class PartedServerTests(unittest.TestCase):
 #    def setUp(self):
@@ -186,9 +259,9 @@ class PrivilegeTests(unittest.TestCase):
     @mock.patch('os.seteuid')
     @mock.patch('os.setgroups')
     def test_drop_privileges(self, *args):
-        with test_support.EnvironmentVarGuard():
-            os.environ['SUDO_UID'] = '1000'
-            os.environ['SUDO_GID'] = '1000'
+        with test_support.EnvironmentVarGuard() as env:
+            env['SUDO_UID'] = '1000'
+            env['SUDO_GID'] = '1000'
             misc.drop_privileges()
         os.seteuid.assert_called_once_with(1000)
         os.setegid.assert_called_once_with(1000)
@@ -208,7 +281,7 @@ class PrivilegeTests(unittest.TestCase):
     @mock.patch('os.setreuid')
     def test_drop_all_privileges(self, *args):
         pwd.getpwuid.return_value.pw_dir = 'fakeusr'
-        with test_support.EnvironmentVarGuard():
+        with EnvironmentVarGuard():
             os.environ['SUDO_UID'] = '1000'
             os.environ['SUDO_GID'] = '1000'
             misc.drop_all_privileges()
@@ -217,6 +290,136 @@ class PrivilegeTests(unittest.TestCase):
             os.setgroups.assert_called_once_with([1234])
             self.assertEqual(os.environ['HOME'], 'fakeusr')
 
+
+class GrubDefaultTests(unittest.TestCase):
+    """Support for testing ubiquity.misc.grub_default.
+
+    This class mocks several methods to make it possible to test
+    ubiquity.misc.grub_default.  Individual tests should set self.devices to
+    a list of elements as follows:
+
+        [grub_dev, os_dev, by_id_dev]
+
+    grub_dev should not be surrounded with (); os_dev should not be prefixed
+    with /dev/; by_id_dev should not be prefixed with /dev/disk/by-id/.
+
+    For example:
+
+        [
+            ['hd0', 'sda', 'serial-number-for-sda'],
+            ['hd1', 'sdb', 'serial-number-for-sdb'],
+        ]
+
+    Tests should also set self.cdrom_mount to a (disk, fs_type) pair, e.g.
+    ('/dev/sr0', 'iso9660'), may set self.removable_devices to a list of
+    paths to removable devices, e.g. ['/dev/sdb'], and may set
+    self.boot_device to the path to a device containing /boot, e.g.
+    '/dev/sdb'.
+    """
+
+    def setUp(self):
+        for obj in (
+            'os.path.realpath',
+            'os.path.samefile',
+            'ubiquity.misc.boot_device',
+            'ubiquity.misc.cdrom_mount_info',
+            'ubiquity.misc.grub_device_map',
+            'ubiquity.misc.is_removable',
+            ):
+            patcher = mock.patch(obj)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+        os.path.realpath.side_effect = self.realpath_side_effect
+        os.path.samefile.side_effect = self.samefile_side_effect
+        misc.boot_device.side_effect = self.boot_device_side_effect
+        misc.cdrom_mount_info.side_effect = self.cdrom_mount_info_side_effect
+        misc.grub_device_map.side_effect = self.grub_device_map_side_effect
+        misc.is_removable.side_effect = self.is_removable_side_effect
+
+        self.removable_devices = []
+        self.boot_device = None
+
+    def iter_devices(self):
+        """Iterate through devices, expanding abbreviated forms."""
+        for grub_dev, os_dev, by_id_dev in self.devices:
+            yield ('(%s)' % grub_dev, '/dev/%s' % os_dev,
+                   '/dev/disk/by-id/%s' % by_id_dev)
+
+    def realpath_side_effect(self, filename):
+        filename = os.path.abspath(filename)
+        for _, os_dev, by_id_dev in self.iter_devices():
+            if filename in (os_dev, by_id_dev):
+                return os_dev
+        return filename
+
+    def samefile_side_effect(self, f1, f2):
+        f1 = os.path.abspath(f1)
+        f2 = os.path.abspath(f2)
+        if f1 == f2:
+            return True
+        for _, os_dev, by_id_dev in self.iter_devices():
+            if f1 == os_dev and f2 == by_id_dev:
+                return True
+            elif f1 == by_id_dev and f2 == os_dev:
+                return True
+        return False
+
+    def boot_device_side_effect(self):
+        return self.boot_device
+
+    def cdrom_mount_info_side_effect(self):
+        return list(self.cdrom_mount)
+
+    def grub_device_map_side_effect(self):
+        device_map = []
+        for grub_dev, _, by_id_dev in self.iter_devices():
+            device_map.append('%s\t%s' % (grub_dev, by_id_dev))
+        return device_map
+
+    def is_removable_side_effect(self, device):
+        if device in self.removable_devices:
+            return device
+        else:
+            return None
+
+    def test_removable(self):
+        self.devices = [['hd0', 'sda', 'serial-number-for-sda']]
+        self.cdrom_mount = ('/dev/sr0', 'iso9660')
+        self.boot_device = '/dev/sdb'
+        self.removable_devices = [self.boot_device]
+        self.assertEqual('/dev/sdb', misc.grub_default())
+
+    def test_use_first_disk(self):
+        self.devices = [
+            ['hd0', 'sda', 'disk-1'],
+            ['hd1', 'sdb', 'disk-2'],
+            ]
+        self.cdrom_mount = ('/dev/sr0', 'vfat')
+        self.assertEqual('/dev/sda', misc.grub_default())
+
+    @mock.patch('ubiquity.misc.drop_privileges')
+    @mock.patch('ubiquity.misc.regain_privileges')
+    def test_avoid_cdrom(self, *args):
+        self.devices = [
+            ['hd0', 'sda', 'cdrom'],
+            ['hd1', 'sdb', 'disk'],
+            ]
+        self.cdrom_mount = ('/dev/sda', 'vfat')
+        self.assertEqual('/dev/sdb', misc.grub_default())
+        self.cdrom_mount = ('/dev/disk/by-id/cdrom', 'vfat')
+        self.assertEqual('/dev/sdb', misc.grub_default())
+
+    def test_usb_iso9660(self):
+        self.devices = [
+            ['hd0', 'sda', 'usb'],
+            ['hd1', 'sdb', 'disk'],
+            ]
+        self.cdrom_mount = ('/dev/sda', 'iso9660')
+        self.boot_device = '/dev/sdb'
+        self.removable_devices = ['/dev/sda']
+        self.assertEqual('/dev/sdb', misc.grub_default())
+
+
 if __name__ == '__main__':
-    pass
-    #test_support.run_unittest(MiscTests, PrivilegeTests)
+    test_support.run_unittest(MiscTests, PrivilegeTests, GrubDefaultTests)

@@ -20,7 +20,7 @@ NEWLINE='
 
 IFS="$NEWLINE"
 tmp=
-for line in `os-prober`;
+for line in `WINOSDATA=true os-prober`;
 do
     dist=$(LC_ALL=C expr match "$line" '.*:\(.*\):.*:.*')
     location=${line%%:*}
@@ -29,7 +29,7 @@ do
     target="$(readlink -e "$target")" || target=
     home="$(grep ' /target/home ' /proc/mounts | cut -d' ' -f1)"
     home="$(readlink -e "$home")" || home=
-    if [ "$target" = "$location" ] || "$home" = "$location" ]; then
+    if [ "$target" = "$location" ] || [ "$home" = "$location" ]; then
 	    continue
     fi
     if [ -z "$tmp" ]; then
@@ -51,7 +51,7 @@ for choice in $selection; do # Microsoft Windows XP Professional (/dev/hda1)
     IFS="$OLDIFS"
     location=$(LC_ALL=C expr "$choice" : '.*(\(.*\))$') # /dev/hda1
     IFS="$NEWLINE"
-    for line in `os-prober`; do
+    for line in `WINOSDATA=true os-prober`; do
         IFS="$OLDIFS"
         loc="${line%%:*}"
         if [ "$location" != "$loc" ]; then

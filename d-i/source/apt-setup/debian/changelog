@@ -1,3 +1,171 @@
+apt-setup (1:0.55ubuntu4) precise; urgency=low
+
+  * Add extras.ubuntu.com Release files for precise, and remove those for
+    oneiric.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 20 Apr 2012 14:11:48 +0100
+
+apt-setup (1:0.55ubuntu3) precise; urgency=low
+
+  * If apt-setup/multiarch is empty, remove /etc/dpkg/dpkg.cfg.d/multiarch.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 18 Apr 2012 23:55:26 +0100
+
+apt-setup (1:0.55ubuntu2) precise; urgency=low
+
+  * generators/50mirrors.ubuntu: do not reuse the file variable (LP: #964930) 
+
+ -- Brian Murray <brian@ubuntu.com>  Wed, 28 Mar 2012 17:04:23 +0100
+
+apt-setup (1:0.55ubuntu1) precise; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Install the Ubuntu mirror generator instead of Debian's.
+    - Set apt-setup/security_host to security.ubuntu.com, or
+      ports.ubuntu.com on ports architectures; adjust directory and
+      distribution to match.
+    - Add security sources for restricted, universe, and multiverse,
+      commented out unless the respective components are enabled. Disable
+      security generator checks for contrib and non-free.
+    - For CD installs, leave the sources.list created by apt-setup in
+      /etc/apt/sources.list.apt-setup, and restore the sources.list created
+      during base installation for the rest of the installation.
+    - Honour OVERRIDE_BASE_INSTALLABLE when checking
+      /cdrom/.disk/base_installable.
+    - Set the mirror verification timeout to 30 seconds.
+    - Adjust services-select for Ubuntu, removing volatile and adding
+      partner (apt-setup/partner) and extras (apt-setup/extras).
+    - Always disable the CD at the end of installation if any mirrors are
+      present, even if it's a complete CD.
+    - Pre-populate apt's lists directory with signed Release files for
+      archive.ubuntu.com (and mirrors) and security.ubuntu.com, to protect
+      against downgrade attacks right from initial installation.
+    - Run 'apt-get update' for all sources.list lines produced by a single
+      generator in one go, and don't comment out sources.list lines if it
+      fails.
+    - Make the path to security updates configurable, as well as the host.
+    - Remove restricted from cdrom entry if apt-setup/restricted is false.
+    - Make sure apt-cdrom doesn't unmount the CD if cd_type ends with
+      /single.
+    - Enable all network sources, including security updates, even if the
+      network is unconfigured.
+    - Honour apt-setup/restricted, apt-setup/universe, and
+      apt-setup/multiverse when writing -backports lines.
+    - Run 'apt-get update', without downloading package lists or cleaning up
+      old files, after moving the sources.list generated during base system
+      installation back into place.
+    - If OVERRIDE_LEAVE_CD_MOUNTED is set, don't unmount /cdrom; this is a
+      bad idea in a live CD environment!
+    - Bail out cleanly from cdrom generator if /cdrom/.disk/info doesn't
+      exist or has zero size.
+    - Enable backports by default now that we have NotAutomatic enabled and
+      working.
+    - Enable multiarch by default for amd64 installations.  This can be
+      controlled by preseeding apt-setup/multiarch.
+  * Add Release files for precise, and remove those for oneiric (except for
+    extras.ubuntu.com, where precise doesn't exist yet).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 25 Oct 2011 14:18:01 +0100
+
+apt-setup (1:0.55) unstable; urgency=low
+
+  [ Samuel Thibault ]
+  * Explicitly unmount bind mounts, do not rely on the OS to do it itself.
+
+  [ Colin Watson ]
+  * Display an error message if downloading the public key for a local
+    repository fails, and allow the user to retry (LP: #728710).
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * German (de.po) by Holger Wansing
+  * Basque (eu.po)
+  * French (fr.po) by Christian Perrier
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Ivan Masár
+
+ -- Otavio Salvador <otavio@debian.org>  Sat, 23 Jul 2011 23:50:40 +0200
+
+apt-setup (1:0.54) unstable; urgency=low
+
+  [ Christian Perrier ]
+  * Add myself to Uploaders to have at least one human maintainer
+
+  [ Samuel Thibault ]
+  * Remove exec mount option on hurd-i386.
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Czech (cs.po) by Miroslav Kure
+  * Esperanto (eo.po) by Felipe Castro
+  * Spanish (es.po) by Javier Fernández-Sanguino
+  * Estonian (et.po) by Mattias Põldaru
+  * Korean (ko.po) by Changwoo Ryu
+  * Romanian (ro.po) by Eddy Petrișor
+  * Slovak (sk.po) by Ivan Masár
+  * Swedish (sv.po) by Daniel Nylander
+  * Telugu (te.po) by Arjuna Rao Chavala
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Uyghur (ug.po) by Sahran
+
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 24 Apr 2011 08:47:37 +0200
+
+apt-setup (1:0.53) unstable; urgency=low
+
+  * Support cd_type "bluray". In particular, don't prompt at high priority
+    for a mirror to be configured. Closes: #609334
+  * Remove hardcoded bail out if the CD filesystem is not iso9660.
+    That seems wrong both for usb-hdd media as used by debian-live,
+    as well as for non-linux OSs (freebsd calls it cd9660).
+  * Treat usb-hdd media the same as hd-media and isohybrid, leaving
+    them mounted. Closes: #608201
+    (Needs cdrom-detect 1.38)
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 16 Jan 2011 14:49:31 -0400
+
+apt-setup (1:0.52) unstable; urgency=low
+
+  [ Otavio Salvador ]
+  * Fix label reporting with recent APT. Closes: #602421.
+
+  [ Colin Watson ]
+  * Reinitialise a couple of bits of debconf state after calling
+    chroot_setup in the cdset generator, otherwise sourcing the confmodule
+    in load-install-cd gets horribly confused.  This spaghetti code needs to
+    be rewritten after squeeze.  Closes: #602421.
+
+  [ Updated translations ]
+  * Northern Sami (se.po) by Børre Gaup
+
+ -- Colin Watson <cjwatson@debian.org>  Thu, 06 Jan 2011 17:23:52 +0000
+
+apt-setup (1:0.51) unstable; urgency=low
+
+  [ Updated translations ]
+  * Telugu (te.po) by Arjuna Rao Chavala
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 24 Dec 2010 19:47:19 -0200
+
+apt-setup (1:0.50) unstable; urgency=low
+
+  [ Christian Perrier ]
+  * Move security/volatile question to sublevel 3 in
+    translation files as this question is not asked in
+    default installs
+
+  [ Adam D. Barratt ]
+  * Support the new suite name for "volatile". Closes: #605640
+
+  [ Updated translations ]
+  * Lao (lo.po) by Anousak Souphavanh
+  * Northern Sami (se.po) by Børre Gaup
+  * Sinhala (si.po) by Danishka Navin
+  * Slovenian (sl.po) by Vanja Cvelbar
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 07 Dec 2010 22:06:38 +0100
+
 apt-setup (1:0.49ubuntu9) oneiric; urgency=low
 
   * Fix non-i386 builds.

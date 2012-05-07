@@ -15,6 +15,7 @@ debian/iso-codes:
 
 debian/iso_3166.tab:
 	isoquery -c | cut -f 1,4 | sort >debian/iso_3166.tab
+	[ -s debian/iso_3166.tab ]
 
 debian/templates: $(LIST) debian/templates.base debian/short-tmp/shortlists
 	./mktemplates.shortlist

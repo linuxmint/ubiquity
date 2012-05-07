@@ -23,6 +23,7 @@ import codecs
 import os
 import locale
 import sys
+
 from ubiquity import misc, im_switch
 
 # if 'just_country' is True, only the country is changing
@@ -218,7 +219,7 @@ def get_string(name, lang, prefix=None):
         else:
             text = translations[question]['c']
 
-    return unicode(text, 'utf-8', 'replace')
+    return misc.utf8(text, errors='replace')
 
 
 # Based on code by Walter Dörwald:
@@ -239,7 +240,7 @@ codecs.register_error('ascii_transliterate', ascii_transliterate)
 # Returns a tuple of (current language, sorted choices, display map).
 def get_languages(current_language_index=-1, only_installable=False):
     import gzip
-    import PyICU
+    import icu
 
     current_language = "English"
 
@@ -255,7 +256,7 @@ def get_languages(current_language_index=-1, only_installable=False):
     language_display_map = {}
     i = 0
     for line in languagelist:
-        line = unicode(line, 'utf-8')
+        line = misc.utf8(line)
         if line == '' or line == '\n':
             continue
         code, name, trans = line.strip(u'\n').split(u':')[1:]
@@ -298,7 +299,7 @@ def get_languages(current_language_index=-1, only_installable=False):
         # language for its collation rules (languages frequently have
         # custom sorting).  This at least gives us common sorting rules,
         # like stripping accents.
-        collator = PyICU.Collator.createInstance(PyICU.Locale('C'))
+        collator = icu.Collator.createInstance(icu.Locale('C'))
     except:
         collator = None
 
@@ -322,7 +323,7 @@ def default_locales():
     languagelist = open('/usr/lib/ubiquity/localechooser/languagelist')
     defaults = {}
     for line in languagelist:
-        line = unicode(line, 'utf-8')
+        line = misc.utf8(line)
         if line == '' or line == '\n':
             continue
         bits = line.strip(u'\n').split(u';')

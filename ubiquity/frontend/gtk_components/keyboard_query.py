@@ -1,14 +1,15 @@
 from gi.repository import Gtk, GObject, Gdk
+
 from ubiquity import keyboard_detector
 
-class Keyrow(Gtk.HBox):
+class Keyrow(Gtk.Box):
     def __init__(self):
         GObject.GObject.__init__(self, spacing=24)
 
     def add_character(self, key):
         l = Gtk.Label(label='<big>%s</big>' % key)
         l.set_use_markup(True)
-        self.add(l)
+        self.pack_start(l, True, True, 0)
         l.show()
 
     def clear(self):
@@ -32,7 +33,8 @@ class KeyboardQuery(Gtk.Window):
         # use center_on_parent here.
         self.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
         self.set_type_hint(Gdk.WindowTypeHint.DIALOG)
-        self.vbox = Gtk.VBox(spacing=10)
+        self.vbox = Gtk.Box(spacing=10)
+        self.vbox.set_orientation(Gtk.Orientation.VERTICAL)
 
         self.press_string = \
             frontend.get_string('ubiquity/text/keyboard_query_press')
@@ -45,7 +47,7 @@ class KeyboardQuery(Gtk.Window):
         self.keyrow = Keyrow()
         self.vbox.pack_start(self.keyrow, False, True, 0)
 
-        self.buttons = Gtk.HButtonBox()
+        self.buttons = Gtk.ButtonBox()
         self.buttons.set_spacing(12)
         self.buttons.set_layout(Gtk.ButtonBoxStyle.START)
         # FIXME evand 2009-12-16: i18n

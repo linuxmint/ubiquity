@@ -22,15 +22,6 @@
 
 import os
 
-try:
-    from ubiquity._osextras import *
-except ImportError:
-    # Support running from a built source tree.
-    if os.path.isdir('ubiquity/.libs'):
-        import sys
-        sys.path.insert(0, 'ubiquity/.libs')
-        from _osextras import *
-
 def _resolve_link_root(root, path):
     """Helper for realpath_root. See posixpath._resolve_link."""
     paths_seen = set()

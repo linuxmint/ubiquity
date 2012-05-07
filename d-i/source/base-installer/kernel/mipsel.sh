@@ -27,9 +27,8 @@ arch_check_usable_kernel () {
 }
 
 arch_get_kernel () {
-	# use the more generic package versioning for 2.6 ff
 	case "$KERNEL_MAJOR" in
-	    2.6)
+	    2.6|3.*)
 		case $1 in
 		    5kc-malta)
 			echo "linux-image-$KERNEL_MAJOR-$1"

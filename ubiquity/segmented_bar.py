@@ -30,11 +30,12 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-from gi.repository import Gtk, GObject, PangoCairo, Gdk
 import math
+
 import cairo
-from ubiquity.misc import format_size
-from ubiquity.misc import find_in_os_prober
+from gi.repository import Gtk, GObject, PangoCairo, Gdk
+
+from ubiquity.misc import find_in_os_prober, format_size
 
 class Color:
     def __init__(self, r, g, b, a=1.0):

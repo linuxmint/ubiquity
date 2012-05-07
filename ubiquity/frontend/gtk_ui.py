@@ -66,7 +66,7 @@ PATH = os.environ.get('UBIQUITY_PATH', False) or '/usr/share/ubiquity'
 
 # Define global pixmaps location
 PIXMAPS = os.environ.get('PIXMAPS', False) or '/usr/share/pixmaps'
- 
+
 # Define ui path
 UIDIR = os.environ.get('UBIQUITY_GLADE', False) or os.path.join(PATH, 'gtk')
 os.environ['UBIQUITY_GLADE'] = UIDIR
@@ -81,8 +81,7 @@ def set_root_cursor(cursor=None):
     win = Gdk.get_default_root_window()
     if win:
         win.set_cursor(cursor)
-    while Gtk.events_pending():
-        Gtk.main_iteration()
+    gtkwidgets.refresh()
 
 class Controller(ubiquity.frontend.base.Controller):
     def add_builder(self, builder):
@@ -229,6 +228,7 @@ class Wizard(BaseFrontend):
         self.parallel_db = None
         self.timeout_id = None
         self.screen_reader = False
+        self.orca_process = None
 
         # To get a "busy mouse":
         self.watch = Gdk.Cursor.new(Gdk.CursorType.WATCH)
@@ -245,8 +245,6 @@ class Wizard(BaseFrontend):
         # set default language
         self.locale = i18n.reset_locale(self)
 
-        GObject.timeout_add_seconds(30, self.poke_screensaver)
-
         # set custom language
         self.set_locales()
 
@@ -262,7 +260,7 @@ class Wizard(BaseFrontend):
 
         # load the main interface
         self.builder.add_from_file('%s/ubiquity.ui' % UIDIR)
-        
+
         self.builders = [self.builder]
         self.pages = []
         self.pagesindex = 0
@@ -316,7 +314,6 @@ class Wizard(BaseFrontend):
         self.translate_widgets(reget=True)
 
         self.customize_installer()
-        misc.add_connection_watch(self.network_change)
 
         # Put up the a11y indicator in maybe-ubiquity mode
         if ('UBIQUITY_GREETER' in os.environ and os.path.exists('/usr/bin/casper-a11y-enable')):
@@ -407,13 +404,27 @@ class Wizard(BaseFrontend):
 
         if os.path.exists('/usr/share/apport/apport-gtk'):
             self.previous_excepthook(exctype, excvalue, exctb)
+            # In live session mode, update-notifier will pick up the crash
+            # report; in only-ubiquity mode we need to bring up the UI
+            # ourselves
+            # update-notifier doesn't work on overlayfs so also run if using
+            # maybe-ubiquity
+
+            # FIXME: Revert the check to maybe-ubiquity once inotify on
+            # overlayfs is fixed (crash will then be detected by update-notifier)
+            with open('/proc/cmdline') as fp:
+                if 'ubiquity' in fp.read():
+                    # we need to drop privileges, we cannot run GTK programs
+                    # with non-matching real/effective u/gid
+                    misc.drop_all_privileges()
+                    misc.execute('/usr/share/apport/apport-gtk')
+            sys.exit(1)
         else:
             self.crash_detail_label.set_text(tbtext)
             self.crash_dialog.run()
             self.crash_dialog.hide()
             self.live_installer.hide()
-            while Gtk.events_pending():
-                Gtk.main_iteration()
+            self.refresh()
             misc.execute_root("apport-bug", "ubiquity")
             sys.exit(1)
 
@@ -475,6 +486,52 @@ class Wizard(BaseFrontend):
         else:
             gconftool.set(terminal_key, 'string',
                           self.gconf_previous[terminal_key])
+
+    def disable_screensaver(self):
+        gs_schema = 'org.gnome.desktop.screensaver'
+        gs_key = 'idle-activation-enabled'
+        gs_previous = '%s/%s' % (gs_schema, gs_key)
+        if gs_previous in self.gsettings_previous:
+            return
+
+        gs_value = gsettings.get(gs_schema, gs_key)
+        self.gsettings_previous[gs_previous] = gs_value
+
+        if gs_value != False:
+            gsettings.set(gs_schema, gs_key, False)
+
+        atexit.register(self.enable_screensaver)
+
+    def enable_screensaver(self):
+        gs_schema = 'org.gnome.desktop.screensaver'
+        gs_key = 'idle-activation-enabled'
+        gs_previous = '%s/%s' % (gs_schema, gs_key)
+        gs_value = self.gsettings_previous[gs_previous]
+
+        gsettings.set(gs_schema, gs_key, gs_value)
+
+    def disable_powermgr(self):
+        gs_schema = 'org.gnome.settings-daemon.plugins.power'
+        gs_key = 'active'
+        gs_previous = '%s/%s' % (gs_schema, gs_key)
+        if gs_previous in self.gsettings_previous:
+            return
+
+        gs_value = gsettings.get(gs_schema, gs_key)
+        self.gsettings_previous[gs_previous] = gs_value
+
+        if gs_value != False:
+            gsettings.set(gs_schema, gs_key, False)
+
+        atexit.register(self.enable_powermgr)
+
+    def enable_powermgr(self):
+        gs_schema = 'org.gnome.settings-daemon.plugins.power'
+        gs_key = 'active'
+        gs_previous = '%s/%s' % (gs_schema, gs_key)
+        gs_value = self.gsettings_previous[gs_previous]
+
+        gsettings.set(gs_schema, gs_key, gs_value)
 
     def disable_logout_indicator(self):
         gs_schema = 'com.canonical.indicator.session'
@@ -554,13 +611,16 @@ class Wizard(BaseFrontend):
         os.environ['UBIQUITY_A11Y_PROFILE'] = 'high-contrast'
 
     def a11y_profile_screen_reader_activate(self, widget=None):
+        if self.orca_process and self.orca_process.poll() != 0:
+            return
+
         subprocess.call(['log-output', '-t', 'ubiquity',
                          '--pass-stdout', '/usr/bin/casper-a11y-enable',
                          'blindness'], preexec_fn=misc.drop_all_privileges)
         os.environ['UBIQUITY_A11Y_PROFILE'] = 'screen-reader'
         if os.path.exists('/usr/bin/orca'):
-            subprocess.Popen(['/usr/bin/orca', '-n'], preexec_fn=misc.drop_all_privileges)
-             
+            self.orca_process = subprocess.Popen(['/usr/bin/orca', '-n'], preexec_fn=misc.drop_all_privileges)
+
     def a11y_profile_keyboard_modifiers_activate(self, widget=None):
         subprocess.call(['log-output', '-t', 'ubiquity',
                          '--pass-stdout', '/usr/bin/casper-a11y-enable',
@@ -588,6 +648,8 @@ class Wizard(BaseFrontend):
             sys.exit(1)
 
         self.disable_volume_manager()
+        self.disable_screensaver()
+        self.disable_powermgr()
 
         if 'UBIQUITY_ONLY' in os.environ:
             self.disable_logout_indicator()
@@ -613,28 +675,35 @@ class Wizard(BaseFrontend):
             if self.current_page is None:
                 return self.returncode
 
-            if not self.pages[self.pagesindex].filter_class:
+            page = self.pages[self.pagesindex]
+            skip = False
+            if hasattr(page.ui, 'plugin_skip_page'):
+                if page.ui.plugin_skip_page():
+                    skip = True
+
+            if not skip and not page.filter_class:
                 # This page is just a UI page
                 self.dbfilter = None
                 self.dbfilter_status = None
-                if self.set_page(self.pages[self.pagesindex].module.NAME):
+                if self.set_page(page.module.NAME):
                     self.run_main_loop()
-            else:
+            elif not skip:
                 old_dbfilter = self.dbfilter
-                if issubclass(self.pages[self.pagesindex].filter_class, Plugin):
-                    ui = self.pages[self.pagesindex].ui
+                if issubclass(page.filter_class, Plugin):
+                    ui = page.ui
                 else:
                     ui = None
                 self.start_debconf()
-                self.dbfilter = self.pages[self.pagesindex].filter_class(self, ui=ui)
+                self.dbfilter = page.filter_class(self, ui=ui)
 
                 if self.dbfilter is not None and self.dbfilter != old_dbfilter:
                     self.allow_change_step(False)
                     GObject.idle_add(lambda: self.dbfilter.start(auto_process=True))
 
-                self.pages[self.pagesindex].controller.dbfilter = self.dbfilter
+                page.controller.dbfilter = self.dbfilter
                 Gtk.main()
-                self.pages[self.pagesindex].controller.dbfilter = None
+                self.pending_quits = max(0, self.pending_quits - 1)
+                page.controller.dbfilter = None
 
             if self.backup or self.dbfilter_handle_status():
                 if self.current_page is not None and not self.backup:
@@ -648,13 +717,13 @@ class Wizard(BaseFrontend):
                 if self.backup:
                     self.pagesindex = self.pop_history()
 
-            while Gtk.events_pending():
-                Gtk.main_iteration()
+            self.refresh()
 
         # There's still work to do (postinstall).  Let's keep the user
         # entertained.
         self.start_slideshow()
         Gtk.main()
+        self.pending_quits = max(0, self.pending_quits - 1)
         # postinstall will exit here by calling Gtk.main_quit in
         # find_next_step.
 
@@ -708,6 +777,9 @@ class Wizard(BaseFrontend):
                 slides += '?rtl'
 
         from gi.repository import WebKit
+        # We have no significant browsing interface, so there isn't much point
+        # in WebKit creating a memory-hungry cache.
+        WebKit.set_cache_model(WebKit.CacheModel.DOCUMENT_VIEWER)
         webview = WebKit.WebView()
         # WebKit puts file URLs in their own domain by default.
         # This means that anything which checks for the same origin,
@@ -719,7 +791,7 @@ class Wizard(BaseFrontend):
         s.set_property('enable-default-context-menu', False)
         if (os.environ.get('UBIQUITY_A11Y_PROFILE') == 'screen-reader'):
             s.set_property('enable-caret-browsing', True)
-        
+
         webview.connect('new-window-policy-decision-requested',
                         self.on_slideshow_link_clicked)
 
@@ -745,7 +817,7 @@ color : @dark_fg_color;
 background-color : @dark_bg_color;
 }
 
-GtkEntry, GtkButton, GtkLabel, GtkIconView, GtkTreeView row, GtkComboBox *, GtkDrawingArea {
+GtkEntry, GtkButton, GtkLabel, GtkIconView, GtkTreeView row, GtkComboBox, GtkDrawingArea {
 color : @fg_color
 }''')
         Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),
@@ -755,9 +827,10 @@ color : @fg_color
         self.vte = Vte.Terminal()
         self.install_details_sw.add(self.vte)
         self.vte.fork_command_full(0, None,
-            ['/usr/bin/tail', '-f', '/var/log/installer/debug',
+            ['/bin/busybox', 'tail', '-f', '/var/log/installer/debug',
                               '-f', '/var/log/syslog', '-q'],
             None, 0, None, None)
+        self.vte.set_font_from_string("Ubuntu Mono 8")
         self.vte.show()
         # FIXME shrink the window horizontally instead of locking the window size.
         self.live_installer.set_resizable(False)
@@ -801,7 +874,8 @@ color : @fg_color
             self.slideshow = '/usr/share/oem-config-slideshow'
         else:
             self.slideshow = '/usr/share/ubiquity-slideshow'
-        if os.path.exists(self.slideshow):
+
+        if os.path.exists(self.slideshow) and not self.hide_slideshow:
             try:
                 cfg = ConfigParser.ConfigParser()
                 cfg.read(os.path.join(self.slideshow, 'slideshow.conf'))
@@ -816,25 +890,8 @@ color : @fg_color
 
         # set initial bottom bar status
         self.allow_go_backward(False)
-        
-    def poke_screensaver(self):
-        """Attempt to make sure that the screensaver doesn't kick in."""
-        if os.path.exists('/usr/bin/gnome-screensaver-command'):
-            command = ["gnome-screensaver-command", "--poke"]
-        elif os.path.exists('/usr/bin/xscreensaver-command'):
-            command = ["xscreensaver-command", "--deactivate"]
-        else:
-            return
 
-        env = ['LC_ALL=C']
-        for key, value in os.environ.iteritems():
-            if key != 'LC_ALL':
-                env.append('%s=%s' % (key, value))
-        GObject.spawn_async(command, envp=env,
-                            flags=(GObject.SPAWN_SEARCH_PATH |
-                                   GObject.SPAWN_STDOUT_TO_DEV_NULL |
-                                   GObject.SPAWN_STDERR_TO_DEV_NULL))
-        return True
+        misc.add_connection_watch(self.network_change)
 
     def set_window_hints(self, widget):
         if (self.oem_user_config or
@@ -917,6 +974,8 @@ color : @fg_color
         core_names.append('ubiquity/imported/default-ltr')
         core_names.append('ubiquity/text/release_notes_only')
         core_names.append('ubiquity/text/update_installer_only')
+        core_names.append('ubiquity/text/USB')
+        core_names.append('ubiquity/text/CD')
         for stock_item in ('cancel', 'close', 'go-back', 'go-forward',
                             'ok', 'quit'):
             core_names.append('ubiquity/imported/%s' % stock_item)
@@ -1233,7 +1292,8 @@ color : @fg_color
     # Callbacks
 
     def on_quit_clicked(self, unused_widget):
-        self.warning_dialog.show()
+        self.warning_dialog.set_transient_for(self.live_installer.get_toplevel())
+        self.warning_dialog.show_all()
         # Stop processing.
         return True
 
@@ -1389,8 +1449,7 @@ color : @fg_color
             self.crash_dialog.run()
             self.crash_dialog.hide()
             self.live_installer.hide()
-            while Gtk.events_pending():
-                Gtk.main_iteration()
+            self.refresh()
             misc.execute_root("apport-bug", "ubiquity")
             sys.exit(1)
         if BaseFrontend.debconffilter_done(self, dbfilter):
@@ -1412,6 +1471,11 @@ color : @fg_color
         if finished_step == last_page and not self.backup:
             self.finished_pages = True
             if self.finished_installing or self.oem_user_config:
+                self.debconf_progress_info('')
+                # thaw container size
+                self.progress_section.set_size_request(-1, -1)
+                self.install_details_expander.show()
+                self.install_progress.show()
                 self.progress_section.show()
                 dbfilter = plugininstall.Install(self)
                 dbfilter.start(auto_process=True)
@@ -1449,6 +1513,13 @@ color : @fg_color
             if self.finished_pages:
                 dbfilter = plugininstall.Install(self)
                 dbfilter.start(auto_process=True)
+            else:
+                # temporarily freeze container size
+                allocation = self.progress_section.get_allocation()
+                self.progress_section.set_size_request(
+                    allocation.width, allocation.height)
+                self.install_details_expander.hide()
+                self.install_progress.hide()
 
         elif finished_step == 'ubiquity.components.plugininstall':
             self.installing = False
@@ -1562,7 +1633,8 @@ color : @fg_color
                 text = option
             buttons.extend((text, len(buttons) / 2 + 1))
         dialog = Gtk.Dialog(title, self.live_installer, Gtk.DialogFlags.MODAL, tuple(buttons))
-        vbox = Gtk.VBox()
+        vbox = Gtk.Box()
+        vbox.set_orientation(Gtk.Orientation.VERTICAL)
         vbox.set_border_width(5)
         label = Gtk.Label(label=msg)
         label.set_line_wrap(True)
@@ -1580,14 +1652,14 @@ color : @fg_color
             return options[response - 1]
 
     def refresh (self):
-        while Gtk.events_pending():
-            Gtk.main_iteration()
+        gtkwidgets.refresh()
 
     # Run the UI's main loop until it returns control to us.
     def run_main_loop (self):
         self.allow_change_step(True)
         self.set_focus()
         Gtk.main()
+        self.pending_quits = max(0, self.pending_quits - 1)
 
     # Return control to the next level up.
     pending_quits = 0
@@ -1596,16 +1668,15 @@ color : @fg_color
         # main_quit will do nothing if the main loop hasn't had time to
         # quit.  So we stagger calls to make sure that if this function
         # is called multiple times (nested loops), it works as expected.
-        def quit_decrement():
-            # Defensively guard against negative pending
-            self.pending_quits = max(0, self.pending_quits - 1)
-            return False
         def idle_quit():
             if self.pending_quits > 1:
                 quit_quit()
             if Gtk.main_level() > 0:
                 Gtk.main_quit()
-            return quit_decrement()
+            else:
+                self.pending_quits = max(0, self.pending_quits - 1)
+            return False
+
         def quit_quit():
             # Wait until we're actually out of this main loop
             GObject.idle_add(idle_quit)

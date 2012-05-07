@@ -10,6 +10,10 @@ Type: boolean
 Default: true
 Description: enable frame buffer console on boot
 
+Template: ubiquity/text/connecting_label
+Type: text
+_Description: Connecting...
+
 Template: ubiquity/text/restart_to_continue
 Type: text
 _Description: Restart to Continue
@@ -93,7 +97,7 @@ Type: text
 _Description:
  This is a pre-release of the ${RELEASE} live ${MEDIUM} installer. It is not
  a final release; that will come with the final release of ${RELEASE} in
- October 2011.
+ April 2012.
  .
  The installation process may resize or erase partitions on your hard disk.
  Be sure to <b>take a full backup of any valuable data</b> before running
@@ -143,6 +147,18 @@ Template: ubiquity/text/webcam_heading_label
 Type: text
 _Description: Choose a picture
 
+Template: ubiquity/text/webcam_photo_label
+Type: text
+_Description: Take a photo:
+
+Template: ubiquity/text/webcam_existing_label
+Type: text
+_Description: Or choose an existing picture:
+
+Template: ubiquity/text/webcam_take_button
+Type: text
+_Description: Take Photo
+
 Template: ubiquity/text/fullname_label
 Type: text
 _Description: Your name:
@@ -158,6 +174,14 @@ _Description: Pick a username:
 Template: ubiquity/text/username_inactive_label
 Type: text
 _Description: Username
+
+Template: ubiquity/text/username_error_badfirstchar
+Type: text
+_Description: Must start with a lower-case letter.
+
+Template: ubiquity/text/username_error_badchar
+Type: text
+_Description: May only contain lower-case letters, digits, hyphens, and underscores.
 
 Template: ubiquity/text/password_label
 Type: text
@@ -182,6 +206,22 @@ _Description: Your computer's name:
 Template: ubiquity/text/hostname_extra_label
 Type: text
 _Description: The name it uses when it talks to other computers.
+
+Template: ubiquity/text/hostname_error_length
+Type: text
+_Description: Must be between 1 and 63 characters long.
+
+Template: ubiquity/text/hostname_error_badchar
+Type: text
+_Description: May only contain letters, digits, hyphens, and dots.
+
+Template: ubiquity/text/hostname_error_badhyphen
+Type: text
+_Description: May not start or end with a hyphen.
+
+Template: ubiquity/text/hostname_error_baddots
+Type: text
+_Description: May not start or end with a dot, or contain the sequence "..".
 
 # TODO Get rid of this by filtering out the password?
 Template: ubiquity/text/password_debug_warning_label
@@ -227,8 +267,8 @@ _Description: Encrypt my home folder
 Template: ubiquity/text/webcam_heading
 Type: text
 _Description:
- This picture will identify you in the account settings, login screen, and
- lock screen.
+ This picture will be associated with your user name and displayed
+ alongside it at times.
 
 Template: ubiquity/text/ma_text_label
 Type: text
@@ -750,6 +790,13 @@ _Description: Error copying network configuration
  continue, but the network configuration will have to be set up again in the
  installed system.
 
+Template: ubiquity/install/broken_bluetooth_copy
+Type: error
+_Description: Error copying bluetooth configuration
+ An error occurred while copying the bluetooth settings.  The installation will
+ continue, but the bluetooth configuration will have to be set up again in the
+ installed system.
+
 Template: ubiquity/install/broken_apt_clone
 Type: error
 _Description: Error restoring installed applications
@@ -774,10 +821,6 @@ Description: for internal use; new boot device to try.
 Template: ubiquity/install/blacklist
 Type: text
 _Description: Calculating files to skip copying...
-
-Template: ubiquity/install/waiting
-Type: text
-_Description: Ready when you are...
 
 Template: ubiquity/langpacks/title
 Type: title
@@ -894,6 +937,12 @@ _Description: Do you want to return to the partitioner?
  .
  If you do not go back to the partitioner and increase the size of these
  partitions, the installation may fail.
+
+Template: ubiquity/hide_slideshow
+Type: boolean
+Default: false
+Description: for internal use; can be preseeded
+ Hide the slideshow while installing.
 
 Template: ubiquity/text/oem_user_config_title
 Type: text
@@ -1033,6 +1082,23 @@ _Description:
  third-party software, download updates, automatically detect your timezone,
  and install full support for your language.
 
+Template: ubiquity/text/wireless_password_label
+Type: text
+_Description: Password:
+
+Template: ubiquity/text/wireless_display_password
+Type: text
+_Description: Display password
+
+Template: ubiquity/text/no_wireless
+Type: text
+_Description:
+ I don't want to connect to a wi-fi network right now
+
+Template: ubiquity/text/use_wireless
+Type: text
+_Description: Connect to this network
+
 Template: ubiquity/use_nonfree
 Type: boolean
 Default: false
@@ -1125,7 +1191,7 @@ Template: ubiquity/text/prepare_foss_disclaimer_extra_label
 Type: text
 _Description:
  Fluendo MP3 plugin includes MPEG Layer-3 audio decoding technology licensed
- from Fraunhofer IIS and Thomson.
+ from Fraunhofer IIS and Technicolor SA.
 
 Template: ubiquity/text/prepare_nonfree_software
 Type: text

@@ -2,7 +2,11 @@
 # A caching version of os-prober.
 set -e
 
-cache=/var/lib/ubiquity/os-prober-cache
+if [ -z "$WINOSDATA" ]; then
+	cache=/var/lib/ubiquity/os-prober-cache
+else
+	cache=/var/lib/ubiquity/os-prober-cache-data
+fi
 if [ ! -e "$cache" ]; then
 	mkdir -p "${cache%/*}"
 	PATH=/usr/sbin:/sbin:/usr/bin:/bin os-prober >"$cache"

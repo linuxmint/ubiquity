@@ -1,3 +1,56 @@
+netcfg (1.68ubuntu14) precise; urgency=low
+
+  * Fix detection of empty domains when writing to /etc/hosts in the case
+    where there is no static IP address (LP: #950664).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 09 Mar 2012 16:06:35 +0000
+
+netcfg (1.68ubuntu13) precise; urgency=low
+
+  * When wireless detection doesn't find any network and the user doesn't
+    enter any essid, skip directly to the hostname dialog rather than
+    prompt for security options on a non-existing network. (LP: #36426)
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Mon, 05 Mar 2012 15:41:00 -0500
+
+netcfg (1.68ubuntu12) precise; urgency=low
+
+  * Apply patch from Matthew L. Dailey to fix the dns- entries in
+    /etc/network/interfaces. (LP: #932275)
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Thu, 23 Feb 2012 12:27:28 -0500
+
+netcfg (1.68ubuntu11) precise; urgency=low
+
+  * Drop additional debug statements that were included in ubuntu10 by
+    mistake...
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Tue, 07 Feb 2012 09:27:24 -0500
+
+netcfg (1.68ubuntu10) precise; urgency=low
+
+  * Fix bug where netcfg gets the wrong return value of dhclient6 and
+    marked the DHCPv6 connection as failed when it shouldn't.
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Mon, 06 Feb 2012 21:18:45 -0500
+
+netcfg (1.68ubuntu9) precise; urgency=low
+
+  * Add a post-base-install hook to detect resolvconf and copy
+    /run/resolvconf/resolv.conf to outside the target so that when /run
+    is bind-mounted DNS resolving continues to work. (LP: #926447)
+  * Apply patch from Alec Warner making netcfg respect netcfg/dhcpv6_timeout
+    and running dhclient in one-shot mode (-1). (LP: #917905)
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Mon, 06 Feb 2012 12:05:02 -0500
+
+netcfg (1.68ubuntu8) precise; urgency=low
+
+  * Don't copy /etc/resolv.conf to target if resolvconf is installed.  (We
+    already write resolvconf configuration to /etc/network/interfaces.)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 27 Jan 2012 17:50:50 +0000
+
 netcfg (1.68ubuntu7) oneiric; urgency=low
 
   * Fix crash when there are no network interfaces (LP: #870212).

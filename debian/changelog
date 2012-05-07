@@ -1,8 +1,809 @@
-ubiquity (2.8.7-1linuxmint1) lisa; urgency=low
+ubiquity (2.10.16) precise-proposed; urgency=low
 
-  * Linux Mint release based on 2.8.7 from Ubuntu.
+  [ Steve Langasek ]
+  * If we can't figure out the target user's uid/gid, don't copy the photo
+    to the user's home directory.  Addresses the immediate symptom of bug
+    #947738, if not the root cause.
 
- -- Clement Lefebvre <root@linuxmint.com>  Sat, 22 Oct 2011 22:34:00 +0000
+  [ Colin Watson ]
+  * Automatic update of included source packages: apt-setup 1:0.55ubuntu4,
+    console-setup 1.70ubuntu5.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 20 Apr 2012 15:21:46 +0100
+
+ubiquity (2.10.15) precise-proposed; urgency=low
+
+  * Fix crash when attempting to update the installer and a language isn't
+    selected for some reason (LP: #985368).
+  * Automatic update of included source packages: partman-target 77ubuntu2.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 19 Apr 2012 12:44:17 +0100
+
+ubiquity (2.10.14) precise-proposed; urgency=low
+
+  [ Colin Watson ]
+  * Install ubiquity-frontend-$frontend along with oem-config-$frontend to
+    improve dependency resolution; with the packaging the way it is at the
+    moment, apt may sometimes select ubiquity-frontend-kde to resolve
+    ubiquity's dependency on a frontend before realising that oem-config-gtk
+    already depends on ubiquity-frontend-gtk.
+  * Don't default to installing GRUB to a removable device with /cdrom
+    mounted from it, even if /cdrom's filesystem isn't iso9660
+    (LP: #984989).
+  * If encrypting the user's home directory, wipe and enable encrypted swap
+    before starting the slideshow, because running the slideshow can use up
+    a lot of memory so we won't be able to disable swap once that's in
+    progress (LP: #979350).
+  * Automatic update of included source packages: apt-setup 1:0.55ubuntu3,
+    partman-base 153ubuntu4, user-setup 1.42ubuntu3.
+  * If /etc/network/interfaces doesn't exist when configuring the network in
+    oem-config, write out a skeleton one (LP: #985305).
+
+  [ Stéphane Graber ]
+  * Always install oem-config-slideshow-ubuntu in OEM mode, also for
+    alternate installs (LP: #984736)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 19 Apr 2012 03:30:44 +0100
+
+ubiquity (2.10.13) precise-proposed; urgency=low
+
+  * Update translations from Launchpad.
+  * Copy the panel gradient from light-themes 0.1.8.25 (Ubuntu 11.10) and
+    use it as a fallback in case other panel images cannot be found.  The
+    correct fix would be to use CSS instead, but I can't seem to make this
+    work at the moment (LP: #982883).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 17 Apr 2012 20:22:30 +0100
+
+ubiquity (2.10.12) precise-proposed; urgency=low
+
+  * Fix download verification to handle epochs correctly, and add a little
+    more logging so that we can debug any further errors along these lines.
+  * GTK frontend:
+    - Disable WebKit's cache, since the slideshow doesn't have a significant
+      browsing interface and the cache is memory-hungry.  This may help with
+      LP #979350.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 13 Apr 2012 19:49:13 +0100
+
+ubiquity (2.10.11) precise-proposed; urgency=low
+
+  * Work around occasional undetected download errors in apt by doing our
+    own verification pass before trying to install packages (LP: #922949).
+  * Update translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 13 Apr 2012 17:16:33 +0100
+
+ubiquity (2.10.10) precise; urgency=low
+
+  * Don't try to open files inside d-i/source/localechooser/ when running
+    the unit tests within autopkgtest.
+  * Make test_ubi_partman read templates from the system templates database
+    rather than tests/templates.dat when running within autopkgtest.
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: grub-installer
+    1.68ubuntu5, hw-detect 1.88ubuntu2, partman-auto 101ubuntu2,
+    partman-base 153ubuntu3, partman-btrfs 8ubuntu1, partman-efi 25ubuntu1,
+    partman-ext3 67ubuntu1, partman-partitioning 85ubuntu2, partman-target
+    77ubuntu1, user-setup 1.42ubuntu1, yaboot-installer 1.1.20ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 12 Apr 2012 06:35:50 +0100
+
+ubiquity (2.10.9) precise-proposed; urgency=low
+
+  * Try harder to make the unit tests work within autopkgtest:
+    - Install mockresolver (it's small, and this really does make the
+      plumbing a lot easier).
+    - Use test debconf databases stacked on top of the system ones in
+      autopkgtest mode rather than requiring tests/build to have been run
+      first.
+    - Fix test_ubi_partman not to rely on tests/partman-tree/ in autopkgtest
+      mode.
+  * Do a better job of removing .la files.
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: base-installer
+    1.122ubuntu7.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 10 Apr 2012 21:00:08 +0100
+
+ubiquity (2.10.8) precise; urgency=low
+
+  * Update translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 05 Apr 2012 23:15:34 +0100
+
+ubiquity (2.10.7) precise; urgency=low
+
+  [ Colin Watson ]
+  * Fix partman plugin to preseed grub-installer/bootdev in a cleanup method
+    rather than exit_ui_loops, since talking to debconf in the latter isn't
+    safe (LP: #792652).  Adjust how maybe_update_grub gets the default boot
+    device to avoid regressing LP #756920.
+
+  [ Stéphane Graber ]
+  * Add support for Windows 8 user directory detection.
+  * Make wubi work when the OS data partition is different from the boot
+    partition. (LP: #772470)
+  * Call gsettings through dbus-launch in an hope to ensure its changes
+    are saved to disk. (LP: #960096)
+  * Make ubiquity depend on dbus-x11 for dbus-launch.
+  * Update compat/os-proper to make a different cache when listing OS
+    data partitions. (LP: #772470)
+  * Automatic update of included source packages: migration-assistant
+    0.6.12.
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Wed, 04 Apr 2012 20:56:08 -0400
+
+ubiquity (2.10.6) precise; urgency=low
+
+  [ Stéphane Graber ]
+  * ubiquity-dm: Use macinnis_wallpaper.png by default for ubuntu studio.
+    (LP: #971159)
+
+  [ Colin Watson ]
+  * Work around LP #972324 by unsetting TMPDIR for xvfb-run and setting it
+    again for the inferior command.
+  * Fix DEP-8 control file to stop trying to run Xvfb inside Xvfb.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 03 Apr 2012 14:06:44 +0100
+
+ubiquity (2.10.5) precise; urgency=low
+
+  * Exit early from ubiquity_webcam_play and ubiquity_webcam_stop if priv or
+    priv->camerabin is NULL.
+  * Clear disks from the partman plugin's disk cache if any partitions on
+    that disk change, allowing us to notice disk label changes.
+  * Fix GPT detection when deciding whether to display the biosgrub method
+    (LP: #969038).
+  * Automatic update of included source packages: apt-setup 1:0.55ubuntu2,
+    partman-partitioning 85ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 30 Mar 2012 23:39:38 +0100
+
+ubiquity (2.10.4) precise; urgency=low
+
+  [ Colin Watson ]
+  * Add a log entry before running each target-config hook, to make it a bit
+    more feasible to debug hangs there.
+  * Call check-language-support with locale names, not with language pack
+    names (LP: #963460).
+
+  [ Stéphane Graber ]
+  * Change the calls in calculate_result to use the same code path as the
+    regular UI. (LP: #964472)
+  * Actually call detect_bogus_result() in ubi-usersetup
+  * Similarly to ubi-console-setup, don't setup any timeout or similar
+    background tasks when running in automatic mode. (LP: #950282)
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Tue, 27 Mar 2012 17:08:29 -0400
+
+ubiquity (2.10.3) precise-proposed; urgency=low
+
+  * Move oem-config-udeb's menu item before that of user-setup's, which
+    moved to 2400 in user-setup 1.30.
+  * Don't remove cryptsetup if there are any uncommented entries in
+    /etc/crypttab (LP: #893548).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 26 Mar 2012 16:57:40 +0100
+
+ubiquity (2.10.2) precise; urgency=low
+
+  [ Colin Watson ]
+  * Fix test_misc.GrubDefaultTests.test_avoid_cdrom.
+  * Invert the set of locale categories set in case of a language/location
+    conflict, so we now set LC_NUMERIC, LC_TIME, LC_MONETARY, LC_PAPER,
+    LC_NAME, LC_ADDRESS, LC_TELEPHONE, LC_MEASUREMENT, and LC_IDENTIFICATION
+    instead (LP: #926207).
+  * Automatic update of included source packages: localechooser 2.39ubuntu2.
+
+  [ Brian Murray ]
+  * UTF-8-encode debug messages which are written to stderr (LP: #960278)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 23 Mar 2012 18:00:36 +0000
+
+ubiquity (2.10.1) precise; urgency=low
+
+  * ubiquity.misc.boot_device needs root privileges in order to talk to
+    parted_server.
+  * Make ubiquity-frontend-gtk depend on busybox-static | busybox for now,
+    matching the 'busybox tail' workaround in ubiquity 2.9.32 (LP: #962585).
+  * Automatic update of included source packages: flash-kernel 2.28ubuntu42.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 23 Mar 2012 15:07:41 +0000
+
+ubiquity (2.10.0) precise; urgency=low
+
+  * Fix a few cases where the test suite was insufficiently isolated from
+    the host system, running dmidecode and udevadm.
+  * Restore 'from ubiquity import gtkwidgets' to
+    test_ubi_partman.TestPageGtk.setUp; importing custom widgets fails
+    without this.
+  * Avoid touching D-Bus in migrationassistant test.
+  * Stop leaking locale changes from gtkui and migrationassistant tests into
+    the rest of the test suite.
+  * Disable tests that require grub-installer templates only on non-x86
+    architectures.
+  * Re-enable test_maybe_update_install on x86, and add the missing
+    mock.patch calls that caused it to fail in clean build environments.
+  * Update translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 22 Mar 2012 16:10:05 +0000
+
+ubiquity (2.9.33) precise; urgency=low
+
+  * Disable some of the new tests currently not working on builders:
+    - Fails on x86 builders because of missing grub:
+      + test_maybe_update_install
+    - Fails on non-x86 builders because of missing grub-installer:
+      + test_maybe_update_install
+      + test_install_grub_to_valid_filesystem
+      + test_install_grub_to_invalid_filesystem
+      + test_install_grub_to_mixed_filesystems
+      + test_install_grub_offers_to_install_to_disk
+      + test_install_grub_offers_to_install_to_all_but_jfs
+      + test_install_grub_offers_to_install_to_all
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Wed, 21 Mar 2012 21:32:20 -0400
+
+ubiquity (2.9.32) precise; urgency=low
+
+  [ Stéphane Graber ]
+  * panel: Fix the gtk3 css code so that it actually applies and add
+    another override for the .menuitem padding that was making the panel
+    28px large instead of 24px. (LP: #960998)
+  * Only allow for one orca instance at a time. (LP: #945133)
+  * Fix crash in set_indicator_keymaps when reaching the fallback code
+    of the keyboard layout guesser. Added a test for it. (LP: #961003)
+  * Make sure all the widgets of the quit dialog are always visible.
+    (LP: #960600)
+  * Switch to a single install_size() function in misc called by ubi-prepare
+    and by ubi-partman. Tweak the resize partition sizes to enforce the
+    minimum partition size in resize mode too. (LP: #960628)
+  * Change ubiquity's virtual terminal to calling 'busybox tail' instead of
+    'tail' to workaround the inotify on overlayfs bug.
+  * panel: Only show icons, not labels, fixing our current "corruption"
+    problem where the keyboard layout gets associated with another entry.
+    (LP: #960039)
+  * panel: Add a list to enforce the indicator ordering. (LP: #960036)
+  * Automatic update of included source packages: migration-assistant
+    0.6.11.
+
+  [ Colin Watson ]
+  * Make sure to load translations for "USB" and "CD" on the language page
+    (LP: #958249).
+  * Sort existing images in the face selector by filename.
+  * Force face selector icon view to a two-column layout, in lieu of better
+    geometry management (LP: #961025).
+  * Refactor ubiquity.misc.grub_default to make it testable, and add tests
+    for it.
+  * Make test_misc pass when run on its own.  Apparently
+    GdkX11.x11_get_default_xdisplay() segfaults if Gtk hasn't been imported
+    (or possibly something finer-grained); so import Gtk from
+    misc.set_indicator_keymaps even though we don't actually use it
+    directly.
+
+  [ Oliver Grawert ]
+  * bin/oem-config-firstboot: do not reset debconf user data in automatic mode
+  * ubiquity/plugins/ubi-tasks.py: run tasksel with --new-install option in
+    automatic mode (this still doesnt make tasksel work, but at least skips
+    the debconf question if tasksel isnt in the preseed file, to install
+    packages late-command needs to be used atm.
+  * bin/ubiquity: make debconf not re-show seen questions again in automatic mode
+  * all the above fixes (LP: #924018), example boot.scr and preseed.cfg file are
+    attached to the bug, thanks to colin for all the fixes and the hard work.
+
+  [ Barry Warsaw ]
+  * Do not offer to install the boot loader on device paths on which
+    incompatible file systems will be installed (e.g. XFS).
+    (LP: #959724)
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Wed, 21 Mar 2012 19:49:14 -0400
+
+ubiquity (2.9.31) precise; urgency=low
+
+  [ Colin Watson ]
+  * Fix misc.set_indicator_keymaps to handle ll_CC forms of lang, and also
+    to avoid crashing on unknown languages in general (LP: #960047).
+  * Strip invalid characters from default username (LP: #783295).
+  * Automatic update of included source packages: base-installer
+    1.122ubuntu6, console-setup 1.70ubuntu4, partman-basicmethods 49,
+    partman-jfs 35, partman-newworld 26, partman-partitioning 83ubuntu2,
+    partman-reiserfs 52, partman-xfs 49.
+
+  [ Oliver Grawert ]
+  * add support for automatic-oem-config kernel commandline option to the
+    oem-config startup scripts to switch oem-config into automatic mode for
+    preseeded oem installs
+  * add an entry for the new option in oem-config-firstboot manpage
+
+  [ Stéphane Graber ]
+  * Properly mark the quit dialog as a child of ubiquity. (LP: #960375)
+
+  [ James Hunt ]
+  * scripts/install.py: Ignore mkdir failure if directory does (now)
+    exist to accommodate update-apt-cache running in parallel with
+    copy_all() (LP: #944191).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 20 Mar 2012 22:26:54 +0000
+
+ubiquity (2.9.30) precise; urgency=low
+
+  [ Adam Conrad ]
+  * Drop gui/qt/images/squares.png and replace it with a single pixel
+    transparent PNG as a placeholder for future changes (LP: #942543)
+
+  [ Evan Dandrea ]
+  * Lazily unmount partitions in the check for a Windows partition to
+    install Wubi on when we have a full partition table (LP: #956531).
+  * Add a small program for testing the Gstreamer webcam code.
+  * Fix broken test video output in the GI webcam module.
+
+  [ Stéphane Graber ]
+  * set_indicator_keymaps() doesn't actually receive a full locale but
+    instead just the language code. That means that the code trying to
+    guess a layout based on the default country won't work.
+    Drop all of that code and replace by a static map to override the
+    default keyboard layout/variant for a language. (LP: #956912)
+  * Merge and update Alessio Treglia's branch to make the slideshow
+    optional depending on (ubiquity/hide_slideshow) (LP: #690912)
+  * Also call setxkbmap directly from set_indicator_keymaps() to ensure
+    we actually switch to the first layout in the list. (LP: #956912)
+  * Properly mark the KeyboardQuery dialog as a child of ubiquity.
+    (LP: #955265)
+
+  [ Martin Pitt ]
+  * tests/test_migrationassistant.py: Fix to work with pygobject 3.1.92.
+
+  [ Barry Warsaw ]
+  * When Try Ubuntu has been clicked once, don't respond to subsequent
+    clicks.  (LP: #911907)
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Mon, 19 Mar 2012 18:02:48 -0400
+
+ubiquity (2.9.29) precise; urgency=low
+
+  [ Oliver Grawert ]
+  * disable gnome-settings-daemon power management plugin during install to
+    make sure things like lid closing or accidential pressing of power or
+    suspend buttons do not put us into suspend mode (LP: #948163)
+
+  [ Stéphane Graber ]
+  * ubi-partman: Ignore None cell values, we'll get another event
+    when they actually contain something anyway. (LP: #939450)
+  * Fix set_indicator_keymaps to always send an array of strings to
+    gsettings and also go through more of the possible language codes as
+    Xkl doesn't seem to always work with part2_code (LP: #955844)
+  * Restrict the list of keyboard layouts added to the indicator to 4
+    and try to be clever as to which one to select.
+  * Only use the keyboard indicator when in greeter mode, otherwise it'd
+    override any previously selected keyboard layout (from gfxboot or from
+    the user session)
+  * Update indicator tests to match the new code, ensuring we don't have
+    more than 4 entries and that languages with variants work fine.
+  * Automatic update of included source packages: console-setup
+    1.70ubuntu3, partman-auto 93ubuntu22, partman-efi 24ubuntu3.
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Thu, 15 Mar 2012 18:12:41 -0400
+
+ubiquity (2.9.28) precise; urgency=low
+
+  * ubiquity-bluetooth-agent: Don't touch /tmp/ubiquity-bluetooth-done
+    if the file already exists. (LP: #951402)
+  * gtk-ui: Drop poke_screensaver and replace by code disabling it in
+    gsettings. (LP: #951336)
+  * Replace ubuntu_installed.png by a scaled down version (LP: #750134)
+  * Enable test_same_ubuntu_only making sure we don't get offered an
+    'upgrade' to the same version of Ubuntu.
+  * Add test_newer_ubuntu_only ensuring ubiquity doesn't offer a downgrade.
+  * Automatic update of included source packages: user-setup
+    1.41ubuntu1.
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Tue, 13 Mar 2012 19:21:21 -0400
+
+ubiquity (2.9.27) precise; urgency=low
+
+  * Port keyboard indicator from xklavier to Xkl and from gconf to gsettings.
+    Update the test accordingly. (LP: #950087, LP: #800561)
+  * Add bin/ubiquity-bluetooth-agent, a bluetooth agent allowing any HID
+    bluetooth device for 5 minutes, then spawning bluetooth-applet if
+    available, otherwise simply dies.
+  * Start bluetooth-applet from ubiquity-dm (LP: #644198)
+  * Copy /var/lib/bluetooth to /target/var/lib/bluetooth to keep the list
+    of trusted devices on the target system. (LP: #644198)
+  * Update PO template and translations for new bluetooth string.
+  * Automatic update of included source packages: netcfg 1.68ubuntu14,
+    partman-auto 93ubuntu20, partman-auto-loop 0ubuntu21.
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Fri, 09 Mar 2012 12:11:19 -0500
+
+ubiquity (2.9.26) precise; urgency=low
+
+  * Build-depend on ubuntu-artwork for the unit test. (LP: #950125)
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Thu, 08 Mar 2012 14:22:20 -0500
+
+ubiquity (2.9.25) precise; urgency=low
+
+  [ Colin Watson ]
+  * Fix debug message when failing to create the migration-assistant page.
+  * Ensure that the migration-assistant page is shown in
+    test_pages_fit_on_a_netbook.
+  * Make the migration-assistant tree view expand again (LP: #946123).
+
+  [ Stéphane Graber ]
+  * gtk_ui: Set virtual terminal font to "Ubuntu Mono 8" so in most cases
+    two lines of text can now be displayed. (LP: #830946)
+  * Change ubiquity/text/webcam_heading to be generic (LP: #926493)
+  * Switch from xklavier to Xkl using gobject introspection.
+    The code is still disabled though because of bug #950087.
+  * Automatic update of included source packages: flash-kernel
+    2.28ubuntu41, netcfg 1.68ubuntu13, partman-base 153ubuntu2, partman-
+    target 76ubuntu2, preseed 1.50ubuntu1, tzsetup 1:0.26ubuntu11.
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Thu, 08 Mar 2012 12:32:02 -0500
+
+ubiquity (2.9.24) precise; urgency=low
+
+  * webcam:
+    - image-capture-encoder is deprecated, just drop it for now
+    - gst_caps_new_simple needs to use a supported width/height,
+      going with 640x480 as it seems standard for most webcams.
+      (LP: #942030)
+  * ubi-console-setup: On automatic install, don't wait 600ms or
+    dbfilter will be None by the time the timer reaches 0 (LP: #944614)
+  * debian/control: Add an explicit dependency on realpath to prevent
+    check-missing-firmware from crashing. In d-i, realpath is provided
+    by busybox.
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Fri, 02 Mar 2012 17:37:36 -0500
+
+ubiquity (2.9.23) precise; urgency=low
+
+  * ubi-console-setup: Revert most of the previous change but keep the
+    600ms timeout to avoid entering in a gtk main loop quit/start flood.
+    Also add some more checks of the current values to prevent the UI
+    from refreshing when not needed. (LP: #942560)
+  * gtk_ui: Move the pending_quits handling code from being called right
+    after the call to main_quit() to right after the main loop actually
+    exits. This seems to help quite a bit with the race discovered in
+    ubi-console-setup.
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Wed, 29 Feb 2012 20:42:24 -0500
+
+ubiquity (2.9.22) precise; urgency=low
+
+  * ubi-partman:
+    - Avoid crash when calling contextual menu on a partition list item.
+      (LP: #936115)
+    - Add logic to parse the current and new version number and only
+      allow reusing an existing install if the target is older than the
+      media. (LP: #898278)
+  * ubi-console-setup:
+    - To avoid issues when quickly changing the selection (easily done by
+      using the keyboard), add a 600ms delay to any user action, reset with
+      any further action.
+      The UI is also now set_sensitive(False) while waiting for a UI
+      refresh.
+      This should be enough to limit or get rid of (LP: #645449)
+  * Automatic update of included source packages: netcfg 1.68ubuntu12.
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Mon, 27 Feb 2012 20:21:30 -0500
+
+ubiquity (2.9.21) precise; urgency=low
+
+  [ Stéphane Graber ]
+  * Get ubiquity-dm to spawn ibus-daemon when using the GTK frontend.
+    (LP: #871726)
+
+  [ Evan Dandrea ]
+  * We're in beta now.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Thu, 23 Feb 2012 15:13:41 +0000
+
+ubiquity (2.9.20) precise; urgency=low
+
+  [ Colin Watson ]
+  * Restore old fallback code in case /cdrom/casper/filesystem.size doesn't
+    exist (LP: #557388).
+  * Fix some more uses of deprecated python-apt APIs.
+  * ubiquity-dm: Try openbox after openbox-lubuntu (LP: #888107).
+  * Thomson SA is now called Technicolor SA (LP: #856992).
+  * Limit maximum length of username editing widgets to 32 (LP: #831319).
+  * UTF-8-encode the syslog message when a geoname lookup fails, since it
+    might include non-ASCII characters entered by the user (LP: #928891).
+  * Run test suite under xvfb-run by default when running it from the
+    command line.  'tests/run --no-xvfb' inhibits this behaviour for cases
+    where it's useful to see the UIs constructed by the test suite.
+  * Stop manually inserting newlines in hostname and username errors.  GTK+
+    3 seems to do a reasonable job of wrapping these by itself now.
+  * Port the user page from GtkTable to GtkGrid, so that we get sensible
+    height-for-width geometry management (LP: #830933).
+  * Internationalise hostname and username validation errors (LP: #784825).
+
+  [ Mario Limonciello ]
+  * Have two separate failsafe attempts for 'fbdev' and 'vesa'.  It's
+    possible that /dev/fb0 will exist but be backed by a VGA framebuffer
+    causing X to exit non-zero.
+
+  [ Stéphane Graber ]
+  * Use the Xubuntu wallpaper when available. (LP: #936572)
+  * Detect bogus DNS servers and ignore them. (LP: #760884)
+  * Automatic update of included source packages: base-installer
+    1.122ubuntu5, choose-mirror 2.39ubuntu4.
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Tue, 21 Feb 2012 21:09:02 -0500
+
+ubiquity (2.9.19) precise; urgency=low
+
+  * Install pixmaps/windows_square.png in ubiquity-frontend-gtk.
+  * Make it possible to run the test suite against installed packages, and
+    add a DEP-8 control file for this.
+  * Refactor copy_all to be more robust, handle some more cases, and be
+    testable and tested.  It can now:
+    - copy a directory over an existing non-directory (LP: #891711);
+    - copy device nodes and sockets over existing non-directories
+      (LP: #495217);
+    - handle all cases of copying a non-directory over an existing empty
+      directory;
+    - copy a symlink over a non-empty directory by attempting to move the
+      directory to the symlink target (LP: #188976);
+    - if all else fails, copy a non-directory over an existing non-empty
+      directory by moving the target aside to a backup location.
+  * Ignore all failures to set timestamps (LP: #411307, #654929).
+  * Update translations from Launchpad.
+  * Update imported translations from gtk+3.0 3.3.14-0ubuntu2 and
+    gnome-panel 1:3.3.5-0ubuntu2.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 15 Feb 2012 17:52:19 +0000
+
+ubiquity (2.9.18) precise; urgency=low
+
+  * Convert from deprecated GtkHBox/GtkVBox to GtkBox, and from
+    GtkHButtonBox to GtkButtonBox.
+  * Use g_object_unref instead of deprecated gdk_pixbuf_unref.
+  * Use gdk_error_trap_pop_ignored rather than gdk_error_trap_pop when
+    ignoring errors.
+  * webcam: Warn when trying to get unknown properties.
+  * webcam: Fix header typo: UBIQUITY_GET_CLASS ->
+    UBIQUITY_WEBCAM_GET_CLASS.
+  * Upgrade to Automake 1.11.3, involving using pkglibexec_PROGRAMS instead
+    of pkglib_PROGRAMS.
+  * Use a mock resolver during usersetup tests to avoid failing in certain
+    network setups.
+  * Use mock.patch.object instead of deprecated mock.patch_object.
+  * Silence annoying warnings from dmidecode during the test suite.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 12 Feb 2012 03:08:28 +0000
+
+ubiquity (2.9.17) precise; urgency=low
+
+  [ Colin Watson ]
+  * Don't display "Ready when you are..." when the installer isn't actually
+    waiting for user actions.
+  * When waiting for user actions, just hide the progress bar and associated
+    widgets rather than displaying "Ready when you are...", to avoid
+    confusion associated with a progress bar being displayed when the system
+    is in fact waiting for user input (LP: #670409, #925427).
+  * Mark file descriptors used for communication with parted_server
+    FD_CLOEXEC.
+  * Restore finish-install's title after installing the oem-config frontend
+    (LP: #925155).
+  * Avoid duplicate call to osextras.find_on_path('check-language-support').
+  * Stop filtering warnings from the apt module which are no longer emitted.
+  * PEP-8 import ordering.
+  * Make the "Choose a picture" page translatable (LP: #892384).
+  * Make the "run all pending GTK events" function accessible from
+    ubiquity.gtkwidgets, and use it in the test suite.  This makes the test
+    suite about four seconds faster.
+  * Fix sys.path mishandling in test suite.
+  * Mark WPA2-only access points as secure.
+  * Add initial tests for wireless page.
+  * Automatic update of included source packages: choose-mirror 2.39ubuntu3,
+    netcfg 1.68ubuntu11.
+
+  [ Brian Murray ]
+  * ubiquity/gtk_ui.py: in the crash handler also call apport directly if in
+    the maybe-ubiquity mode (LP: #901381)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 10 Feb 2012 17:27:15 +0000
+
+ubiquity (2.9.16) precise; urgency=low
+
+  * Bump fallback Ubuntu version number in ubi-language to 12.04.
+  * Behave a little more usefully when running over ssh with X forwarding
+    such that ubiquity is unable to talk to NetworkManager.  This
+    configuration isn't actually supported, but is occasionally useful for
+    debugging so it helps to be able to start ubiquity at the very least.
+  * Configure the target system to disable installation of Recommends if
+    base-installer/install-recommends is preseeded to false (LP: #918401).
+  * Automatic update of included source packages: flash-kernel 2.28ubuntu39,
+    partman-auto 93ubuntu19.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 02 Feb 2012 14:53:26 +0000
+
+ubiquity (2.9.15) precise; urgency=low
+
+  * Cope with stricter dbus.Byte.__str__ implementation in dbus-python 1.0.0
+    (LP: #922988).
+  * Remove test suite debris on clean.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 30 Jan 2012 14:16:59 +0000
+
+ubiquity (2.9.14) precise; urgency=low
+
+  * src/panel/panel.c: Update indicator ABI to 7. (LP: #922052)
+
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Mon, 30 Jan 2012 10:26:07 +0000
+
+ubiquity (2.9.13) precise; urgency=low
+
+  * Make test_osextras reliable across architectures (sort lists).
+  * Automatic update of included source packages: netcfg 1.68ubuntu8.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 27 Jan 2012 23:19:26 +0000
+
+ubiquity (2.9.12) precise; urgency=low
+
+  [ Colin Watson ]
+  * Drop backports of saved ID handling functions from os, now that we
+    require Python 2.7.
+  * Remove an unnecessary use of contextlib.closing.
+  * Simplify PartedServer.disks.
+  * Add tests for ubiquity.osextras.
+  * Cope with /etc/resolv.conf being a symlink (LP: #922640).
+  * Scale down the webcam page a bit so that it works on netbook screens
+    (LP: #869239).
+  * Improve test_pages_fit_on_a_netbook so that it tests all pages.
+  * Automatic update of included source packages: choose-mirror 2.39ubuntu2,
+    debian-installer-utils 1.88ubuntu2, flash-kernel 2.28ubuntu37,
+    partman-base 153ubuntu1.
+
+  [ Stéphane Graber ]
+  * gtk_ui.py: Update rendering of GtkComboBox following light-themes update
+    (was dark text on dark background, now light text on dark background)
+
+  [ Martin Pitt ]
+  * gtk_ui.py: In only-ubiquity mode, call apport-gtk frontend ourselves after
+    a crash, as there is no update-notifier running to pick it up.
+    (LP: #712677)
+
+  [ Luke Yelavich ]
+  * Add label relationships in the advanced partitioning and user info steps
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 27 Jan 2012 20:37:17 +0000
+
+ubiquity (2.9.11) precise; urgency=low
+
+  * no change rebuild for libindicator7
+
+ -- Ken VanDine <ken.vandine@canonical.com>  Wed, 25 Jan 2012 10:05:15 -0500
+
+ubiquity (2.9.10) precise; urgency=low
+
+  * Handle interface change in ICU 4.8: unknown time zones result in
+    TimeZone instances with ID "Etc/Unknown" rather than "GMT".
+  * Import icu rather than PyICU, preferred as of python-pyicu 1.0.
+  * Automatic update of included source packages: partman-basicfilesystems
+    71ubuntu3, partman-btrfs 7ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 20 Dec 2011 17:59:53 +0000
+
+ubiquity (2.9.9) precise; urgency=low
+
+  * Cope with pygobject returning unicode objects rather than UTF-8-encoded
+    str objects (LP: #905916, #906015).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 19 Dec 2011 12:25:13 +0000
+
+ubiquity (2.9.8) precise; urgency=low
+
+  [ Colin Watson ]
+  * GTK frontend:
+    - Some automatic partitioning options change the text on the next button
+      to "Install Now".  Make sure that this works even when changing to the
+      automatic partitioning page with one of those options automatically
+      selected (LP: #766265).
+  * Automatic update of included source packages: base-installer
+    1.122ubuntu3, partman-auto 93ubuntu18, partman-basicfilesystems
+    71ubuntu2.
+
+  [ Stéphane Graber ]
+  * Use username associated with uid 999 rather than hardcoding 'ubuntu'
+    in Ubiquity. This is important now that casper sets the username and
+    hostname based on media name. (LP: #290351)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 15 Dec 2011 18:57:10 +0000
+
+ubiquity (2.9.7) precise; urgency=low
+
+  * Add a few armhf -> armel symlinks to fix the armhf build.
+  * Automatic update of included source packages: partman-auto 93ubuntu17.
+
+ -- Oliver Grawert <ogra@ubuntu.com>  Thu, 08 Dec 2011 13:36:31 +0100
+
+ubiquity (2.9.6) precise; urgency=low
+
+  * Build-depend/depend on python-gi-cairo/python-gi-dev rather than
+    python-gobject-cairo/python-gobject-dev.
+  * Add armhf support.
+  * Set DPKG_UNTRANSLATED_MESSAGES=1 when installing packages so that bug
+    reports are easier to analyse; requested by Brian Murray.
+  * Automatic update of included source packages: flash-kernel 2.28ubuntu35,
+    hw-detect 1.88ubuntu1, localechooser 2.39ubuntu1, partman-uboot 5.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 07 Dec 2011 16:22:40 +0000
+
+ubiquity (2.9.5) precise; urgency=low
+
+  * Automatic update of included source packages: console-setup 1.70ubuntu2,
+    partman-base 151ubuntu3.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 25 Nov 2011 18:03:57 +0000
+
+ubiquity (2.9.4) precise; urgency=low
+
+  * Whitelist grub_device_label in test_interface_translated on non-x86
+    architectures; grub-installer will be unavailable to supply the
+    translations, but that doesn't matter since the template won't be
+    displayed anyway.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 22 Nov 2011 00:31:56 +0000
+
+ubiquity (2.9.3) precise; urgency=low
+
+  [ Mario Limonciello ]
+  * When installing oem extras, query for all packages marked to be installed
+    via plugins, not just langpacks.
+  * Properly build the manifest used for remove oem extras.
+
+  [ Colin Watson ]
+  * ubiquity depends on wget (LP: #877187).
+  * ubiquity-frontend-gtk depends on python-gobject-cairo (LP: #877223).
+  * ubiquity depends on grub-common on amd64 and i386 (LP: #877230).
+  * Remove /usr/lib/libubiwebcam.la.  Nothing uses this, and its
+    dependency_libs entries don't match current reality.
+  * Automatic update of included source packages: apt-setup 1:0.55ubuntu1,
+    base-installer 1.122ubuntu1, choose-mirror 2.39ubuntu1, clock-setup
+    0.109ubuntu1, console-setup 1.70ubuntu1, debian-installer-utils
+    1.87ubuntu1, hw-detect 1.87ubuntu1, localechooser 2.38ubuntu1,
+    partman-ext3 66ubuntu1, partman-partitioning 83ubuntu1, partman-target
+    76ubuntu1, user-setup 1.39ubuntu2.
+
+  [ Evan Dandrea ]
+  * Add missing template for the connecting label.
+
+  [ Luke Yelavich ]
+  * debian/control: We are using GI for the a11y indicator, so depend on
+    gir1.2-appindicator3-0.1 instead of python-appindicator
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 21 Nov 2011 22:32:45 +0000
+
+ubiquity (2.9.2) precise; urgency=low
+
+  * Re-enable alpha warning for precise.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 17 Oct 2011 12:44:46 +0100
+
+ubiquity (2.9.1) precise; urgency=low
+
+  * Prevent ubiquity from trying to connect to DBus in the gtkui tests
+    with the most recent changes.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Mon, 17 Oct 2011 15:58:16 +0100
+
+ubiquity (2.9.0) precise; urgency=low
+
+  * Expand the list of wireless networks under each card automatically,
+    unless the user has explicitly collapsed the row.
+  * Translate the entire wireless networking page.
+  * Don't show the picture taking page when running in an oem-config
+    install.
+  * Don't show the wireless page if a wireless connection was made after
+    ubiquity started (LP: #873000).
+  * Ensure that the user picture is owned by the target user
+    (LP: #872966).
+
+ -- Evan Dandrea <ev@ubuntu.com>  Mon, 17 Oct 2011 10:34:51 +0100
 
 ubiquity (2.8.7) oneiric; urgency=low
 

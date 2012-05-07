@@ -4,7 +4,7 @@
 
 ARCH="$(archdetect)"
 case $ARCH in
-    i386/mac|amd64/mac)
+    i386/*|amd64/*)
 	new_efi_fs=fat32
 	;;
     *)
@@ -28,6 +28,13 @@ for dev in $DEVICES/*; do
 		id=${part%,*}
 		num=${part#*,}
 		[ -f $id/method -a -f $id/format ] || continue
+		# Formatting an EFI System Partition that already has a
+		# filesystem on it is dangerous
+		# (https://bugs.launchpad.net/bugs/769669).  The least bad
+		# option seems to be to skip such partitions entirely.
+		if [ -f $id/detected_filesystem ]; then
+			continue
+		fi
 		method=$(cat $id/method)
 		if [ "$method" = efi ]; then
 			if [ -f $id/formatted ] && \

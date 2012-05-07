@@ -1,3 +1,179 @@
+hw-detect (1.88ubuntu2) precise; urgency=low
+
+  * Update Ubuntu-specific translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 11 Apr 2012 11:45:59 +0100
+
+hw-detect (1.88ubuntu1) precise; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Remove FireWire Ethernet support.
+    - Register lp module on i386 and amd64.
+    - Exit zero if you continue all the way through ethdetect's errors about
+      having no network interfaces.
+    - Register rtc module on amd64.
+    - Drop priorities of a couple of ethdetect questions to medium.
+    - On powerpc/ps3 systems, load ps3rom, ps3disk, and ps3_gelic, and add
+      snd_ps3 to /etc/modules.
+    - Install elfspe2 on Cell (powerpc/ps3 and powerpc/cell) platforms.
+    - disk-detect.sh: Do not check the kernel command line for any option
+      to enable dmraid support. If functional dmraid arrays are found, the
+      user will be asked if they wish to activate them.
+    - Make dmraid logging a bit neater.
+    - 'dmraid -c -s' changed its output format; cope with both old and new.
+    - Remove dm-emc from the multipath modules, since it's gone since
+      2.6.27.
+    - Improve checks for dm-* drivers being present to avoid relying on them
+      being built as modules.
+    - Offer iSCSI targets for preseeding if partman-iscsi is available and
+      no disk devices are found.
+    - Stop installing acpi, acpid, and acpi-support-base if acpi is
+      available.
+    - Add an 'archdetect-deb' package, containing /usr/bin/archdetect.  Add
+      an archdetect(1) manual page.
+    - Refer to /usr/share/common-licenses/GPL-2 in debian/copyright.
+    - Load xenbus_probe_frontend if we're running under the Xen hypervisor.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 28 Nov 2011 15:43:43 +0000
+
+hw-detect (1.88) unstable; urgency=low
+
+  [ Milan Kupcevic ]
+  * discover-mac-io.sh: Detect OHare, Heathrow/Paddington, and KeyLargo ATA
+    controllers to support transition from formerly compiled-in ide-pmac driver
+    to pata_macio module. Ref: #636269.
+
+  [ Joey Hess ]
+  * check-missing-firmware.sh: Add a special case for USB devices, for
+    which the devpath provided from firmware.agent claims to be for the
+    usbcore module. Search through subdirectories of the devpath to find
+    the actual driver module for the USB hardware. Closes: #648631
+    (Thanks, Brian Potkin, for testing the fix.)
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 17 Nov 2011 12:38:54 -0400
+
+hw-detect (1.87ubuntu1) precise; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Remove FireWire Ethernet support.
+    - Register lp module on i386 and amd64.
+    - Exit zero if you continue all the way through ethdetect's errors about
+      having no network interfaces.
+    - Register rtc module on amd64.
+    - Drop priorities of a couple of ethdetect questions to medium.
+    - On powerpc/ps3 systems, load ps3rom, ps3disk, and ps3_gelic, and add
+      snd_ps3 to /etc/modules.
+    - Install elfspe2 on Cell (powerpc/ps3 and powerpc/cell) platforms.
+    - disk-detect.sh: Do not check the kernel command line for any option
+      to enable dmraid support. If functional dmraid arrays are found, the
+      user will be asked if they wish to activate them.
+    - Make dmraid logging a bit neater.
+    - 'dmraid -c -s' changed its output format; cope with both old and new.
+    - Remove dm-emc from the multipath modules, since it's gone since
+      2.6.27.
+    - Improve checks for dm-* drivers being present to avoid relying on them
+      being built as modules.
+    - Offer iSCSI targets for preseeding if partman-iscsi is available and
+      no disk devices are found.
+    - Stop installing acpi, acpid, and acpi-support-base if acpi is
+      available.
+    - Add an 'archdetect-deb' package, containing /usr/bin/archdetect.  Add
+      an archdetect(1) manual page.
+    - Refer to /usr/share/common-licenses/GPL-2 in debian/copyright.
+    - Load xenbus_probe_frontend if we're running under the Xen hypervisor.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 23 Oct 2011 20:08:42 +0100
+
+hw-detect (1.87) unstable; urgency=low
+
+  [ Jurij Smakov ]
+  * check-missing-firmware.sh: support new missing firmware directory
+    location (/run/udev/firmware-missing) in addition to the old one.
+
+ -- Jurij Smakov <jurij@debian.org>  Thu, 23 Jun 2011 20:55:23 +0100
+
+hw-detect (1.86) unstable; urgency=low
+
+  * Team upload
+
+  [ Miguel Figueiredo ]
+  * discover-mac-io.sh: blacklist snd-aoa-* modules to allow snd-powermac 
+    to work. Closes #606984.
+  * Change priority of driver-injection-disk/load template. Closes: #583650.
+ 
+  [ Otavio Salvador ]
+  * Blacklist snd-aoa to allow snd-powermac to work. Refs: #606984.
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Esperanto (eo.po) by Felipe Castro
+  * Korean (ko.po) by Changwoo Ryu
+  * Romanian (ro.po) by Eddy Petrișor
+  * Slovak (sk.po) by Ivan Masár
+  * Swedish (sv.po) by Daniel Nylander
+  * Uighur (ug.po) by Sahran
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 22 Apr 2011 22:22:00 +0200
+
+hw-detect (1.85) unstable; urgency=low
+
+  * discover-mac-io.sh: Fix module loading for Ibook G4 (powermac). Closes:
+    #525902, #525946, #606984. 
+    Thanks to Risto Suominen <risto.suminen@gmail.com>.
+  * Install mmc-modules if no disk is found, since some devices may not
+    have hard drives, but SD slots instead. Closes: #593108
+  * Increase the number of attempts to detect the new disk devices in
+    disk_found() of disk-detect.sh to 15, bringing the total waiting time
+    to 28 seconds. Current timeout of 4 seconds is not sufficient for
+    some SCSI subsystems with long driver/disk initialization time.
+    Closes: #611314
+
+ -- Jurij Smakov <jurij@debian.org>  Sun, 27 Feb 2011 12:33:23 +0000
+
+hw-detect (1.84) unstable; urgency=low
+
+  [ Joey Hess ]
+  * check-missing-firmware: Avoid reloading modules that have a network
+    interface that is already configured. Closes: #605983
+
+  [ Petter Reinholdtsen ]
+  * Add Vcs-Browser entry to control file, in addition to the Vcs-Svn
+    entry.
+
+  [ Updated translations ]
+  * Northern Sami (se.po) by Børre Gaup
+  * Telugu (te.po) by Arjuna Rao Chavala
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 24 Dec 2010 19:27:22 -0200
+
+hw-detect (1.83) unstable; urgency=low
+
+  * Set DI_PROGRESS_BAR_VISIBLE flag when running discover-pkginstall
+    to avoid it destroying pkgsel's progress bar.
+    (Bug #605938 asks for discover to honor this flag.)
+
+  [ Updated translations ]
+  * Lao (lo.po) by Anousak Souphavanh
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 04 Dec 2010 16:16:59 -0400
+
+hw-detect (1.82) unstable; urgency=low
+
+  [ Joey Hess ]
+  * check-missing-firmware: When called from ethdetect, take interfaces
+    up and down each time through the loop. Previously this was only done
+    once, which caused a bug, as the first pass through does not prompt
+    for missing firmware, and on subsequent passes, the firmware was not
+    requested. Closes: #537502
+    (Thanks, Asbjørn Sloth Tønnesen)
+
+  [ Updated translations ]
+  * Malayalam (ml.po) by Praveen Arimbrathodiyil
+  * Sinhala (si.po) by Danishka Navin
+  * Slovenian (sl.po) by Vanja Cvelbar
+
+ -- Otavio Salvador <otavio@debian.org>  Wed, 24 Nov 2010 09:52:34 -0200
+
 hw-detect (1.81ubuntu3) oneiric; urgency=low
 
   * Load xenbus_probe_frontend if we're running under the Xen hypervisor

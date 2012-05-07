@@ -60,7 +60,7 @@
 #define MAXHOSTNAMELEN 63
 #endif
 
-typedef enum { NOT_ASKED = 30, GO_BACK, REPLY_WEP, REPLY_WPA } response_t;
+typedef enum { NOT_ASKED = 30, GO_BACK, REPLY_WEP, REPLY_WPA, SKIP } response_t;
 typedef enum { DHCP, STATIC, DUNNO } method_t;
 typedef enum { ADHOC = 1, MANAGED = 2 } wifimode_t;
 typedef enum { WPA_OK, WPA_QUEUED, WPA_UNAVAIL } wpa_t;

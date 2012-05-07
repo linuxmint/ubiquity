@@ -27,7 +27,7 @@ BIN=choose-mirror
 LIBS=-ldebconfclient -ldebian-installer
 
 # Derivative distributions may want to change these.
-#MIRRORLISTURL=http://cvs.debian.org/*checkout*/webwml/english/mirror/Mirrors.masterlist?rev=HEAD&cvsroot=webwml&content-type=text/plain
+#MIRRORLISTURL=http://anonscm.debian.org/viewvc/webwml/webwml/english/mirror/Mirrors.masterlist?revision=HEAD
 MASTERLIST=Mirrors.masterlist.ubuntu
 
 ifdef DEBUG

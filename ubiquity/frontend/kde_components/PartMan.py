@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+
 from PyQt4 import uic
 from PyQt4 import QtGui
 
@@ -443,11 +444,13 @@ class PartMan(QtGui.QWidget):
         self.ctrlr.allow_change_step(False)
         self.ctrlr.dbfilter.undo()
 
-    def setGrubOptions(self, options, default):
+    def setGrubOptions(self, options, default, grub_installable):
         self.part_advanced_bootloader_frame.setVisible(True)
         self.grub_device_entry.clear()
         for opt in options:
-            self.grub_device_entry.addItem(opt[0]);
+            path = opt[0]
+            if grub_installable.get(path, False):
+                self.grub_device_entry.addItem(path)
 
         index = self.grub_device_entry.findText(default)
         if (index == -1):

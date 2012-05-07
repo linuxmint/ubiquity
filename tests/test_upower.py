@@ -1,5 +1,7 @@
 import unittest
+
 import mock
+
 from ubiquity import upower
 
 class UPowerTests(unittest.TestCase):

@@ -138,7 +138,7 @@ automatic:
         if (empty_str(client->value)) {
             if (couldnt_associate)
                 /* we've already tried the empty string here, so give up */
-                break;
+                return SKIP;
             else
                 goto automatic;
         }

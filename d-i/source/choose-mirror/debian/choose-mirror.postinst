@@ -3,10 +3,12 @@
 
 anna-install apt-mirror-setup || true
 
-if [ -f /etc/lsb-release ]; then
-	. /etc/lsb-release
-	if [ -n "$DISTRIB_CODENAME" ]; then
-		db_set mirror/suite "$DISTRIB_CODENAME"
+if ! db_get mirror/suite || ! [ "$RET" ]; then
+	if [ -f /etc/lsb-release ]; then
+		. /etc/lsb-release
+		if [ -n "$DISTRIB_CODENAME" ]; then
+			db_set mirror/suite "$DISTRIB_CODENAME"
+		fi
 	fi
 fi
 

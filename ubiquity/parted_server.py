@@ -20,6 +20,7 @@
 # Simple bindings to allow Python programs to talk to parted_server.
 # I don't recommend attempting to use these outside Ubiquity.
 
+import fcntl
 import os
 import shutil
 
@@ -129,8 +130,10 @@ class PartedServer(object):
 
     def open_dialog(self, command, *args):
         self.inf = open(infifo, 'w')
+        fcntl.fcntl(self.inf.fileno(), fcntl.F_SETFD, fcntl.FD_CLOEXEC)
         self.write_line(command, self.current_disk, *args)
         self.outf = open(outfifo, 'r')
+        fcntl.fcntl(self.outf.fileno(), fcntl.F_SETFD, fcntl.FD_CLOEXEC)
         self.error_handler()
 
     def close_dialog(self):
@@ -150,9 +153,7 @@ class PartedServer(object):
 
     # Get all disk identifiers (subdirectories of /var/lib/partman/devices).
     def disks(self):
-        disks = os.listdir(devices)
-        disks.sort()
-        return disks
+        return sorted(os.listdir(devices))
 
     # This is stateful in a slightly ugly way, but it corresponds well to
     # the shell interface.

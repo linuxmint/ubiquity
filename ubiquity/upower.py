@@ -1,4 +1,7 @@
-import dbus, os
+import os
+
+import dbus
+
 from ubiquity import misc
 
 UPOWER = 'org.freedesktop.UPower'

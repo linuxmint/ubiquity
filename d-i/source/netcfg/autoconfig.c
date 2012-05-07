@@ -110,9 +110,10 @@ void cleanup_dhcpv6_client(void)
 		/* Already cleaned up */
 		return;
 
-	waitpid(dhcpv6_pid, &dhcpv6_exit_status, WNOHANG);
-	if (WIFEXITED(dhcpv6_exit_status) || WIFSIGNALED(dhcpv6_exit_status))
-		dhcpv6_pid = -1;
+	if (waitpid(dhcpv6_pid, &dhcpv6_exit_status, WNOHANG) > 0) {
+		if (WIFEXITED(dhcpv6_exit_status) || WIFSIGNALED(dhcpv6_exit_status))
+			dhcpv6_pid = -1;
+	}
 }
 
 /* Start whichever DHCPv6 client is available.
@@ -121,6 +122,7 @@ void cleanup_dhcpv6_client(void)
  */
 int start_dhcpv6_client(struct debconfclient *client, const struct netcfg_interface *interface)
 {
+	int dhcpv6_seconds = 0;
 	if (access("/sbin/dhclient", F_OK) == 0)
 		dhcpv6_client = DHCLIENT;
 	else if (access("/usr/sbin/dhcp6c", F_OK) == 0)
@@ -148,6 +150,9 @@ int start_dhcpv6_client(struct debconfclient *client, const struct netcfg_interf
 				fclose(pidfile);
 		}
 	}
+
+	debconf_get(client, "netcfg/dhcpv6_timeout");
+	dhcpv6_seconds = atoi(client->value);
 
 	dhcpv6_pid = fork();
 	if (dhcpv6_pid == 0) { /* child */
@@ -185,9 +190,10 @@ int start_dhcpv6_client(struct debconfclient *client, const struct netcfg_interf
 					fprintf(dc, ":%02x", (unsigned char)(duid + sizeof(duid_header))[i]);
 				fprintf(dc, ";\n");
 			}
+			fprintf(dc, "timeout %d;\n", dhcpv6_seconds);
 			fclose(dc);
 
-			arguments = malloc(9 * sizeof(*arguments));
+			arguments = malloc(10 * sizeof(*arguments));
 			i = 0;
 			arguments[i++] = "dhclient";
 			arguments[i++] = "-6";
@@ -198,6 +204,7 @@ int start_dhcpv6_client(struct debconfclient *client, const struct netcfg_interf
 			arguments[i++] = "-sf";
 			arguments[i++] = "/lib/netcfg/print-dhcpv6-info";
 			arguments[i++] = interface->name;
+			arguments[i++] = "-1";
 			arguments[i] = NULL;
 			execvp("dhclient", (char **)arguments);
 			break;

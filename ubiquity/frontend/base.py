@@ -19,16 +19,18 @@
 # with Ubiquity; if not, write to the Free Software Foundation, Inc., 51
 # Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-import sys
+from hashlib import md5
 import os
-import syslog
-import debconf
 import subprocess
+import sys
+import syslog
+
+import debconf
+
 from ubiquity.debconfcommunicator import DebconfCommunicator
 from ubiquity.misc import drop_privileges, execute_root
 from ubiquity import i18n
 from ubiquity import plugin_manager
-from hashlib import md5
 
 # Lots of intentionally unused arguments here (abstract methods).
 __pychecker__ = 'no-argsused'
@@ -148,6 +150,13 @@ class BaseFrontend:
                 self.db.get('ubiquity/show_shutdown_button') == 'true'
         except debconf.DebconfError:
             self.show_shutdown_button = False
+
+        self.hide_slideshow = False
+        try:
+            if self.db.get('ubiquity/hide_slideshow') == 'true':
+                self.hide_slideshow = True
+        except debconf.DebconfError:
+            pass
 
         # Load plugins
         plugins = plugin_manager.load_plugins()

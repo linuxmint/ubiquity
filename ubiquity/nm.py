@@ -1,8 +1,11 @@
 import subprocess
+
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 DBusGMainLoop(set_as_default=True)
 from gi.repository import Gtk, GObject
+
+from ubiquity.misc import utf8
 
 NM = 'org.freedesktop.NetworkManager'
 NM_DEVICE = 'org.freedesktop.NetworkManager.Device'
@@ -21,8 +24,8 @@ NM_STATE_CONNECTED_GLOBAL = 70
 # TODO: DBus exceptions.  Catch 'em all.
 
 def decode_ssid(characters):
-    ssid = ''.join([str(char) for char in characters])
-    return ssid.decode('utf-8', 'replace')
+    ssid = ''.join([chr(int(char)) for char in characters])
+    return utf8(ssid, errors='replace')
 
 def get_prop(obj, iface, prop):
     try:
@@ -53,7 +56,10 @@ def wireless_hardware_present():
     # the hardware switch is off.
     bus = dbus.SystemBus()
     manager = bus.get_object(NM, '/org/freedesktop/NetworkManager')
-    devices = manager.GetDevices()
+    try:
+        devices = manager.GetDevices()
+    except dbus.DBusException:
+        return False
     for device_path in devices:
         device_obj = bus.get_object(NM, device_path)
         if get_prop(device_obj, NM_DEVICE, 'DeviceType') == DEVICE_TYPE_WIFI:
@@ -164,20 +170,21 @@ class NetworkManager:
         if self.timeout_id:
             GObject.source_remove(self.timeout_id)
         self.timeout_id = GObject.timeout_add(500, self.build_cache)
-            
+
     def properties_changed(self, props, path=None):
         if 'Strength' in props:
             ap_obj = self.bus.get_object(NM, path)
             ssid = get_prop(ap_obj, NM_AP, 'Ssid')
             if ssid:
                 ssid = decode_ssid(ssid)
-                security = get_prop(ap_obj, NM_AP, 'WpaFlags') != 0
+                security = (get_prop(ap_obj, NM_AP, 'WpaFlags') != 0 or
+                            get_prop(ap_obj, NM_AP, 'RsnFlags') != 0)
                 strength = int(props['Strength'])
                 iterator = self.model.get_iter_first()
                 while iterator:
                     i = self.ssid_in_model(iterator, ssid, security)
                     if i:
-                        self.model.set_value(i, 2, strength) 
+                        self.model.set_value(i, 2, strength)
                     iterator = self.model.iter_next(iterator)
 
     def build_cache(self):
@@ -208,12 +215,13 @@ class NetworkManager:
                 if ssid:
                     ssid = decode_ssid(ssid)
                     strength = int(get_prop(ap_obj, NM_AP, 'Strength') or 0)
-                    security = get_prop(ap_obj, NM_AP, 'WpaFlags') != 0
+                    security = (get_prop(ap_obj, NM_AP, 'WpaFlags') != 0 or
+                                get_prop(ap_obj, NM_AP, 'RsnFlags') != 0)
                     i = self.ssid_in_model(iterator, ssid, security)
                     if not i:
                         self.model.append(iterator, [ssid, security, strength])
                     else:
-                        self.model.set_value(i, 2, strength) 
+                        self.model.set_value(i, 2, strength)
                     ssids.append(ssid)
             i = self.model.iter_children(iterator)
             self.prune(i, ssids)
@@ -244,8 +252,43 @@ class NetworkManagerTreeView(Gtk.TreeView):
 
         self.append_column(ssid_column)
         self.set_headers_visible(False)
+        self.setup_row_expansion_handling(model)
+
+    def setup_row_expansion_handling(self, model):
+        """
+        If the user collapses a row, save that state. If all the APs go away
+        and then return, such as when the user toggles the wifi kill switch,
+        the UI should keep the row collapsed if it already was, or expand it.
+        """
         self.expand_all()
-        # TODO expand by default
+        self.rows_changed_id = None
+        def queue_rows_changed(*args):
+            if self.rows_changed_id:
+                GObject.source_remove(self.rows_changed_id)
+            self.rows_changed_id = GObject.idle_add(self.rows_changed)
+        model.connect('row-inserted', queue_rows_changed)
+        model.connect('row-deleted', queue_rows_changed)
+
+        self.user_collapsed = {}
+        def collapsed(self, iterator, path, collapse):
+            udi = model[iterator][0]
+            self.user_collapsed[udi] = collapse
+        self.connect('row-collapsed', collapsed, True)
+        self.connect('row-expanded', collapsed, False)
+
+    def rows_changed(self, *args):
+        model = self.get_model()
+        i = model.get_iter_first()
+        while i:
+            udi = model[i][0]
+            try:
+                if not self.user_collapsed[udi]:
+                    path = model.get_path(i)
+                    self.expand_row(path, False)
+            except KeyError:
+                path = model.get_path(i)
+                self.expand_row(path, False)
+            i = model.iter_next(i)
 
     def get_state(self):
         return self.wifi_model.get_state()
@@ -322,7 +365,7 @@ class NetworkManagerTreeView(Gtk.TreeView):
         if iterator is None:
             return False
         return model.iter_parent(iterator) is not None
-        
+
     def is_row_connected(self):
         model, iterator = self.get_selection().get_selected()
         if iterator is None:
@@ -340,18 +383,19 @@ class NetworkManagerTreeView(Gtk.TreeView):
         parent = model.iter_parent(iterator)
         if parent:
             self.wifi_model.connect_to_ap(model[parent][0], ssid, passphrase)
-            
+
 
 GObject.type_register(NetworkManagerTreeView)
 
-class NetworkManagerWidget(Gtk.VBox):
+class NetworkManagerWidget(Gtk.Box):
     __gtype_name__ = 'NetworkManagerWidget'
     __gsignals__ = { 'connection' : (GObject.SignalFlags.RUN_FIRST,
                                      GObject.TYPE_NONE, (GObject.TYPE_UINT,)),
                      'selection_changed' : (GObject.SignalFlags.RUN_FIRST,
                                             GObject.TYPE_NONE, ())}
     def __init__(self):
-        Gtk.VBox.__init__(self)
+        Gtk.Box.__init__(self)
+        self.set_orientation(Gtk.Orientation.VERTICAL)
         self.set_spacing(12)
         self.password_entry = Gtk.Entry()
         self.view = NetworkManagerTreeView(self.password_entry,
@@ -360,22 +404,26 @@ class NetworkManagerWidget(Gtk.VBox):
         scrolled_window.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scrolled_window.set_shadow_type(Gtk.ShadowType.IN)
         scrolled_window.add(self.view)
-        self.add(scrolled_window)
-        self.hbox = Gtk.HBox(spacing=6)
+        self.pack_start(scrolled_window, True, True, 0)
+        self.hbox = Gtk.Box(spacing=6)
         self.pack_start(self.hbox, False, True, 0)
-        password_label = Gtk.Label('Password:')
+        self.password_label = Gtk.Label('Password:')
         self.password_entry.set_visibility(False)
         self.password_entry.connect('activate', self.connect_to_ap)
         self.display_password = Gtk.CheckButton('Display password')
         self.display_password.connect('toggled', self.display_password_toggled)
-        self.hbox.pack_start(password_label, False, True, 0)
+        self.hbox.pack_start(self.password_label, False, True, 0)
         self.hbox.pack_start(self.password_entry, True, True, 0)
         self.hbox.pack_start(self.display_password, False, True, 0)
         self.hbox.set_sensitive(False)
         self.selection = self.view.get_selection()
         self.selection.connect('changed', self.changed)
         self.show_all()
-    
+
+    def translate(self, password_label_text, display_password_text):
+        self.password_label.set_label(password_label_text)
+        self.display_password.set_label(display_password_text)
+
     def get_state(self):
         return self.view.get_state()
 

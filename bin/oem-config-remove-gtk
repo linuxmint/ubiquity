@@ -56,6 +56,20 @@ def _on_transaction(trans):
     apt_dialog.run()
     apt_dialog.connect("finished", _on_finished)
 
+def using_cryptsetup():
+    if os.path.exists("/home/.ecryptfs"):
+        return True
+
+    try:
+        with open("/etc/crypttab") as crypttab:
+            for line in crypttab:
+                if not line.startswith("#"):
+                    return True
+    except IOError:
+        pass
+
+    return False
+
 def main():
     purge = []
     for pkg in ('ubiquity', 'ubiquity-casper',
@@ -64,7 +78,7 @@ def main():
         if glob.glob('/var/lib/dpkg/info/%s.list' % pkg):
             purge.append(pkg)
 
-    if not os.path.exists("/home/.ecryptfs"):
+    if not using_cryptsetup():
         purge.append("cryptsetup")
 
     ac = client.AptClient()

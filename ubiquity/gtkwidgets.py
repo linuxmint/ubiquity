@@ -1,9 +1,16 @@
 #!/usr/bin/python
 
+import os
+
+import cairo
 from gi.repository import Gtk, Gdk, GObject, Pango
 from gi.repository import UbiquityWebcam, GdkPixbuf
+
 from ubiquity import misc
-import cairo, os
+
+def refresh():
+    while Gtk.events_pending():
+        Gtk.main_iteration()
 
 def draw_round_rect(c, r, x, y, w, h):
     c.move_to(x+r,y)
@@ -31,7 +38,7 @@ class StylizedFrame(Gtk.Alignment):
                    0, GObject.constants.G_MAXINT, 1,
                    GObject.PARAM_READWRITE),
     }
-    
+
     def __init__(self):
         Gtk.Alignment.__init__(self)
         self.radius = 10
@@ -89,7 +96,7 @@ class ResizeWidget(Gtk.HPaned):
                        'be resized to', 1, GObject.constants.G_MAXUINT64,
                        100, GObject.PARAM_READWRITE)
     }
-    
+
     def do_get_property(self, prop):
         return getattr(self, prop.name.replace('-', '_'))
 
@@ -172,11 +179,11 @@ class ResizeWidget(Gtk.HPaned):
 
 GObject.type_register(ResizeWidget)
 
-class DiskBox(Gtk.HBox):
+class DiskBox(Gtk.Box):
     __gtype_name__ = 'DiskBox'
 
     def add(self, partition, size):
-        Gtk.HBox.add(self, partition, expand=False)
+        Gtk.Box.add(self, partition, expand=False)
         partition.set_size_request(size, -1)
 
     def clear(self):
@@ -194,7 +201,7 @@ class PartitionBox(StylizedFrame):
         'extra'     : (GObject.TYPE_STRING, 'Extra Text', None, '',
                        GObject.PARAM_READWRITE),
     }
-    
+
     def do_get_property(self, prop):
         if prop.name == 'title':
             return self.ostitle.get_text()
@@ -224,7 +231,8 @@ class PartitionBox(StylizedFrame):
         # 5 px between the extra heading and the size
         # 12 px below the bottom-most element
         StylizedFrame.__init__(self)
-        vbox = Gtk.VBox()
+        vbox = Gtk.Box()
+        vbox.set_orientation(Gtk.Orientation.VERTICAL)
         self.logo = Gtk.Image.new_from_icon_name(icon_name,
                                                  Gtk.IconSize.DIALOG)
         align = Gtk.Alignment.new(0.5, 0.5, 0.5, 0.5)
@@ -298,7 +306,7 @@ class StateBox(StylizedFrame):
         'label'  : (GObject.TYPE_STRING, 'Label', None, 'label',
                     GObject.PARAM_READWRITE),
     }
-    
+
     def do_get_property(self, prop):
         if prop.name == 'label':
             return self.label.get_text()
@@ -309,17 +317,17 @@ class StateBox(StylizedFrame):
             self.label.set_text(value)
             return
         setattr(self, prop.name, value)
-    
+
     def __init__(self, text=''):
         StylizedFrame.__init__(self)
         alignment = Gtk.Alignment()
         alignment.set_padding(7, 7, 15, 15)
-        hbox = Gtk.HBox()
+        hbox = Gtk.Box()
         hbox.set_spacing(10)
         self.image = Gtk.Image()
         self.image.set_from_stock(Gtk.STOCK_YES, Gtk.IconSize.LARGE_TOOLBAR)
         self.label = Gtk.Label(label=text)
-        
+
         self.label.set_alignment(0, 0.5)
         hbox.pack_start(self.image, False, True, 0)
         hbox.pack_start(self.label, True, True, 0)
@@ -345,51 +353,67 @@ GObject.type_register(StateBox)
 
 FACES_PATH = '/usr/share/pixmaps/faces'
 
-class FaceSelector(Gtk.VBox):
+class FaceSelector(Gtk.Box):
     __gtype_name__ = 'FaceSelector'
-    def __init__(self):
-        Gtk.VBox.__init__(self)
+    def __init__(self, controller):
+        Gtk.Box.__init__(self)
+        self.set_orientation(Gtk.Orientation.VERTICAL)
+        self.set_homogeneous(False)
         self.set_spacing(12)
+        self.controller = controller
 
-        vb_left = Gtk.VBox.new(False, 3)
-        # TODO i18n
-        l = Gtk.Label('Take a photo:')
-        vb_left.pack_start(l, False, False, 0)
+        vb_left = Gtk.Box(False, 3)
+        vb_left.set_orientation(Gtk.Orientation.VERTICAL)
+        self.photo_label = Gtk.Label('Take a photo:')
+        vb_left.pack_start(self.photo_label, False, False, 0)
         f = Gtk.Frame()
         self.webcam = UbiquityWebcam.Webcam()
         self.webcam.connect('image-captured', self.image_captured)
         f.add(self.webcam)
-        vb_left.add(f)
+        vb_left.pack_start(f, True, True, 0)
 
-        vb_right = Gtk.VBox.new(False, 3)
-        # TODO i18n
-        l = Gtk.Label('Or choose an existing picture:')
-        vb_right.pack_start(l, False, False, 0)
+        vb_right = Gtk.Box(False, 3)
+        vb_right.set_orientation(Gtk.Orientation.VERTICAL)
+        self.existing_label = Gtk.Label('Or choose an existing picture:')
+        vb_right.pack_start(self.existing_label, False, False, 0)
         iv = Gtk.IconView()
         iv.connect('selection-changed', self.selection_changed)
+        # TODO cjwatson 2012-03-21: Gtk.IconView should work this out
+        # itself, but I think that depends on having correct
+        # height-for-width geometry management everywhere, and we don't yet.
+        # See LP #961025.
+        iv.set_columns(2)
         sw = Gtk.ScrolledWindow()
         sw.set_shadow_type(Gtk.ShadowType.IN)
         sw.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         sw.add(iv)
-        vb_right.add(sw)
+        vb_right.pack_start(sw, True, True, 0)
 
-        hb = Gtk.HBox.new(True, 30)
-        hb.add(vb_left)
-        hb.add(vb_right)
-        self.add(hb)
+        hb = Gtk.Box(True, 30)
+        hb.pack_start(vb_left, True, True, 0)
+        hb.pack_start(vb_right, True, True, 0)
+        self.pack_start(hb, True, True, 0)
 
         self.selected_image = Gtk.Image()
         self.selected_image.set_size_request(96, 96)
-        self.add(self.selected_image)
+        self.pack_start(self.selected_image, True, True, 0)
 
         m = Gtk.ListStore(GObject.type_from_name('GdkPixbuf'))
         iv.set_model(m)
         iv.set_pixbuf_column(0)
         if os.path.exists(FACES_PATH):
-            for path in os.listdir(FACES_PATH):
+            for path in sorted(os.listdir(FACES_PATH)):
                 pb = GdkPixbuf.Pixbuf.new_from_file(
                                     os.path.join(FACES_PATH, path))
                 m.append([pb])
+
+    def translate(self, lang):
+        self.photo_label.set_text(
+            self.controller.get_string('webcam_photo_label', lang))
+        self.existing_label.set_text(
+            self.controller.get_string('webcam_existing_label', lang))
+        self.webcam.get_property('take-button').set_label(
+            self.controller.get_string('webcam_take_button', lang))
 
     def webcam_play(self):
         self.webcam.play()

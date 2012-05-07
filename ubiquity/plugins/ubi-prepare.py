@@ -17,12 +17,15 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+from IN import INT_MAX
+import os
+import subprocess
+import sys
+
+import dbus
+
 from ubiquity import plugin
 from ubiquity import misc, osextras, i18n, upower
-import os
-import sys
-import dbus
-import subprocess
 
 NAME = 'prepare'
 AFTER = 'language'
@@ -38,7 +41,6 @@ JOCKEY_PATH = '/DeviceDriver'
 #     return NULL;
 # }
 # timeout_ms = (int)(timeout_s * 1000.0);
-from IN import INT_MAX
 MAX_DBUS_TIMEOUT = INT_MAX / 1000.0
 
 # TODO: This cannot be a non-debconf plugin after all as OEMs may want to
@@ -181,7 +183,7 @@ class PageKde(PreparePageBase):
     def get_download_updates(self):
         from PyQt4.QtCore import Qt
         return self.prepare_download_updates.checkState() == Qt.Checked
-    
+
     def set_allow_nonfree(self, allow):
         if not allow:
             self.prepare_nonfree_software.setChecked(False)
@@ -227,34 +229,11 @@ class Page(plugin.Plugin):
 
     def setup_sufficient_space(self):
         # TODO move into prepare.
-        size = self.min_size()
+        size = misc.install_size()
         self.db.subst('ubiquity/text/prepare_sufficient_space', 'SIZE', misc.format_size(size))
         space = self.description('ubiquity/text/prepare_sufficient_space')
         self.ui.set_sufficient_space(self.big_enough(size))
         self.ui.set_sufficient_space_text(space)
-
-    def min_size(self):
-        # Fallback size to 5 GB
-        size = 5 * 1024 * 1024 * 1024
-
-        # Maximal size to 8 GB
-        max_size = 8 * 1024 * 1024 * 1024
-
-        try:
-            with open('/cdrom/casper/filesystem.size') as fp:
-                size = int(fp.readline())
-        except IOError, e:
-            self.debug('Could not determine squashfs size: %s' % e)
-
-        # TODO substitute into the template for the state box.
-        min_disk_size = size * 2 # fudge factor.
-
-        # Set minimum size to 8GB if current minimum size is larger
-        # than 8GB and we still have an extra 20% of free space
-        if min_disk_size > max_size and size * 1.2 < max_size:
-            min_disk_size = max_size
-
-        return min_disk_size
 
     def big_enough(self, size):
         with misc.raised_privileges():

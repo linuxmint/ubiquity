@@ -3,24 +3,35 @@
 set -e
 
 DEBUG=
-if [ "$1" = '--debug' ]; then
-	DEBUG=--debug
-fi
+AUTOMATIC=
+for option;do
+	case $option in
+		--debug)
+			DEBUG=--debug
+			;;
+		--automatic)
+			AUTOMATIC=--automatic
+			;;
+	esac
+done
 
 # KDM stores the default user here, and apparently gets upset that we've
 # just removed its previous default user.
 rm -f /var/lib/kdm/kdmsts
 # Revert to creating a user at uid 1000.
 echo RESET passwd/user-uid | debconf-communicate >/dev/null
-# These two templates have been preseeded, which does nasty things to their
-# templates. It's probably a bug in cdebconf's debconf-copydb that they end
-# up still registered to debian-installer/dummy at this point, but let's
-# just work around it for now so that we get sensible translated
-# descriptions.
-for q in passwd/user-fullname passwd/username; do
-	echo REGISTER "$q" "$q"
-	echo RESET "$q"
-done | debconf-communicate oem-config >/dev/null
+if [ -z "$AUTOMATIC" ]; then
+	# These two templates have been preseeded, which does nasty things
+	# to their templates.  It's probably a bug in cdebconf's
+	# debconf-copydb that they end up still registered to
+	# debian-installer/dummy at this point, but let's just work around
+	# it for now so that we get sensible translated descriptions.
+	for q in passwd/user-fullname passwd/username; do
+		echo REGISTER "$q" "$q"
+		echo RESET "$q"
+	done | debconf-communicate oem-config >/dev/null
+fi
+
 # Remove the oem-config-prepare menu item.
 rm -f /usr/share/applications/oem-config-prepare-gtk.desktop \
       /usr/share/applications/kde4/oem-config-prepare-kde.desktop
@@ -58,13 +69,13 @@ for try in $(seq 1 $TRY); do
 	if [ "$FRONTEND" = debconf_ui ]; then
 		plymouth quit || true
 		LANG=en_US.UTF-8 FRONTEND="$FRONTEND" \
-		/usr/sbin/oem-config-wrapper $DEBUG --only \
+		/usr/sbin/oem-config-wrapper $DEBUG $AUTOMATIC --only \
 			2>>/var/log/oem-config.log \
 			|| CODE=$?
 	else
 		FRONTEND="$FRONTEND" \
 		/usr/bin/ubiquity-dm vt7 :0 oem \
-			/usr/sbin/oem-config-wrapper $DEBUG --only || CODE=$?
+			/usr/sbin/oem-config-wrapper $DEBUG $AUTOMATIC --only || CODE=$?
 	fi
 	if [ "$CODE" -eq 0 ]; then
 		exit 0

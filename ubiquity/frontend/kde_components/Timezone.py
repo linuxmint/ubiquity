@@ -1,10 +1,11 @@
 # -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
+import datetime
+import math
+
 from PyQt4 import QtCore, QtGui
 
-import datetime
 import ubiquity.tz
-import math
 
 #contains information about a geographical timezone city
 class City:
@@ -67,7 +68,7 @@ class TimezoneMap(QtGui.QWidget):
             #try to find the closest zone
             if zoneS not in zonePixmaps:
                 zoneS = None
-                for offset in (.25, -.25, .5, -.5): 
+                for offset in (.25, -.25, .5, -.5):
                     zstring = str(zoneHour + offset)
                     if zstring in zonePixmaps:
                         zoneS = zstring

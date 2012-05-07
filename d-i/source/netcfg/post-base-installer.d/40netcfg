@@ -1,0 +1,7 @@
+#!/bin/sh -e
+# Make sure resolvconf will still work with bind-mounted /run
+
+if [ -L /target/etc/resolv.conf ] && [ -f /target/run/resolvconf/resolv.conf ]; then
+	mkdir -p /run/resolvconf
+	cp /target/run/resolvconf/resolv.conf /run/resolvconf/resolv.conf
+fi

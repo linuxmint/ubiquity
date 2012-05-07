@@ -173,7 +173,11 @@ def start_debconf():
 
     print >>sys.stderr, "debconf_ui selected; starting debconf frontend"
 
-    if 'DEBCONF_USE_CDEBCONF' not in os.environ:
+    if 'UBIQUITY_AUTOMATIC' in os.environ:
+        # In automatic mode, we don't want debconf to reshow seen questions,
+        # since that defeats the purpose of preseeding.
+        pass
+    elif 'DEBCONF_USE_CDEBCONF' not in os.environ:
         # This is rather unsatisfactory. Perhaps it would be better to
         # have a custom debconf program, a bit like dpkg-reconfigure.
         import tempfile
@@ -193,11 +197,12 @@ def start_debconf():
         orig_debconfrc.close()
         debconfrc_file.close()
         os.environ['DEBCONF_SYSTEMRC'] = debconfrc
-
-        os.environ['DEBCONF_PACKAGE'] = 'ubiquity'
     else:
         os.environ['DEBCONF_SHOWOLD'] = 'true'
-        # TODO: need to set owner somehow
+
+    if 'DEBCONF_USE_CDEBCONF' not in os.environ:
+        os.environ['DEBCONF_PACKAGE'] = 'ubiquity'
+    # TODO: need to set owner somehow for the cdebconf case
 
     import debconf
     debconf.runFrontEnd() # re-execs this program
@@ -555,7 +560,7 @@ def main(oem_config):
                              '/var/lib/dpkg/info/%s.templates' % package])
 
     # Clean up old state.
-    for name in ('apt-installed', 'apt-install-direct', 'remove-kernels', 'apt-removed'):
+    for name in ('apt-installed', 'apt-install-direct', 'remove-kernels', 'apt-removed', 'encrypted-swap'):
         osextras.unlink_force(os.path.join('/var/lib/ubiquity', name))
     shutil.rmtree("/var/lib/partman", ignore_errors=True)
     misc.remove_os_prober_cache()

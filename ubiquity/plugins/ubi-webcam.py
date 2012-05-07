@@ -17,8 +17,10 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+import os
+import sys
+
 from ubiquity import plugin
-import os, sys
 
 NAME = 'webcam'
 AFTER = 'usersetup'
@@ -32,7 +34,8 @@ class PageGtk(plugin.PluginUI):
         from gi.repository import UbiquityWebcam
         from ubiquity import gtkwidgets
         if (not UbiquityWebcam.Webcam.available()
-            or 'UBIQUITY_AUTOMATIC' in os.environ):
+            or 'UBIQUITY_AUTOMATIC' in os.environ
+            or controller.oem_config):
             self.page = None
             return
         self.controller = controller
@@ -43,9 +46,9 @@ class PageGtk(plugin.PluginUI):
         builder.connect_signals(self)
         self.page = builder.get_object('stepWebcam')
         self.plugin_widgets = self.page
-        self.faceselector = gtkwidgets.FaceSelector()
+        self.faceselector = gtkwidgets.FaceSelector(controller)
         self.page.add(self.faceselector)
-    
+
     def plugin_get_current_page(self):
         self.page.show_all()
         self.faceselector.webcam_play()
@@ -60,3 +63,5 @@ class PageGtk(plugin.PluginUI):
         self.faceselector.save_to('/var/lib/ubiquity/webcam_photo.png')
         return False
 
+    def plugin_translate(self, lang):
+        self.faceselector.translate(lang)

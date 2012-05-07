@@ -38,6 +38,7 @@ if [ ! -e /cdrom/.disk/cd_type ] || [ ! -e /var/lib/install-cd.id ]; then
 fi
 # multi-arch CDs have cd_type 'non_complete'
 # KDE/Xfce CDs and multi-arch DVDs have '/single' postfix in cd_type
+# bluray CDs have cd_type 'bluray'
 cd_type=$(cat /cdrom/.disk/cd_type)
 if [ "$cd_type" != full_cd ] && [ "$cd_type" != dvd ]; then
 	exit 0
@@ -45,7 +46,7 @@ fi
 
 get_label() {
 	LC_ALL=C $logoutput --pass-stdout $chroot $ROOT \
-		apt-cdrom ident | head -n1 | grep "^Stored label:" | \
+		apt-cdrom ident | grep "^Stored label:" | head -n1 | \
 		sed "s/^[^:]*: //"
 }
 
@@ -62,6 +63,10 @@ if [ "$ROOT" ]; then
 	$logoutput umount /cdrom || true
 
 	chroot_setup
+	# Horrible hack to let us call a subprocess that also sources the
+	# confmodule, since chroot_setup tears down debconf state.
+	export DEBIAN_HAS_FRONTEND=1
+	export DEBCONF_REDIR=1
 	# Needed until after a d-i release with new enough di-utils.
 	mountpoints > /tmp/mount.post
 	trap chroot_cleanup_localmounts EXIT HUP INT QUIT TERM

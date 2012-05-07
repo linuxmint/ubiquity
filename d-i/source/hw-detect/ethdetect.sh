@@ -254,17 +254,11 @@ while ! ethernet_found; do
 	fi
 done
 
-# Some modules only try to load firmware once brought up. So bring up and
-# then down all interfaces.
-for iface in $(lsifaces); do
-	ip link set "$iface" up || true
-	ip link set "$iface" down || true
-done
 db_get ethdetect/prompt_missing_firmware
 if [ "$RET" = true ]; then
-	check-missing-firmware
+	check-missing-firmware $(lsifaces)
 else
-	check-missing-firmware -n
+	check-missing-firmware -n $(lsifaces)
 fi
 
 sysfs-update-devnames || true

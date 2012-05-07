@@ -528,6 +528,11 @@ while :; do
 	   10)	# Display language list
 		db_settitle localechooser/title/language
 
+		if [ -x /usr/lib/espeakup/espeakup.restart ]
+		then
+			/usr/lib/espeakup/espeakup.restart "$INITIAL_LANGUAGE"
+		fi
+
 		sel_language=1
 		# Disabled because of #470258: template is set to true too early
 		if false && \
@@ -559,6 +564,10 @@ while :; do
 	   11)	# We have a language
 		db_get $tpl_languagelist
 		LANGUAGE="$RET"
+		if [ -x /usr/lib/espeakup/espeakup.restart ]
+		then
+			/usr/lib/espeakup/espeakup.restart "$LANGUAGE"
+		fi
 
 		if [ "$LANGUAGE" = "$PREVIOUS_LANGUAGE" ]; then
 			# The user picked the same language as before. We

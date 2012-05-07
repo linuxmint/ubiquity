@@ -17,7 +17,7 @@ export ROOT
 set_special_users() {
 	local realname
 	case "$fullname" in
-	    fjp)	realname="Frans Pop" ;;
+	    bubulle)	realname="Christian PERRIER" ;;
 	    tbm)	realname="Martin Michlmayr" ;;
 	    *)		return 1 ;;
 	esac
@@ -153,7 +153,8 @@ while :; do
 			# Verify the user name, loop with message if bad.
 			db_get passwd/username
 			USER="$RET"
-			if ! LC_ALL=C expr "$USER" : '[a-z][-a-z0-9_]*$' >/dev/null; then
+			if ! LC_ALL=C expr "$USER" : '[a-z][-a-z0-9_]*$' >/dev/null || \
+			   ! LC_ALL=C expr length "$USER" '<=' 32 >/dev/null; then
 				db_fset passwd/username seen false
 				db_fset passwd/username-bad seen false
 				db_input critical passwd/username-bad
@@ -256,8 +257,14 @@ while :; do
 		done
 		if [ "$ecryptfs_in_use" ] || \
 		   (db_get user-setup/encrypt-home && [ "$RET" = true ]); then
-			apt-install ecryptfs-utils 2>/dev/null
-			apt-install cryptsetup 2>/dev/null
+			# If the user wants an encrypted home, we *must* have the
+			# cleartext password here!
+			db_get passwd/user-password || true
+			if ! test "$RET" ; then
+				db_set passwd/user-password-crypted ""
+				STATE=7
+				continue
+			fi
 		fi
 		;;
 	    *)

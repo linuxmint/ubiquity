@@ -1,7 +1,7 @@
 arch_get_kernel_flavour () {
 	CPU=`grep '^cpu[[:space:]]*:' "$CPUINFO" | head -n1 | cut -d: -f2 | sed 's/^ *//; s/[, ].*//' | tr A-Z a-z`
 	case "$CPU" in
-	    power3|power4|power4+|ppc970*|power5|power5+|power6|power6x)
+	    power3|power4|power4+|ppc970*|power5|power5+|power6|power6x|power7)
 		family=powerpc64 ;;
 	    cell|i-star|s-star|pa6t|rs64-*)
 		family=powerpc64 ;;
@@ -29,14 +29,14 @@ arch_check_usable_kernel () {
 }
 
 arch_get_kernel () {
-	if [ "$1" = "powerpc64" ]; then
+	if [ "$1" = "powerpc64" ] || [ "$1" = "powerpc" ]; then
 		SMP=-smp
 	else
 		SMP=
 	fi
 
 	case "$KERNEL_MAJOR" in
-	    2.6)
+	    2.6|3.*)
 		if [ "$SMP" ]; then
 			echo "linux-$1$SMP"
 			echo "linux-image-$1$SMP"

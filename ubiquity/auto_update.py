@@ -63,7 +63,8 @@ class FetchProgressDebconfProgressAdapter(apt.progress.FetchProgress):
         apt.progress.FetchProgress.pulse(self)
         if self.currentCPS > 0:
             info = self.frontend.get_string('apt_progress_cps')
-            info = info.replace('${SPEED}', apt_pkg.SizeToStr(self.currentCPS))
+            info = info.replace(
+                '${SPEED}', apt_pkg.size_to_str(self.currentCPS))
         else:
             info = self.frontend.get_string('apt_progress')
         info = info.replace('${INDEX}', str(self.currentItems))
@@ -117,7 +118,7 @@ def update(frontend):
         cache = apt.Cache(cache_progress)
         cache_progress.really_done()
         updates = filter(
-            lambda pkg: pkg in cache and cache[pkg].isUpgradable,
+            lambda pkg: pkg in cache and cache[pkg].is_upgradable,
             UBIQUITY_PKGS)
     except IOError, e:
         print "ERROR: cache.update() returned: '%s'" % e
@@ -137,9 +138,10 @@ def update(frontend):
         stopped_debconf = False
     try:
         # install the updates
+        os.environ['DPKG_UNTRANSLATED_MESSAGES'] = '1'
         fixer = apt.ProblemResolver(cache)
         for pkg in updates:
-            cache[pkg].markInstall(autoFix=False)
+            cache[pkg].mark_install(auto_fix=False)
             fixer.clear(cache[pkg])
             fixer.protect(cache[pkg])
         fixer.resolve()

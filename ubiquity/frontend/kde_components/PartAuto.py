@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+
 from PyQt4 import uic
 from PyQt4 import QtGui
 

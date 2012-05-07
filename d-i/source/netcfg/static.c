@@ -210,8 +210,7 @@ static int netcfg_write_etc_networks(char *network)
 }
 
 static int netcfg_write_resolvconf_options(const char *domain,
-                                           char nameservers[][NETCFG_ADDRSTRLEN],
-                                           const unsigned int ns_size
+                                           const struct netcfg_interface *interface
                                           )
 {
     FILE *fp;
@@ -233,14 +232,14 @@ static int netcfg_write_resolvconf_options(const char *domain,
      * per-interface basis so that per-interface dns options
      * can be written here.
      */
-    if (!empty_str(nameservers[0]) || (domain && !empty_str(domain))) {
+    if (!empty_str(interface->nameservers[0]) || (domain && !empty_str(domain))) {
         unsigned int i = 0;
         fprintf(fp, "\t# dns-* options are implemented by the resolvconf package, if installed\n");
-        if (!empty_str(nameservers[0])) {
+        if (!empty_str(interface->nameservers[0])) {
             fprintf(fp, "\tdns-nameservers");
-            for (i = 0; i < ns_size; i++) {
-                if (!empty_str(nameservers[i])) {
-                    fprintf(fp, " %s", nameservers[i]);
+            for (i = 0; i < NETCFG_NAMESERVERS_MAX; i++) {
+                if (!empty_str(interface->nameservers[i])) {
+                    fprintf(fp, " %s", interface->nameservers[i]);
                 }
             }
             fprintf(fp, "\n");
@@ -532,7 +531,6 @@ static int netcfg_activate_static(struct debconfclient *client,
 int netcfg_get_static(struct debconfclient *client, struct netcfg_interface *iface)
 {
     char *nameservers = NULL;
-    char nameserver_array[4][NETCFG_ADDRSTRLEN];
     char *none;
     char netmask[INET_ADDRSTRLEN];
 
@@ -670,7 +668,7 @@ int netcfg_get_static(struct debconfclient *client, struct netcfg_interface *ifa
                 netcfg_write_common(iface->ipaddress, hostname, domain);
                 netcfg_write_loopback();
                 netcfg_write_interface(iface);
-                netcfg_write_resolvconf_options(domain, nameserver_array, ARRAY_SIZE(nameserver_array));
+                netcfg_write_resolvconf_options(domain, iface);
                 netcfg_write_resolv(domain, iface);
             }
             return 0;

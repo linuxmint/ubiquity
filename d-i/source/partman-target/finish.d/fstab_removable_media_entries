@@ -63,4 +63,14 @@ for dev in $(list-devices floppy); do
 	fi
 done
 
-populate_media floppy auto rw,user,noauto,exec,utf8 $FDDEVICES
+case `udpkg --print-os` in
+	linux)
+		populate_media floppy auto rw,user,noauto,exec,utf8 $FDDEVICES
+		;;
+	kfreebsd)
+		populate_media floppy auto rw,noauto $FDDEVICES
+		;;
+	hurd)
+		populate_media floppy fatfs rw,noauto $FDDEVICES
+		;;
+esac

@@ -4,8 +4,17 @@
 
 ARCH=$(shell dpkg-architecture -qDEB_HOST_ARCH)
 
+SET_CLOCK = 1
+# On s390 we're not allowed to change the system clock
+ifeq ($(ARCH),s390)
+SET_CLOCK = 0
+endif
+ifeq ($(ARCH),s390x)
+SET_CLOCK = 0
+endif
+
 RDATE_DEPENDS =
-ifneq ($(ARCH), s390)
+ifneq ($(SET_CLOCK),0)
 RDATE_DEPENDS = configured-network, rdate-udeb
 endif
 
@@ -15,8 +24,7 @@ override_dh_auto_test:
 
 override_dh_install:
 	dh_install
-# On s390 we're not allowed to change the system clock
-ifneq ($(ARCH), s390)
+ifneq ($(SET_CLOCK),0)
 	dh_install finish-install.d usr/lib
 endif
 

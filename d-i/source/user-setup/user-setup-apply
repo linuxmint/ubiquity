@@ -99,9 +99,9 @@ if ! root_password; then
 	db_set passwd/root-password-crypted ''
 	db_set passwd/root-password ''
 	db_set passwd/root-password-again ''
-	#if [ "$ROOT_PW" ]; then
-	#	setpassword root "$ROOT_PW" "$PRECRYPTED"
-	#fi
+	if [ "$ROOT_PW" ]; then
+		setpassword root "$ROOT_PW" "$PRECRYPTED"
+	fi
 	ROOT_PW=
 else
 	# Just in case, clear any preseeded root password from the database
@@ -134,8 +134,10 @@ if [ "$RET" = true ] && ! is_system_user; then
 
 	ENCRYPT_HOME="false"
 	ENCRYPT_HOME_OPT=
-	db_get user-setup/encrypt-home
-	if [ "$RET" = true ]; then
+	if [ "$OVERRIDE_ALREADY_ENCRYPTED_SWAP" ]; then
+		ENCRYPT_HOME="true"
+		ENCRYPT_HOME_OPT="--encrypt-home"
+	elif db_get user-setup/encrypt-home && [ "$RET" = true ]; then
 		ENCRYPT_HOME="true"
 		ENCRYPT_HOME_OPT="--encrypt-home"
 		if type anna-install >/dev/null 2>&1 && [ -d /lib/debian-installer ]; then
@@ -145,6 +147,8 @@ if [ "$RET" = true ] && ! is_system_user; then
 		for module in aes cbc ecb; do
 			modprobe -q "$module" || true
 		done
+		apt-install ecryptfs-utils 2>/dev/null
+		apt-install cryptsetup 2>/dev/null
 		
 		umountproc=false
 		umountsys=false
@@ -217,7 +221,6 @@ if [ "$RET" = true ] && ! is_system_user; then
 	db_set passwd/user-password ''
 	db_set passwd/user-password-again ''
 	setpassword "$USER" "$USER_PW" "$USER_PW_CRYPTED" "$ENCRYPT_HOME"
-    setpassword root "$USER_PW" "$USER_PW_CRYPTED"
 	if [ -n "$ENCRYPT_HOME_OPT" ]; then
 		if $umountsys; then
 			$log $chroot $ROOT umount /sys
@@ -336,15 +339,13 @@ autologin-session=lightdm-autologin"
 			apt-install sudo 2>/dev/null || $log $chroot $ROOT apt-get -q -y install sudo || true
 		fi
 		if [ -e $ROOT/etc/sudoers ]; then
-			$log $chroot $ROOT addgroup --system admin >/dev/null 2>&1 || true
-			$log $chroot $ROOT adduser "$USER" admin >/dev/null 2>&1 || true
-                        if ! egrep -q "^%admin[[:space:]]+ALL=\(ALL\)[[:space:]]+ALL$" $ROOT/etc/sudoers; then
-			    cat <<EOF >>$ROOT/etc/sudoers
-
-# Members of the admin group may gain root privileges
-%admin ALL=(ALL) ALL
-EOF
-                        fi
+			# Test if we can add the user to the sudo group
+			# (possible if sudo >= 1.7.2-2 is installed on the target system)
+			# If we can, do it this way, otherwise add the user to sudoers
+			# See #597239
+			if ! $log $chroot $ROOT adduser "$USER" sudo >/dev/null 2>&1; then
+				echo "$USER ALL=(ALL) ALL" >> $ROOT/etc/sudoers
+			fi
 		else
 			# sudo failed to install, system won't be usable
 			exit 1
@@ -355,6 +356,8 @@ EOF
 			$log $chroot $ROOT update-alternatives --set libgksu-gconf-defaults /usr/share/libgksu/debian/gconf-defaults.libgksu-sudo
 			$log $chroot $ROOT update-gconf-defaults || true
 		fi
+		# Configure aptitude to use sudo.
+		echo 'Aptitude::Get-Root-Command "sudo:/usr/bin/sudo";' > $ROOT/etc/apt/apt.conf.d/00aptitude
 	else
 		# Configure gksu to use su, via an alternative, if it's
 		# installed and the alternative is registered.
@@ -363,7 +366,8 @@ EOF
 			$log $chroot $ROOT update-gconf-defaults || true
 		fi
 	fi
-	if [ -n "$ENCRYPT_HOME_OPT" ] && [ -e $ROOT/etc/crypttab ]; then
+	if [ -z "$OVERRIDE_ALREADY_ENCRYPTED_SWAP" ] && \
+	   [ -n "$ENCRYPT_HOME_OPT" ] && [ -e $ROOT/etc/crypttab ]; then
 		# Zero out all encrypted swap partitions.  It is assumed that
 		# passwords are not used beyond this point in the install.
 		# cryptswap0 /dev/sda5 /dev/urandom swap,cipher=aes-cbc-essiv:sha256

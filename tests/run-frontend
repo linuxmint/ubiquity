@@ -12,7 +12,7 @@ sys.path.insert(0, '.')
 #
 #    def tearDown(self):
 #        self.frontend.stop_debconf()
-        
+
 class CoreFrontendTests:
     def testPluginsLoadProperly(self):
         should_load = ['ubi-language', 'ubi-timezone', 'ubi-console-setup',
@@ -20,7 +20,7 @@ class CoreFrontendTests:
         plugins = [x.filter_class.__module__ for x in self.frontend.pages]
         for x in should_load:
             assert x in plugins, '%s not in %s' % (x, str(plugins))
-    
+
     def testReturnToPartitioner(self):
         # bzr r3904, r3895
         self.frontend.installing = True
@@ -39,7 +39,7 @@ class CoreFrontendTests:
         c.allow_change_step(False)
         assert self.frontend.next.get_property('sensitive') == False
         assert self.frontend.back.get_property('sensitive') == False
-        
+
         c.allow_change_step(True)
         c.allow_go_forward(True)
         c.allow_go_backward(True)
@@ -100,7 +100,7 @@ class GtkFrontendTests(CoreFrontendTests, unittest.TestCase):
                 self.frontend.add_history(h[0], h[1])
             if len(self.frontend.history) == 1:
                 break
-    
+
     def testNoActiveItemRegionCombo(self):
         # bzr r4066, LP #521851
         idx = -1
@@ -117,7 +117,7 @@ class GtkFrontendTests(CoreFrontendTests, unittest.TestCase):
         # Should return instead of raising
         # 'IndexError: could not find tree path'
         dbfilter.ui.on_region_combo_changed()
-    
+
     def testPluginTranslate(self):
         # bzr r4061, LP #540929
         idx = -1
@@ -131,7 +131,7 @@ class GtkFrontendTests(CoreFrontendTests, unittest.TestCase):
         dbfilter = self.frontend.dbfilter
         dbfilter = self.frontend.pages[idx].filter_class(self, ui=ui)
         dbfilter.ui.controller.dbfilter = dbfilter
-        
+
         self.frontend.translate_pages(reget=True)
         ui = dbfilter.ui
         widgets = (ui.username, ui.fullname, ui.password,

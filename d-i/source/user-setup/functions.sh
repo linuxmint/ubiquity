@@ -10,10 +10,10 @@ is_system_user () {
 		return 1
 	fi
 	
-        # Assume NIS, or any uid from 1000 to 29999,  means there is a user.
+        # Assume NIS, or any uid from 1000 to 59999,  means there is a user.
         if grep -q '^+:' $ROOT/etc/passwd || \
            grep -q '^[^:]*:[^:]*:[1-9][0-9][0-9][0-9]:' $ROOT/etc/passwd || \
-           grep -q '^[^:]*:[^:]*:[12][0-9][0-9][0-9][0-9]:' $ROOT/etc/passwd; then
+           grep -q '^[^:]*:[^:]*:[1-5][0-9][0-9][0-9][0-9]:' $ROOT/etc/passwd; then
                 return 0
         else
                 return 1

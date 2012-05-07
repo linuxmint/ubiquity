@@ -307,16 +307,22 @@ int main(int argc, char *argv[])
             break;
 
         case WCONFIG_ESSID:
-            if (netcfg_wireless_set_essid(client, &interface, NULL) == GO_BACK)
-                state = BACKUP;
-            else {
-                init_wpa_supplicant_support(&interface);
-                if (interface.wpa_supplicant_status == WPA_UNAVAIL)
-                    state = WCONFIG_WEP;
-                else
-                    state = WCONFIG_SECURITY_TYPE;
+            {
+                int ret;
+                ret = netcfg_wireless_set_essid(client, &interface, NULL);
+                if (ret == GO_BACK)
+                    state = BACKUP;
+                else if (ret == SKIP)
+                    state = GET_HOSTNAME_ONLY;
+                else {
+                    init_wpa_supplicant_support(&interface);
+                    if (interface.wpa_supplicant_status == WPA_UNAVAIL)
+                        state = WCONFIG_WEP;
+                    else
+                        state = WCONFIG_SECURITY_TYPE;
+                }
+                break;
             }
-            break;
 
         case WCONFIG_SECURITY_TYPE:
             {

@@ -1,0 +1,84 @@
+#! /bin/sh
+
+. /lib/partman/lib/base.sh
+
+# Keep this in sync with grub-installer.
+want_method=
+ARCH="$(archdetect)"
+case $ARCH in
+    i386/mac|amd64/mac)
+	if [ -d /sys/firmware/efi ]; then
+	    want_method=efi
+	else
+	    want_method=biosgrub
+	fi
+	;;
+    i386/efi|amd64/efi)
+	want_method=efi
+	;;
+    i386/*|amd64/*|*-i386/*|*-amd64/*)
+	want_method=biosgrub
+	;;
+    *)
+	exit 0
+	;;
+esac
+
+# Do all the disks on this system use GPT?
+found_gpt=no
+found_non_gpt=no
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd "$dev"
+	open_dialog GET_LABEL_TYPE
+	read_line label_type
+	close_dialog
+	if [ "$label_type" = gpt ]; then
+		found_gpt=yes
+	else
+		found_non_gpt=yes
+	fi
+done
+if [ "$found_gpt" = no ] || [ "$found_non_gpt" = yes ]; then
+	# We might be intending to boot from one of the non-GPT disks.
+	exit 0
+fi
+
+# Is there at least one EFI System Partition or BIOS Boot Partition, as
+# appropriate?
+have_bootable=no
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd "$dev"
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ "$fs" != free ] || continue
+		partitions="$partitions $id,$num"
+	done
+	close_dialog
+
+	for part in $partitions; do
+		id="${part%,*}"
+		num="${part#*,}"
+		[ -f "$id/method" ] || continue
+		method="$(cat "$id/method")"
+		if [ "$method" = "$want_method" ]; then
+			have_bootable=yes
+			break
+		fi
+	done
+done
+
+if [ "$have_bootable" = no ]; then
+	template="partman-partitioning/no_bootable_gpt_$want_method"
+	db_set "$template" true
+	db_input critical "$template" || true
+	db_go || true
+	db_get "$template"
+	if [ "$RET" = true ]; then
+		exit 1
+	fi
+fi
+
+exit 0

@@ -1,11 +1,21 @@
 #!/usr/bin/python
+# -*- coding: utf-8; -*-
 
-import unittest
-from ubiquity import segmented_bar, gtkwidgets
+import os
+import sys
 from test import test_support
-from gi.repository import Gtk, GObject, TimezoneMap
-import sys, os
+import unittest
+
+from gi.repository import Gtk, TimezoneMap
 import mock
+
+from ubiquity import segmented_bar, gtkwidgets
+
+
+class MockController(object):
+    def get_string(self, name, lang=None, prefix=None):
+        return "%s: %s" % (lang, name)
+
 
 class WidgetTests(unittest.TestCase):
     def setUp(self):
@@ -34,8 +44,7 @@ class WidgetTests(unittest.TestCase):
         sb.remove_all()
         self.assertEqual(sb.segments, [])
         self.win.show_all()
-        GObject.timeout_add(500, Gtk.main_quit)
-        Gtk.main()
+        gtkwidgets.refresh()
 
     def test_timezone_map(self):
         tzmap = TimezoneMap.TimezoneMap()
@@ -43,8 +52,7 @@ class WidgetTests(unittest.TestCase):
         #tzmap.select_city('America/New_York')
         self.win.show_all()
         self.win.connect('destroy', Gtk.main_quit)
-        GObject.timeout_add(500, Gtk.main_quit)
-        Gtk.main()
+        gtkwidgets.refresh()
 
     @mock.patch('ubiquity.misc.drop_privileges')
     @mock.patch('ubiquity.misc.regain_privileges')
@@ -52,14 +60,26 @@ class WidgetTests(unittest.TestCase):
         from gi.repository import GdkPixbuf, Gst
         Gst.init(sys.argv)
         WRITE_TO = '/tmp/nonexistent-directory/windows_square.png'
-        fs = gtkwidgets.FaceSelector()
+        fs = gtkwidgets.FaceSelector(None)
         fs.selected_image = Gtk.Image()
-        pb = GdkPixbuf.Pixbuf.new_from_file('pixmaps/windows_square.png')
+        PATH = os.environ.get('UBIQUITY_PATH', False) or '/usr/share/ubiquity'
+        png = os.path.join(PATH, 'pixmaps', 'windows_square.png')
+        pb = GdkPixbuf.Pixbuf.new_from_file(png)
         fs.selected_image.set_from_pixbuf(pb)
         fs.save_to(WRITE_TO)
         self.assertTrue(os.path.exists(WRITE_TO))
         import shutil
         shutil.rmtree(os.path.dirname(WRITE_TO))
+
+    def test_face_selector_translated(self):
+        fs = gtkwidgets.FaceSelector(MockController())
+        fs.translate('zz')
+        self.assertEqual('zz: webcam_photo_label', fs.photo_label.get_text())
+        self.assertEqual(
+            'zz: webcam_existing_label', fs.existing_label.get_text())
+        self.assertEqual(
+            'zz: webcam_take_button',
+            fs.webcam.get_property('take-button').get_label())
 
     def test_state_box(self):
         sb = gtkwidgets.StateBox('foobar')
@@ -109,7 +129,10 @@ class NetworkManagerTests(unittest.TestCase):
         self.model = Gtk.TreeStore(str, object, object)
         self.manager = nm.NetworkManager(self.model)
 
-    def test_get_vendor_and_model_null(self):
+    @mock.patch('subprocess.Popen')
+    def test_get_vendor_and_model_null(self, mock_subprocess):
+        mock_subprocess.return_value.communicate.return_value = (
+            '', 'device path not found\n')
         self.assertEqual(nm.get_vendor_and_model('bogus'), ('',''))
 
     @mock.patch('subprocess.Popen')
@@ -125,6 +148,16 @@ class NetworkManagerTests(unittest.TestCase):
                 dbus.Byte(97), dbus.Byte(116), dbus.Byte(116), dbus.Byte(101),
                 dbus.Byte(114), dbus.Byte(115), dbus.Byte(101), dbus.Byte(97)]
         self.assertEqual(nm.decode_ssid(ssid), 'Ubuntu-Battersea')
+
+    def test_decode_ssid_utf8(self):
+        ssid = [dbus.Byte(82), dbus.Byte(195), dbus.Byte(169), dbus.Byte(115),
+                dbus.Byte(101), dbus.Byte(97), dbus.Byte(117)]
+        self.assertEqual(nm.decode_ssid(ssid), u'Réseau')
+
+    def test_decode_ssid_latin1(self):
+        ssid = [dbus.Byte(82), dbus.Byte(233), dbus.Byte(115), dbus.Byte(101),
+                dbus.Byte(97), dbus.Byte(117)]
+        self.assertEqual(nm.decode_ssid(ssid), u'R\ufffdseau')
 
     def test_ssid_in_model(self):
         iterator = self.model.append(None, ['/foo', 'Intel', 'Wireless'])
@@ -185,6 +218,6 @@ class NetworkManagerTests(unittest.TestCase):
         i = self.model.append(iterator, ['Orange', True, 0])
         tv.data_func(None, mock_cell, self.model, i, None)
         mock_cell.set_property.assert_called_with('text', 'Orange')
-        
+
 if __name__ == '__main__':
     test_support.run_unittest(WidgetTests, NetworkManagerTests)

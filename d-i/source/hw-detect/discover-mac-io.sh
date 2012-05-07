@@ -44,6 +44,22 @@ for dir in $(find "/proc/device-tree/" -type d); do
 	elif [ "$name" = mesh ] || ([ "$device_type" = scsi ] && [ "$compatible" = chrp,mesh0 ]); then
 		echo "mesh:Macintosh Enhanced SCSI Hardware"
 		register-module mesh
+	# drivers/ata
+	elif [ "$device_type" = ata ] ; then
+		case "$compatible" in
+		    keylargo-ata)
+		        echo "pata_macio:KeyLargo ATA"
+		        register-module -i pata_macio
+                        ;;
+		    heathrow-ata)
+		        echo "pata_macio:Heathrow/Paddington ATA"
+		        register-module -i pata_macio
+                        ;;
+		    ohare-ata)
+		        echo "pata_macio:OHare ATA"
+		        register-module -i pata_macio
+		        ;;
+		esac
 	# sound/ppc, sound/oss/dmasound
 	elif [ "$name" = awacs ]; then
 		# probably best to go for ALSA
@@ -53,6 +69,12 @@ for dir in $(find "/proc/device-tree/" -type d); do
 			if [ -f "$child/name" ]; then
 				childname="$(cat "$child/name" 2>/dev/null || true)"
 				if [ "$childname" = sound ]; then
+					# blacklist snd-aoa modules so snd-powermac is loaded
+					register-module -b snd-aoa-codec-tas
+					register-module -b snd-aoa-fabric-layout
+					register-module -b snd-aoa-i2sbus
+					register-module -b snd-aoa-soundbus
+					register-module -b snd-aoa
 					register-module snd-powermac
 				fi
 			fi

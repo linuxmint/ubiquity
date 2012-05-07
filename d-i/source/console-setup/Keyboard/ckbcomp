@@ -2024,6 +2024,10 @@ my %xkbsym_table = (
     'dead_stroke' => '002d',         # hyphen
     'dead_belowdot' => '0323',       # ???? Vietnamese
     'dead_hook' => '0309',           # ???? Vietnamese
+    'dead_belowcomma' => 'VoidSymbol',
+    'dead_currency' => 'VoidSymbol',
+    'dead_doublegrave' => 'VoidSymbol',
+    'dead_invertedbreve' => 'VoidSymbol',
     'dead_iota' => '03b9',           # ???? Greek
     'dead_horn' => '031b',           # ???? Greek
     'dead_psili' => 'VoidSymbol',    # ???? Greek
@@ -2189,6 +2193,63 @@ my %xkbsym_table = (
     'XF86AudioRaiseVolume' => 'VoidSymbol',
     'XF86AudioMute' => 'VoidSymbol',
     'XF86PowerOff' => 'VoidSymbol',
+    'XF86AudioForward' => 'VoidSymbol',
+    'XF86AudioMedia' => 'VoidSymbol',
+    'XF86AudioNext' => 'VoidSymbol',
+    'XF86AudioPause' => 'VoidSymbol',
+    'XF86AudioPlay' => 'VoidSymbol',
+    'XF86AudioPrev' => 'VoidSymbol',
+    'XF86AudioRecord' => 'VoidSymbol',
+    'XF86AudioRewind' => 'VoidSymbol',
+    'XF86AudioStop' => 'VoidSymbol',
+    'XF86Back' => 'VoidSymbol',
+    'XF86Battery' => 'VoidSymbol',
+    'XF86Bluetooth' => 'VoidSymbol',
+    'XF86Calculator' => 'VoidSymbol',
+    'XF86Close' => 'VoidSymbol',
+    'XF86Display' => 'VoidSymbol',
+    'XF86Documents' => 'VoidSymbol',
+    'XF86DOS' => 'VoidSymbol',
+    'XF86Eject' => 'VoidSymbol',
+    'XF86Explorer' => 'VoidSymbol',
+    'XF86Favorites' => 'VoidSymbol',
+    'XF86Finance' => 'VoidSymbol',
+    'XF86Forward' => 'VoidSymbol',
+    'XF86HomePage' => 'VoidSymbol',
+    'XF86KbdBrightnessDown' => 'VoidSymbol',
+    'XF86KbdBrightnessUp' => 'VoidSymbol',
+    'XF86KbdLightOnOff' => 'VoidSymbol',
+    'XF86Launch1' => 'VoidSymbol',
+    'XF86Launch2' => 'VoidSymbol',
+    'XF86Launch3' => 'VoidSymbol',
+    'XF86Launch4' => 'VoidSymbol',
+    'XF86Mail' => 'VoidSymbol',
+    'XF86MailForward' => 'VoidSymbol',
+    'XF86MenuKB' => 'VoidSymbol',
+    'XF86MonBrightnessDown' => 'VoidSymbol',
+    'XF86MonBrightnessUp' => 'VoidSymbol',
+    'XF86MyComputer' => 'VoidSymbol',
+    'XF86New' => 'VoidSymbol',
+    'XF86Phone' => 'VoidSymbol',
+    'XF86Reload' => 'VoidSymbol',
+    'XF86Reply' => 'VoidSymbol',
+    'XF86RotateWindows' => 'VoidSymbol',
+    'XF86Save' => 'VoidSymbol',
+    'XF86ScreenSaver' => 'VoidSymbol',
+    'XF86ScrollDown' => 'VoidSymbol',
+    'XF86ScrollUp' => 'VoidSymbol',
+    'XF86Search' => 'VoidSymbol',
+    'XF86Send' => 'VoidSymbol',
+    'XF86Shop' => 'VoidSymbol',
+    'XF86Sleep' => 'VoidSymbol',
+    'XF86Suspend' => 'VoidSymbol',
+    'XF86Tools' => 'VoidSymbol',
+    'XF86TouchpadToggle' => 'VoidSymbol',
+    'XF86WakeUp' => 'VoidSymbol',
+    'XF86WebCam' => 'VoidSymbol',
+    'XF86WLAN' => 'VoidSymbol',
+    'XF86WWW' => 'VoidSymbol',
+    'XF86Xfer' => 'VoidSymbol',
     'braille_dot_1' => 'Brl_dot1',
     'braille_dot_2' => 'Brl_dot2',
     'braille_dot_3' => 'Brl_dot3',
@@ -2215,6 +2276,11 @@ my %xkbsym_table = (
     'Kanji' => 'VoidSymbol', # Is this recognised by X ?
     'Hangul' => 'VoidSymbol', # Is this recognised by X ?
     'Hangul_Hanja' => 'VoidSymbol', # Is this recognised by X ?
+    'Henkan' => 'VoidSymbol',
+    'Hiragana' => 'VoidSymbol',
+    'Hiragana_Katakana' => 'VoidSymbol',
+    'Katakana' => 'VoidSymbol',
+    'Muhenkan' => 'VoidSymbol',
 # XFree86 does not recognise these
     'SunAudioLowerVolume' => 'VoidSymbol',
     'SunAudioRaiseVolume' => 'VoidSymbol',
@@ -2418,7 +2484,7 @@ sub matches_pattern {
 	if ($pattern eq '*') {
 	    return $string ne '';
 	}
-	if ($pattern =~ /^\$([a-zA-Z0-9]+)$/) {
+	if ($pattern =~ /^\$([a-zA-Z0-9_]+)$/) {
 	    for my $member (@{$rules_variables{$1}}) {
 		if ($string eq $member) {
 		    return 1;
@@ -2524,8 +2590,11 @@ if (@layouts) {
 				    scalar (@consequent_values),
 				    scalar (@consequents));
 		for my $i (0 .. $#consequents) {
-		    $consequent_values[$i] =~ s/%\(/\(%/g;
-		    $consequent_values[$i] =~ s/%_/_%/g;
+                    # The purpose of the semicolons is to make %(v) and %_v
+                    # empty strings if %v is an empty string
+		    $consequent_values[$i] =~ s/%\(/\(;%/g;
+		    $consequent_values[$i] =~ s/%_/_;%/g;
+		    $consequent_values[$i] =~ s/(%[lvm](\[[1-4]\])?)/$1;/g;
 		    $consequent_values[$i] =~ s/%m/$model/g;
 		    $consequent_values[$i] =~ s/%l\[1\]/$layouts[0]/g;
 		    $consequent_values[$i] =~ s/%l\[2\]/$layouts[1]/g;
@@ -2537,7 +2606,9 @@ if (@layouts) {
 		    $consequent_values[$i] =~ s/%v\[3\]/$variants[2]/g;
 		    $consequent_values[$i] =~ s/%v\[4\]/$variants[3]/g;
 		    $consequent_values[$i] =~ s/%v/$variants[0]/g;
-		    $consequent_values[$i] =~ s/\(\)//g;
+		    $consequent_values[$i] =~ s/\(;;\)//g;
+		    $consequent_values[$i] =~ s/_;;//g;
+		    $consequent_values[$i] =~ s/;//g;
 		    if ($consequent_values[$i] =~ /^\+/) {
 			if ($consequents[$i] eq 'keycodes') {
 			    $rules_keycodes = $rules_keycodes .
@@ -2663,13 +2734,13 @@ sub file_to_string {
     my $normalized = '';
     my $final_letter = 0;
     while ($string) {
-	if ($string =~ s/^\s+// && $final_letter && $string =~ /^[a-zA-Z0-9]/) {
+	if ($string =~ s/^\s+// && $final_letter && $string =~ /^[a-zA-Z0-9_]/) {
 	    $normalized = $normalized .' ';
 	    $final_letter = 0;
 	}
 	if ($string =~ s/^([^\"\s]+)//) {
 	    $normalized = $normalized . $1;
-	    $final_letter = ($1 =~ /[a-zA-Z0-9]$/);
+	    $final_letter = ($1 =~ /[a-zA-Z0-9_]$/);
 	    next;
 	}
 	if ($string =~ s/^(\"[^\"]*(\"|$))//) {
@@ -2833,26 +2904,6 @@ sub symbols_for_group {
     }
 }
 
-# KPDL needs a special tweak for certain layouts.
-sub adjust_symbols {
-    my $key = shift;
-    if ($key eq 'KPDL') {
-	my @newsymbols;
-	for my $symbol (@_) {
-	    if ($symbol eq 'period') {
-		push @newsymbols, 'KP_Decimal';
-	    } elsif ($symbol eq 'comma') {
-		push @newsymbols, 'KP_Separator';
-	    } else {
-		push @newsymbols, $symbol;
-	    }
-	}
-	return @newsymbols;
-    } else {
-	return @_;
-    }
-}
-
 sub xkb_key {
     my $default_key_type = $_[0];
     if ($stream =~ /^key</i) {
@@ -2873,7 +2924,6 @@ sub xkb_key {
 		if ($list =~ s/^\[([^\]]*?)\],(.*)/$2/) {
 		    (my $symbols = $1) =~ s/,/ /g;
 		    my @groupsymbols = split ' ', $symbols;
-		    @groupsymbols = adjust_symbols $key, @groupsymbols;
 		    symbols_for_group $code, $group, @groupsymbols;
 		    $group++;
 		    next;
@@ -2884,7 +2934,6 @@ sub xkb_key {
 		    my $group = $1 - 1 + $base_group;
 		    (my $symbols = $2) =~ s/,/ /g;
 		    my @groupsymbols = split ' ', $symbols;
-		    @groupsymbols = adjust_symbols $key, @groupsymbols;
 		    symbols_for_group $code, $group, @groupsymbols;
 		    next;
 		}
@@ -2935,7 +2984,7 @@ sub xkb_symbols_definitions {
 	$method = xkb_method ();
 
 	if ($stream =~ /^name/i) {
-	    $stream =~ s/^name\[[a-zA-Z0-9]+\]=\"[^\"]*\";(.*)/$1/i
+	    $stream =~ s/^name\[[a-zA-Z0-9_]+\]=\"[^\"]*\";(.*)/$1/i
 		or syntax_error "group name";
 	    next;
 	}
@@ -2945,11 +2994,11 @@ sub xkb_symbols_definitions {
 	    next;
 	}
 	
-	if ($stream =~ s/^[a-zA-Z0-9]+\.[a-zA-Z0-9]+=.*?;(.*)/$1/i) {
+	if ($stream =~ s/^[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+=.*?;(.*)/$1/i) {
 	    next;
 	}
 
-	if ($stream =~ s/^[a-zA-Z0-9]+\.[a-zA-Z0-9]+\[[a-zA-Z0-9]+\]
+	if ($stream =~ s/^[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+\[[a-zA-Z0-9_]+\]
                        =.*?;(.*)/$1/ix) {
 	    next;
 	}
@@ -3903,11 +3952,11 @@ print $KEYMAP;
 print "strings as usual\n";
 
 if ($charmap && -f "/etc/console-setup/compose.${charmap}.inc") {
-    system("cat /etc/console-setup/compose.${charmap}.inc");
+    system("cat", "/etc/console-setup/compose.${charmap}.inc");
 }
 
 if (! $compact && -f "/etc/console-setup/remap.inc") {
-    system("cat /etc/console-setup/remap.inc");
+    system("cat", "/etc/console-setup/remap.inc");
 }
 
 exit 0;

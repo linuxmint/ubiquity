@@ -38,6 +38,9 @@ write_to_flash() {
 		"GLAN Tank")
 			return 1
 		;;
+		"Highbank")
+			return 1
+		;;
 		"HP Media Vault mv2120")
 			return 1
 		;;
@@ -56,6 +59,9 @@ write_to_flash() {
 		"Marvell DB-MV88F6781-BP Development Board")
 			return 1
 		;;
+		"Marvell Armada XP Development Board")
+			return 1
+		;;
 		# Assume that we write to flash for all other devices
 		*)
 			return 0
@@ -66,6 +72,16 @@ write_to_flash() {
 machine=$(grep "^Hardware" /proc/cpuinfo | sed 's/Hardware\s*:\s*//')
 
 dove_flash_kernel_installer() {
+	in-target update-initramfs -u || true
+	install_mkimage
+
+	# Add the rootfs to the flash-kernel.conf file
+	rootfs=$(findfs /)
+	uuid="$(block-attr --uuid "$rootfs")"
+	echo "rootfs='root=UUID=$uuid'" > /target/etc/flash-kernel.conf
+}
+
+highbank_flash_kernel_installer() {
 	in-target update-initramfs -u || true
 	install_mkimage
 
@@ -114,12 +130,6 @@ omap_flash_kernel_installer() {
 	in-target update-initramfs -u || true
 
 	install_mkimage
-
-	# xloader is still a separate package for beagle
-	if ! apt-install x-loader-omap3-beagle; then
-		error "apt-install x-loader-omap3-beagle failed"
-	fi
-
 	uboot_pkg="u-boot-linaro-omap3-beagle"
 	omap_install_uboot
 }
@@ -217,6 +227,9 @@ case "$machine" in
 	"GLAN Tank")
 		in-target update-initramfs -u || true
 	;;
+	"Highbank")
+		highbank_flash_kernel_installer
+	;;
 	"HP Media Vault mv2120")
 		if ! apt-install mv2120-utils; then
 			# mv2120-utils includes some initramfs-tools scripts
@@ -255,9 +268,6 @@ case "$machine" in
 			error "apt-install apex-nslu2 failed"
 		fi
 	;;
-	"Marvell DB-MV88F6781-BP Development Board")
-		dove_flash_kernel_installer
-	;;
 	"OMAP3 Beagle Board")
 		omap_flash_kernel_installer
 	;;
@@ -267,6 +277,12 @@ case "$machine" in
 	"Marvell OpenRD Base Board" | "Marvell OpenRD Client Board" | "Marvell SheevaPlug Reference Board" | "Marvell eSATA SheevaPlug Reference Board")
 		in-target update-initramfs -u || true
 		install_mkimage
+	;;
+	"Marvell DB-MV88F6781-BP Development Board")
+		dove_flash_kernel_installer
+	;;
+	"Marvell Armada XP Development Board")
+		dove_flash_kernel_installer
 	;;
 	"Thecus N2100" | "Thecus N4100")
 		in-target update-initramfs -u || true
@@ -280,7 +296,7 @@ case "$machine" in
 	;;
 	*)
 		case "`archdetect`" in
-			"arm*/dove")
+			"arm*/dove" | "arm*/armadaxp")
 				dove_flash_kernel_installer
 			;;
 			"arm*/omap" | "arm*/omap4")

@@ -18,8 +18,6 @@ endif
 DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
 DEB_HOST_ARCH_OS ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
 
-PYTHON := $(shell pyversions -d)
-
 console-setup-depends := console-setup (>= $(shell cd d-i/source/console-setup && dpkg-parsechangelog | awk '/Version:/ {print $$2}'))
 
 update:
@@ -35,7 +33,7 @@ build-indep: build-stamp
 build-stamp:
 	dh_testdir
 
-	PYTHON=$(PYTHON) dh_auto_configure
+	dh_auto_configure -- --libexecdir=\$${prefix}/lib
 	dh_auto_build
 	$(MAKE) -C d-i build
 
@@ -50,7 +48,7 @@ check:
 		sh -n $$x; \
 	done
 	# Check the syntax of any Python scripts.
-	#./tests/run-pyflakes
+	./tests/run-pyflakes
 
 pychecker:
 	./run-pychecker
@@ -62,7 +60,7 @@ clean: check
 	$(MAKE) -C d-i clean
 	dh_auto_clean
 	dh_clean
-	rm -rf build-locale
+	rm -rf build-locale tests/partman-tree
 
 	$(MAKE) -C d-i check
 
@@ -89,15 +87,10 @@ endif
 	# For the meantime, nearly everything automake wants to install is
 	# part of the GTK frontend.
 ifndef UBIQUITY_NO_GTK
-	$(MAKE) install DESTDIR=$(CURDIR)/debian/ubiquity-frontend-gtk \
-		pythondir=\$${prefix}/lib/ubiquity \
-		pyexecdir=\$${prefix}/lib/ubiquity
+	$(MAKE) install DESTDIR=$(CURDIR)/debian/ubiquity-frontend-gtk
 	rm -rf debian/ubiquity-frontend-gtk/usr/share/applications \
 		debian/ubiquity-frontend-gtk/usr/share/ubiquity/pixmaps
-	mv -n debian/ubiquity-frontend-gtk/usr/lib/ubiquity/ubiquity \
-		debian/ubiquity/usr/lib/ubiquity/
-	rm -f debian/ubiquity/usr/lib/ubiquity/ubiquity/_osextras.a \
-		debian/ubiquity/usr/lib/ubiquity/ubiquity/_osextras.la
+	rm -f debian/ubiquity-frontend-gtk/usr/lib/libubi*.la
 endif
 	$(MAKE) -C d-i install
 
@@ -200,7 +193,7 @@ endif
 		d-i/source/debian-installer-utils/post-base-installer.d/10register-module \
 		> debian/oem-config/usr/lib/ubiquity/debian-installer-utils/register-module.post-base-installer-oem
 	chmod +x debian/oem-config/usr/lib/ubiquity/debian-installer-utils/register-module.post-base-installer-oem
-ifeq ($(DEB_HOST_ARCH),armel)
+ifneq (,$(filter armel armhf,$(DEB_HOST_ARCH)))
 	install d-i/source/flash-kernel/debian/flash-kernel-installer.postinst \
 		debian/ubiquity/usr/lib/ubiquity/flash-kernel/flash-kernel-installer
 endif
@@ -220,12 +213,11 @@ endif
 
 tests: install-stamp
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
-	#CODE=0; env -u LD_PRELOAD LD_LIBRARY_PATH=src/webcam/.libs GI_TYPELIB_PATH=src/webcam xvfb-run -e debian/xvfb.log ./tests/run || CODE=$$?; \
-	#echo "xauth/Xrdb output:"; \
-	#cat debian/xvfb.log; \
-	#rm -f debian/xvfb.log; \
-	#exit $$CODE
-	echo "no tests"
+	CODE=0; env -u LD_PRELOAD ./tests/run --xvfb-log debian/xvfb.log || CODE=$$?; \
+	echo "xauth/Xrdb output:"; \
+	cat debian/xvfb.log; \
+	rm -f debian/xvfb.log; \
+	exit $$CODE
 endif
 
 BINARY_INDEP_OPTIONS := -i
@@ -268,7 +260,7 @@ endif
 
 # Build architecture-dependent files here.
 binary-arch: DH_OPTIONS=$(BINARY_ARCH_OPTIONS)
-binary-arch: install-stamp
+binary-arch: tests install-stamp
 	dh_testdir
 	dh_testroot
 	dh_installchangelogs
@@ -303,4 +295,4 @@ binary-arch: install-stamp
 	dh_builddeb
 
 binary: binary-indep binary-arch
-.PHONY: build clean binary-indep binary-arch binary install 
+.PHONY: build clean binary-indep binary-arch binary install tests

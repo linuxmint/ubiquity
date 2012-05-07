@@ -2,16 +2,27 @@
 # Check that the boot partition is the 1st (primary) partition, that
 # it is of type ext2 or ext3, and that it is marked as bootable.
 
-machine=$(grep "^Hardware" /proc/cpuinfo | sed 's/Hardware\s*:\s*//') || true
-case "$machine" in
-	"Buffalo Linkstation Pro/Live" | "Buffalo/Revogear Kurobox Pro")
-	;;
-	"GLAN Tank")
-	;;
-	"HP Media Vault mv2120")
-	;;
-	*)
+ARCH="$(archdetect)"
+
+case $ARCH in
+    arm*)
+	machine=$(grep "^Hardware" /proc/cpuinfo | sed 's/Hardware\s*:\s*//') || true
+	case "$machine" in
+	    "Buffalo Linkstation Pro/Live" | "Buffalo/Revogear Kurobox Pro")
+		;;
+	    "GLAN Tank")
+		;;
+	    "HP Media Vault mv2120")
+		;;
+	    *)
 		exit 0
+		;;
+	esac
+	;;
+    mipsel/loongson-2f)
+	;;
+    *)
+	exit 0
 	;;
 esac
 
@@ -94,7 +105,7 @@ fi
 ## marked bootable whereas we're checking the /boot partition (i.e. the
 ## md partition on top of the physical partition).  However, there's
 ## some code above that exists this script when /boot is on RAID1.
-if [ "$boot_bootable" != "yes" ]; then
+if [ "$ARCH" != mipsel/loongson-2f ] && [ "$boot_bootable" != "yes" ]; then
 	db_set partman-ext3/boot_not_bootable true
 	db_input critical partman-ext3/boot_not_bootable || true
 	db_go || true

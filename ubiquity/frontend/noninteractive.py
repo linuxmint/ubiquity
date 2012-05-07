@@ -124,7 +124,7 @@ class Wizard(BaseFrontend):
                 tbfile.close()
                 raise RuntimeError("Install failed with exit code %s\n%s" %
                                   (ret, realtb))
-            
+
     def watch_debconf_fd(self, from_debconf, process_input):
         """Event loop interface to debconffilter.
 

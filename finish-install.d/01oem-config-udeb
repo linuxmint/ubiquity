@@ -4,7 +4,9 @@ set -e
 . /usr/share/debconf/confmodule
 
 db_get oem-config-udeb/frontend
-apt-install "oem-config${RET:+-$RET}"
+apt-install "oem-config${RET:+-$RET ubiquity-frontend-$RET}" "oem-config-slideshow-ubuntu"
+# Restore title, since packages with debconf templates may have changed it.
+db_settitle debian-installer/finish-install/title
 
 db_input high oem-config-udeb/instructions || true
 db_go || true

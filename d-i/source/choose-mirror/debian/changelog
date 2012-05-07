@@ -1,3 +1,84 @@
+choose-mirror (2.39ubuntu4) precise; urgency=low
+
+  * The fix in choose-mirror 2.39ubuntu3 for cases where the selected
+    country has no mirror broke preseeding of mirror/country=manual.  Fix
+    that.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 17 Feb 2012 11:24:37 +0000
+
+choose-mirror (2.39ubuntu3) precise; urgency=low
+
+  * Manage memory for 'country' variable more carefully.
+  * If the selected country has no mirror (excluding all-countries mirrors),
+    then fall back to the default (LP: #919356).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 10 Feb 2012 13:54:29 +0000
+
+choose-mirror (2.39ubuntu2) precise; urgency=low
+
+  * Exclude all-countries mirrors such as ports.ubuntu.com when determining
+    whether there is a mirror in the country specified in
+    debian-installer/country (LP: #919356).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 26 Jan 2012 01:27:36 +0000
+
+choose-mirror (2.39ubuntu1) precise; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Use Ubuntu mirrors.
+    - Ubuntu branding.
+    - Set default country to GB.
+    - Never ask mirror/suite, mark it untranslatable, and give it
+      appropriate choices for Ubuntu.
+    - Pick CC.archive.ubuntu.com (for the country selected in the installer)
+      as the default mirror. For ports architectures (armel, powerpc) use
+      ports.ubuntu.com instead.
+    - Drop the priorities of the country/mirror questions to medium if we're
+      installing from a CD that includes the base system.
+    - Support setting OVERRIDE_BASE_INSTALLABLE in the environment to force
+      choose-mirror to assume that the base system is installable.
+    - Skip mirror validation if the base system is installable and we're
+      installing from a mirror in the masterlist.
+    - Don't check if archive.ubuntu.com is reachable before asking for a
+      proxy.
+    - Allow preseeding the default CC.archive.ubuntu.com setup by preseeding
+      mirror/http/mirror to CC.archive.ubuntu.com, and likewise for
+      mirror/ftp/mirror.
+    - Force xgettext to use UTF-8 encoding when generating templates files,
+      to cope with Côte d'Ivoire.
+    - Only default mirror/country to the value of debian-installer/country
+      if the latter has any mirrors; otherwise, fall through to defaulting
+      to GB.
+  * Switch to precise by default.
+  * Add armhf support.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 18 Oct 2011 23:02:38 +0100
+
+choose-mirror (2.39) unstable; urgency=low
+
+  [ Tollef Fog Heen ]
+  * Update URL for master mirror list. Closes: #638877
+
+  [ Otavio Salvador ]
+  * Do not overwrite the contents of mirror/suite and mirror/codename in
+    case those has been preseeded. Thanks to Tokarski Boleslaw
+    <boleslaw.tokarski@tieto.com> for the patch. Closes: #635053.
+
+  [ Colin Watson ]
+  * Fix broken check for "://" in proxy value.
+
+  [ Updated translations ]
+  * Czech (cs.po) by Miroslav Kure
+  * German (de.po) by Holger Wansing
+  * Basque (eu.po)
+  * Hebrew (he.po) by Lior Kaplan
+  * Italian (it.po) by Milo Casagrande
+  * Japanese (ja.po) by Kenshi Muto
+  * Macedonian (mk.po) by Arangel Angov
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+
+ -- Colin Watson <cjwatson@debian.org>  Mon, 22 Aug 2011 21:33:45 +0100
+
 choose-mirror (2.38ubuntu2) oneiric; urgency=low
 
   * Only default mirror/country to the value of debian-installer/country if

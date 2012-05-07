@@ -11,7 +11,8 @@ if [ ! -e d-i/source ]; then
 	make -C d-i update
 	make -C d-i build
 fi
-make -C src/webcam
+[ -e src/Makefile ] || ./configure
+make -C src
 
 rebuild=false
 if [ ! -e d-i/templates ]; then
@@ -44,7 +45,6 @@ $rebuild && (cat d-i/templates; echo;
 
 export DEBCONF_SYSTEMRC=tests/debconf.conf
 $rebuild && debconf-loadtemplate ubiquity tests/debconfdb
-[ -e ubiquity/Makefile ] || (./configure && cd ubiquity; make)
 
 rm -rf tests/partman-tree
 for x in d-i/source/part*.udeb; do dpkg -x $x tests/partman-tree; done

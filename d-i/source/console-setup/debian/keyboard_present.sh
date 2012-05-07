@@ -12,8 +12,7 @@ keyboard_present () {
     esac
 
     [ -f /proc/bus/input/devices ] || return 0
-    kbdpattern=''
-    kbdpattern="$kbdpattern\|AT Set \|AT Translated Set\|AT Raw Set"
+    kbdpattern="AT Set \|AT Translated Set\|AT Raw Set"
     kbdpattern="$kbdpattern\|Atari Keyboard"
     kbdpattern="$kbdpattern\|Amiga Keyboard"
     kbdpattern="$kbdpattern\|HIL keyboard"

@@ -32,6 +32,27 @@ Type: text
 # :sl1:
 _Description: Scanning the volatile updates repository...
 
+Template: apt-setup/local/key-error
+Type: select
+Default: Retry
+# :sl2:
+#These are choices of actions so this is, at least in English,
+#an infinitive form
+__Choices: Retry, Ignore
+#flag:translate!:3
+#flag:comment:2
+# You should end this with a colon. A non-translatable variable
+# follows with the mirror URL
+_Description: Downloading local repository key failed:
+ The installer failed to download the public key used to sign the local
+ repository at ${MIRROR}:
+ .
+ ${URL}
+ .
+ This may be a problem with your network, or with the server hosting this
+ key. You can choose to retry the download, or ignore the problem and
+ continue without all the packages from this repository.
+
 Template: apt-setup/security_host
 Type: string
 Default: security.ubuntu.com
@@ -68,10 +89,10 @@ Choices-C: security, volatile
 # SEC_HOST and VOL_HOST are host names (e.g. security.debian.org)
 # Translators: the *entire* string should be under 55 columns
 # including host name. In short, KEEP THIS SHORT and, yes, that's tricky
-# :sl2:
+# :sl3:
 __Choices: security updates (from ${SEC_HOST}), volatile updates (from ${VOL_HOST})
 Default: security
-# :sl2:
+# :sl3:
 _Description: Services to use:
  Debian has two services that provide updates to releases: security and
  volatile.

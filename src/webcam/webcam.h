@@ -52,7 +52,7 @@ G_BEGIN_DECLS
   (G_TYPE_CHECK_CLASS_TYPE ((klass), \
   UBIQUITY_TYPE_WEBCAM))
 
-#define UBIQUITY_GET_CLASS(obj) \
+#define UBIQUITY_WEBCAM_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), \
   UBIQUITY_TYPE_WEBCAM, UbiquityWebcamClass))
 
@@ -62,14 +62,14 @@ typedef struct _UbiquityWebcamPrivate UbiquityWebcamPrivate;
 
 struct _UbiquityWebcam
 {
-  GtkVBox parent;
+  GtkBox parent;
 
   UbiquityWebcamPrivate *priv;
 };
 
 struct _UbiquityWebcamClass
 {
-  GtkVBoxClass parent_class;
+  GtkBoxClass parent_class;
 };
 
 GType ubiquity_webcam_get_type (void) G_GNUC_CONST;

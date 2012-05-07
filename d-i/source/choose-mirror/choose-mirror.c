@@ -114,6 +114,21 @@ static inline int has_mirror(char *country) {
 	return (mirrors[0] == NULL) ? 0 : 1;
 }
 
+/* Returns true if there is a mirror in the specified country, discounting
+ * GeoDNS.
+ */
+static int has_real_mirror(const char *country) {
+	int i;
+	struct mirror_t *mirrors = mirror_list();
+
+	for (i = 0; mirrors[i].site != NULL; i++) {
+		if (mirrors[i].country &&
+		    strcmp(mirrors[i].country, country) == 0)
+			return 1;
+	}
+	return 0;
+}
+
 /* Returns the root of the mirror, given the hostname. */
 static char *mirror_root(char *mirror) {
 	int i;
@@ -502,17 +517,21 @@ static int choose_country(void) {
 		/* Not set yet. Seed with a default value. */
 		if ((debconf_get(debconf, "debian-installer/country") == 0) &&
 		    (debconf->value != NULL) &&
-		    has_mirror(debconf->value)) {
+		    has_real_mirror(debconf->value)) {
 			country = strdup (debconf->value);
 			debconf_set(debconf, DEBCONF_BASE "country", country);
 		}
 	} else {
-		country = debconf->value;
+		country = strdup(debconf->value);
 	}
 
 	/* Ensure 'country' is set to something. */
-	if (country == NULL || *country == 0)
-		country = "GB";
+	if (country == NULL || *country == 0 ||
+	    (strcmp(country, MANUAL_ENTRY) != 0 &&
+	     !has_real_mirror(country))) {
+		free(country);
+		country = strdup("GB");
+	}
 
 	char *countries;
 	countries = add_protocol("countries");
@@ -684,7 +703,7 @@ static int set_proxy(void) {
 
 	debconf_get(debconf, px);
 	if (debconf->value != NULL && strlen(debconf->value)) {
-		if (strchr(debconf->value, '://')) {
+		if (strstr(debconf->value, "://")) {
 			setenv(proxy_var, debconf->value, 1);
 		} else {
 			char *proxy_value;
@@ -757,29 +776,33 @@ int set_codename (void) {
 	char *suite;
 	int i;
 
-	/* As suite has been determined previously, this should not fail */
-	debconf_get(debconf, DEBCONF_BASE "suite");
-	if (strlen(debconf->value) > 0) {
-		suite = strdup(debconf->value);
+	/* If preseed specifies codename, omit the codename check */
+	debconf_get(debconf, DEBCONF_BASE "codename");
+	if (! strlen(debconf->value)) {
+		/* As suite has been determined previously, this should not fail */
+		debconf_get(debconf, DEBCONF_BASE "suite");
+		if (strlen(debconf->value) > 0) {
+			suite = strdup(debconf->value);
 
-		for (i=0; releases[i].name != NULL; i++) {
-			if (strcmp(releases[i].name, suite) == 0 ||
-			    strcmp(releases[i].suite, suite) == 0) {
-				char *codename;
+			for (i=0; releases[i].name != NULL; i++) {
+				if (strcmp(releases[i].name, suite) == 0 ||
+				    strcmp(releases[i].suite, suite) == 0) {
+					char *codename;
 
-				if (releases[i].status & GET_CODENAME)
-					codename = releases[i].name;
-				else
-					codename = releases[i].suite;
-				debconf_set(debconf, DEBCONF_BASE "codename", codename);
-				di_log(DI_LOG_LEVEL_INFO,
-					"suite/codename set to: %s/%s",
-					suite, codename);
-				break;
+					if (releases[i].status & GET_CODENAME)
+						codename = releases[i].name;
+					else
+						codename = releases[i].suite;
+					debconf_set(debconf, DEBCONF_BASE "codename", codename);
+					di_log(DI_LOG_LEVEL_INFO,
+						"suite/codename set to: %s/%s",
+						suite, codename);
+					break;
+				}
 			}
-		}
 
-		free(suite);
+			free(suite);
+		}
 	}
 
 	return 0;

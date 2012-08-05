@@ -1,0 +1,16 @@
+#!/bin/sh
+set -e
+
+# Avoid perl warnings in any of the chroot call below
+export LANG=C
+
+. /usr/share/debconf/confmodule
+. /lib/preseed/preseed.sh
+
+if [ -e $logfile ]; then
+	grep -v "^d-i[ 	]" $logfile | (
+		if ! log-output -t preseed chroot /target debconf-set-selections; then
+			error load_error $logfile
+		fi
+	)
+fi

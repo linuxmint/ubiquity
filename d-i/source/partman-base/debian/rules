@@ -1,0 +1,29 @@
+#! /usr/bin/make -f
+%:
+	dh $@ --with d-i
+
+ARCH_OS=$(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
+
+ifeq ($(ARCH_OS),linux)
+DEFAULT_FS=ext4
+endif
+ifeq ($(ARCH_OS),kfreebsd)
+DEFAULT_FS=ufs
+endif
+ifeq ($(ARCH_OS),hurd)
+DEFAULT_FS=ext2
+endif
+
+PROVIDES=made-filesystems, mounted-partitions, partitioned-harddrives, created-fstab
+
+MENUITEMNUM=4200
+
+override_dh_installdebconf:
+	dh_installdebconf
+	sed -i '/^Template: partman\/default_filesystem/,/^$$/s/^Default: .*/Default: $(DEFAULT_FS)/' \
+		debian/partman-base/DEBIAN/templates
+
+# TODO: This is a bit gratuitous since all the "variables" are constant
+# right now. Do we still need this flexibility?
+override_dh_gencontrol:
+	dh_gencontrol -- -Vmenuitemnum=$(MENUITEMNUM) -Vprovides='$(PROVIDES)'

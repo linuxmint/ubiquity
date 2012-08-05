@@ -1,0 +1,19 @@
+# oem-config-debconf - End-user configuration after initial OEM installation
+#
+# Run on the first boot after shipping to the end user to reconfigure the
+# system for them; removes itself thereafter.
+
+description	"End-user configuration after initial OEM installation (debconf)"
+author		"Ubuntu Installer Team <ubuntu-installer@lists.ubuntu.com>"
+
+start on stopping rc RUNLEVEL=[2345]
+stop on runlevel [016]
+
+task
+normal exit 0 1
+
+console output
+
+script
+    initctl emit starting-dm DM=oem-config-debconf
+end script

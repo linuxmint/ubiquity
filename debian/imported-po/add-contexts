@@ -1,0 +1,14 @@
+#! /usr/bin/perl -i
+my $header = 1;
+while (<>) {
+    if ((/^msgid/) && not (/^msgid "(?:default:LTR|24-hour|%.*)"$/)) {
+	if ($header) {
+	    $header = 0;
+	} elsif (/^msgid "_(?:Back|Forward)"$/) {
+	    print qq{msgctxt "Stock label, navigation"\n};
+	} else {
+	    print qq{msgctxt "Stock label"\n};
+	}
+    }
+    print;
+}

@@ -1,0 +1,33 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ "$fs" != free ] || continue
+		partitions="$partitions $id,$num"
+	done
+	close_dialog
+
+	for part in $partitions; do
+		id=${part%,*}
+		num=${part#*,}
+		[ -f $id/method ] || continue
+		method=$(cat $id/method)
+		[ "$method" = format -o "$method" = keep ] || continue
+		[ ! -f $id/acting_filesystem ] || continue
+		db_subst partman-basicmethods/method_only PARTITION "$num"
+		db_subst partman-basicmethods/method_only DEVICE $(humandev $(cat device))
+		db_input critical partman-basicmethods/method_only || true
+		db_go || exit 1
+		db_get partman-basicmethods/method_only
+		if [ "$RET" = true ]; then
+			exit 1
+		fi
+	done
+
+done

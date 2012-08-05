@@ -1,0 +1,235 @@
+#!/bin/sh
+
+set -e
+
+. /lib/partman/lib/base.sh
+
+ORIG_IFS="$IFS"
+
+is_inactive_md() {
+	local number
+	number=$(echo "$1" | sed -n -e 's,/dev/md/\?,,p')
+	if [ "$number" ] && ! grep -q "^md$number : active" /proc/mdstat; then
+		return 0
+	fi
+	return 1
+}
+
+part_of_sataraid () {
+	local raiddev
+	for raiddev in $(dmraid -r -c); do
+		if [ "$(readlink -f $raiddev)" = $1 ]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
+part_of_multipath() {
+	local mpdev
+	type multipath >/dev/null 2>&1 || return 1
+
+	if is_multipath_part $1; then
+		return 0
+	fi
+	# The block devices that make up the multipath:
+	# Output looks like \_ 4:0:0:1 sdc 8:32 ...
+	for mpdev in $(multipath -l | \
+		       grep '_ \([#0-9]\+:\)\{3\}[#0-9]\+ [hs]d[a-z]\+ [0-9]\+:[0-9]\+' | \
+		       cut -f4 -d' '); do
+		if [ "$(readlink -f /dev/$mpdev)" = $1 ]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
+if [ ! -f /var/run/parted_server.pid ]; then
+	mkdir -p /var/run
+	db_get partman/alignment
+	PARTMAN_ALIGNMENT="$RET" parted_server
+	RET=$?
+	if [ $RET != 0 ]; then
+		# TODO: How do we signal we couldn't start parted_server properly?
+		exit $RET
+	fi
+
+	rm -rf /var/lib/partman/old_devices
+	if [ -d $DEVICES ]; then
+		mv $DEVICES /var/lib/partman/old_devices
+	fi
+	mkdir $DEVICES || true
+
+	IFS="$NL"
+	for partdev in $(parted_devices |
+		sed 's,^/dev/\(ide\|scsi\|[hs]d\|md/\?[0-9]\+\),!/dev/\1,' |
+		sort |
+		sed 's,^!,,' ); do
+
+		IFS="$TAB"
+		set -- $partdev
+		IFS="$ORIG_IFS"
+
+		device=$1
+		size=$2
+		model=$3
+
+		# Skip mtd devices since they aren't supported by parted
+		if echo $device | grep -q '/dev/mtd'; then
+			continue
+		fi
+
+		# Skip MD devices which are not active
+		if [ -e /proc/mdstat ]; then
+			if is_inactive_md $device; then
+				continue
+			fi
+		fi
+
+		# Skip devices that are part of a dmraid device
+		if type dmraid >/dev/null 2>&1 && \
+		   dmraid -r -c >/dev/null 2>&1; then
+			if part_of_sataraid $device && \
+			   [ -f /var/lib/disk-detect/activate_dmraid ]; then
+				continue
+			fi
+		fi
+
+		# Skip devices that are part of a multipathed device
+		if part_of_multipath $device; then
+			continue
+		fi
+
+		dirname=$(echo $device | sed 's:/:=:g')
+		dev=$DEVICES/$dirname
+		if [ -d /var/lib/partman/old_devices/$dirname ]; then
+			mv /var/lib/partman/old_devices/$dirname $dev
+		else
+			mkdir $dev || continue
+		fi
+		printf "%s" "$device" >$dev/device
+		printf "%s" "$size" >$dev/size
+		printf "%s" "$model" >$dev/model
+
+		# Set the sataraid flag for dmraid arrays.
+		if type dmraid >/dev/null 2>&1 && \
+		   dmraid -s -c >/dev/null 2>&1; then
+			if dmraid -sa -c | grep -q $(basename $device); then
+				>$dev/sataraid
+			fi
+		fi
+
+		cd $dev
+		open_dialog OPEN "$(cat $dev/device)"
+		read_line response
+		close_dialog
+		if [ "$response" = failed ]; then
+			cd /
+			rm -rf $dev
+		fi
+	done
+
+	db_get partman/filter_mounted
+	if [ "$RET" = true ]; then
+		# Get a list of active mounts in a more convenient format.
+		mounts=
+		while read dev mp rest; do
+			[ -e "$dev" ] || continue
+			mappeddev="$(mapdevfs "$dev")" || true
+			if [ "$mappeddev" ]; then
+				dev="$mappeddev"
+			fi
+			mounts="${mounts:+$mounts$NL}$dev $mp"
+		done < /proc/mounts
+		# For each disk, check for any active mounts on it. If the
+		# only thing mounted is the installation medium and it uses
+		# more or less the whole disk, then silently exclude that
+		# disk; if the installation medium is mounted but doesn't
+		# use the whole disk, issue a warning that partitioning may
+		# be difficult; if anything else is mounted, offer to
+		# unmount it.
+		disks_unmount=
+		parts_unmount=
+		part_warn=
+		for dev in $DEVICES/*; do
+			[ -d "$dev" ] || continue
+			cd $dev
+			free=0
+			parts=
+			instparts=
+			seen_unmounted=
+			open_dialog PARTITIONS
+			while { read_line num id size type fs path name; [ "$id" ]; }; do
+				if [ "$fs" = free ]; then
+					free="$(($free + $size))"
+					continue
+				fi
+				mappedpath="$(mapdevfs "$path")" || true
+				if [ "$mappedpath" ]; then
+					path="$mappedpath"
+				fi
+				mp=
+				IFS="$NL"
+				for line in $mounts; do
+					restore_ifs
+					if [ "$path" = "${line%% *}" ]; then
+						mp="${line#* }"
+						break
+					fi
+					IFS="$NL"
+				done
+				restore_ifs
+				if [ "$mp" = /cdrom ]; then
+					instparts="${instparts:+$instparts }$path"
+				elif [ "$mp" ]; then
+					parts="${parts:+$parts }$path"
+				else
+					seen_unmounted=1
+				fi
+			done
+			close_dialog
+			if [ "$instparts" ]; then
+				if [ -z "$seen_unmounted" ] && \
+				   longint_le "$free" 16777216; then
+					# The installation medium uses more
+					# or less the whole disk.
+					open_dialog CLOSE
+					close_dialog
+					cd /
+					rm -rf "$dev"
+				else
+					# There's an installation medium
+					# here, but it doesn't use the whole
+					# disk.
+					part_warn="$instparts"
+					>installation_medium
+				fi
+			elif [ "$parts" ]; then
+				# Something other than an installation
+				# medium is mounted.
+				disks_unmount="${disks_unmount:+$disks_unmount }$(cat device)"
+				parts_unmount="${parts_unmount:+$parts_unmount }$parts"
+			fi
+		done
+		if [ "$disks_unmount" ]; then
+			db_subst partman/unmount_active DISKS "$(echo "$disks_unmount" | sed 's/ /, /g')"
+			db_fset partman/unmount_active seen false
+			db_input critical partman/unmount_active || true
+			db_go || exit 10
+			db_get partman/unmount_active || RET=
+			if [ "$RET" = true ]; then
+				umount $parts_unmount || true
+			fi
+		fi
+		if [ "$part_warn" ]; then
+			db_subst partman/installation_medium_mounted PARTITION "$part_warn"
+			db_fset partman/installation_medium_mounted seen false
+			db_capb align
+			db_input high partman/installation_medium_mounted || true
+			db_go || true
+			db_capb backup align
+		fi
+	fi
+
+	rm -rf /var/lib/partman/old_devices
+fi

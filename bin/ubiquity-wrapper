@@ -1,0 +1,155 @@
+#! /usr/bin/python
+
+# Wrapper script to run Ubiquity as root using the appropriate privilege
+# escalation method for the frontend.
+
+import sys
+import os
+import syslog
+import subprocess
+
+sys.path.insert(0, '/usr/lib/ubiquity')
+
+from ubiquity import osextras
+
+def main():
+    newargv = []
+    desktop = None
+    frontend = None
+    toexec = []
+
+    i = 1
+    while i < len(sys.argv):
+        if sys.argv[i] == '--desktop':
+            desktop = sys.argv[i + 1]
+            i += 2
+            # strip option and argument from newargv
+            continue
+        elif not sys.argv[i].startswith('-'):
+            frontend = sys.argv[i]
+        newargv.append(sys.argv[i])
+        i += 1
+
+    if os.getuid() == 0:
+        # no privilege escalation required
+        inner = ['/usr/lib/ubiquity/bin/ubiquity']
+        inner.extend(newargv)
+
+        # Make sure ibus works
+        if os.getenv("GTK_IM_MODULE") == "ibus" and os.getenv("XDG_SESSION_COOKIE"):
+            ibus_path = os.path.expanduser("~/.config/ibus/bus")
+            if os.path.exists(ibus_path):
+                # Guess the path to the ibus config file
+                ibus_filename = "%s-unix-0" % os.getenv("XDG_SESSION_COOKIE").split("-")[0]
+                ibus_config = os.path.join(ibus_path, ibus_filename)
+                with open(ibus_config, "r") as fp:
+                    for line in fp:
+                        fields=line.strip().split('=', 1)
+                        # If we get KEY=VALUE, export it in the environment
+                        if len(fields) == 2:
+                            os.environ[fields[0]]=fields[1]
+
+        # Ensure the OOM killer doesn't nom on us.
+        with open('/proc/%d/oom_score_adj' % os.getpid(), 'w') as fp:
+            fp.write('-1000')
+        # Lock HAL's storage subsystem (or DeviceKit-disks or udisks).
+        if osextras.find_on_path('udisks'):
+            toexec.extend(['udisks', '--inhibit', '--'])
+            toexec.extend(inner)
+        elif osextras.find_on_path('devkit-disks'):
+            toexec.extend(['devkit-disks', '--inhibit', '--'])
+            toexec.extend(inner)
+        elif osextras.find_on_path('hal-lock') and not os.system('pgrep hald>/dev/null'):
+            toexec.extend(['hal-lock',
+                           '--interface', 'org.freedesktop.Hal.Device.Storage',
+                           '--exclusive', '--run'])
+            # hal-lock has irritating argument passing conventions.
+            toexec.append(' '.join(inner))
+        else:
+            toexec.extend(inner)
+    else:
+        if frontend is None:
+            # Try to detect which frontend will be used by looking for a
+            # frontend module.
+            import imp
+            import ubiquity.frontend
+            frontend_names = ['gtk_ui', 'kde_ui']
+            for f in frontend_names:
+                try:
+                    imp.find_module(f, ubiquity.frontend.__path__)
+                    frontend = f
+                    break
+                except ImportError:
+                    pass
+
+        if frontend == 'gtk_ui':
+            toexec = ['gksudo', '--preserve-env']
+            if desktop:
+                toexec.extend(['--desktop', desktop])
+            toexec.append('--')
+        elif frontend == 'kde_ui':
+            # We need to pass through xauth information.  kdesudo won't do,
+            # though, as it can't be made to tell sudo to preserve the
+            # environment.
+            import tempfile
+            xauthority = tempfile.NamedTemporaryFile(prefix='ubiquity-',
+                                                     suffix='-xauth')
+            os.chmod(xauthority.name, 0600) # root can still read it
+            xauth_extract = subprocess.Popen(
+                ['xauth', 'extract', '-', os.environ['DISPLAY']],
+                stdout=subprocess.PIPE)
+            xauth_merge = subprocess.Popen(
+                ['xauth', '-f', xauthority.name, 'merge', '-'],
+                stdin=xauth_extract.stdout)
+            xauth_merge.wait()
+            xauth_extract.wait()
+            toexec = ['sudo', '-E', 'XAUTHORITY=%s' % xauthority.name]
+        else:
+            toexec = ['sudo', '-E']
+
+        # re-exec ourselves first time round, to cope with broken argument
+        # handling in kdesu
+        toexec.append(sys.argv[0])
+        toexec.extend(newargv)
+
+    # Workaround for hang on relatively low-memory PS3 systems (#106683).
+    # Apparently killing a few processes up-front helps.
+    try:
+        lowmem = False
+        archdetect = subprocess.Popen(['archdetect'], stdout=subprocess.PIPE)
+        arch = archdetect.communicate()[0].strip()
+        if arch == 'powerpc/ps3':
+            with open('/proc/meminfo') as meminfo:
+                for line in meminfo:
+                    if line.startswith('MemTotal:'):
+                        mem = int(line.split()[1])
+                        if mem <= 262144:
+                            lowmem = True
+                            break
+        if lowmem:
+            syslog.syslog("Low memory: killing processes to work around hang")
+            if frontend == 'gtk_ui':
+                for session_process in ('evolution-alarm-notify',
+                                        'gnome-cups-icon',
+                                        'jockey-gtk',
+                                        'update-notifier'):
+                    subprocess.call(['gnome-session-remove',
+                                     session_process])
+            if os.getuid() == 0:
+                subprocess.call(['/etc/init.d/cupsys', 'stop'])
+                subprocess.call(['/etc/init.d/hplip', 'stop'])
+            else:
+                subprocess.call(['sudo', '/etc/init.d/cupsys', 'stop'])
+                subprocess.call(['sudo', '/etc/init.d/hplip', 'stop'])
+    except (KeyboardInterrupt, SystemExit):
+        raise
+    except:
+        pass
+
+    if 'UBIQUITY_WRAPPER_DEBUG' in os.environ:
+        print >>sys.stderr, toexec
+    os.execvp(toexec[0], toexec)
+    sys.exit(127)
+
+if __name__ == '__main__':
+    main()

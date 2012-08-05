@@ -1,0 +1,81 @@
+#!/bin/sh
+
+mkdir -p /var/lib/partman
+
+case `udpkg --print-os` in
+  linux)
+	cat /proc/modules |
+	while read module_name x; do
+		if [ "$module_name" = ext2 ]; then
+			>/var/lib/partman/ext2
+		fi
+		if [ "$module_name" = vfat ]; then
+			>/var/lib/partman/vfat
+		fi
+		if [ "$module_name" = fuse ]; then
+			>/var/lib/partman/fuse
+		fi
+		if [ "$module_name" = ntfs ]; then
+			>/var/lib/partman/ntfs
+		fi
+	done
+
+	if ! [ -f /var/lib/partman/ext2 ] && \
+	   modprobe ext2  >/dev/null 2>/dev/null; then
+		>/var/lib/partman/ext2
+	fi
+
+	if ! [ -f /var/lib/partman/vfat ] && \
+	   modprobe vfat  >/dev/null 2>/dev/null; then
+		>/var/lib/partman/vfat
+	fi
+
+	if ! [ -f /var/lib/partman/fuse ] && \
+	   modprobe fuse  >/dev/null 2>/dev/null
+	then
+		>/var/lib/partman/fuse
+	fi
+
+	if type ntfs-3g >/dev/null 2>&1 && \
+	   [ -f /var/lib/partman/fuse ] && \
+	   grep -q fuseblk /proc/filesystems
+	then
+		>/var/lib/partman/ntfs
+		>/var/lib/partman/ntfs-3g
+	fi
+
+	if ! [ -f /var/lib/partman/ntfs ] && \
+	   modprobe ntfs  >/dev/null 2>/dev/null
+	then
+		>/var/lib/partman/ntfs
+	fi
+
+	if grep -q ext2 /proc/filesystems; then
+		>/var/lib/partman/ext2
+	fi
+	if grep -q vfat /proc/filesystems; then
+		>/var/lib/partman/vfat
+	fi
+	if grep -q ntfs /proc/filesystems; then
+		>/var/lib/partman/ntfs
+	fi
+	;;
+
+  hurd)
+	[ -f /hurd/ext2fs ] && >/var/lib/partman/ext2
+	[ -f /hurd/fatfs ] && >/var/lib/partman/vfat
+	;;
+
+  kfreebsd)
+	if kldstat -q -m ext2fs 2>/dev/null || \
+		kldload ext2fs >/dev/null 2>/dev/null ; then
+		>/var/lib/partman/ext2
+	fi
+
+	if kldstat -q -m msdosfs 2>/dev/null || \
+		kldload msdosfs >/dev/null 2>/dev/null ; then
+		>/var/lib/partman/vfat
+	fi
+	;;
+esac
+

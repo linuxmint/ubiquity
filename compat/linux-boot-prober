@@ -1,0 +1,13 @@
+#! /bin/sh
+# A caching version of linux-boot-prober.
+set -e
+
+dev="$(echo "$1" | sed 's,/,=,g')"
+cache="/var/lib/ubiquity/linux-boot-prober-cache/$dev"
+if [ ! -e "$cache" ]; then
+	mkdir -p "${cache%/*}"
+	PATH=/usr/sbin:/sbin:/usr/bin:/bin linux-boot-prober "$1" >"$cache"
+fi
+cat "$cache"
+
+exit 0

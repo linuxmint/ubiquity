@@ -1,0 +1,99 @@
+# ubiquity - Ubuntu live CD installer
+#
+# Installs Ubuntu from a live CD. This only does anything if told to do so
+# by parameters on the kernel command line; otherwise, the installer may be
+# started manually later.
+
+description	"Ubuntu live CD installer"
+author		"Ubuntu Installer Team <ubuntu-installer@lists.ubuntu.com>"
+
+start on (starting gdm
+	  or starting kdm
+	  or starting xdm
+	  or starting lxdm
+	  or starting lightdm
+	  or starting uxlaunch)
+stop on (runlevel [06]
+	 or stopping gdm
+	 or stopping kdm
+	 or stopping xdm
+	 or stopping lxdm
+	 or stopping lightdm
+	 or stopping uxlaunch)
+
+task
+normal exit 0 1
+
+emits starting-dm
+
+script
+    test -x /usr/bin/ubiquity-dm || exit 0
+
+    ubiquity=
+    automatic=
+    debug=
+    ldtp=
+    noninteractive=
+    choose=
+    frontend=
+    for x in $(cat /proc/cmdline); do
+	case $x in
+	    debug-ubiquity)
+		debug="-d"
+		ubiquity=1
+		;;
+	    automatic-ubiquity)
+		automatic="--automatic"
+		ubiquity=1
+		;;
+	    maybe-ubiquity)
+		ubiquity=1
+		choose="--greeter"
+		;;
+	    ldtp-ubiquity)
+		ubiquity=1
+		ldtp="--ldtp"
+		;;
+	    only-ubiquity)
+		ubiquity=1
+		;;
+	    noninteractive)
+		ubiquity=1
+		noninteractive=1
+		;;
+	    ubiquity/frontend=*)
+		frontend="${x#*=}"
+		;;
+	esac
+    done
+    [ "$ubiquity" ]
+
+    if [ -r /etc/environment ]; then
+	if LANG=$(pam_getenv -l LANG); then
+	    export LANG
+	fi
+	if LANGUAGE=$(pam_getenv -l LANGUAGE); then
+	    export LANGUAGE
+	fi
+    fi
+
+    initctl emit starting-dm DM=ubiquity-dm
+
+    # turn off console blanking for install process
+    setterm -blank 0 > /dev/console
+
+    if [ -n "$noninteractive" ]; then
+	plymouth quit || :
+	exec ubiquity noninteractive $debug
+    else
+	if ! ubiquity-dm vt7 :0 ubuntu /usr/bin/ubiquity $debug $automatic $choose $ldtp --only $frontend; then
+	    # has X crashed, or has ubiquity?
+            if [ "$automatic" ] && ! [ -f /var/log/installer/version ]; then
+                # in case we crashed before the X startup sequence
+                plymouth quit || :
+                exec ubiquity noninteractive $debug
+            fi
+	fi
+    fi
+    exit 0
+end script

@@ -1,0 +1,21 @@
+#! /usr/bin/make -f
+%:
+	dh $@
+
+DEB_HOST_ARCH := $(shell dpkg-architecture -qDEB_HOST_ARCH)
+
+ifeq ($(DEB_HOST_ARCH),amd64)
+MULTIARCH := i386
+else
+MULTIARCH :=
+endif
+
+override_dh_installdebconf:
+	dh_installdebconf
+	sed -i 's/@MULTIARCH@/$(MULTIARCH)/' \
+		debian/apt-setup-udeb/DEBIAN/templates
+ifneq (,$(filter apt-mirror-setup,$(shell dh_listpackages)))
+	echo >> debian/apt-mirror-setup/DEBIAN/templates
+	po2debconf debian/apt-mirror-setup.templates-ubuntu \
+		>> debian/apt-mirror-setup/DEBIAN/templates
+endif

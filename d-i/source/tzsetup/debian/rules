@@ -1,0 +1,38 @@
+#!/usr/bin/make -f
+
+build:
+	$(MAKE)
+
+clean:
+	dh_testdir
+	dh_testroot
+	$(MAKE) clean
+	dh_clean
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_install
+
+binary-arch: build install
+
+binary-indep: build install
+	dh_testdir
+	dh_testroot
+	dh_installdebconf
+
+	# Merge in all templates.
+	echo >> debian/tzsetup-udeb/DEBIAN/templates
+	po2debconf debian/common.templates >> debian/tzsetup-udeb/DEBIAN/templates
+
+	dh_installchangelogs
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install

@@ -1,0 +1,20 @@
+#!/bin/sh
+
+set -- $1
+
+fs=$1
+mp=$2
+type=$3
+options=$4
+dump=$5
+pass=$6
+
+case $type in
+    ext3|ext4)
+	mount -t $type ${options:+-o "$options"} $fs /target$mp || exit 1
+	echo "umount /target$mp"
+	exit 0
+	;;
+esac
+
+exit 1

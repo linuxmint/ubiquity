@@ -1,0 +1,21 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+code=99 # signals a retry
+while [ $code = 99 ]; do
+	ask_user /lib/partman/automatically_partition
+	code=$?
+	if [ $code -ge 128 ] && [ $code -lt 192 ]; then
+		exit $code # killed by signal
+	elif [ $code -ge 100 ]; then
+		# 255: backup from subsidiary question; break and return to
+		# choose_partition menu
+		# 100-127, 192-254: attempt to skip the manual partitioner
+		# (from display.d), which isn't appropriate if the manual
+		# partitioner has already been displayed, so treat this
+		# exactly like backup
+		exit 0
+	fi
+done
+exit $code

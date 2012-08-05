@@ -1,0 +1,115 @@
+.Dd August 9, 2007
+.Os Ubuntu
+.ds volume-operating-system Ubuntu
+.Dt UBIQUITY 8
+.Sh NAME
+.Nm ubiquity
+.Nd install Ubuntu from a live CD
+.Sh SYNOPSIS
+.Nm
+.Op Fl Fl desktop Ar file
+.Op Fl Fl debug
+.Op Fl Fl pdb
+.Op Fl Fl cdebconf
+.Op Fl Fl automatic
+.Op Fl Fl only
+.Op Fl Fl query
+.Op Ar frontend
+.Sh DESCRIPTION
+.Nm
+is a graphical installer for Ubuntu, written largely in Python, using
+.Ic debian\-installer
+.No ( Ic d\-i )
+as a backend for many of its functions.
+It is normally invoked from a desktop icon, and presents a "wizard"-style
+graphical user interface.
+.Nm
+must be run as root, and will escalate privileges for itself using
+.Ic gksudo ,
+.Ic kdesu ,
+.Ic kdesudo ,
+or
+.Ic sudo
+as appropriate.
+.Pp
+.Nm
+has multiple frontends, including one written using GTK+
+.No ( Li gtk_ui )
+and one written for KDE
+.No ( Li kde_ui ) .
+The first non-option argument, if any, is interpreted as the name of the
+frontend to use.
+.Pp
+The following options are available:
+.Bl -tag -width 4n
+.It Fl Fl desktop Ar file
+This option is passed through to
+.Ic gksudo
+to provide a better description for its privilege-escalation message.
+It is only relevant when using the
+.Li gtk_ui
+frontend.
+.It Fl d , Fl Fl debug
+Run in debugging mode, sending verbose information to
+.Pa /var/log/installer/debug
+that may be useful to developers.
+(The
+.Pa /var/log/syslog
+file is usually required in any case, along with
+.Pa /var/log/partman
+in the case of problems related to partitioning.)
+.Em Note that passwords will be logged in debugging mode!
+.It Fl Fl pdb
+Drop into the Python debugger in the event of a crash.
+Only effective if
+.Nm
+is being run from a terminal.
+.It Fl Fl cdebconf
+Use
+.Ic cdebconf
+instead of the traditional Perl
+.Ic debconf
+implementation.
+In future this may provide enough memory efficiency benefits to be made the
+default, but for now it is not really worthwhile and is therefore for
+experimental use only.
+.It Fl Fl automatic
+Skip over questions that have been pre-answered by use of a preseed file.
+This is useful for unattended installations.
+.It Fl Fl only
+Tell
+.Nm
+that it is the only desktop program running so that it can customize its
+user interface to better suit a minimal environment.
+This allows the installer to be run standalone, reducing memory
+requirements.
+.It Fl Fl query
+Print the frontend that would be used and then exit.
+.El
+.Sh AUTHORS
+.An -nosplit
+Ubiquity was formerly known as "Espresso", and originally as "Ubuntu
+Express", which is written and maintained by
+.An "Javier Carranza" Aq javier.carranza@interactors.coop
+and
+.An "Juanje Ojeda Croissier" Aq juanje@interactors.coop .
+This version draws on the work done on Ubuntu Express, but was renamed to
+avoid confusion, to reduce awkward branding considerations, and because
+Ubiquity concentrates on reusing
+.Ic debian-installer
+code and reducing duplicated translation and branding work as much as
+possible.
+Ubiquity has now substantially diverged from Ubuntu Express and is an
+independent project.
+.Pp
+.Nm
+was mainly developed by
+.An "Colin Watson" Aq cjwatson@ubuntu.com
+and
+.An "Evan Dandrea" Aq ev@ubuntu.com ,
+with contributions from many others.
+.Pp
+The
+.Li mythbuntu_ui
+frontend was developed by
+.An "Mario Limonciello" Aq superm1@ubuntu.com .

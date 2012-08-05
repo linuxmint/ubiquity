@@ -1,0 +1,10 @@
+#! /bin/sh -e
+
+OLD_STDIN="$DEBCONF_OLD_FD_BASE"
+OLD_STDOUT="$(($DEBCONF_OLD_FD_BASE + 1))"
+OLD_STDERR="$(($DEBCONF_OLD_FD_BASE + 2))"
+
+cd /
+
+env -i PATH="$PATH" TERM="$TERM" HOME=/ "$@" \
+	<&$OLD_STDIN >&$OLD_STDOUT 2>&$OLD_STDERR

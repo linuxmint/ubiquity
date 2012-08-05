@@ -1,0 +1,121 @@
+#!/bin/sh
+#
+# «oem-config-remaster» - Remaster an Ubuntu ISO with an additional repository
+# and preseed data for oem-config.
+#
+# Copyright (C) 2010 Canonical Ltd.
+#
+# Authors:
+#
+# - Evan Dandrea <ev@ubuntu.com>
+#
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program.  If not, see <http://www.gnu.org/licenses/>.
+
+set -e
+
+if ! [ -w / ]; then
+	echo "This program must be run as root."
+	exit 1
+fi
+cleanup() {
+	echo "Cleaning up."
+	set +e
+	if [ -n "$cd_writable" ]; then
+		(umount $cd_writable && rm -rf $cd_backing $cd_writable) || \
+		rmdir $cd_writable $cd_backing
+	fi
+	if [ -n "$writable" ]; then
+		(umount $writable && rm -rf $backing $writable) || \
+		rmdir $writable $backing
+	fi
+	if [ -n "$squash" ]; then
+		(umount $squash && rm -rf $squash) || \
+		rmdir $squash
+	fi
+	if [ -n "$iso" ]; then
+		(umount $iso && rm -rf $iso) || \
+		rmdir $iso
+	fi
+	echo "All done."
+}
+usage() {
+	echo "Usage: $0 [-i gpg-key-id] [-t cd-title] [-o output-file] [-r extra-repository] [-e early-command] [-l late-command] cd-image packages"
+}
+set -- $(getopt i:t:o:r:e: "$@")
+if [ $# -lt 2 ]; then
+	usage
+fi
+# TODO: Support passing an argument for packages to explicitly not include
+# (with the assumption being that they'll be downloaded from the network in
+# oem-config).
+while [ $# -gt 0 ]; do
+	case "$1" in
+		-i)	KEY_ID="$2"; shift;;
+		-t)	CD_TITLE="$2"; shift;;
+		-o)	CD_FILE="$2"; shift;;
+		-r)	REPO="$2"; shift;;
+		-e)	EARLY="$2"; shift;;
+		-l)	LATE="$2"; shift;;
+		--)	shift; break;;
+		-*)	usage;;
+		*)	break;;
+	esac
+	shift
+done
+trap cleanup EXIT HUP INT QUIT TERM
+image="$1"
+pkgs="$2"
+
+iso=$(mktemp -d)
+mount -o loop $image $iso
+s="$iso/casper/filesystem.squashfs"
+if ! [ -e "$s" ]; then
+	echo "Could not find the squashfs at '$s'."
+	umount $iso || true
+	exit 1
+fi
+cd_backing=$(mktemp -d)
+cd_writable=$(mktemp -d)
+mount -t aufs -o br=$cd_backing:$iso none $cd_writable
+
+squash=$(mktemp -d)
+mount -o loop $s $squash
+backing=$(mktemp -d)
+writable=$(mktemp -d)
+mount -t aufs -o br=$backing:$squash none $writable
+
+# TODO: Support additional sources.
+sed -i 's/main /main universe multiverse /g' $writable/etc/apt/sources.list
+cp /etc/resolv.conf $writable/etc
+chroot $writable apt-get update #|| true
+chroot $writable apt-get -d -y install $pkgs
+mkdir $cd_writable/extra
+find $writable/var/cache/apt/archives -name "*.deb" -exec cp {} $cd_writable/extra \;
+apt-ftparchive packages $cd_writable/extra >$cd_writable/extra/Packages
+apt-ftparchive release $cd_writable/extra >$cd_writable/extra/Release
+gpg_args="-abs"
+[ -n "$KEY_ID" ] && gpg_args="$gpg_args --default-key $KEY_ID"
+gpg $gpg_args -o $cd_writable/extra/Release.gpg $cd_writable/extra/Release
+gpg --export --armor $KEY_ID > $cd_writable/extra/key.pub
+cat >> $cd_writable/preseed/ubuntu.seed << EOF
+oem-config	oem-config/key	string /cdrom/extra/key.pub
+oem-config	oem-config/repository	string $REPO
+oem-config	oem-config/extra_packages	string $pkgs
+oem-config	oem-config/early_command	string $EARLY
+oem-config	oem-config/late_command		string $LATE
+EOF
+save=$(pwd)
+cd $cd_writable
+mkisofs -D -r -V "${CD_TITLE:-Ubuntu}" -cache-inodes -J -l -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o "$save/${CD_FILE:-custom.iso}" .
+cd $save

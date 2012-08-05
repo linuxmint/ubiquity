@@ -1,0 +1,104 @@
+#! /bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+# We need to duplicate this code because localechooser has the right to
+# assume that its later scripts are only run once, but oem-config doesn't
+# have that luxury.
+
+db_get debian-installer/locale
+LOCALE="$RET"
+
+db_get debian-installer/language
+LANGLIST="$RET"
+
+db_get localechooser/supported-locales
+EXTRAS="$(echo "$RET" | sed 's/,//g')"
+
+LOCALE_TRANSLATIONS="$LOCALE"
+
+case ${LOCALE%%_*} in
+    pt|zh)
+	# In the special cases of Portuguese and Chinese, selecting a
+	# different location may imply a different dialect of the language.
+	# In such cases, make LANG reflect the selected language (for
+	# messages, character types, and collation) and make the other
+	# locale categories reflect the selected language.
+	db_get localechooser/languagelist
+	ORIG_LANGUAGE="$RET"
+	db_get debian-installer/country
+	COUNTRY="$RET"
+
+	if grep -q "^$ORIG_LANGUAGE;" /usr/lib/ubiquity/localechooser/languagelist; then
+		newlocale="$(echo "$LOCALE" | sed "s/_[A-Z][A-Z]*/_$COUNTRY/")"
+		if grep -q "^${newlocale%%[.@]*}[.@ ]" /usr/share/i18n/SUPPORTED && \
+		   [ "$newlocale" != "$LOCALE" ]; then
+			LOCALE_TRANSLATIONS="$LOCALE"
+			LOCALE="$newlocale"
+			LANGLIST="$(grep "^$ORIG_LANGUAGE;" /usr/lib/ubiquity/localechooser/languagelist | cut -d';' -f6)"
+		fi
+	fi
+	;;
+esac
+
+set_field () {
+	local file category value
+	file="$1"
+	category="$2"
+	value="$3"
+
+	if grep -qs "^#* *$category=" "$file"; then
+		sed -i "s,^#* *$category=.*,$category=\"$value\"," "$file"
+	else
+		echo "$category=\"$value\"" >> "$file"
+	fi
+}
+
+if [ -e /etc/environment ]; then
+	sed -i "s,^LANG=.*,LANG=\"$LOCALE_TRANSLATIONS\"," /etc/environment
+fi
+if grep -qs "^LANG=" /etc/default/locale; then
+	sed -i "s,^LANG=.*,LANG=\"$LOCALE_TRANSLATIONS\"," /etc/default/locale
+else
+	echo "LANG=\"$LOCALE_TRANSLATIONS\"" >> /etc/default/locale
+fi
+# We set LANGUAGE only if the languagelist is a list of
+# languages with alternatives. Otherwise, setting it is useless
+if echo "$LANGLIST" | grep -q ":"; then
+	# Adjust /etc/environment if LANGUAGE is already set, but otherwise
+	# leave it alone.
+	if grep -q "^LANGUAGE=" /etc/environment; then
+		sed -i "s,^LANGUAGE=.*,LANGUAGE=\"$LANGLIST\"," /etc/environment
+	fi
+	if grep -q "^LANGUAGE=" /etc/default/locale; then
+		sed -i "s,^LANGUAGE=.*,LANGUAGE=\"$LANGLIST\"," /etc/default/locale
+	else
+		echo "LANGUAGE=\"$LANGLIST\"" >> /etc/default/locale
+	fi
+else
+	if [ -e /etc/environment ]; then
+		sed -i "/^LANGUAGE=/d" /etc/environment
+	fi
+	if [ -e /etc/default/locale ]; then
+		sed -i "/^LANGUAGE=/d" /etc/default/locale
+	fi
+fi
+if [ "$LOCALE_TRANSLATIONS" != "$LOCALE" ]; then
+	for category in \
+		LC_NUMERIC LC_TIME LC_MONETARY LC_PAPER LC_NAME LC_ADDRESS \
+		LC_TELEPHONE LC_MEASUREMENT LC_IDENTIFICATION; do
+		set_field /etc/default/locale "$category" "$LOCALE"
+	done
+fi
+
+if [ -e /etc/default/gdm ]; then
+	sed -i "s,^#*LANG=.*,LANG=$LOCALE_TRANSLATIONS,g" /etc/default/gdm
+fi
+
+LANGCODE="${LOCALE%%_*}"
+LANGCODE="${LANGCODE%%.*}"
+LANGCODE="${LANGCODE%%@*}"
+/usr/share/locales/install-language-pack "$LANGCODE" '' || true
+
+# TODO: kbd/cyr handling?

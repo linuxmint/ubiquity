@@ -1,0 +1,85 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+log() {
+	logger -t clock-setup "$@"
+}
+
+# On s390 we're not allowed to change the system clock; just run tzsetup
+case "$(archdetect)" in
+    s390/*|s390x/*)
+	tzsetup
+	exit 0 ;;
+esac
+
+db_input medium clock-setup/ntp || true
+if ! db_go; then
+	exit 10 # back to main menu
+fi
+db_get clock-setup/ntp
+if [ "$RET" = true ]; then
+	db_get netcfg/dhcp_ntp_servers
+	if [ -n "$RET" ]; then
+		# If DHCP provides multiple servers, ignore all but the first
+		dhcp_ntp=`echo "$RET" | cut -d' ' -f1`
+		db_set clock-setup/ntp-server "$dhcp_ntp"
+	fi
+	db_input low clock-setup/ntp-server || true
+	if ! db_go; then
+		exit 10
+	fi
+	db_get clock-setup/ntp-server
+	server="$RET"
+
+	# Workaround for rdate failing if current date is before
+	# the epoch (1-1-1970); see #502336
+	case "$(archdetect)" in
+	    kfreebsd*) : ;;
+	    *) log-output -t clock-setup set-date-epoch ;;
+	esac
+
+	db_capb progresscancel
+	db_progress START 0 30 clock-setup/progress/title
+	if ! db_progress INFO clock-setup/progress/ntp; then
+		log "rdate canceled (before starting)."
+	else
+		i=0
+		exec 4>&0
+		rdate -o 123 -nvv "$server" 2>&1 |
+		while read line; do
+			if ! db_progress set $i <&4; then
+				log "rdate canceled."
+				break
+			fi
+			case "$line" in
+			    '.')
+				i=$(($i + 1))
+				;;
+			    *:*:*)
+				# new date
+				log "$line"
+				;;
+			    'rdate: adjust'*)
+				log "$line"
+				# success
+				db_progress set 30 <&4 || true
+				db_set clock-setup/system-time-changed true <&4
+				;;
+			    *)
+				log "$line"
+				# After an error rdate might exit or skip to
+				# the next server.  In both case, let's
+				# reset the progress bar.
+				i=0
+				;;
+			esac
+		done
+		exec 0>&4
+	fi
+	db_progress stop
+	db_capb
+fi
+
+tzsetup

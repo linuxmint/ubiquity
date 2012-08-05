@@ -1,0 +1,15 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+db_input critical di-utils-reboot/really_reboot || true
+db_go || true
+db_get di-utils-reboot/really_reboot
+
+if [ "$RET" = true ]; then
+	/lib/debian-installer/exit
+fi
+
+if [ -n "$LIVE_INSTALLER_MODE" ]; then
+	return 11
+fi

@@ -1,0 +1,154 @@
+#!/bin/sh
+
+#     ckbcomp-mini -- convert XKB specification to keymap for loadkeys
+#     Copyright © 2006 Anton Zinoviev
+
+#     This program is free software; you can redistribute it and/or modify
+#     it under the terms of the GNU General Public License as published by
+#     the Free Software Foundation; either version 2 of the License, or
+#     (at your option) any later version.
+
+#     This program is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU General Public License for more details.
+
+#     If you have not received a copy of the GNU General Public License
+#     along with this program, write to the Free Software Foundation, Inc.,
+#     59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+# Default values:
+ekmapdir=/usr/share/console-setup-mini
+model=pc105
+layout=''
+variant=''
+options=''
+verbose_option=no
+
+# The same as /usr/bin/which - in order to make "which" available in
+# environments where "which" does not exist
+which () {
+    local IFS
+    IFS=:
+    for i in $PATH; do
+	if [ -x "$i/$1" ]; then
+	    echo "$i/$1"
+	    return 0
+	fi
+    done
+    return 1
+}
+
+while [ "$1" ]; do
+    case "$1" in
+	-I*)
+	    ekmapdir=${1#-I}
+	    ;;
+	-model)
+	    shift
+	    model="$1"
+	    ;;
+	-layout)
+	    shift
+	    layout="$1"
+	    ;;
+	-variant)
+	    shift
+	    variant="$1"
+	    ;;
+	-option)
+	    shift
+	    options=$(echo $options $1 | sed 's/,/ /g')
+	    ;;
+	-charmap)
+	    shift
+	    ;;
+	-\?|-help)
+	    cat >&2 <<EOF
+Usage: ckbcomp-mini [args] [<layout> [<variant> [<option> ... ]]]
+Where legal args are:
+-?,-help            Print this message
+-charmap <charmap>  Ignored
+-I<dir>             Search for ekmaps in <dir>
+-model <name>       Specifies model used to choose component names
+-layout <name>      Specifies layout used to choose component names
+-variant <name>     Specifies layout variant used to choose component names
+-option <name>      Adds an option used to choose component names
+EOF
+	    exit 0
+	    ;;
+	-*)
+	    echo "setupcon: Unrecognised option $1" >&2
+	    exit 1
+	    ;;
+	*)
+	    if [ -z "$layout" ]; then
+		layout="$1"
+	    elif [ -z "$variant" ]; then
+		variant="$1"
+	    else
+		options=$(echo $options $1 | sed 's/,/ /g')
+	    fi
+    esac
+    shift
+done
+
+case "$model" in
+    amiga|ataritt|macintosh_old|pc105|sun4|sun5)
+	;;
+    *)
+	model=pc105
+	;;
+esac
+
+if [ -z "$layout" ]; then
+    layout=us
+fi
+
+ekmap=$ekmapdir/$model.ekmap.gz
+
+if [ ! -f $ekmap ]; then
+    echo "ckbcomp-mini: $ekmap does not exist" >&2
+    exit 1
+fi
+
+layout=${layout#*,}
+variant=${variant#*,}
+
+if [ "$variant" ]; then
+    kmap="$layout:$variant"
+else
+    kmap="$layout"
+fi
+
+ckbcomp_rec () {
+    local kmap
+    kmap="$1"
+    zcat $ekmap \
+	| grep "^$kmap::" \
+	| sed "s/^$kmap:://" \
+	| {
+	    while read line; do
+		case "$line" in
+		    ?include*)
+			ckbcomp_rec "${line##* }"
+                        ;;
+		    keycode*)
+			echo "$line"
+			;;
+		    *)
+			;;
+		    esac
+	    done
+	  }
+}
+
+echo 'keymaps 0-4,6,8,10,12,14'
+ckbcomp_rec "$kmap"
+for option in $options; do
+    zcat $ekmap \
+	| grep "^$option::" \
+	| sed "s/^$option:://"
+done
+echo 'strings as usual'
+

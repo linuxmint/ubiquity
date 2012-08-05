@@ -1,0 +1,37 @@
+#!/bin/sh
+set -e
+. /usr/share/debconf/confmodule
+
+# copy any loose firmware files to /target (incl. subdirs)
+if [ -d /lib/firmware ]; then
+	for f in /lib/firmware/*; do
+		if [ -e "$f" ]; then
+			mkdir -p /target/lib/firmware/
+			cp -a "$f" /target/lib/firmware/
+		fi
+	done
+fi
+
+deb_package () {
+	ar p "$1" control.tar.gz | tar zxO ./control | grep 'Package:' |  sed -e 's/Package: *//'
+}
+
+# install cached firmware debs
+if [ -d /var/cache/firmware ]; then
+	for deb in /var/cache/firmware/*.deb; do
+		if [ -f "$deb" ]; then
+			cp -a "$deb" /target/tmp
+			# TODO debconf passthrough
+			if ! in-target dpkg -i "/tmp/$(basename "$deb")"; then
+				# dpkg failed, force removal of package
+				in-target dpkg --force-depends --remove "$(deb_package "$deb")" || true
+			fi
+			rm -f "/target/tmp/$deb"
+			need_nonfree=1
+		fi
+	done
+fi
+
+if [ "$need_nonfree" ]; then
+	db_set apt-setup/non-free true
+fi

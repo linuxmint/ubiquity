@@ -1,0 +1,75 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ "$fs" != free ] || continue
+		partitions="$partitions $id,$num"
+	done
+	close_dialog
+
+	for part in $partitions; do
+		id=${part%,*}
+		num=${part#*,}
+		[ -f $id/method -a -f $id/format ] || continue
+		method=$(cat $id/method)
+		if [ "$method" = swap ]; then
+			if [ -f $id/formatted ] && \
+			   [ $id/formatted -nt $id/method ]; then
+				continue
+			fi
+			log "Try to format swap space in $dev/$id"
+			disable_swap "$dev" "$id" || true
+			template=partman-basicfilesystems/progress_swap_formatting
+			open_dialog PARTITION_INFO $id
+			read_line x1 x2 x3 x4 x5 device x6
+			close_dialog
+			rm -f $id/old_uuid
+			if [ -f $id/detected_filesystem ]; then
+				old_fs=$(cat $id/detected_filesystem)
+				if [ "$old_fs" = linux-swap ]; then
+					# Save the old UUID so that we can restore it later.
+					dd if=$device of=$id/old_uuid bs=1 skip=1036 count=16 2>/dev/null || true
+				fi
+			fi
+			db_subst $template PARTITION "$num"
+			db_subst $template DEVICE $(humandev $(cat device))
+			name_progress_bar $template
+			db_progress START 0 3 partman/text/formatting
+			db_progress INFO $template
+			db_progress SET 1
+			# According to Szabolcs Szakacsits, the NTFS-3g author, it is
+			# safer to format the loop file, rather than the device.
+			[ ! -s loop ] || device="$(cat loop)"
+			if log-output -t partman --pass-stdout \
+			   mkswap $device >/dev/null; then
+				sync
+				status=OK
+			else
+				status=failed
+			fi
+			db_progress STOP
+
+			if [ "$status" != OK ]; then
+				db_subst partman-basicfilesystems/create_swap_failed TYPE linux-swap
+				db_subst partman-basicfilesystems/create_swap_failed PARTITION "$num"
+				db_subst partman-basicfilesystems/create_swap_failed DEVICE $(humandev $(cat device))
+				db_input critical partman-basicfilesystems/create_swap_failed || true
+				db_go || true
+				exit 1
+			fi
+			if [ -s "$id/old_uuid" ]; then
+				# Restore the old UUID so that systems using UUIDs in
+				# /etc/fstab don't unexpectedly end up without swap.
+				dd if=$id/old_uuid of=$device bs=1 seek=1036 count=16 conv=notrunc 2>/dev/null || true
+			fi
+			rm -f $id/old_uuid
+			>$id/formatted
+		fi
+	done
+done

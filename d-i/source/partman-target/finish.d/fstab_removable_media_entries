@@ -1,0 +1,76 @@
+#!/bin/sh
+
+[ -f /target/etc/fstab ] || exit 0
+
+MEDIA=/media # or MEDIA='' to make directories in /
+
+escape () {
+	printf %s "$1" | \
+		sed 's/\\/\\134/g; s/ /\\040/g; s/	/\\011/g; s/\n/\\012/g'
+}
+
+# dev, mountpoint, type, options, dump, pass
+addfstab () {
+	printf "%-15s %-15s %-7s %-15s %-7s %s\n" \
+		"$(escape "$1")" "$(escape "$2")" \
+		"$(escape "$3")" "$(escape "$4")" \
+		"$5" "$6" >> /target/etc/fstab
+}
+
+rm_dir_or_link () {
+	if [ -L "$1" ]; then
+		rm "$1"
+	elif [ -d "$1" ]; then
+		rmdir "$1"
+	fi
+}
+
+# category, file system, options, main device, other devices ...
+populate_media () {
+	local category fs options number mount_point
+	category=$1
+	fs=$2
+	options=$3
+	shift; shift; shift
+	mkdir -p /target$MEDIA
+	symlink_to_0=1
+	if [ "`udpkg --print-os`" = kfreebsd ]; then
+		symlink_to_0=""
+	fi
+	if [ "$1" ] && [ "$symlink_to_0" ] ; then
+		rm_dir_or_link /target$MEDIA/$category
+		ln -s ${category}0 /target$MEDIA/$category
+	fi
+	number=0
+	while [ "$1" ]; do
+		mount_point="$MEDIA/$category$number"
+		if [ ! "$symlink_to_0" ] && [ "$number" = 0 ]; then
+			mount_point="$MEDIA/$category"
+		fi
+		addfstab "$1" "$mount_point" "$fs" "$options" 0 0
+		rm_dir_or_link /target$mount_point
+		mkdir -p /target$mount_point
+		number=$(($number + 1))
+		shift
+	done
+}
+
+FDDEVICES=''
+for dev in $(list-devices floppy); do
+	mapdev=$(mapdevfs $dev)
+	if [ "$mapdev" ]; then
+		FDDEVICES="$FDDEVICES $mapdev"
+	fi
+done
+
+case `udpkg --print-os` in
+	linux)
+		populate_media floppy auto rw,user,noauto,exec,utf8 $FDDEVICES
+		;;
+	kfreebsd)
+		populate_media floppy auto rw,noauto $FDDEVICES
+		;;
+	hurd)
+		populate_media floppy fatfs rw,noauto $FDDEVICES
+		;;
+esac

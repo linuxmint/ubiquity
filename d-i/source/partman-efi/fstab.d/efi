@@ -1,0 +1,30 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+ARCH="$(archdetect)"
+case $ARCH in
+    i386/mac|amd64/mac)
+	# Not yet sure what to do on Intel Macs.  Mounting the EFI System
+	# Partition on /boot/efi will change the behaviour of grub-install,
+	# so it seems best to avoid it for the moment.
+	exit 0
+	;;
+esac
+
+seen_efi=
+for dev in $DEVICES/*; do
+	[ -d $dev ] || continue
+	cd $dev
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ -z "$seen_efi" ] || continue
+		[ $fs != free ] || continue
+		[ -f "$id/method" ] || continue
+		method=$(cat $id/method)
+		[ "$method" = efi ] || continue
+		echo "$path" /boot/efi vfat defaults 0 1
+		seen_efi=1
+	done
+	close_dialog
+done

@@ -1,0 +1,94 @@
+#!/bin/sh
+set -e
+
+OLDIFS="$IFS"
+CR=$(echo -en "\r")
+NL="
+"
+
+export DEBIAN_FRONTEND=none
+. /usr/share/debconf/confmodule
+. /lib/preseed/preseed.sh
+
+SEEN=1
+if [ "$1" = --unseen ]; then
+	SEEN=
+	shift
+fi
+
+file="$1"
+
+parse_error() {
+	echo "$1" >> $logfile
+	log "Error parsing preconfiguration file; see '$logfile' for details"
+	exit 1
+}
+
+# Returns the first field in the current line
+first_field() {
+	echo "$line" | grep -q "[[:space:]]" || return 1
+	echo "$line" | sed -r 's/^([^[:space:]]*).*/\1/'
+}
+# Returns any fields after the first field in the current line
+rest_line() {
+	if echo "$line" | grep -q "[[:space:]]"; then
+		echo "$line" | sed 's/^[^[:space:]]*[[:space:]]*//'
+	fi
+}
+
+IFS="$NL"
+multiline=""
+# TODO: this squashes \r elsewhere in the line too
+for line in $(grep -v '^#\|^[[:space:]]*$' "$file" | sed "s/$CR//g"); do
+	IFS="$OLDIFS"
+	
+	line="$(echo "$line" | sed 's/^[[:space:]]*//')"
+	if echo "$line" | grep -q '\\$'; then
+		multiline="${multiline:+$multiline }$(echo "$line" | \
+			sed 's/[[:space:]]*\\$//')"
+		continue
+	elif [ -n "$multiline" ]; then
+		line="$multiline $line"
+		multiline=""
+	fi
+	
+	echo "$line" >> $logfile
+
+	package=""
+	var=""
+	type=""
+	val=""
+	if ! package="$(first_field)"; then
+		parse_error "Syntax error: unable to determine template owner"
+	fi
+	line="$(rest_line)"
+	if ! var="$(first_field)"; then
+		parse_error "Syntax error: unable to determine template name"
+	fi
+	line="$(rest_line)"
+	if ! type="$(first_field)"; then
+		# Allow for lines without separator before an empty value
+		if [ "$line" ]; then
+			type="$line"
+		else
+			parse_error "Syntax error: unable to determine template type"
+		fi
+	fi
+	line="$(rest_line)"
+	val="$line"
+
+	if [ "$type" = seen ]; then
+		# Set seen flag.
+		db_fset "$var" "$type" "$val" || true # how to handle this error?
+	else
+		if ! db_set "$var" "$val"; then
+			# Question does not exist yet.
+			db_register debian-installer/dummy "$var"
+			db_set "$var" "$val"
+			db_subst "$var" ID "$var"
+		fi
+		if [ "$SEEN" ]; then
+			db_fset "$var" seen true
+		fi
+	fi
+done

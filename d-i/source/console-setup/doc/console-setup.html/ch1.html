@@ -1,0 +1,172 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+
+<html>
+
+<head>
+
+<meta http-equiv="content-type" content="text/html; charset=iso-8859-1">
+
+<title>The Hackers Guide for console-setup - Basic Structure</title>
+
+</head>
+
+<body>
+
+<p><a name="ch1"></a></p>
+<hr>
+
+<p>
+[ <a href="index.html">previous</a> ]
+[ <a href="index.html#contents">Contents</a> ]
+[ 1 ]
+[ <a href="ch2.html">2</a> ]
+[ <a href="ch3.html">3</a> ]
+[ <a href="ch4.html">4</a> ]
+[ <a href="ch-ckbcomp.html">5</a> ]
+[ <a href="ch2.html">next</a> ]
+</p>
+
+<hr>
+
+<h1>
+The Hackers Guide for <samp>console-setup</samp>
+<br>Chapter 1 - Basic Structure
+</h1>
+
+<hr>
+
+<p>
+The main directory of the package contains a very simple <code>Makefile</code>
+&mdash; its main purpose is to invoke the sub-<code>Makefile</code>s in the
+directories <code>Fonts</code> and <code>Keyboard</code>.
+</p>
+
+<hr>
+
+<h2><a name="s1.1"></a>1.1 Fonts</h2>
+
+<p>
+Only 256 (or 512) glyphs can be used in the console fonts.  Because of that it
+is impossible to use one universal font suitable for all languages.  So we have
+to support different font collections for the different languages.
+</p>
+
+<p>
+Maintaining many different font collections has some obious disadvantages.
+First, the look of the console will depend on the character set.  Second, it is
+difficult to follow the quality and the purpose of so many different fonts.
+The solution is to maintain common fonts in BDF format for all languages and
+translate them to many fonts in PSF format for the different character sets.
+</p>
+
+<p>
+The new console fonts are named after the scheme
+<var>CHARSET</var>-<var>FONTFACE</var>.psf, <var>CHARSET</var> may be for
+example Arabic, CyrAsia or Lat38 (see <a href="ch2.html#s-charsets">Character
+Sets, Section 2.2</a>) and <var>FONTFACE</var> can be for example Fixed16.  The
+number in <var>FONTFACE</var> represents the number of scan lines in the font.
+</p>
+
+<hr>
+
+<h2><a name="s1.2"></a>1.2 Keyboard</h2>
+
+<p>
+The traditional approach for the keyboard support of Linux is not flexible
+enough.  All keyboard tables are fixed so even small customizations of the
+keyboard layouts require completely new keyboard definition.  As a result for
+many of the keyboard layouts there are many variants that differ only a bit.
+</p>
+
+<p>
+Another disadvantage is that the keyboard mappings are not completely encoding
+independent.  The kernel does not have knowledge for all Unicode symbols and
+can not translate between Unicode and the legacy 8-bit encodings.
+</p>
+
+<p>
+In order to circumvent we use the <code>ckbcomp</code> utility which is able to
+translate the keyboard definitions used in X Window to keyboard definitions
+suitable for loadkeys.  See <a href="ch-ckbcomp.html">The <code>ckbcomp</code>
+Utility, Chapter 5</a>.
+</p>
+
+<p>
+The <code>compose_translator</code> program generates the compose sequences
+from the console.  Invocation:
+</p>
+
+<pre>
+     ./compose_translator --acm acm/<var>ENCODING</var>.acm locale/<var>X_ENCODING</var>/Compose
+</pre>
+
+<p>
+Here the file in the <code>acm</code> directory defines the encoding of the
+generated compose sequences and the file in the <code>locale</code> defines the
+compose sequences in X Window.  The <code>locale</code> directory is a copy of
+the X directory <code>/usr/X11R6/lib/X11/locale</code>.
+</p>
+
+<hr>
+
+<h2><a name="s1.3"></a>1.3 <code>describe_unicodes</code></h2>
+
+<p>
+The main directory contains the utility <code>describe_unicodes</code>.  This
+utility is never invoked automatically.  Its purpose is to make files
+containing many Unicodes more human-readable.  The following transcript
+illustrates its usage:
+</p>
+
+<pre>
+     $ cat foo
+     U+FFFD U+003F
+     U+2015 U+2014
+     U+02C9 U+00AF
+     $ ./describe_unicodes foo
+     $ cat foo
+     U+FFFD U+003F
+     # U+FFFD:   REPLACEMENT CHARACTER
+     # U+003F:   QUESTION MARK
+     U+2015 U+2014
+     # U+2015:   HORIZONTAL BAR
+     # U+2014:   EM DASH
+     U+02C9 U+00AF
+     # U+02C9:   MODIFIER LETTER MACRON
+     # U+00AF:   MACRON
+</pre>
+
+<p>
+This utility is idempotent, i.e.  you can use it as many times as necessary on
+one and the same file in order to update the comments.
+</p>
+
+<hr>
+
+<p>
+[ <a href="index.html">previous</a> ]
+[ <a href="index.html#contents">Contents</a> ]
+[ 1 ]
+[ <a href="ch2.html">2</a> ]
+[ <a href="ch3.html">3</a> ]
+[ <a href="ch4.html">4</a> ]
+[ <a href="ch-ckbcomp.html">5</a> ]
+[ <a href="ch2.html">next</a> ]
+</p>
+
+<hr>
+
+<p>
+The Hackers Guide for <samp>console-setup</samp>
+</p>
+
+<address>
+Anton Zinoviev <code><a href="mailto:anton@lml.bas.bg">anton@lml.bas.bg</a></code><br>
+<br>
+</address>
+<hr>
+
+</body>
+
+</html>
+

@@ -1,0 +1,476 @@
+Template: partman/progress/init/title
+Type: text
+# :sl1:
+_Description: Starting up the partitioner
+
+Template: partman/progress/init/fallback
+Type: text
+# :sl1:
+_Description: Please wait...
+
+Template: partman/progress/init/parted
+Type: text
+# :sl1:
+_Description: Scanning disks...
+
+Template: partman/progress/init/update_partitions
+Type: text
+# :sl1:
+_Description: Detecting file systems...
+
+Template: partman-base/devicelocked
+Type: error
+# :sl2:
+#flag:translate!:3
+_Description: Device in use
+ No modifications can be made to the device ${DEVICE} for the
+ following reasons:
+ .
+ ${MESSAGE}
+
+Template: partman-base/partlocked
+Type: error
+# :sl2:
+#flag:translate!:3
+#flag:comment:2
+# This should be translated as "partition *number* ${PARTITION}"
+# In short, ${PARTITION} will indeed contain the partition
+# NUMBER and not the partition NAME
+_Description: Partition in use
+ No modifications can be made to the partition #${PARTITION} of
+ device ${DEVICE} for the following reasons:
+ .
+ ${MESSAGE}
+
+Template: partman/exception_handler
+Type: select
+Choices: ${CHOICES}
+Description: ${TYPE}
+ ${DESCRIPTION}
+
+Template: partman/exception_handler_note
+Type: note
+Description: ${TYPE}
+ ${DESCRIPTION}
+
+Template: partman/choose_partition
+Type: select
+Choices-C: ${CHOICES}
+Choices: ${DESCRIPTIONS}
+# :sl1:
+_Description: This is an overview of your currently configured partitions and mount points. Select a partition to modify its settings (file system, mount point, etc.), a free space to create partitions, or a device to initialize its partition table.
+Help: partman-target/help
+
+Template: partman/confirm_nochanges
+Type: boolean
+Default: false
+# :sl2:
+_Description: Continue with the installation?
+ No partition table changes and no creation of file systems have been planned.
+ .
+ If you plan on using already created file systems, be aware that existing
+ files may prevent the successful installation of the base system.
+
+Template: partman/confirm
+Type: boolean
+Default: false
+# :sl1:
+#flag:translate!:4
+_Description: Write the changes to disks?
+ If you continue, the changes listed below will be written to the disks.
+ Otherwise, you will be able to make further changes manually.
+ .
+ WARNING: This will destroy all data on any partitions you have
+ removed as well as on the partitions that are going to be formatted.
+ .
+ ${ITEMS}
+
+Template: partman/confirm_nooverwrite
+Type: boolean
+Default: false
+# :sl1:
+#flag:translate!:3
+_Description: Write the changes to disks?
+ If you continue, the changes listed below will be written to the disks.
+ Otherwise, you will be able to make further changes manually.
+ .
+ ${ITEMS}
+
+Template: partman/text/confirm_item_header
+Type: text
+# :sl2:
+_Description: The following partitions are going to be formatted:
+
+Template: partman/text/confirm_item
+Type: text
+# :sl2:
+# for example: "partition #6 of IDE0 master as ext3 journaling file system"
+_Description: partition #${PARTITION} of ${DEVICE} as ${TYPE}
+
+Template: partman/text/confirm_unpartitioned_item
+Type: text
+# :sl2:
+# for devices which have no partitions
+# for example: "LVM VG Debian, LV Root as ext3 journaling file system"
+_Description: ${DEVICE} as ${TYPE}
+
+Template: partman/text/confirm_partitem_header
+Type: text
+# :sl2:
+_Description: The partition tables of the following devices are changed:
+
+Template: partman/storage_device
+Type: select
+Choices-C: ${CHOICES}
+Choices: ${DESCRIPTIONS}
+# :sl2:
+_Description: What to do with this device:
+Help: partman-target/help
+
+Template: partman/free_space
+Type: select
+Choices-C: ${CHOICES}
+Choices: ${DESCRIPTIONS}
+# :sl2:
+_Description: How to use this free space:
+Help: partman-target/help
+
+Template: partman/active_partition
+Type: select
+Choices-C: ${CHOICES}
+Choices: ${DESCRIPTIONS}
+# :sl2:
+_Description: Partition settings:
+ You are editing partition #${PARTITION} of ${DEVICE}. ${OTHERINFO} ${DESTROYED}
+Help: partman-target/help
+
+Template: partman/text/there_is_detected
+Type: text
+# :sl2:
+_Description: This partition is formatted with the ${FILESYSTEM}.
+
+Template: partman/text/none_detected
+Type: text
+# :sl2:
+_Description: No existing file system was detected in this partition.
+
+Template: partman/text/destroyed
+Type: text
+# :sl2:
+_Description: All data in it WILL BE DESTROYED!
+
+Template: partman/show_partition_chs
+Type: note
+# :sl2:
+_Description: The partition starts from ${FROMCHS} and ends at ${TOCHS}.
+
+Template: partman/show_free_chs
+Type: note
+# :sl2:
+_Description: The free space starts from ${FROMCHS} and ends at ${TOCHS}.
+
+Template: partman/text/please_wait
+Type: text
+# :sl2:
+_Description: Please wait...
+
+Template: partman/text/formatting
+Type: text
+# :sl1:
+_Description: Partitions formatting
+
+Template: partman/text/processing
+Type: text
+# :sl1:
+_Description: Processing...
+
+Template: partman/text/text_template
+Type: text
+Description: ${DESCRIPTION}
+
+Template: partman/text/show_chs
+Type: text
+# :sl2:
+_Description: Show Cylinder/Head/Sector information
+
+Template: partman/text/finished_with_partition
+Type: text
+# :sl2:
+_Description: Done setting up the partition
+
+Template: partman/text/end_the_partitioning
+Type: text
+# :sl1:
+_Description: Finish partitioning and write changes to disk
+
+Template: partman/text/undo_everything
+Type: text
+# :sl1:
+_Description: Undo changes to partitions
+
+Template: partman/text/show_chs_free
+Type: text
+# :sl2:
+_Description: Show Cylinder/Head/Sector information
+
+Template: partman/text/dump_partition_info
+Type: text
+# :sl2:
+_Description: Dump partition info in %s
+
+Template: partman/text/free_space
+Type: text
+# Keep short
+# :sl1:
+_Description: FREE SPACE
+
+Template: partman/text/unusable
+Type: text
+# "unusable free space".  No more than 8 symbols.
+# :sl1:
+_Description: unusable
+
+Template: partman/text/primary
+Type: text
+# "primary partition".  No more than 8 symbols.
+# :sl1:
+_Description: primary
+
+Template: partman/text/logical
+Type: text
+# "logical partition".  No more than 8 symbols.
+# :sl1:
+_Description: logical
+
+Template: partman/text/pri/log
+Type: text
+# "primary or logical".  No more than 8 symbols.
+# :sl1:
+_Description: pri/log
+
+Template: partman/text/number
+Type: text
+# How to print the partition numbers in your language
+# Examples:
+# %s.
+# No %s
+# N. %s
+# :sl1:
+_Description: #%s
+
+Template: partman/text/ata_disk
+Type: text
+# For example ATA1 (ad0)
+# :sl1:
+_Description: ATA%s (%s)
+
+Template: partman/text/ata_partition
+Type: text
+# For example ATA1, partition #5 (ad0s5)
+# :sl1:
+_Description: ATA%s, partition #%s (%s)
+
+Template: partman/text/ide_master_disk
+Type: text
+# For example IDE0 master (hda)
+# :sl1:
+_Description: IDE%s master (%s)
+
+Template: partman/text/ide_slave_disk
+Type: text
+# For example IDE1 slave (hdd)
+# :sl1:
+_Description: IDE%s slave (%s)
+
+Template: partman/text/ide_master_partition
+Type: text
+# For example IDE1 master, partition #5 (hdc5)
+# :sl1:
+_Description: IDE%s master, partition #%s (%s)
+
+Template: partman/text/ide_slave_partition
+Type: text
+# For example IDE2 slave, partition #5 (hdf5)
+# :sl1:
+_Description: IDE%s slave, partition #%s (%s)
+
+Template: partman/text/scsi_disk
+Type: text
+# :sl1:
+_Description: SCSI%s (%s,%s,%s) (%s)
+
+Template: partman/text/scsi_partition
+Type: text
+# :sl1:
+_Description: SCSI%s (%s,%s,%s), partition #%s (%s)
+
+Template: partman/text/scsi_simple_disk
+Type: text
+# :sl1:
+_Description: SCSI%s (%s)
+
+Template: partman/text/scsi_simple_partition
+Type: text
+# :sl1:
+_Description: SCSI%s, partition #%s (%s)
+
+Template: partman/text/mmc_disk
+Type: text
+# For example MMC/SD card #1 (mmcblk0)
+# :sl3:
+_Description: MMC/SD card #%s (%s)
+
+Template: partman/text/mmc_partition
+Type: text
+# For example MMC/SD card #1, partition #2 (mmcblk0p2)
+# :sl3:
+_Description: MMC/SD card #%s, partition #%s (%s)
+
+Template: partman/text/raid_device
+Type: text
+# :sl3:
+_Description: RAID%s device #%s
+
+Template: partman/text/dmcrypt_volume
+Type: text
+# :sl3:
+_Description: Encrypted volume (%s)
+
+Template: partman/text/dmraid_volume
+Type: text
+# For example: Serial ATA RAID isw_dhiiedgihc_Volume0 (mirror)
+# :sl3:
+_Description: Serial ATA RAID %s (%s)
+
+Template: partman/text/dmraid_part
+Type: text
+# For example: Serial ATA RAID isw_dhiiedgihc_Volume01 (partition #1)
+# :sl3:
+_Description: Serial ATA RAID %s (partition #%s)
+
+Template: partman/text/multipath
+Type: text
+# Translators: "multipath" is a pretty tricky term to translate
+# You'll find some documentation about it at 
+# http://www.redhat.com/docs/manuals/csgfs/browse/4.6/DM_Multipath/index.html
+# "Short" definition:
+# Device Mapper Multipathing (DM-Multipath) allows you to configure
+# multiple I/O paths between server nodes and storage arrays into a
+# single device. These I/O paths are physical SAN connections that can
+# include separate cables, switches, and controllers. Multipathing
+# aggregates the I/O paths, creating a new device that consists of the
+# aggregated paths.
+# WWID stands for World-Wide IDentification
+# :sl3:
+_Description: Multipath %s (WWID %s)
+
+Template: partman/text/multipath_partition
+Type: text
+# :sl3:
+_Description: Multipath %s (partition #%s)
+
+Template: partman/text/lvm_lv
+Type: text
+# :sl3:
+_Description: LVM VG %s, LV %s
+
+Template: partman/text/zfs_volume
+Type: text
+# :sl5:
+_Description: ZFS pool %s, volume %s
+
+Template: partman/text/loopback
+Type: text
+# :sl3:
+_Description: Loopback (loop%s)
+
+Template: partman/text/dasd_disk
+Type: text
+# :sl5:
+_Description: DASD %s (%s)
+
+Template: partman/text/dasd_partition
+Type: text
+# :sl5:
+_Description: DASD %s (%s), partition #%s
+
+Template: partman/text/virtual_disk
+Type: text
+# eg. Virtual disk 1 (xvda)
+# :sl4:
+_Description: Virtual disk %s (%s)
+
+Template: partman/text/virtual_partition
+Type: text
+# eg. Virtual disk 1, partition #1 (xvda1)
+# :sl4:
+_Description: Virtual disk %s, partition #%s (%s)
+
+Template: partman/text/cancel_menu
+Type: text
+# :sl1:
+_Description: Cancel this menu
+
+Template: debian-installer/partman-base/title
+Type: text
+# Main menu entry
+# :sl1:
+_Description: Partition disks
+
+Template: partman/early_command
+Type: string
+Description: for internal use; can be preseeded
+ Shell command or commands to run immediately before partitioning
+
+Template: partman/default_filesystem
+Type: string
+Default: ext3
+Description: for internal use; can be preseeded
+ Default filesystem used for new partitions
+
+Template: partman/filter_mounted
+Type: boolean
+Default: true
+Description: for internal use; can be preseeded
+ Filter out disks with mounted partitions.
+
+Template: partman/unmount_active
+Type: boolean
+#flag:translate!:3
+_Description: Unmount partitions that are in use?
+ The installer has detected that the following disks have mounted partitions:
+ .
+ ${DISKS}
+ .
+ Do you want the installer to try to unmount the partitions on these disks
+ before continuing?  If you leave them mounted, you will not be able to
+ create, delete, or resize partitions on these disks, but you may be able to
+ install to existing partitions there.
+
+Template: partman/installation_medium_mounted
+Type: note
+_Description: Installation medium on ${PARTITION}
+ Your installation medium is on ${PARTITION}. You will not be able to
+ create, delete, or resize partitions on this disk, but you may be able to
+ install to existing partitions there.
+
+Template: partman/alignment
+Type: select
+Choices: cylinder, minimal, optimal
+Default: optimal
+Description: for internal use; can be preseeded
+ Adjust the policy for starting and ending alignment of new partitions.  You
+ can generally leave this alone unless optimal alignment causes some kind of
+ problem.
+ .
+ Cylinder alignment was required by very old DOS-era systems, and is not
+ usually needed nowadays.  However, a few buggy BIOSes may try to calculate
+ cylinder/head/sector addresses for partitions and get confused if
+ partitions aren't cylinder-aligned.
+ .
+ Minimal alignment ensures that new partitions are aligned to physical
+ blocks on the disk, avoiding performance degradation that may occur with
+ cylinder alignment particularly on modern disks.
+ .
+ Optimal alignment ensures that new partitions are aligned to a suitable
+ multiple of the physical block size, guaranteeing optimal performance.

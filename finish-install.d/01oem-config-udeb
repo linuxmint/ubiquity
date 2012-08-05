@@ -1,0 +1,27 @@
+#! /bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+db_get oem-config-udeb/frontend
+apt-install "oem-config${RET:+-$RET ubiquity-frontend-$RET}"
+if [ "$RET" = gtk ]; then
+	apt-install "oem-config-slideshow-ubuntu" || true
+fi
+# Restore title, since packages with debconf templates may have changed it.
+db_settitle debian-installer/finish-install/title
+
+db_input high oem-config-udeb/instructions || true
+db_go || true
+
+# Copy the value of debian-installer/locale over to the target system so that
+# it gets used by oem-config as the default language selection.
+# debian-installer/framebuffer is needed for oem-config-debconf.
+db_get debian-installer/locale
+LOCALE="$RET"
+db_get debian-installer/framebuffer
+FRAMEBUFFER="$RET"
+chroot /target debconf-set-selections <<EOF || true
+oem-config debian-installer/locale select $LOCALE
+oem-config debian-installer/framebuffer boolean $FRAMEBUFFER
+EOF

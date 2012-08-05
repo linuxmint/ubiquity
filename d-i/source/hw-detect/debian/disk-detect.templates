@@ -1,0 +1,49 @@
+Template: debian-installer/disk-detect/title
+Type: text
+#  Main menu item
+# :sl1:
+_Description: Detect disks
+
+Template: disk-detect/detect_progress_title
+Type: text
+# :sl1:
+_Description: Detecting disks and all other hardware
+
+Template: disk-detect/module_select
+Type: select
+Choices-C: continue, ${CHOICES-C}, none
+# :sl2:
+#flag:translate!:2
+#flag:comment:3
+# "none of the above" should be understood as "none of the above choices"
+__Choices: continue with no disk drive, ${CHOICES}, none of the above
+Default: continue with no disk drive
+# :sl2:
+_Description: Driver needed for your disk drive:
+ No disk drive was detected. If you know the name of the driver
+ needed by your disk drive, you can select it from the list.
+
+Template: disk-detect/cannot_find
+Type: error
+# :sl2:
+_Description: No partitionable media
+ No partitionable media were found.
+ .
+ Please check that a hard disk is attached to this machine.
+
+Template: disk-detect/multipath/enable
+Type: boolean
+Default: false
+Description: for internal use; can be preseeded
+ Check for the presence of multipath devices?
+
+Template: disk-detect/activate_dmraid
+Type: boolean
+Default: true
+_Description: Activate Serial ATA RAID devices?
+ One or more drives containing Serial ATA RAID configurations have been found.
+ Do you wish to activate these RAID devices?
+
+Template: disk-detect/iscsi_choice
+Type: text
+_Description: login to iSCSI targets

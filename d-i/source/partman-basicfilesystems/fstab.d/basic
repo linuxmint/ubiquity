@@ -1,0 +1,111 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+utf8=
+if db_get debian-installer/locale; then
+	# TODO: This check breaks for locales that use the UTF-8 encoding but
+	# whose names don't include ".UTF-8". This is difficult to fix without
+	# adding more encoding intelligence to localechooser. In the meantime,
+	# we hardcode certain such non-obvious UTF-8 locales known to be used in
+	# localechooser.
+	case $RET in
+	    *.UTF-8|bn_BD|dz_BT|gu_IN|hi_IN|km_KH|ml_IN|ne_NP|pa_IN|se_NO|ta_IN|vi_VN|wo_SN)
+		utf8=1
+		;;
+	esac
+fi
+
+os="$(udpkg --print-os)"
+
+for dev in $DEVICES/*; do
+	[ -d $dev ] || continue
+	cd $dev
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ $fs != free ] || continue
+		[ -f "$id/method" ] || continue
+		method=$(cat $id/method)
+		if [ "$method" = swap ]; then
+			echo "$path" none swap sw 0 0
+		fi
+		[ -f "$id/acting_filesystem" ] || continue
+		filesystem=$(cat $id/acting_filesystem)
+		case "$filesystem" in
+		    ext2)
+			[ -f "$id/mountpoint" ] || continue
+			mountpoint=$(cat $id/mountpoint)
+			# due to #249322, #255135, #258117:
+			if [ "$mountpoint" = /tmp ]; then
+				rm -f $id/options/noexec
+			fi
+			options=$(get_mountoptions $dev $id)
+			if [ "$mountpoint" = / ]; then
+				if [ "$os" = hurd ] || [ "$os" = kfreebsd ] ; then
+					: # remount-ro not supported
+				elif [ "$options" = defaults ]; then
+					options="errors=remount-ro"
+				else
+					options="${options},errors=remount-ro"
+				fi
+				pass=1
+			else
+				pass=2
+			fi
+			if [ "$os" = kfreebsd ] ; then
+				if [ "$options" = "defaults" ] ; then
+					options="rw"
+				elif ! echo "$options" | grep -q '\(^\|,\)r\(o\|w\)\(,\|$\)' ; then
+					options="${options},rw"
+				 fi
+				echo "$path" "$mountpoint" ext2fs $options 0 $pass
+			else
+				echo "$path" "$mountpoint" ext2 $options 0 $pass
+			fi
+			if [ "$os" = hurd ] ; then
+				settrans -pk "/target/$mountpoint" /hurd/ext2fs.static -T device "${path#/dev/}"
+			fi
+			;;
+		    fat16|fat32)
+			[ -f "$id/mountpoint" ] || continue
+			mountpoint=$(cat $id/mountpoint)
+			options=$(get_mountoptions $dev $id)
+			if [ "$os" = kfreebsd ] ; then
+				if [ "$options" = "defaults" ] ; then
+					options="rw"
+				elif ! echo "$options" | grep -q '\(^\|,\)r\(o\|w\)\(,\|$\)' ; then
+					options="${options},rw"
+				fi
+				echo "$path" "$mountpoint" msdosfs $options 0 0
+			else
+				if [ "$utf8" ] ; then
+					if [ "$options" = defaults ]; then
+						options="utf8"
+					else
+						options="$options,utf8"
+					fi
+				fi
+				# base-passwd defines gid 46 as group plugdev
+				if [ "$method" != efi ]; then
+					options="$options,umask=007,gid=46"
+				fi
+				echo "$path" "$mountpoint" vfat $options 0 1
+			fi
+			if [ "$os" = hurd ] ; then
+				settrans -pk "/target/$mountpoint" /hurd/fatfs "$path"
+			fi
+			;;
+		    ntfs)
+			[ -f "$id/mountpoint" ] || continue
+			mountpoint=$(cat $id/mountpoint)
+			options=$(get_mountoptions $dev $id)
+			if [ "$utf8" ] && [ ! -f /var/lib/partman/ntfs-3g ]; then
+				options="$options,nls=utf8"
+			fi
+			# base-passwd defines gid 46 as group plugdev
+			echo "$path" "$mountpoint" ntfs $options,umask=007,gid=46 0 0
+			;;
+		esac
+	done
+	close_dialog
+done

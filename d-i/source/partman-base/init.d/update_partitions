@@ -1,0 +1,26 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+for dev in /var/lib/partman/devices/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	rm -f partition_tree_cache
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line partinfo; [ "$partinfo" ]; }; do
+		partitions="${partitions:+$partitions$NL}$partinfo"
+	done
+	close_dialog
+
+	IFS="$NL"
+	for partinfo in $partitions; do
+		restore_ifs
+		for u in /lib/partman/update.d/*; do
+			[ -x "$u" ] || continue
+			$u $dev $partinfo
+		done
+		IFS="$NL"
+	done
+	restore_ifs
+done

@@ -1,0 +1,22 @@
+* Support for multi-volume btrfs filesystems
+* Support for other mkfs.btrfs options, if any are useful.
+* Support for btrfs snapshots / using existing btrfs?
+* mountoptions is missing a few options that may be worth supporting,
+  including degraded, and all options that require a parameter.
+* mountoptions contains nobarrier, which is an unsafe option. Remove? Warn?
+* Resizing?
+
+* How about installation into different subvolumes?
+
+  Example:
+  / (root), /usr, /var and /home each on the same btrfs filesystem,
+  but as separate named subvolumes (root/default, usr, var and home).
+  
+  This would break the one filesystem==one mount concept currently
+  used by the partitioner.  Here, one filesystem would be mounted
+  in several places, but with a slightly different subvol mount
+  option.  Maybe handle like LVM, where there's a separate dialogue
+  for creating LVs (subvolumes), and then select individual
+  subvolumes on the main partitioning dialogue for mounting in a
+  given location.
+

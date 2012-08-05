@@ -1,0 +1,100 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+gendir=/usr/lib/apt-setup/generators
+
+if [ "$1" = --log-output ] && type log-output >/dev/null 2>&1; then
+	CATCHLOG=1
+	shift
+else
+	CATCHLOG=
+fi
+export CATCHLOG
+
+if [ "$1" ]; then
+	ROOT="$1"
+	chroot=chroot
+else
+	ROOT=
+	chroot=
+fi
+export ROOT
+
+# generators/01setup will create this; apt honours it (see apt.conf(5))
+export APT_CONFIG=/etc/apt/apt.conf.new
+
+log() {
+        logger -t apt-setup "$@"
+}
+warning() {
+        log "warning: $@"
+}
+
+gencount=$(ls "$gendir"/* | wc -l)
+db_capb backup progresscancel
+db_progress START 0 $(expr $gencount \* 200) apt-setup/progress/title
+
+PROGRESS_FROM=0
+PROGRESS_TO=100
+export PROGRESS_FROM
+export PROGRESS_TO
+
+progress_advance() {
+	db_progress SET $PROGRESS_TO || true
+	PROGRESS_FROM=$PROGRESS_TO
+	PROGRESS_TO=$(expr $PROGRESS_FROM + 100)
+}
+
+for generator in $gendir/*; do
+	base=$(basename $generator | sed 's/[0-9]*//')
+	base="${base%%.*}"
+	if ! db_progress INFO apt-setup/progress/$base; then
+		db_subst apt-setup/progress/fallback SCRIPT "$base"
+		db_progress INFO apt-setup/progress/fallback || true
+	fi
+	
+	tmp=$($chroot $ROOT tempfile)
+
+	code=0
+	$generator $ROOT$tmp || code=$?
+	progress_advance
+
+	case $code in
+	    0)
+		if ! apt-setup-verify \
+			--from $PROGRESS_FROM --to $PROGRESS_TO \
+			$ROOT$tmp $ROOT/etc/apt/sources.list.new; then
+			warning "$generator output did not verify"
+		fi
+		;;
+	    9)
+		apt-setup-verify --invalid $ROOT$tmp $ROOT/etc/apt/sources.list.new || true
+		warning "$generator output added commented out"
+		;;
+	    10)
+		# TODO handle backup better
+		log "$generator backed up"
+		rm -f $ROOT$tmp $ROOT/etc/apt/sources.list.new
+		db_progress STOP
+		db_capb backup
+		exit 10
+		;;
+	    *)
+		warning "$generator returned error code $code; discarding output"
+		;;
+	esac
+	rm -f $ROOT$tmp
+
+	progress_advance
+done
+mv $ROOT/etc/apt/sources.list.new $ROOT/etc/apt/sources.list
+if [ -s $ROOT/etc/apt/apt.conf.new ]; then
+	mv $ROOT/etc/apt/apt.conf.new $ROOT/etc/apt/apt.conf
+else
+	rm -f $ROOT/etc/apt/apt.conf.new
+fi
+
+db_progress STOP
+db_capb backup

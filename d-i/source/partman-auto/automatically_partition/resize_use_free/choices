@@ -1,0 +1,221 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+. /lib/partman/lib/resize.sh
+. /lib/partman/lib/auto-shared.sh
+
+ARCH="$(archdetect)"
+case $ARCH in
+    armel/*|armhf/*)
+	# Dual-booting on ARM is difficult for casual users
+	exit 0
+	;;
+esac
+
+bestfree=0
+bestpart=none
+bestpath=none
+
+tmpfile="$(mktemp /tmp/partman-auto.XXXXXX)"
+trap "rm -f $tmpfile" EXIT HUP INT QUIT TERM
+
+# Count the number of primary and logical partitions.
+count_primary_logical () {
+	local primaries=0
+	local logicals=0
+	while { read num oldid size type fs path name; [ "$oldid" ]; }; do
+		case $fs in
+		    free)
+			;;
+		    *)
+			case $type in
+			    primary)
+				primaries="$(($primaries + 1))"
+				;;
+			    logical)
+				logicals="$(($logicals + 1))"
+				;;
+			esac
+			;;
+		esac
+		echo "$primaries $logicals"
+	done | tail -n1
+}
+
+# Filter a partition list to include only those entries which are already
+# part of an extended partition or which can be resized to provide
+# additional space in an extended partition.
+can_be_extended () {
+	local previous=
+	while { read num oldid size type fs path name; [ "$oldid" ]; }; do
+		case $type in
+		    logical|pri/log)
+			if [ "$previous" ]; then
+				# If the previous partition can be resized, that will
+				# create additional space at the end adjacent to this
+				# partition.
+				echo "$previous"
+				previous=
+			fi
+			echo "$num $oldid $size $type $fs $path $name"
+			;;
+		    *)
+			previous="$num $oldid $size $type $fs $path $name"
+			;;
+		esac
+	done
+}
+
+scan_disk () {
+	local partitions uses_extended max_primary
+	local primary_logical primaries logicals
+
+	totalfree=0
+	diskfree=0
+	diskpart=none
+	diskpath=none
+
+	open_dialog PARTITIONS
+	partitions="$(read_paragraph)"
+	close_dialog
+
+	open_dialog USES_EXTENDED
+	read_line uses_extended
+	close_dialog
+
+	open_dialog GET_MAX_PRIMARY
+	read_line max_primary
+	close_dialog
+	if [ -z "$max_primary" ]; then
+		log "Unable to get maximum primary partition count on $dev"
+		return
+	fi
+
+	# TODO: This should all be checked later to take account of recipes
+	# other than the defaults for the supported Ubuntu architectures.
+	if [ "$uses_extended" = yes ]; then
+		primary_logical="$(echo "$partitions" | count_primary_logical)"
+		if [ "$primary_logical" ]; then
+			primaries="${primary_logical% *}"
+			logicals="${primary_logical#* }"
+			log "$primaries primary partitions, $logicals logical partitions"
+
+			# If there are no logical partitions, then we will need a
+			# primary partition slot to create an extended partition.
+			if [ "$logicals" -eq 0 ] && \
+			   [ "$primaries" -ge "$max_primary" ]; then
+				log "Too many primary partitions already exist on $dev without an extended partition"
+				return
+			fi
+
+			# If there is already an extended partition, then only consider
+			# those partitions in which (after resizing) partitions can be
+			# created sufficiently freely.
+			if [ "$logicals" -ne 0 ]; then
+				partitions="$(echo "$partitions" | can_be_extended)"
+				log "filtered partition list:"
+				log "$partitions"
+			fi
+		fi
+	fi
+
+	# Parts of the body of this while loop may use debconf, so we must not
+	# interfere with stdin, hence the temporary file.
+	echo "$partitions" >"$tmpfile"
+	while { read num oldid size type fs path name <&9; [ "$oldid" ]; }; do
+		case $fs in
+		    free)
+			totalfree="$(expr "$totalfree" + "$size")"
+			;;
+
+		    linux-swap|fat32)
+			get_resize_range
+			if [ "$cursize" ] && [ "$minsize" ]; then
+				thisfree="$(expr "$cursize" - "$minsize")"
+				if longint_le $diskfree $thisfree; then
+					diskfree=$thisfree
+					diskpart=$dev//$oldid
+					diskpath=$path
+				fi
+			fi
+			;;
+
+		    ext2|ext3|ext4)
+			if ! type tune2fs >/dev/null 2>&1 || ! type resize2fs >/dev/null 2>&1; then
+				continue
+			fi
+			check_virtual
+			if [ "$virtual" = yes ]; then
+				get_resize_range
+			else
+				get_real_resize_range "$oldid" "$fs" || continue
+			fi
+			if [ "$cursize" ] && [ "$minsize" ]; then
+				thisfree="$(expr "$cursize" - "$minsize")"
+				if longint_le $diskfree $thisfree; then
+					diskfree=$thisfree
+					diskpart=$dev//$oldid
+					diskpath=$path
+				fi
+			fi
+			;;
+
+		    ntfs)
+			if ! type ntfsresize >/dev/null 2>&1; then
+				continue
+			fi
+			check_virtual
+			if [ "$virtual" = yes ]; then
+				get_resize_range
+			else
+				get_real_resize_range "$oldid" "$fs" || continue
+			fi
+			if [ "$cursize" ] && [ "$minsize" ]; then
+				thisfree="$(expr "$cursize" - "$minsize")"
+				if longint_le $diskfree $thisfree; then
+					diskfree=$thisfree
+					diskpart=$dev//$oldid
+					diskpath=$path
+				fi
+			fi
+			;;
+		esac
+	done 9<"$tmpfile"
+}
+
+found=
+get_resize_use_free_on_dev() {
+	cd $dev
+
+	scan_disk
+	log "dev: '$dev', totalfree: '$totalfree', diskfree: '$diskfree', diskpart: '$diskpart', diskpath: '$diskpath'"
+	if longint_le "$(expr 3 \* 1024 \* 1024 \* 1024)" "$diskfree"; then
+		log "Found resizable partition '$diskpart' ($diskpath) with $diskfree bytes free"
+		db_subst partman-auto/text/resize_use_free PARTITION "$(humandev "$diskpath")"
+		db_metaget partman-auto/text/resize_use_free description
+		printf "%s\t%s\n" "$diskpart" "$RET"
+		found=:
+	else
+		log "Found resizable partition '$diskpart' ($diskpath), but not offering because only $diskfree bytes free"
+	fi
+}
+
+dev="$1"
+
+if [ -z "$dev" ]; then
+	DEVS="$(get_auto_disks)"
+	IFS="$NL"
+	for dev in $DEVS; do
+		restore_ifs
+		dev="${dev%$TAB*}"
+		get_resize_use_free_on_dev
+		IFS="$NL"
+	done
+	restore_ifs
+else
+	get_resize_use_free_on_dev
+fi
+
+if ! $found; then
+	log "Found no resizable partitions"
+fi

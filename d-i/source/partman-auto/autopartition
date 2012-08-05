@@ -1,0 +1,45 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+. /lib/partman/lib/recipes.sh
+. /lib/partman/lib/auto-shared.sh
+
+devs="$1"
+
+clean_method
+
+for dev in $devs; do
+	cd $dev
+
+	[ -f size ] || exit 1
+	size=$(cat size)
+	target="$(humandev $(cat device)) - $(cat model)"
+
+	if [ -z "$2" ]; then
+		# Only one parameter. Being run for initial autopartitioning.
+		target="$target: $(longint2human $size)"
+		free_size=$(convert_to_megabytes $size)
+
+		choose_recipe default "$target" "$free_size" || exit $?
+
+		auto_init_disks "$dev" || exit $?
+		get_last_free_partition_infos $dev
+	else
+		# Two parameters, being run on selected free space.
+		free_space=$2
+
+		open_dialog PARTITION_INFO $free_space
+		read_line x1 x2 free_size x3 x4 x5 x6
+		close_dialog
+
+		target="$target: $(longint2human $free_size) ($(longint2human $size))"
+		free_size=$(convert_to_megabytes $free_size)
+
+		choose_recipe default "$target" "$free_size" || exit $?
+	fi
+
+	perform_recipe $dev $free_space $recipe || exit $?
+done
+
+# default to accepting the autopartitioning
+menudir_default_choice /lib/partman/choose_partition finish finish || true

@@ -1,0 +1,47 @@
+#! /bin/sh
+# Check that all system partitions are formatted.
+
+. /lib/partman/lib/base.sh
+
+for dev in $DEVICES/*; do
+    [ -d "$dev" ] || continue
+    cd $dev
+    partitions=
+    open_dialog PARTITIONS
+    while { read_line num id size type fs path name; [ "$id" ]; }; do
+	[ "$fs" != free ] || continue
+	partitions="$partitions $id,$path"
+    done
+    close_dialog
+
+    for part in $partitions; do
+	id="${part%%,*}"
+	path="${part#*,}"
+	[ -f "$id/method" ] || continue
+	[ ! -f "$id/reuse" ] || continue
+	[ ! -f "$id/format" ] || continue
+	[ ! -f "$id/formatted" ] || continue
+	[ -f "$id/acting_filesystem" ] || continue
+	[ -f "$id/mountpoint" ] || continue
+	mountpoint="$(cat "$id/mountpoint")"
+	case $mountpoint in
+	    /usr/local|/usr/local/*|/var/local|/var/local/*)
+		;;
+	    /|/boot|/boot/*|/usr|/usr/*|/var|/var/*)
+		db_reset ubiquity/partman-system-unformatted
+		db_subst ubiquity/partman-system-unformatted PARTITION "$path"
+		db_subst ubiquity/partman-system-unformatted MOUNTPOINT "$mountpoint"
+		db_input high ubiquity/partman-system-unformatted || true
+		db_go || true
+		db_get ubiquity/partman-system-unformatted
+		if [ "$RET" = true ]; then
+		    exit 1
+		else
+		    exit 0
+		fi
+		;;
+	esac
+    done
+done
+
+exit 0

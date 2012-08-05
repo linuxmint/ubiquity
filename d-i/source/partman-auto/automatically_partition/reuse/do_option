@@ -1,0 +1,86 @@
+#!/bin/sh
+
+set -e
+
+. /lib/partman/lib/base.sh
+
+dev=${1%//*}
+id=${1#*//}
+
+cd $dev
+
+setup_reuse_partition () {
+	echo keep > $1/method
+	if [ -f $1/detected_filesystem ]; then
+		cp $1/detected_filesystem $1/filesystem
+	fi
+	mkdir -p $1/options
+	rm -f $1/format
+	>$1/use_filesystem
+	>$1/reuse
+}
+
+path=
+cleanup () {
+	umount -l $mountpoint && rmdir $mountpoint || true
+	blockdev --setrw $path || true
+}
+
+setup_reuse_partition $id
+echo / > $id/mountpoint
+update_partition $dev $id
+
+open_dialog PARTITION_INFO $id
+read_line num i size type fs path name
+close_dialog
+mountpoint="$(mktemp -d)"
+blockdev --setro $path
+mount $path $mountpoint 3>&-
+trap cleanup EXIT HUP INT QUIT TERM
+
+if [ ! -f "$mountpoint/etc/fstab" ]; then
+	exit 100
+fi
+
+fstab=
+while read uuid mp rest; do
+	if [ "${uuid%=*}" != "UUID" ]; then
+		continue
+	fi
+	uuid="${uuid#*=}"
+	if [ ! -e "/dev/disk/by-uuid/$uuid" ]; then
+		continue
+	fi
+	fstab="$fstab $uuid,$mp"
+done < "$mountpoint/etc/fstab"
+
+for dev in $DEVICES/*; do
+	cd $dev
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num i size type fs p name; [ "$i" ]; }; do
+		if [ "$(cat $i/detected_filesystem)" = "linux-swap" ]; then
+			# Swap will be automatically used.
+			continue
+		fi
+
+		u="$(blkid -o value -s UUID $p)" || true
+		for line in $fstab; do
+			uuid="${line%,*}"
+			mp="${line#*,}"
+			if [ "$uuid" = "$u" ]; then
+				echo "$mp" > $i/mountpoint
+				partitions="$partitions $i"
+				break
+			fi
+		done
+	done
+	close_dialog
+
+	for part in $partitions; do
+		setup_reuse_partition $part
+		update_partition $dev $part
+	done
+done
+
+exit 100

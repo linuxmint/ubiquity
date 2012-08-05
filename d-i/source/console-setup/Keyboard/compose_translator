@@ -1,0 +1,1222 @@
+#!/usr/bin/perl
+
+#     compose_translator -- read XKB Compose files
+#     Copyright © 2005 Anton Zinoviev <anton@lml.bas.bg>
+
+#     This program is free software; you can redistribute it and/or modify
+#     it under the terms of the GNU General Public License as published by
+#     the Free Software Foundation; either version 2 of the License, or
+#     (at your option) any later version.
+
+#     This program is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU General Public License for more details.
+
+#     If you have not received a copy of the GNU General Public License
+#     along with this program, write to the Free Software Foundation, Inc.,
+#     59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+use warnings 'all';
+use strict;
+use encoding 'utf8';
+binmode STDOUT, ':bytes';
+
+sub debug {
+    if (1) {
+	print STDERR "@_";
+    }
+}
+
+sub warning {
+    print STDERR  "WARNING: @_";
+}
+
+if ($ARGV[0] eq "--help" || $ARGV[0] eq "-h") {
+    print STDERR <<EOT;
+Usage: compose_translator [--acm ACM] COMPOSE_FILE
+EOT
+    exit 0
+}
+
+my $acm;
+if ($ARGV[0] eq '--acm') {
+    shift @ARGV;
+    $ARGV[0] ne "" or die "$0: --acm requires a non-empty argument\n";
+    $acm = $ARGV[0];
+    shift @ARGV;
+}
+
+if (! $acm) {
+    die "$0: compose keys can not be used in UTF-8 mode " 
+	."due to kernel limitations\n";
+}
+
+my %acmtable;
+if ($acm) {
+    for my $acmfile ("${acm}", "${acm}.gz", "${acm}.acm", "${acm}.acm.gz",
+		     "/usr/share/consoletrans/${acm}",
+		     "/usr/share/consoletrans/${acm}.gz",
+		     "/usr/share/consoletrans/${acm}.acm",
+		     "/usr/share/consoletrans/${acm}.acm.gz",) {
+	if (-f $acmfile) {
+	    $acm = $acmfile;
+	    last;
+	}
+    }
+    (-f $acm) or die "$0: $acm does not exist\n";
+    if ($acm =~ /gz$/) {
+	open (ACM, "zcat $acm|") or die "$0: $acm: $!\n";
+    } else {
+	open (ACM, $acm) or die "$0: $acm: $!\n";
+    }
+    while (<ACM>) {
+	s/\#.*//;
+	chomp;
+	next unless (/[^\s]/);
+	if (/^\s*0x([0-9a-fA-F]{1,2})\s+\'([^\']+)\'\s*$/) {
+	    my $uni = ord ($2);
+	    my $c = hex ($1);
+	    $acmtable{$uni} = $c;
+	} else {
+	    warning "Syntax error in ACM file: $_\n";
+	}
+    }
+    close ACM;
+}
+
+for my $i (0 .. 127) {
+    $acmtable{$i} = $i;
+}
+
+my %xkbsym_table = (
+# Dead symbols
+		    'dead_grave' => '0060',          # grave
+		    'dead_acute' => '00b4',          # acute
+		    'dead_circumflex' => '005e',     # asciicircum
+		    'dead_caron' => '005e',          #    asciicircum
+		    'dead_tilde' => '007e',          # asciitilde
+		    'dead_breve' => '007e',          #    asciitilde
+		    'dead_doubleacute' => '007e',    #    asciitilde
+		    'dead_diaeresis' => '0022',      # quotedbl
+		    'dead_cedilla' => '002c',        # comma
+		    'dead_ogonek' => '002c',         #    comma
+# Dead symbols with no support in the kernel.  
+ 		    'dead_macron' => '005f',         # underscore
+ 		    'dead_abovedot' => '002e',       # period
+ 		    'dead_abovering' => '002a',      # asterisk
+# 		    'dead_belowdot' => '0323',       # ???? Vietnamese
+# 		    'dead_hook' => '0309',           # ???? Vietnamese
+# 		    'dead_iota' => '03b9',           # ???? Greek
+# 		    'dead_horn' => '031b',           # ???? Greek
+# Unicode symbols
+		    'BackSpace' => '0008',
+		    'Tab' => '0009',
+		    'KP_Tab' => '0009',
+		    'Linefeed' => '000a',
+		    'Return' => '000d',
+		    'Escape' => '001b',
+		    'space' => '0020',
+		    'exclam' => '0021',
+		    'quotedbl' => '0022',
+		    'numbersign' => '0023',
+		    'dollar' => '0024',
+		    'percent' => '0025',
+		    'ampersand' => '0026',
+		    'apostrophe' => '0027',
+		    'quoteright' => '0027',
+		    'parenleft' => '0028',
+		    'parenright' => '0029',
+		    'asterisk' => '002a',
+		    'plus' => '002b',
+		    'comma' => '002c',
+		    'minus' => '002d',
+		    'period' => '002e',
+		    'slash' => '002f',
+		    '0' => '0030',
+		    '1' => '0031',
+		    '2' => '0032',
+		    '3' => '0033',
+		    '4' => '0034',
+		    '5' => '0035',
+		    '6' => '0036',
+		    '7' => '0037',
+		    '8' => '0038',
+		    '9' => '0039',
+		    'colon' => '003a',
+		    'semicolon' => '003b',
+		    'less' => '003c',
+		    'equal' => '003d',
+		    'greater' => '003e',
+		    'question' => '003f',
+		    'at' => '0040',
+		    'A' => '0041',
+		    'B' => '0042',
+		    'C' => '0043',
+		    'D' => '0044',
+		    'E' => '0045',
+		    'F' => '0046',
+		    'G' => '0047',
+		    'H' => '0048',
+		    'I' => '0049',
+		    'J' => '004a',
+		    'K' => '004b',
+		    'L' => '004c',
+		    'M' => '004d',
+		    'N' => '004e',
+		    'O' => '004f',
+		    'P' => '0050',
+		    'Q' => '0051',
+		    'R' => '0052',
+		    'S' => '0053',
+		    'T' => '0054',
+		    'U' => '0055',
+		    'V' => '0056',
+		    'W' => '0057',
+		    'X' => '0058',
+		    'Y' => '0059',
+		    'Z' => '005a',
+		    'bracketleft' => '005b',
+		    'backslash' => '005c',
+		    'bracketright' => '005d',
+		    'asciicircum' => '005e',
+		    'underscore' => '005f',
+		    'grave' => '0060',
+		    'quoteleft' => '0060',
+		    'a' => '0061',
+		    'b' => '0062',
+		    'c' => '0063',
+		    'd' => '0064',
+		    'e' => '0065',
+		    'f' => '0066',
+		    'g' => '0067',
+		    'h' => '0068',
+		    'i' => '0069',
+		    'j' => '006a',
+		    'k' => '006b',
+		    'l' => '006c',
+		    'm' => '006d',
+		    'n' => '006e',
+		    'o' => '006f',
+		    'p' => '0070',
+		    'q' => '0071',
+		    'r' => '0072',
+		    's' => '0073',
+		    't' => '0074',
+		    'u' => '0075',
+		    'v' => '0076',
+		    'w' => '0077',
+		    'x' => '0078',
+		    'y' => '0079',
+		    'z' => '007a',
+		    'braceleft' => '007b',
+		    'bar' => '007c',
+		    'braceright' => '007d',
+		    'asciitilde' => '007e',
+		    'nobreakspace' => '00a0',
+		    'exclamdown' => '00a1',
+		    'cent' => '00a2',
+		    'sterling' => '00a3',
+		    'currency' => '00a4',
+		    'yen' => '00a5',
+		    'brokenbar' => '00a6',
+		    'section' => '00a7',
+		    'diaeresis' => '00a8',
+		    'copyright' => '00a9',
+		    'ordfeminine' => '00aa',
+		    'guillemotleft' => '00ab',
+		    'notsign' => '00ac',
+		    'hyphen' => '00ad',
+		    'registered' => '00ae',
+		    'macron' => '00af',
+		    'overbar' => '00af',
+		    'degree' => '00b0',
+		    'plusminus' => '00b1',
+		    'twosuperior' => '00b2',
+		    'threesuperior' => '00b3',
+		    'acute' => '00b4',
+		    'mu' => '00b5',
+		    'paragraph' => '00b6',
+		    'periodcentered' => '00b7',
+		    'cedilla' => '00b8',
+		    'onesuperior' => '00b9',
+		    'masculine' => '00ba',
+		    'guillemotright' => '00bb',
+		    'onequarter' => '00bc',
+		    'onehalf' => '00bd',
+		    'threequarters' => '00be',
+		    'questiondown' => '00bf',
+		    'Agrave' => '00c0',
+		    'Aacute' => '00c1',
+		    'Acircumflex' => '00c2',
+		    'Atilde' => '00c3',
+		    'Adiaeresis' => '00c4',
+		    'Aring' => '00c5',
+		    'AE' => '00c6',
+		    'Ccedilla' => '00c7',
+		    'Egrave' => '00c8',
+		    'Eacute' => '00c9',
+		    'Ecircumflex' => '00ca',
+		    'Ediaeresis' => '00cb',
+		    'Igrave' => '00cc',
+		    'Iacute' => '00cd',
+		    'Icircumflex' => '00ce',
+		    'Idiaeresis' => '00cf',
+		    'ETH' => '00d0',
+		    'Eth' => '00d0',
+		    'Ntilde' => '00d1',
+		    'Ograve' => '00d2',
+		    'Oacute' => '00d3',
+		    'Ocircumflex' => '00d4',
+		    'Otilde' => '00d5',
+		    'Odiaeresis' => '00d6',
+		    'multiply' => '00d7',
+		    'Ooblique' => '00d8',
+		    'Oslash' => '00d8',
+		    'Ugrave' => '00d9',
+		    'Uacute' => '00da',
+		    'Ucircumflex' => '00db',
+		    'Udiaeresis' => '00dc',
+		    'Yacute' => '00dd',
+		    'THORN' => '00de',
+		    'Thorn' => '00de',
+		    'ssharp' => '00df',
+		    'agrave' => '00e0',
+		    'aacute' => '00e1',
+		    'acircumflex' => '00e2',
+		    'atilde' => '00e3',
+		    'adiaeresis' => '00e4',
+		    'aring' => '00e5',
+		    'ae' => '00e6',
+		    'ccedilla' => '00e7',
+		    'egrave' => '00e8',
+		    'eacute' => '00e9',
+		    'ecircumflex' => '00ea',
+		    'ediaeresis' => '00eb',
+		    'igrave' => '00ec',
+		    'iacute' => '00ed',
+		    'icircumflex' => '00ee',
+		    'idiaeresis' => '00ef',
+		    'eth' => '00f0',
+		    'ntilde' => '00f1',
+		    'ograve' => '00f2',
+		    'oacute' => '00f3',
+		    'ocircumflex' => '00f4',
+		    'otilde' => '00f5',
+		    'odiaeresis' => '00f6',
+		    'division' => '00f7',
+		    'oslash' => '00f8',
+		    'ooblique' => '00f8',
+		    'ugrave' => '00f9',
+		    'uacute' => '00fa',
+		    'ucircumflex' => '00fb',
+		    'udiaeresis' => '00fc',
+		    'yacute' => '00fd',
+		    'thorn' => '00fe',
+		    'ydiaeresis' => '00ff',
+		    'Amacron' => '0100',
+		    'amacron' => '0101',
+		    'Abreve' => '0102',
+		    'abreve' => '0103',
+		    'Aogonek' => '0104',
+		    'aogonek' => '0105',
+		    'Cacute' => '0106',
+		    'cacute' => '0107',
+		    'Ccircumflex' => '0108',
+		    'ccircumflex' => '0109',
+		    'Cabovedot' => '010a',
+		    'cabovedot' => '010b',
+		    'Ccaron' => '010c',
+		    'ccaron' => '010d',
+		    'Dcaron' => '010e',
+		    'dcaron' => '010f',
+		    'Dstroke' => '0110',
+		    'dstroke' => '0111',
+		    'Emacron' => '0112',
+		    'emacron' => '0113',
+		    'Eabovedot' => '0116',
+		    'eabovedot' => '0117',
+		    'Eogonek' => '0118',
+		    'eogonek' => '0119',
+		    'Ecaron' => '011a',
+		    'ecaron' => '011b',
+		    'Gcircumflex' => '011c',
+		    'gcircumflex' => '011d',
+		    'Gbreve' => '011e',
+		    'gbreve' => '011f',
+		    'Gabovedot' => '0120',
+		    'gabovedot' => '0121',
+		    'Gcedilla' => '0122',
+		    'gcedilla' => '0123',
+		    'Hcircumflex' => '0124',
+		    'hcircumflex' => '0125',
+		    'Hstroke' => '0126',
+		    'hstroke' => '0127',
+		    'Itilde' => '0128',
+		    'itilde' => '0129',
+		    'Imacron' => '012a',
+		    'imacron' => '012b',
+		    'Iogonek' => '012e',
+		    'iogonek' => '012f',
+		    'Iabovedot' => '0130',
+		    'idotless' => '0131',
+		    'Jcircumflex' => '0134',
+		    'jcircumflex' => '0135',
+		    'Kcedilla' => '0136',
+		    'kcedilla' => '0137',
+		    'kra' => '0138',
+		    'Lacute' => '0139',
+		    'lacute' => '013a',
+		    'Lcedilla' => '013b',
+		    'lcedilla' => '013c',
+		    'Lcaron' => '013d',
+		    'lcaron' => '013e',
+		    'Lstroke' => '0141',
+		    'lstroke' => '0142',
+		    'Nacute' => '0143',
+		    'nacute' => '0144',
+		    'Ncedilla' => '0145',
+		    'ncedilla' => '0146',
+		    'Ncaron' => '0147',
+		    'ncaron' => '0148',
+		    'ENG' => '014a',
+		    'eng' => '014b',
+		    'Omacron' => '014c',
+		    'omacron' => '014d',
+		    'Odoubleacute' => '0150',
+		    'odoubleacute' => '0151',
+		    'OE' => '0152',
+		    'oe' => '0153',
+		    'Racute' => '0154',
+		    'racute' => '0155',
+		    'Rcedilla' => '0156',
+		    'rcedilla' => '0157',
+		    'Rcaron' => '0158',
+		    'rcaron' => '0159',
+		    'Sacute' => '015a',
+		    'sacute' => '015b',
+		    'Scircumflex' => '015c',
+		    'scircumflex' => '015d',
+		    'Scedilla' => '015e',
+		    'scedilla' => '015f',
+		    'Scaron' => '0160',
+		    'scaron' => '0161',
+		    'Tcedilla' => '0162',
+		    'tcedilla' => '0163',
+		    'Tcaron' => '0164',
+		    'tcaron' => '0165',
+		    'Tslash' => '0166',
+		    'tslash' => '0167',
+		    'Utilde' => '0168',
+		    'utilde' => '0169',
+		    'Umacron' => '016a',
+		    'umacron' => '016b',
+		    'Ubreve' => '016c',
+		    'ubreve' => '016d',
+		    'Uring' => '016e',
+		    'uring' => '016f',
+		    'Udoubleacute' => '0170',
+		    'udoubleacute' => '0171',
+		    'Uogonek' => '0172',
+		    'uogonek' => '0173',
+		    'Ydiaeresis' => '0178',
+		    'Zacute' => '0179',
+		    'zacute' => '017a',
+		    'Zabovedot' => '017b',
+		    'zabovedot' => '017c',
+		    'Zcaron' => '017d',
+		    'zcaron' => '017e',
+		    'function' => '0192',
+		    'caron' => '02c7',
+		    'breve' => '02d8',
+		    'abovedot' => '02d9',
+		    'ogonek' => '02db',
+		    'doubleacute' => '02dd',
+		    'Greek_accentdieresis' => '0385',
+		    'Greek_ALPHAaccent' => '0386',
+		    'Greek_EPSILONaccent' => '0388',
+		    'Greek_ETAaccent' => '0389',
+		    'Greek_IOTAaccent' => '038a',
+		    'Greek_OMICRONaccent' => '038c',
+		    'Greek_UPSILONaccent' => '038e',
+		    'Greek_OMEGAaccent' => '038f',
+		    'Greek_iotaaccentdieresis' => '0390',
+		    'Greek_ALPHA' => '0391',
+		    'Greek_BETA' => '0392',
+		    'Greek_GAMMA' => '0393',
+		    'Greek_DELTA' => '0394',
+		    'Greek_EPSILON' => '0395',
+		    'Greek_ZETA' => '0396',
+		    'Greek_ETA' => '0397',
+		    'Greek_THETA' => '0398',
+		    'Greek_IOTA' => '0399',
+		    'Greek_KAPPA' => '039a',
+		    'Greek_LAMBDA' => '039b',
+		    'Greek_MU' => '039c',
+		    'Greek_NU' => '039d',
+		    'Greek_XI' => '039e',
+		    'Greek_OMICRON' => '039f',
+		    'Greek_PI' => '03a0',
+		    'Greek_RHO' => '03a1',
+		    'Greek_SIGMA' => '03a3',
+		    'Greek_TAU' => '03a4',
+		    'Greek_UPSILON' => '03a5',
+		    'Greek_PHI' => '03a6',
+		    'Greek_CHI' => '03a7',
+		    'Greek_PSI' => '03a8',
+		    'Greek_OMEGA' => '03a9',
+		    'Greek_IOTAdiaeresis' => '03aa',
+		    'Greek_UPSILONdieresis' => '03ab',
+		    'Greek_alphaaccent' => '03ac',
+		    'Greek_epsilonaccent' => '03ad',
+		    'Greek_etaaccent' => '03ae',
+		    'Greek_iotaaccent' => '03af',
+		    'Greek_upsilonaccentdieresis' => '03b0',
+		    'Greek_alpha' => '03b1',
+		    'Greek_beta' => '03b2',
+		    'Greek_gamma' => '03b3',
+		    'Greek_delta' => '03b4',
+		    'Greek_epsilon' => '03b5',
+		    'Greek_zeta' => '03b6',
+		    'Greek_eta' => '03b7',
+		    'Greek_theta' => '03b8',
+		    'Greek_iota' => '03b9',
+		    'Greek_kappa' => '03ba',
+		    'Greek_lambda' => '03bb',
+		    'Greek_mu' => '03bc',
+		    'Greek_nu' => '03bd',
+		    'Greek_xi' => '03be',
+		    'Greek_omicron' => '03bf',
+		    'Greek_pi' => '03c0',
+		    'Greek_rho' => '03c1',
+		    'Greek_finalsmallsigma' => '03c2',
+		    'Greek_sigma' => '03c3',
+		    'Greek_tau' => '03c4',
+		    'Greek_upsilon' => '03c5',
+		    'Greek_phi' => '03c6',
+		    'Greek_chi' => '03c7',
+		    'Greek_psi' => '03c8',
+		    'Greek_omega' => '03c9',
+		    'Greek_iotadieresis' => '03ca',
+		    'Greek_upsilondieresis' => '03cb',
+		    'Greek_omicronaccent' => '03cc',
+		    'Greek_upsilonaccent' => '03cd',
+		    'Greek_omegaaccent' => '03ce',
+		    'Cyrillic_IO' => '0401',
+		    'Serbian_DJE' => '0402',
+		    'Macedonia_GJE' => '0403',
+		    'Ukrainian_IE' => '0404',
+		    'Macedonia_DSE' => '0405',
+		    'Ukrainian_I' => '0406',
+		    'Ukrainian_YI' => '0407',
+		    'Cyrillic_JE' => '0408',
+		    'Cyrillic_LJE' => '0409',
+		    'Cyrillic_NJE' => '040a',
+		    'Serbian_TSHE' => '040b',
+		    'Macedonia_KJE' => '040c',
+		    'Byelorussian_SHORTU' => '040e',
+		    'Cyrillic_DZHE' => '040f',
+		    'Cyrillic_A' => '0410',
+		    'Cyrillic_BE' => '0411',
+		    'Cyrillic_VE' => '0412',
+		    'Cyrillic_GHE' => '0413',
+		    'Cyrillic_DE' => '0414',
+		    'Cyrillic_IE' => '0415',
+		    'Cyrillic_ZHE' => '0416',
+		    'Cyrillic_ZE' => '0417',
+		    'Cyrillic_I' => '0418',
+		    'Cyrillic_SHORTI' => '0419',
+		    'Cyrillic_KA' => '041a',
+		    'Cyrillic_EL' => '041b',
+		    'Cyrillic_EM' => '041c',
+		    'Cyrillic_EN' => '041d',
+		    'Cyrillic_O' => '041e',
+		    'Cyrillic_PE' => '041f',
+		    'Cyrillic_ER' => '0420',
+		    'Cyrillic_ES' => '0421',
+		    'Cyrillic_TE' => '0422',
+		    'Cyrillic_U' => '0423',
+		    'Cyrillic_EF' => '0424',
+		    'Cyrillic_HA' => '0425',
+		    'Cyrillic_TSE' => '0426',
+		    'Cyrillic_CHE' => '0427',
+		    'Cyrillic_SHA' => '0428',
+		    'Cyrillic_SHCHA' => '0429',
+		    'Cyrillic_HARDSIGN' => '042a',
+		    'Cyrillic_YERU' => '042b',
+		    'Cyrillic_SOFTSIGN' => '042c',
+		    'Cyrillic_E' => '042d',
+		    'Cyrillic_YU' => '042e',
+		    'Cyrillic_YA' => '042f',
+		    'Cyrillic_a' => '0430',
+		    'Cyrillic_be' => '0431',
+		    'Cyrillic_ve' => '0432',
+		    'Cyrillic_ghe' => '0433',
+		    'Cyrillic_de' => '0434',
+		    'Cyrillic_ie' => '0435',
+		    'Cyrillic_zhe' => '0436',
+		    'Cyrillic_ze' => '0437',
+		    'Cyrillic_i' => '0438',
+		    'Cyrillic_shorti' => '0439',
+		    'Cyrillic_ka' => '043a',
+		    'Cyrillic_el' => '043b',
+		    'Cyrillic_em' => '043c',
+		    'Cyrillic_en' => '043d',
+		    'Cyrillic_o' => '043e',
+		    'Cyrillic_pe' => '043f',
+		    'Cyrillic_er' => '0440',
+		    'Cyrillic_es' => '0441',
+		    'Cyrillic_te' => '0442',
+		    'Cyrillic_u' => '0443',
+		    'Cyrillic_ef' => '0444',
+		    'Cyrillic_ha' => '0445',
+		    'Cyrillic_tse' => '0446',
+		    'Cyrillic_che' => '0447',
+		    'Cyrillic_sha' => '0448',
+		    'Cyrillic_shcha' => '0449',
+		    'Cyrillic_hardsign' => '044a',
+		    'Cyrillic_yeru' => '044b',
+		    'Cyrillic_softsign' => '044c',
+		    'Cyrillic_e' => '044d',
+		    'Cyrillic_yu' => '044e',
+		    'Cyrillic_ya' => '044f',
+		    'Cyrillic_io' => '0451',
+		    'Serbian_dje' => '0452',
+		    'Macedonia_gje' => '0453',
+		    'Ukrainian_ie' => '0454',
+		    'Macedonia_dse' => '0455',
+		    'Ukrainian_i' => '0456',
+		    'Ukrainian_yi' => '0457',
+		    'Cyrillic_je' => '0458',
+		    'Cyrillic_lje' => '0459',
+		    'Cyrillic_nje' => '045a',
+		    'Serbian_tshe' => '045b',
+		    'Macedonia_kje' => '045c',
+		    'Byelorussian_shortu' => '045e',
+		    'Cyrillic_dzhe' => '045f',
+		    'hebrew_aleph' => '05d0',
+		    'hebrew_bet' => '05d1',
+		    'hebrew_gimel' => '05d2',
+		    'hebrew_dalet' => '05d3',
+		    'hebrew_he' => '05d4',
+		    'hebrew_waw' => '05d5',
+		    'hebrew_zain' => '05d6',
+		    'hebrew_chet' => '05d7',
+		    'hebrew_tet' => '05d8',
+		    'hebrew_yod' => '05d9',
+		    'hebrew_finalkaph' => '05da',
+		    'hebrew_kaph' => '05db',
+		    'hebrew_lamed' => '05dc',
+		    'hebrew_finalmem' => '05dd',
+		    'hebrew_mem' => '05de',
+		    'hebrew_finalnun' => '05df',
+		    'hebrew_nun' => '05e0',
+		    'hebrew_samech' => '05e1',
+		    'hebrew_ayin' => '05e2',
+		    'hebrew_finalpe' => '05e3',
+		    'hebrew_pe' => '05e4',
+		    'hebrew_finalzade' => '05e5',
+		    'hebrew_zade' => '05e6',
+		    'hebrew_qoph' => '05e7',
+		    'hebrew_resh' => '05e8',
+		    'hebrew_shin' => '05e9',
+		    'hebrew_taw' => '05ea',
+		    'Arabic_comma' => '060c',
+		    'Arabic_semicolon' => '061b',
+		    'Arabic_question_mark' => '061f',
+		    'Arabic_hamza' => '0621',
+		    'Arabic_maddaonalef' => '0622',
+		    'Arabic_hamzaonalef' => '0623',
+		    'Arabic_hamzaonwaw' => '0624',
+		    'Arabic_hamzaunderalef' => '0625',
+		    'Arabic_hamzaonyeh' => '0626',
+		    'Arabic_alef' => '0627',
+		    'Arabic_beh' => '0628',
+		    'Arabic_tehmarbuta' => '0629',
+		    'Arabic_teh' => '062a',
+		    'Arabic_theh' => '062b',
+		    'Arabic_jeem' => '062c',
+		    'Arabic_hah' => '062d',
+		    'Arabic_khah' => '062e',
+		    'Arabic_dal' => '062f',
+		    'Arabic_thal' => '0630',
+		    'Arabic_ra' => '0631',
+		    'Arabic_zain' => '0632',
+		    'Arabic_seen' => '0633',
+		    'Arabic_sheen' => '0634',
+		    'Arabic_sad' => '0635',
+		    'Arabic_dad' => '0636',
+		    'Arabic_tah' => '0637',
+		    'Arabic_zah' => '0638',
+		    'Arabic_ain' => '0639',
+		    'Arabic_ghain' => '063a',
+		    'Arabic_tatweel' => '0640',
+		    'Arabic_feh' => '0641',
+		    'Arabic_qaf' => '0642',
+		    'Arabic_kaf' => '0643',
+		    'Arabic_lam' => '0644',
+		    'Arabic_meem' => '0645',
+		    'Arabic_noon' => '0646',
+		    'Arabic_ha' => '0647',
+		    'Arabic_waw' => '0648',
+		    'Arabic_alefmaksura' => '0649',
+		    'Arabic_yeh' => '064a',
+		    'Arabic_fathatan' => '064b',
+		    'Arabic_dammatan' => '064c',
+		    'Arabic_kasratan' => '064d',
+		    'Arabic_fatha' => '064e',
+		    'Arabic_damma' => '064f',
+		    'Arabic_kasra' => '0650',
+		    'Arabic_shadda' => '0651',
+		    'Arabic_sukun' => '0652',
+		    'Thai_kokai' => '0e01',
+		    'Thai_khokhai' => '0e02',
+		    'Thai_khokhuat' => '0e03',
+		    'Thai_khokhwai' => '0e04',
+		    'Thai_khokhon' => '0e05',
+		    'Thai_khorakhang' => '0e06',
+		    'Thai_ngongu' => '0e07',
+		    'Thai_chochan' => '0e08',
+		    'Thai_choching' => '0e09',
+		    'Thai_chochang' => '0e0a',
+		    'Thai_soso' => '0e0b',
+		    'Thai_chochoe' => '0e0c',
+		    'Thai_yoying' => '0e0d',
+		    'Thai_dochada' => '0e0e',
+		    'Thai_topatak' => '0e0f',
+		    'Thai_thothan' => '0e10',
+		    'Thai_thonangmontho' => '0e11',
+		    'Thai_thophuthao' => '0e12',
+		    'Thai_nonen' => '0e13',
+		    'Thai_dodek' => '0e14',
+		    'Thai_totao' => '0e15',
+		    'Thai_thothung' => '0e16',
+		    'Thai_thothahan' => '0e17',
+		    'Thai_thothong' => '0e18',
+		    'Thai_nonu' => '0e19',
+		    'Thai_bobaimai' => '0e1a',
+		    'Thai_popla' => '0e1b',
+		    'Thai_phophung' => '0e1c',
+		    'Thai_fofa' => '0e1d',
+		    'Thai_phophan' => '0e1e',
+		    'Thai_fofan' => '0e1f',
+		    'Thai_phosamphao' => '0e20',
+		    'Thai_moma' => '0e21',
+		    'Thai_yoyak' => '0e22',
+		    'Thai_rorua' => '0e23',
+		    'Thai_ru' => '0e24',
+		    'Thai_loling' => '0e25',
+		    'Thai_lu' => '0e26',
+		    'Thai_wowaen' => '0e27',
+		    'Thai_sosala' => '0e28',
+		    'Thai_sorusi' => '0e29',
+		    'Thai_sosua' => '0e2a',
+		    'Thai_hohip' => '0e2b',
+		    'Thai_lochula' => '0e2c',
+		    'Thai_oang' => '0e2d',
+		    'Thai_honokhuk' => '0e2e',
+		    'Thai_paiyannoi' => '0e2f',
+		    'Thai_saraa' => '0e30',
+		    'Thai_maihanakat' => '0e31',
+		    'Thai_saraaa' => '0e32',
+		    'Thai_saraam' => '0e33',
+		    'Thai_sarai' => '0e34',
+		    'Thai_saraii' => '0e35',
+		    'Thai_saraue' => '0e36',
+		    'Thai_sarauee' => '0e37',
+		    'Thai_sarau' => '0e38',
+		    'Thai_sarauu' => '0e39',
+		    'Thai_phinthu' => '0e3a',
+		    'Thai_baht' => '0e3f',
+		    'Thai_sarae' => '0e40',
+		    'Thai_saraae' => '0e41',
+		    'Thai_sarao' => '0e42',
+		    'Thai_saraaimaimuan' => '0e43',
+		    'Thai_saraaimaimalai' => '0e44',
+		    'Thai_lakkhangyao' => '0e45',
+		    'Thai_maiyamok' => '0e46',
+		    'Thai_maitaikhu' => '0e47',
+		    'Thai_maiek' => '0e48',
+		    'Thai_maitho' => '0e49',
+		    'Thai_maitri' => '0e4a',
+		    'Thai_maichattawa' => '0e4b',
+		    'Thai_thanthakhat' => '0e4c',
+		    'Thai_nikhahit' => '0e4d',
+		    'Thai_leksun' => '0e50',
+		    'Thai_leknung' => '0e51',
+		    'Thai_leksong' => '0e52',
+		    'Thai_leksam' => '0e53',
+		    'Thai_leksi' => '0e54',
+		    'Thai_lekha' => '0e55',
+		    'Thai_lekhok' => '0e56',
+		    'Thai_lekchet' => '0e57',
+		    'Thai_lekpaet' => '0e58',
+		    'Thai_lekkao' => '0e59',
+		    'Hangul_J_Kiyeog' => '11a8',
+		    'Hangul_J_SsangKiyeog' => '11a9',
+		    'Hangul_J_KiyeogSios' => '11aa',
+		    'Hangul_J_Nieun' => '11ab',
+		    'Hangul_J_NieunJieuj' => '11ac',
+		    'Hangul_J_NieunHieuh' => '11ad',
+		    'Hangul_J_Dikeud' => '11ae',
+		    'Hangul_J_Rieul' => '11af',
+		    'Hangul_J_RieulKiyeog' => '11b0',
+		    'Hangul_J_RieulMieum' => '11b1',
+		    'Hangul_J_RieulPieub' => '11b2',
+		    'Hangul_J_RieulSios' => '11b3',
+		    'Hangul_J_RieulTieut' => '11b4',
+		    'Hangul_J_RieulPhieuf' => '11b5',
+		    'Hangul_J_RieulHieuh' => '11b6',
+		    'Hangul_J_Mieum' => '11b7',
+		    'Hangul_J_Pieub' => '11b8',
+		    'Hangul_J_PieubSios' => '11b9',
+		    'Hangul_J_Sios' => '11ba',
+		    'Hangul_J_SsangSios' => '11bb',
+		    'Hangul_J_Ieung' => '11bc',
+		    'Hangul_J_Jieuj' => '11bd',
+		    'Hangul_J_Cieuc' => '11be',
+		    'Hangul_J_Khieuq' => '11bf',
+		    'Hangul_J_Tieut' => '11c0',
+		    'Hangul_J_Phieuf' => '11c1',
+		    'Hangul_J_Hieuh' => '11c2',
+		    'Hangul_J_PanSios' => '11eb',
+		    'Hangul_J_KkogjiDalrinIeung' => '11f0',
+		    'Hangul_J_YeorinHieuh' => '11f9',
+		    'enspace' => '2002',
+		    'emspace' => '2003',
+		    'em3space' => '2004',
+		    'em4space' => '2005',
+		    'digitspace' => '2007',
+		    'punctspace' => '2008',
+		    'thinspace' => '2009',
+		    'hairspace' => '200a',
+		    'figdash' => '2012',
+		    'endash' => '2013',
+		    'emdash' => '2014',
+		    'Greek_horizbar' => '2015',
+		    'hebrew_doublelowline' => '2017',
+		    'leftsinglequotemark' => '2018',
+		    'rightsinglequotemark' => '2019',
+		    'singlelowquotemark' => '201a',
+		    'leftdoublequotemark' => '201c',
+		    'rightdoublequotemark' => '201d',
+		    'doublelowquotemark' => '201e',
+		    'dagger' => '2020',
+		    'doubledagger' => '2021',
+		    'enfilledcircbullet' => '2022',
+		    'doubbaselinedot' => '2025',
+		    'ellipsis' => '2026',
+		    'minutes' => '2032',
+		    'seconds' => '2033',
+		    'caret' => '2038',
+		    'overline' => '203e',
+		    'Korean_Won' => '20a9',
+		    'EuroSign' => '20ac',
+		    'Euro' => '20ac',
+		    'careof' => '2105',
+		    'numerosign' => '2116',
+		    'phonographcopyright' => '2117',
+		    'prescription' => '211e',
+		    'trademark' => '2122',
+		    'onethird' => '2153',
+		    'twothirds' => '2154',
+		    'onefifth' => '2155',
+		    'twofifths' => '2156',
+		    'threefifths' => '2157',
+		    'fourfifths' => '2158',
+		    'onesixth' => '2159',
+		    'fivesixths' => '215a',
+		    'oneeighth' => '215b',
+		    'threeeighths' => '215c',
+		    'fiveeighths' => '215d',
+		    'seveneighths' => '215e',
+		    'leftarrow' => '2190',
+		    'uparrow' => '2191',
+		    'rightarrow' => '2192',
+		    'downarrow' => '2193',
+		    'implies' => '21d2',
+		    'ifonlyif' => '21d4',
+		    'partialderivative' => '2202',
+		    'nabla' => '2207',
+		    'jot' => '2218',
+		    'radical' => '221a',
+		    'variation' => '221d',
+		    'infinity' => '221e',
+		    'logicaland' => '2227',
+		    'upcaret' => '2227',
+		    'downcaret' => '2228',
+		    'logicalor' => '2228',
+		    'intersection' => '2229',
+		    'upshoe' => '2229',
+		    'downshoe' => '222a',
+		    'union' => '222a',
+		    'integral' => '222b',
+		    'therefore' => '2234',
+		    'approximate' => '223c',
+		    'similarequal' => '2243',
+		    'notequal' => '2260',
+		    'identical' => '2261',
+		    'lessthanequal' => '2264',
+		    'greaterthanequal' => '2265',
+		    'includedin' => '2282',
+		    'leftshoe' => '2282',
+		    'includes' => '2283',
+		    'rightshoe' => '2283',
+		    'lefttack' => '22a2',
+		    'righttack' => '22a3',
+		    'uptack' => '22a4',
+		    'downtack' => '22a5',
+		    'upstile' => '2308',
+		    'downstile' => '230a',
+		    'telephonerecorder' => '2315',
+		    'topintegral' => '2320',
+		    'botintegral' => '2321',
+		    'leftanglebracket' => '2329',
+		    'rightanglebracket' => '232a',
+		    'quad' => '2395',
+		    'topleftparens' => '239b',
+		    'botleftparens' => '239d',
+		    'toprightparens' => '239e',
+		    'botrightparens' => '23a0',
+		    'topleftsqbracket' => '23a1',
+		    'botleftsqbracket' => '23a3',
+		    'toprightsqbracket' => '23a4',
+		    'botrightsqbracket' => '23a6',
+		    'leftmiddlecurlybrace' => '23a8',
+		    'rightmiddlecurlybrace' => '23ac',
+		    'leftradical' => '23b7',
+		    'horizlinescan1' => '23ba',
+		    'horizlinescan3' => '23bb',
+		    'horizlinescan7' => '23bc',
+		    'horizlinescan9' => '23bd',
+		    'ht' => '2409',
+		    'lf' => '240a',
+		    'vt' => '240b',
+		    'ff' => '240c',
+		    'cr' => '240d',
+		    'nl' => '2424',
+		    'horizconnector' => '2500',
+		    'horizlinescan5' => '2500',
+		    'vertbar' => '2502',
+		    'vertconnector' => '2502',
+		    'topleftradical' => '250c',
+		    'upleftcorner' => '250c',
+		    'uprightcorner' => '2510',
+		    'lowleftcorner' => '2514',
+		    'lowrightcorner' => '2518',
+		    'leftt' => '251c',
+		    'rightt' => '2524',
+		    'topt' => '252c',
+		    'bott' => '2534',
+		    'crossinglines' => '253c',
+		    'checkerboard' => '2592',
+		    'enfilledsqbullet' => '25aa',
+		    'enopensquarebullet' => '25ab',
+		    'filledrectbullet' => '25ac',
+		    'openrectbullet' => '25ad',
+		    'emfilledrect' => '25ae',
+		    'emopenrectangle' => '25af',
+		    'filledtribulletup' => '25b2',
+		    'opentribulletup' => '25b3',
+		    'filledrighttribullet' => '25b6',
+		    'rightopentriangle' => '25b7',
+		    'filledtribulletdown' => '25bc',
+		    'opentribulletdown' => '25bd',
+		    'filledlefttribullet' => '25c0',
+		    'leftopentriangle' => '25c1',
+		    'soliddiamond' => '25c6',
+		    'circle' => '25cb',
+		    'emopencircle' => '25cb',
+		    'emfilledcircle' => '25cf',
+		    'enopencircbullet' => '25e6',
+		    'openstar' => '2606',
+		    'telephone' => '260e',
+		    'signaturemark' => '2613',
+		    'leftpointer' => '261c',
+		    'rightpointer' => '261e',
+		    'femalesymbol' => '2640',
+		    'malesymbol' => '2642',
+		    'club' => '2663',
+		    'heart' => '2665',
+		    'diamond' => '2666',
+		    'musicalflat' => '266d',
+		    'musicalsharp' => '266f',
+		    'checkmark' => '2713',
+		    'ballotcross' => '2717',
+		    'latincross' => '271d',
+		    'maltesecross' => '2720',
+		    'kana_comma' => '3001',
+		    'kana_fullstop' => '3002',
+		    'kana_openingbracket' => '300c',
+		    'kana_closingbracket' => '300d',
+		    'voicedsound' => '309b',
+		    'semivoicedsound' => '309c',
+		    'kana_a' => '30a1',
+		    'kana_A' => '30a2',
+		    'kana_i' => '30a3',
+		    'kana_I' => '30a4',
+		    'kana_u' => '30a5',
+		    'kana_U' => '30a6',
+		    'kana_e' => '30a7',
+		    'kana_E' => '30a8',
+		    'kana_o' => '30a9',
+		    'kana_O' => '30aa',
+		    'kana_KA' => '30ab',
+		    'kana_KI' => '30ad',
+		    'kana_KU' => '30af',
+		    'kana_KE' => '30b1',
+		    'kana_KO' => '30b3',
+		    'kana_SA' => '30b5',
+		    'kana_SHI' => '30b7',
+		    'kana_SU' => '30b9',
+		    'kana_SE' => '30bb',
+		    'kana_SO' => '30bd',
+		    'kana_TA' => '30bf',
+		    'kana_CHI' => '30c1',
+		    'kana_tsu' => '30c3',
+		    'kana_TSU' => '30c4',
+		    'kana_TE' => '30c6',
+		    'kana_TO' => '30c8',
+		    'kana_NA' => '30ca',
+		    'kana_NI' => '30cb',
+		    'kana_NU' => '30cc',
+		    'kana_NE' => '30cd',
+		    'kana_NO' => '30ce',
+		    'kana_HA' => '30cf',
+		    'kana_HI' => '30d2',
+		    'kana_FU' => '30d5',
+		    'kana_HE' => '30d8',
+		    'kana_HO' => '30db',
+		    'kana_MA' => '30de',
+		    'kana_MI' => '30df',
+		    'kana_MU' => '30e0',
+		    'kana_ME' => '30e1',
+		    'kana_MO' => '30e2',
+		    'kana_ya' => '30e3',
+		    'kana_YA' => '30e4',
+		    'kana_yu' => '30e5',
+		    'kana_YU' => '30e6',
+		    'kana_yo' => '30e7',
+		    'kana_YO' => '30e8',
+		    'kana_RA' => '30e9',
+		    'kana_RI' => '30ea',
+		    'kana_RU' => '30eb',
+		    'kana_RE' => '30ec',
+		    'kana_RO' => '30ed',
+		    'kana_WA' => '30ef',
+		    'kana_WO' => '30f2',
+		    'kana_N' => '30f3',
+		    'kana_conjunctive' => '30fb',
+		    'prolongedsound' => '30fc',
+		    'Hangul_Kiyeog' => '3131',
+		    'Hangul_SsangKiyeog' => '3132',
+		    'Hangul_KiyeogSios' => '3133',
+		    'Hangul_Nieun' => '3134',
+		    'Hangul_NieunJieuj' => '3135',
+		    'Hangul_NieunHieuh' => '3136',
+		    'Hangul_Dikeud' => '3137',
+		    'Hangul_SsangDikeud' => '3138',
+		    'Hangul_Rieul' => '3139',
+		    'Hangul_RieulKiyeog' => '313a',
+		    'Hangul_RieulMieum' => '313b',
+		    'Hangul_RieulPieub' => '313c',
+		    'Hangul_RieulSios' => '313d',
+		    'Hangul_RieulTieut' => '313e',
+		    'Hangul_RieulPhieuf' => '313f',
+		    'Hangul_RieulHieuh' => '3140',
+		    'Hangul_Mieum' => '3141',
+		    'Hangul_Pieub' => '3142',
+		    'Hangul_SsangPieub' => '3143',
+		    'Hangul_PieubSios' => '3144',
+		    'Hangul_Sios' => '3145',
+		    'Hangul_SsangSios' => '3146',
+		    'Hangul_Ieung' => '3147',
+		    'Hangul_Jieuj' => '3148',
+		    'Hangul_SsangJieuj' => '3149',
+		    'Hangul_Cieuc' => '314a',
+		    'Hangul_Khieuq' => '314b',
+		    'Hangul_Tieut' => '314c',
+		    'Hangul_Phieuf' => '314d',
+		    'Hangul_Hieuh' => '314e',
+		    'Hangul_A' => '314f',
+		    'Hangul_AE' => '3150',
+		    'Hangul_YA' => '3151',
+		    'Hangul_YAE' => '3152',
+		    'Hangul_EO' => '3153',
+		    'Hangul_E' => '3154',
+		    'Hangul_YEO' => '3155',
+		    'Hangul_YE' => '3156',
+		    'Hangul_O' => '3157',
+		    'Hangul_WA' => '3158',
+		    'Hangul_WAE' => '3159',
+		    'Hangul_OE' => '315a',
+		    'Hangul_YO' => '315b',
+		    'Hangul_U' => '315c',
+		    'Hangul_WEO' => '315d',
+		    'Hangul_WE' => '315e',
+		    'Hangul_WI' => '315f',
+		    'Hangul_YU' => '3160',
+		    'Hangul_EU' => '3161',
+		    'Hangul_YI' => '3162',
+		    'Hangul_I' => '3163',
+		    'Hangul_RieulYeorinHieuh' => '316d',
+		    'Hangul_SunkyeongeumMieum' => '3171',
+		    'Hangul_SunkyeongeumPieub' => '3178',
+		    'Hangul_PanSios' => '317f',
+		    'Hangul_KkogjiDalrinIeung' => '3181',
+		    'Hangul_SunkyeongeumPhieuf' => '3184',
+		    'Hangul_YeorinHieuh' => '3186',
+		    'Hangul_AraeA' => '318d',
+		    'Hangul_AraeAE' => '318e',
+		    );
+
+sub lower_case {
+    my $sequence = $_[0];
+    my @k = split ' ', $sequence;
+    for my $i (0 .. $#k) {
+	(my $lc = $k[$i]) =~ tr/A-Z/a-z/;
+	if (defined $xkbsym_table{$lc}) {
+	    $k[$i] = $lc;
+	}
+    }
+    return "@k";
+}
+
+use bytes;
+
+my %compose;
+my $line = 0;
+while (<>) {
+    $line++;
+    s/\#[^\"].*//;
+    s/\s+/ /g;
+    next unless (/[^ ]/);
+    /^(.*?) ?: ?\"(.*) ([a-zA-Z0-9_]+) ?$/
+	or die "$0: syntax error on line $line\n$_\n";
+    my $sequence = $1;
+    my $result = $2;
+    $sequence =~ s/\<//g;
+    $sequence =~ s/\>//g;
+    if ($result =~ /^([^\\])\"$/) {
+	$result = $1;
+    } elsif ($result =~ /^\\([0-7]+)\"$/) {
+	$result = chr (oct ($1));
+    } elsif ($result =~ /^\\([\"\\])\"$/) {
+	$result = $1;
+    } else {
+	die "$0: syntax error on line $line\n$_\n";
+    }
+    if ($result eq '\\' || $result eq '\'') {
+	$result = '\\'. $result;
+    }
+    if ($sequence =~ /^Multi_key [a-zA-Z0-9_]+ space/) {
+	next;
+    }
+    if ((' '. $sequence .' ') =~ / space /) {
+	next;
+    }
+    if ($sequence =~ /(dead_[a-z]+) \1/) {
+ 	next;
+    }
+    if ($sequence =~ / .* .* /) {
+	warning "Skipping too long sequence: $_\n";
+	next;
+    }
+    if ($sequence =~ /^dead_.* .* /) {
+	warning "Skipping too long sequence: $_\n";
+	next;
+    }
+    $sequence =~ s/^Multi_key //;
+    $compose{$sequence} = $result;
+}
+
+my @sequences = keys %compose;
+
+my %lc_compose;
+my %lc_sequences;
+
+foreach my $sequence (@sequences) {
+    my @k = split ' ', $sequence;
+    if ($k[0] =~ /^.$/) {
+	if (defined $compose{"$k[1] $k[0]"}
+	    && $compose{$sequence} eq $compose{"$k[1] $k[0]"}) {
+	    delete $compose{$sequence};
+	    next;
+	}
+    }
+    my $lcase = lower_case ($sequence);
+    if (! defined $lc_compose{$lcase}) {
+	$lc_compose{$lcase} = $compose{$sequence};
+	push @{$lc_sequences{$lcase}}, $sequence;
+    } elsif ($lc_compose{$lcase} eq $compose{$sequence}) {
+	push @{$lc_sequences{$lcase}}, $sequence;
+    } else {
+	$lc_compose{$lcase} = 'DISAGREEMENT';
+    }
+}
+
+foreach my $lcase (keys %lc_compose) {
+    next if ($lc_compose{$lcase} eq 'DISAGREEMENT');
+    foreach my $sequence (@{$lc_sequences{$lcase}}) {
+	delete $compose{$sequence};
+    }
+    $compose{$lcase} = $lc_compose{$lcase};
+}
+
+my %output;
+my %original_sequences;
+foreach my $sequence (keys %compose) {
+    my @k = split ' ', $sequence;
+    for my $i (0 .. $#k) {
+	if (defined $xkbsym_table{$k[$i]}) {
+	    my $l = $acmtable{hex($xkbsym_table{$k[$i]})};
+	    if (! defined $l) {
+#		debug "Undefined in ACM $k[$i]\n";
+		@k = ();
+		last;
+	    }
+	    $k[$i] = chr($l);
+	    if ($k[$i] eq '\\' || $k[$i] eq '\'') {
+		$k[$i] = '\\'. $k[$i];
+	    }
+	} else {
+#	    debug "Undefined keysym $k[$i]\n";
+	    @k = ();
+	    last;
+	}
+    }
+    next if ($#k < 0);
+    if ($#k != 1) {
+	warning "Skipping too short sequence: $sequence\n";
+	next;
+    }
+    if (! defined $output{"\'$k[0]\' \'$k[1]\'"}) {
+	$output{"\'$k[0]\' \'$k[1]\'"} = "\'$compose{$sequence}\'";
+	$original_sequences{"\'$k[0]\' \'$k[1]\'"} = $sequence;
+    } else {
+	my $newsequence = $sequence;
+	my $newresult = "\'$compose{$sequence}\'";
+	my $oldsequence = $original_sequences{"\'$k[0]\' \'$k[1]\'"};
+	my $oldresult = $output{"\'$k[0]\' \'$k[1]\'"};
+	my $scsequence = "\'$k[0]\' \'$k[1]\'";
+	if ($oldresult ne $newresult) {
+	    # The keyboards for languages that need circumflex and tilde can
+	    # generate them natively so prefer caron and doubleacute.
+	    if ($newsequence =~ /dead_caron/
+		|| $newsequence =~ /dead_doubleacute/) {
+		my ($x, $y) = ($oldsequence, $oldresult);
+		($oldsequence, $oldresult) = ($newsequence, $newresult);
+		($newsequence, $newresult) = ($x, $y);
+	    }
+	    warning "Skipping sequience due to collision:\n";
+	    warning "  Skip: $newsequence\n";
+	    warning "  Preserve: $oldsequence\n";
+	}
+    } 
+}
+
+@sequences = sort (keys %output);
+
+for my $sequence (@sequences) {
+    print "compose $sequence to $output{$sequence}\n";
+}

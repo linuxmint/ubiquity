@@ -1,0 +1,23 @@
+#!/bin/sh
+
+dev=$2
+id=$3
+
+mkdir -p $dev/$id
+
+echo efi >$dev/$id/method
+# See comment in commit.d/format_efi.  We check again here to make the
+# confirm-changes screen less scary.
+if [ -f $dev/$id/detected_filesystem ]; then
+	rm -f $dev/$id/format
+else
+	>$dev/$id/format
+fi
+>$dev/$id/bootable
+>$dev/$id/efi_bootable
+
+rm -f $dev/$id/use_filesystem
+rm -f $dev/$id/filesystem
+rm -f $dev/$id/mountpoint
+
+exit 0

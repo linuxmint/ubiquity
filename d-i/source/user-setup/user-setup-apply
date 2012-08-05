@@ -1,0 +1,401 @@
+#! /bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+if [ "$1" ]; then
+	export LANG=C # avoid locale errors from perl
+	ROOT="$1"
+	chroot=chroot
+	log='log-output -t user-setup'
+else
+	ROOT=
+	chroot=
+	log=
+fi
+
+. /usr/lib/user-setup/functions.sh
+
+# Set a password, via chpasswd.
+# Use a heredoc rather than echo, to avoid the password
+# showing in the process table. (However, this is normally
+# only called when first installing the system, when root has no
+# password at all, so that should be an unnecessary precaution).
+#
+# Pass in four arguments: the user, the password, 'true' if the
+# password has been pre-crypted (by preseeding), and a 'true' if
+# the home directory is encrypted
+setpassword () {
+	local USER PASSWD PAM_SET_PWD
+	USER="$1"
+	PASSWD="$2"
+
+	local VERSION=$($chroot $ROOT dpkg-query -W -f '${Version}\n' passwd)
+	PAM_SET_PWD=false
+	if $chroot $ROOT dpkg --compare-versions "$VERSION" ge "1:4.1.4-1"; then
+		# support for versions with PAM support (Squeeze)
+		PAM_SET_PWD=true
+		if [ "$3" = true ]; then
+			$chroot $ROOT usermod --password=$PASSWD $USER
+		else
+			$chroot $ROOT chpasswd <<EOF
+$USER:$PASSWD
+EOF
+		fi
+	else
+		# compatibility support for versions without PAM support (Lenny)
+		local OPTS
+		if [ "$3" = true ]; then
+			OPTS=-e
+		else
+			OPTS=-m
+		fi
+		$chroot $ROOT chpasswd $OPTS <<EOF
+$USER:$PASSWD
+EOF
+	fi
+	# If the password was set using PAM, pam_ecryptfs will handle the initial
+	# passphrase wrapping.  Otherwise, we need this hack...
+	if [ "$4" = true ] && [ "$PAM_SET_PWD" = false ]; then
+		local UNWRAPPED_PASSPHRASE_FILE WRAPPED_PASSPHRASE_FILE MOUNT_PASSPHRASE
+		UNWRAPPED_PASSPHRASE_FILE=/dev/shm/.ecryptfs-$USER
+		if [ -e "$UNWRAPPED_PASSPHRASE_FILE" ]; then
+			WRAPPED_PASSPHRASE_FILE=/home/$USER/.ecryptfs/wrapped-passphrase
+			MOUNT_PASSPHRASE=$($chroot $ROOT cat $UNWRAPPED_PASSPHRASE_FILE)
+			$chroot $ROOT ecryptfs-wrap-passphrase $WRAPPED_PASSPHRASE_FILE - <<EOF
+$MOUNT_PASSPHRASE
+$PASSWD
+EOF
+			$chroot $ROOT rm -f $UNWRAPPED_PASSPHRASE_FILE
+			$chroot $ROOT chown $USER:$USER $WRAPPED_PASSPHRASE_FILE
+		else
+			echo "$UNWRAPPED_PASSPHRASE_FILE does not exist, but should!" >&2
+			db_input critical user-setup/encrypt-home-failed || true
+			db_go || true
+		fi
+	fi
+}
+
+# Enable/disable shadow passwords.
+db_get passwd/shadow
+if [ "$RET" = true ]; then
+	$log $chroot $ROOT shadowconfig on
+else
+	$log $chroot $ROOT shadowconfig off
+fi
+
+if ! root_password; then
+	# Was the root password preseeded encrypted?
+	if db_get passwd/root-password-crypted && [ "$RET" ]; then
+		# The root password was preseeded encrypted.
+		ROOT_PW="$RET"
+		PRECRYPTED=true
+	else
+		db_get passwd/root-password
+		ROOT_PW="$RET"
+		PRECRYPTED=false
+	fi
+	# Clear the root password from the database, and set the password.
+	db_set passwd/root-password-crypted ''
+	db_set passwd/root-password ''
+	db_set passwd/root-password-again ''
+	if [ "$ROOT_PW" ]; then
+		setpassword root "$ROOT_PW" "$PRECRYPTED"
+	fi
+	ROOT_PW=
+else
+	# Just in case, clear any preseeded root password from the database
+	# anyway.
+	db_set passwd/root-password-crypted ''
+	db_set passwd/root-password ''
+	db_set passwd/root-password-again ''
+fi
+
+db_get passwd/make-user
+if [ "$RET" = true ] && ! is_system_user; then
+	if db_get passwd/user-password-crypted && [ "$RET" ]; then
+		USER_PW="$RET"
+		USER_PW_CRYPTED=true
+	else
+		db_get passwd/user-password
+		USER_PW="$RET"
+		USER_PW_CRYPTED=false
+	fi
+
+	if db_get passwd/user-uid && [ "$RET" ]; then
+		if [ -x $ROOT/usr/sbin/adduser ]; then
+			UIDOPT="--uid $RET"
+		else
+			UIDOPT="-u $RET"
+		fi
+	else
+		UIDOPT=
+	fi
+
+	ENCRYPT_HOME="false"
+	ENCRYPT_HOME_OPT=
+	if [ "$OVERRIDE_ALREADY_ENCRYPTED_SWAP" ]; then
+		ENCRYPT_HOME="true"
+		ENCRYPT_HOME_OPT="--encrypt-home"
+	elif db_get user-setup/encrypt-home && [ "$RET" = true ]; then
+		ENCRYPT_HOME="true"
+		ENCRYPT_HOME_OPT="--encrypt-home"
+		if type anna-install >/dev/null 2>&1 && [ -d /lib/debian-installer ]; then
+			ANNA_QUIET=1 DEBIAN_FRONTEND=none $log anna-install crypto-modules || true
+			depmod -a >/dev/null 2>&1 || true
+		fi
+		for module in aes cbc ecb; do
+			modprobe -q "$module" || true
+		done
+		apt-install ecryptfs-utils 2>/dev/null
+		apt-install cryptsetup 2>/dev/null
+		
+		umountproc=false
+		umountsys=false
+		umountdev=false
+		if [ ! -e $ROOT/proc/cmdline ]; then
+			$log $chroot $ROOT mount -t proc proc /proc
+			umountproc=:
+		fi
+		if [ ! -e $ROOT/sys/block ]; then
+			# We need /sys for devtmpfs to create block devices.
+			$log $chroot $ROOT mount -t sysfs sysfs /sys
+			umountsys=:
+		fi
+		if [ $(stat -c %d "$ROOT/dev") -eq $(stat -c %d "$ROOT") ]; then
+			mount --bind /dev $ROOT/dev
+			umountdev=:
+		else
+			$log $chroot $ROOT udevadm settle
+		fi
+		if ! $log $chroot $ROOT ecryptfs-setup-swap -f -n; then
+			echo "ecryptfs-setup-swap failed." >&2
+			db_input critical user-setup/encrypt-home-failed || true
+			db_go || true
+			ENCRYPT_HOME="false"
+			ENCRYPT_HOME_OPT=
+		fi
+		if $umountproc; then
+			$log $chroot $ROOT umount /proc
+		fi
+		if $umountsys; then
+			$log $chroot $ROOT umount /sys
+		fi
+		if $umountdev; then
+			umount $ROOT/dev
+		fi
+	fi
+
+
+	# Add the user to the database, using adduser in noninteractive
+	# mode.
+	db_get passwd/username
+	USER="$RET"
+	db_get passwd/user-fullname
+
+	HOME_EXISTED=
+	if [ -d "$ROOT/home/$USER" ]; then
+		HOME_EXISTED=1
+		# user-setup-ask shouldn't have allowed this, but for safety:
+		ENCRYPT_HOME="false"
+		ENCRYPT_HOME_OPT=
+	fi
+
+	umountsys=false
+	if [ -n "$ENCRYPT_HOME_OPT" ]; then
+		if [ ! -e $ROOT/sys/kernel ]; then
+			$log $chroot $ROOT mount -t sysfs sysfs /sys
+			umountsys=:
+		fi
+		mkdir -p $ROOT/dev/shm
+		$log $chroot $ROOT mount -t tmpfs tmpfs /dev/shm
+	fi
+	if [ -x $ROOT/usr/sbin/adduser ]; then
+		$log $chroot $ROOT adduser --disabled-password --gecos "$RET" $UIDOPT $ENCRYPT_HOME_OPT "$USER" >/dev/null || true
+	else
+		$log $chroot $ROOT useradd -c "$RET" -m "$USER" $UIDOPT >/dev/null || true
+	fi
+
+	# Clear the user password from the database.
+	db_set passwd/user-password-crypted ''
+	db_set passwd/user-password ''
+	db_set passwd/user-password-again ''
+	setpassword "$USER" "$USER_PW" "$USER_PW_CRYPTED" "$ENCRYPT_HOME"
+	if [ -n "$ENCRYPT_HOME_OPT" ]; then
+		if $umountsys; then
+			$log $chroot $ROOT umount /sys
+		fi
+		$log $chroot $ROOT umount /dev/shm
+	fi
+
+	if [ "$HOME_EXISTED" ]; then
+		# The user's home directory already existed before we called
+		# adduser. This often means that a mount point under
+		# /home/$USER was selected in (and thus created by) partman,
+		# and the home directory may have ended up owned by root.
+		$log $chroot $ROOT chown "$USER:$USER" "/home/$USER" >/dev/null || true
+	fi
+
+	if [ -n "$USER" ]; then
+		for group in lpadmin sambashare; do
+			$log $chroot $ROOT addgroup --system $group >/dev/null 2>&1 || true
+		done
+		if type archdetect >/dev/null 2>&1; then
+			SUBARCH="$(archdetect)"
+			case $SUBARCH in
+				powerpc/ps3|powerpc/cell)
+					$log $chroot $ROOT addgroup --system spu >/dev/null 2>&1 || true
+					;;
+			esac
+		fi
+		db_get passwd/user-default-groups
+		for group in $RET; do
+			$log $chroot $ROOT adduser "$USER" $group >/dev/null 2>&1 || true
+		done
+ 
+ 		# Configure desktop auto-login if instructed by preseeding
+ 		db_get passwd/auto-login
+ 		if [ "$RET" = true ]; then
+			db_get passwd/auto-login-backup
+			BACKUP="${RET:+.$RET}"
+
+			if [ -d "$ROOT/etc/gdm" ]; then
+				# Configure GDM autologin
+				GDMCustomFile=$ROOT/etc/gdm/custom.conf
+				if [ -e "$GDMCustomFile" ] && [ "$BACKUP" ]; then
+					cp "$GDMCustomFile" "${GDMCustomFile}$BACKUP"
+				fi
+				AutologinParameters="AutomaticLoginEnable=true\n\
+AutomaticLogin=$USER\n\
+TimedLoginEnable=true\n\
+TimedLogin=$USER\n\
+TimedLoginDelay=10"
+
+				# Prevent from updating if parameters already present (persistent usb key)
+				if ! `grep -qs "AutomaticLogin=$USER" $GDMCustomFile` ; then
+					if [ -e "$GDMCustomFile" ]; then
+						sed -i '/\(Automatic\|Timed\)Login/d' $GDMCustomFile
+					fi
+					if ! `grep -qs '\[daemon\]' $GDMCustomFile` ; then
+						echo '[daemon]' >> $GDMCustomFile
+					fi
+					sed -i "s/\[daemon\]/\[daemon\]\n$AutologinParameters/" $GDMCustomFile
+				fi
+			fi
+	 
+			if $chroot $ROOT [ -f /etc/kde4/kdm/kdmrc ]; then
+				# Configure KDM autologin
+				$log $chroot $ROOT sed -i$BACKUP -r \
+					-e "s/^#?AutoLoginEnable=.*\$/AutoLoginEnable=true/" \
+					-e "s/^#?AutoLoginUser=.*\$/AutoLoginUser=$USER/" \
+					-e "s/^#?AutoReLogin=.*\$/AutoReLogin=true/" \
+					/etc/kde4/kdm/kdmrc
+			fi
+
+			if $chroot $ROOT [ -f /etc/lxdm/lxdm.conf ]; then
+    				# Configure LXDM autologin with LXDE session
+   				$log $chroot $ROOT sed -i$BACKUP -r \
+        				-e "s/^# autologin=dgod/autologin=$USER/" \
+        				-e "s/^# session/session/" \
+        				/etc/lxdm/lxdm.conf
+			fi
+
+			if $chroot $ROOT [ -f /etc/xdg/lubuntu/lxdm/lxdm.conf ]; then
+    				# Configure LXDM autologin with Lubuntu session
+				$log $chroot $ROOT sed -i$BACKUP -r \
+			        	-e "s/^# autologin=dgod/autologin=$USER/" \
+			        	-e "s/^# session/session/" \
+			        	-e "s/startlxde/startlubuntu/" \
+			        	/etc/xdg/lubuntu/lxdm/lxdm.conf
+			fi
+
+			if $chroot $ROOT [ -d /etc/lightdm ]; then
+				# Configure LightDM autologin
+				LightDMCustomFile=$ROOT/etc/lightdm/lightdm.conf
+				AutologinParameters="autologin-guest=false\n\
+autologin-user=$USER\n\
+autologin-user-timeout=0\n\
+autologin-session=lightdm-autologin"
+				if ! grep -qs '^autologin-user' $LightDMCustomFile; then
+					if ! grep -qs '^\[SeatDefaults\]' $LightDMCustomFile; then
+						echo '[SeatDefaults]' >> $LightDMCustomFile
+					fi
+					sed -i "s/\[SeatDefaults\]/\[SeatDefaults\]\n$AutologinParameters/" $LightDMCustomFile
+				#oem config scenario
+				else
+					sed -i "s/^\(\(str  *\)\?autologin-user\)=.*$/\1=$USER/g;" $ROOT/etc/lightdm/lightdm.conf
+				fi
+			fi
+		fi
+	fi
+
+	db_get passwd/root-login
+	if [ "$RET" = false ] && [ -n "$USER" ]; then
+		# Ensure sudo is installed, and set up the user to be able
+		# to use it.
+		if [ ! -e $ROOT/etc/sudoers ]; then
+			# try to work in d-i and out; it's better to
+			# use apt-install in d-i
+			apt-install sudo 2>/dev/null || $log $chroot $ROOT apt-get -q -y install sudo || true
+		fi
+		if [ -e $ROOT/etc/sudoers ]; then
+			# Test if we can add the user to the sudo group
+			# (possible if sudo >= 1.7.2-2 is installed on the target system)
+			# If we can, do it this way, otherwise add the user to sudoers
+			# See #597239
+			if ! $log $chroot $ROOT adduser "$USER" sudo >/dev/null 2>&1; then
+				echo "$USER ALL=(ALL) ALL" >> $ROOT/etc/sudoers
+			fi
+		else
+			# sudo failed to install, system won't be usable
+			exit 1
+		fi
+		# Configure gksu to use sudo, via an alternative, if it's
+		# installed and the alternative is registered.
+		if $chroot $ROOT update-alternatives --display libgksu-gconf-defaults >/dev/null 2>&1; then
+			$log $chroot $ROOT update-alternatives --set libgksu-gconf-defaults /usr/share/libgksu/debian/gconf-defaults.libgksu-sudo
+			$log $chroot $ROOT update-gconf-defaults || true
+		fi
+		# Configure aptitude to use sudo.
+		echo 'Aptitude::Get-Root-Command "sudo:/usr/bin/sudo";' > $ROOT/etc/apt/apt.conf.d/00aptitude
+	else
+		# Configure gksu to use su, via an alternative, if it's
+		# installed and the alternative is registered.
+		if $chroot $ROOT update-alternatives --display libgksu-gconf-defaults >/dev/null 2>&1; then
+			$log $chroot $ROOT update-alternatives --set libgksu-gconf-defaults /usr/share/libgksu/debian/gconf-defaults.libgksu-su
+			$log $chroot $ROOT update-gconf-defaults || true
+		fi
+	fi
+	if [ -z "$OVERRIDE_ALREADY_ENCRYPTED_SWAP" ] && \
+	   [ -n "$ENCRYPT_HOME_OPT" ] && [ -e $ROOT/etc/crypttab ]; then
+		# Zero out all encrypted swap partitions.  It is assumed that
+		# passwords are not used beyond this point in the install.
+		# cryptswap0 /dev/sda5 /dev/urandom swap,cipher=aes-cbc-essiv:sha256
+		# Ideally we would set up a new progress bar here, but we're
+		# inside finish-install's and cdebconf doesn't support nested
+		# progress bars.
+		db_progress INFO user-setup/progress/wipe-swap
+		while read name device source options; do
+			if echo "$options" | grep -q "swap"; then
+				if swapoff $device; then
+					if [ ! -b $device ]; then
+						ONE_MEG=$((1024*1024))
+						size=$(($(stat -c %s ${device})/${ONE_MEG}))
+						dd if=/dev/zero of=$device bs=${ONE_MEG} count=$size 2>/dev/null || true
+					else
+						dd if=/dev/zero of=$device bs=16M 2>/dev/null || true
+					fi
+				fi
+			fi
+		done < $ROOT/etc/crypttab
+	fi
+
+else
+	# Just in case, clear any preseeded user password from the database
+	# anyway.
+	db_set passwd/user-password-crypted ''
+	db_set passwd/user-password ''
+	db_set passwd/user-password-again ''
+fi
+
+exit 0

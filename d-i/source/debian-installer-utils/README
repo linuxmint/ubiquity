@@ -1,0 +1,118 @@
+These are simple utils for debian-installer:
+
+mapdevfs: Given a devfs device name, returns the name that would be used on
+a non devfs system. Only works for some devices, used by eg, boot loader
+installers.
+
+log-output: Runs a command, logging any stdout/stderr output to the syslog,
+and preserving the command's exit code. If you use the --pass-stdout option,
+it will pass stdout through rather than logging it, so that you can redirect
+it to a file or pipe it to another process. Note that the command must be
+in the path, shell builtins won't work.
+
+anna-install: Each parameter is a udeb that anna should install. If this
+command is run before anna has configured a default retriever, the udebs
+will be queued for the future anna run. If it's run after a default
+retriever is configured, the specified udebs will be installed immediately.
+
+apt-install: The parameter is one or more debs that should be installed into
+/target. If the /target environment is not yet set up, the package will be
+queued for later installation (at the end of base-installation).
+If /target is already set up, the package will be installed straightaway.
+Whether Recommends are installed by default depends on the value of the
+template base-installer/install-recommends.
+The command accepts the following options, which get preserved if packages
+are queued for later installation:
+* --no-recommends: don't install Recommends, even if that's the default;
+* --with-recommends: force installation of Recommends;
+* --allow-remove: allow other packages to be removed if necessary.
+apt-install makes use of in-target and debconf-apt-progress to allow
+configuration questions to be asked and to allow media changes if multiple
+CD/DVD sources have been set up.
+In case multiple CD/DVD sources are defined in the sources.list and the
+installation CD is not already unmounted, apt-install will unmount it
+in the D-I environment for the duration of the package installation so as not
+to block CD changes by apt in the target environment. Afterwards, if it was
+mounted at the start, it will ensure the installation CD/DVD is reloaded.
+
+in-target: Runs the specified command in /target and returns its exit
+status. The debconf passthrough frontend is used to make debconf questions
+be asked using cdebconf in the installer. This is especially useful for
+running things like dpkg-reconfigure, debconf-apt-progress, and tasksel.
+The log-output utility is used to log any output; if in-target is called
+with the option --pass-stdout, log-output will respect it.
+
+Both apt-install and in-target will by default use the locale selected for
+the target system. The environment variable IT_LANG_OVERRIDE can be set to
+override this. This is for example needed to avoid locale errors when the
+locales package has not yet been installed in the target environment
+
+debconf-get: Prints out the value of a debconf question.
+
+debconf-set: Sets a debconf question to a value.
+
+fetch-url:   fetch-url [-c|-r] <url> <file>
+Grabs the url and puts it in the file.  It uses methods for each protocol
+that it finds in /usr/lib/fetch-url/ (this allows for new protocols
+to be added).  It returns 0 on success, 1 on failure.
+The options modify its behaviour thus (for those methods where they
+make sense -- ftp & http currently -- otherwise they're ignored):
+
+  -r	Retry.  For retryable errors on methods that are worth
+	retrying (i.e. http/ftp downloads), will repeat the download
+	attempt once.
+
+  -c	Continuation Retry.  Likewise, retries, but will attempt to
+	continue (i.e. with wget's -c) the download, and will try up
+	to 3 times after the initial attempt.
+	Only use this if you're downloading something that subsequently
+	gets checksummed, as rumour has it that busybox's wget is not
+	very bright when it comes to continuing partial downloads.
+
+  It's probably best not to combine these two options, as they're
+  currently implemented in nested loops, and the combination will retry
+  too many times, and alternate between full and continuation attempts
+  in a senseless manner.
+
+register-module: Register a module to go in /etc/modules on the target. May
+be called before the target is mounted. Can optionally pass parameters that
+should be passed to the module on load; these are added to the appropriate
+files in /etc to make modprobe use them. If the -p parameter is passed then
+the module is not added to /etc/modules and only the specified parameters
+are set for it. The -t parameter is used to specify the type of options
+(currently only the default type "options" is used).
+The -a parameter makes register-module add a param, without removing any
+other params that might have been previously registered.
+The -i parameter makes the module be added to the initrd used to boot the
+installed system, and loaded during boot. If the script is called with the
+-b parameter, the module will be blacklisted.
+
+user-params: Output the parameters the user passed to the kernel on boot,
+one per line. This should include only parameters the user entered by hand,
+and will skip over parameters used to pre-seed debconf values or set kernel
+module-specific parameters. For any of the user's parameters to be
+recognised, the kernel command line must include "--" in it, and then all
+parameters after the -- are assumed to be user input. Therefore, the
+installer's boot loader should pass "--" at the end of its kernel command
+line to make this work.
+
+debconf-disconnect: Scripts running under the control of debconf can use
+this to execute a command disconnected from debconf, with its standard file
+descriptors the same as those of the debconf frontend itself. This is most
+useful for starting interactive shells.
+
+update-dev: Make sure that new device nodes have been created after loading
+modules.  It is also important for udev because there may be an asynchronous
+delay between loading the module and udev getting around to creating the
+device node. This allows a process to "wait" until all udev actions have
+completed.
+
+search-path: Returns true if a program is found in the path (d-i has no
+"which" command); this is deprecated, and new code should simply use
+"type PROGRAM >/dev/null 2>&1" instead.
+
+list-devices: List device nodes representing devices of various types,
+handling both devfs and udev naming schemes.
+
+block-attr: Get attributes of a block device, using whichever of vol_id or
+blkid is available.

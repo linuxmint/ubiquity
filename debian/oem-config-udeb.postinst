@@ -1,0 +1,23 @@
+#! /bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+set_question () {
+	if ! db_set "$1" "$2"; then
+		db_register debian-installer/dummy "$1"
+		db_subst "$1" ID "$1"
+		db_set "$1" "$2"
+	fi
+	db_fset "$1" seen true
+}
+
+set_question passwd/user-fullname 'OEM Configuration (temporary user)'
+set_question passwd/username oem
+set_question passwd/user-uid 29999
+set_question passwd/auto-login true
+set_question passwd/auto-login-backup oem
+set_question user-setup/encrypted-private false
+set_question user-setup/encrypt-home false
+
+exit 0

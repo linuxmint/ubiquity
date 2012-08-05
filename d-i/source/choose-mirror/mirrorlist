@@ -1,0 +1,177 @@
+#!/usr/bin/perl -w
+# Generates a mirrors_<type>.h file, reading from Mirrors.masterlist.
+# Note that there will be duplicate strings in the generated file.
+# I am relying on the c compiler to fix this, which gcc does.
+#
+# Pass in the type of mirror we are interested in (http or ftp), 
+# or use httplist or ftplist to generate a list of country codes for the
+# mirror type.
+use strict;
+
+my $type = shift || die "please specify mirror type\n";
+my $input = shift;
+$input = 'Mirrors.masterlist' unless defined $input;
+
+my $hostarch=$ENV{DEB_HOST_ARCH};
+if (! defined $hostarch) {
+	$hostarch=`dpkg-architecture -qDEB_HOST_ARCH`;
+	chomp $hostarch;
+}
+
+my $iso3166tab = 'debian/iso_3166.tab';
+my %iso3166;
+open(ISO3166TAB, "< $iso3166tab") || die "Unable to read $iso3166tab";
+while (<ISO3166TAB>) {
+	/^([A-Z]+)\t(.*)$/ or next;
+	$iso3166{$1} = $2;
+}
+close ISO3166TAB;
+
+# Slurp in the mirror file.
+my @data;
+my %countries;
+my %http_countries;
+my %ftp_countries;
+my $id=-1;	# incremented to 0 when first site is seen
+open (IN, $input) or die "$input: $!";
+while (<IN>) {
+	chomp;
+	if (m/([^:]*):\s+(.*)/) {
+		my $key = lc $1;
+		my $value = $2;
+		if (lc $key eq 'site') {
+			$id++;
+			$data[$id]->{site} = $value;
+		}
+		elsif (lc $key eq 'country') {
+			$value =~ s/ .*//;
+			$value = uc $value;
+			$data[$id]->{$key} = $value;
+		}
+		else {
+			$data[$id]->{$key} = $value;
+		}
+	}
+}
+close IN;
+
+# Look for entries in $input matching ${CC}, and expand them out to one
+# entry for every country code in iso_3166.xml, with the following
+# substitution variables:
+#   ${CC}: lower-case country code
+#   ${UCC}: upper-case country code
+#   ${CNAME}: country name
+# This is useful if you have a mirror hierarchy using wildcard DNS.
+# Use a C-style for loop because we may modify $id in the middle of it.
+for (my $id = 0; $id < @data; $id++) {
+	if ($data[$id]->{site} =~ /\${CC}/) {
+		my @expanded;
+		foreach my $cc (sort keys %iso3166) {
+			my %entry = %{$data[$id]};
+			for my $field (keys %entry) {
+				$entry{$field} =~ s/\${CC}/lc($cc)/eg;
+				$entry{$field} =~ s/\${UCC}/uc($cc)/eg;
+				$entry{$field} =~ s/\${CNAME}/$iso3166{$cc}/g;
+			}
+			push @expanded, \%entry;
+		}
+		splice @data, $id, 1, @expanded;
+		$id += @expanded - 1;
+	}
+}
+
+# Assign a rating to each mirror, so that push-primary come first, followed
+# by push-secondary. Normally that is followed by geodns, and then leaf.
+# However, if a country has no push-primary or secondary mirrors, its leaf
+# mirrors are put before geodns, since we do not want to default to a
+# geodns mirror that will likely not be in the country.
+my %cc_has_push_mirror;
+foreach my $id (0..$#data) {
+	my $cc = $data[$id]->{country};
+	if (exists $data[$id]->{type} && $data[$id]->{type} =~ /push/i) {
+		$cc_has_push_mirror{$cc}=1;
+	}
+}
+foreach my $id (0..$#data) {
+	my $cc = $data[$id]->{country};
+	my $rating=0;
+	if (exists $data[$id]->{type}) {
+	        $rating=1 if $data[$id]->{type} =~ /geodns/i;
+	        $rating=4 if $data[$id]->{type} =~ /push/i;
+                $rating=5 if $data[$id]->{type} =~ /push-primary/i;
+        }
+	if (! $rating && ! $cc_has_push_mirror{$cc}) {
+		$rating=2;
+	}
+	$data[$id]->{rating}=$rating;
+}
+
+# Filter out mirrors that don't carry the target architecture.
+my @newdata;
+foreach my $id (0..$#data) {
+	if (exists $data[$id]->{'archive-architecture'} &&
+	    $data[$id]->{'archive-architecture'} ne "any") {
+		my @arches = split ' ', $data[$id]->{'archive-architecture'};
+		if (grep /^!/, @arches) {
+			my %notarches = map { substr($_, 1) => 1 } grep /^!/, @arches;
+			next if exists $notarches{$hostarch};
+		} else {
+			my %arches = map { $_ => 1 } @arches;
+			next if not exists $arches{$hostarch};
+		}
+	}
+	push @newdata, $data[$id];
+}
+@data = @newdata;
+
+if ($type =~ /(.*)list/) {
+	my $type=$1;
+ 	open (LIST, ">debian/${type}list-countries") or die "debian/${type}list-countries: $!";
+	foreach my $id (0..$#data) {
+		my $cc;
+		if (exists $data[$id]->{type} and $data[$id]->{type} =~ /geodns/i) {
+			$cc='GB'; # location of Ubuntu master archive
+		}
+		else {
+			$cc=$data[$id]->{country};
+		}
+		next unless exists $data[$id]->{"archive-$type"} and defined $cc;
+		die "Error: country code '$cc' does not occur in iso-3166 table"
+			unless exists $iso3166{$cc};
+		$countries{$iso3166{$cc}} = $cc;
+	}
+	foreach my $country (sort (keys %countries)) {
+		print LIST "$countries{$country}\t${country}\n";
+	}
+	close LIST;
+}
+else {
+	open (OUT, ">mirrors_$type.h") or die "mirrors_$type.h: $!";
+	print OUT "/* Automatically generated; do not edit. */\n";
+
+	# Now output the mirror list. It is ordered with better mirrors
+	# near the top.
+	print OUT "static struct mirror_t mirrors_$type\[] = {\n";
+	my $q='"';
+	foreach my $id (sort { $data[$b]->{rating} <=> $data[$a]->{rating} } 0..$#data) {
+		my $cc;
+		if (exists $data[$id]->{type} && $data[$id]->{type} =~/geodns/i) {
+			$cc='NULL';
+		}
+		else {
+			$cc=$q.$data[$id]->{country}.$q;
+		}
+		next unless exists $data[$id]->{"archive-$type"} and defined $cc;
+		if (! exists $data[$id]->{'archive-architecture'}) {
+			print STDERR "warning: missing archive-architecture for mirror ".$data[$id]->{site}."; assuming it contains all architectures.\n";
+		}
+		print OUT "\t{",
+			  join(", ", $q.$data[$id]->{site}.$q, $cc,
+				$q.$data[$id]->{"archive-$type"}.$q),
+			  "},\n";
+	}
+	print OUT "\t{NULL, NULL, NULL}\n";
+	print OUT "};\n";
+
+	close OUT;
+}

@@ -1,0 +1,3205 @@
+partman-auto (101ubuntu2) precise; urgency=low
+
+  * Temporarily back out changes to recipes/atomic and recipes/home from
+    partman-auto 94.  These can be restored after precise when we have more
+    time to test them.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 12 Apr 2012 00:27:17 +0100
+
+partman-auto (101ubuntu1) precise; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Adjust default partition sizes for Ubuntu.
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Offer resize_use_free autopartitioning method, except on armel/armhf.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+    - Drop the bootable flag from i386/amd64 recipes; it can break existing
+      Windows installations when autopartitioning only free space rather
+      than a whole disk.
+    - Make biggest_free respect the selection made in partman-auto/disk.
+    - Exclude devices containing the installation medium from automatic
+      partitioning.
+    - Add armel/dove recipes.
+    - Use new get_real_resize_range function from partman-partitioning
+      72ubuntu3, which caches calls to tune2fs and ntfsresize.
+    - Add i386/efi (and amd64/efi, kfreebsd-i386/efi, and
+      kfreebsd-amd64/efi) recipes that create an EFI System Partition.
+    - Support resizing the largest partition on multiple disks.
+    - Support formatting the entire partition for any partition that can be
+      resized.
+    - Change the x86 atomic recipes to make the minimum swap size be 100% of
+      RAM, so that hibernate always works.
+    - Add an option to reuse an existing installation.
+    - Split out the replace option from resize_use_free.
+    - Signal to clear_partitions in partman-target that it should not notify
+      the user about the unformatted partitions we have set up.
+    - Add $reusemethod internal specifier, which excludes the partition if a
+      partition with the same method already exists.
+    - Reuse existing swap partitions, BIOS Boot Partitions, and EFI System
+      Partitions, if any, rather than creating new ones.
+    - Increase minimum size of EFI System Partitions to 100MB.
+    - Add a hack to stop EFI System Partitions showing up as to-be-formatted
+      in the confirm-changes screen when there's an existing filesystem that
+      would cause partman-efi to skip them.
+  * Update Ubuntu-specific translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 11 Apr 2012 12:25:18 +0100
+
+partman-auto (101) unstable; urgency=low
+
+  [ Updated translations ]
+  * Asturian (ast.po) by Mikel González
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Estonian (et.po) by Mattias Põldaru
+  * Hebrew (he.po) by Lior Kaplan
+  * Indonesian (id.po) by Mahyuddin Susanto
+  * Icelandic (is.po) by Sveinn í Felli
+  * Kannada (kn.po) by Prabodh C P
+
+ -- Otavio Salvador <otavio@debian.org>  Thu, 15 Mar 2012 14:54:05 -0300
+
+partman-auto (100) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Merge from Ubuntu:
+    - Determine memory size for RAM-dependent recipe elements more
+      accurately on i386 (LP: #604765).
+
+  [ Matt Kraai ]
+  * Enable LVM in mipsel/loongson-2f recipes (closes: #637970).
+
+  [ Philipp Kern ]
+  * Skip auto/choices on s390x.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Viktar Siarheichyk
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * German (de.po) by Holger Wansing
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Kumar Appaiah
+  * Italian (it.po) by Milo Casagrande
+  * Macedonian (mk.po) by Arangel Angov
+  * Polish (pl.po) by Marcin Owsiany
+  * Romanian (ro.po) by Ioan Eugen Stan
+  * Sinhala (si.po) by Danishka Navin
+  * Turkish (tr.po) by Mert Dirik
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+
+ -- Philipp Kern <pkern@debian.org>  Thu, 06 Oct 2011 18:50:22 +0200
+
+partman-auto (99) unstable; urgency=low
+
+  * Add mipsel/loongson-2f recipes.
+
+ -- Colin Watson <cjwatson@debian.org>  Fri, 03 Jun 2011 11:19:26 +0100
+
+partman-auto (98) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Update old comment about partman-auto-lvm and $iflabel.
+
+  [ Updated translations ]
+  * Uyghur (ug.po) by Sahran
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 23 Apr 2011 19:40:06 +0200
+
+partman-auto (97) unstable; urgency=low
+
+  [ Konstantinos Margaritis ]
+  * Added armhf recipe
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Czech (cs.po) by Miroslav Kure
+  * Spanish (es.po) by Javier Fernández-Sanguino
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Nepali (ne.po)
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Russian (ru.po) by Yuri Kozlov
+  * Northern Sami (se.po) by Børre Gaup
+  * Slovak (sk.po) by Ivan Masár
+  * Swedish (sv.po) by Daniel Nylander
+  * Telugu (te.po) by Arjuna Rao Chavala
+  * Thai (th.po) by Theppitak Karoonboonyanan
+
+ -- Hector Oron <zumbi@debian.org>  Tue, 22 Mar 2011 12:24:32 +0000
+
+partman-auto (96) unstable; urgency=low
+
+  [ Updated translations ]
+  * Lao (lo.po) by Anousak Souphavanh
+  * Northern Sami (se.po) by Børre Gaup
+  * Sinhala (si.po) by Danishka Navin
+
+ -- Hector Oron <zumbi@debian.org>  Tue, 22 Mar 2011 12:20:16 +0000
+
+partman-auto (95) unstable; urgency=low
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Israt Jahan
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 12 Nov 2010 16:18:15 -0200
+
+partman-auto (94) unstable; urgency=low
+
+  * Team upload
+  * Bump minimum root partition size to 900MiB in the home
+    recipe. 
+    This will allow installing the standard task and leave room for
+    and extra kernel package in later life of the machine
+    Closes: #528914
+  * Adapt minimum sizes for /var and / in the multi recipe:
+    /var must cope with about 150MiB downloads and has 125MiB data
+    for the standard task install
+    / has about 150MiB installed and should cope with an
+    extra kernel at least
+  * Adapt minimum size for / in the atomic recipe, to 900MiB
+    Same rationale than above.
+
+  [ Updated translations ]
+  * Catalan (ca.po) by Jordi Mallach
+  * Icelandic (is.po) by Sveinn í Felli
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 03 Nov 2010 22:00:19 +0100
+
+partman-auto (93ubuntu22) precise; urgency=low
+
+  * Add a hack to stop EFI System Partitions showing up as to-be-formatted
+    in the confirm-changes screen when there's an existing filesystem that
+    would cause partman-efi to skip them.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 14 Mar 2012 14:35:32 +0000
+
+partman-auto (93ubuntu21) precise; urgency=low
+
+  * Increase minimum size of EFI System Partitions to 100MB (LP: #811485).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 14 Mar 2012 12:38:13 +0000
+
+partman-auto (93ubuntu20) precise; urgency=low
+
+  * Reuse existing swap partitions and EFI System Partitions, if any, rather
+    than creating new ones (LP: #311299).
+  * Update Ubuntu-specific translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 09 Mar 2012 15:22:39 +0000
+
+partman-auto (93ubuntu19) precise; urgency=low
+
+  * Close mount's fds 6 and 7 when running within an
+    open_dialog/close_dialog pair, so that if ntfs-3g is in use it doesn't
+    keep those fds open in the background and cause havoc (LP: #912031).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 02 Feb 2012 14:47:27 +0000
+
+partman-auto (93ubuntu18) precise; urgency=low
+
+  * Remove the use of 'local' in shell scripts outside of functions.  Newer
+    shell script interpreters in precise complain otherwise.
+
+ -- Mario Limonciello <Mario_Limonciello@Dell.com>  Wed, 14 Dec 2011 14:23:35 -0600
+
+partman-auto (93ubuntu17) precise; urgency=low
+
+  * Don't offer resize_use_free autopartitioning method on armhf (already
+    excluded on armel).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 07 Dec 2011 17:58:00 +0000
+
+partman-auto (93ubuntu16) natty; urgency=low
+
+  * If an LV contains a partition table, then libparted will see the
+    partitions but device nodes won't be created for them, which broke the
+    reuse and replace automatically_partition scripts.  Tolerate this
+    situation by ignoring device nodes that don't exist, or for which
+    blockdev breaks in other ways (LP: #770041).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 26 Apr 2011 11:08:33 +0100
+
+partman-auto (93ubuntu15) natty; urgency=low
+
+  * Add $reusemethod internal specifier, which excludes the partition if a
+    partition with the same method already exists.
+  * If there is an existing BIOS Boot Partition, reuse it rather than
+    creating a new one (LP: #746313).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 20 Apr 2011 17:50:59 +0100
+
+partman-auto (93ubuntu14) natty; urgency=low
+
+  * Fix reuse and replace options to umount using the path name
+    instead of the device name to work around a bug where ntfs-3g
+    on dmraid can not be unmounted with the device name, which
+    then caused the installer to hang (LP: #725408).
+
+ -- Phillip Susi <psusi@cfl.rr.com>  Sun, 10 Apr 2011 12:27:57 -0400
+
+partman-auto (93ubuntu13) natty; urgency=low
+
+  * Make sure we have a partition selected for autopartitioning, not the
+    disk, when using the replace option (LP: #738366).
+  * Lazily unmount partitions in reuse/replace.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Wed, 23 Mar 2011 16:36:49 +0000
+
+partman-auto (93ubuntu12) natty; urgency=low
+
+  * Disable swap partitions on the same disk before deleting the
+    partition in the replace option (LP: #740881).
+
+ -- Evan Dandrea <ev@ubuntu.com>  Wed, 23 Mar 2011 11:36:14 +0000
+
+partman-auto (93ubuntu11) natty; urgency=low
+
+  * Fix a bug whereby reuse/do_option was filling debconf with garbage by not
+    using the correct delimeter for read_paragraph.
+  * Refactor reuse/do_option so that it doesn't call blkid in an O(n^2)
+    fashion.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Tue, 22 Mar 2011 03:00:55 +0000
+
+partman-auto (93ubuntu10) natty; urgency=low
+
+  * Guard against blkid returning non-zero (LP: #729394).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 14 Mar 2011 13:39:58 +0000
+
+partman-auto (93ubuntu9) natty; urgency=low
+
+  * Handle detected_filesystems not existing.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Tue, 01 Mar 2011 06:22:14 +0000
+
+partman-auto (93ubuntu8) natty; urgency=low
+
+  [ Evan Dandrea ]
+  * Signal to clear_partitions in partman-target that it should not
+    notify the user about the unformatted partitions we have set up.
+
+  [ Colin Watson ]
+  * Guard against 'grep -s DISTRIB_ID $mountpoint/etc/lsb-release' returning
+    false and causing parted_server communications to get out of sync
+    (LP: #726131).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 28 Feb 2011 16:22:32 +0000
+
+partman-auto (93ubuntu7) natty; urgency=low
+
+  * Split out the replace option from resize_use_free.
+  * Don't warn about partitions not marked for formatting when using the
+    reuse choice.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Sun, 27 Feb 2011 01:44:25 +0000
+
+partman-auto (93ubuntu6) natty; urgency=low
+
+  * Don't explode on unpartitioned space in the reuse option (LP:
+    #722198).
+
+ -- Evan Dandrea <ev@ubuntu.com>  Thu, 24 Feb 2011 15:29:10 +0000
+
+partman-auto (93ubuntu5) natty; urgency=low
+
+  * Set the executable bit on reuse/*.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Tue, 15 Feb 2011 12:15:40 +0000
+
+partman-auto (93ubuntu4) natty; urgency=low
+
+  * Add an option to reuse an existing installation.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Tue, 15 Feb 2011 09:51:15 +0000
+
+partman-auto (93ubuntu3) natty; urgency=low
+
+  * Change the x86 atomic recipes to make the minimum swap size be 100% of
+    RAM, so that hibernate always works (LP: #345126).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 17 Dec 2010 14:43:31 +0000
+
+partman-auto (93ubuntu2) natty; urgency=low
+
+  * Fix memory size calculations to use the total of the sizes of all memory
+    modules rather than the highest address (LP: #675665).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 29 Nov 2010 16:07:06 +0000
+
+partman-auto (93ubuntu1) natty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Adjust default partition sizes for Ubuntu.
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Offer resize_use_free autopartitioning method, except on armel.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+    - Drop the bootable flag from i386/amd64 recipes; it can break existing
+      Windows installations when autopartitioning only free space rather
+      than a whole disk.
+    - Make biggest_free respect the selection made in partman-auto/disk.
+    - Exclude devices containing the installation medium from automatic
+      partitioning.
+    - Add armel/dove recipes.
+    - Use new get_real_resize_range function from partman-partitioning
+      72ubuntu3, which caches calls to tune2fs and ntfsresize.
+    - Add i386/efi (and amd64/efi, kfreebsd-i386/efi, and
+      kfreebsd-amd64/efi) recipes that create an EFI System Partition.
+    - Support resizing the largest partition on multiple disks.
+    - Support formatting the entire partition for any partition that can be
+      resized.
+    - Determine memory size for RAM-dependent recipe elements more
+      accurately on i386.
+  * Get memory size from /sys/firmware/memmap/* rather than using
+    dmi-available-memory, in line with current base-installer.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 21 Oct 2010 17:12:03 +0100
+
+partman-auto (93) unstable; urgency=low
+
+  * Team upload
+
+  [ Colin Watson ]
+  * Use 'dh $@ --options' rather than 'dh --options $@', for
+    forward-compatibility with debhelper v8.
+
+  [ Christian Perrier ]
+  * Limit swap to 200% of physical memory. Closes: #597087
+
+  [ Updated translations ]
+  * Asturian (ast.po) by maacub
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bosnian (bs.po) by Armin Beširović
+  * Danish (da.po) by Jacob Sparre Andersen
+  * Persian (fa.po) by Ebrahim Byagowi
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Telugu (te.po) by Arjuna Rao Chavala
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 10 Oct 2010 10:01:02 +0200
+
+partman-auto (92) unstable; urgency=low
+
+  [ Petter Reinholdtsen ]
+  * Increase max size for /usr/ in the multi recipe from 5000 to 6000
+    MB, based on feedback from Nima Azarbayjany on debian-boot@.
+
+  [ Colin Watson ]
+  * Remove stray error message text left around from version 90.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Viktar Siarheichyk
+  * Persian (fa.po) by acathur
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Central Khmer (km.po) by Khoem Sokhem
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Macedonian (mk.po) by Arangel Angov
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 11 Jul 2010 18:54:33 +0200
+
+partman-auto (91ubuntu4) maverick; urgency=low
+
+  * Use /usr/lib/base-installer/dmi-available-memory if available to
+    determine memory size for RAM-dependent recipe elements (LP: #604765).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 21 Aug 2010 00:09:22 +0100
+
+partman-auto (91ubuntu3) maverick; urgency=low
+
+  * Support resizing the largest partition on multiple disks.
+  * Support formatting the entire partition for any partition that can
+    be resized.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 13 Jul 2010 10:11:51 +0100
+
+partman-auto (91ubuntu2) maverick; urgency=low
+
+  * Add i386/efi (and amd64/efi, kfreebsd-i386/efi, and kfreebsd-amd64/efi)
+    recipes that create an EFI System Partition.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 18 Jun 2010 15:40:29 +0100
+
+partman-auto (91ubuntu1) maverick; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Adjust default partition sizes for Ubuntu.
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Offer resize_use_free autopartitioning method, except on armel.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+    - Drop the bootable flag from i386/amd64 recipes; it can break existing
+      Windows installations when autopartitioning only free space rather
+      than a whole disk.
+    - Make biggest_free respect the selection made in partman-auto/disk.
+    - Exclude devices containing the installation medium from automatic
+      partitioning.
+    - Add armel/dove recipes.
+    - Use new get_real_resize_range function from partman-partitioning
+      72ubuntu3, which caches calls to tune2fs and ntfsresize.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 27 May 2010 09:54:10 +0100
+
+partman-auto (91) unstable; urgency=low
+
+  * Fix $iflabel{ } logic to avoid including the partition anyway if the
+    current directory is not a subdirectory of /var/lib/partman/devices.
+    This caused automatic LVM partitioning to be calculated with a biosgrub
+    partition regardless of the disk label type, although as it happened
+    this cancelled out with another bug so that partition would never
+    actually be written to disk (LP: #538536).
+  * Run clean_method before starting autopartitioning instead of in the
+    middle of performing a recipe, and call autopartition just once for
+    multi-disk partitioning.  This means that methods applied to partitions
+    of physical disks in RAID recipes are applied to all disks rather than
+    just the last one (LP: #566965).
+
+  [ Updated translations ]
+  * Asturian (ast.po) by astur
+  * Danish (da.po) by Jacob Sparre Andersen
+  * German (de.po) by Holger Wansing
+  * French (fr.po) by Christian Perrier
+  * Hebrew (he.po) by Omer Zak
+  * Korean (ko.po) by Changwoo Ryu
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Norwegian Nynorsk (nn.po) by Eirik U. Birkeland
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Tamil (ta.po) by Dr,T,Vasudevan
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 25 May 2010 16:01:39 +0100
+
+partman-auto (90) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Merge from Ubuntu:
+    - Remove explicit $primary{ } specifiers from standard recipes. We only
+      need them to be primary if no other primary partitions exist already.
+  * Change expert recipe error message to focus on the available disk space
+    being too small, not the recipe being too large (idea from "Rorschach",
+    LP: #415488).
+
+  [ Frans Pop ]
+  * Remove no longer needed Lintian override for missing Standards-Version
+    field.
+  * After choosing "biggest free" option followed by backing up from the recipe
+    dialog, don't exit to main menu but return to initial partman-auto dialog.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Pavel Piatruk
+  * German (de.po) by Holger Wansing
+  * Galician (gl.po) by Marce Villarino
+  * Italian (it.po) by Milo Casagrande
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Simplified Chinese (zh_CN.po) by 苏运强
+
+ -- Frans Pop <fjp@debian.org>  Mon, 22 Feb 2010 04:15:54 +0100
+
+partman-auto (89ubuntu8) lucid; urgency=low
+
+  * Explicitly handle failures from get_real_resize_range (LP: #568021).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 23 Apr 2010 11:44:29 +0100
+
+partman-auto (89ubuntu7) lucid; urgency=low
+
+  * Run clean_method before starting autopartitioning instead of in the
+    middle of performing a recipe, and call autopartition just once for
+    multi-disk partitioning.  This means that methods applied to partitions
+    of physical disks in RAID recipes are applied to all disks rather than
+    just the last one (LP: #566965).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 21 Apr 2010 10:43:22 +0100
+
+partman-auto (89ubuntu6) lucid; urgency=low
+
+  * Update Ubuntu-specific translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 15 Apr 2010 00:32:23 +0100
+
+partman-auto (89ubuntu5) lucid; urgency=low
+
+  * Don't offer resize_use_free on armel (LP: #550963).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 09 Apr 2010 12:35:15 +0100
+
+partman-auto (89ubuntu4) lucid; urgency=low
+
+  * Ignore $iflabel{ } specifiers if we aren't in a subdirectory of $DEVICES
+    when decoding the recipe (LP: #538536).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 31 Mar 2010 16:12:08 +0100
+
+partman-auto (89ubuntu3) lucid; urgency=low
+
+  * Use new get_real_resize_range function from partman-partitioning
+    72ubuntu3, which caches calls to tune2fs and ntfsresize.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 11 Feb 2010 01:45:12 +0000
+
+partman-auto (89ubuntu2) karmic; urgency=low
+
+  * Change armel+dove automatic partitioning to use the uboot pseudo-filesystem
+    instead of ext2. (LP: #455713)
+
+ -- Michael Casadevall <mcasadevall@ubuntu.com>  Tue, 20 Oct 2009 00:05:50 +0100
+
+partman-auto (89ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Adjust default partition sizes for Ubuntu.
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Offer resize_use_free autopartitioning method.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+    - Drop the bootable flag from i386/amd64 recipes; it can break existing
+      Windows installations when autopartitioning only free space rather
+      than a whole disk.
+    - Remove explicit $primary{ } specifiers from standard recipes. We only
+      need them to be primary if no other primary partitions exist already.
+    - Make biggest_free respect the selection made in partman-auto/disk.
+    - Exclude devices containing the installation medium from automatic
+      partitioning.
+    - Add armel/dove recipes.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 09 Sep 2009 09:54:55 +0100
+
+partman-auto (89) unstable; urgency=low
+
+  * Upgrade to debhelper v7.
+  * Add a biosgrub partition to default recipes, used only if the disk label
+    is GPT (closes: #491376). Requires partman-partitioning 71. Thanks to
+    Otavio Salvador for reviewing this.
+
+  [ Updated translations ]
+  * Korean (ko.po) by Changwoo Ryu
+  * Russian (ru.po) by Yuri Kozlov
+
+ -- Colin Watson <cjwatson@debian.org>  Mon, 07 Sep 2009 12:09:20 +0100
+
+partman-auto (88) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Move "Guided partitioning" above "Configure software RAID"; it seems
+    more natural at the top of the choose_partition menu.
+
+  [ Aurelien Jarno ]
+  * Recognize ufs as an allowed partition type.
+  * Depends on partman-ext3 on Linux only and on partman-ufs on kFreeBSD only
+    (iow on the default filesystem).
+
+  [ Updated translations ]
+  * Basque (eu.po) by Piarres Beobide
+  * Italian (it.po) by Milo Casagrande
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sat, 22 Aug 2009 18:48:18 +0200
+
+partman-auto (87ubuntu3) karmic; urgency=low
+
+  * Added dove partman-auto support; dove is almost identical to kirkwood as
+    it's a uboot based SoC and requires a dedicated boot partition. /boot as
+    an ext2 partition may be replaced in the near future with a uboot
+    partition type similar to how EFI is currently implemented for ia64.
+    - Defaults for the /boot partition are 128M min, 256M max.
+
+ -- Michael Casadevall <mcasadevall@ubuntu.com>  Tue, 01 Sep 2009 15:15:31 +0100
+
+partman-auto (87ubuntu2) karmic; urgency=low
+
+  * Update translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 01 Sep 2009 13:18:39 +0100
+
+partman-auto (87ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Adjust default partition sizes for Ubuntu.
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Offer resize_use_free autopartitioning method.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+    - Drop the bootable flag from i386/amd64 recipes; it can break existing
+      Windows installations when autopartitioning only free space rather
+      than a whole disk.
+    - Remove explicit $primary{ } specifiers from standard recipes. We only
+      need them to be primary if no other primary partitions exist already.
+    - Make biggest_free respect the selection made in partman-auto/disk.
+    - Exclude devices containing the installation medium from automatic
+      partitioning.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 14 Jul 2009 23:08:15 +0100
+
+partman-auto (87) unstable; urgency=low
+
+  * Add support for writing sizes as a number plus a percentage of RAM, e.g.
+    "2000+50%". This is useful when doing automatic partitioning with the
+    expectation of creating swap files.
+  * If we're creating primary partitions and find that we've reached the end
+    of the recipe, use "full" rather than "beginning" as the place passed to
+    NEW_PARTITION, thereby avoiding rounding problems and matching the
+    process for creating logical partitions (closes: #516347, LP: #287571).
+
+  [ Updated translations ]
+  * Hindi (hi.po)
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 14 Jul 2009 14:35:51 +0100
+
+partman-auto (86ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Adjust default partition sizes for Ubuntu.
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Offer resize_use_free autopartitioning method.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+    - Drop the bootable flag from i386/amd64 recipes; it can break existing
+      Windows installations when autopartitioning only free space rather
+      than a whole disk.
+    - Remove explicit $primary{ } specifiers from standard recipes. We only
+      need them to be primary if no other primary partitions exist already.
+    - Make biggest_free respect the selection made in partman-auto/disk.
+    - Exclude devices containing the installation medium from automatic
+      partitioning.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 15 Jun 2009 17:37:51 +0100
+
+partman-auto (86) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Merge from Ubuntu:
+    - Only ensure that there is at least one primary partition after
+      autopartitioning on partition tables that use extended partitions.
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Md. Rezwan Shahid
+  * Estonian (et.po) by Mattias Põldaru
+  * Slovak (sk.po) by Ivan Masár
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 12 Jun 2009 07:03:33 +0200
+
+partman-auto (85ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Adjust default partition sizes for Ubuntu.
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Offer resize_use_free autopartitioning method.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+    - Drop the bootable flag from i386/amd64 recipes; it can break existing
+      Windows installations when autopartitioning only free space rather
+      than a whole disk.
+    - Remove explicit $primary{ } specifiers from standard recipes. We only
+      need them to be primary if no other primary partitions exist already.
+    - Make biggest_free respect the selection made in partman-auto/disk.
+    - Exclude devices containing the installation medium from automatic
+      partitioning.
+  * Drop relatime from autopartitioning recipes; it's the default in Linux
+    2.6.30.
+  * Only ensure that there is at least one primary partition after
+    autopartitioning on partition tables that use extended partitions.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 29 Apr 2009 12:24:26 +0100
+
+partman-auto (85) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Merge from Ubuntu:
+    - Add ext4 support.
+    - Add support for $default_filesystem as the partition type in a recipe,
+      and $default_filesystem{ } as an internal specifier. These are
+      equivalent to FS and filesystem{ FS } respectively, where FS is the
+      value of partman/default_filesystem. Requires partman-base 129.
+    - Exit straight away if a called script is killed by a signal.
+
+  [ Frans Pop ]
+  * Remove myself as uploader.
+
+  [ Martin Michlmayr ]
+  * Remove recipes for the old arm port.
+  * Use the same recipes on Marvell Kirkwood as on Orion.
+
+  [ Updated translations ]
+  * Basque (eu.po) by Piarres Beobide
+  * Galician (gl.po) by Marce Villarino
+  * Hindi (hi.po) by Kumar Appaiah
+  * Italian (it.po) by Milo Casagrande
+  * Kazakh (kk.po) by daur88
+  * Malayalam (ml.po) by Praveen Arimbrathodiyil
+  * Slovak (sk.po) by Ivan Masár
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Tagalog (tl.po) by Eric Pareja
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Fri, 03 Apr 2009 15:58:56 +0200
+
+partman-auto (84ubuntu4) jaunty; urgency=low
+
+  * Add another 300MB to the amount of space we require to be left by
+    automatic resizing, to account for (a) growth in installation size, (b)
+    variable language pack sizes, and (c) increased memory sizes resulting
+    in upward pressure on swap partition sizes (LP: #361707).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 16 Apr 2009 14:00:00 +0100
+
+partman-auto (84ubuntu3) jaunty; urgency=low
+
+  * Update Ubuntu-specific strings from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 09 Apr 2009 02:10:45 +0100
+
+partman-auto (84ubuntu2) jaunty; urgency=low
+
+  * Exclude devices containing the installation medium from automatic
+    partitioning (LP: #347916). Requires partman-base 129ubuntu5 for this
+    change to work properly.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 02 Apr 2009 19:01:12 +0100
+
+partman-auto (84ubuntu1) jaunty; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Adjust default partition sizes for Ubuntu.
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Offer resize_use_free autopartitioning method.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+    - Drop the bootable flag from i386/amd64 recipes; it can break existing
+      Windows installations when autopartitioning only free space rather
+      than a whole disk.
+    - Remove explicit $primary{ } specifiers from standard recipes. We only
+      need them to be primary if no other primary partitions exist already.
+    - Add relatime to all autopartitioning recipes.
+    - Make biggest_free respect the selection made in partman-auto/disk.
+    - Exit straight away if a called script is killed by a signal.
+    - Add ext4 support.
+    - Add support for $default_filesystem as the partition type in a recipe,
+      and $default_filesystem{ } as an internal specifier.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 11 Feb 2009 13:29:45 +0000
+
+partman-auto (84) unstable; urgency=low
+
+  * recipes.sh: correct error handling for non-existant recipe description.
+  * Increase minimum size of root partition in multi recipe. This is mainly
+    needed in case there is no separate /boot partition, but also to allow
+    for e.g. the /emul directory.
+  * Use "-1" instead of "1000000000" to indicate unlimited partition size in
+    partman recipes. This avoids an error when setting up LVM on disks larger
+    than 1TB. See: #510544.
+
+ -- Frans Pop <fjp@debian.org>  Mon, 12 Jan 2009 22:12:55 +0100
+
+partman-auto (83ubuntu3) jaunty; urgency=low
+
+  * Add support for $default_filesystem as the partition type in a recipe,
+    and $default_filesystem{ } as an internal specifier. These are
+    equivalent to FS and filesystem{ FS } respectively, where FS is the
+    value of partman/default_filesystem. Requires partman-base 128ubuntu6.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 09 Feb 2009 22:30:54 +0100
+
+partman-auto (83ubuntu2) jaunty; urgency=low
+
+  * Add ext4 support (LP: #293465).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 08 Jan 2009 16:53:23 +0000
+
+partman-auto (83ubuntu1) jaunty; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Adjust default partition sizes for Ubuntu.
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Offer resize_use_free autopartitioning method.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+    - Drop the bootable flag from i386/amd64 recipes; it can break existing
+      Windows installations when autopartitioning only free space rather
+      than a whole disk.
+    - Remove explicit $primary{ } specifiers from standard recipes. We only
+      need them to be primary if no other primary partitions exist already.
+    - Add relatime to all autopartitioning recipes.
+    - Make biggest_free respect the selection made in partman-auto/disk.
+    - Make biggest_free use mapdevfs to produce a valid partman disk.
+    - Exit straight away if a called script is killed by a signal.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 15 Nov 2008 00:06:40 +0000
+
+partman-auto (83) unstable; urgency=low
+
+  [ Giuseppe Iuculano ]
+  * lib/auto-shared.sh: Consider device-mapper devices/dmraid arrays with the
+    sataraid flag set as usable for automatic partitioning.
+    Patch based on work done by Luke Yelavich <themuso@ubuntu.com> in Ubuntu.
+
+  [ Frans Pop ]
+  * Factor out is_multipath_dev function to base.sh function library.
+    Requires partman-base (>= 126).
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Pavel Piatruk
+  * Bosnian (bs.po) by Armin Besirovic
+  * Danish (da.po)
+  * Hebrew (he.po) by Omer Zak
+  * Croatian (hr.po) by Josip Rodin
+  * Latvian (lv.po) by Peteris Krisjanis
+  * Macedonian (mk.po) by Arangel Angov
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Serbian (sr.po) by Veselin Mijušković
+
+ -- Otavio Salvador <otavio@debian.org>  Sun, 21 Sep 2008 22:05:34 -0300
+
+partman-auto (81) unstable; urgency=low
+
+  [ Jérémy Bobbio ]
+  * Move dev_to_partman() to lib/auto-shared.sh.
+    Based on a patch by Grégory Oestreicher.
+  * Use convert_to_megabytes() in decode_recipe(), autopartition and
+    perform_recipe.
+    Depends: partman-base (>= 125)
+  * Rename $devfspv_devices to $pv_devices in lib/auto-shared.sh now that we
+    don't have devfs devices anymore.
+  * create_primary_partitions() and create_partitions() now add dm-crypt
+    devices to $pv_devices when using the "crypto" method, like it is done for
+    LVM.
+  * Call prepare_new_labels() before calling create_new_label().
+    Depends: partman-partitioning (>= 62)
+  * Move get_last_free_partition_infos() out of auto_init_disk() in
+    lib/auto-shared.sh.  autopartition has been updated accordingly.
+    Based on a patch by Grégory Oestreicher.
+    Breaks: partman-auto-lvm (<< 29)
+  * Rename auto_init_disk() to auto_init_disks() as it can now initialize
+    multiple disks at once.  autopartition has been updated accordingly.
+    Breaks: partman-auto-lvm (<< 29)
+  * Call autopartition-lvm on all disks in partman-auto/disk at once to enable
+    proper support of multiple disks partitioning.
+    Depends: partman-auto-lvm (>= 29)
+  * Call auto_init_disks() with all disks that are going to be used in a
+    "raid" method in order to avoid bogus partman restarts.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+
+ -- Jérémy Bobbio <lunar@debian.org>  Mon, 25 Aug 2008 21:04:38 +0200
+
+partman-auto (80) unstable; urgency=low
+
+  [ Jérémy Bobbio ]
+  * Propagate debconf_select() cancel return code in choose_recipe().
+  * Correctly handle GOBACK in automatically_partition/some_device/do_option.
+    (Closes: #487694)
+  * Update to the new debconf_select interface.
+    Requires partman-base (>= 124).
+
+  [ Updated translations ]
+  * Esperanto (eo.po) by Felipe Castro
+	
+ -- Otavio Salvador <otavio@debian.org>  Tue, 05 Aug 2008 13:40:40 -0300
+
+partman-auto (79) unstable; urgency=low
+
+  [ Martin Michlmayr ]
+  * Use the size values for /boot from the generic recipe for iop32x
+    and orion5x since there's no reason to divert from the default.
+  * Allow LVM on iop32x and orion5x.
+  * Add recipes for ixp4xx that allocate more swap than other recipes
+    (for the Linksys NSLU2 which only has 32 MB RAM).
+  * ixp4xx: Don't offer lvm by default since it uses many resources.
+
+  [ Frans Pop ]
+  * Change default file system for /boot partition from ext3 to ext2.
+    As they are relatively small the journal overhead is fairly big and
+    because the transaction volume is very low the need for a journal is
+    a lot less than on other partitions.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Pavel Piatruk
+  * Basque (eu.po) by Iñaki Larrañaga Murgoitio
+  * Finnish (fi.po) by Esko Arajärvi
+  * Italian (it.po) by Milo Casagrande
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Slovak (sk.po) by Ivan Masár
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Frans Pop <fjp@debian.org>  Wed, 16 Jul 2008 13:53:09 +0200
+
+partman-auto (78ubuntu3) intrepid; urgency=low
+
+  * Exit straight away if a called script is killed by a signal.
+  * Update Ubuntu-specific strings from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 12 Oct 2008 00:05:33 +0100
+
+partman-auto (78ubuntu2) intrepid; urgency=low
+
+  * lib/auto-shared.sh: Consider device-mapper devices/dmraid arrays with
+    the sataraid flag set as usable for automatic partitioning.
+
+ -- Luke Yelavich <themuso@ubuntu.com>  Wed, 27 Aug 2008 21:52:27 +1000
+
+partman-auto (78ubuntu1) intrepid; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Adjust default partition sizes for Ubuntu.
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Offer resize_use_free autopartitioning method.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+    - Drop the bootable flag from i386/amd64 recipes; it can break existing
+      Windows installations when autopartitioning only free space rather
+      than a whole disk.
+    - Remove explicit $primary{ } specifiers from standard recipes. We only
+      need them to be primary if no other primary partitions exist already.
+    - Add relatime to all autopartitioning recipes.
+    - Make biggest_free respect the selection made in partman-auto/disk.
+    - Make biggest_free use mapdevfs to produce a valid partman disk.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 20 May 2008 00:44:11 +0200
+
+partman-auto (78) unstable; urgency=low
+
+  [ Updated translations ]
+  * Amharic (am.po) by tegegne tefera
+  * Malayalam (ml.po) by Praveen|പ്രവീണ്‍ A|എ
+  * Marathi (mr.po) by Sampada
+  * Panjabi (pa.po) by Amanpreet Singh Alam
+
+ -- Otavio Salvador <otavio@debian.org>  Thu, 08 May 2008 00:52:40 -0300
+
+partman-auto (77) unstable; urgency=low
+
+  [ Frans Pop ]
+  * auto-shared.sh: skip both /dev/md/X and /dev/mdX RAID devices.
+
+  [ Martin Michlmayr ]
+  * Add a recipe for orion5x, so a separate /boot partition will
+    be used.  Some Orion devices boot from disk and u-boot only
+    supports ext2/ext3 boot partitions.
+  * Make arm recipes also available on armel.
+
+  [ Updated translations ]
+  * Marathi (mr.po)
+
+ -- Frans Pop <fjp@debian.org>  Mon, 07 Apr 2008 17:47:25 +0200
+
+partman-auto (76) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Support preseeding partman-auto/choose_recipe using the name of the
+    recipe you want (e.g. "home"), as an alternative to the localised
+    description.
+  * Ensure that there is always at least one primary partition after
+    autopartitioning. An existing primary partition on the disk satisfies
+    this, as does a recipe partition explicitly marked $primary{ }; if
+    neither of those exists, then arbitrarily promote the first recipe
+    partition to be a primary partition.
+
+  [ Guido Guenther ]
+  * Allow multipath devices as auto_disks
+
+  [ Updated translations ]
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Slovak (sk.po) by Ivan Masár
+
+ -- Frans Pop <fjp@debian.org>  Thu, 20 Mar 2008 09:26:56 +0100
+
+partman-auto (75) unstable; urgency=low
+
+  [ Updated translations ]
+  * Finnish (fi.po) by Esko Arajärvi
+  * Hindi (hi.po) by Kumar Appaiah
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Latvian (lv.po) by Viesturs Zarins
+  * Panjabi (pa.po) by Amanpreet Singh Alam
+  * Turkish (tr.po) by Recai Oktaş
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Otavio Salvador <otavio@ossystems.com.br>  Fri, 15 Feb 2008 09:33:08 -0200
+
+partman-auto (74) unstable; urgency=low
+
+  * Don't create the last partition as a logical partition when all partitions
+    are defined as primary and there are sufficient primary partitions
+    available. Closes: #413505.
+  * Make it possible to use a primary partition for LVM. Thanks to Grégory
+    Oestreicher for spotting the issue and providing an initial patch.
+  * recipes.sh: simplify foreach_partition(); improves debug log readability.
+
+  [ Updated translations ]
+  * Amharic (am.po) by tegegne tefera
+  * Korean (ko.po) by Changwoo Ryu
+  * Malayalam (ml.po) by Praveen|പ്രവീണ്‍ A|എ
+  * Portuguese (pt.po) by Miguel Figueiredo
+
+ -- Frans Pop <fjp@debian.org>  Mon, 21 Jan 2008 09:59:51 +0100
+
+partman-auto (73ubuntu7) hardy; urgency=low
+
+  [ Mario Limonciello ]
+  * biggest_free/choices:
+    - Use mapdevfs to produce a valid partman disk (LP: #186686).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 07 Apr 2008 17:23:55 +0100
+
+partman-auto (73ubuntu6) hardy; urgency=low
+
+  * Make biggest_free respect the selection made in partman-auto/disk
+    (LP: #204878).  Thanks Colin Watson.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Mon, 24 Mar 2008 12:01:56 -0400
+
+partman-auto (73ubuntu5) hardy; urgency=low
+
+  * Add relatime to all autopartitioning recipes.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 07 Mar 2008 10:20:39 +0000
+
+partman-auto (73ubuntu4) hardy; urgency=low
+
+  * Ensure that there is always at least one primary partition after
+    autopartitioning. An existing primary partition on the disk satisfies
+    this, as does a recipe partition explicitly marked $primary{ }; if
+    neither of those exists, then arbitrarily promote the first recipe
+    partition to be a primary partition.
+  * Remove explicit $primary{ } specifiers from standard recipes. We only
+    need them to be primary if no other primary partitions exist already.
+  * Relax auto-resize constraints now that a primary partition is not
+    unconditionally required; this will allow auto-resize partitioning on
+    systems that already have three primary partitions (LP: #134950).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 07 Mar 2008 00:26:42 +0000
+
+partman-auto (73ubuntu3) hardy; urgency=low
+
+  * Backport from trunk (LP: #181296):
+    - Support preseeding partman-auto/choose_recipe using the name of the
+      recipe you want (e.g. "home"), as an alternative to the localised
+      description.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 29 Feb 2008 12:11:39 +0000
+
+partman-auto (73ubuntu2) hardy; urgency=low
+
+  * Drop the bootable flag from i386/amd64 recipes; it can break existing
+    Windows installations when autopartitioning only free space rather than
+    a whole disk (LP: #14244). This reinstates the change from 40ubuntu3 now
+    that grub-installer ensures that there is one bootable partition.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 28 Feb 2008 14:59:36 +0000
+
+partman-auto (73ubuntu1) hardy; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Adjust default partition sizes for Ubuntu.
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Offer resize_use_free autopartitioning method.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+  * Remove dmsetup-udeb dependency, as the corresponding code was removed in
+    partman-auto 72.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 12 Dec 2007 10:56:24 +0000
+
+partman-auto (73) unstable; urgency=low
+
+  * Moved definitions.sh to ./lib/base.sh.
+  * Move recipes.sh and auto-shared.sh to ./lib/.
+  * auto-shared.sh: rename wipe_disk() to auto_init_disk().
+  * Use functions provided by partman-partitioning in auto_init_disk():
+    - use the create_new_label function; don't prompt for disk label to use
+      unless the default is invalid
+    - create_new_label will now take care of removing existing LVM data from
+      the selected device; the actual code to erase existing LVM data has been
+      moved to partman-lvm
+    Changes inspired by and partially based on a patch proposed in #396023 by
+    Jérémy Bobbio.
+  * Major whitespace cleanup and some coding style improvements.
+  * Requires: partman-base (>= 114); partman-partitioning (>= 54).
+
+  [ Updated translations ]
+  * Esperanto (eo.po) by Serge Leblanc
+  * Japanese (ja.po) by Kenshi Muto
+  * Malayalam (ml.po) by Praveen|പ്രവീണ്‍ A|എ
+
+ -- Frans Pop <fjp@debian.org>  Tue, 11 Dec 2007 14:03:38 +0100
+
+partman-auto (72ubuntu1) hardy; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Adjust default partition sizes for Ubuntu.
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Offer resize_use_free autopartitioning method.
+    - Make sure to wipe disk label on Sun disks before creating a new one.
+    - Depend on dmsetup-udeb.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+  * Set Vcs-Bzr for Ubuntu.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 10 Dec 2007 17:26:51 +0000
+
+partman-auto (72) unstable; urgency=low
+
+  * Revert support for erasing encrypted LVM volumes introduced in (69).
+    There are too many problems with it and starting fresh seems better than
+    stacking change on change to fix it. Closes: #425829.
+  * lvm-wipe-disk(): needs device-mapper support while removing devices.
+  * lvm-wipe-disk(): fix restart logic.
+
+  [ Updated translations ]
+  * Dzongkha (dz.po) by Jurmey Rabgay
+  * French (fr.po) by Christian Perrier
+  * Malayalam (ml.po) by Praveen|പ്രവീണ്‍ A|എ
+  * Polish (pl.po) by Bartosz Fenski
+  * Slovak (sk.po) by Ivan Masár
+
+ -- Frans Pop <fjp@debian.org>  Wed, 05 Dec 2007 13:17:01 +0100
+
+partman-auto (71) unstable; urgency=low
+
+  * Fix regression preventing to exit to main menu when using go back from
+    initial guided partitioning screen. Closes: #446994.
+
+ -- Frans Pop <fjp@debian.org>  Thu, 15 Nov 2007 12:28:20 +0100
+
+partman-auto (70ubuntu1) hardy; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Adjust default partition sizes for Ubuntu.
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Offer resize_use_free autopartitioning method.
+    - Make sure to wipe disk label on Sun disks before creating a new one.
+    - Depend on dmsetup-udeb.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 23 Oct 2007 15:43:40 +0100
+
+partman-auto (70) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Move deletion of SVN directories to install-rc script.
+  * Improve the way install-rc is called.
+
+  [ Colin Watson ]
+  * Fix divide-by-zero error if the sum of the factors in the scheme is
+    equal to the sum of the minimum sizes, or if we run off the maximum size
+    of the recipe before we run out of disk to allocate.
+  * Minor optimisations using ${parameter:-word} and ${parameter:+word}
+    expansions.
+  * Use 'mkdir -p' rather than more awkward test-then-create constructions.
+
+  [ Anton Zinoviev ]
+  * Rename auto.d to display.d.  Be more careful with the exit code of the
+    script in display.d and when to remove /var/lib/partman/initial_auto.
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Jamil Ahmed
+  * Catalan (ca.po) by Jordi Mallach
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Italian (it.po) by Stefano Canepa
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Nepali (ne.po) by Nabin Gautam
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Punjabi (Gurmukhi) (pa.po) by A S Alam
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Romanian (ro.po) by Eddy Petrișor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Peter Mann
+  * Swedish (sv.po) by Daniel Nylander
+  * Ukrainian (uk.po)
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 02 Oct 2007 16:45:42 +0100
+
+partman-auto (69ubuntu5) gutsy; urgency=low
+
+  * Add support for partman-auto/method=loop via partman-auto-loop.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 30 Jul 2007 13:26:40 +0100
+
+partman-auto (69ubuntu4) gutsy; urgency=low
+
+  * Backport from trunk:
+    - Fix divide-by-zero error if the sum of the factors in the scheme is
+      equal to the sum of the minimum sizes, or if we run off the maximum
+      size of the recipe before we run out of disk to allocate.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 30 Jul 2007 12:30:35 +0100
+
+partman-auto (69ubuntu3) gutsy; urgency=low
+
+  * Don't offer /dev/mapper/* devices for automatic resizing.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 16 Jul 2007 23:17:16 +0100
+
+partman-auto (69ubuntu2) gutsy; urgency=low
+
+  * Depend on dmsetup-udeb.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 13 Jul 2007 09:11:39 +0100
+
+partman-auto (69ubuntu1) gutsy; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Adjust default partition sizes for Ubuntu.
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Offer resize_use_free autopartitioning method.
+    - Make sure to wipe disk label on Sun disks before creating a new one.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 26 Apr 2007 23:49:31 +0100
+
+partman-auto (69) unstable; urgency=low
+
+  [ David Härdeman ]
+  * Change wipe_disk in auto-shared.sh to take an explicit argument
+    rather than relying on an implicit one
+  * Allow LVM and device-mapper (i.e. crypto) volumes to be deallocated.
+    This partially fixes #381892 and #396023
+
+  [ Colin Watson ]
+  * Fix a couple of minor glitches if no disks are present.
+  * Don't offer some_device automatic partitioning if no disks are present.
+  * Merge from Ubuntu:
+    - auto.d/initial_auto: If an autopartitioning choice fails, remove
+      /var/lib/partman/initial_auto so that we can try again.
+    - auto.d/initial_auto: If partman-auto/method is preseeded and
+      partman-auto/disk is not but there is only one disk, act as though
+      partman-auto/disk had been preseeded to that disk. This simplifies a
+      number of preseeding scenarios complicated by the removal of devfs
+      path support.
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bengali (bn.po) by Mahay Alam Khan (মাহে আলম)
+  * Dzongkha (dz.po) by translator
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hebrew (he.po) by Lior Kaplan
+  * Japanese (ja.po) by Kenshi Muto
+  * Korean (ko.po) by Sunjae Park
+  * Norwegian Bokmål (nb.po) by Bjørn Steensrud
+  * Dutch (nl.po) by Bart Cornelis
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Romanian (ro.po) by Eddy Petrișor
+  * Slovenian (sl.po) by Matej Kovacic
+  * Albanian (sq.po) by Elian Myftiu
+  * Tamil (ta.po) by Dr.T.Vasudevan
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Tagalog (tl.po) by Eric Pareja
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Colin Watson <cjwatson@debian.org>  Mon, 09 Apr 2007 22:16:42 +0100
+
+partman-auto (68) unstable; urgency=low
+
+  * Increase maximum size for the root partition in "atomic" recipes.
+    Closes: #412624.
+
+ -- Frans Pop <fjp@debian.org>  Thu,  8 Mar 2007 12:36:14 +0100
+
+partman-auto (67) unstable; urgency=low
+
+  [ Updated translations ]
+  * Hebrew (he.po) by Lior Kaplan
+  * Malayalam (ml.po) by Praveen A
+  * Swedish (sv.po) by Daniel Nylander
+
+ -- Frans Pop <fjp@debian.org>  Tue, 27 Feb 2007 18:15:47 +0100
+
+partman-auto (66) unstable; urgency=low
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Esperanto (eo.po) by Serge Leblanc
+  * Hebrew (he.po) by Lior Kaplan
+  * Korean (ko.po) by Sunjae park
+  * Romanian (ro.po) by Eddy Petrișor
+
+ -- Frans Pop <fjp@debian.org>  Wed, 31 Jan 2007 12:19:14 +0100
+
+partman-auto (65) unstable; urgency=low
+
+  * Fix errors due to missing environment variable DEVICES.
+
+  [ Updated translations ]
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+
+ -- Frans Pop <fjp@debian.org>  Sat, 20 Jan 2007 16:16:04 +0100
+
+partman-auto (64) unstable; urgency=low
+
+  * Don't offer "Guided - use the largest continuous free space" if the only
+    free space available is unusable.
+
+ -- Colin Watson <cjwatson@debian.org>  Fri, 12 Jan 2007 13:31:14 +0000
+
+partman-auto (63) unstable; urgency=low
+
+  [ Colin Watson ]
+  * choose_partition/auto/do_option: Improve ask_user exit code handling as
+    follows: 255 is backup, so return to the choose_partition menu (rather
+    than propagating 255 and thus backing up all the way to the d-i main
+    menu); 100-254 means that an automatically_partition script attempted to
+    skip the manual partitioner, assuming that it was running from the
+    initial auto.d pass, but this doesn't make sense if the manual
+    partitioner has already been displayed so we can treat this exactly the
+    same as a backup. All other exit codes are handled (99: retry) or
+    propagated (anything else) as before.
+
+  [ Frans Pop ]
+  * Don't offer guided partitioning if no disks are detected. Closes: #406325.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Pavel Piatruk
+  * Danish (da.po) by Claus Hindsgaul
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Galician (gl.po) by Jacobo Tarrio
+  * Kurdish (ku.po) by Amed Çeko Jiyan
+  * Panjabi (pa.po) by A S Alam
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Slovenian (sl.po) by Matej Kovačič
+  * Swedish (sv.po) by Daniel Nylander
+  * Thai (th.po) by Theppitak Karoonboonyanan
+
+ -- Frans Pop <fjp@debian.org>  Wed, 10 Jan 2007 19:16:31 +0100
+
+partman-auto (62ubuntu10) feisty; urgency=low
+
+  * Update translations from Rosetta (LP: #104097).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 10 Apr 2007 16:45:28 +0100
+
+partman-auto (62ubuntu9) feisty; urgency=low
+
+  * resize_use_free: Add confirmation question before resizing (LP: #52830).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 29 Mar 2007 13:14:06 +0100
+
+partman-auto (62ubuntu8) feisty; urgency=low
+
+  * Don't offer some_device automatic partitioning if no disks are present.
+  * resize_use_free: Remove check for whether the disk has < 2.2GB free
+    before offering resizing; the number is debatable at best, and the check
+    can be annoying if you have multiple hard disks or other similar
+    situations.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 24 Mar 2007 18:12:56 +0000
+
+partman-auto (62ubuntu7) feisty; urgency=low
+
+  * Make use of changes in partman-partitioning 47ubuntu2 to use
+    tune2fs/resize2fs to handle ext2/ext3 resizing (LP: #59620).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 19 Mar 2007 12:04:46 +0000
+
+partman-auto (62ubuntu6) feisty; urgency=low
+
+  * automatically_partition/resize_use_free/choices: Rearrange scan_disk
+    data flow to avoid hijacking stdin, which confuses debconf (LP: #89004).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri,  2 Mar 2007 13:53:50 +0000
+
+partman-auto (62ubuntu5) feisty; urgency=low
+
+  * automatically_partition/biggest_free/do_option,
+    automatically_partition/resize_use_free/do_option,
+    automatically_partition/some_device/do_option: Propagate error codes
+    from autopartition.
+  * auto.d/initial_auto: If an autopartitioning choice fails, remove
+    /var/lib/partman/initial_auto so that we can try again.
+  * Set Maintainer to ubuntu-installer@lists.ubuntu.com.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 15 Feb 2007 12:46:14 +0000
+
+partman-auto (62ubuntu4) feisty; urgency=low
+
+  * auto.d/initial_auto: Fix broken partman-auto/disk magic default for
+    single-disk setups (thanks, John Eckersberg; LP: #83897).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu,  8 Feb 2007 00:08:20 +0000
+
+partman-auto (62ubuntu3) feisty; urgency=low
+
+  * auto.d/initial_auto: If partman-auto/method is preseeded and
+    partman-auto/disk is not but there is only one disk, act as though
+    partman-auto/disk had been preseeded to that disk. This simplifies a
+    number of preseeding scenarios that had been complicated by the removal
+    of devfs path support.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 23 Jan 2007 09:46:39 +0100
+
+partman-auto (62ubuntu2) feisty; urgency=low
+
+  * resize_use_free: Return early from scan_disk if GET_MAX_PRIMARY returns
+    nothing.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 15 Dec 2006 10:15:31 +0000
+
+partman-auto (62ubuntu1) feisty; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Adjust default partition sizes for Ubuntu.
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Offer resize_use_free autopartitioning method.
+    - Make sure to wipe disk label on Sun disks before creating a new one.
+  * Use new GET_MAX_PRIMARY command rather than hardcoding a maximum of four
+    primary partitions.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 12 Dec 2006 17:23:28 +0000
+
+partman-auto (62) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Remove /boot partition from powerpc-prep recipes as kernel is installed on
+    prep partition, not in /boot. Closes: #401271.
+  * Move init.d scripts to auto.d to avoid progress bar conflicts.
+    Requires partman-base 99. Closes: #391676.
+
+  [ Colin Watson ]
+  * Propagate ask_user exit code from initial_auto, so that backup works.
+
+  [ Updated translations ]
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * Galician (gl.po) by Jacobo Tarrio
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Panjabi (pa.po) by A S Alam
+
+ -- Frans Pop <fjp@debian.org>  Fri,  8 Dec 2006 18:31:06 +0100
+
+partman-auto (61) unstable; urgency=low
+
+  [ Martin Michlmayr ]
+  * Increase the minimimum amount of swap created from 64 to 96 MB.  This
+    is needed for installations on systems with 32 MB RAM and only a 1 GB
+    drive.  Closes: #399951.
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bosnian (bs.po) by Safir Secerovic
+  * Estonian (et.po) by Siim Põder
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Kurdish (ku.po) by rizoye-xerzi
+  * Norwegian Bokmål (nb.po) by Bjørn Steensrud
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Polish (pl.po) by Bartosz Fenski
+  * Slovenian (sl.po) by Matej Kovačič
+  * Swedish (sv.po) by Daniel Nylander
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Fri, 24 Nov 2006 13:00:18 +0100
+
+partman-auto (60ubuntu2) feisty; urgency=low
+
+  * Propagate exit code from automatically_partition scripts so that
+    choose_partition is correctly skipped where appropriate.
+  * Improve logging when resize_use_free cannot be offered.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed,  6 Dec 2006 16:55:10 +0000
+
+partman-auto (60ubuntu1) feisty; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Adjust default partition sizes for Ubuntu.
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Make sure to wipe disk label on Sun disks before creating a new one.
+  * Remove partman_newlayout in favour of the two-level menu split
+    implemented in Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 23 Nov 2006 12:31:43 +0000
+
+partman-auto (60) unstable; urgency=low
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Andrei Darashenka
+  * Catalan (ca.po) by Jordi Mallach
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * Hindi (hi.po) by Nishant Sharma
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Italian (it.po) by Giuseppe Sacco
+  * Korean (ko.po) by Sunjae park
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Nepali (ne.po) by Shiva Prasad Pokharel
+  * Albanian (sq.po) by Elian Myftiu
+  * Tagalog (tl.po) by Eric Pareja
+  * Turkish (tr.po) by Recai Oktaş
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Frans Pop <fjp@debian.org>  Tue, 24 Oct 2006 15:44:39 +0200
+
+partman-auto (59) unstable; urgency=low
+
+  * Display selected target for partitioning when choosing a recipe.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Bengali (bn.po) by Jamil Ahmed
+  * Catalan (ca.po) by Jordi Mallach
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Dzongkha (dz.po) by Jurmey Rabgay
+  * Greek, Modern (1453-) (el.po) by QUAD-nrg.net
+  * Finnish (fi.po) by Tapio Lehtonen
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Nishant Sharma
+  * Khmer (km.po) by Khoem Sokhem
+  * Norwegian Bokmål (nb.po) by Bjørn Steensrud
+  * Dutch (nl.po) by Bart Cornelis
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+  * Romanian (ro.po) by Eddy Petrișor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Peter Mann
+  * Swedish (sv.po) by Daniel Nylander
+  * Tamil (ta.po) by Damodharan Rajalingam
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Frans Pop <fjp@debian.org>  Sat, 14 Oct 2006 02:10:02 +0200
+
+partman-auto (58) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Print a log message if the recipe specified in
+    partman-auto/expert_recipe is too large.
+
+  [ Frans Pop ]
+  * Activate LVM support in recipes for hppa.
+  * Implement selection of method before disk for regular guided partitioning.
+    Closes: #391071.
+
+  [ Simon Huggins ]
+  * Add a raid method so we get multiple disk partitioning functionality back
+    again.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Bengali (bn.po) by Mahay Alam Khan (মাহে আলম)
+  * Catalan (ca.po) by Jordi Mallach
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Dzongkha (dz.po) by Jurmey Rabgay
+  * Greek (el.po) by quad-nrg.net
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Estonian (et.po) by Siim Põder
+  * Basque (eu.po) by Piarres Beobide
+  * Finnish (fi.po) by Tapio Lehtonen
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Nishant Sharma
+  * Croatian (hr.po) by Josip Rodin
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Icelandic (is.po) by David Steinn Geirsson
+  * Italian (it.po) by Stefano Canepa
+  * Japanese (ja.po) by Kenshi Muto
+  * Khmer (km.po) by Khoem Sokhem
+  * Korean (ko.po) by Sunjae park
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Norwegian Bokmal (nb.po) by Bjørn Steensrud
+  * Dutch (nl.po) by Bart Cornelis
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Romanian (ro.po) by Eddy Petrișor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Peter Mann
+  * Albanian (sq.po) by Elian Myftiu
+  * Swedish (sv.po) by Daniel Nylander
+  * Tamil (ta.po) by Damodharan Rajalingam
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Tagalog (tl.po) by Eric Pareja
+  * Turkish (tr.po) by Recai Oktaş
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Frans Pop <fjp@debian.org>  Wed, 11 Oct 2006 04:34:10 +0200
+
+partman-auto (57) unstable; urgency=low
+
+  [ David Härdeman ]
+  * Fix broken <go back> logic. Closes: #387350.
+
+  [ Frans Pop ]
+  * Add Lintian override for standards-version.
+  * Add dependency on debconf.
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Mahay Alam Khan (মাহে আলম খান)
+  * German (de.po) by Jens Seidel
+  * Basque (eu.po) by Piarres Beobide
+  * Finnish (fi.po) by Tapio Lehtonen
+  * Hebrew (he.po) by Lior Kaplan
+  * Japanese (ja.po) by Kenshi Muto
+  * Korean (ko.po) by Sunjae park
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Norwegian Bokmål (nb.po) by Bjørn Steensrud
+  * Dutch (nl.po) by Bart Cornelis
+  * Slovak (sk.po) by Peter Mann
+  * Slovenian (sl.po) by Jure Čuhalev
+  * Turkish (tr.po) by Recai Oktaş
+
+ -- Frans Pop <fjp@debian.org>  Fri, 15 Sep 2006 06:24:28 +0200
+
+partman-auto (56) unstable; urgency=low
+
+  * Switch menu order back to what it was before, so preseeding files don't
+    need to be changed and users get autopartitioning by default.
+
+  [ Updated translations ]
+  * French (fr.po) by Christian Perrier
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  6 Sep 2006 12:48:29 -0400
+
+partman-auto (55) unstable; urgency=low
+
+  [ Simon Huggins ]
+  * Add support for autopartitioning multiple disks.
+  * Move initial_auto to priority 96 for partman-auto-raid to squeeze in
+    afterwards.
+
+  [ Martin Michlmayr ]
+  * Create recipes for arm/iop32x (separate /boot partition, as needed by
+    the GLAN Tank).
+
+  [ David Härdeman ]
+  * Mark swap partitions as lvmok in recipies which support lvm per
+    discussion in debian-boot (http://lists.debian.org/debian-
+    boot/2006/08/msg00862.html)
+  * Add a function to remove LVM configs from a disk which is about to
+    be wiped. Closes: #375491, #381693, #382315.
+  * Do not suggest part'ing RAID/LVM volumes. Closes: #255024, #375257
+  * Implement two-level menu split. Closes: #384527
+
+  [ Updated translations ]
+  * Catalan (ca.po) by Jordi Mallach
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Greek, Modern (1453-) (el.po) by quad-nrg.net
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Estonian (et.po) by Siim Põder
+  * Basque (eu.po) by Piarres Beobide
+  * Finnish (fi.po) by Tapio Lehtonen
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Gujarati (gu.po) by Kartik Mistry
+  * Hebrew (he.po) by Lior Kaplan
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Icelandic (is.po) by David Steinn Geirsson
+  * Italian (it.po) by Giuseppe Sacco
+  * Japanese (ja.po) by Kenshi Muto
+  * Khmer (km.po) by Khoem Sokhem
+  * Korean (ko.po) by Sunjae park
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Norwegian Bokmål (nb.po) by Bjørn Steensrud
+  * Dutch (nl.po) by Bart Cornelis
+  * Panjabi (pa.po) by A S Alam
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+  * Romanian (ro.po) by Eddy Petrişor
+  * Russian (ru.po) by Yuri Kozlov
+  * Northern Sami (se.po) by Børre Gaup
+  * Slovak (sk.po) by Peter Mann
+  * Swedish (sv.po) by Daniel Nylander
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Tagalog (tl.po) by Eric Pareja
+  * Turkish (tr.po) by Recai Oktaş
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+  * Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 31 Aug 2006 17:21:00 -0400
+
+partman-auto (54ubuntu4) edgy; urgency=low
+
+  * Use expr rather than shell arithmetic in resize_use_free, since dash
+    doesn't support 64-bit arithmetic.
+  * Change backup exit code from automatically_partition do_option scripts
+    from 254 to 99, to match similar changes in Debian.
+  * Support backup from partman-partitioning/impossible_resize errors in
+    resize_use_free.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 21 Sep 2006 11:26:08 +0100
+
+partman-auto (54ubuntu3) edgy; urgency=low
+
+  * Ask partman-auto/init_automatically_partition rather than
+    partman-auto/automatically_partition the first time round, to match
+    upstream and make preseeding easier.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 15 Sep 2006 11:30:28 +0100
+
+partman-auto (54ubuntu2) edgy; urgency=low
+
+  * Fix hang on partman startup if no disks are present.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 18 Jul 2006 15:25:30 +0100
+
+partman-auto (54ubuntu1) edgy; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon,  3 Jul 2006 13:38:35 +0100
+
+partman-auto (54) unstable; urgency=low
+
+  * Support preseeding of partman-auto-lvm/disk.
+
+  [ Updated translations ]
+  * Estonian (et.po) by Siim Põder
+  * Polish (pl.po) by Bartosz Fenski
+
+ -- Frans Pop <fjp@debian.org>  Mon, 26 Jun 2006 12:04:11 +0200
+
+partman-auto (53) unstable; urgency=low
+
+  * Do not run partman-auto on S/390. Main reason is that S/390 installations
+    will mostly use multiple disks. As partman-auto currently only supports
+    partitioning a single disk, running it is not very useful.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Catalan (ca.po) by Jordi Mallach
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Estonian (et.po) by Siim Põder
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hungarian (hu.po) by SZERVÑC Attila
+  * Italian (it.po) by Stefano Canepa
+  * Japanese (ja.po) by Kenshi Muto
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Khmer (km.po) by Khoem Sokhem
+  * Korean (ko.po) by Sunjae park
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Bokmål, Norwegian (nb.po) by Bjørn Steensrud
+  * Dutch (nl.po) by Bart Cornelis
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+  * Romanian (ro.po) by Eddy Petrişor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Peter Mann
+  * Swedish (sv.po) by Daniel Nylander
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Turkish (tr.po) by Recai Oktaş
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Frans Pop <fjp@debian.org>  Wed, 21 Jun 2006 13:52:38 +0200
+
+partman-auto (52) unstable; urgency=low
+
+  * Since partman-auto-lvm erases disks w/o warning when used, reword the
+    template to not say that the user will get a chance to undo things.
+    (See #368633)
+
+  [ Updated translations ]
+  * Catalan (ca.po) by Jordi Mallach
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Dzongkha (dz.po)
+  * Esperanto (eo.po) by Serge Leblanc
+  * Hebrew (he.po) by Lior Kaplan
+  * Hungarian (hu.po) by SZERVÑC Attila
+  * Khmer (km.po) by Leang Chumsoben
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Nepali (ne.po) by Shiva Pokharel
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Northern Sami (se.po) by Børre Gaup
+  * Slovenian (sl.po) by Jure Čuhalev
+  * Swedish (sv.po) by Daniel Nylander
+  * Tamil (ta.po) by Damodharan Rajalingam
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 25 May 2006 17:13:20 -0400
+
+partman-auto (51) unstable; urgency=low
+
+  * Also set free_type in wipe_disk as that is needed by the function
+    create_primary_partitions. This allows partman-auto-lvm to actually create
+    the /boot partition as a primary partition.
+  * Allow to include definitions of partitions in regular recipes that should
+    only be used for a certain type of auto partitioning. This is useful to
+    allow e.g. a definition for a /boot partition to be included that is not
+    to be used for regular auto partitioning, but is needed for auto-lvm.
+    The actual implementation is in reverse as that seems more flexible: a
+    partition can be marked using "$<type>ignore" (where <type> is default or
+    lvm) and will then not be included. Multiple ignore marks are possible.
+    To implement this, the functions choose_recipe and decode_recipe now take
+    an extra argument indicating the type of autopartitioning being done.
+  * Add myself to uploaders.
+
+  [ Updated translations ]
+  * Bosnian (bs.po) by Safir Secerovic
+  * Catalan (ca.po) by Jordi Mallach
+  * German (de.po) by Jens Seidel
+  * Basque (eu.po) by Piarres Beobide
+  * Irish (ga.po) by Kevin Patrick Scannell
+  * Khmer (km.po) by hok kakada
+  * Northern Sami (se.po) by Børre Gaup
+  * Slovenian (sl.po) by Jure Cuhalev
+  * Tamil (ta.po) by Damodharan Rajalingam
+
+ -- Frans Pop <fjp@debian.org>  Sun,  9 Apr 2006 22:44:36 +0200
+
+partman-auto (50) unstable; urgency=low
+
+  [ Sven Luther ]
+  * [powerpc] Added lvm auto-partitioning support to prep and ibm_chrp
+    recipes.
+  * [powerpc] Added chrp_pegasos, oldworld and apus recipes.
+  * [powerpc] Fixed boot-prep -> prep renaming.
+    boot-prep died in libparted on january 2005, well before the sarge release.
+
+  [ Frans Pop ]
+  * recipes.sh: make code to select a recipe directory into separate function.
+
+  [ Martin Michlmayr ]
+  * Add support for the Broadcom BCM91480B evaluation board (aka "BigSur").
+  * Rename sb1-swarm-bn recipes to sb1-bcm91250a for consistency.
+
+  [ Updated translations ]
+  * Bosnian (bs.po) by Safir Secerovic
+  * Catalan (ca.po) by Jordi Mallach
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hungarian (hu.po) by SZERVÑC Attila
+  * Japanese (ja.po) by Kenshi Muto
+  * Swedish (sv.po) by Daniel Nylander
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Fri, 17 Mar 2006 22:23:32 +0000
+
+partman-auto (49) unstable; urgency=low
+
+  * Enable auto-lvm in partitioning schemes for Sparc.
+
+  [ Updated translations ]
+  * Hungarian (hu.po) by SZERVÑC Attila
+  * Slovenian (sl.po) by Matej Kovačič
+
+ -- Frans Pop <fjp@debian.org>  Mon, 13 Feb 2006 12:38:08 +0100
+
+partman-auto (48) unstable; urgency=low
+
+  * Make sure no .svn directories get included in the package.
+
+ -- Frans Pop <fjp@debian.org>  Sat, 28 Jan 2006 17:16:38 +0100
+
+partman-auto (47) unstable; urgency=low
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Ognyan Kulev
+  * Catalan (ca.po) by Jordi Mallach
+  * Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+  * Finnish (fi.po) by Tapio Lehtonen
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Nishant Sharma
+  * Indonesian (id.po) by Parlin Imanuel Toh
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Malagasy (mg.po) by Jaonary Rabarisoa
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Dutch (nl.po) by Bart Cornelis
+  * Punjabi (Gurmukhi) (pa_IN.po) by Amanpreet Singh Alam
+  * Polish (pl.po) by Bartosz Fenski
+  * Slovenian (sl.po) by Jure Cuhalev
+  * Albanian (sq.po) by Elian Myftiu
+  * Swedish (sv.po) by Daniel Nylander
+  * Turkish (tr.po) by Recai Oktaş
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+
+ -- Frans Pop <fjp@debian.org>  Tue, 24 Jan 2006 21:55:44 +0100
+
+partman-auto (46) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Renamed multi_user scheme to just "multi" as in multiple partitions.
+    There are more uses for this scheme than multi user systems.
+  * Switch package to arch all and only include recipes for the given
+    architecture and any subarches in each package.
+  * Rules file cleanups.
+  * Control file cleanups.
+  * Change descriptions of home and multi recipes to just list the partitions
+    that are included. Closes: #287409, #288884
+  * Increase minimal size of / partition in home recipe to 500 mb.
+    Closes: #289419, #330079
+  * Double the weight of the root partition in the multi scheme from 400 to
+    800. This should increase the size allocated on reasonable size disks
+    from the previous 250 mb to something slightly more reasonable.
+    Closes: #328514
+
+  [ Steve Langasek ]
+  * Add a smalldisk recipe for alpha, so that systems with little disk space
+    can use a single ext2 partition for the whole install (closes: #261182).
+
+  [ Colin Watson ]
+  * Remove duplicated chrp_rs6k recipes and install a symlink instead.
+
+  [ Fabio M. Di Nitto ]
+  * Start implementing bits required to avoid code duplication with
+    partman-auto-lvm as per discussion on debian-boot mailing list.
+    (See http://lists.debian.org/debian-boot/2005/10/msg00842.html)
+  * Add lvmok{ } to recipes as per discussion on debian-boot mailing list.
+    NOTES:
+      - nobody objected to a tag/properties/flag name or proposed something
+        different. It is clearly ok to rename it if it doesn't fit.
+      - swap will stay out of LVM for now. In some cases it is known to break
+        suspend/resume. It seems not all kernels are able to resume from it.
+      - porters will have to adjust their recipes. I could only test
+        i386/amd64 (via recipes) and powerpc-powermac_newworld (via
+        recipes-powerpc-powermac_newworld).
+  * Move common code into auto-shared.sh shelllib and create 3 functions:
+    wipe_disk, create_primary_partitions (see comments in the file) and
+    create_partitions.
+  * Install auto-shared.sh in /lib/partman (chages debian/rules)
+  * Make perform_recipe and autopartition use auto-shared.sh.
+  * Make create_partitions set a var for all the devices that will be marked
+    as pv. This is actually only used by partman-auto-lvm, but it is generic
+    enough that could be used later on for other tasks.
+    NOTES: the above changes have been tested on i386/amd64/ppc and there is
+    no known breakage. The code is only moved around and none of the actual
+    recipes use method{ lvm } used by partman-auto-lvm to mark partitions as
+    pv volumes.
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  7 Dec 2005 21:55:20 -0500
+
+partman-auto (45ubuntu16) dapper; urgency=low
+
+  * Fix encoding of Croatian translation.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 29 May 2006 17:58:24 +0100
+
+partman-auto (45ubuntu15) dapper; urgency=low
+
+  * Update Ubuntu-specific and previously-untranslated translations from
+    Rosetta: Bengali, Czech, Basque, Hebrew, Croatian, Italian, Japanese,
+    Latvian, Dutch, Portuguese (Brazil), Romanian, Slovenian, Turkish.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 29 May 2006 17:11:14 +0100
+
+partman-auto (45ubuntu14) dapper; urgency=low
+
+  * Fix disk autoselection when there are logical volumes present but only
+    one disk (closes: Malone #47073).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 29 May 2006 15:24:01 +0100
+
+partman-auto (45ubuntu13) dapper; urgency=low
+
+  * Add 200MB to the minimum partition size that resize_use_free will
+    create, to give a little extra breathing room.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 23 May 2006 19:39:54 +0100
+
+partman-auto (45ubuntu12) dapper; urgency=low
+
+  * Subtract a little over 2GB from the maximum size presented by
+    resize_use_free, to ensure sufficient space for installation.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 23 May 2006 18:21:49 +0100
+
+partman-auto (45ubuntu11) dapper; urgency=low
+
+  * Don't show logical volumes (/dev/mapper/*-*) in the disk selector
+    (closes: Malone #32845).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue,  2 May 2006 15:22:43 +0100
+
+partman-auto (45ubuntu10) dapper; urgency=low
+
+  * Rename disk selector question to partman-auto/select_disk, and restore
+    partman-auto/disk to its former use in preseeding. Trying to overload
+    the two turned out to be too complicated, since people who are
+    preseeding partman-auto/disk generally just want to apply a recipe to
+    the whole disk, and subsequent questions such as
+    partman-auto/automatically_partition are hard to preseed (closes: Malone
+    #40186).
+  * Adjust the way we ask partman-auto/select_disk to make it easier to
+    preseed.
+  * Update Ubuntu-specific and previously-untranslated translations from
+    Rosetta: Bulgarian, Italian, Kurdish, Latvian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 28 Apr 2006 13:15:37 +0100
+
+partman-auto (45ubuntu9) dapper; urgency=low
+
+  * partman_newlayout: Support exit code 254 from automatically_partition
+    do_option scripts to indicate backup, so that backup from there can
+    return to the autopartitioning menu.
+  * Exit 254 from resize_use_free/do_option if ask_for_size indicates
+    backup.
+  * Update Ubuntu-specific translations from Rosetta: Bulgarian, Catalan,
+    Welsh, German, Greek, Esperanto, Spanish, Finnish, French, Hebrew,
+    Hungarian, Indonesian, Lithuanian, Macedonian, Norwegian Bokmål, Polish,
+    Portuguese, Portuguese (Brazil), Russian, Slovak, Swedish, Ukrainian,
+    Chinese (China).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 19 Apr 2006 15:29:26 +0100
+
+partman-auto (45ubuntu8) dapper; urgency=low
+
+  * When rerunning autopartitioning, try to filter out answers to
+    partman-auto/disk that don't correspond to devices (e.g. "Manually edit
+    partition table").
+  * Paranoid fix in partman_newlayout in case device names come out with
+    colons in them.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 17 Mar 2006 21:42:23 +0000
+
+partman-auto (45ubuntu7) dapper; urgency=low
+
+  [ Fabio M. Di Nitto, Colin Watson ]
+  * If multiple disks are present, ask which disk the user wants to
+    partition before moving on to autopartitioning, and make
+    autopartitioning apply only to that disk. Since no autopartitioning
+    choices apply to more than one disk at once anyway, this produces a
+    better UI on multiple-disk systems.
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Fri, 17 Mar 2006 01:58:49 +0000
+
+partman-auto (45ubuntu6) dapper; urgency=low
+
+  [ Fabio M. Di Nitto ]
+  * Make sure to wipe disk label on sun disks before recreating a new one.
+
+  libparted did grow a C/H/S sanity check in disk_sun.c. While this is a sane
+  check to perform, parted_server doesn't understand the exception and fails
+  because it gets a wrong size of the disk when writing a new label.
+  Since we are in deep feature freeze, there is no time to make a proper fix
+  into parted_server (that needs to be propagated all the way and back to
+  the UI to handle it properly).
+
+  Make sure to wipe the first 512 bytes of the device once the user confirm
+  what really should be done so that libparted will initialize the label
+  properly and everything will work as it should.
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Tue, 28 Feb 2006 11:40:24 +0100
+
+partman-auto (45ubuntu5) dapper; urgency=low
+
+  * resize_use_free: Cope with get_resize_range returning an empty result.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 10 Feb 2006 14:04:26 +0000
+
+partman-auto (45ubuntu4) dapper; urgency=low
+
+  * resize_use_free: Use partition paths supplied by parted_server rather
+    than trying to make them up ourselves and getting them wrong.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu,  5 Jan 2006 15:03:10 +0000
+
+partman-auto (45ubuntu3) dapper; urgency=low
+
+  * Rename shared.sh to auto-shared.sh.
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Wed, 30 Nov 2005 15:27:39 +0100
+
+partman-auto (45ubuntu2) dapper; urgency=low
+
+  * Start merging common code with partman-auto-lvm:
+    - Move 4.5K of common code to shared.sh.
+    - Use wipe_disk, create_primary_partitions and create_partitions common
+      function.
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Wed, 30 Nov 2005 11:46:25 +0100
+
+partman-auto (45ubuntu1) dapper; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 29 Nov 2005 00:31:29 +0000
+
+partman-auto (45) unstable; urgency=low
+
+  [ Fabio M. Di Nitto ]
+  * Move 2 chunks of code from perform_recipe into recipes.sh and make them
+    functions. This code is shared with partman-auto-lvm so there is very
+    little point in duplicating it.
+
+  [ Colin Watson ]
+  * Use 'rm -f' rather than more awkward test-then-remove constructions.
+
+  [ Sven Luther ]
+  * Adapted to chrp_rs6k -> chrp_ibm transition.
+
+  [ Frans Pop ]
+  * Use gpt instead of msdos disklabel for disks larger than 2TB.
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Baishampayan Ghose
+  * French (fr.po) by Christian Perrier
+  * Icelandic (is.po) by David Steinn Geirsson
+  * Romanian (ro.po) by Eddy Petrişor
+  * Swedish (sv.po) by Daniel Nylander
+  
+ -- Joey Hess <joeyh@debian.org>  Tue, 15 Nov 2005 19:25:01 -0500
+
+partman-auto (44) unstable; urgency=low
+
+  [ Updated translations ]
+  * Greek, Modern (1453-) (el.po) by Greek Translation Team
+  * Galician (gl.po) by Jacobo Tarrio
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Romanian (ro.po) by Eddy Petrisor
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 26 Sep 2005 17:28:03 +0200
+
+partman-auto (43) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Changed dependency from partman to partman-base.
+
+  [ Sven Luther ]
+  * Added prep recipes, as a plain copy of the chrp_rs6k ones. 
+
+ -- Sven Luther <luther@debian.org>  Thu,  1 Sep 2005 13:04:10 +0200
+
+partman-auto (42) unstable; urgency=low
+
+  * Updated translations: 
+    - Arabic (ar.po) by Ossama M. Khayat
+    - Belarusian (be.po) by Andrei Darashenka
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Esperanto (eo.po) by Serge Leblanc
+    - Spanish (es.po) by Javier Fernández-Sanguino Peña
+    - Estonian (et.po) by Siim Põder
+    - Basque (eu.po) by Piarres Beobide
+    - Hebrew (he.po) by Lior Kaplan
+    - Italian (it.po) by Giuseppe Sacco
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Malagasy (mg.po) by Jaonary Rabarisoa
+    - Macedonian (mk.po) by Georgi Stanojevski
+    - Macedonian (pa_IN.po) by Amanpreet Singh Alam
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrişor
+    - Russian (ru.po) by Yuri Kozlov
+    - Tagalog (tl.po) by Eric Pareja
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Vietnamese (vi.po) by Clytie Siddall
+    - Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+    - Xhosa (xh.po) by Canonical Ltd
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 15 Jul 2005 17:17:14 +0300
+
+partman-auto (41ubuntu7) dapper; urgency=low
+
+  * Add lvmok{ } tag to generic, sparc and ppc recipes as per discussion on
+    debian-boot mailing list. This tag will be used by partman-auto-lvm to
+    identify what partitions can be created as lvm volumes.
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Thu, 24 Nov 2005 10:20:03 +0100
+
+partman-auto (41ubuntu6) breezy; urgency=low
+
+  * resize_use_free:
+    - Partitioning recipes will need to create a primary partition, so give
+      up if there are no free primary partition slots.
+    - If there are no logical partitions already, then make sure there is an
+      extra primary partition slot in which to create a logical partition.
+    - Skip partitions which are separated from the extended partition by a
+      primary partition, and in which therefore logical partitions cannot be
+      created.
+  * Update Ubuntu-specific translations from Rosetta: Greek, Spanish,
+    French, Hungarian, Italian, Portuguese, Brazilian Portuguese, Slovak,
+    Swedish.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 30 Sep 2005 15:53:20 +0100
+
+partman-auto (41ubuntu5) breezy; urgency=low
+
+  * resize_use_free:
+    - Use safer printf syntax.
+    - Make sure not to print a choice if $bestpart is 'none'.
+    - Add some logging in the hope of figuring out Ubuntu #15513.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 16 Sep 2005 18:50:21 +0100
+
+partman-auto (41ubuntu4) breezy; urgency=low
+
+  * Don't attempt to automatically resize fat16 partitions, since they
+    appear to cause errors when finding the resize range and probably aren't
+    big enough to worry about anyway; should work around Ubuntu #13250.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed,  7 Sep 2005 15:08:22 +0100
+
+partman-auto (41ubuntu3) breezy; urgency=low
+
+  * Make 2 chunks of code recipes.sh functions since they are shared with
+    partman-auto-lvm.
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Tue, 05 Jul 2005 10:35:26 +0200
+
+partman-auto (41ubuntu2) breezy; urgency=low
+
+  * Add a "resize_use_free" autopartitioning method. This first checks
+    whether any disk has more than 2GB free; if not, and if there is a
+    partition with more than 3GB free, offers to shrink the partition with
+    most free space and automatically partition the free space thus created
+    (closes: Ubuntu #3323).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 24 May 2005 11:00:07 +0100
+
+partman-auto (41ubuntu1) breezy; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 21 Apr 2005 18:56:13 +1000
+
+partman-auto (41) unstable; urgency=low
+
+  * Colin Watson
+    - Add jfs to the valid filesystems list.
+  * Steve Langasek
+    - Fix the alpha multiuser recipe to use fewer partitions, working
+      around a parted problem with full disklabels. Closes: #260093.
+  * Updated translations: 
+    - Bosnian (bs.po) by Safir Šećerović
+    - Catalan (ca.po) by Guillem Jover
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - French (fr.po) by French Team
+    - Gallegan (gl.po) by Jacobo Tarrio
+    - Hebrew (he.po) by Lior Kaplan
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Dutch (nl.po) by Bart Cornelis
+    - Romanian (ro.po) by Eddy Petrisor
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Steve Langasek <vorlon@debian.org>  Sun, 27 Feb 2005 15:33:40 -0800
+
+partman-auto (40ubuntu4) hoary; urgency=low
+
+  * Revert changes from 40ubuntu3: we can end up with no bootable flag set,
+    and apparently some BIOSes don't like that
+
+ -- Matt Zimmerman <mdz@ubuntu.com>  Wed,  6 Apr 2005 13:21:46 -0700
+
+partman-auto (40ubuntu3) hoary; urgency=low
+
+  * Drop the bootable flag from i386/amd64 recipes; it can break existing
+    Windows installations when autopartitioning only free space rather than
+    a whole disk (closes: Ubuntu #7906).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue,  5 Apr 2005 17:53:31 +0100
+
+partman-auto (40ubuntu2) hoary; urgency=low
+
+  * Drop priority of partman-auto/choose_recipe question to medium.
+
+ -- Colin Watson <cjwatson@canonical.com>  Sat,  1 Jan 2005 23:58:18 +0000
+
+partman-auto (40ubuntu1) hoary; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@canonical.com>  Mon, 15 Nov 2004 10:24:05 +0000
+
+partman-auto (40) unstable; urgency=low
+
+  * Add sun disk label write then read hack to autopartition script as was
+    earlier done to other parts of partman to fix bug #237400.
+  * Re-enable whole-device autopartitioning for sparc. Closes: #249142
+  * Updated translations: 
+    - Italian (it.po) by Stefano Canepa
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 11 Nov 2004 01:46:37 -0500
+
+partman-auto (39ubuntu1) hoary; urgency=low
+
+  * Resynchronise with Debian.
+  * Update Ubuntu branding.
+
+ -- Colin Watson <cjwatson@canonical.com>  Wed, 10 Nov 2004 13:53:50 +0000
+
+partman-auto (39) unstable; urgency=low
+
+  * Fix reverse devfs mapping code. Closes: #277357
+
+ -- Joey Hess <joeyh@debian.org>  Tue,  2 Nov 2004 10:17:17 -0500
+
+partman-auto (38ubuntu1) hoary; urgency=low
+
+  * Resynchronise with Debian.
+  * Restore "Use the largest continuous free space" option, but leave "Erase
+    entire disk" as the default.
+
+ -- Colin Watson <cjwatson@canonical.com>  Fri, 29 Oct 2004 17:36:22 +0100
+
+partman-auto (38) unstable; urgency=high
+
+  * Joey Hess
+    - Allow preseeding of partman-auto/choose_recipe.
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 22 Oct 2004 13:07:28 -0400
+
+partman-auto (37) unstable; urgency=low
+
+  * Matt Kraai
+    - Add hfs to lists of valid filesystems. Closes: #276741
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 20 Oct 2004 22:44:44 -0400
+
+partman-auto (36) unstable; urgency=low
+
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kure
+    - Welsh (cy.po) by Dafydd Harries
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by French Team
+    - Hebrew (he.po) by Lior Kaplan
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Hungarian (hu.po) by VEROK Istvan
+    - Indonesian (id.po) by Debian Indonesia Team
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnasn
+    - Latvian (lv.po) by Aigars Mahinovs
+    - Bøkmal, Norwegian (nb.po) by Bjorn Steensrud
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Russian L10N Team
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Albanian (sq.po) by Elian Myftiu
+    - Swedish (sv.po) by Per Olofsson
+    - Turkish (tr.po) by Recai Oktaş
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  6 Oct 2004 15:43:06 -0400
+
+partman-auto (35) unstable; urgency=low
+
+  * Anton Zinoviev
+    - recipes.sh (decode_recipe): calculate properly the RAM size on 2.6 kernel
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - French (fr.po) by French Team
+    - Indonesian (id.po) by Parlin Imanuel Toh
+    - Lithuanian (lt.po) by Kęstutis Biliūnasn
+    - Bøkmal, Norwegian (nb.po) by Axel Bojer
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Russian (ru.po) by Russian L10N Team
+    - Swedish (sv.po) by Per Olofsson
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 27 Sep 2004 21:01:22 -0400
+
+partman-auto (34) unstable; urgency=low
+
+  * Joey Hess
+    - Documentation of recipe format has moved to
+      installer/doc/devel/partman-auto-recipe.txt
+    - Make the expert recipe stuff preseedable.
+    - Make autopartition be used for both types of autopartitioning.
+    - Add partman-auto/disk which can be preseeded to force use of a specific
+      disk for autopartitioning.
+  * Updated translations: 
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by French Team
+    - Hebrew (he.po) by Lior Kaplan
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Hungarian (hu.po) by VERÓK István
+    - Italian (it.po) by Stefano Canepa
+    - Korean (ko.po) by Changwoo Ryu
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Romanian (ro.po) by Eddy Petrisor
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Turkish (tr.po) by Recai Oktaş
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 10 Sep 2004 20:37:07 -0400
+
+partman-auto (33) unstable; urgency=low
+
+  * Stop unsetting seen flags, that is not necessary for months and it
+    breaks prseeding.
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  1 Sep 2004 16:02:28 -0400
+
+partman-auto (32) unstable; urgency=low
+
+  * Joey Hess
+    - Remove all mount options from all recipes. This is not the time
+      to be making this sort of change to the base systems. Closes: #269227
+      - Especially when it's not tested and breaks dpkg. Closes: #269253
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 31 Aug 2004 12:52:11 -0400
+
+partman-auto (31) unstable; urgency=low
+
+  * Anton Zinoviev
+    - second try: closes:  #261244
+    - raise the maximal size for / in multi_user recipes (150->280MB).
+      Thanks to Chris Walker, closes: #248278.
+    - resipes.sh (setup_partition): allow creation of subdirectories in
+      the partition directories.
+    - add "noatime" mount option in the atomic and home recipes.  Thanks
+      to Ryan Underwood, closes: #265295
+    - add mount options in the multi_user recipes:
+         "nodev" and "noexec" for /boot,
+         "nodev" for /usr,
+         "nodev", "noexec", "usrquota" and "grpquota" for /var,
+         "nodev", "nosuid", "usrquota" and "grpquota" for /tmp,
+         "nodev", "nosuid", "usrquota" and "grpquota" for /home
+    - move the swap between / and /home in the home recipes; reorder the
+      partitions in the multi_user recipe so that swap is in the middle and
+      the most often accessible partitions are around it:
+      (/boot), /, /usr, /var, swap, /tmp, /home.
+    - templates: rename the recipes:
+         home:        Desktop machine
+         multi_user:  Multi-user workstation
+      Thanks to Margarita Manterola, closes: #251414
+    - limit the maximum size of the swap to 3 times the available RAM but
+      not less than 64 MB.  Thanks to Margarita Manterola, closes: #254935
+    - README: document #261244 and #265290
+  * Updated translations: 
+    - Arabic (ar.po) by Christian Perrier
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Bosnian (bs.po) by Safir Šećerović
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kure
+    - Welsh (cy.po) by Dafydd Harries
+    - Danish (da.po) by Claus Hindsgaul
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - French (fr.po) by French Team
+    - Hebrew (he.po) by Lior Kaplan
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Japanese (ja.po) by Kenshi Muto
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Latvian (lv.po) by Aigars Mahinovs
+    - Bøkmal, Norwegian (nb.po) by Bjørn Steensrud
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Russian (ru.po) by Yuri Kozlov
+    - Turkish (tr.po) by Recai Oktaş
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+  
+ -- Joey Hess <joeyh@debian.org>  Mon, 30 Aug 2004 12:13:24 -0400
+
+partman-auto (30) unstable; urgency=low
+
+  * Jim Lieb
+    - Add ia64 recipes.  Closes: #253697, #253697, #257910.
+      Thanks to Peter Chubb, Florent de Dinechin and Bdale Garbee
+  * Joshua Kwan
+    - Add sparc recipes.
+  * Martin Michlmayr
+    - Add recipes for the Broadcom SWARM MIPS board.
+  * Updated translations:
+    - Bosnian (bs.po) by Safir Šećerović
+    - Basque (eu.po) by Piarres Beobide Egaña
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Sun, 15 Aug 2004 14:25:14 +0100
+
+partman-auto (29) unstable; urgency=low
+
+  * Updated translations:
+    - Swedish (sv.po) by Per Olofsson
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 25 Jul 2004 19:22:25 -0400
+
+partman-auto (28) unstable; urgency=low
+
+  * Christian Perrier
+    - Changed minimum size for /var to 70MB in multi_user recipes
+      Closes: #261244
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 25 Jul 2004 16:03:38 +0200
+
+partman-auto (27) unstable; urgency=low
+
+  * Steve Langasek
+    - refine the alpha recipes to also add a /boot partition
+  * Updated translations:
+    - Arabic (ar.po) by Abdulaziz Al-Arfaj
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kure
+    - Greek, Modern (1453-) (el.po) by George Papamichelakis
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Hebrew (he.po) by Lior Kaplan
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Romanian (ro.po) by Eddy Petrisor
+    - Turkish (tr.po) by Osman Yüksel
+    - Simplified Chinese (zh_CN.po) by Ming Hua
+
+ -- Steve Langasek <vorlon@debian.org>  Fri, 23 Jul 2004 03:23:12 -0700
+
+partman-auto (26) unstable; urgency=low
+
+  * Christian Perrier
+    - renamed templates to partman-auto.templates
+    - run debconf-updatepo
+  * Steve Langasek
+    - remember to *install* the #*&@ alpha recipes in the package, so
+      they might possibly get used.
+  * Updated translations:
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek (el.po) by George Papamichelakis
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by Christian Perrier
+    - hr (hr.po) by Krunoslav Gernhard
+    - Japanese (ja.po) by Kenshi Muto
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Albanian (sq.po) by Elian Myftiu
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Steve Langasek <vorlon@debian.org>  Wed, 21 Jul 2004 10:22:13 -0700
+
+partman-auto (25) unstable; urgency=low
+
+  * Steve Langasek
+    - New recipes for alpha, that know about the requirement for an aboot
+      partition
+  * Anton Zinoviev
+    - templates (partman-auto/automatically_partition): "Disk space to
+      partition" instead of "Disk to partition"
+    - templates (partman-auto/text/use_biggest_free): "Use the largest
+      continuous free space" instead of "Use free space"
+    - init.d/initial_auto: show the initial autopartitioning dialog at any
+      debconf priority as 1. not showing it confuses the users and 2. it
+      is needed in order to use partman for noninteractive installs
+      (priority=critical)
+    - init.d/initial_auto: do not abort the partitioning if the user
+      presses the <back> button
+  * Updated translations:
+    - Albanian (sq.po) by Elian Myftiu
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Tue, 20 Jul 2004 15:53:35 +0300
+
+partman-auto (24) unstable; urgency=low
+
+  * Christian Perrier
+    - Change the progress dialog box title. Closes: #254905
+  * Updated translations:
+    - German (de.po) by Dennis Stampfer
+    - French (fr.po) by Christian Perrier
+    - Japanese (ja.po) by Kenshi Muto
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 18 Jul 2004 16:57:32 -0400
+
+partman-auto (23ubuntu5) warty; urgency=low
+
+  * Display top-level partitioning choice again if you back up from it to
+    the main menu and then return to partman.
+
+ -- Colin Watson <cjwatson@flatline.org.uk>  Tue, 31 Aug 2004 18:05:28 +0100
+
+partman-auto (23ubuntu4) warty; urgency=low
+
+  * Colin Watson
+    - Don't offer the "Use free space" option.
+    - Move init.d to auto.d, which has special exit code semantics as of
+      partman 40ubuntu1.
+    - Accept autopartitioning automatically.
+
+ -- Colin Watson <cjwatson@flatline.org.uk>  Wed, 18 Aug 2004 23:41:34 +0100
+
+partman-auto (23ubuntu3) warty; urgency=low
+
+  * More ubuntu branding (translated templates as well)
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Mon, 16 Aug 2004 18:58:45 +0200
+
+partman-auto (23ubuntu2) warty; urgency=low
+
+  * Ubuntu branding
+
+ -- Tollef Fog Heen <tfheen@raw.no>  Sun,  8 Aug 2004 10:47:02 +0200
+
+partman-auto (23ubuntu1) warty; urgency=low
+
+  * Colin Watson
+    - Increase the maximum size of / in the multi_user recipe to 300MB, and
+      add a gigabyte to the maximum size of /usr while I'm at it.
+
+ -- Colin Watson <cjwatson@flatline.org.uk>  Fri, 30 Jul 2004 18:42:05 +0100
+
+partman-auto (23) unstable; urgency=low
+
+  * Colin Watson
+    - The root partition on powerpc/powermac_newworld shouldn't be bootable.
+    - There's never any point in making the newworld bootstrap partition
+      larger than 1MB (actually 800KB, but hey).
+  * Updated translations:
+    - Welsh (cy.po) by Dafydd Harries
+    - Slovenian (sl.po) by Jure Čuhalev
+
+ -- Colin Watson <cjwatson@debian.org>  Sat, 29 May 2004 18:35:01 -0300
+
+partman-auto (22) unstable; urgency=low
+
+  * Updated translations:
+    - Bulgarian (bg.po) by Ognyan Kulev
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 25 May 2004 12:35:25 -0300
+
+partman-auto (21) unstable; urgency=high
+
+  * Urgency=high because this fixes an important bug
+  * Christian Perrier
+    - Change minimum filesystem sizes for multi_user recipes
+      This involved increasing the minimum size for / from 30 to 70
+      because a Debian base system installs 48MB on / for i386
+      Same limits used for other arches. Closes: #249786
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 21 May 2004 18:52:33 +0200
+
+partman-auto (20) unstable; urgency=low
+
+  * Martin Michlmayr
+    - use the same formating for all recipes - use tabs, and no trailing
+      white space.
+    - add a customized recipe for MIPS based Cobalt machines
+      (mipsel/cobalt): copy the existing recipes, but add a boot partition
+      with an ext2 revision 0 file system.  closes: #244100
+    - likewise for Netwinder (arm/netwinder).
+    - make sure in the above recipes that / is on a primary partition.
+  * Updated translations:
+    - Polish (pl.po) by Bartosz Fenski
+    - Russian (ru.po) by Yuri Kozlov
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Mon, 17 May 2004 01:54:03 +0100
+
+partman-auto (19) unstable; urgency=low
+
+  * Anton Zinoviev
+    - move the item in the main partitioning menu up.
+    - recipes/multi_user: give higher priority to the size of /tmp, the
+      limits are still the same (min = about 20MB, max = about 400MB).
+      Thanks to Ivan Nestlerode, closes: #246749
+    - recipes.sh (choose_recipe): add support for architecture dependent
+      recipes
+    - add recipes customised for powerpc newworld.  Thanks to Brett Wuth,
+      Giuseppe Sacco, Jared Sulem and Dave Miller,
+      closes: #241817, #244957, #243253, #244977
+    - add recipes customised for hppa
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Sat, 15 May 2004 07:41:49 +0300
+
+partman-auto (18) unstable; urgency=low
+
+  * Joey Hess
+    - Support running at critical debconf priority; the user will not be asked
+      for a recipe, so need to set a default (cdebconf behaves differently
+      from debconf for selects that are asked and not displayed).
+  * Updated translations:
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+
+ -- Joey Hess <joeyh@debian.org>  Thu,  6 May 2004 15:10:27 -0400
+
+partman-auto (17) unstable; urgency=low
+
+  * Updated translations:
+    - Bokmal, Norwegian (nb.po) by Bjørn Steensrud
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Russian (ru.po) by Nikolai Prokoschenko
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 23 Apr 2004 13:17:54 -0400
+
+partman-auto (16) unstable; urgency=low
+
+  * Jordi Mallach
+    - Typo fix in templates.
+  * Updated translations:
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by Christian Perrier
+    - Gallegan (gl.po) by Héctor Fernández López
+    - Hebrew (he.po) by Lior Kaplan
+    - Hungarian (hu.po) by VERÓK István
+    - Indonesian (id.po) by I Gede Wijaya S
+    - Italian (it.po) by Stefano Canepa
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Bokmal, Norwegian (nb.po) by Axel Bojer
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Nikolai Prokoschenko
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Albanian (sq.po) by Elian Myftiu
+    - Swedish (sv.po) by André Dahlqvist
+    - Turkish (tr.po) by Osman Yüksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 20 Apr 2004 10:00:02 -0400
+
+partman-auto (15) unstable; urgency=low
+
+  * Anton Zinoviev
+    - templates: use the word "wizard" instead of automatic partitioning
+    - add a "multi-user" recipe with compliance with the instructions in
+      the install manual.  Sometimes inexperienced people have to install
+      and administer such systems...
+    - convert properly smaller than 10 bytes sizes to megabytes.
+    - rules: remove .svn directories from the package
+    - init.d/initial_auto: the <back> button exits partman.  Thanks to
+      Blars Blarson, closes: #240411.
+    - autopartitioning, automatically_partition/some_device/do_option: the
+      synopsis of menudir_default_choice has changed
+    - change the recipes to be in accordance with recent changes in partman:
+        1. create files `use_filesystem' in partition directories with
+           assigned file system
+        2. linux-swap is not a file system but method
+  * Joshua Kwan
+    - switch to new debhelper udeb support
+  * Joey Hess
+    - Template polishing. Notably, removed the term "the Wizard", using
+      instead "guided partitioning".
+  * Updated translations:
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - French (fr.po) by Christian Perrier
+    - Hebrew (he.po) by Lior Kaplan
+    - Hungarian (hu.po) by VERÓK István
+    - Indonesian (id.po) by I Gede Wijaya S
+    - Italian (it.po) by Stefano Canepa
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Dutch (nl.po) by Bart Cornelis
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrisor
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Albanian (sq.po) by Elian Myftiu
+    - Swedish (sv.po) by André Dahlqvist
+    - Turkish (tr.po) by Osman Yüksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 11 Apr 2004 21:21:56 -0400
+
+partman-auto (14) unstable; urgency=low
+
+  * Updated translations:
+    - Bosnian (bs.po) by Safir Šećerović
+    - Hungarian (hu.po) by VERÓK István
+    - Italian (it.po) by Stefano Canepa
+    - Polish (pl.po) by Bartosz Fenski
+    - Romanian (ro.po) by Eddy Petrisor
+    - Swedish (sv.po) by André Dahlqvist
+    - Turkish (tr.po) by Osman Yüksel
+    - Traditional Chinese (zh_TW.po) by Tetralet
+    - Albanian (sq.po) by Elian Myftiu
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 30 Mar 2004 15:22:17 -0500
+
+partman-auto (13) unstable; urgency=low
+
+  * Updated translations:
+    - Italian (it.po) by Stefano Canepa
+    - Russian (ru.po) by Nikolai Prokoschenko
+    - Turkish (tr.po) by Osman Yüksel
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Sun, 14 Mar 2004 17:15:03 +0200
+
+partman-auto (12) unstable; urgency=low
+
+  * Updated translations:
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - German (de.po) by Dennis Stampfer
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Albanian (sq.po) by Elian Myftiu
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 13 Mar 2004 12:31:46 -0500
+
+partman-auto (11) unstable; urgency=low
+
+  * Anton Zinoviev
+    - deactivate automatically_partition/some_device when the default disk
+      label type is sun.
+
+  * Translations:
+    - Steinar H. Gunderson: Updated Norwegian Bokmål translation (nb.po).
+    - Elian Myftiu: Updated Albanian translation (sq.po)
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 12 Mar 2004 12:49:08 -0500
+
+partman-auto (10) unstable; urgency=low
+
+  * Anton Zinoviev
+    - two recipes: atomic (/ and swap) and home (/, /home and swap).
+  * Joey Hess
+    - remove the old debconf templates for the old recipes
+
+ -- Joey Hess <joeyh@debian.org>  Tue,  9 Mar 2004 19:53:27 -0500
+
+partman-auto (9) unstable; urgency=low
+
+  * Joey Hess
+    - Remove autogenerated postrm.
+  * Maybe some translations changed. I don't know.
+
+ -- Joey Hess <joeyh@debian.org>  Mon,  8 Mar 2004 19:29:40 -0500
+
+partman-auto (8) unstable; urgency=low
+
+  * Anton Zinoviev
+    - automatically_partition/some_device/do_option: creates new partition
+      table with the default for the architecture type.  Closes: #235923
+    - perform_recipe: start progress bar, as autopartitioning can be quiet
+      slow
+  * Joey Hess
+    - add xfs and reiserfs to the valid fs list (should this use info from the
+      plugins?)
+    - if there is no valid recipe, bail with an error instead of hanging.
+      Closes: #235964
+  * Updated translations:
+    - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by Christian Perrier
+    - Hungarian (hu.po) by VERÓK István
+    - Italian (it.po) by Stefano Canepa
+    - Japanese (ja.po) by Kenshi Muto
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    -  (nn.po) by Håvard Korsvoll
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    (Erm, so the automated script says, but I don't think all these really
+    changed -- JEH)
+
+ -- Joey Hess <joeyh@debian.org>  Fri,  5 Mar 2004 09:17:48 -0900
+
+partman-auto (7) unstable; urgency=low
+
+  * Joey Hess
+    - Use a different question for the initial autopartitioning.
+    - After autopartitioning, set the default menu item on choose_partitions
+      to the one that finishes the install. Closes: #235900
+  * Anton Zinoviev
+    - new files: perform_recipe and recipes.sh
+    - extract most parts of autopartition to perform_recipe and
+      recipes.sh
+    - perform_recipe: remove all old method files.  Closes: #235194.
+    - recipes.sh: new function choose_recipe
+    - automatically_partition/some_device/do_option: use directly
+      choose_recipe and perform_recipe instead of autopartition.  Create
+      new partition table only when the user has already chosen a recipe.
+      Closes: #235377.
+    - Scripts that include recipes.sh  include also definition.sh,
+      recipes.sh doesn't include definitions.sh any more.
+
+  * Updated translations:
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by Christian Perrier
+    - Hungarian (hu.po) by VERÓK István
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Bokmal, Norwegian (nb.po) by Axel Bojer
+    -  (nn.po) by Håvard Korsvoll
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrisor
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Albanian (sq.po) by Elian Myftiu
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Thu,  4 Mar 2004 11:36:18 -0500
+
+partman-auto (6) unstable; urgency=low
+
+  * Joey Hess
+    - Depend on partman-basicfilesystems, partman-ext3, so it can properly set
+      up swap and ext3 partitions. Closes: #235374
+    - Improve some templates.
+    - Hide the manual partitioning scheme from the scheme selection menu.
+      It's still available for custom installers. Closes: #235378
+    - Fix display of some_device in the automatically_partition menu.
+      Closes: #235373
+    - If priority >= high, when partman is first initialised, display the
+      automatically_partition menu.
+    - Add me to uploaders.
+  * Translations :
+    - Miguel Figueiredo
+      - Updated Portuguese translation (pt.po)
+    - Christian Perrier
+      - Updated French translation (fr.po)
+    - André Luís Lopes
+      - Updated Brazilian Portuguese translation (pt_BR.po)
+    - Kenshi Muto
+      - Updated Japanese translation (ja.po)
+    - Changwoo Ryu
+      - Updated Korean translation (ko.po)
+    - Elian Myftiu
+      - Updated Albanian translation (sq.po)
+    - Carlos Z.F. Liu
+      - Updated Simplified Chinese translation (zh_CN.po)
+    - Eugeniy Meshcheryakov
+      - Updated Ukrainian translation (uk.po)
+    - Miroslav Kure
+      - Updated Czech translation (cs.po)
+    - Claus Hindsgaul
+      - Update Danish translation (da.po)
+    - Konstantinos Margaritis
+      - Updated Greek translation (el.po)
+    - Dennis Stampfer
+      - Update German translation (de.po)
+    - Håvard Korsvoll
+      - Update Norwegian, nynorsk translation (nn.po)
+      - Added Norwegian, bokmål translation, (nb.po). From Axel Bojer
+    - Peter Mann
+      - Updated Slovak translation (sk.po)
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 29 Feb 2004 14:24:02 -0500
+
+partman-auto (5) unstable; urgency=low
+
+  * Anton Zinoviev
+    - new release
+  * Joey Hess
+    - this package should be available by default, so standard priority
+  * Updated Translations:
+    - Bartosz Fenski      : Updated Polish translation (pl.po)
+    - Bart Cornelis       : Updated Dutch Translation (nl.po)
+    - Javier Fernandez-Sanguino : Added Spanish translation (es.po)
+    - Ming Hua: Initial and updated Traditional Chinese translation
+                (zh_TW.po), by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 28 Feb 2004 19:18:24 -0500
+
+partman-auto (4) unstable; urgency=low
+
+  * Anton Zinoviev
+    - Changed number of choose_partition/auto (55->65).
+
+  * Updated translations:
+    - Carlos Z.F. Liu      : Updated Simplified Chinese translation (zh_CN.po)
+    - Kęstutis Biliūnas    : Updated Lithuanian translation (lt.po)
+    - Elian Myftiu	   : Updated Albanian translation (sq.po)
+    - Changwoo Ryu	   : Added Korean translation (ko.po)
+    - Håvard Korsvoll	   : Added Norwegian, nynorsk translation (nn.po)
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Tue, 24 Feb 2004 20:12:17 +0200
+
+partman-auto (3) unstable; urgency=low
+
+  * Christian Perrier
+    - unmess changelog
+  * Anton Zinoviev
+    - /bin/autopartition made smarter.  Now it is more unlikely to fail.
+  * Updated translations:
+    - Stefano Canepa
+      - Added Italian translation
+    - Peter Mann
+      - Update Slovak translation
+    - Nikolai Prokoschenko
+      - Updated Russian translation
+    - Nuno Sénica
+      - Added Portuguese translation (pt.po)
+    - h3li0s
+      - added albanian translation (sq.po)
+    - Jordi Mallach
+      - Add Catalan translation (ca.po).
+    - Eugen Meshcheryakov
+      - added Ukrainian translation (uk.po)
+    - André Luís Lopes
+      - Updated Brazilian Portuguese translation (pt_BR.po)
+    - Dennis Stampfer
+      - Update German translation (de.po)
+    - Kenshi Muto
+      - Updated Japanese translation (ja.po)
+    - Christian Perrier
+      - Updated French translation (fr.po)
+    - Konstantinos Margaritis
+      - Updated Greek translation (el.po)
+    - Claus Hindsgaul
+      - Initial Danish translation (da.po)
+    - Miroslav Kure
+      - Updated Czech translation (cs.po)
+    - Peter Mann
+      - Updated Slovak translation (sk.po)
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Mon, 16 Feb 2004 11:55:28 +0200
+
+partman-auto (2) unstable; urgency=low
+
+  * Bartosz Fenski
+    - Add Polish (pl) translation.
+  * Kenshi Muto
+    - Add Japanese translation (ja.po)
+    - Update Japanese translation
+  * Christian Perrier
+    - First debconf templates polishing
+    - Run debconf-updatepo
+  * André Luís Lopes
+    - Added Brazilian Portuguese (pt_BR) translation.
+  * Nikolai Prokoschenko
+    - Added russian translation (ru.po)
+  * Christian Perrier
+    - Added French (fr) translation.
+  * Peter Mann
+    - Initial Slovak translation
+  * Dennis Stampfer
+    - Initial German translation (de.po)
+  * Anton Zinoviev
+    - the install target in debian/rules removes all files CVS from the
+      generated package.
+    - added local variable for Emacs `coding: utf-8' at the end of the
+      changelog.
+  * Anmar Oueja
+    - created and translated to Arabic (ar.po)
+  * Claus Hindsgaul
+    - Initial Danish translation (da.po)
+  * Miroslav Kure
+    - Initial Czech translation (cs.po)
+  * Ming Hua
+    - Initial Simplified Chinese translation (zh_CN.po)
+  * Bart Cornelis
+    - Initial Dutch (nl.po) translation
+  * Kęstutis Biliūnas
+    - Initial Lithuanian (lt.po) translation.
+  * Safir Secerovic
+    - Add Bosnian translation (bs.po).
+  * Joey Hess
+    - Change udeb filename to use "all".
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 21 Jan 2004 14:09:34 -0500
+
+partman-auto (1) unstable; urgency=low
+
+  * First version.
+  * Konstantinos Margaritis
+    - Initial Greek translation (el.po)
+
+ -- Anton Zinoviev <zinoviev@debian.org>  Sat,  3 Jan 2004 18:28:41 +0200
+
+Local Variables:
+coding: utf-8
+End:

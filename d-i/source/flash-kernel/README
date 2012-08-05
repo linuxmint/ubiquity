@@ -1,0 +1,56 @@
+flash-kernel
+------------
+
+flash-kernel is a script which will put the kernel and initramfs in
+the boot location of embedded devices that don't load the kernel and
+initramfs directly from /boot.  flash-kernel supports devices that
+boot from flash memory (hence the name) as well as some devices that
+require a special boot image on the disk.
+
+You will generally want to use this script as a post installation
+hook of the kernel image.  This way, the newly installed kernel and
+newly created initramfs will automatically be used after you restart
+your machine (either by writing it to flash memory or by constructing
+a specific boot image on disk).  In order for this to work, you have
+to edit the file /etc/kernel-img.conf and add the following line:
+
+  postinst_hook = flash-kernel
+
+Supported systems
+- - - - - - - - -
+
+At the moment, the following systems are supported:
+
+ - ARM-Versatile Express CA9x4
+ - Buffalo Linkstation Live
+ - Buffalo Linkstation Pro
+ - Buffalo/Revogear Kurobox Pro
+ - D-Link DNS-323
+ - Freescale i.mx51 Babbage Board (Ubuntu)
+ - GLAN Tank
+ - HP Media Vault mv2120
+ - Intel SS4000-E
+ - Linksys NSLU2
+ - Marvell OpenRD-Base
+ - Marvell OpenRD-Client
+ - Marvell DB-MV88F6781-BP Development Board (dove board, Ubuntu)
+ - Marvell Armada XP Development Board (Ubuntu)
+ - OMAP3 Beagle Board (Ubuntu)
+ - QNAP TS-109
+ - QNAP TS-110 Turbo NAS
+ - QNAP TS-119 Turbo NAS
+ - QNAP TS-209
+ - QNAP TS-210 Turbo NAS
+ - QNAP TS-219 and TS-219P Turbo NAS
+ - QNAP TS-409
+ - QNAP TS-410 and TS-410U Turbo NAS
+ - QNAP TS-419P and TS-419U Turbo NAS
+ - SheevaPlug
+ - SheevaPlug eSATA
+ - Thecus N2100
+
+If you would like to see support for another device, please file a bug
+report in the Debian Bug Tracking System and include all information
+related to the boot process of your device.  Instructions can be found
+at http://bugs.debian.org/
+

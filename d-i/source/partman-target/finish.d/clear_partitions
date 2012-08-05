@@ -1,0 +1,138 @@
+#! /bin/sh
+# Remove critical files to ensure we don't end up with a mixed system.
+
+. /lib/partman/lib/base.sh
+
+failed () {
+	db_progress STOP
+	db_input critical partman-target/clear_partitions_failed || true
+	db_go || true
+	exit 1
+}
+count=0
+partitions=$(
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ -f "$id/method" ] || continue
+		[ -f "$id/use_filesystem" ] || continue
+		[ -f "$id/mountpoint" ] || continue
+		[ "$fs" != free ] || continue
+		[ -f "$id/format" ] && continue
+		[ -f "$id/formatted" ] && continue
+		count=$(($count + 1))
+		mp="$(cat "$id/mountpoint")"
+		echo "$mp,$path"
+	done
+	close_dialog
+done | sort
+)
+
+[ -n "$partitions" ] || exit 0
+
+echo "Considering $partitions." | tr '\n' ' ' | logger -t clear_partitions
+
+tmp="/mnt/tmpmount"
+mkdir -p "$tmp"
+template=partman-target/clear_partitions_progress
+db_progress START 0 $count ubiquity/install/title
+db_progress INFO $template
+to_delete=""
+for part in $partitions; do
+	mp="${part%,*}"
+	path="${part#*,}"
+	if [ "$mp" = "/" ]; then
+		mount $path $tmp 3>&- || failed
+		for x in bin dev etc lib lib32 lib64 proc sbin sys; do
+			[ -e "$tmp/$x" ] && (rm -rf "$tmp/$x" &&
+			logger -t clear_partitions "Removing $x from / ($path)." ||
+			failed)
+		done
+		for x in "$tmp/usr/"* "$tmp/var/"*; do
+			case "$x" in
+				$tmp/usr/local|$tmp/usr/src|$tmp/var/lib|$tmp/var/local)
+				continue
+				;;
+			esac
+			[ -e "$x" ] && (rm -rf "$x" &&
+			logger -t clear_partitions "Removing ${x#$tmp/} from / ($path)." ||
+			failed)
+		done
+		for x in "$tmp/var/lib/"*; do
+			case "$x" in
+			    $tmp/var/lib/mysql|$tmp/var/lib/mythtv)
+				# Databases
+				continue
+				;;
+			esac
+			[ -e "$x" ] && (rm -rf "$x" &&
+			logger -t clear_partitions "Removing ${x#$tmp/} from / ($path)." ||
+			failed)
+		done
+		for x in $tmp/initrd* $tmp/vmlinuz*; do
+			[ -e "$x" ] && (rm -rf "$x" || failed)
+		done
+		
+		# /home could be a symlink.
+		[ -f "$tmp/home" ] && (rm "$tmp/home" || failed)
+
+		# / could have the wrong owner.
+		chown root:root $tmp
+		
+		# Preserve the UID, if possible.
+		db_get passwd/username || true
+		username="$RET"
+		if [ -n "$username" ] && [ -d "$tmp/home/$username" ]; then
+			uid="$(stat -c %u "$tmp/home/$username")"
+			if [ -n "$uid" ] && [ "$uid" != 0 ]; then
+				db_set passwd/user-uid "$uid" || true
+			fi
+		fi
+		# Nothing should have anything in $tmp open at this point,
+		# but apparently something does:
+		#   https://bugs.launchpad.net/bugs/946663
+		umount -l $tmp
+	elif [ "$mp" = "/home" ]; then
+		mount $path $tmp 3>&- || failed
+		# Preserve the UID, if possible.
+		db_get passwd/username || true
+		username="$RET"
+		if [ -n "$username" ] && [ -d "$tmp/$username" ]; then
+			uid="$(stat -c %u "$tmp/$username")"
+			if [ -n "$uid" ] && [ "$uid" != 0 ]; then
+				db_set passwd/user-uid "$uid" || true
+			fi
+		fi
+		# Nothing should have anything in $tmp open at this point,
+		# but apparently something does:
+		#   https://bugs.launchpad.net/bugs/946663
+		umount -l $tmp
+	else
+		case "$mp" in
+			/usr/local|/usr/local/*|/var/local|/var/local/*|/usr/src|/usr/src/*)
+			logger -t clear_partitions "Skipping $mp ($path)."
+			continue
+			;;
+		esac
+		for x in bin dev etc lib lib32 lib64 proc sbin usr var sys; do
+			if echo "$mp" | egrep -q "^/$x(\$|/)"; then
+				mount $path $tmp 3>&- || failed
+				logger -t clear_partitions "Removing everything from $mp ($path)."
+				rm -rf $tmp/* || failed
+				# Nothing should have anything in $tmp open
+				# at this point, but apparently something
+				# does:
+				#   https://bugs.launchpad.net/bugs/946663
+				umount -l $tmp
+				break
+			fi
+		done
+	fi
+	db_progress STEP 1
+done
+db_progress STOP
+rmdir $tmp
+
+exit 0

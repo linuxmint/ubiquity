@@ -1,0 +1,212 @@
+# These templates have been reviewed by the debian-l10n-english
+# team
+#
+# If modifications/additions/rewording are needed, please ask
+# debian-l10n-english@lists.debian.org for advice.
+#
+# Even minor modifications require translation updates and such
+# changes should be coordinated with translators and reviewers.
+#
+# Most templates in this file should be leaved without default value.
+# In order to support the preseeding in the udeb, the default values
+# in this file have to be preferred over the complex guessing-work in
+# the config script of keyboard-configuration.
+
+Template: debian-installer/console-setup-udeb/title
+Type: text
+# Main menu item. Please keep below 55 columns
+# :sl1:
+_Description: Configure the keyboard
+
+Template: keyboard-configuration/other
+Type: text
+# :sl1:
+_Description: Other
+
+Template: keyboard-configuration/model
+Type: select
+Choices: ${CHOICES}
+# :sl2:
+_Description: Keyboard model:
+ Please select the model of the keyboard of this machine.
+
+Template: keyboard-configuration/layout
+Type: select
+Choices: ${CHOICES}
+# :sl1:
+_Description: Country of origin for the keyboard:
+ The layout of keyboards varies per country, with some countries
+ having multiple common layouts. Please select the country of origin
+ for the keyboard of this computer.
+
+Template: keyboard-configuration/variant
+Type: select
+Choices: ${CHOICES}
+# :sl1:
+_Description: Keyboard layout:
+ Please select the layout matching the keyboard for this machine.
+
+Template: keyboard-configuration/unsupported_config_layout
+Type: boolean
+Default: true
+# :sl3:
+_Description: Keep the current keyboard layout in the configuration file?
+ The current keyboard layout in the configuration file
+ /etc/default/keyboard is defined as XKBLAYOUT="${XKBLAYOUT}" and
+ XKBVARIANT="${XKBVARIANT}".
+ .
+ Please choose whether you want to keep it. If you choose this option,
+ no questions about the keyboard layout will be asked and the current
+ configuration will be preserved.
+
+Template: keyboard-configuration/unsupported_layout
+Type: boolean
+Default: true
+# :sl3:
+_Description: Keep default keyboard layout (${XKBLAYOUTVARIANT})?
+ The default value for the keyboard layout is XKBLAYOUT="${XKBLAYOUT}"
+ and XKBVARIANT="${XKBVARIANT}".  This default value is based on the
+ currently defined language/region and the settings in
+ /etc/X11/xorg.conf.
+ .
+ Please choose whether you want to keep it. If you choose this option,
+ no questions about the keyboard layout will be asked.
+
+Template: keyboard-configuration/unsupported_config_options
+Type: boolean
+Default: true
+# :sl3:
+_Description: Keep current keyboard options in the configuration file?
+ The current keyboard options in the configuration file
+ /etc/default/keyboard are defined as XKBOPTIONS="${XKBOPTIONS}".
+ .
+ If you choose to keep these options, no questions about the keyboard
+ options will be asked.
+
+Template: keyboard-configuration/unsupported_options
+Type: boolean
+Default: true
+# :sl3:
+_Description: Keep default keyboard options (${XKBOPTIONS})?
+ The default value for the options of the keyboard layout is
+ XKBOPTIONS="${XKBOPTIONS}".  It is based on the currently defined
+ language/region and the settings in /etc/X11/xorg.conf.
+ .
+ If you choose to keep it, no questions about the keyboard options
+ will be asked.
+
+Template: keyboard-configuration/toggle
+Type: select
+# :sl1:
+__Choices: Caps Lock, Right Alt (AltGr), Right Control, Right Shift, Right Logo key, Menu key, Alt+Shift, Control+Shift, Control+Alt, Alt+Caps Lock, Left Control+Left Shift, Left Alt, Left Control, Left Shift, Left Logo key, Scroll Lock key, No toggling
+Default: Alt+Shift
+# :sl1:
+_Description: Method for toggling between national and Latin mode:
+ You will need a way to toggle the keyboard between the national
+ layout and the standard Latin layout.
+ .
+ Right Alt or Caps Lock keys are often chosen for ergonomic reasons
+ (in the latter case, use the combination Shift+Caps Lock for normal Caps
+ toggle). Alt+Shift is also a popular combination; it will
+ however lose its usual behavior in Emacs and other programs
+ that use it for specific needs.
+ .
+ Not all listed keys are present on all keyboards.
+
+Template: keyboard-configuration/switch
+Type: select
+# :sl2:
+__Choices: No temporary switch, Both Logo keys, Right Alt (AltGr), Right Logo key, Left Alt, Left Logo key
+Default: No temporary switch
+# :sl2:
+_Description: Method for temporarily toggling between national and Latin input:
+ When the keyboard is in national mode and one wants to type only a few
+ Latin letters, it might be more appropriate to switch temporarily to
+ Latin mode. The keyboard remains in that mode as long as the chosen key is
+ kept pressed. That key may also be used to input national letters when
+ the keyboard is in Latin mode.
+ .
+ You can disable this feature by choosing "No temporary switch".
+
+Template: keyboard-configuration/altgr
+Type: select
+# :sl2:
+__Choices: The default for the keyboard layout, No AltGr key, Right Alt (AltGr), Right Control, Right Logo key, Menu key, Left Alt, Left Logo key, Keypad Enter key, Both Logo keys, Both Alt keys
+Default: Right Alt (AltGr)
+# :sl2:
+_Description: Key to function as AltGr:
+ With some keyboard layouts, AltGr is a modifier key used to input
+ some characters, primarily ones that are unusual for the language of the
+ keyboard layout, such as foreign currency symbols and accented letters.
+ These are often printed as an extra symbol on keys.
+
+Template: keyboard-configuration/compose
+Type: select
+# :sl2:
+__Choices: No compose key, Right Alt (AltGr), Right Control, Right Logo key, Menu key, Left Logo key, Caps Lock
+Default: No compose key
+# :sl2:
+_Description: Compose key:
+ The Compose key (known also as Multi_key) causes the computer to interpret
+ the next few keystrokes as a combination in order to produce a character
+ not found on the keyboard.
+ .
+ On the text console the Compose key does not work in Unicode mode. If not
+ in Unicode mode, regardless of what you choose here, you can always also
+ use the Control+period combination as a Compose key.
+
+Template: keyboard-configuration/ctrl_alt_bksp
+Type: boolean
+Default: false
+# :sl3:
+_Description: Use Control+Alt+Backspace to terminate the X server?
+ By default the combination Control+Alt+Backspace does nothing.  If
+ you want it can be used to terminate the X server.
+
+Template: keyboard-configuration/xkb-keymap
+Type: select
+Choices-C: us, by, be, br(abnt2), br, gb, bg, bg(phonetic), ca, ca(multi), hr, cz, dk, nl, us(dvorak), ee, fi, fr(latin9), de, gr, il, hu, is, it, jp, kg, latam, lv, lt, mk, no, pl, pt, ro, ru, rs(latin), sk, si, es, se, ch(fr), ch, th, tr(f), tr, ua
+#flag:partial
+__Choices: American English, Belarusian, Belgian, Brazilian (ABNT2 layout), Brazilian (EUA layout), British English, Bulgarian, Bulgarian (phonetic layout), Canadian French, Canadian Multilingual, Croatian, Czech, Danish, Dutch, Dvorak, Estonian, Finnish, French, German, Greek, Hebrew, Hungarian, Icelandic, Italian, Japanese, Kirghiz, Latin American, Latvian, Lithuanian, Macedonian, Norwegian, Polish, Portuguese, Romanian, Russian, Serbian (Cyrillic), Slovakian, Slovene, Spanish, Swedish, Swiss French, Swiss German, Thai, Turkish (F layout), Turkish (Q layout), Ukrainian
+_Description: Keymap to use:
+
+Template: keyboard-configuration/modelcode
+Type: string
+Description: for internal use
+
+Template: keyboard-configuration/layoutcode
+Type: string
+Description: for internal use
+
+Template: keyboard-configuration/variantcode
+Type: string
+Description: for internal use
+
+Template: keyboard-configuration/optionscode
+Type: string
+Description: for internal use
+
+Template: keyboard-configuration/store_defaults_in_debconf_db
+Type: boolean
+Default: true
+Description: for internal use
+
+Template: console-setup/ask_detect
+Type: boolean
+Default: false
+_Description: Detect keyboard layout?
+ You can try to have your keyboard layout detected by pressing a series of
+ keys. If you do not want to do this, you will be able to select your
+ keyboard layout from a list.
+
+Template: console-setup/detect
+Type: detect-keyboard
+Choices: ${FILENAME}
+_Description: Detecting your keyboard layout
+
+Template: console-setup/detected
+Type: note
+_Description: Keyboard layout detection complete
+ Based on the keys you pressed, your keyboard layout appears to be
+ "${LAYOUT}". If this is not correct, you can go back and select your layout
+ from the full list instead.

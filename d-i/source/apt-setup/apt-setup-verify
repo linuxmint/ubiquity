@@ -1,0 +1,158 @@
+#!/bin/sh
+# verify and optionally save out the file
+set -e
+
+ASV_TIMEOUT="${ASV_TIMEOUT:--o Acquire::http::Timeout=30}"
+
+NL="
+"
+
+NOTEST=""
+PROGRESS=""
+PROGRESS_FROM=""
+PROGRESS_TO=""
+file=""
+while [ "$1" ]; do
+	case "$1" in
+	    --invalid)
+		NOTEST=1 ;;
+	    --from)
+		shift
+		PROGRESS_FROM=$1 ;;
+	    --to)
+		shift
+		PROGRESS_TO=$1 ;;
+	    *)
+		if [ -z "$file" ]; then
+			file="$1"
+		else
+			saveto="$1"
+		fi ;;
+	esac
+	shift
+done
+
+if [ "$PROGRESS_FROM" ] && [ "$PROGRESS_TO" ] && \
+   [ $PROGRESS_FROM -lt $PROGRESS_TO ]; then
+	PROGRESS=1
+else
+	DAP_OPTS="--no-progress"
+fi
+
+logoutput=""
+if [ "$CATCHLOG" ]; then
+	logoutput="log-output -t apt-setup"
+fi
+
+chroot=
+intarget=
+if [ "$ROOT" ]; then
+	chroot=chroot
+	intarget=in-target
+fi
+
+saveline () {
+	if [ "$saveto" ]; then
+		echo "$*" >> $saveto
+	fi
+}
+
+# Cancellation may still have reliability problems:
+# - application does not seem to always react to a cancel signal?
+# - debconf-apt-progress sometimes fails to exit with code 30 when cancelled?
+# See also thread http://lists.debian.org/debian-boot/2008/01/msg00094.html
+valid () {
+	local line="$1"
+	local dap_opts="$2"
+
+	[ "${line%%:*}" != "deb cdrom" ] || return 0
+
+	# Ubuntu change: network sources are always valid; apt will cope
+	# gracefully later, even though the network may not be available
+	# now.
+	return 0
+
+	tmp=$($chroot $ROOT tempfile)
+	echo "$line" > $ROOT$tmp
+	code=0
+	$logoutput $intarget debconf-apt-progress --logstderr $dap_opts -- \
+		apt-get -o APT::Get::List-Cleanup=false \
+			-o Dir::Etc::sourcelist=$tmp $ASV_TIMEOUT update || code=$?
+	if [ $code -eq 30 ]; then
+		exit 30 # canceled
+	elif [ $code -eq 0 ]; then
+		rm -f $ROOT$tmp
+	else
+		rm -f $ROOT$tmp
+		false
+	fi
+}
+
+# Ubuntu change: need to run apt-get update for everything in one go here,
+# since we've disabled the run in the valid function above. Doing everything
+# in one go also allows apt-get to cache resolver failures and connection
+# timeouts and so be significantly faster when the network is unavailable.
+tmp=$($chroot $ROOT tempfile)
+cat "$file" > $ROOT$tmp
+if [ "$PROGRESS" ]; then
+	DAP_OPTS="--dlwaypoint 100 --from $PROGRESS_FROM --to $PROGRESS_TO"
+fi
+$logoutput $intarget debconf-apt-progress --logstderr $DAP_OPTS -- \
+	apt-get -o APT::Get::List-Cleanup=false \
+		-o Dir::Etc::sourcelist=$tmp $ASV_TIMEOUT update || true
+rm -f $ROOT$tmp
+
+if [ "$PROGRESS" ]; then
+	tot_items=$(grep -Ev "^(#.*|)[[:space:]]*$" $file | wc -l)
+	p_from=$PROGRESS_FROM
+fi
+
+items=0
+gooditems=0
+spacer=0
+
+OLDIFS="$IFS"
+IFS="$NL"
+# Can't just iterate over $(cat $file) because that kills newlines, so
+# introduce a dummy colon.
+for line in $(sed 's/^/:/' $file); do
+	IFS="$OLDIFS"
+	line="${line#:}"
+	if echo "$line" | grep -Evq "^(#.*|)[[:space:]]*$"; then
+		items=$(expr $items + 1)
+		# Write blank line between generators
+		if [ $spacer = 0 ] && [ -f "$saveto" ]; then
+			saveline ""
+			spacer=1
+		fi
+
+		if [ "$PROGRESS" ]; then
+			[ $items -eq 1 ] || p_from=$p_to
+			p_to=$(expr $PROGRESS_FROM + \
+				\( $PROGRESS_TO - $PROGRESS_FROM \) \* \
+				$items / $tot_items)
+			DAP_OPTS="--dlwaypoint 100 --from $p_from --to $p_to"
+		fi
+
+		if [ -z "$NOTEST" ] && valid "$line" "$DAP_OPTS"; then
+			gooditems=$(expr $gooditems + 1)
+			saveline "$line"
+		else
+			saveline "# Line commented out by installer because it failed to verify:"
+			saveline "#$line"
+		fi
+	else
+		if [ "$line" ] && [ $spacer = 0 ] && [ -f "$saveto" ]; then
+			saveline ""
+			spacer=1
+		fi
+		# Ignore leading empty lines
+		if [ $items -ne 0 ] || [ "$line" ]; then
+			saveline "$line"
+		fi
+	fi
+done
+
+if [ $gooditems -ne $items ]; then
+	exit 1
+fi

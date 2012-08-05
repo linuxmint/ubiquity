@@ -1,0 +1,18 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+. /lib/partman/lib/auto-shared.sh
+
+code=255
+while [ $code -eq 255 ]; do
+	disk=$(select_auto_disk) || exit 99
+	autopartition $disk
+	code=$?
+done
+
+if [ $code -ne 0 ]; then
+	exit $code
+else
+	# accept the autopartitioning
+	exit 100
+fi

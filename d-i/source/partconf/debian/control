@@ -1,0 +1,37 @@
+Source: partconf
+Section: debian-installer
+Priority: standard
+Maintainer: Debian Install System Team <debian-boot@lists.debian.org>
+Uploaders: Colin Watson <cjwatson@debian.org>
+Build-Depends: debhelper (>= 7.4.16), libdebconfclient0-dev (>= 0.47), libparted0-dev (>= 2.2), po-debconf (>= 0.5.3), libdebian-installer4-dev (>= 0.41)
+Vcs-Browser: http://git.debian.org/?p=d-i/partconf.git
+Vcs-Git: git://git.debian.org/d-i/partconf.git
+
+Package: partconf
+Architecture: mips
+Depends: ${shlibs:Depends}, partconf-mkfstab
+Recommends: partitioned-harddrives
+Provides: made-filesystems, made-swapspace, mounted-partitions, created-fstab
+XC-Package-Type: udeb
+XB-Installer-Menu-Item: 4500
+Description: Configure and Mount Partitions
+ User friendly debian-installer program for creating file systems,
+ swap partitions and mounting them in /target
+
+Package: partconf-find-partitions
+Architecture: any
+Priority: optional
+Depends: ${shlibs:Depends}
+XC-Package-Type: udeb
+Description: debian-installer utility for finding partitions
+ Helper program for finding partitions and detecting their size and
+ existing file system.
+
+Package: partconf-mkfstab
+Architecture: any
+Priority: optional
+Depends: ${shlibs:Depends}
+XC-Package-Type: udeb
+Description: debian-installer utility for creating fstab file
+ Helper program for creating fstab files in the new installed Debian
+ system.

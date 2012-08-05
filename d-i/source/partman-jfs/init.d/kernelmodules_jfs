@@ -1,0 +1,20 @@
+#!/bin/sh
+
+mkdir -p /var/lib/partman
+
+cat /proc/modules |
+while read module_name x; do
+	if [ "$module_name" = jfs ]; then
+		>/var/lib/partman/jfs
+		exit 0
+	fi
+done
+
+if modprobe jfs >/dev/null 2>/dev/null; then
+	>/var/lib/partman/jfs
+	exit 0
+fi
+
+if grep -q jfs /proc/filesystems; then
+	>/var/lib/partman/jfs
+fi

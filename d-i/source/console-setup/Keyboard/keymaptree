@@ -1,0 +1,126 @@
+#!/bin/sh
+set -e
+
+#     keymaptree -- build decision trees covering every keymap we can think of
+#     Copyright (C) 2006, 2007 Canonical Ltd.; written by Colin Watson.
+
+#     This program is free software; you can redistribute it and/or modify
+#     it under the terms of the GNU General Public License as published by
+#     the Free Software Foundation; either version 2 of the License, or
+#     (at your option) any later version.
+
+#     This program is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU General Public License for more details.
+
+#     If you have not received a copy of the GNU General Public License
+#     along with this program, write to the Free Software Foundation, Inc.,
+#     59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+# Default values:
+output=''
+models=''
+useonly="$(< keymaptree.use grep -v '^#' | xargs | sed 's/ /,/g')"
+skip=''
+names='KeyboardNames.pl'
+
+while [ "$1" ]; do
+    case "$1" in
+	-output)
+	    shift
+	    output="$1"
+	    ;;
+	-useonly)
+	    shift
+	    useonly="$1"
+	    ;;
+	-skip)
+	    shift
+	    skip="$1"
+	    ;;
+	-names)
+	    shift
+	    names="$1"
+	    ;;
+	-\?|-help|--help)
+	    cat >&2 <<EOF
+Usage: keymaptree [options] <model> [...]
+Legal options are:
+-?,-help,--help     Print this message
+-output             Write decision tree to file (default: stdout)
+-useonly            Include only these keymaps in the decision tree
+                    (comma-separated)
+-skip               Exclude these keymaps from the decision tree
+                    (comma-separated)
+-names              Use this file instead of KeyboardNames.pl
+EOF
+	    exit 0
+	    ;;
+	-*)
+	    echo "keymaptree: Unrecognised option $1" >&2
+	    exit 1
+	    ;;
+	*)
+	    models="${models:+$models }$1"
+	    ;;
+    esac
+    shift
+done
+
+if [ -z "$models" ]; then
+    echo "keymaptree: Need at least one model" >&2
+    exit 1
+fi
+
+for model in $models; do
+    case $model in
+	amiga|ataritt|macintosh_old|pc105|sun4|sun5)
+	    ;;
+	*)
+	    echo "keymaptree: Unrecognised model $model" >&2
+	    exit 1
+	    ;;
+    esac
+done
+
+variantpairs="$(./kbdnames-maker "$names" | grep '^C\*' | grep 'variant\*' | \
+    sort -t '*' | cut -d'*' --output-delimiter=: -f3,4 | sed 's/:$//' | \
+    egrep -v '^(nec|nec_vndr)/jp')"
+
+rm -rf tree-keymaps
+gkincludeopts=''
+gkfiles=''
+
+for model in $models; do
+    mkdir -p "tree-keymaps/$model"
+    for variantpair in $variantpairs; do
+	case $variantpair in
+	    *:*)
+		layout="${variantpair%%:*}"
+		variant="${variantpair#*:}"
+		;;
+	    *)
+		layout="$variantpair"
+		variant=''
+		;;
+	esac
+	./ckbcomp-mini -I. -model "$model" -layout "$layout" ${variant:+-variant "$variant"} | \
+	    perl -ne '
+		if (/^keycode ([0-9]+)/) {
+		    $keycodes{$1} = $_;
+		} else {
+		    for $code (sort { $a <=> $b } keys %keycodes) {
+			print $keycodes{$code};
+		    }
+		    %keycodes = ();
+		    print;
+		}' \
+	    > "tree-keymaps/$model/$layout${variant:+:$variant}"
+    done
+    gkincludeopts="${gkincludeopts:+$gkincludeopts }-I tree-keymaps/$model"
+    echo "$variantpairs" > "tree-keymaps/$model.list"
+    gkfiles="${gkfiles:+$gkfiles }tree-keymaps/$model.list"
+done
+gen_keymap ${output:+-o $output} -v $gkincludeopts \
+    ${useonly:+-u $useonly} ${skip:+-s $skip} $gkfiles

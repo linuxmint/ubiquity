@@ -1,0 +1,141 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+log() {
+	logger -t clock-setup "$@"
+}
+warning() {
+	log "warning: $*"
+}
+
+arch_has_os_needing_local_clock () {
+	# keep in sync with arches that can run OSs matched by
+	# os_needs_local_clock
+	case "$(udpkg --print-architecture)" in
+	*i386*|*amd64*|*ia64*)
+		return 0
+	;;
+	esac
+	return 1
+}
+
+os_needs_local_clock () {
+	while read line; do
+		shortname=$(echo "$line" | cut -d : -f 3)
+		case $shortname in
+		MS-DOS*|Windows*|FreeDOS*) # keep in sync with os-prober
+			return 0
+		;;
+		Solaris*)
+			case "$(udpkg --print-architecture)" in
+			*i386*|*amd64*)
+				return 0
+			;;
+			esac
+		;;
+		esac
+	done
+	return 1
+}
+
+hwclock_prepare () {
+	anna-install rtc-modules || true
+
+	# This may not be necessary on all hardware; hwclock can do direct IO
+	# if the rtc module is not loaded.
+	log-output -t hw-detect modprobe -v rtc || log "rtc module not loaded"
+	log-output -t hw-detect modprobe -v rtc-dev || log "rtc-dev module not loaded"
+	update-dev --settle
+}
+
+hwclock_stop () {
+	kill $pid || return
+	sleep 1
+	if [ -e /proc/$pid ]; then
+		kill -9 $pid || return
+	fi
+}
+
+pri=high
+
+if db_fget clock-setup/utc seen && [ "$RET" = true ]; then
+	# keep preseeded value
+	:
+else
+	probed=""
+
+	if arch_has_os_needing_local_clock; then
+		# os-prober may not yet be installed...
+		anna-install os-prober-udeb || true
+	
+		probed=$(os-prober) || true
+	
+		if echo "$probed" | os_needs_local_clock; then
+			# default to localtime for some OSes
+			db_set clock-setup/utc false
+			pri=low
+		fi
+	fi
+
+	if [ -z "$probed" ]; then
+		# installing the only OS, so use UTC
+		db_set clock-setup/utc true
+		db_get clock-setup/utc-auto
+		if [ "$RET" = true ]; then
+			pri=low
+		fi
+	fi
+fi
+
+db_input $pri clock-setup/utc || true
+if ! db_go; then
+	exit 10 # back to main menu
+fi
+
+# Update target system configuration for utc/localtime selection
+rcsfile=/target/etc/default/rcS
+
+db_get clock-setup/utc
+if [ "$RET" = true ]; then
+	sed -i -e 's:^UTC="no":UTC="yes":' -e 's:^UTC=no:UTC=yes:' $rcsfile
+	OPT="--utc"
+else
+	sed -i -e 's:^UTC="yes":UTC="no":' -e 's:^UTC=yes:UTC=no:' $rcsfile
+	OPT="--localtime"
+fi
+
+# Only update the hardware clock if the system clock was updated using rdate
+db_get clock-setup/system-time-changed
+if [ "$RET" = true ]; then
+	hwclock_prepare
+
+	db_progress INFO clock-setup/progress/hwclock
+	log-output -t clock-setup chroot /target hwclock $OPT --systohc --debug --noadjfile &
+	pid="$!"
+	count=0
+
+	while sleep 1; do
+		if [ ! -e /proc/$pid ]; then
+			break
+		fi
+		count=$(($count + 1))
+		if [ $count -eq 30 ]; then
+			count=0
+			db_input critical clock-setup/hwclock-wait || true
+			if ! db_go; then
+				hwclock_stop
+				cleanup
+				exit 10 # back to main menu
+			fi
+			db_get clock-setup/hwclock-wait
+			if [ "$RET" = false ]; then
+				hwclock_stop
+				break
+			fi
+		fi
+	done
+else
+	log "not setting hardware clock"
+fi

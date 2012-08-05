@@ -1,0 +1,313 @@
+Template: partman-partitioning/progress_resizing
+Type: text
+# :sl2:
+_Description: Resizing partition...
+
+Template: partman-partitioning/progress_copying
+Type: text
+# :sl2:
+_Description: Copying partition...
+
+Template: partman-partitioning/new_state
+Type: text
+# :sl1:
+_Description: Computing the new state of the partition table...
+
+Template: partman-partitioning/confirm_copy
+Type: boolean
+# :sl2:
+_Description: Write previous changes to disk and continue?
+ Before you can select a partition to copy, any previous changes have to be
+ written to disk.
+ .
+ You cannot undo this operation.
+ .
+ Please note that the copy operation may take a long time.
+
+Template: partman-partitioning/source_partition
+Type: select
+Choices-C: ${CHOICES}
+Choices: ${DESCRIPTIONS}
+# :sl2:
+_Description: Source partition:
+ Please choose the partition which contains the data you want to copy.
+
+Template: partman-partitioning/copy_commit_failed
+Type: error
+# :sl2:
+_Description: Copy operation failure
+ An error occurred while writing the changes to the storage devices.
+ .
+ The copy operation has been aborted.
+
+Template: partman-partitioning/impossible_resize
+Type: error
+# :sl2:
+_Description: The resize operation is impossible
+ Because of an unknown reason it is impossible to resize this partition.
+ .
+ Check /var/log/syslog or see virtual console 4 for the details.
+
+Template: partman-partitioning/confirm_resize
+Type: boolean
+# :sl2:
+_Description: Write previous changes to disk and continue?
+ Before you can select a new partition size, any previous changes have to be
+ written to disk.
+ .
+ You cannot undo this operation.
+ .
+ Please note that the resize operation may take a long time.
+
+Template: partman-partitioning/new_size
+Type: string
+Default: some number
+# :sl2:
+_Description: New partition size:
+ The minimum size for this partition is ${MINSIZE} (or ${PERCENT}) and its
+ maximum size is ${MAXSIZE}.
+ .
+ Hint: "max" can be used as a shortcut to specify the maximum size, or
+ enter a percentage (e.g. "20%") to use that percentage of the maximum size.
+
+Template: partman-partitioning/bad_new_size
+Type: error
+# :sl2:
+_Description: The size entered is invalid
+ The size you entered was not understood.
+ Please enter a positive integer size followed by an optional unit of measure
+ (e.g. "200 GB"). The default unit of measure is the megabyte.
+
+Template: partman-partitioning/big_new_size
+Type: error
+# :sl2:
+_Description: The size entered is too large
+ The size you entered is larger than the maximum size of the partition.
+ Please enter a smaller size to continue.
+
+Template: partman-partitioning/small_new_size
+Type: error
+# :sl2:
+_Description: The size entered is too small
+ The size you entered is smaller than the minimum size of the partition.
+ Please enter a larger size to continue.
+
+Template: partman-partitioning/new_size_commit_failed
+Type: error
+# :sl2:
+_Description: Resize operation failure
+ An error occurred while writing the changes to the storage devices.
+ .
+ The resize operation has been aborted.
+
+Template: partman-partitioning/new_partition_size
+Type: string
+Default: some number
+# :sl2:
+_Description: New partition size:
+ The maximum size for this partition is ${MAXSIZE}.
+ .
+ Hint: "max" can be used as a shortcut to specify the maximum size, or
+ enter a percentage (e.g. "20%") to use that percentage of the maximum size.
+
+Template: partman-partitioning/bad_new_partition_size
+Type: error
+# :sl2:
+_Description: Invalid size
+
+Template: partman-partitioning/new_partition_place
+Type: select
+# :sl1:
+__Choices: Beginning, End
+# :sl1:
+_Description: Location for the new partition:
+ Please choose whether you want the new partition to be created at the
+ beginning or at the end of the available space.
+
+Template: partman-partitioning/new_partition_type
+Type: select
+# :sl1:
+__Choices: Primary, Logical
+# :sl1:
+_Description: Type for the new partition:
+
+Template: partman-partitioning/set_flags
+Type: multiselect
+Choices: ${CHOICES}
+# :sl2:
+_Description: Flags for the new partition:
+
+Template: partman-partitioning/set_name
+Type: string
+# :sl2:
+_Description: Partition name:
+
+Template: partman-partitioning/unknown_label
+Type: boolean
+Default: true
+# :sl2:
+_Description: Continue with partitioning?
+ This partitioner doesn't have information about the default type of
+ the partition tables on your architecture.  Please send an e-mail
+ message to debian-boot@lists.debian.org with information.
+ .
+ Please note that if the type of the partition table is unsupported by
+ libparted, then this partitioner will not work properly.
+
+Template: partman-partitioning/unsupported_label
+Type: boolean
+Default: false
+# :sl2:
+_Description: Continue with partitioning?
+ This partitioner is based on the library libparted which doesn't have
+ support for the partition tables used on your architecture.  It is
+ strongly recommended that you exit this partitioner.
+ .
+ If you can, please help to add support for your partition table type
+ to libparted.
+
+Template: partman-partitioning/default_label
+Type: string
+Description: for internal use; can be preseeded
+ You may preseed this template to override the partitioner's
+ platform-specific default choice of disk label.  For example, on x86
+ architectures it may be useful to set this to "gpt" to cause new partition
+ tables to be created using GPT.
+
+Template: partman-partitioning/choose_label
+Type: select
+Choices: ${CHOICES}
+# :sl2:
+_Description: Partition table type:
+ Select the type of partition table to use.
+
+Template: partman-partitioning/confirm_new_label
+Type: boolean
+Default: false
+# :sl2:
+_Description: Create new empty partition table on this device?
+ You have selected an entire device to partition. If you proceed with
+ creating a new partition table on the device, then all current partitions
+ will be removed.
+ .
+ Note that you will be able to undo this operation later if you wish.
+
+Template: partman-partitioning/confirm_write_new_label
+Type: boolean
+Default: false
+# :sl2:
+_Description: Write a new empty partition table?
+ Because of limitations in the current implementation of the Sun
+ partition tables in libparted, the newly created partition table has
+ to be written to the disk immediately.
+ .
+ You will NOT be able to undo this operation later and all existing
+ data on the disk will be irreversibly removed.
+ .
+ Confirm whether you actually want to create a new partition table and
+ write it to disk.
+
+Template: partman-partitioning/bootable_logical
+Type: boolean
+Default: false
+# :sl2:
+_Description: Are you sure you want a bootable logical partition?
+ You are trying to set the bootable flag on a logical partition. The
+ bootable flag is generally only useful on primary partitions, so setting it
+ on logical partitions is normally discouraged. Some BIOS versions are known
+ to fail to boot if there is no bootable primary partition.
+ .
+ However, if you are sure that your BIOS does not have this problem, or if
+ you are using a custom boot manager that pays attention to bootable logical
+ partitions, then setting this flag may make sense.
+
+Template: partman-partitioning/text/set_flags
+Type: text
+# :sl2:
+_Description: Set the partition flags
+
+Template: partman-partitioning/text/set_name
+Type: text
+# :sl2:
+_Description: Name:
+
+Template: partman-partitioning/text/bootable
+Type: text
+# :sl2:
+_Description: Bootable flag:
+
+Template: partman-partitioning/text/on
+Type: text
+# :sl2:
+_Description: on
+
+Template: partman-partitioning/text/off
+Type: text
+# :sl2:
+_Description: off
+
+Template: partman-partitioning/text/resize
+Type: text
+# :sl2:
+_Description: Resize the partition (currently ${SIZE})
+
+Template: partman-partitioning/text/copy
+Type: text
+# :sl2:
+_Description: Copy data from another partition
+
+Template: partman-partitioning/text/delete
+Type: text
+# :sl2:
+_Description: Delete the partition
+
+Template: partman-partitioning/text/new
+Type: text
+# :sl2:
+_Description: Create a new partition
+
+Template: partman-partitioning/text/label
+Type: text
+# :sl2:
+_Description: Create a new empty partition table on this device
+
+Template: partman/method_long/biosgrub
+Type: text
+# :sl5:
+# Setting to reserve a small part of the disk for use by BIOS-based bootloaders
+# such as GRUB.
+_Description: Reserved BIOS boot area
+
+Template: partman/method_short/biosgrub
+Type: text
+# :sl5:
+# short variant of 'Reserved BIOS boot area'
+# Up to 10 character positions
+_Description: biosgrub
+
+Template: partman-partitioning/no_bootable_gpt_efi
+Type: boolean
+# :sl5:
+_Description: Go back to the menu and correct this problem?
+ The partition table format in use on your disks normally requires you to
+ create a separate partition for boot loader code. This partition should be
+ marked for use as an "EFI boot partition" and should be at least 35 MB in
+ size. Note that this is not the same as a partition mounted on /boot.
+ .
+ If you do not go back to the partitioning menu and correct this error, boot
+ loader installation may fail later, although it may still be possible to
+ install the boot loader to a partition.
+
+Template: partman-partitioning/no_bootable_gpt_biosgrub
+Type: boolean
+# :sl5:
+_Description: Go back to the menu and correct this problem?
+ The partition table format in use on your disks normally requires you to
+ create a separate partition for boot loader code. This partition should be
+ marked for use as a "Reserved BIOS boot area" and should be at least 1 MB
+ in size. Note that this is not the same as a partition mounted on /boot.
+ .
+ If you do not go back to the partitioning menu and correct this error, boot
+ loader installation may fail later, although it may still be possible to
+ install the boot loader to a partition.
+

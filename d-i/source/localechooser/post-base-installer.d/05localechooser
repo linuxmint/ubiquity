@@ -1,0 +1,136 @@
+#! /bin/sh
+
+set -e
+
+. /usr/share/debconf/confmodule
+
+# Avoid locale errors when using apt-install (logical consequence
+# of the fact that locales is not yet installed).
+export IT_LANG_OVERRIDE=C
+
+
+db_get debian-installer/locale
+LOCALE="$RET"
+
+# Set locale to C if it has not yet been set
+# This can happen during e.g. s390 installs where localechooser is not run
+[ "$LOCALE" ] || LOCALE="C"
+
+if [ "$LOCALE" != "C" ]; then
+	db_get debian-installer/language
+	LANGLIST="$RET"
+fi
+
+EXTRAS=""
+if db_get localechooser/supported-locales; then
+	EXTRAS="$(echo "$RET" | sed 's/,//g')"
+fi
+
+LANGUAGE="${LOCALE%%_*}"
+
+LOCALE_TRANSLATIONS="$LOCALE"
+
+case ${LOCALE%%_*} in
+    pt|zh)
+	# In the special cases of Portuguese and Chinese, selecting a
+	# different location may imply a different dialect of the language.
+	# In such cases, make LANG reflect the selected language (for
+	# messages, character types, and collation) and make the other
+	# locale categories reflect the selected language.
+	db_get localechooser/languagelist
+	ORIG_LANGUAGE="$RET"
+	db_get debian-installer/country
+	COUNTRY="$RET"
+
+	if grep -q "^$ORIG_LANGUAGE;" /usr/share/localechooser/languagelist; then
+		SUPPORTEDLOCALES=/usr/share/localechooser/SUPPORTED
+		if [ ! -f "$SUPPORTEDLOCALES" ]; then
+			SUPPORTEDLOCALES=/usr/share/i18n/SUPPORTED
+		fi
+
+		LOCALE_TRANSLATIONS="$(grep "^$ORIG_LANGUAGE;" /usr/share/localechooser/languagelist | cut -d';' -f5)"
+		newlocale="$(echo "$LOCALE" | sed "s/_[A-Z][A-Z]*/_$COUNTRY/")"
+		if grep -q "^${newlocale%%[.@]*}[.@ ]" $SUPPORTEDLOCALES && \
+		   [ "$newlocale" != "$LOCALE_TRANSLATIONS" ]; then
+			LOCALE="$newlocale"
+			LANGLIST="$(grep "^$ORIG_LANGUAGE;" /usr/share/localechooser/languagelist | cut -d';' -f6)"
+		fi
+	fi
+	;;
+esac
+
+# Enable translations
+if [ "$LOCALE" != "C" ] || [ "$EXTRAS" ]; then
+	apt-install locales || true
+fi
+
+set_field () {
+	local file category value
+	file="$1"
+	category="$2"
+	value="$3"
+
+	if grep -qs "^#* *$category=" "$file"; then
+		sed -i "s,^#* *$category=.*,$category=\"$value\"," "$file"
+	else
+		echo "$category=\"$value\"" >> "$file"
+	fi
+}
+
+# Set global locale and language, and make sure the glibc locale is
+# generated.
+DESTFILE="/target/etc/default/locale"
+if [ -e $DESTFILE ]; then
+	sed -i 's/^# LANG=$/LANG=\"'"$LOCALE_TRANSLATIONS"'\"/' $DESTFILE
+	# We set LANGUAGE only if the languagelist is a list of
+	# languages with alternatives. Otherwise, setting it is useless
+	if echo "$LANGLIST" | grep -q ":"; then
+		sed -i 's/^# LANGUAGE=$/LANGUAGE=\"'"$LANGLIST"'\"/' $DESTFILE
+	fi
+fi
+# Fallback in case the file wasn't provided by locales, or the format
+# changed.
+if [ ! -e "$DESTFILE" ] || ! grep -q '^LANG=' $DESTFILE; then
+	mkdir -p "${DESTFILE%/*}"
+	echo "LANG=\"$LOCALE_TRANSLATIONS\"" >> $DESTFILE
+	if echo "$LANGLIST" | grep -q ":"; then
+		echo "LANGUAGE=\"$LANGLIST\"" >> $DESTFILE
+	fi
+fi
+if [ "$LOCALE_TRANSLATIONS" != "$LOCALE" ]; then
+	for category in \
+		LC_NUMERIC LC_TIME LC_MONETARY LC_PAPER LC_NAME LC_ADDRESS \
+		LC_TELEPHONE LC_MEASUREMENT LC_IDENTIFICATION; do
+		set_field /target/etc/default/locale "$category" "$LOCALE"
+	done
+fi
+
+# For languages that have no chance to be displayed at the Linux console
+# let's set root's environment with a non localized environment
+ROOTPROFILE="/target/root/.profile"
+# We must map the language to its "level" from languagelist
+LANGUAGECODE=`echo $LOCALE|cut -f1 -d_`
+# For language with multiple entries such as pt/pt_BR or zh_CN/zh_TW
+# we don't really care about the entry we will match as the level will always
+# be the same
+LEVEL=`cat /usr/share/localechooser/languagelist |\
+	cut -f 2-3 -d\; | \
+	grep "$LANGUAGECODE" | \
+	head -n 1 | \
+	cut -f1 -d\;`
+if [ "$LEVEL" = "3" ] || [ "$LEVEL" = "4" ]; then
+	echo "# Installed by Debian Installer:" >>$ROOTPROFILE
+	echo "#  no localization for root because $LOCALE" >>$ROOTPROFILE
+	echo "#  cannot be properly displayed at the Linux console" >>$ROOTPROFILE
+	echo "LANG=C" >>$ROOTPROFILE
+	echo "LANGUAGE=C" >>$ROOTPROFILE
+fi
+
+if [ "$LOCALE" != C ]; then
+	log-output -t localechooser chroot /target /usr/sbin/locale-gen "$LOCALE" || true
+fi
+if [ "$EXTRAS" ]; then
+	log-output -t localechooser chroot /target /usr/sbin/locale-gen $EXTRAS || true
+fi
+
+exit 0

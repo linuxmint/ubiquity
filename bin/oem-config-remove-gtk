@@ -1,0 +1,92 @@
+#!/usr/bin/python
+## -*- coding: utf-8 -*-
+#
+# «oem-config-remove-gtk» - remove-oem-config after completing
+#
+# Copyright (C) 2010, Mario Limonciello
+# Copyright (C) 2010, Sebastian Heinlein
+#
+#
+# Ubiquity is free software; you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free
+# Software Foundation; either version 2 of the License, or at your option)
+# any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this application; if not, write to the Free Software Foundation, Inc., 51
+# Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+################################################################################
+
+import os
+import sys
+import glob
+
+from aptdaemon.gtk3widgets import AptProgressDialog
+from gi.repository import GObject, Gtk
+from aptdaemon import client, enums
+
+loop = GObject.MainLoop()
+
+def _on_failure(error):
+    dia = Gtk.MessageDialog(type=Gtk.MessageType.ERROR,
+                            buttons=Gtk.ButtonsType.CLOSE,
+                            message_format=error.message)
+    dia.run()
+    dia.hide()
+    loop.quit()
+    sys.exit(1)
+
+def _on_finished(dia):
+    loop.quit()
+    if dia._transaction.exit == enums.EXIT_SUCCESS:
+        sys.exit(0)
+    else:
+        sys.exit(1)
+
+def _on_transaction(trans):
+    apt_dialog = AptProgressDialog(trans)
+    theme = Gtk.IconTheme.get_default()
+    apt_dialog.set_icon(theme.load_icon("update-manager", 16, 0))
+    apt_dialog.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
+    apt_dialog.run()
+    apt_dialog.connect("finished", _on_finished)
+
+def using_cryptsetup():
+    if os.path.exists("/home/.ecryptfs"):
+        return True
+
+    try:
+        with open("/etc/crypttab") as crypttab:
+            for line in crypttab:
+                if not line.startswith("#"):
+                    return True
+    except IOError:
+        pass
+
+    return False
+
+def main():
+    purge = []
+    for pkg in ('ubiquity', 'ubiquity-casper',
+                'ubiquity-ubuntu-artwork', 'ubiquity-slideshow-ubuntu',
+                'oem-config-slideshow-ubuntu'):
+        if glob.glob('/var/lib/dpkg/info/%s.list' % pkg):
+            purge.append(pkg)
+
+    if not using_cryptsetup():
+        purge.append("cryptsetup")
+
+    ac = client.AptClient()
+    ac.commit_packages(install=[], reinstall=[], remove=[], purge=purge, upgrade=[],
+                       downgrade=[],
+                       error_handler=_on_failure,
+                       reply_handler=_on_transaction)
+    loop.run()
+
+if __name__ == "__main__":
+    main()

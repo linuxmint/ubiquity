@@ -1,0 +1,148 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+. /lib/chroot-setup.sh
+
+# This code is copied from chroot-setup.sh, and is needed until after a d-i
+# release whose initrds contain a sufficiently new version of di-utils.
+if ! type chroot_cleanup_localmounts >/dev/null 2>&1; then
+	# Variant of chroot_cleanup that only cleans up chroot_setup's mounts.
+	chroot_cleanup_localmounts () {
+		rm -f /target/usr/sbin/policy-rc.d
+		mv /target/sbin/start-stop-daemon.REAL /target/sbin/start-stop-daemon
+		if [ -x /target/sbin/initctl.REAL ]; then
+			mv /target/sbin/initctl.REAL /target/sbin/initctl
+		fi
+
+		# Undo the mounts done by the packages during installation.
+		# Reverse sorting to umount the deepest mount points first.
+		# Items with count of 1 are new.
+		for dir in $( (cat /tmp/mount.pre /tmp/mount.pre /tmp/mount.post ) | \
+			     sort -r | uniq -c | grep "^[[:space:]]*1[[:space:]]" | \
+			     sed "s/^[[:space:]]*[0-9][[:space:]]//"); do
+			if ! umount $dir; then
+				logger -t $0 "warning: Unable to umount '$dir'"
+			fi
+		done
+		rm -f /tmp/mount.pre /tmp/mount.post
+
+		rm -f /var/run/chroot-setup.lock
+	}
+fi
+
+file="$1"
+
+if [ ! -e /cdrom/.disk/base_installable ] && [ -z "$OVERRIDE_BASE_INSTALLABLE" ]; then
+	exit 0
+fi
+if [ ! -s /cdrom/.disk/info ]; then
+	exit 0
+fi
+
+cd_mountable=1
+db_get cdrom-detect/hybrid || true
+if [ "$RET" = true ] || [ -d /hd-media ]; then
+	cd_mountable=""
+else
+	db_get cdrom-detect/usb-hdd || true
+	if [ "$RET" = true ]; then
+		cd_mountable=""
+	fi
+fi
+
+if [ "$OVERRIDE_LEAVE_CD_MOUNTED" ]; then
+	cd_mountable=""
+fi
+cd_type=$(cat /cdrom/.disk/cd_type)
+case $cd_type in
+    */single)
+	cd_mountable=""
+	;;
+esac
+
+remount_cd() {
+	if [ "$ROOT" ] && [ "$cd_mountable" ]; then
+		fs=iso9660
+		if db_get cdrom-detect/cdrom_fs && [ "$RET" ]; then
+			fs="$RET"
+		fi
+		OS=$(udpkg --print-os)
+		case "$OS" in
+			hurd)
+				OPTIONS=ro
+				;;
+			*)
+				OPTIONS=ro,exec
+				;;
+		esac
+		db_get cdrom-detect/cdrom_device
+		$logoutput mount -t "$fs" -o $OPTIONS $RET /cdrom || true
+	fi
+}
+
+bail_out() {
+	remount_cd
+	rm -f $ROOT$tmp $ROOT$tmp~
+	rm -f /var/lib/install-cd.id
+
+	db_input critical apt-setup/cdrom/failed || true
+	db_go || exit 10
+	exit 1
+}
+
+# Save identification of installation CD
+save_label() {
+	local ident
+
+	if ! ident="$(LC_ALL=C $logoutput_pass $chroot $ROOT apt-cdrom ident)"; then
+		bail_out
+	fi
+	echo "$ident" | grep "^Identifying" | head -n1 | cut -d" " -f2 \
+		>/var/lib/install-cd.id
+	echo "$ident" | grep "^Stored label:" | head -n1 | sed "s/^[^:]*: //" \
+		>>/var/lib/install-cd.id
+}
+
+logoutput=""
+logoutput_pass=""
+if [ "$CATCHLOG" ]; then
+	logoutput="log-output -t apt-setup"
+	logoutput_pass="$logoutput --pass-stdout"
+fi
+
+chroot=
+if [ "$ROOT" ]; then
+	chroot=chroot
+
+	# Allow apt-cdrom to manage mounting/unmounting CDs in /target
+	if [ "$cd_mountable" ]; then
+		rm -f $ROOT/etc/apt/apt.conf.d/00NoMountCDROM
+
+		$logoutput umount /target/media/cdrom* || true
+		$logoutput umount /cdrom || true
+	fi
+
+	chroot_setup
+	# Needed until after a d-i release with new enough di-utils.
+	mountpoints > /tmp/mount.post
+	trap chroot_cleanup_localmounts EXIT HUP INT QUIT TERM
+fi
+
+tmp=$($chroot $ROOT tempfile)
+
+# apt-cdrom can be interactive, avoid that
+if $logoutput $chroot $ROOT apt-cdrom add \
+   -o Dir::Etc::SourceList=$tmp \
+   </dev/null; then
+	cat $ROOT$tmp >> $file
+
+	if [ "$ROOT" ] && [ "$cd_mountable" ]; then
+		save_label
+	fi
+else
+	bail_out
+fi
+
+remount_cd
+rm -f $ROOT$tmp $ROOT$tmp~

@@ -1,0 +1,62 @@
+Template: apt-setup/progress/mirror
+Type: text
+# :sl1:
+_Description: Scanning the mirror...
+
+Template: apt-setup/non-free
+Type: boolean
+Default: false
+# :sl1:
+_Description: Use non-free software?
+ Some non-free software has been made to work with Debian. Though this
+ software is not at all a part of Debian, standard Debian tools can be used
+ to install it. This software has varying licenses which may prevent you
+ from using, modifying, or sharing it.
+ .
+ Please choose whether you want to have it available anyway.
+
+Template: apt-setup/contrib
+Type: boolean
+Default: false
+# :sl1:
+_Description: Use contrib software?
+ Some additional software has been made to work with Debian. Though this
+ software is free, it depends on non-free software for its operation. This
+ software is not a part of Debian, but standard Debian tools can be
+ used to install it.
+ .
+ Please choose whether you want this software to be made available to you.
+
+Template: apt-setup/mirror/error
+Type: select
+Default: Retry
+# :sl2:
+# These are choices of actions so this is, at least in English,
+# an infinitive form
+__Choices: Retry, Change mirror, Ignore
+_Description: Downloading a file failed:
+ The installer failed to access the mirror. This may be a problem with your
+ network, or with the mirror. You can choose to retry the download, select
+ a different mirror, or ignore the problem and continue without all the
+ packages from this mirror.
+
+# Default is determined in mirror generators!
+Template: apt-setup/use_mirror
+Type: boolean
+# :sl1:
+#flag:translate!:3
+_Description: Use a network mirror?
+ A network mirror can be used to supplement the software that is included
+ on the CD-ROM. This may also make newer versions of software available.
+ .
+ ${EXPLANATION}
+
+Template: apt-setup/no_mirror
+Type: boolean
+Default: false
+# :sl2:
+_Description: Continue without a network mirror?
+ No network mirror was selected.
+ .
+ If you are installing from a netinst CD and choose not to use a mirror,
+ you will end up with only a very minimal base system.

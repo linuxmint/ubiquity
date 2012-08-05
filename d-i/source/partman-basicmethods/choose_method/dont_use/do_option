@@ -1,0 +1,37 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+dev=$2
+id=$3
+
+cd $dev
+
+rm -f $id/method
+rm -f $id/format
+rm -f $id/use_filesystem
+
+changed=''
+flags=''
+open_dialog GET_FLAGS $id
+while { read_line flag; [ "$flag" ]; }; do
+	case $flag in
+	    lvm|raid|swap)
+		changed=1
+		continue
+		;;
+	    *)
+		flags="${flags:+$flags$NL}$flag"
+		;;
+	esac
+done
+close_dialog
+
+if [ "$changed" ]; then
+	open_dialog SET_FLAGS $id
+	write_line "$flags"
+	write_line NO_MORE
+	close_dialog
+fi
+
+exit 0

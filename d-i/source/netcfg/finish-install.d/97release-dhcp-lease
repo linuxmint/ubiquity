@@ -1,0 +1,11 @@
+#!/bin/sh
+
+set -e
+
+pid=$(pidof udhcpc) || true
+[ -n "$pid" ] && kill -USR2 $pid
+
+if [ "$(pidof dhclient || true)" ]; then
+	dhclient -r || true
+	dhclient -6 -r || true
+fi

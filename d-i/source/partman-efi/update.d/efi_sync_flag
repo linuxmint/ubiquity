@@ -1,0 +1,70 @@
+#!/bin/sh
+
+# This script removes the efi flag for partitions whose method is not
+# efi and sets it for partition whose method is efi
+
+[ -e /var/lib/partman/efi ] || exit 0
+
+. /lib/partman/lib/base.sh
+
+dev=$1
+num=$2
+id=$3
+size=$4
+type=$5
+fs=$6
+path=$7
+shift; shift; shift; shift; shift; shift; shift
+name=$*
+
+cd $dev
+
+if [ $fs = free ]; then
+	exit 0
+fi
+
+method=
+if [ -f $id/method ]; then
+	method=$(cat $id/method)
+fi
+
+flags=''
+open_dialog GET_FLAGS $id
+while { read_line flag; [ "$flag" ]; }; do
+	if [ "$flag" != boot ]; then
+		flags="${flags:+$flags$NL}$flag"
+	fi
+done
+close_dialog
+
+open_dialog USES_NAMES
+read_line uses_names
+close_dialog
+
+if [ "$method" = efi ] && [ ! -f $id/bootable ]; then
+	open_dialog SET_FLAGS $id
+	write_line "$flags"
+	write_line boot
+	write_line NO_MORE
+	close_dialog
+	>$id/bootable
+	>$id/efi_bootable
+	if [ "$uses_names" = yes ] && [ "$fs" = fat32 ]; then
+		open_dialog SET_NAME $id "EFI System Partition"
+		close_dialog
+	fi
+	RET=''
+elif [ "$method" != efi ] && [ -f $id/bootable ] && \
+     [ -f $id/efi_bootable ]; then
+	open_dialog SET_FLAGS $id
+	write_line "$flags"
+	write_line NO_MORE
+	close_dialog
+	rm $id/bootable
+	rm $id/efi_bootable
+	if [ "$uses_names" = yes ] && [ "$fs" = fat32 ] && \
+	   [ "$name" = "EFI System Partition" ]; then
+		open_dialog SET_NAME ""
+		close_dialog
+	fi
+fi

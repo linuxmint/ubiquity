@@ -1,0 +1,134 @@
+#!/usr/bin/perl
+
+# Derived from console-setup/Keyboard/kbdnames-maker, by Anton Zinoviev.
+# Mangled to produce a Python module by Colin Watson.
+
+# This needs to die in a big chemical fire.
+
+use warnings 'all';
+use strict;
+use Locale::gettext;
+use POSIX;
+
+my $file;
+
+BEGIN {
+    if ($ARGV[0]) {
+	$file = $ARGV[0];
+    } else {
+	$file = 'd-i/source/console-setup/Keyboard/KeyboardNames.pl';
+    }
+    do "$file";
+}
+
+print "# -*- coding: UTF-8 -*-\n\n";
+print "# This file was automatically generated from:\n";
+print "#   $file\n";
+print "# Instead of editing this file, it is better to edit the original and\n";
+print "# regenerate this.\n\n";
+
+print "lang = {\n";
+print "    'C': {\n";
+print "        'models' : {\n";
+for my $model (sort keys %KeyboardNames::models) {
+    my $name = $KeyboardNames::models{$model};
+    (my $modelesc = $model) =~ s/'/\\'/;
+    print "            '$modelesc': '$name',\n";
+}
+print "        },\n";
+print "        'models_rev' : {},\n";
+
+my %layouts_rev;
+print "        'layouts' : {\n";
+for my $layout (sort keys %KeyboardNames::layouts) {
+    my $name = $KeyboardNames::layouts{$layout};
+    $layouts_rev{$name} = $layout;
+    (my $layoutesc = $layout) =~ s/'/\\'/g;
+    print "            '$layoutesc': '$name',\n";
+}
+print "        },\n";
+print "        'layouts_rev' : {},\n";
+
+print "        'variants' : {\n";
+for my $layout (sort keys %KeyboardNames::variants) {
+    my $desc = $layouts_rev{$layout};
+    print "            '$layout': {\n";
+    (my $layoutesc = $desc) =~ s/'/\\'/g;
+    print "                '$layoutesc': '',\n";
+    for my $variant (sort keys %{$KeyboardNames::variants{$layout}}) {
+	my $variantname = $KeyboardNames::variants{$layout}{$variant};
+	(my $variantesc = "$desc - $variant") =~ s/'/\\'/g;
+	print "                '$variantesc': '$variantname',\n";
+    }
+    print "            },\n";
+}
+print "        },\n";
+print "        'variants_rev' : {},\n";
+print "    },\n";
+
+# Use a custom-generated locale. Taken from lintian.
+chop(my $cwd = `pwd`);
+my $locale_path = "$cwd/build-locale";
+system("mkdir $locale_path");
+system("localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias --quiet $locale_path/en_US.UTF-8");
+$ENV{'LOCPATH'} = "$locale_path";
+
+# Make sure we output UTF-8
+$ENV{'LC_ALL'} = "en_US.UTF-8";
+binmode STDOUT, ":utf8";
+
+for my $mo (</usr/share/locale/*/LC_MESSAGES/xkeyboard-config.mo>) {
+    my $lang = $mo;
+    $lang =~ s:/usr/share/locale/(.*)/LC_MESSAGES/xkeyboard-config.mo:$1:;
+    $ENV{'LANGUAGE'} = $lang;
+    setlocale(LC_ALL,"");
+
+    $lang =~ s:\@:__:;
+    $lang =~ s:__Latn:__latin:; # special fixup for sr
+
+    my $d = Locale::gettext->domain("xkeyboard-config");
+    
+    print "    '$lang': {\n";
+    print "        'models': {\n";
+    for my $model (sort keys %KeyboardNames::models) {
+        my $name = $KeyboardNames::models{$model};
+        (my $local_model = $d->get($model)) =~ s/'/\\'/g;
+        print "            u'$local_model': '$name',\n"
+    }
+    print "        },\n";
+    print "        'models_rev' : {},\n";
+    print "        'layouts' : {\n";
+    for my $layout (sort keys %KeyboardNames::layouts) {
+        my $name = $KeyboardNames::layouts{$layout};
+        my $local_layout = $d->get($layout);
+        (my $layoutesc = $local_layout) =~ s/'/\\'/g;
+        print "            u'$layoutesc': '$name',\n";
+    }
+    print "        },\n";
+    print "        'layouts_rev' : {},\n";
+    print "        'variants' : {\n";
+    for my $layout (sort keys %KeyboardNames::variants) {
+        my $local_desc = $d->get($layouts_rev{$layout});
+        print "            '$layout': {\n";
+        (my $layoutesc = $local_desc) =~ s/'/\\'/g;
+        print "                u'$layoutesc': '',\n";
+        for my $variant (sort keys %{$KeyboardNames::variants{$layout}}) {
+            my $local_variant = $d->get($variant);
+            my $variantname = $KeyboardNames::variants{$layout}{$variant};
+            (my $variantesc = "$local_desc - $local_variant") =~ s/'/\\'/g;
+            print "                u'$variantesc': '$variantname',\n";
+        }
+        print "            },\n";
+    }
+    print "        },\n";
+    print "        'variants_rev' : {},\n";
+    print "    },\n";
+}
+
+print "}\n";
+print "for l in lang:\n";
+print "    lang[l]['models_rev'].update(((v, k) for (k, v) in lang[l]['models'].iteritems()))\n";
+print "    lang[l]['layouts_rev'].update(((v, k) for (k, v) in lang[l]['layouts'].iteritems()))\n";
+print "    for layoutname in lang[l]['variants'].keys():\n";
+print "        lang[l]['variants_rev'][layoutname] = {}\n";
+print "        lang[l]['variants_rev'][layoutname].update(((v, k) for (k, v) in lang[l]['variants_rev'][layoutname].iteritems()))\n";

@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# We need to update the udev properties and restart HAL after OEM-config
+# because we may have changed keyboard settings in /etc/default/keyboard,
+# which X.org uses to determine layout.
+
+udevadm trigger --action=change --property-match=ID_INPUT_KEY=1
+restart hal 2>/dev/null || true

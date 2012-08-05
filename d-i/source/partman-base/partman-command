@@ -1,0 +1,54 @@
+#! /bin/sh
+# This script is intended for developer debugging purposes only. If you use
+# it for anything else, on your own head be it ...
+
+export DEBIAN_FRONTEND=noninteractive
+
+. /lib/partman/lib/base.sh
+
+if [ "${1#/dev/}" != "$1" ]; then
+	dirname="$(echo "$1" | sed 's:/:=:g')"
+	cd "$DEVICES/$dirname" || exit $?
+	shift
+else
+	dir="$(pwd)"
+	case $dir in
+	    $DEVICES/*)
+		;;
+	    *)
+		echo "Must be run from a subdirectory of $DEVICES" >&2
+		exit 1
+	esac
+fi
+
+# Within each group, please keep commands in the same order as in
+# parted_server.c:main_loop().
+case $1 in
+    OPEN|OPENED|VIRTUAL|IS_CHANGED|PARTITION_INFO|GET_CHS|USES_NAMES|GET_MAX_PRIMARY|USES_EXTENDED|GET_FILE_SYSTEM|CHECK_FILE_SYSTEM|CREATE_FILE_SYSTEM|NEW_PARTITION|RESIZE_PARTITION|GET_RESIZE_RANGE|VIRTUAL_RESIZE_PARTITION|GET_VIRTUAL_RESIZE_RANGE|GET_LABEL_TYPE|IS_BUSY|ALIGNMENT_OFFSET)
+	mode=line
+	;;
+    PARTITIONS|LABEL_TYPES|VALID_FLAGS|GET_FLAGS|FILE_SYSTEM_TYPES)
+	mode=paragraph
+	;;
+    CLOSE|DISK_UNCHANGED|DUMP|COMMIT|UNDO|SET_FLAGS|SET_NAME|CHANGE_FILE_SYSTEM|NEW_LABEL|DELETE_PARTITION|COPY_PARTITION)
+	mode=silent
+	;;
+    *)
+	echo "Unrecognised command: $1" >&2
+	exit 1
+	;;
+esac
+
+open_dialog "$@"
+case $mode in
+    line)
+	read_line response
+	echo "$response"
+	;;
+    paragraph)
+	read_paragraph
+	;;
+esac
+close_dialog
+
+exit 0

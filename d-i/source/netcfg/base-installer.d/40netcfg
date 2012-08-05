@@ -1,0 +1,18 @@
+#!/bin/sh -e
+# Copy all relevant networking-related files to /target.
+
+if [ ! -f /etc/network/interfaces ]; then
+	netcfg write_loopback
+fi
+
+for file in /etc/network/interfaces /etc/networks /etc/hostname /etc/hosts; do
+	if [ -f "$file" ]; then
+		mkdir /target/$(dirname $file) -p
+		cp $file /target/$file
+	fi
+done
+
+if [ ! -e /target/sbin/resolvconf ] && [ -f /etc/resolv.conf ]; then
+	mkdir -p /target/etc
+	cp /etc/resolv.conf /target/etc/resolv.conf
+fi

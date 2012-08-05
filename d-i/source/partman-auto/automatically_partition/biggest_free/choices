@@ -1,0 +1,48 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+mypart=''
+mysize=0
+
+disks=
+if db_get partman-auto/disk; then
+	disks="$RET"
+fi
+
+for dev in $DEVICES/*; do
+	[ -d $dev ] || continue
+	if [ "$disks" ]; then
+		partman_disk="$(cat "$dev/device")"
+		found=0
+		for preseed_disk in $disks; do
+			preseed_id=$(mapdevfs $preseed_disk)
+			case " $preseed_id " in
+			    *" $partman_disk "*)
+				found=1
+				;;
+			    *)
+				continue
+				;;
+			esac
+		done
+		if [ "$found" = "0" ]; then
+			continue
+		fi
+	fi
+	cd $dev
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		if [ "$fs" = free ] && [ "$type" != unusable ] && \
+		   ! longint_le $size $mysize; then
+			mysize=$size
+			mypart=$dev//$id
+		fi
+	done
+	close_dialog
+done
+
+if [ "$mypart" ]; then
+	db_metaget partman-auto/text/use_biggest_free description
+	printf "$mypart\t$RET"
+fi

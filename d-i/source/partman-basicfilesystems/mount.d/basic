@@ -1,0 +1,31 @@
+#!/bin/sh
+
+set -- $1
+
+fs=$1
+mp=$2
+type=$3
+options=$4
+dump=$5
+pass=$6
+
+case $type in
+    ext2|vfat|ntfs|ext2fs|msdosfs)
+	mount ${options:+-o "$options"} ${type:+-t "$type"} $fs /target$mp 3>&- || exit 1
+	echo "umount /target$mp"
+	exit 0
+	;;
+    swap)
+	# Probably it's already swapped on.
+	if [ -f /proc/swaps ] && \
+	   grep -q "^$(readlink -f "$fs") " /proc/swaps; then
+		echo "swapoff $fs"
+		exit 0
+	fi
+	swapon $fs || exit 1
+	echo "swapoff $fs"
+	exit 0
+	;;
+esac
+
+exit 1

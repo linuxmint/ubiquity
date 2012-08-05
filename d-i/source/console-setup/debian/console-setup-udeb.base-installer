@@ -1,0 +1,39 @@
+#! /bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+## KEYBOARD_PRESENT ## Will be replaced by keyboard_present function
+
+# keyboard_present () {
+#     if there is a keyboard; then
+# 	return 0
+#     else
+# 	return 1
+#     fi
+# }
+
+if keyboard_present; then
+    mkdir -p /target/etc/default
+    cp -a /etc/default/keyboard /target/etc/default/
+    LANG=C
+    export LANG
+
+    if ! db_get oem-config/enable || [ "$RET" != true ]; then
+	# create the required templates
+	debconf-copydb -p "^keyboard-configuration/.*$" configdb target_configdb
+
+	# mark the questions as seen
+	for template in \
+## SEEN TEMPLATES ## all templates of keyb-conf except alerts and ctrl_alt_bksp
+	do
+	    echo keyboard-configuration $template seen true
+	done | chroot /target debconf-set-selections
+    fi
+######################################################################
+
+    apt-install keyboard-configuration || true
+    apt-install console-setup || true
+fi
+
+exit 0

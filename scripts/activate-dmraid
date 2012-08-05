@@ -1,0 +1,40 @@
+#! /bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+# Cloned-and-hacked from hw-detect/disk-detect.sh.
+# Activate support for Serial ATA RAID
+if which dmraid >/dev/null 2>&1 && \
+   [ ! -e /var/lib/disk-detect/activate_dmraid ]; then
+	# Device mapper support is required to run dmraid
+	if ! dmsetup version >/dev/null 2>&1; then
+		log-output -t activate-dmraid modprobe dm-mod || true
+	fi
+
+	if dmraid -c -s >/dev/null 2>&1; then
+		# If dmraid is installed on the live CD but the user didn't
+		# want to use it, they have already lost, since dmraid
+		# activated the array on boot and hid the device nodes
+		# corresponding to the underlying raw devices, and there's
+		# no easy way to get them back ('dmraid -an' doesn't do it).
+		# Boo hiss. We can't add translatable text at this point for
+		# Ubuntu 9.10, but when we can, a warning wouldn't hurt.
+		logger -t activate-dmraid "Serial ATA RAID disk(s) detected. If this was bad, boot with 'nodmraid'."
+		db_set disk-detect/activate_dmraid true
+
+		mkdir -p /var/lib/disk-detect
+		touch /var/lib/disk-detect/activate_dmraid
+		logger -t activate-dmraid "Enabling dmraid support."
+		# Activate only those arrays which have all disks
+		# present.
+		for dev in $(dmraid -r -c); do
+			[ -e "$dev" ] || continue
+			log-output -t activate-dmraid dmraid-activate "$(basename "$dev")"
+		done
+
+		apt-install dmraid
+	else
+		logger -t activate-dmraid "No Serial ATA RAID disks detected"
+	fi
+fi

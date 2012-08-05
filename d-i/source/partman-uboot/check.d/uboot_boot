@@ -1,0 +1,80 @@
+#!/bin/sh
+# Check that the boot partition is the 1st (primary) partition and that
+# it is of type uboot (which is really ext2 with special mkfs flags).
+
+. /lib/partman/lib/base.sh
+
+ARCH="$(archdetect)"
+case $ARCH in
+    arm*/dove)
+	;;
+    *)
+	exit 0
+	;;
+esac
+
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ "$fs" != free ] || continue
+		[ -f $id/method ] || continue
+		[ -f $id/acting_filesystem ] || continue
+		[ -f $id/mountpoint ] || continue
+		mountpoint=$(cat $id/mountpoint)
+		filesystem=$(cat $id/acting_filesystem)
+		if [ "$mountpoint" = / ]; then
+			root_fs=$filesystem
+			root_type=$type
+			root_path=$path
+		elif [ "$mountpoint" = /boot ]; then
+			boot_fs=$filesystem
+			boot_type=$type
+			boot_path=$path
+		fi
+	done
+	close_dialog
+done
+
+# If no separate boot partition exists root acts as boot
+if [ -z "$boot_path" ]; then
+	boot_fs=$root_fs
+	boot_type=$root_type
+	boot_path=$root_path
+fi
+
+# We need an uboot filesystem to boot
+if [ "$boot_fs" != uboot ]; then
+	db_set partman-uboot/boot_not_uboot true
+	db_input critical partman-uboot/boot_not_uboot || true
+	db_go || true
+	db_get partman-uboot/boot_not_uboot
+	if [ "$RET" = true ]; then
+		exit 1
+	fi
+fi
+
+# The boot file system has to be the first primary partition
+part_num=$(echo "$boot_path" | sed -e 's/.*[^0-9]\+//')
+if [ "$boot_type" != primary ] || [ "$part_num" -ne 1 ]; then
+	db_set partman-uboot/boot_not_first_partition true
+	db_input critical partman-uboot/boot_not_first_partition || true
+	db_go || true
+	db_get partman-uboot/boot_not_first_partition
+	if [ "$RET" = true ]; then
+		exit 1
+	fi
+fi
+
+# The root partition has to be primary
+# FIXME: This should probably move to colo-installer
+if [ "$root_path" != "$boot_path" ] && [ "$root_type" != primary ]; then
+	db_set partman-uboot/root_not_primary true
+	db_input critical partman-uboot/root_not_primary || true
+	db_go || true
+	db_get partman-uboot/root_not_primary
+	if [ "$RET" = true ]; then
+		exit 1
+	fi
+fi

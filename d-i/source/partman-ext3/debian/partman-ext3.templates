@@ -1,0 +1,94 @@
+Template: partman-ext3/text/ext3
+Type: text
+# :sl1:
+# File system name (untranslatable in many languages)
+_Description: ext3
+
+Template: partman/filesystem_long/ext3
+Type: text
+# :sl2:
+# File system name
+_Description: Ext3 journaling file system
+
+Template: partman/filesystem_short/ext3
+Type: text
+# :sl1:
+# Short file system name (untranslatable in many languages)
+_Description: ext3
+
+Template: partman-ext3/text/ext4
+Type: text
+# :sl1:
+# File system name (untranslatable in many languages)
+_Description: ext4
+
+Template: partman/filesystem_long/ext4
+Type: text
+# :sl2:
+# File system name
+_Description: Ext4 journaling file system
+
+Template: partman/filesystem_short/ext4
+Type: text
+# :sl1:
+# Short file system name (untranslatable in many languages)
+_Description: ext4
+
+Template: partman-ext3/boot_not_ext2_or_ext3
+Type: boolean
+# :sl2:
+_Description: Go back to the menu and correct this problem?
+ Your boot partition has not been configured with the ext2 or ext3
+ file system. This is needed by your machine in order to boot. Please go
+ back and use either the ext2 or ext3 file system.
+ .
+ If you do not go back to the partitioning menu and correct this error,
+ the partition will be used as is. This means that you may not be able
+ to boot from your hard disk.
+
+Template: partman/boot_not_first_partition
+Type: boolean
+# :sl2:
+_Description: Go back to the menu and correct this problem?
+ Your boot partition is not located on the first primary partition of your
+ hard disk. This is needed by your machine in order to boot.  Please go
+ back and use your first primary partition as a boot partition.
+ .
+ If you do not go back to the partitioning menu and correct this error,
+ the partition will be used as is. This means that you may not be able
+ to boot from your hard disk.
+
+Template: partman-ext3/boot_not_bootable
+Type: boolean
+# :sl2:
+_Description: Return to the menu to set the bootable flag?
+ The boot partition has not been marked as a bootable partition, even
+ though this is required by your machine in order to boot. You should go
+ back and set the bootable flag for the boot partition.
+ .
+ If you don't correct this, the partition will be used as is and it is
+ likely that the machine cannot boot from its hard disk.
+
+Template: partman-ext3/bad_alignment
+Type: boolean
+# :sl2:
+_Description: Do you want to return to the partitioning menu?
+ The partition ${PARTITION} assigned to ${MOUNTPOINT} starts at an offset of
+ ${OFFSET} bytes from the minimum alignment for this disk, which may lead to
+ very poor performance.
+ .
+ Since you are formatting this partition, you should correct this problem
+ now by realigning the partition, as it will be difficult to change later.
+ To do this, go back to the main partitioning menu, delete the partition,
+ and recreate it in the same position with the same settings. This will
+ cause the partition to start at a point best suited for this disk.
+
+Template: partman-ext3/lazy_itable_init
+Type: boolean
+Default: false
+Description: for internal use; can be preseeded
+ Pass '-E lazy_itable_init' to mkfs.  This is currently unsafe when used on
+ previously-used areas of disk, since e2fsck can then get confused with
+ inodes from previous filesystems, so it's off by default; but it can make
+ filesystem initialisation much faster on large disks.
+

@@ -1,0 +1,28 @@
+# Test set for the user-params script
+
+# Tests should be on two consecutive lines:
+# - the first line is the "/proc/cmdline" to test;
+# - the second line is the expected result.
+# A blank line immediately following a line with a test means that no
+# output is expected. Otherwise, blank lines and comments lines are ignored.
+
+vga=normal initrd=/install.386/initrd.gz -- BOOT_IMAGE=/install.386/vmlinuz
+
+video=vesa:ywrap,mtrr vga=788 initrd=/install.386/igtk/initrd.gz -- BOOT_IMAGE=/install.386/vmlinuz priority=medium
+
+vga=normal initrd=/install.386/initrd.gz -- BOOT_IMAGE=/install.386/vmlinuz vga=788
+
+vga=normal initrd=/install.386/initrd.gz -- BOOT_IMAGE=/install.386/vmlinuz DEBIAN_FRONTEND=newt
+
+vga=normal -- noacpi foo=bar tasksel:tasksel/first=standard
+noacpi foo=bar
+
+# Multi-value parameters are suppressed
+vga=normal -- noacpi foo=bar bar="baz foo" video=vga16:off locale=nl_NL
+noacpi foo=bar video=vga16:off
+
+vga=normal -- quiet -- debconf/priority=low BOOT_DEBUG=3 modules?=openssh-client
+
+# Module parameters
+vga=normal -- 3c509.xcvr=3 3c509.irq=10 dfme.blacklist=yes
+

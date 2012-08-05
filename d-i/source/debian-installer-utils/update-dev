@@ -1,0 +1,33 @@
+#! /bin/sh
+set +e	# ignore errors
+
+# Triggering causes udev to reprocess all events, as if it were coldplugging
+# the system. In some cases this can be unnecessary (or even cause
+# problems!), and all you really want to do is settle - i.e. make sure that
+# udev is up-to-date with events that have already been generated. On the
+# other hand, if you install new modules, as d-i sometimes does, then you
+# need to trigger to make sure that events that couldn't be processed due to
+# missing modules are reprocessed.
+#
+# Thus, we have two modes: 'update-dev' triggers reprocessing of all events
+# and waits for that to finish, while 'update-dev --settle' just waits for
+# events that are already pending to be handled by userspace.
+
+TRIGGER=:
+if [ "$1" = --settle ]; then
+	TRIGGER=false
+fi
+
+# Make sure /dev is up to date after loading modules.
+if [ -x /lib/userdevfs/update-dev ]; then
+       /lib/userdevfs/update-dev
+elif type udevadm >/dev/null 2>&1; then
+	if $TRIGGER; then
+		udevadm trigger --action=add --subsystem-nomatch=sound --subsystem-nomatch=power_supply
+	fi
+	udevadm settle
+else
+	logger -t update-dev "warning: unable to find udevadm; skipping"
+fi
+
+exit 0

@@ -1,0 +1,39 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+file="$1"
+
+if (! db_get apt-setup/restricted || [ "$RET" = false ]) && \
+   (! db_get apt-setup/multiverse || [ "$RET" = false ]); then
+	# Don't even mention partner if non-free software is disabled.
+	exit
+fi
+
+if ! db_get mirror/codename || [ -z "$RET" ]; then
+	db_get cdrom/codename
+fi
+codename="$RET"
+
+if db_get apt-setup/services-select-ubuntu && echo "$RET" | grep -q partner; then
+    COMMENT=
+else
+    cat >> $file <<EOF
+## Uncomment the following two lines to add software from Canonical's
+## 'partner' repository.
+EOF
+    COMMENT='# '
+fi
+cat >> $file <<EOF
+## This software is not part of Ubuntu, but is offered by Canonical and the
+## respective vendors as a service to Ubuntu users.
+${COMMENT}deb http://archive.canonical.com/ubuntu $codename partner
+${COMMENT}deb-src http://archive.canonical.com/ubuntu $codename partner
+EOF
+
+if [ -z "$COMMENT" ]; then
+    apt-setup-signed-release archive.canonical.com "$file"
+fi
+
+exit 0

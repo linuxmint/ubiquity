@@ -1,0 +1,64 @@
+#!/bin/sh
+# Import foo/bar=baz from environment variables into the debconf db.
+set -e
+export DEBIAN_FRONTEND=none
+. /usr/share/debconf/confmodule
+NEWLINE='
+'
+OLDIFS=$IFS
+IFS=$NEWLINE
+for line in $(set); do
+	var="${line%%=*}"
+	val="${line#[!=]*=}"
+	# support preseeding without forcing seen flag
+	if [ "${var%\?}" != "$var" ]; then
+		var="${var%\?}"
+		seen=
+	else
+		seen=1
+	fi
+	# grep out the normal variables with no slashes
+	varnoslash="${var##*/*}"
+	if [ "$val" != "" ]; then
+		if [ "$varnoslash" != "" ]; then
+			var=$(grep "^$varnoslash[[:space:]]" /etc/preseed_aliases) || true
+			var=${var#*[[:space:]]}
+		fi
+		if [ "$var" != "" ]; then
+			owner="${var%:*}"
+			if [ "$owner" = "$var" ]; then
+				owner="d-i"
+			fi
+			var="${var#*:}"
+			
+			# remove single quotes from around value
+			val="${val#\'}"
+			val="${val%\'}"
+			# remove double quotes (user can type those for values
+			# with spaces)
+			val="${val#\"}"
+			val="${val%\"}"
+			
+			IFS=$OLDIFS
+			if ! db_set "$var" "$val"; then
+				db_register debian-installer/dummy "$var"
+				db_set "$var" "$val"
+				db_subst "$var" ID "$var"
+			fi
+			
+			if db_metaget "$var" type; then
+				type="$RET"
+			else
+				type=unknown
+			fi
+			echo "$owner $var $type $val" >> /var/lib/preseed/log
+
+			if [ "$seen" ]; then
+				db_fset "$var" seen true
+			else
+				echo "$owner $var seen false" >> /var/lib/preseed/log
+			fi
+			IFS=$NEWLINE
+		fi
+	fi
+done

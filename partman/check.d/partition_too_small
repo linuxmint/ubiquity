@@ -1,0 +1,108 @@
+#! /bin/sh
+# Check that the root filesystem is large enough to hold /rofs.
+. /lib/partman/lib/base.sh
+
+db_get partman-auto/method
+if [ "$RET" = loop ]; then
+	# Wubi does some of its own checks which help defend against this,
+	# and the delay imposed by this check looks particularly weird in
+	# Wubi.
+	exit 0
+fi
+
+# Fudge factors
+rootfudge=200000000 # 200MB
+bootmultfudge=3
+
+partitions=
+rofssum=0
+rootrofssize=
+rootsize=
+
+parts=$(
+for dev in $DEVICES/*; do
+    [ -d "$dev" ] || continue
+    cd $dev
+    open_dialog PARTITIONS
+    while { read_line num id size type fs path name; [ "$id" ]; }; do
+	[ "$fs" != free ] || continue
+	[ -f "$id/method" ] || continue
+	[ -f "$id/acting_filesystem" ] || continue
+        [ -f "$id/mountpoint" ] || continue
+        mountpoint="$(cat "$id/mountpoint")"
+	echo "$mountpoint,$size"
+    done
+    close_dialog
+done | sort
+)
+
+seen=
+for part in $parts; do
+	mountpoint="${part%,*}"
+	size="${part#*,}"
+	if [ "$mountpoint" = "/" ]; then
+		if [ -e /cdrom/casper/filesystem.size ]; then
+			rofssize="$(cat /cdrom/casper/filesystem.size)"
+		else
+			rofssize="$(du -s --block-size=1 /rofs | cut -f1)"
+		fi
+		rootrofssize="$rofssize"
+		rootsize="$size"
+	else
+		[ -d "/rofs$mountpoint" ] || continue
+		rofssize="$(du -s --block-size=1 /rofs$mountpoint | cut -f1)"
+		if [ "$mountpoint" = "/boot" ]; then
+			rofssize="$(expr $rofssize \* $bootmultfudge)"
+		else
+			# general fudge factor: add 20% for luck
+			rofssize="$(expr $rofssize \* 12 / 10)"
+		fi
+		if ! longint_le $rofssize $size ; then
+			partitions="${partitions:+$partitions, }$mountpoint $(longint2human $rofssize)"
+		fi
+
+		# Make sure that no parent of $mountpoint has been added to
+		# $rofssum yet, otherwise we'll produce an invalid size.
+		d="$(dirname $mountpoint)"
+		found=
+		if [ -n "$seen" ]; then
+			while :; do
+				if [ "$d" = / ]; then
+					break
+				fi
+				if echo "$seen" | grep -wqs "$d"; then
+					found=1
+					break
+				fi
+				d="$(dirname $d)"
+			done
+		fi
+		if [ -z "$found" ]; then
+			rofssum="$(expr $rofssum + $rofssize)"
+			seen="$seen $mountpoint"
+		fi
+	fi
+done
+
+if [ -n "$rootrofssize" ]; then
+    rofs=$(expr $rootrofssize - $rofssum + $rootfudge)
+    if ! longint_le $rofs $rootsize ; then
+        partitions="/ $(longint2human $rofs)${partitions:+, $partitions}"
+    fi
+fi
+
+if [ -n "$partitions" ]; then
+    partitions="$(echo "$partitions" | sed -e 's/, /\n/g')"
+    db_capb escape
+    db_reset ubiquity/partition-too-small
+    db_subst ubiquity/partition-too-small PARTITIONS "$(printf %s "$partitions" | debconf-escape -e)"
+    db_capb
+    db_input critical ubiquity/partition-too-small || true
+    db_go || true
+    db_get ubiquity/partition-too-small
+    if [ "$RET" = true ]; then
+        exit 1
+    fi
+fi
+
+exit 0

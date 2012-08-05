@@ -1,0 +1,14 @@
+protocol_fetch() {
+	local FILE="/media/${1#floppy://*}"
+
+	mountmedia floppy || true
+	touch /var/run/preseed-usedfloppy
+
+	if [ ! -e "$FILE" ]; then
+		return 4
+	elif ! cp "$FILE" $2; then
+		return 1
+	else
+		return 0
+	fi
+}

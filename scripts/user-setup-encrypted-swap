@@ -1,0 +1,83 @@
+#! /bin/sh
+set -e
+
+# Set up encrypted swap using ecryptfs-setup-swap.
+# 
+# This duplicates some code from user-setup-apply, but this is necessary;
+# this operation involves disabling swap, can't be done until after the user
+# page (well after partitioning), and must be done before the slideshow
+# starts to avoid out-of-memory problems.
+# 
+# Fortunately, in some ways it's simpler to use tools in the live filesystem
+# to do this!
+
+. /usr/share/debconf/confmodule
+
+db_get user-setup/encrypt-home
+[ "$RET" = true ] || exit 0
+
+if [ "$(grep -c "^/" /proc/swaps)" -eq 0 ]; then
+	# No swap partitions, so we can't and don't need to set up encrypted
+	# swap.
+	exit 0
+fi
+
+for module in aes cbc ecb; do
+	modprobe -q "$module" || true
+done
+apt-install ecryptfs-utils 2>/dev/null
+apt-install cryptsetup 2>/dev/null
+
+# Temporarily make sure that /etc/fstab and /etc/crypttab match the target
+# system.
+ln -f /etc/fstab /etc/fstab.ubiquity
+if [ -e /etc/crypttab ]; then
+	ln -f /etc/crypttab /etc/crypttab.ubiquity
+else
+	rm -f /etc/crypttab.ubiquity
+fi
+cleanup () {
+	mv /etc/fstab.ubiquity /etc/fstab
+	if [ -e /etc/crypttab.ubiquity ]; then
+		mv /etc/crypttab.ubiquity /etc/crypttab
+	else
+		rm -f /etc/crypttab
+	fi
+}
+trap cleanup EXIT
+cp -a /target/etc/fstab /etc/fstab
+if [ -e /target/etc/crypttab ]; then
+	cp -a /target/etc/crypttab /etc/crypttab
+else
+	rm -f /etc/crypttab
+fi
+
+if ! log-output -t ubiquity ecryptfs-setup-swap -f -n; then
+	echo "ecryptfs-setup-swap failed." >&2
+	db_input critical user-setup/encrypt-home-failed || true
+	db_go || true
+	exit 0
+fi
+
+# Zero out all encrypted swap partitions.
+#   cryptswap0 /dev/sda5 /dev/urandom swap,cipher=aes-cbc-essiv:sha256
+# Ideally we would do some kind of progress thing here, but it's not clear
+# that we can do that sensibly while on a question page.
+while read name device source options; do
+	if echo "$options" | grep -q "swap"; then
+		if swapoff $device; then
+			if [ ! -b $device ]; then
+				ONE_MEG=$((1024*1024))
+				size=$(($(stat -c %s ${device})/${ONE_MEG}))
+				dd if=/dev/zero of=$device bs=${ONE_MEG} count=$size 2>/dev/null || true
+			else
+				dd if=/dev/zero of=$device bs=16M 2>/dev/null || true
+			fi
+			cryptdisks_start "$name" && swapon "/dev/mapper/$name" || true
+		fi
+	fi
+done < /etc/crypttab
+
+cp -a /etc/fstab /etc/crypttab /target/etc/
+
+touch /var/lib/ubiquity/encrypted-swap

@@ -1,0 +1,85 @@
+#!/bin/sh
+set -e
+
+. /lib/partman/lib/base.sh
+
+###########################################################
+# Compute some constants in order to make things faster.
+###########################################################
+
+# Detect if Debconf can escape strings
+# non-empty means we can escape
+can_escape=''
+if type debconf-escape >/dev/null 2>&1; then
+	db_capb backup align
+	for cap in $RET; do
+		case $cap in
+			escape)	can_escape=yes ;;
+		esac
+	done
+fi
+export can_escape
+
+# The decimal separator (dot or comma)
+#db_metaget partman/text/deci description
+#deci="$RET"
+# The comma has special meaning for debconf.  Let's force dot until we
+# start using escaped strings.
+deci='.'
+export deci
+
+# work around bug #243373
+if [ "$TERM" = xterm ] || [ "$TERM" = bterm ]; then
+	debconf_select_lead="$NBSP"
+else
+	debconf_select_lead="> "
+fi
+export debconf_select_lead
+
+###########################################################
+
+
+db_capb backup align
+
+initcount=`ls /lib/partman/init.d/* | wc -l`
+db_progress START 0 $initcount partman/progress/init/title
+for s in /lib/partman/init.d/*; do
+	if [ -x $s ]; then
+		base=$(basename $s | sed 's/[0-9]*//')
+		# Not every init script has, or needs, its own progress
+		# template. Add them to slow init scripts only.
+		if ! db_progress INFO partman/progress/init/$base; then
+			db_progress INFO partman/progress/init/fallback
+		fi
+		if ! $s; then
+			db_progress STOP
+			exit 10
+		fi
+	fi
+	db_progress STEP 1
+done
+db_progress STOP
+
+# display.d intentionally omitted.
+
+if [ -z "$PARTMAN_ALREADY_CHECKED" ]; then
+	for s in /lib/partman/check.d/*; do
+		if [ -x $s ]; then
+			$s
+		fi
+	done
+fi
+
+for s in /lib/partman/commit.d/*; do
+	if [ -x $s ]; then
+		$s
+	fi
+done
+
+for s in /lib/partman/finish.d/*; do
+	if [ -x $s ]; then
+		$s
+	fi
+done
+
+exit 0

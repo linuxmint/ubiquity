@@ -1,0 +1,46 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+dev=$2
+id=$3
+
+cd $dev
+
+open_dialog VALID_FLAGS $id
+valid_flags=$(read_list)
+close_dialog
+
+open_dialog GET_FLAGS $id
+old_flags=$(read_list)
+close_dialog
+
+db_set partman-partitioning/set_flags "$old_flags"
+db_subst partman-partitioning/set_flags CHOICES "$valid_flags"
+db_input critical partman-partitioning/set_flags || true
+db_go || exit 1
+db_get partman-partitioning/set_flags
+
+log "New flags:" $RET
+
+open_dialog SET_FLAGS $id
+IFS=','
+for flag in $RET; do
+	restore_ifs
+	write_line $flag
+done
+write_line NO_MORE
+restore_ifs
+close_dialog
+
+partitions=''
+open_dialog PARTITIONS
+while { read_line num id size type fs path name; [ "$id" ]; }; do
+	[ "$fs" != free ] || continue
+	partitions="$partitions $id"
+done
+close_dialog
+
+for id in $partitions; do
+	update_partition $dev $id
+done

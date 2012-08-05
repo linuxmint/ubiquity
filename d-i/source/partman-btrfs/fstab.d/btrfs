@@ -1,0 +1,57 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+home_found="unknown"
+
+for dev in $DEVICES/*; do
+	[ -d $dev ] || continue
+	cd $dev
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ $fs != free ] || continue
+		[ -f "$id/method" ] || continue
+		[ -f "$id/acting_filesystem" ] || continue
+		method=$(cat $id/method)
+		filesystem=$(cat $id/acting_filesystem)
+		mountpoint=$(cat $id/mountpoint)
+		case "$filesystem" in
+		    btrfs)
+			[ -f "$id/mountpoint" ] || continue
+			# due to #249322, #255135, #258117:
+			if [ "$mountpoint" = /tmp ]; then
+				rm -f $id/options/noexec
+			fi
+			options=$(get_mountoptions $dev $id)
+			if [ "$mountpoint" = / ]; then
+				if [ "$home_found" = "unknown" ]; then
+					home_found="false"
+				fi
+				pass=1
+				home_options="${options:+$options,}subvol=@home"
+				options="${options:+$options,}subvol=@"
+				home_path="$path"
+				home_mp="$mountpoint"home
+			elif [ "$mountpoint" = /home ]; then
+				pass=2
+				options="${options:+$options,}subvol=@home"
+				home_found=true
+			else
+				pass=2
+			fi
+			echo "$path" "$mountpoint" btrfs $options 0 $pass
+			;;
+		    *)
+			if [ "$mountpoint" = "/home" ]; then
+				home_found="true"
+			fi
+			;;
+		esac
+	done
+	close_dialog
+done
+
+if [ "$home_found" = "false" ]; then
+	echo "$home_path" "$home_mp" btrfs "$home_options" 0 2
+	home_found="true"
+fi	

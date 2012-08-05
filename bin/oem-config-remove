@@ -1,0 +1,33 @@
+#! /bin/sh
+# Remove oem-config.
+# TODO: all of this should be moved into oem-config itself, but that's far
+# too risky for 10.04 LTS since we have to be very careful not to open any
+# files shipped by any ubiquity binary package after removing them.
+set -e
+
+case $1 in
+	'')
+		eval "$(debconf-apt-progress --config)"
+		"$0" debconf
+		;;
+	debconf)
+		. /usr/share/debconf/confmodule
+
+		db_progress START 0 100 oem-config/removing
+		db_progress INFO debconf-apt-progress/preparing
+
+		debconf-apt-progress --from 0 --to 50 \
+			--logfile /var/log/oem-config.log -- \
+			apt-get -y purge ubiquity ubiquity-casper ubiquity-ubuntu-artwork
+		debconf-apt-progress --from 50 --to 75 \
+			--logfile /var/log/oem-config.log -- \
+			apt-get -y purge 'ubiquity-slideshow-*' || true
+		debconf-apt-progress --from 75 --to 100 \
+			--logfile /var/log/oem-config.log -- \
+			apt-get -y purge 'oem-config-slideshow-*' || true
+
+		debconf-apt-progress --stop
+		;;
+esac
+
+exit 0

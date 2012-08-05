@@ -1,0 +1,84 @@
+#!/usr/bin/python
+import dbus, dbus.service, dbus.mainloop.glib, gobject, os, sys
+
+class Rejected(dbus.DBusException):
+    _dbus_error_name = "org.bluez.Error.Rejected"
+
+class Agent(dbus.service.Object):
+    exit_on_release = True
+
+    def set_exit_on_release(self, exit_on_release):
+        self.exit_on_release = exit_on_release
+
+    @dbus.service.method("org.bluez.Agent", in_signature="", out_signature="")
+    def Release(self):
+        if self.exit_on_release:
+            mainloop.quit()
+
+    @dbus.service.method("org.bluez.Agent", in_signature="os", out_signature="")
+    def Authorize(self, device, uuid):
+        bus = dbus.SystemBus()
+        attr = dbus.Interface(bus.get_object("org.bluez", device), "org.bluez.Device").GetProperties()
+
+        # Only accept input (HID) devices
+        if 'Class' in attr:
+            if (attr['Class'] & 0x500) == 0x500:
+                dbus.Interface(bus.get_object("org.bluez", device), "org.bluez.Device").SetProperty("Trusted", True)
+                return
+
+        raise Rejected("Connection rejected by user")
+
+    @dbus.service.method("org.bluez.Agent", in_signature="o", out_signature="s")
+    def RequestPinCode(self, device):
+        return "0000"
+
+    @dbus.service.method("org.bluez.Agent", in_signature="o", out_signature="u")
+    def RequestPasskey(self, device):
+        return dbus.UInt32(0000)
+
+    @dbus.service.method("org.bluez.Agent", in_signature="ou", out_signature="")
+    def DisplayPasskey(self, device, passkey):
+        return
+
+    @dbus.service.method("org.bluez.Agent", in_signature="ou", out_signature="")
+    def RequestConfirmation(self, device, passkey):
+        return
+
+    @dbus.service.method("org.bluez.Agent", in_signature="s", out_signature="")
+    def ConfirmModeChange(self, mode):
+        return
+
+    @dbus.service.method("org.bluez.Agent", in_signature="", out_signature="")
+    def Cancel(self):
+        return
+
+def exit_handler():
+    import os
+    if not os.path.exists("/tmp/ubiquity-bluetooth-done"):
+        touch = open("/tmp/ubiquity-bluetooth-done", "w+")
+        touch.close()
+
+    if os.path.exists("/usr/bin/bluetooth-applet.orig"):
+        os.execl("/usr/bin/bluetooth-applet.orig", "bluetooth-applet")
+    elif os.path.exists("/usr/bin/bluetooth-applet"):
+        os.execl("/usr/bin/bluetooth-applet", "bluetooth-applet")
+    else:
+        sys.exit(0)
+    return False
+
+if os.path.exists("/tmp/ubiquity-bluetooth-done"):
+    exit_handler()
+
+try:
+    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+    bus = dbus.SystemBus()
+    manager = dbus.Interface(bus.get_object("org.bluez", "/"), "org.bluez.Manager")
+    adapter = dbus.Interface(bus.get_object("org.bluez", manager.DefaultAdapter()), "org.bluez.Adapter")
+    agent = Agent(bus, "/ubiquity/bluetooth/agent")
+    mainloop = gobject.MainLoop()
+    adapter.RegisterAgent("/ubiquity/bluetooth/agent", "DisplayYesNo")
+except dbus.exceptions.DBusException:
+    exit_handler()
+
+gobject.timeout_add(300000, exit_handler)
+mainloop.run()

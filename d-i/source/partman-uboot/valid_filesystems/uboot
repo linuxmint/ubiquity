@@ -1,0 +1,32 @@
+#!/bin/sh
+
+ARCH="$(archdetect)"
+case $ARCH in
+    arm*/dove)
+	;;
+    *)
+	exit 0
+	;;
+esac
+
+dev=$1
+id=$2
+property=$3
+
+[ -f /var/lib/partman/uboot ] || exit 0
+
+case $property in
+    formatable)
+	echo uboot
+	;;
+    existing)
+	if \
+		[ -f $id/detected_filesystem -a -f $id/detected_uboot ] && \
+		[ "$(cat $id/detected_filesystem)" = ext2 ]
+	then
+		echo uboot
+	fi
+	;;
+esac
+
+

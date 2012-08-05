@@ -1,0 +1,80 @@
+# -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
+
+# Copyright (C) 2010 Canonical Ltd.
+# Authors:
+# - Colin Watson <cjwatson@ubuntu.com>
+# - Evan Dandrea <ev@ubuntu.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+import os
+
+from ubiquity import plugin
+from ubiquity import i18n
+from ubiquity import misc
+
+NAME = 'warning'
+BEFORE = 'prepare'
+WEIGHT = 10
+OEM = False
+
+class PageBase(plugin.PluginUI):
+    def set_alpha_warning(self, show):
+        self.show_alpha_warning = show
+
+class PageGtk(PageBase):
+    plugin_title = 'ubiquity/text/warning_heading_label'
+
+    def __init__(self, controller, *args, **kwargs):
+        if 'UBIQUITY_AUTOMATIC' in os.environ:
+            self.page = None
+            return
+        self.controller = controller
+        try:
+            import gtk
+            builder = gtk.Builder()
+            builder.add_from_file(os.path.join(os.environ['UBIQUITY_GLADE'],
+                'stepWarning.ui'))
+            builder.connect_signals(self)
+            self.controller.add_builder(builder)
+            self.page = builder.get_object('stepWarning')
+            self.alpha_warning_label = builder.get_object('alpha_warning_label')
+        except Exception, e:
+            self.debug('Could not create warning page: %s', e)
+            self.page = None
+        # We do not want to show the yet to be substituted strings
+        # (${MEDIUM}, etc), so don't show the core of the page until
+        # it's ready.
+        for w in self.page.get_children():
+            w.hide()
+        self.plugin_widgets = self.page
+
+    def plugin_translate(self, lang):
+        release = misc.get_release()
+        install_medium = misc.get_install_medium()
+        install_medium = i18n.get_string(install_medium, lang)
+        # Set the release name (Ubuntu 10.04) and medium (USB or CD) where
+        # necessary.
+        text = i18n.get_string('alpha_warning_label', lang)
+        text = text.replace('${RELEASE}', '%s %s' %
+                (release.name, release.version))
+        text = text.replace('${MEDIUM}', install_medium)
+        self.alpha_warning_label.set_markup(text)
+        for w in self.page.get_children():
+            w.show()
+
+class Page(plugin.Plugin):
+    def prepare(self):
+        return (['/usr/share/ubiquity/simple-plugins', 'warning'], ['ubiquity/show_alpha_warning'])

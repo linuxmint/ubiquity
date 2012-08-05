@@ -1,0 +1,73 @@
+#!/bin/sh
+
+set -e
+
+version="$1"
+STATEDIR=/var/lib/initramfs-tools
+
+error()
+{
+	echo "E: ${1}" > /dev/stderr; exit 1
+}
+
+warning()
+{
+	echo "W: ${1}" > /dev/stderr
+}
+
+[ -z "${version}" ] && error "flash-kernel: kernel version is required"
+
+# avoid running multiple times
+if [ -n "$DEB_MAINT_PARAMS" ]; then
+        eval set -- "$DEB_MAINT_PARAMS"
+        if [ -z "$1" ] || [ "$1" != "configure" ]; then
+                exit 0
+        fi
+fi
+
+get_sorted_versions()
+{
+        version_list=""
+
+        for gsv_x in "${STATEDIR}"/*; do
+                gsv_x="$(basename "${gsv_x}")"
+                if [ "${gsv_x}" = '*' ]; then
+                        return 0
+                fi
+                worklist=""
+                for gsv_i in $version_list; do
+                        if dpkg --compare-versions "${gsv_x}" '>' "${gsv_i}"; then
+                                worklist="${worklist} ${gsv_x} ${gsv_i}"
+                                gsv_x=""
+                        else
+                                worklist="${worklist} ${gsv_i}"
+                        fi
+                done
+                if [ "${gsv_x}" != "" ]; then
+                        worklist="${worklist} ${gsv_x}"
+                fi
+                version_list="${worklist}"
+        done
+}
+
+highest_installed_version()
+{
+        get_sorted_versions
+        if [ -z "${version_list}" ]; then
+                return
+        fi
+        set -- ${version_list}
+        echo ${1}
+}
+
+installed="$(highest_installed_version)"
+
+if dpkg --compare-versions "${installed}" gt "${version}"; then
+	warning "There is already a newer kernel installed, the default is now ${version}"
+	warning "If you instead want to use the latest installed kernel on your system, run"
+	warning "sudo flash-kernel ${installed}"
+fi
+
+if flash-kernel --supported >/dev/null 2>&1; then
+        flash-kernel ${version}
+fi

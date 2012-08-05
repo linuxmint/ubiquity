@@ -1,0 +1,42 @@
+protocol_fetch() {
+	local url file RETVAL i j
+	url="$1"
+	file="$2"
+
+	wget404() {
+	# see README.wget404 in the debian-installer-utils udeb source for more info about this
+		if [ "ftp" = "$proto" ] ; then
+			local file_not_found_pattern='bad response to RETR: 550 '
+		else
+			local file_not_found_pattern='server returned error: HTTP\/[0-9.]\+ 404 '
+		fi
+
+		local RETVAL=$( {
+			echo 1
+			wget "$@" 2>&1 >&3 && echo %OK%
+			echo %EOF%
+			} | ( sed -ne '1{h;d};/'"$file_not_found_pattern"'/{p;s/.*/4/;h;d};/^%OK%$/{s/.*/0/;h;d};$!p;$x;$w /proc/self/fd/4' >&2 ) 4>&1
+		) 3>&1
+		return $RETVAL
+	}
+
+	# use the proxy for wgets (should speed things up)
+	if db_get mirror/$proto/proxy; then
+		export ${proto}_proxy="$RET"
+	fi
+
+	RETVAL=0
+	for i in 1 2; do
+		wget404 -q -O "$file" "$url" || RETVAL=$?
+		[ $RETVAL = 1 ] || return $RETVAL
+
+		if [ "$TRY_CONTINUE" ] && [ -s "$file" ]; then
+			for j in 1 2 3; do
+				wget404 -c -q "$url" -O "$file" || RETVAL=$?
+				[ $RETVAL = 1 ] || return $RETVAL
+			done
+		fi
+		[ "$TRY_REPEAT" ] || break
+	done
+	return $RETVAL
+}

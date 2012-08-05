@@ -1,0 +1,330 @@
+#! /bin/sh
+set -e
+
+# This script contains the basic functions necessary to interact with
+# parted_server separate from the D-I environment: it does not require
+# any other library scripts and does not use debconf. Because of that
+# it can also be run outside the D-I environment.
+#
+# It is intended primarily to create reproducible test cases, for
+# example to demonstrate issues in libparted. This particular script
+# was developed to show an issue affecting LVM installs on s390 and
+# requires the presence of an LVM logical volume test-test (VG-LV).
+#
+# It can also possibly be useful to prototype new partman functionality.
+#
+# The script requires parted_server and creates/uses two files:
+# - /var/run/parted_server.pid
+# - /var/log/partman
+#
+# Note: this script may need to be updated if the functions included
+# here from ../lib/base.sh change; the script is an example only!
+
+
+# Adjust these to your situation
+DISK=/dev/hda			# device that has the PV
+PARTNO=2			# partition number of PV on that device
+LV=/dev/mapper/test-test	# device for the LV
+
+NL="
+"
+
+### Function definitions
+
+stop_parted_server () {
+        open_infifo
+        write_line "QUIT"
+        close_infifo
+}
+
+# 0, 1 and 2 are standard input, output and error.
+# 3, 4 and 5 are used by cdebconf
+# 6=infifo
+# 7=outfifo
+
+open_infifo() {
+        exec 6>/var/lib/partman/infifo
+}
+
+close_infifo() {
+        exec 6>&-
+}
+
+open_outfifo () {
+        exec 7</var/lib/partman/outfifo
+}
+
+close_outfifo () {
+        exec 7<&-
+}
+
+write_line () {
+        log IN: "$@"
+        echo "$@" >&6
+}
+
+read_line () {
+        read "$@" <&7
+}
+
+synchronise_with_server () {
+        exec 6>/var/lib/partman/stopfifo
+        exec 6>&-
+}
+
+read_paragraph () {
+    local line
+    while { read_line line; [ "$line" ]; }; do
+        log "paragraph: $line"
+        echo "$line"
+    done
+}
+
+read_list () {
+        local item list
+        list=''
+        while { read_line item; [ "$item" ]; }; do
+                log "option: $item"
+                list="${list:+$list, }$item"
+        done
+        echo "$list"
+}
+
+error_handler () {
+    local exception_type info state frac type priority message options skipped
+    while { read_line exception_type; [ "$exception_type" != OK ]; }; do
+        log error_handler: exception with type $exception_type
+        case "$exception_type" in
+            Timer)
+                if [ -f /var/lib/partman/progress_info ]; then
+                    info=$(cat /var/lib/partman/progress_info)
+                else
+                    info=partman/processing
+                fi
+                while { read_line frac state; [ "$frac" != ready ]; }; do
+		    echo $frac - $state
+                done
+                continue
+                ;;
+            Information)
+                type='Information'
+                ;;
+            Warning)
+                type='Warning!'
+                ;;
+            Error)
+                type='ERROR!!!'
+                ;;
+            Fatal)
+                type='FATAL ERROR!!!'
+                ;;
+            Bug)
+                type='A bug has been discovered!!!'
+                ;;
+            No?Implementation)
+                type='Not yet implemented!'
+                ;;
+            *)
+                type="??? $exception_type ???"
+                ;;
+        esac
+        log error_handler: reading message
+        message=$(read_paragraph)
+        log error_handler: reading options
+        options=$(read_list)
+	echo "$type: $message"
+	echo "Error options: $options"
+        write_line "unhandled"
+    done
+    rm -f /var/lib/partman/progress_info
+}
+
+# IMPORTANT NOTE
+# This function has been changed to take the device to operate on as the
+# second parameter. In ../lib/base.sh this is based on the current
+# directory (/var/lib/partman/devices/<DEVICE DIR>). The dev_to_pdev call
+# takes care of the conversion from '/dev/hda' to '=dev=hda' notation.
+open_dialog () {
+        command="$1"
+	device="$(dev_to_pdev "$2")"
+        shift; shift
+        open_infifo
+        write_line "$command" "$device" "$@"
+        open_outfifo
+        error_handler
+}
+
+close_dialog () {
+        close_outfifo
+        close_infifo
+        exec 6>/var/lib/partman/stopfifo
+        exec 6>&-
+        exec 7>/var/lib/partman/outfifo
+        exec 7>&-
+        exec 6>/var/lib/partman/stopfifo
+        exec 6>&-
+        exec 6</var/lib/partman/infifo
+        cat <&6 >/dev/null
+        exec 6<&-
+        exec 6>/var/lib/partman/stopfifo
+        exec 6>&-
+}
+
+log () {
+        local program
+        echo $0: "$@" >>/var/log/partman
+}
+
+dev_to_pdev () {
+	echo $1 | sed "s:/\+:=:g"
+}
+
+### START OF MAINLINE
+
+if [ -f /var/run/parted_server.pid ]; then
+	echo "Removing PID file from incomplete prior run!"
+	rm /var/run/parted_server.pid
+fi
+
+: >/var/log/partman
+
+mkdir -p /var/run
+parted_server
+RET=$?
+if [ $RET != 0 ]; then
+	exit $RET
+fi
+
+## Replace code below (except stop_parted_server) with your test case!
+
+echo "Open $DISK..."
+open_dialog OPEN $DISK $DISK
+read_line response
+close_dialog
+echo "Result: $response"
+echo
+
+partitions=
+echo "Partition info for $DISK:"
+open_dialog PARTITIONS $DISK
+while { read_line partinfo; [ "$partinfo" ]; }; do
+	partitions="${partitions:+$partitions$NL}$partinfo"
+done
+close_dialog
+echo "$partitions"
+echo
+
+partition=$(echo "$partitions" | \
+	sed -nr "/^$PARTNO[[:space:]]/ s/^$PARTNO[[:space:]]*([-0-9]*).*/\1/ p")
+
+flags=
+open_dialog GET_FLAGS $DISK $partition
+while { read_line flag; [ "$flag" ]; }; do
+	flags="$flags $flag"
+done
+close_dialog
+echo "Flags for partition $PARTNO:$flags"
+echo
+
+echo "Open $LV..."
+open_dialog OPEN $LV $LV
+read_line response
+close_dialog
+echo "Result: $response"
+echo
+
+echo "Create label 'loop' on $LV..."
+open_dialog NEW_LABEL $LV loop
+close_dialog
+echo
+
+partitions=
+echo "Partition info for $LV:"
+open_dialog PARTITIONS $LV
+while { read_line partinfo; [ "$partinfo" ]; }; do
+	partitions="${partitions:+$partitions$NL}$partinfo"
+done
+close_dialog
+echo "$partitions"
+echo
+
+echo "Find the free space"
+open_dialog PARTITIONS $LV
+free_space=''
+while { read_line num id size type fs path name; [ "$id" ]; }; do
+	if [ "$fs" = free ]; then
+		free_space=$id
+		free_size=$size
+	fi
+done
+close_dialog
+echo "Free: $free_space - $free_size"
+echo
+
+echo "Create new partition"
+open_dialog NEW_PARTITION $LV primary ext2 $free_space full $free_size
+read_line num id size type fs path name
+close_dialog
+echo "New: $num $id $size $type"
+
+partitions=
+echo "Partition info for $LV:"
+open_dialog PARTITIONS $LV
+while { read_line partinfo; [ "$partinfo" ]; }; do
+	partitions="${partitions:+$partitions$NL}$partinfo"
+done
+close_dialog
+echo "$partitions"
+echo
+
+if [ "$id" ]; then
+	echo "Get and change file system"
+	open_dialog GET_FILE_SYSTEM $LV $id
+	read_line filesystem
+	close_dialog
+
+	echo "Filesystem: $filesystem"
+	if [ "$filesystem" != none ]; then
+		open_dialog CHANGE_FILE_SYSTEM $LV $id $filesystem
+		close_dialog
+	fi
+fi
+echo
+
+echo "Set disk unchanged"
+open_dialog DISK_UNCHANGED $LV
+close_dialog
+echo
+
+partitions=
+echo "Partition info for $LV:"
+open_dialog PARTITIONS $LV
+while { read_line partinfo; [ "$partinfo" ]; }; do
+	partitions="${partitions:+$partitions$NL}$partinfo"
+done
+close_dialog
+echo "$partitions"
+echo
+
+echo "Get info as in update.d"
+flags=
+open_dialog GET_FLAGS $LV $id
+while { read_line flag; [ "$flag" ]; }; do
+        flags="$flags $flag"
+done
+close_dialog
+echo "Flags for $id:$flags"
+echo
+
+# This is where things go wrong: on s390 this call hangs because
+# libparted does not return any output.
+set -x
+echo "Get file system"
+open_dialog GET_FILE_SYSTEM $LV $id
+read_line filesystem
+close_dialog
+echo "File system for $id: $filesystem"
+
+
+stop_parted_server
+exit 0

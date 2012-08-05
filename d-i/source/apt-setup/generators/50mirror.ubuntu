@@ -1,0 +1,222 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+file="$1"
+
+log() {
+	logger -t apt-setup "$@"
+}
+warning() {
+	log "warning: $@"
+}
+
+# Ask if a mirror should be used if the base system can be installed from CD
+if [ -e /cdrom/.disk/base_installable ] || [ "$OVERRIDE_BASE_INSTALLABLE" ]; then
+	if ! search-path choose-mirror; then
+		warning "choose-mirror is not available; cannot offer network mirror"
+		exit 1
+	fi
+
+	# Set default if no value (see Debian mirror generator)
+	db_get apt-setup/use_mirror
+	[ "$RET" ] || db_set apt-setup/use_mirror true 
+
+	# Text is variable for Debian
+	db_metaget apt-setup/use/netinst_old description
+	db_subst apt-setup/use_mirror EXPLANATION "$RET"
+
+	db_input medium apt-setup/use_mirror || [ $? -eq 30 ]
+	db_go # or exit 10
+
+	db_get apt-setup/use_mirror
+	if [ "$RET" = false ]; then
+		exit 1
+	fi
+
+	if db_get cdrom/codename && [ "$RET" ]; then
+		db_set mirror/codename $RET
+	fi
+	if db_get cdrom/suite && [ "$RET" ]; then
+		db_set mirror/suite $RET
+	fi
+	choose-mirror -n # no progress bar
+	db_capb backup progresscancel
+fi
+
+STATE=1
+while :; do
+	case "$STATE" in
+		1)
+			db_input low apt-setup/restricted || true
+		;;
+		2)
+			db_input low apt-setup/universe || true
+		;;
+		3)
+			db_input low apt-setup/multiverse || true
+		;;
+		4)
+			db_input low apt-setup/backports || true
+		;;
+		*)
+			break
+		;;
+	esac
+
+	if db_go; then
+		STATE=$(($STATE + 1))
+	else
+		STATE=$(($STATE - 1))
+	fi
+done
+if [ $STATE -eq 0 ]; then
+	exit 10
+fi
+
+dists="main"
+alldists="main"
+db_get apt-setup/restricted
+if [ "$RET" = true ]; then
+	dists="$dists restricted"
+	alldists="$alldists restricted"
+else
+	# Remove restricted from any previous cdrom entry if necessary.
+	for srcfile in $ROOT/etc/apt/sources.list.base \
+		    $ROOT/etc/apt/sources.list.new; do
+		if [ -e "$srcfile" ]; then
+			sed -i '/deb cdrom:/s/ restricted//g' "$srcfile"
+		fi
+	done
+fi
+
+db_get mirror/protocol
+protocol="$RET"
+db_get mirror/codename
+codename="$RET"
+db_get mirror/$protocol/hostname
+hostname="$RET"
+db_get mirror/$protocol/directory
+directory="/${RET#/}"
+
+# Awful hack. Source for ports architectures is only available on
+# archive.ubuntu.com, not ports.ubuntu.com.
+if [ "$hostname" = ports.ubuntu.com ]; then
+	srchostname=archive.ubuntu.com
+	srcdirectory=/ubuntu
+else
+	srchostname="$hostname"
+	srcdirectory="$directory"
+fi
+
+if [ "$protocol" = http ]; then
+	db_get mirror/$protocol/proxy
+	proxy="$RET"
+	if [ -n "$proxy" ]; then
+		if ! grep -iq "Acquire::$protocol::Proxy" $ROOT/etc/apt/apt.conf.new; then
+			echo "Acquire::$protocol::Proxy \"$proxy\";" >> $ROOT/etc/apt/apt.conf.new
+		fi
+	fi
+fi
+
+db_get apt-setup/proposed
+PROPOSED="$RET"
+
+cat >> $file <<EOF
+# See http://help.ubuntu.com/community/UpgradeNotes for how to upgrade to
+# newer versions of the distribution.
+
+deb $protocol://$hostname$directory $codename $dists
+deb-src $protocol://$srchostname$srcdirectory $codename $dists
+
+## Major bug fix updates produced after the final release of the
+## distribution.
+deb $protocol://$hostname$directory $codename-updates $dists
+deb-src $protocol://$srchostname$srcdirectory $codename-updates $dists
+EOF
+if [ "$PROPOSED" = true ]; then
+	cat >> $file <<EOF
+
+## Proposed updates undergoing testing.
+deb $protocol://$hostname$directory $codename-proposed $dists
+deb-src $protocol://$srchostname$srcdirectory $codename-proposed $dists
+EOF
+fi
+
+# Even if universe isn't enabled, we write example lines for it.
+echo >> $file
+if db_get apt-setup/universe && [ "$RET" = true ]; then
+	alldists="$alldists universe"
+	COMMENT=
+else
+	cat >> $file <<EOF
+## Uncomment the following two lines to add software from the 'universe'
+## repository.
+EOF
+	COMMENT='# '
+fi
+cat >> $file <<EOF
+## N.B. software from this repository is ENTIRELY UNSUPPORTED by the Ubuntu
+## team. Also, please note that software in universe WILL NOT receive any
+## review or updates from the Ubuntu security team.
+${COMMENT}deb $protocol://$hostname$directory $codename universe
+${COMMENT}deb-src $protocol://$srchostname$srcdirectory $codename universe
+${COMMENT}deb $protocol://$hostname$directory $codename-updates universe
+${COMMENT}deb-src $protocol://$srchostname$srcdirectory $codename-updates universe
+EOF
+if [ "$PROPOSED" = true ]; then
+	cat >> $file <<EOF
+${COMMENT}deb $protocol://$hostname$directory $codename-proposed universe
+${COMMENT}deb-src $protocol://$srchostname$srcdirectory $codename-proposed universe
+EOF
+fi
+
+# Multiverse is different, don't write anything unless enabled.
+if db_get apt-setup/multiverse && [ "$RET" = true ]; then
+	alldists="$alldists multiverse"
+	cat >> $file <<EOF
+
+## N.B. software from this repository is ENTIRELY UNSUPPORTED by the Ubuntu 
+## team, and may not be under a free licence. Please satisfy yourself as to 
+## your rights to use the software. Also, please note that software in 
+## multiverse WILL NOT receive any review or updates from the Ubuntu
+## security team.
+deb $protocol://$hostname$directory $codename multiverse
+deb-src $protocol://$srchostname$srcdirectory $codename multiverse
+deb $protocol://$hostname$directory $codename-updates multiverse
+deb-src $protocol://$srchostname$srcdirectory $codename-updates multiverse
+EOF
+	if [ "$PROPOSED" = true ]; then
+		cat >> $file <<EOF
+deb $protocol://$hostname$directory $codename-proposed multiverse
+deb-src $protocol://$srchostname$srcdirectory $codename-proposed multiverse
+EOF
+	fi
+fi
+
+# Even if the backports repository isn't enabled, we write example lines for
+# it.
+echo >> $file
+if db_get apt-setup/backports && [ "$RET" = true ]; then
+	COMMENT=
+else
+	cat >> $file <<EOF
+## Uncomment the following two lines to add software from the 'backports'
+## repository.
+EOF
+	COMMENT='# '
+fi
+cat >> $file <<EOF
+## N.B. software from this repository may not have been tested as
+## extensively as that contained in the main release, although it includes
+## newer versions of some applications which may provide useful features.
+## Also, please note that software in backports WILL NOT receive any review
+## or updates from the Ubuntu security team.
+${COMMENT}deb $protocol://$hostname$directory $codename-backports $alldists
+${COMMENT}deb-src $protocol://$srchostname$srcdirectory $codename-backports $alldists
+EOF
+
+apt-setup-signed-release archive.ubuntu.com "$file"
+
+exit 0

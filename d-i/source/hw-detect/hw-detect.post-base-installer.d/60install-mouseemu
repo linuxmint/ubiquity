@@ -1,0 +1,26 @@
+#! /bin/sh
+set -e
+
+# We need to do this after the base system has been installed so that
+# laptop-detect is available.
+
+SUBARCH="$(archdetect)"
+
+# Install mouseemu on systems likely to have single-button mice
+case $SUBARCH in
+	i386/mac|amd64/mac)
+		if apt-install laptop-detect && \
+		   chroot /target laptop-detect >/dev/null 2>&1; then
+			apt-install mouseemu || true
+		fi
+	;;
+	powerpc/powermac_*)
+		# mouseemu causes an oops somewhere in the input layer on
+		# powerpc64 at the moment, so don't install it.
+		if [ ! -d /proc/ppc64 ]; then
+			apt-install mouseemu || true
+		fi
+	;;
+esac
+
+exit 0

@@ -1,0 +1,35 @@
+#!/bin/sh
+
+. /usr/share/debconf/confmodule
+. /lib/preseed/preseed.sh
+
+TRY_CONTINUE=
+TRY_REPEAT=
+while true; do
+	case "$1" in
+	    -c)
+		TRY_CONTINUE=1
+		shift
+		;;
+	    -r)
+		TRY_REPEAT=1
+		shift
+		;;
+	    -*)
+		echo "$0: unrecognized or invalid option $1" >&2
+		exit 1
+		;;
+	    *)
+		break
+		;;
+	esac
+done
+
+url="$1"
+dst="$2"
+
+proto=${url%%://*}
+
+. /usr/lib/fetch-url/$proto
+
+protocol_fetch "$url" "$dst"

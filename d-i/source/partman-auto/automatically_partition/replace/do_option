@@ -1,0 +1,29 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+dev=${1%//*}
+oldid=${1#*//}
+
+cd $dev
+disable_swap "$dev"
+open_dialog DELETE_PARTITION $oldid
+close_dialog
+bestsize=0
+bestid=
+open_dialog PARTITIONS
+while :; do
+	read_line num id size type fs path name
+	[ "$id" ] || break
+	if [ "$fs" = free ] && longint_le $bestsize $size; then
+		bestsize=$size
+		bestid=$id
+	fi
+done
+close_dialog
+
+db_progress STOP
+
+[ -z "$bestid" ] && exit 1
+autopartition $dev $bestid || exit $?
+exit 100

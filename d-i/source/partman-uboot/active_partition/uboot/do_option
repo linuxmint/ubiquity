@@ -1,0 +1,98 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+dev=$2
+id=$3
+part=$dev/$id
+
+cd $dev
+
+[ -f $part/method -a -f $part/acting_filesystem ] || return 0
+filesystem=$(cat $part/acting_filesystem)
+
+do_mountpoint () {
+	local noninteractive
+	noninteractive=true
+	while true; do
+		if [ -f "$part/mountpoint" ]; then
+			old_mountpoint=$(cat $part/mountpoint)
+		else
+			old_mountpoint=/boot
+		fi
+		db_set partman-uboot/mountpoint "$old_mountpoint"
+		db_input critical partman-uboot/mountpoint || $noninteractive
+		db_go || return 1
+		db_get partman-uboot/mountpoint
+
+		case "$RET" in
+		    Do?not?mount?it)
+			rm -f $part/mountpoint
+			break
+			;;
+		    Enter?manually)
+			if do_mountpoint_manual; then break; fi
+			noninteractive="return 1"
+			;;
+		    *)
+			echo $RET >$part/mountpoint
+			break
+		esac
+	done
+}
+
+do_mountpoint_manual () {
+	local noninteractive
+	noninteractive=true
+	while true; do
+		new_mountpoint=''
+		while [ ! "$new_mountpoint" ]; do
+			if [ -f "$part/mountpoint" ]; then
+				old_mountpoint=$(cat $part/mountpoint)
+			else
+				old_mountpoint=/
+			fi
+			db_set partman-basicfilesystems/mountpoint_manual "$old_mountpoint"
+			db_input critical partman-basicfilesystems/mountpoint_manual || $noninteractive
+			db_go || return 1
+			db_get partman-basicfilesystems/mountpoint_manual
+
+			if expr "$RET" : '/[^ ]*$' >/dev/null; then
+				new_mountpoint=$RET
+			else
+				db_input high partman-uboot/bad_mountpoint || true
+				db_go || true
+			fi
+		done
+		echo $RET >$part/mountpoint
+		break
+	done
+}
+
+case $1 in
+    mountpoint)
+	do_mountpoint
+	update_partition $dev $id
+	;;
+    options)
+	select_mountoptions $dev $id
+	;;
+    label)
+	label=''
+	if [ -f $part/label ]; then
+		label=$(cat $part/label)
+	fi
+	db_set partman-basicfilesystems/choose_label "$label"
+	db_input critical partman-basicfilesystems/choose_label || true
+	db_go || exit 1
+	db_get partman-basicfilesystems/choose_label
+	if [ "$RET" ]; then
+		echo "$RET" >$part/label
+	else
+		rm -f $part/label
+	fi
+	db_reset partman-basicfilesystems/choose_label
+	;;
+esac
+
+exit 0

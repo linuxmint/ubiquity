@@ -1,0 +1,319 @@
+#!/usr/bin/perl
+
+use warnings 'all';
+use strict;
+
+use File::Temp ();
+
+BEGIN {
+    my $file;
+    if ($ARGV[1]) {
+	$file = $ARGV[1];
+    } else {
+	$file = 'KeyboardNames.pl';
+    }
+    do "$file";
+}
+
+my $model = $ARGV[0];
+my $dir = 'keymaps';
+
+my $xkbdir;
+if ($ARGV[2]) {
+    $xkbdir = $ARGV[2];
+} else {
+    $xkbdir = "`pwd`/ckb";
+}
+
+# Don't forget to update also the list in keyboard-configuration.config
+my $nonlatin = ' af am ara ben bd bg bt by deva ge gh gr guj guru \
+                 il in iq ir iku kan kh kz la lao lk kg ma mk mm mn mv mal \
+                 np ori pk ru scc sy syr tel th tj tam ua uz ';
+
+my %keymaps;
+
+sub warning {
+    print STDERR  "WARNING: @_";
+}
+
+sub execute {
+    if (0) {
+	printf STDERR "%s\n", $_[0];
+    }
+    return system ($_[0]);
+}
+
+sub ensuredir {
+    if (! -d $_[0]) {
+	mkdir $_[0] or die "$0: $_[0]: $!\n";
+    }
+}
+
+sub checkrename {
+    rename $_[0], $_[1] or die "$0: failed to rename $_[0] to $_[1]: $!\n";
+}
+
+sub read_temp_kmap {
+    my $name = $_[0];
+    open (KMAP, "$dir/$model-$name") or die  "$0: $dir/$model-$name: $!\n"; 
+    while (<KMAP>) {
+	if (/^keycode ([0-9]+) =.*/) {
+	    $keymaps{$name}[$1] = $_;
+	}
+    }
+    close KMAP;
+}
+
+ensuredir $dir;
+
+printf STDERR "Compiling compact keymaps for %s...\n", $model;
+
+for my $layout (values %KeyboardNames::layouts) {
+    next if ($layout eq 'nec/jp');
+    next if ($layout eq 'nec_vndr/jp');
+    my $actual_layout = (($layout eq 'lt') ? 'lt,lt'
+			 : (($layout eq 'me') ? 'me,me'
+			    : (($layout eq 'rs') ? 'rs,rs'
+			       : (($nonlatin =~ / $layout /)
+				  ? "us,$layout" : $layout))));
+    if (! -f "$dir/$model-$layout") {
+	if ($layout eq 'lt') {
+	    execute ("./ckbcomp -compact -I. -I${xkbdir} -rules xorg"
+		     ." -model $model"
+		     ." -layout $actual_layout -variant ,us"
+		     ." >$dir/$model-$layout.new");
+	} elsif ($layout eq 'me') {
+	    execute ("./ckbcomp -compact -I. -I${xkbdir} -rules xorg"
+		     ." -model $model"
+		     ." -layout $actual_layout -variant basic,"
+		     ." >$dir/$model-$layout.new");
+	} elsif ($layout eq 'rs') {
+	    execute ("./ckbcomp -compact -I. -I${xkbdir} -rules xorg"
+		     ." -model $model"
+		     ." -layout $actual_layout -variant latin,"
+		     ." >$dir/$model-$layout.new");
+	} else {
+	    execute ("./ckbcomp -compact -I. -I${xkbdir} -rules xorg"
+		     ." -model $model -layout $actual_layout"
+		     ." >$dir/$model-$layout.new");
+	}
+	die "$0: ckbcomp failed\n" if (! -f "$dir/$model-$layout.new");
+	checkrename "$dir/$model-$layout.new", "$dir/$model-$layout";
+    }
+    if (-f "$dir/$model-$layout") {
+	read_temp_kmap $layout;
+    }
+    for my $variant (values %{$KeyboardNames::variants{$layout}}) {
+	my $actual_variant;
+	if ($actual_layout eq 'lt,lt') {
+	    if ($variant eq 'us') {
+		$actual_variant = "us,basic";
+	    } else {
+		$actual_variant = "$variant,us";
+	    }
+	} elsif ($actual_layout eq 'me,me') {
+	    if ($variant =~ /latin/) {
+		$actual_variant = "$variant,$variant";
+	    } elsif ($variant eq 'cyrillicyz') {
+		$actual_variant = "latinyz,$variant";
+	    } elsif ($variant eq 'cyrillicalternatequotes') {
+		$actual_variant = "latinalternatequotes,$variant";
+	    } else {
+		$actual_variant = "basic,$variant";
+	    }
+	} elsif ($actual_layout eq 'rs,rs') {
+	    if ($variant =~ /latin/) {
+		$actual_variant = "$variant,$variant";
+	    } elsif ($variant eq 'yz') {
+		$actual_variant = "latinyz,$variant";
+	    } elsif ($variant eq 'alternatequotes') {
+		$actual_variant = "latinalternatequotes,$variant";
+	    } else {
+		$actual_variant = "latin,$variant";
+	    }
+	} elsif ($actual_layout =~ /,/) {
+	    $actual_variant = ",$variant";
+	} else {
+	    $actual_variant = $variant;
+	}
+	if (! -f "$dir/$model-$layout:$variant") {
+	    execute ("./ckbcomp -compact -I. -I${xkbdir} -rules xorg"
+		     ." -model $model"
+		     ." -layout $actual_layout -variant $actual_variant"
+		     ." >$dir/$model-$layout:$variant.new")
+		and die "$0: ckbcomp failed\n" if (! -f "$dir/$model-$layout:$variant.new");
+	    checkrename "$dir/$model-$layout:$variant.new", "$dir/$model-$layout:$variant";
+	}
+	if (-f "$dir/$model-$layout:$variant") {
+	    read_temp_kmap "$layout:$variant";
+	}
+    }
+}
+
+sub subtraction {
+    my $kmap1 = $keymaps{$_[0]};
+    my $kmap2 = $keymaps{$_[1]};
+    my $result = 0;
+    for my $k (0 .. $#{$kmap1}-1) {
+	if (defined $kmap1->[$k]) {
+	    if (! defined $kmap2->[$k] || $kmap1->[$k] ne $kmap2->[$k]) {
+		$result++;
+	    }
+	} elsif (defined $kmap2->[$k]) {
+	    # kmap1 not a superset of kmap2, so not eligible for reduction
+	    return 10000000;
+	}
+    }
+    return $result;
+}
+
+printf STDERR "Computing differential matrix for %s...\n", $model;
+
+my %kmaps;
+my %matrice;
+my %reduce;
+
+my $k;
+my $k1;
+my $k2;
+
+for $k (keys %keymaps) {
+    $kmaps{$k} = 1;
+}
+
+for $k1 (keys %kmaps) {
+    for $k2 (keys %kmaps) {
+	$matrice{$k1}{$k2} = subtraction($k1, $k2);
+    }
+}
+
+printf STDERR "Reducing the keymaps for %s...\n", $model;
+
+while (keys %kmaps) {
+    my $mink1 = '';
+    my $mink2 = '';
+    my $minsub = 10000000;
+    for $k1 (keys %kmaps, '') {
+	for $k2 (keys %kmaps) {
+	    next if ($k1 eq $k2);
+	    if ($k1 eq '') {
+		if ($mink1 eq '') {
+		    $mink1 = $k2;
+		}
+	    } elsif ($matrice{$k1}{$k2} < $minsub) {
+		$mink1 = $k1;
+		$mink2 = $k2;
+		$minsub = $matrice{$k1}{$k2};
+	    }
+	}
+    }
+    $reduce{$mink1} = $mink2;
+    delete $kmaps{$mink1};
+}
+
+printf STDERR "Dumping the encoded keymaps for %s...\n", $model;
+
+for $k1 (keys %reduce) {
+    my $kmap1 = $keymaps{$k1};
+    $k2 = $reduce{$k1};
+    if ($k2 ne '') {
+	my $kmap2 = $keymaps{$k2};
+	printf "%s::#include %s\n", $k1, $k2;
+	for my $k (0 .. $#{$kmap1}-1) {
+	    if (defined $kmap1->[$k]) {
+		if (! defined $kmap2->[$k] || $kmap1->[$k] ne $kmap2->[$k]) {
+		    printf "%s::%s", $k1, $kmap1->[$k];
+		}
+	    }
+	}
+    } else {
+	for my $k (0 .. $#{$kmap1}-1) {
+	    if (defined $kmap1->[$k]) {
+		printf "%s::%s", $k1, $kmap1->[$k];
+	    }
+	}
+    }
+}
+
+my %options = (
+    'grp:switch' => [ 'ralt' ],
+    'grp:lswitch' => [ 'lalt' ],
+    'grp:win_switch' => [ 'rwin', 'lwin' ],
+    'grp:lwin_switch' => [ 'rwin' ],
+    'grp:rwin_switch' => [ 'lwin' ],
+    'grp:toggle' => [ 'ralt' ],
+    'grp:shifts_toggle' => [ 'lshift', 'rshift' ],
+    'grp:ctrls_toggle' => [ 'lctrl', 'rctrl' ],
+    'grp:alts_toggle' => [ 'ralt', 'lalt' ],
+    'grp:ctrl_shift_toggle' => [ 'lshift', 'rshift', 'lctrl', 'rctrl' ],
+    'grp:caps_toggle' => [ 'caps' ],
+    'grp:shift_caps_toggle' => [ 'caps' ],
+    'grp:ctrl_alt_toggle' => [ 'lalt', 'ralt', 'lctrl', 'rctrl' ],
+    'grp:alt_shift_toggle' => [ 'lalt', 'ralt', 'lshift', 'rshift' ],
+    'grp:menu_toggle' => [ 'menu' ],
+    'grp:lwin_toggle' => [ 'lwin' ],
+    'grp:rwin_toggle' => [ 'rwin' ],
+    'grp:lshift_toggle' => [ 'lshift' ],
+    'grp:rshift_toggle' => [ 'rshift' ],
+    'grp:lctrl_toggle' => [ 'lctrl' ],
+    'grp:rctrl_toggle' => [ 'rctrl' ],
+    'grp:lalt_toggle' => [ 'lalt' ],
+    'lv3:switch' => [ 'rctrl' ],
+    'lv3:menu_switch' => [ 'menu' ],
+    'lv3:win_switch' => [ 'lwin', 'rwin' ],
+    'lv3:lwin_switch' => [ 'lwin' ],
+    'lv3:rwin_switch' => [ 'rwin' ],
+    'lv3:ralt_switch' => [ 'ralt' ],
+    'lv3:alt_switch' => [ 'lalt', 'ralt' ],
+    'ctrl:nocaps' => [ 'caps', 'lctrl' ],
+    'ctrl:swapcaps' => [ 'caps', 'lctrl' ],
+    'compose:ralt' => [ 'ralt' ],
+    'compose:rwin' => [ 'rwin' ],
+    'compose:menu' => [ 'menu' ],
+    'compose:caps' => [ 'caps' ],
+    'compose:rctrl' => [ 'rctrl' ],
+    'eurosign:e' => [ 'empty' ],
+    'eurosign:5' => [ 'empty' ],
+    'eurosign:2' => [ 'empty' ],
+ );
+
+my %keycodes = (
+    'amiga' => 'amiga(de)',
+    'ataritt' => 'ataritt(de)',
+    'macintosh' => 'xfree86',
+    'macintosh_old' => 'macintosh',
+    'pc105' => 'xfree86',
+    'sun4' => 'sun(type4_euro)',
+    'sun5' => 'sun(type5_euro)',
+    'abnt2' => 'xfree86(abnt2)',
+);
+
+my $keycodes =  (defined $keycodes {$model}
+		 ? $keycodes {$model}
+		 : 'xfree86');
+for my $option (keys %options) {
+    my $layout = '';
+    for my $mod (@{$options{$option}}) {
+	$layout = $layout . "+stdmodifiers($mod)";
+    }
+    $layout =~ s/^\+//;
+    if ($option =~ /grp:(.*)/) {
+	$layout = $layout . "+group($1)";
+    } elsif ($option =~ /ctrl:(.*)/) {
+	$layout = $layout . "+ctrl($1)";
+    } elsif ($option =~ /lv3:(.*)/) {
+	$layout = $layout . "+level3($1)";
+    } elsif ($option =~ /compose:(.*)/) {
+	$layout = $layout . "+compose($1)";
+    } elsif ($option =~ /eurosign:(.*)/) {
+	$layout = $layout . "+eurosign($1)";
+    }
+    my $tmp = new File::Temp(TEMPLATE => 'kbdcompilerXXXXXX');
+    execute ("./ckbcomp -compact -I. -I${xkbdir}"
+	     ." -keycodes '$keycodes' -symbols '$layout' >$tmp");
+    if (! -f $tmp->filename) {
+	die "$0: ckbcomp failed\n" if (! -f $tmp->filename);
+    } else {
+	execute ("grep '^keycode' $tmp | sed 's/^/". $option ."::/'");
+    }
+}

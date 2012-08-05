@@ -1,0 +1,132 @@
+#!/usr/bin/python
+
+import unittest
+import os
+import sys
+import subprocess
+import fnmatch
+import optparse
+import shutil
+import re
+
+
+def find_files(directory, pattern):
+    for root, dirs, files in os.walk(directory):
+        for basename in files:
+            if fnmatch.fnmatch(basename, pattern):
+                filename = os.path.join(root, basename)
+                yield filename
+
+
+usage = '%prog [options]'
+parser = optparse.OptionParser(usage=usage)
+parser.add_option('--coverage', dest='coverage',
+                  default=False, action='store_true',
+                  help='Produce coverage report')
+parser.add_option('--installed', dest='installed',
+                  default=False, action='store_true',
+                  help='Test installed package')
+parser.add_option('--no-xvfb', dest='xvfb',
+                  default=True, action='store_false',
+                  help="Don't run tests under Xvfb")
+parser.add_option('--xvfb-log', dest='xvfb_log', metavar='FILE',
+                  help='Write Xvfb log output to FILE')
+parser.add_option('--no-build', dest='build',
+                  default=True, action='store_false',
+                  help="Don't build source code first")
+options, args = parser.parse_args()
+
+if options.xvfb:
+    argv = list(sys.argv)
+    argv.insert(1, '--no-xvfb')
+    xvfb_argv = ['xvfb-run']
+    if options.xvfb_log is not None:
+        xvfb_argv.extend(['-e', options.xvfb_log])
+    if 'TMPDIR' in os.environ:
+        xvfb_argv.extend(['env', 'TMPDIR=%s' % os.environ['TMPDIR']])
+        del os.environ['TMPDIR']
+    argv[:0] = xvfb_argv
+    os.execvp('xvfb-run', argv)
+
+extra_modules = []
+if not options.installed:
+    extra_modules.append('webcam')
+extra_modules.append('mockresolver')
+
+# Set up linker and gobject-introspection paths.  If we change the linker
+# path, we must re-exec ourselves.
+
+re_exec = False
+ld_library_path = os.environ.get('LD_LIBRARY_PATH')
+if ld_library_path is None:
+    ld_library_path = []
+else:
+    ld_library_path = ld_library_path.split(':')
+for extra_module in reversed(extra_modules):
+    libdir = 'src/%s/.libs' % extra_module
+    if libdir not in ld_library_path:
+        ld_library_path.insert(0, libdir)
+        re_exec = True
+if re_exec:
+    os.environ['LD_LIBRARY_PATH'] = ':'.join(ld_library_path)
+    os.execv(sys.argv[0], sys.argv)
+
+os.environ['GI_TYPELIB_PATH'] = ':'.join(
+    ['src/%s' % extra_module for extra_module in extra_modules])
+
+if 'DEB_HOST_ARCH' not in os.environ:
+    os.environ['DEB_HOST_ARCH'] = subprocess.check_output(
+        ['dpkg-architecture', '-qDEB_HOST_ARCH']).strip()
+
+if options.installed:
+    sys.path.insert(0, '/usr/lib/ubiquity')
+
+    os.environ['UBIQUITY_TEST_INSTALLED'] = '1'
+
+    os.environ['DEBCONF_SYSTEMRC'] = 'tests/debconf.conf-installed'
+else:
+    sys.path.insert(0, '.')
+
+    try:
+        del os.environ['UBIQUITY_TEST_INSTALLED']
+    except KeyError:
+        pass
+
+    os.environ['UBIQUITY_PATH'] = '.'
+    os.environ['UBIQUITY_PLUGIN_PATH'] = 'ubiquity/plugins'
+    os.environ['UBIQUITY_GLADE'] = 'gui/gtk'
+
+    if options.build:
+        # Build dependencies for the tests.
+        subprocess.check_call(['tests/build'])
+
+    os.environ['DEBCONF_SYSTEMRC'] = 'tests/debconf.conf'
+
+# Parts borrowed from jockey.
+
+if options.coverage:
+    from coverage import coverage
+    cov = coverage()
+    cov.start()
+
+if args:
+    test_filter = args[0]
+else:
+    test_filter = ''
+
+tests = [t[:-3] for t in os.listdir('tests')
+         if t.startswith('test_') and t.endswith('.py') and re.search(test_filter, t)]
+tests.sort()
+suite = unittest.TestLoader().loadTestsFromNames(tests)
+res = unittest.TextTestRunner(verbosity=2).run(suite)
+if options.coverage:
+    if os.path.exists('tests/coverage'):
+        shutil.rmtree('tests/coverage')
+    cov.stop()
+    from itertools import chain
+    include = chain(find_files('ubiquity', '*.py'),
+                    find_files('scripts', '*.py'))
+    cov.html_report(include=include, directory='tests/coverage')
+
+if res.errors or res.failures:
+    sys.exit(1)

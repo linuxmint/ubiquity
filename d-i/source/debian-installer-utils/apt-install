@@ -1,0 +1,87 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+. /lib/chroot-setup.sh
+
+NO_RECOMMENDS=
+WITH_RECOMMENDS=
+ALLOW_REMOVE=
+OPTS=
+while :; do
+	case $1 in
+	    --no-recommends)
+		NO_RECOMMENDS=1
+		OPTS="$OPTS $1"
+		;;
+	    --with-recommends)
+		WITH_RECOMMENDS=1
+		OPTS="$OPTS $1"
+		;;
+	    --allow-remove)
+		ALLOW_REMOVE=1
+		OPTS="$OPTS $1"
+		;;
+	    -*)
+		logger -t apt-install "Ignored unrecognized option '$1'"
+		;;
+	    *)
+		break
+		;;
+	esac
+	shift
+done
+packages=$@
+
+queue=/var/lib/apt-install/queue
+
+# If we don't have a working mirror yet, only queue the package;
+# it will be installed later by the postinst in base-installer
+if [ ! -e /target/etc/apt/sources.list ]; then
+	# Add to list of extra packages to be installed into /target/.
+	mkdir -p /var/lib/apt-install
+	touch $queue
+	for pkg in $packages; do
+		if ! grep -Eq "^$pkg([[:space:]]|$)" $queue; then
+			logger -t apt-install "Queueing package $pkg for later installation"
+			echo "$pkg$OPTS" >> $queue
+		fi
+	done
+
+	exit 1 # Return error as the package is not ready to be used yet.
+fi
+
+REMOUNT_CD=""
+if [ -e /var/lib/install-cd.id ] && \
+   grep -q " /cdrom " /proc/mounts; then
+	REMOUNT_CD=1
+	log-output -t apt-install umount /cdrom || true
+fi
+
+apt_opts="-q -y"
+if [ -z "$ALLOW_REMOVE" ]; then
+	apt_opts="$apt_opts --no-remove"
+fi
+if db_get base-installer/install-recommends && [ "$RET" = false ]; then
+	if [ "$WITH_RECOMMENDS" ]; then
+		apt_opts="$apt_opts -o APT::Install-Recommends=true"
+	fi
+else
+	if [ "$NO_RECOMMENDS" ]; then
+		apt_opts="$apt_opts -o APT::Install-Recommends=false"
+	fi
+fi
+
+ERRCODE=0
+in-target sh -c "debconf-apt-progress --no-progress --logstderr -- \
+	apt-get $apt_opts install $packages" || ERRCODE=$?
+
+if [ "$REMOUNT_CD" ]; then
+	load-install-cd "/target" || true
+fi
+
+if [ "$ERRCODE" != 0 ]; then
+	exit $ERRCODE
+else
+	exit 0
+fi

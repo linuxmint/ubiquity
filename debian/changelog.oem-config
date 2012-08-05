@@ -1,0 +1,1159 @@
+# The following is oem-config changelog's before it got merged into 
+# ubiquity.  This is just of historic interest.
+
+oem-config (1.55.1) karmic; urgency=low
+
+  * Declare GTK frontend as "NotShowIn=KDE;" rather than
+    "OnlyShowIn=GNOME;XFCE;" (LP: #163518).
+  * Sync up oem-config/text/password_extra_label text with the corresponding
+    string in ubiquity.
+  * Update translations from my last conveniently available Launchpad export
+    (2009-04-16); we'll update again after Karmic translations open.
+  * Use small print rather than italics in "Who are you?" (LP: #287626).
+  * Automatic update of included source packages: user-setup 1.26ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 12 Jun 2009 11:22:58 +0100
+
+oem-config (1.55.0) karmic; urgency=low
+
+  * Automatic update of included source packages: console-setup 1.34ubuntu1,
+    localechooser 2.11ubuntu1, netcfg 1.48ubuntu1.
+  * Update for new message context system in GTK+ 2.15.1, and update
+    imported translations from gtk+2.0 2.16.1-0ubuntu3.
+  * Adjust for changes in console-setup 1.34ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 11 May 2009 10:30:19 +0100
+
+oem-config (1.54.13) jaunty; urgency=low
+
+  [ Roman Shtylman ]
+  * Updated the timezone map from ubiquity (LP: #360652), including copying
+    CairoExtensions from ubiquity/segmented_bar.py.
+  * Moved common artwork files from oem-config-gtk/oem-config-kde to
+    oem-config.
+
+  [ Colin Watson ]
+  * Preseed tzsetup/selected up-front rather than filtering it and then
+    preseeding it; filtering it causes the backup state to be reset, which
+    causes an infinite loop when backing up from the timezone page when the
+    default country only has one timezone (LP: #361674).
+  * Preseed passwd/auto-login-backup=oem in the udeb, so that the original
+    configuration files are available for restoration (LP: #361272).
+  * Automatic update of included source packages: user-setup 1.23ubuntu20.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 17 Apr 2009 15:41:12 +0100
+
+oem-config (1.54.12) jaunty; urgency=low
+
+  * Sync with console-setup 1.28ubuntu8: treat the Kazakhstan layout (kz) as
+    non-Latin (LP: #356816).
+  * Work around a debconf bug which broke the default time zone for some
+    countries: REGISTER does not appear to give a newly-registered question
+    the same default as the question associated with its template, unless we
+    also RESET it, so do that (LP: #356794).
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: console-setup 1.28ubuntu8,
+    user-setup 1.23ubuntu18.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 09 Apr 2009 10:03:54 +0100
+
+oem-config (1.54.11) jaunty; urgency=low
+
+  * GTK frontend:
+    - Use the full size of the underlying images for the timezone map if the
+      screen is big enough.
+    - Fix spacing on timezone page (LP: #336745).
+  * Don't pass the debconf PURGE command through debconffilter, since we
+    don't know the owner of the package calling it (see LP #354534).
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: user-setup 1.23ubuntu16.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 06 Apr 2009 21:36:39 +0100
+
+oem-config (1.54.10) jaunty; urgency=low
+
+  [ Colin Watson ]
+  * Tighten frontend dependencies on oem-config to prevent problems when one
+    architecture is out of sync.
+  * Set passwd/auto-login=true rather than implementing auto-login ourselves
+    (LP: #347900).
+  * Suggest checkbox/checkbox-gtk rather than recommending
+    hwtest/hwtest-gtk.
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: console-setup 1.28ubuntu7,
+    user-setup 1.23ubuntu15.
+
+  [ Evan Dandrea ]
+  * Update the timezone_map to match changes in ubiquity (more accurate
+    city placement).
+  * Merge in the new KDE time zone map from ubiquity.  Thanks Roman
+    Shtylman.
+
+  [ Mario Limonciello ]
+  * Change the number of columns in the language icon view to 5.  This 
+    should make it fit in 1024x600. (LP: #347350)
+  * Remove old hack in gtk frontend to only show scrollbars on language 
+    selector when it would be larger than the desktop.  With the hack taken 
+    out, the scrollbars aren't showing up on 800x576, which is likely the 
+    lowest supportable resolution.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 31 Mar 2009 16:31:14 +0100
+
+oem-config (1.54.9) jaunty; urgency=low
+
+  [ Evan Dandrea ]
+  * Add missing errno import.
+  * Merge in the new timezone widget from ubiquity (LP: #335557).
+  * Fix 'resize if too big for screen' logic (LP: #341758).  Thanks Michael
+    Terry!
+
+  [ Colin Watson ]
+  * GTK frontend:
+    - Full-screen the window when --only is used - i.e. more or less always,
+      except for testing. The extra screen real estate makes the timezone
+      map, among other widgets, easier to use. (Ported from Evan Dandrea's
+      similar change to Ubiquity; the KDE frontend needed no change as in
+      oem-config it's always full-screen.)
+    - Use stock preferences-system icon (thanks, Michael Terry;
+      LP: #341770).
+  * Update translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 17 Mar 2009 01:22:18 +0000
+
+oem-config (1.54.8) jaunty; urgency=low
+
+  * debconf frontend:
+    - Fix typo: "oem-config/text/task_heading_label" should have been
+      "oem-config/text/tasks_heading_label".
+    - Explicitly stop our debconf frontend just before exiting, to avoid
+      leaving a zombie if tasksel installs some package that starts a daemon
+      that doesn't disconnect from fd 3.
+  * Remove obsolete local copy of DebconfCommunicator. We just rely on a new
+    enough debconf now.
+  * Automatic update of included source packages: console-setup 1.28ubuntu6.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 04 Mar 2009 18:26:26 +0000
+
+oem-config (1.54.7) jaunty; urgency=low
+
+  [ Evan Dandrea ]
+  * Give the proper return value in the user component's run function
+    (LP: #334281).
+
+  [ Colin Watson ]
+  * Automatic update of included source packages: localechooser 2.09ubuntu2,
+    user-setup 1.23ubuntu14.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 01 Mar 2009 11:50:24 +0000
+
+oem-config (1.54.6) jaunty; urgency=low
+
+  * Only call setxkbmap if DISPLAY is set.
+  * Don't show the "Who are you?" page just because the auto-login question
+    is asked and not preseeded (LP: #328281).
+  * Handle user-setup's new weak password detection.
+  * Add forgotten oem-config/text/network_heading_label template.
+  * Add a "tasks" component (only usable in the debconf frontend at the
+    moment) that runs tasksel.
+  * Check whether /usr/lib/network-manager/ifblacklist_migrate.sh exists
+    before running it.
+  * Fix copying of debian-installer/framebuffer to /target in
+    oem-config-udeb: debconf-dumpdb returns "(null)" as the value if the
+    question has never been set.
+  * Automatic update of included source packages: user-setup 1.23ubuntu12.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 18 Feb 2009 23:38:31 +0000
+
+oem-config (1.54.5) jaunty; urgency=low
+
+  * Move most debconf-communicator handling into BaseFrontend, to make it
+    easier to fetch configuration from debconf there.
+  * Fetch the list of steps to be displayed from debconf (oem-config/steps).
+  * Tell components' prepare method whether they're being run unfiltered, to
+    make it possible to write a component that only works in unfiltered
+    mode.
+  * Fix Debconf import in BaseFrontend.
+  * Start bterm and give oem-config a controlling terminal if using the
+    debconf frontend.
+  * Run the debconf frontend in a UTF-8 locale (en_US.UTF-8, since d-i
+    guarantees that that always exists) so that newt uses proper window
+    borders and can display non-ASCII characters.
+  * Redirect stderr to the log file as early as possible in oem-config.
+  * In unfiltered mode, don't reask locale questions in the timezone
+    component.
+  * Drop priority of user-setup/encrypt-home question so that it isn't asked
+    in unfiltered mode.
+  * Add a "network" component (only usable in the debconf frontend at the
+    moment) that runs netcfg.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 06 Feb 2009 14:13:01 +0100
+
+oem-config (1.54.4) jaunty; urgency=low
+
+  * Move xserver-xorg dependency to oem-config-gtk and oem-config-kde, since
+    it's only needed by oem-config-dm which isn't used by
+    oem-config-debconf.
+  * Automatic update of included source packages: console-setup 1.28ubuntu5,
+    localechooser 2.09ubuntu1, user-setup 1.23ubuntu9.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 04 Feb 2009 15:57:36 +0100
+
+oem-config (1.54.3) jaunty; urgency=low
+
+  * Suppress user-setup's encrypted home directory question in OEM mode.
+  * Simplify page/step handling; the list of pages is now in BaseFrontend,
+    and step indices are calculated directly from that. (This won't quite
+    work for Ubiquity as-is, because it can't yet handle multi-page steps
+    such as Ubiquity's partitioner.)
+  * Reword templates, package descriptions, and the oem-config(8) manual
+    page to make it clearer that the first stage of oem-config is for use by
+    OEMs, not end users (LP: #48144). Clarify the term "OEM" in a comment
+    for translators.
+  * Add LSB init script header.
+  * Only run fontconfig-voodoo if it's present.
+  * If the user backs up all the way out of oem-config (perhaps
+    deliberately, or perhaps by accident), ask whether they want to try
+    again, drop to a recovery shell, or reboot.
+  * Automatic update of included source packages: user-setup 1.23ubuntu7.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 26 Jan 2009 19:23:36 +0000
+
+oem-config (1.54.2) jaunty; urgency=low
+
+  * Add a debconf_ui frontend which can be used in text mode on a server.
+    This is still experimental; in particular, setting the language does not
+    yet take effect until after oem-config exits.
+  * Adjust for changes in tzsetup 1:0.24ubuntu1.
+  * Add experimental --cdebconf option.
+  * Use spaces rather than ${!TAB} in localechooser, since debconf doesn't
+    support the latter yet.
+  * Add manual pages for all programs (LP: #274048).
+  * Automatic update of included source packages: console-setup 1.28ubuntu4,
+    tzsetup 1:0.24ubuntu1, user-setup 1.23ubuntu3.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 22 Dec 2008 15:42:48 +0000
+
+oem-config (1.54.1) jaunty; urgency=low
+
+  [ Evan Dandrea ]
+  * GTK frontend:
+    - Use an iconview as the language selection widget.  Only show
+      scrollbars for the language selection widget if the window is going to
+      be larger than the desktop.
+
+  [ Colin Watson ]
+  * Fix debian/oem-config.install for new location of tzmap in build tree.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 19 Nov 2008 10:03:45 +0000
+
+oem-config (1.54.0) jaunty; urgency=low
+
+  * Use OVERRIDE_SHOW_ALL_LANGUAGES in the tzsetup wrapper as well as
+    localechooser (LP: #290580).
+  * Switch to a new versioning scheme and omit the sub-minor version from
+    AC_INIT so that we don't have to regenerate configure with every single
+    upload.
+  * Create a BaseFrontend class and move various things to it; it now counts
+    as a relatively clear specification of what a frontend has to implement.
+  * Install apport hook as source_oem-config.py so that it covers all our
+    binary packages without the need for symlinks.
+  * Automatic update of included source packages: console-setup 1.28ubuntu1,
+    localechooser 2.08ubuntu1, tzsetup 1:0.24.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 18 Nov 2008 17:11:02 +0000
+
+oem-config (1.53) intrepid; urgency=low
+
+  * KDE frontend:
+    - Hardcode command line (including setting the Oxygen style) rather than
+      passing sys.argv to KCmdLineArgs, which will include options that KDE
+      doesn't understand (LP: #218144).
+  * Update translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 23 Oct 2008 13:53:28 +0100
+
+oem-config (1.52) intrepid; urgency=low
+
+  [ Colin Watson ]
+  * Reset debian-installer/country if the language is changed, as otherwise
+    we can end up defaulting to an inappropriate country for the language.
+  * Stop defaulting to the timezone from /etc/timezone or /etc/localtime, as
+    this has a nasty habit of overriding the usual defaults for countries
+    with multiple timezone choices (LP: #283861).
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: user-setup 1.20ubuntu10.
+
+  [ Evan Dandrea ]
+  * Pull timezone map changes from ubiquity:
+    - Iterate through a list of nearby timezones on click, rather than
+      selecting the absolute closest timezone to the pointer.
+    - Stop scrolling the timezone map once the mouse is outside its
+      boundaries (LP: #251231).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 16 Oct 2008 19:45:48 +0100
+
+oem-config (1.51) intrepid; urgency=low
+
+  * Log messages from update-rc.d rather than throwing them away.
+  * Fix intltool handling; po/Makefile.in.in was still coming from gettext.
+    Pass no-xml to IT_PROG_INTLTOOL so that we don't need to build-depend on
+    libxml-parser-perl.
+  * Add a comment to /etc/init.d/oem-config to explain the purpose of the
+    oem-config-firstboot check.
+  * Disable window minimise buttons when running in standalone mode at first
+    boot (LP: #249045).
+  * Run oem-config in debugging mode if 'debug-oem-config' is set on the
+    kernel command line.
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: user-setup 1.20ubuntu9.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 12 Oct 2008 21:25:16 +0100
+
+oem-config (1.50) intrepid; urgency=low
+
+  * Change "Automatically sign in" to "Log in automatically", to match
+    wording elsewhere (LP: #266995).
+  * Automatic update of included source packages: localechooser 2.03ubuntu3.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 16 Sep 2008 12:33:39 +0100
+
+oem-config (1.49) intrepid; urgency=low
+
+  [ Jonathan Riddell ]
+  * In oem-config-prepare fix option between kdesu and kdesudo
+
+  [ Colin Watson ]
+  * Update check for python-codegen-2.0 to instead use
+    pygobject-codegen-2.0. The former disappeared as of pygtk
+    2.13.0-0ubuntu1 in favor of this. (From the same change in ubiquity by
+    Mario Limonciello.)
+  * Build-depend on python-gobject-dev (>= 2.15.1) for
+    pygobject-codegen-2.0.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 08 Sep 2008 19:16:43 +0100
+
+oem-config (1.48) intrepid; urgency=low
+
+  * Update oem-config-dm for KDE 4
+  * Update kde_ui for intrepid wallpaper
+  * Change kde_ui into a KApplication, so it picks up the KDE widget style
+  * Fix i18n in kde_ui
+  * Use kdesu not kdesudo by default, kdesudo seems unreliable
+  * Set icons not text on next button, we have no i18n'ed text
+  * Automatic update of included source packages: console-setup
+    1.25ubuntu3, user-setup 1.20ubuntu6.
+
+ -- Jonathan Riddell <jriddell@ubuntu.com>  Fri, 05 Sep 2008 12:59:23 +0100
+
+oem-config (1.47) intrepid; urgency=low
+
+  * Add a vile hack to avoid clashing with kernel-helper over the debconf
+    database lock. Filed LP #261543 to document that we need to do something
+    better.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 26 Aug 2008 18:35:39 +0100
+
+oem-config (1.46) intrepid; urgency=low
+
+  * Suppress user-setup's encrypted private directory question in OEM mode.
+  * Move oem-config init script link from 12 to 29 so that it starts after
+    hal.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 26 Aug 2008 14:21:05 +0100
+
+oem-config (1.45) intrepid; urgency=low
+
+  [ Colin Watson ]
+  * Restore lost change from 1.38:
+    - Don't fail to set the locale if the mirror/country question doesn't
+      exist.
+  * Add oem to /usr/lib/oem-config/user/reserved-usernames (see LP #251056).
+  * Add sensible --version output and output our version to oem-config.log.
+  * Automatic update of included source packages: localechooser 2.03ubuntu2,
+    user-setup 1.20ubuntu4.
+
+  [ Michael Terry ]
+  * Set LANG in /etc/default/locale even if it isn't there already
+    (LP: #249550).
+  * Ensure that some widget is focused after changing page (LP: #241367).
+  * Add an auto-login option, currently GTK-only (LP: #241372).
+
+  [ Evan Dandrea ]
+  * Do not try to set localechooser/alreadyrun.  It is no longer used.
+  * Also remove the langlevel file if it exists before we start
+    localechooser.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 22 Aug 2008 13:00:18 +0100
+
+oem-config (1.44) intrepid; urgency=low
+
+  * Create /var/lib/localechooser directory, otherwise localechooser
+    completely breaks.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 24 Jul 2008 20:11:02 +0100
+
+oem-config (1.43) intrepid; urgency=low
+
+  [ Colin Watson ]
+  * Adjust Brazilian and Japanese keyboard models when applying the keyboard
+    layout on the fly (LP: #217140).
+  * Remove po/.intltool-merge-cache and po/stamp-po on clean.
+  * Update the FSF's address in a few more places.
+  * Use kdesudo for the KDE frontend where available.
+  * Upgrade to current autotools in Intrepid, including libtool 2.2.
+  * Automatic update of included source packages: console-setup 1.25ubuntu2,
+    localechooser 2.03ubuntu1, user-setup 1.20ubuntu3.
+
+  [ Jonathan Riddell ]
+  * Update KDM config file for KDE 4 and remove kpersonaliser references
+
+  [ Evan Dandrea ]
+  * Update the language component to reflect changes to localechooser.
+  * Use OVERRIDE_SHOW_ALL_LANGUAGES in the localechooser wrapper
+    (LP: #249795).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 24 Jul 2008 19:33:13 +0100
+
+oem-config (1.42) intrepid; urgency=low
+
+  * Remove old local copies of intltool-* scripts; build-depend on intltool
+    (>= 0.40.0).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 15 Jul 2008 15:39:51 +0100
+
+oem-config (1.41) intrepid; urgency=low
+
+  * Recommend hwtest (not hwdb-client), and recommend hwtest-gtk from
+    oem-config-gtk.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 15 Jul 2008 13:46:37 +0100
+
+oem-config (1.40) intrepid; urgency=low
+
+  [ Jonathan Riddell ]
+  * Depend on kde-window-manager (KDE 4) not kwin (KDE 3)
+
+  [ Colin Watson ]
+  * Switch to glade-3.
+
+  [ Michael Terry ]
+  * Make the UI initially invisible to avoid resize "jittering" as it loads
+    (LP: #241354).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 01 Jul 2008 09:34:34 +0100
+
+oem-config (1.39) intrepid; urgency=low
+
+  * Merge from hardy-proposed, updating translations.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 09 Jun 2008 11:21:01 +0100
+
+oem-config (1.38) intrepid; urgency=low
+
+  [ Colin Watson ]
+  * Silence deprecation warning in zoommap.
+  * Internationalise .desktop files (LP: #233949).
+  * Don't fail to set the locale if the mirror/country question doesn't
+    exist.
+  * Disable support for console-setup preseeding again, as it interferes
+    with the more important goal of inferring a default keyboard from the
+    selected locale (LP: #219209).
+  * Automatic update of included source packages: tzsetup 1:0.21.
+
+  [ Evan Dandrea ]
+  * Disable the close button (LP: #190234).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 01 Jun 2008 13:12:28 +0100
+
+oem-config (1.37.2) hardy-proposed; urgency=low
+
+  * Update translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 02 Jun 2008 23:04:12 +0100
+
+oem-config (1.37.1) hardy-proposed; urgency=low
+
+  [ Evan Dandrea ]
+  * Disable the close button (LP: #190234).
+
+  [ Colin Watson ]
+  * Don't fail to set the locale if the mirror/country question doesn't
+    exist.
+  * Disable support for console-setup preseeding again, as it interferes
+    with the more important goal of inferring a default keyboard from the
+    selected locale (LP: #219209).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 01 Jun 2008 13:30:52 +0100
+
+oem-config (1.37) hardy; urgency=low
+
+  * Fix built-in lists of keyboard variant names (patch from ubiquity;
+    LP: #106971).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 22 Apr 2008 09:59:27 +0100
+
+oem-config (1.36) hardy; urgency=low
+
+  * Set OVERRIDE_ALLOW_PRESEEDING=1 while calling console-setup to force it
+    to allow preseeding (LP: #188492).
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: console-setup 1.21ubuntu8.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 22 Apr 2008 01:15:50 +0100
+
+oem-config (1.35) hardy; urgency=low
+
+  * Properly initialize the UI object and its parent widget
+    (LP: #217884).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 15 Apr 2008 16:31:04 -0400
+
+oem-config (1.34) hardy; urgency=low
+
+  * Port hiding the minimize button on the main window from Ubiquity.
+  * Port tzmap usability fixes from ubiquity.
+  * Automatic update of included source packages: console-setup
+    1.21ubuntu7, localechooser 1.42ubuntu5.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Mon, 14 Apr 2008 22:27:11 -0400
+
+oem-config (1.33) hardy; urgency=low
+
+  * Fix ownership of /home/oem/Desktop (LP: #209683).
+  * Automatic update of included source packages: console-setup 1.21ubuntu5,
+    tzsetup 1:0.20.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 01 Apr 2008 14:33:33 +0100
+
+oem-config (1.32) hardy; urgency=low
+
+  [ Evan Dandrea ]
+  * Use a GtkEventBox rather than a GtkScrolledWindow for the tzmap to
+    match ubiquity (LP: #198179)
+  * Port changes to zoommap.py from ubiquity:
+    - Use a black border around tzmap points to assist the visually
+      impaired.
+    - Flash the currently selected location on the tzmap so that it's easier
+      to spot.
+    - When clicking on the tzmap, if the closest match is already selected,
+      take the next closest.
+    - Place the tzmap in an AspectFrame so it doesn't look distorted on
+      widescreen displays (LP: #200152).
+  * Center the oem-config window to match ubiquity.
+  * Port fix for correctly answering the countrychooser/country-name question
+    from ubiquity (was LP #174937) (LP: #203648).
+  * Automatic update of included source packages: localechooser
+    1.42ubuntu3.
+
+  [ Colin Watson ]
+  * Ensure that our build fails if one of the d-i components fails to build.
+  * Add a check-manifest tool to ensure that d-i/manifest is in sync with
+    d-i/source/ on upload (from ubiquity).
+  * Don't clean console-setup; bits of it are intentionally missing from our
+    copy, and it's not necessary.
+  * Now that we allow user creation even if a non-system user already
+    exists, we can only delete the temporary oem user once oem-config has
+    actually succeeded (LP: #153311).
+
+  [ Jonathan Riddell ]
+  * kde_ui:
+    - Load new Kubuntu wallpaper, also fix background if it can't find wallpaper
+    - Load Oxygen icons if available
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 25 Mar 2008 16:32:01 -0400
+
+oem-config (1.31) hardy; urgency=low
+
+  [ Colin Watson ]
+  * Remove /etc/udev/rules.d/70-persistent-cd.rules and
+    /etc/udev/rules.d/70-persistent-net.rules in oem-config-prepare, in case
+    the system is going to be cloned.
+  * Remove /home/oem/.ssh/known_hosts in oem-config-prepare. If ssh was used
+    then this might be slightly sensitive.
+  * Allow user creation even if a non-system user already exists (thanks,
+    Torsten Spindler; LP: #153310).
+
+  [ Evan Dandrea ]
+  * Port zoommap fixes from ubiquity.
+  * Automatic update of included source packages: console-setup
+    1.21ubuntu4, user-setup 1.16ubuntu5.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 04 Mar 2008 11:51:16 -0500
+
+oem-config (1.30) hardy; urgency=low
+
+  [ Evan Dandrea ]
+  * Fix zoommap import, references to ubiquity (LP: #194491).
+
+  [ Matthias Klose ]
+  * Automatic update of included source packages.
+
+ -- Matthias Klose <doko@ubuntu.com>  Fri, 29 Feb 2008 20:41:40 +0000
+
+oem-config (1.29) hardy; urgency=low
+
+  * Drop build dependency on python-xml.
+  * d-i/source/localechooser/iso3166tab.py: Include ErrorPrinter and
+    DefaultHandler from obsolete saxutils.py
+
+ -- Matthias Klose <doko@ubuntu.com>  Fri, 29 Feb 2008 15:45:24 +0000
+
+oem-config (1.28) hardy; urgency=low
+
+  [ Colin Watson ]
+  * Build-depend on dctrl-tools rather than grep-dctrl.
+
+  [ Evan Dandrea ]
+  * Use new timezone widget from Ubiquity.  oem-config now shrinks to a
+    much smaller size (LP: #191823).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Wed, 20 Feb 2008 10:49:44 -0500
+
+oem-config (1.27) hardy; urgency=low
+
+  [ Colin Watson ]
+  * Call 'fontconfig-voodoo --auto --force --quiet' on startup and when the
+    language is changed. May help with LP #185269.
+
+  [ Evan Dandrea ]
+  * Updated the location of gnome-settings-daemon (LP: #190029).
+  * Automatic update of included source packages: console-setup
+    1.21ubuntu2.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Thu, 07 Feb 2008 16:36:50 -0500
+
+oem-config (1.26) hardy; urgency=low
+
+  * Activate appropriate input methods when changing language (LP: #181857).
+  * Update console-setup component for layout and variant changes in
+    console-setup 1.21ubuntu1.
+  * Automatic update of included source packages: console-setup 1.21ubuntu1,
+    user-setup 1.16ubuntu3.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 28 Jan 2008 23:59:56 +0000
+
+oem-config (1.25) hardy; urgency=low
+
+  [ Colin Watson ]
+  * Update d-i/update-control to work with the new Dpkg::Deps module in
+    dpkg-dev 1.14.8.
+  * Append to /var/log/oem-config.log rather than overwriting it.
+
+  [ Evan Dandrea ]
+  * Copy the value of debian-installer/locale over to the target system
+    so that it gets used by oem-config as the default language
+    selection (LP: #181291).
+  * Properly handle situations where localechooser might ask
+    languagechooser/language-name-*.
+  * Automatic update of included source packages: console-setup
+    1.19ubuntu2.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Fri, 11 Jan 2008 11:03:35 -0500
+
+oem-config (1.24) hardy; urgency=low
+
+  * Fix "Step 1 of 4" counter advancement (part of LP #153139, #153336).
+  * Fix oem-config-frontend-* virtual package name generation to handle ~ in
+    versions.
+  * Check $DISPLAY before trying to run zenity or kdialog.
+  * Add Vcs-Bzr field to debian/control.
+  * Convert to python-central.
+  * Adjust for localechooser 1.39:
+    - Don't edit /etc/environment unless it already contains LANG or
+      LANGUAGE settings.
+  * Adjust for localechooser 1.40:
+    - Cope with localechooser asking countrychooser/country-name rather than
+      countrychooser/shortlist.
+  * Automatic update of included source packages: console-setup 1.19ubuntu1,
+    localechooser 1.42ubuntu1, tzsetup 1:0.19, user-setup 1.16ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 03 Dec 2007 13:52:21 +0000
+
+oem-config (1.23) gutsy; urgency=low
+
+  * busybox sed doesn't support making backup files when editing in place
+    (e.g. 'sed -i.oem'); chroot to edit kdmrc as well.
+  * Fix GTK .desktop filename used in oem-config-prepare gksudo invocation.
+  * Install .desktop files under /usr/share/applications/ at first install
+    rather than shipping them there in the .debs, and remove them once
+    oem-config-firstboot has been run (LP: #145281).
+  * Set HOME in oem-config-dm so that iceauth is happier.
+  * Start dcopserver before kwin (LP: #145226).
+  * Run kdesktop too to fix the background in KDE.
+  * Update translations from Rosetta.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 12 Oct 2007 15:04:03 +0100
+
+oem-config (1.22) gutsy; urgency=low
+
+  * Only run gnome-settings-daemon if it exists, removing dependency on
+    gnome-control-center (LP: #147852).
+  * GTK frontend:
+    - Make sure the next button remains the default widget despite being
+      hidden and re-shown.
+  * Update translations from Rosetta.
+  * Automatic update of included source packages: user-setup 1.14ubuntu4
+    (LP: #149582).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 06 Oct 2007 13:19:18 +0100
+
+oem-config (1.21) gutsy; urgency=low
+
+  * GTK frontend:
+    - Work around http://bugzilla.gnome.org/show_bug.cgi?id=56070 by hiding
+      and re-showing the button widgets, following a suggestion by Scott
+      Horowitz.
+    - Remove some duplication of work now done in oem_config.i18n.
+  * Add lots of translations from Rosetta.
+  * Don't ignore 'make distclean' errors other than missing Makefiles.
+  * Remove d-i/source/console-setup/Keyboard/MyKeyboardNames.pl on clean.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 03 Oct 2007 01:02:55 +0100
+
+oem-config (1.20) gutsy; urgency=low
+
+  * Add a --quiet option to oem-config-prepare to suppress its
+    acknowledgement message (and thus the dialog requiring user interaction
+    if $DISPLAY is set).
+  * Add internationalisation (LP: #23537). Adjusted several widget names and
+    strings in the KDE frontend to bring it into sync with the GTK frontend
+    for this purpose.
+  * Start dcopserver when running the KDE frontend (LP: #145226).
+  * Add a --debug option to oem-config-firstboot to make debugging a bit
+    less painful.
+  * Remove use of dh_python, since it's a no-op now. Bump debhelper
+    build-dependency to 5.0.37.3ubuntu2 (a.k.a. dh_python from 5.0.38) for
+    this.
+  * Clean up subprocesses even if oem-config-dm is interrupted.
+  * GTK frontend:
+    - Go forward when activating rows in language or keyboard treeviews.
+  * Make sure the selected locale at least exists (we should really install
+    the language pack, but this is a stopgap measure).
+  * Automatic update of included source packages: console-setup 1.16ubuntu5,
+    localechooser 1.38ubuntu2, user-setup 1.14ubuntu3.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 01 Oct 2007 17:59:41 +0100
+
+oem-config (1.19) gutsy; urgency=low
+
+  * Run gnome-settings-daemon so that we use the normal theme (LP: #23899).
+  * Use zenity or kdialog if available to display oem-config-prepare's
+    acknowledgement message (LP: #131309).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 06 Sep 2007 14:38:08 +0100
+
+oem-config (1.18) gutsy; urgency=low
+
+  * Chroot to test for existence of gdm-cdd.conf to avoid problems with
+    broken symlinks; cf. casper 1.93.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 09 Aug 2007 17:54:46 +0100
+
+oem-config (1.17) gutsy; urgency=low
+
+  * Move .glade and .ui files to a new top-level gui directory in the source
+    package, and install them under /usr/share/oem-config/glade and
+    /usr/share/oem-config/qt respectively.
+  * Rename gtk-ui to gtk_ui and kde-ui to kde_ui, to make it easier to
+    subclass them.
+  * Break up the glade file into multiple pieces to make updates to single
+    pages a lot easier (port of work done in ubiquity by Mario Limonciello).
+  * Drop into pdb.post_mortem on non-SyntaxError exceptions if the --pdb
+    option is given and oem-config is running from a terminal.
+  * Fix title of language page: "Choose language and location" no longer
+    makes sense now that the location is computed from the timezone.
+  * Minor UI tweaks to sync up with ubiquity.
+  * Add a warning in d-i/source/README about modifying files in this
+    directory.
+  * Implement the oem-config parts of the ubiquity-oem specification:
+    - Fix desktop file installation harder.
+    - Update user page layout to match ubiquity, including filling in a
+      suggested username automatically, displaying error messages inline,
+      and showing a warning message in debugging mode.
+    - Set up autologin for the oem user via gdm/kdm.
+    - Disable the hwdb-client notification for the created user.
+    - Add a facility to run hook scripts from
+      /usr/lib/oem-config/post-install just before exiting. Hook scripts are
+      run noninteractively, although they can talk to debconf for database
+      queries and the like if they need to.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 03 Jul 2007 14:12:45 +0100
+
+oem-config (1.16) gutsy; urgency=low
+
+  * Update console-setup component for Lithuanian changes in console-setup
+    1.16ubuntu1.
+  * Fix desktop file installation.
+  * Automatic update of included source packages: console-setup 1.16ubuntu4.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 02 Jul 2007 08:54:44 +0100
+
+oem-config (1.15) gutsy; urgency=low
+
+  * Add an oem-config-check udeb to set an "OEM mode (for manufacturers
+    only)" info message. OEM mode should now be enabled using
+    oem-config/enable=true.
+  * Multiply menu-item-numbers by 100.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 18 May 2007 17:55:43 +0100
+
+oem-config (1.14) gutsy; urgency=low
+
+  * Add an apport hook to attach /var/log/oem-config.log.
+  * Strip binaries.
+  * Print usage message and exit if any non-option arguments are supplied to
+    oem-config; suggest oem-config-prepare (LP: #105940).
+  * Update Japanese keyboard layout handling to match console-setup
+    1.7ubuntu18, which uses jp(latin),jp by default (LP: #63915).
+  * Teach oem-config-prepare to escalate privileges itself using gksudo,
+    kdesu, etc. as appropriate, rather than requiring it to be invoked using
+    sudo.
+  * Add a desktop icon to the oem user's desktop to run oem-config-prepare
+    (LP: #41698).
+  * Display an error dialog and exit if running as non-root (LP: #99211).
+  * Automatic update of included source packages: console-setup 1.15ubuntu1,
+    localechooser 1.38ubuntu1, tzsetup 1:0.17, user-setup 1.14ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 17 May 2007 11:43:03 +0100
+
+oem-config (1.13) feisty; urgency=low
+
+  * Display error dialogs on user-setup errors (LP: #94913).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu,  5 Apr 2007 11:38:22 +0100
+
+oem-config (1.12) feisty; urgency=low
+
+  [ Anirudh Ramesh ]
+  * Force Qt4 frontend to use Plastique instead of the default Motif style.
+  * Add copyright, license and bug contact information.
+
+  [ Colin Watson ]
+  * Update other copyright notices.
+  * Automatic update of included source packages: console-setup 1.13ubuntu9.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 21 Mar 2007 09:45:21 +0000
+
+oem-config (1.11) feisty; urgency=low
+
+  [ Anirudh Ramesh ]
+  * Add missing 'import os' to oem-config.
+  * Stop using xsetroot in oem-config-dm for KDE, as the KDE frontend now
+    sets its own wallpaper.
+
+  [ Colin Watson ]
+  * Automatic update of included source packages: user-setup 1.8ubuntu2.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 15 Mar 2007 11:41:01 +0000
+
+oem-config (1.10) feisty; urgency=low
+
+  [ Anirudh Ramesh ]
+  * Make oem-config-kde depend on python-qt4, not python-kde3.
+
+  [ Colin Watson ]
+  * Don't install e-map.defs; it's not all that important and it causes a
+    conflict with ubiquity-frontend-gtk.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 14 Mar 2007 12:23:51 +0000
+
+oem-config (1.9) feisty; urgency=low
+
+  [ Colin Watson ]
+  * Install copyright and changelog files in Architecture: all packages too.
+  * Add a 'debian/rules update-local' target to allow updating d-i/source/
+    without updating debian/changelog, which is sometimes convenient for
+    local hacking.
+  * Make OEM_CONFIG_DEBUG=1 imply DEBCONF_DEBUG='developer|filter' for ease
+    of debugging.
+  * Add a --debug option, equivalent to setting OEM_CONFIG_DEBUG=1.
+  * Add timezone widget from ubiquity.
+  * Update language, timezone, and keyboard handling code from ubiquity.
+  * Move the timezone step before the keyboard step.
+  * Apply language, timezone, and keyboard changes at the end of oem-config
+    rather than on the fly.
+  * Depend on a version of console-setup at least as new as the one in our
+    source tree.
+  * Track console-setup 1.13ubuntu4 changes by generating and using
+    MyKeyboardNames.pl based on xkb-data, which is more up to date than
+    KeyboardNames.pl.
+  * Stop the user page spreading out in an ugly manner now that the pages
+    are bigger. This does result in an unpleasant amount of empty space; the
+    page needs a redesign to cope with this.
+  * Activate the Forward button when Enter is pressed in any entry field on
+    the user page.
+  * Leave the UI up until we've finished applying changes; we now have to
+    regenerate the initramfs (due to console-setup changes) and it takes a
+    while.
+  * Send SIGKILL to the window manager if it fails to exit within a second
+    of receiving SIGTERM.
+  * Automatic update of included source packages: console-setup 1.13ubuntu8,
+    localechooser 1.37ubuntu1, tzsetup 1:0.14, user-setup 1.8ubuntu1.
+
+  [ Anirudh Ramesh ]
+  * Port KDE frontend to Qt 4.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 13 Mar 2007 15:53:32 +0000
+
+oem-config (1.8) edgy; urgency=low
+
+  [ Colin Watson ]
+  * Remove /var/lib/kdm/kdmsts in oem-config-firstboot after removing the
+    oem user; KDM stores the default user there.
+  * Automatic update of included source packages: console-setup 1.7ubuntu19,
+    localechooser 1.20ubuntu8, user-setup 1.2ubuntu4.
+
+  [ Anirudh Ramesh ]
+  * KDE frontend: Fixed bug where set_country combobox was not being
+    updated.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 21 Oct 2006 00:36:15 +0100
+
+oem-config (1.7) edgy; urgency=low
+
+  * Add oem-config-udeb/frontend question, defaulting to gtk; preseed this
+    to install a different oem-config frontend on the target system (closes:
+    Malone #62777).
+  * Wait more or less properly by means of SIGUSR1 for the X server to start
+    up, rather than arbitrarily sleeping for five seconds.
+  * Don't actually import the frontend module in oem-config-dm; merely check
+    whether it exists. Otherwise, at least gtk will try to contact the X
+    server at import time and get very confused when it predictably isn't
+    there (closes: Malone #62814).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue,  3 Oct 2006 22:04:48 +0100
+
+oem-config (1.6) edgy; urgency=low
+
+  * Add /usr/lib/oem-config to sys.path in oem-config-dm so that it can
+    import frontend modules.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 27 Sep 2006 13:38:57 +0100
+
+oem-config (1.5) edgy; urgency=low
+
+  * Fix syntax error in oem-config-dm.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 25 Sep 2006 10:45:58 +0100
+
+oem-config (1.4) edgy; urgency=low
+
+  [ Anirudh Ramesh ]
+  * KDE frontend: Reindented to match rest of project.
+  * KDE frontend: Fixed crash in set_timezone.
+
+  [ Colin Watson ]
+  * Add frontend detection to oem-config-dm, so that KDE support can be
+    filled in.
+
+  [ Anirudh Ramesh ]
+  * Add KDE support to oem-config-dm.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 22 Sep 2006 12:13:59 +0100
+
+oem-config (1.3) edgy; urgency=low
+
+  * Import subprocess in console-setup component (closes: Malone #60409).
+  * Fix language name handling (closes: Malone #60410).
+  * GTK frontend: Make the Forward button the default widget so that it's
+    activated when Enter is pressed.
+  * Add kde-ui to default frontend search list.
+  * Automatic update of included source packages: console-setup 1.7ubuntu9.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 18 Sep 2006 14:26:02 +0100
+
+oem-config (1.2) edgy; urgency=low
+
+  * Merge from ubiquity:
+    - Move from kbd-chooser to console-setup
+      (https://launchpad.net/distros/ubuntu/+spec/sane-installer-keyboard).
+      We still need to add a UI element for the keyboard variant, and
+      translations of layout and variant names are missing, but it mostly
+      seems to work.
+    - Strip Fonts and Keyboard directories from our copy of console-setup;
+      they're very large, and not needed since we don't actually build
+      console-setup, but just copy a few scripts from it.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu,  7 Sep 2006 20:33:41 +0100
+
+oem-config (1.1) edgy; urgency=low
+
+  * Merge KDE frontend from Anirudh Ramesh.
+  * Automatic update of included source packages: kbd-chooser 1.30ubuntu1,
+    localechooser 1.20ubuntu6, tzsetup 1:0.10ubuntu2, user-setup 1.2ubuntu3.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue,  5 Sep 2006 17:24:33 +0100
+
+oem-config (1.0) edgy; urgency=low
+
+  * Reorganise oem-config to have a reasonable frontend/backend separation,
+    thereby allowing for a future KDE port. This involved updating much of
+    the core to look more like ubiquity (since ubiquity's core was an
+    evolution of oem-config's), and a new UI using a single window/notebook
+    rather than a succession of dialogs.
+  * Casualties of this work include the whole base-config-like menu
+    structure and the include/exclude mechanism. The menu structure made it
+    difficult to avoid spawning a new dialog for each step, which was a poor
+    UI; I don't believe the include/exclude mechanism was heavily used, but
+    contact me if you were relying on it and it may be possible to restore
+    it in a new form.
+  * I haven't yet ported the new i18n infrastructure from ubiquity, so the
+    oem-config UI will be untranslated.
+  * Like ubiquity, we now incorporate source for all d-i components we use
+    under d-i/source/ and include them directly in our binary package,
+    reducing the number of complex interdependencies with d-i packages.
+    'debian/rules update' can be used to do automatic updates of these
+    copied source packages.
+  * Remove some leftover code that dealt with restoring the inittab, as we
+    don't do the temporary inittab thing any more.
+  * Fix kbd-chooser wrapper script to actually install the selected keymap
+    (though only for the console at present).
+  * Move from prebaseconfig to finish-install.
+  * Make oem-config Architecture: any, since it now includes kbd-chooser
+    binaries.
+  * Add an oem-config-gtk package for the GTK frontend.
+  * Convert to python-support.
+  * Fix apt-install compatibility wrapper to use debconf's noninteractive
+    frontend, tell debconf not to send e-mail, avoid upgrading, ignore GPG
+    time conflicts, and suppress prompts.
+  * Update localechooser wrapper to handle /etc/default/locale (based on
+    localechooser 0.19) and to use /usr/share/i18n/SUPPORTED (based on
+    localechooser 1.20ubuntu5).
+  * Make more of an effort to display translated country names.
+  * Use /bin/bash for user-setup due to a dash test(1) bug.
+  * Language names are now sorted according to the local name for each
+    language (closes: Malone #47724).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 22 Aug 2006 16:26:07 +0100
+
+oem-config (0.14) dapper; urgency=low
+
+  * Set LANGUAGE as well as LANG when changing the locale; this allows us to
+    get correct debconf translations without needing to run locale-gen (see
+    Malone #43071).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 12 May 2006 15:27:07 +0100
+
+oem-config (0.13) dapper; urgency=low
+
+  * Depend on xserver-xorg and metacity for oem-config-dm (closes: Malone
+    #33837).
+  * Depend on user-setup for username/password menu item (closes: Malone
+    #33277).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 13 Apr 2006 14:13:41 +0100
+
+oem-config (0.12) dapper; urgency=low
+
+  * Make better use of dh_install.
+  * Add various helpers in /usr/lib/oem-config/compat, moved here from
+    oem-config-locale.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 17 Jan 2006 15:33:33 +0000
+
+oem-config (0.11) dapper; urgency=low
+
+  * Add a main-menu step to the udeb which is responsible for arranging to
+    create the oem user with a suitable uid. This was formerly done by a
+    preseed file.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 16 Jan 2006 18:38:37 +0000
+
+oem-config (0.10) dapper; urgency=low
+
+  * Remove unused moduledir variable.
+  * Remove passwd menu entry, now moved to user-setup.
+  * Build binary package in binary-indep, not binary-arch.
+  * We now use a single-stage installer, so we can no longer hook into
+    base-config. Add a udeb instead which provides instructions on what to
+    do after the first boot, and add an oem-config-prepare program which
+    should be run by the OEM once they have completed any necessary
+    modifications. Note that this means that the system is no longer
+    prepared for the end-user until oem-config-prepare is manually run
+    (closes: Malone #28095).
+  * Make oem-config-udeb responsible for installing oem-config in /target.
+    This will require preseed file changes.
+  * Remove timezone menu entry, now moved to oem-config-timezone.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 16 Jan 2006 16:20:14 +0000
+
+oem-config (0.9) breezy; urgency=low
+
+  * Quieten output from deluser.
+  * Quieten output from debconf-communicate while resetting passwd/user-uid.
+  * Try setting LANG to the value of debian-installer/fallbacklocale if the
+    value of debian-installer/locale isn't a valid locale (Ubuntu #17366).
+  * Set labels in passwd and timezone windows to the translated descriptions
+    of the same questions in the installer; sync text of passwd labels with
+    the text in passwd.templates (Ubuntu #17366).
+  * Re-register passwd/user-fullname and passwd/username templates to
+    themselves rather than debian-installer/dummy (although it's a bug
+    somewhere in preseeding that they're left this way) so that we get
+    useful translated descriptions for them.
+  * Set title of timezone window to the translated description of
+    tzconfig/title. Unfortunately this is too hard to do for the passwd
+    window at present.
+  * Exiting oem-config can leave you without a configured user, so try not
+    to exit unnecessarily. If we have to, then print an error message with
+    instructions and drop the user to a shell, since that's better than a
+    login prompt with no users.
+  * Reload /var/lib/dpkg/info/base-config.templates for timezone question;
+    for some reason the translations seem to be getting lost from it.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 11 Oct 2005 21:41:41 +0100
+
+oem-config (0.8) breezy; urgency=low
+
+  * Remove the temporary OEM configuration user before running oem-config.
+  * Reset passwd/user-uid before running oem-config, so that the new user is
+    created at uid 1000 rather than 29999.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon,  3 Oct 2005 13:04:42 +0100
+
+oem-config (0.7) breezy; urgency=low
+
+  * Use an init script and temporary rc.d links to launch
+    oem-config-firstboot on the first boot after installation, rather than a
+    temporary inittab. The latter approach caused base-config to be
+    respawned after exiting.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 21 Sep 2005 12:53:13 +0100
+
+oem-config (0.6) breezy; urgency=low
+
+  * Set passwd and timezone window gravity to center.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 14 Sep 2005 13:35:58 +0100
+
+oem-config (0.5) breezy; urgency=low
+
+  * Unset LANGUAGE while running steps; it overrides LANG and thereby causes
+    much confusion.
+  * Policy version 3.6.2. No changes required.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue,  9 Aug 2005 16:48:08 +0100
+
+oem-config (0.4) breezy; urgency=low
+
+  * Emit a debug message when changing LANG.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue,  9 Aug 2005 16:31:07 +0100
+
+oem-config (0.3) breezy; urgency=low
+
+  * Actually install /usr/sbin/oem-config-firstboot.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed,  3 Aug 2005 20:18:53 +0100
+
+oem-config (0.2) breezy; urgency=low
+
+  * Update GPL notices with the FSF's new address.
+  * Add description for base-config menu entry.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed,  3 Aug 2005 11:59:44 +0100
+
+oem-config (0.1) breezy; urgency=low
+
+  * Initial release.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 29 Jul 2005 17:24:44 +0100

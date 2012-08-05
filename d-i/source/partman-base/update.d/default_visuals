@@ -1,0 +1,35 @@
+#!/bin/sh
+
+. /usr/share/debconf/confmodule
+
+dev=$1
+num=$2
+id=$3
+size=$4
+type=$5
+fs=$6
+path=$7
+name=$8
+
+cd $dev
+
+if [ "$fs" != free ]; then
+	if [ -f $id/detected_filesystem ] && [ ! -f $id/method ]; then
+		filesystem=$(cat $id/detected_filesystem)
+	else
+		filesystem=''
+	fi
+	RET=''
+	if [ "$filesystem" ]; then
+		db_metaget partman/filesystem_short/$filesystem description || RET=''
+	fi
+	RET="${RET:-$filesystem}"
+elif [ "$type" = unusable ]; then
+	db_metaget partman/text/unusable description
+else
+	db_metaget partman/text/free_space description
+fi
+
+printf %s "$RET" >$id/visual_filesystem #TODO: language dependent length
+
+>$id/visual_mountpoint

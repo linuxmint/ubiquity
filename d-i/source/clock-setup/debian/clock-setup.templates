@@ -1,0 +1,79 @@
+Template: debian-installer/clock-setup/title
+Type: text
+#  Main menu item
+# :sl1:
+_Description: Configure the clock
+
+Template: clock-setup/utc
+Type: boolean
+Default: true
+# :sl1:
+_Description: Is the system clock set to UTC?
+ System clocks are generally set to Coordinated Universal Time (UTC).
+ The operating system uses your time zone to convert system time into
+ local time. This is recommended unless you also use another operating
+ system that expects the clock to be set to local time.
+
+Template: clock-setup/utc-auto
+Type: boolean
+Default: false
+Description: for internal use; can be preseeded
+ If true and we are the only OS on the disk, don't ask clock-setup/utc.
+
+Template: finish-install/progress/clock-setup
+Type: text
+# progress bar item
+# :sl1:
+_Description: Configuring clock settings...
+
+Template: clock-setup/progress/title
+Type: text
+# :sl1:
+_Description: Setting up the clock
+
+Template: clock-setup/ntp
+Type: boolean
+Default: true
+# :sl2:
+_Description: Set the clock using NTP?
+ The Network Time Protocol (NTP) can be used to set the system's clock.
+ The installation process works best with a correctly set clock.
+
+Template: clock-setup/ntp-server
+Type: string
+Default: ntp.ubuntu.com
+# :sl2:
+_Description: NTP server to use:
+ The default NTP server is almost always a good choice, but if
+ you prefer to use another NTP server, you can enter it here.
+
+Template: clock-setup/progress/ntp
+Type: text
+# progress bar item
+# :sl1:
+_Description: Getting the time from a network time server...
+
+Template: clock-setup/progress/hwclock
+Type: text
+# progress bar item
+# :sl1:
+_Description: Setting the hardware clock...
+
+Template: clock-setup/hwclock-wait
+Type: boolean
+Default: false
+# :sl2:
+_Description: Wait another 30 seconds for hwclock to set the clock?
+ Setting the hardware clock is taking longer than expected. The 'hwclock'
+ program used to set the clock may have problems talking to the hardware clock.
+ .
+ Check /var/log/syslog or see virtual console 4 for the details.
+ .
+ If you choose to not wait for hwclock to finish setting the clock, this
+ system's clock may not be set correctly.
+
+Template: clock-setup/system-time-changed
+Type: boolean
+Default: false
+Description: for internal use only
+ Set to true when rdate actually updates the system clock.

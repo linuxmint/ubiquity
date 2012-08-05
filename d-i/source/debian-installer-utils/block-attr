@@ -1,0 +1,33 @@
+#! /bin/sh
+
+usage () {
+	echo "Usage: $0 --type|--label|--uuid <device>"
+}
+
+case $1 in
+	--type)
+		vol_id_opt=--type
+		blkid_tag=TYPE
+		;;
+	--label)
+		vol_id_opt=--label
+		blkid_tag=LABEL
+		;;
+	--uuid)
+		vol_id_opt=--uuid
+		blkid_tag=UUID
+		;;
+	*)
+		usage >&2
+		exit 1
+		;;
+esac
+shift
+
+if (export PATH="/lib/udev:$PATH"; type vol_id) >/dev/null 2>&1; then
+	PATH="/lib/udev:$PATH" vol_id "$vol_id_opt" "$1"
+elif type blkid >/dev/null 2>&1; then
+	blkid -o value -s "$blkid_tag" "$1"
+else
+	exit 1
+fi

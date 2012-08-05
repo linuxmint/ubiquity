@@ -1,0 +1,51 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ "$fs" != free ] || continue
+		partitions="$partitions $id,$num"
+	done
+	close_dialog
+
+	for part in $partitions; do
+		id=${part%,*}
+		num=${part#*,}
+		[ -f $id/method -a ! -f $id/format \
+		  -a -f $id/acting_filesystem ] || continue
+		filesystem=$(cat $id/acting_filesystem)
+		case $filesystem in
+		    fat16|fat32)
+			log "Check the file system in $dev/$id"
+			template=partman-basicfilesystems/progress_checking
+			RET=''
+			db_metaget  partman/filesystem_short/"$filesystem" description || RET=''
+			[ "$RET" ] || RET="$filesystem"
+			db_subst $template TYPE "$RET"
+			db_subst $template PARTITION "$num"
+			db_subst $template DEVICE $(humandev $(cat device))
+			name_progress_bar $template
+			open_dialog CHECK_FILE_SYSTEM $id
+			read_line status
+			close_dialog
+			if [ "$status" != good ]; then
+				db_subst partman-basicfilesystems/check_failed TYPE "$filesystem"
+				db_subst partman-basicfilesystems/check_failed PARTITION "$num"
+				db_subst partman-basicfilesystems/check_failed DEVICE $(humandev $(cat device))
+				db_set partman-basicfilesystems/check_failed true
+				db_input critical partman-basicfilesystems/check_failed || true
+				db_go || true
+				db_get partman-basicfilesystems/check_failed
+				if [ "$RET" = true ]; then
+					exit 1
+				fi
+			fi
+			;;
+		esac
+	done
+done

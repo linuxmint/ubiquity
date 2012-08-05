@@ -1,0 +1,224 @@
+Ubiquity
+========
+
+This is a graphical installer for Ubuntu, written largely in Python, using
+d-i as a backend for many of its functions. The authors are indebted to the
+efforts of the Guadalinex project in developing the original
+"ubuntu-express" code used as a basis for this project.
+
+Background
+----------
+
+Around 2000, the debian-installer (later just "d-i") project started to
+replace the old Debian "boot-floppies" installer. The goals of this project
+included long-term maintainability, modularity, and code reuse. After a
+hiatus during the Debian 3.0 release, this project matured into a usable
+installer in 2004 in time for, among others, the releases of Debian 3.1 and
+Ubuntu 4.10. From Ubuntu 4.10 to Ubuntu 5.10, d-i was used as the primary
+installation program.
+
+d-i continues to provide flexibility and (for a certain significant class of
+users) ease of use that a simplified graphical installer will always be
+hard-pushed to provide. It is therefore important to continue to support it
+in Ubuntu. From a maintainability point of view, it follows that it is
+important for any graphical installer supported by Ubuntu to share
+substantial amounts of code with d-i, particularly where the backend logic
+is intrinsically difficult and has accumulated large quantities of expertise
+and bug fixes. Accordingly, Ubiquity is designed to use logic from d-i where
+possible, and tries to confine itself to being a high-quality frontend.
+
+(Of course, there remain some areas where d-i does not provide suitable
+logic, or where its logic has not proven amenable to direct use within
+Ubiquity, so there is still some backend-style logic and code duplication
+in Ubiquity. Eventually, as much of this as possible should go away.)
+
+UI Design
+---------
+
+The primary focus of Ubiquity's UI is ease of use for new users.
+Accordingly, it does not try to provide all possible options, deferring
+advanced installation scenarios to d-i so that it does not have to be all
+things to all people. See http://wiki.ubuntu.com/UbuntuExpress for the
+original details of its user interface design.
+
+Debconf Integration
+-------------------
+
+The most challenging part of Ubiquity to understand is undoubtedly its
+integration with d-i. Before getting to grips with this, I assume that the
+reader has a basic developer-level grasp of the "debconf" configuration
+system. Reading the debconf-devel(7) man page is a good idea.
+
+d-i uses debconf for all user interaction. The extant graphical debconf
+frontends are functional, but crude from a human interface design
+perspective; although this could be improved, the problem is to some extent
+intrinsic because they must generate a user interface based on the questions
+asked by the confmodule. It is possible to do much better using custom user
+interface code. However, at present debconf has no support for doing this
+directly (although cdebconf does).
+
+To deal with this, Ubiquity uses the noninteractive debconf frontend, and
+instead uses a layer called the "debconffilter". This sits between d-i code
+and the debconf frontend, intercepting the debconf protocol, and transforms
+relevant debconf protocol messages into events which can be handled in much
+the same way as UI events from widget libraries like GTK+ or Qt. While this
+requires insider knowledge of the questions which may be asked by each piece
+of d-i code, which must often be updated as d-i evolves, it seems to be the
+most practical approach at present.
+
+Each piece of d-i code used in Ubiquity is accompanied by a "component",
+written in Python, which defines the backend code to be called and any
+necessary event handlers. To allow for multiple frontend implementations, it
+typically calls methods in the frontend when UI operations are needed.
+
+It is important to remember that each call to component event handlers is
+blocking (though non-reentrant). If UI interaction is required in order to
+provide an answer to debconf, this must be handled by calling into suitable
+frontend functions from the component to wait for the user. The component is
+responsible for maintaining its own state machine if necessary.
+
+Partitioning
+------------
+
+All partitioning is handled by d-i code (partman), with a presentation layer
+on top. The presentation layer navigates partman's menus under the hood to
+perform advanced partitioning. See
+http://wiki.ubuntu.com/Ubiquity/AdvancedPartitionerRewrite for details.
+
+A graphical disk view has yet to be written for the GTK frontend's advanced
+partitioner.
+
+Installation
+------------
+
+The actual installation takes place by copying the read-only part of the
+live filesystem. The writable part of the live filesystem (i.e. the running
+live session) is intentionally not copied, to ensure maximum reproducibility
+of the installed system. Thus, any customisations applied by the live boot
+process must be re-applied after the read-only filesystem is copied. The
+live boot process is responsible for installing hooks in
+/usr/lib/ubiquity/target-config/ to take care of this.
+
+After copying the live filesystem, certain unnecessary packages (such as
+Ubiquity itself) will be removed. The set of packages to be removed is
+computed by taking those packages present in
+/cdrom/casper/filesystem.manifest-remove (or, in older versions of Ubuntu,
+those packages present in /cdrom/casper/filesystem.manifest but not present
+in /cdrom/casper/filesystem.manifest-desktop), and removing any packages
+explicitly requested for installation by installer code. Language packs for
+languages which are not to be supported on the installed system will also be
+removed.
+
+Logs of the installation will be saved in /var/log/syslog (for messages
+emitted by Ubiquity itself and messages emitted by d-i code), and
+/var/log/partman (for a trace of the operation of the automatic
+partitioner). /var/log/syslog and /var/log/partman are saved in
+/var/log/installer/ on the installed system.
+
+Customisation
+-------------
+
+Where d-i code is used, it is generally possible to preseed it to change
+default behaviour. See the installation guide for details. By default,
+preseeding is confined to setting default values for questions, and Ubiquity
+will not skip over preseeded steps (this is to allow sensible interpretation
+of going backward and forward in the UI); if the --automatic option is used,
+preseeded steps will be skipped.
+
+The read-only live filesystem should generally be mounted on /rofs.
+Alternatively, an image may be present as /cdrom/casper/filesystem.cloop,
+/cdrom/casper/filesystem.squashfs, or (for Guadalinex/Metadistros)
+/cdrom/META/META.squashfs. Ubuntu currently uses
+/cdrom/casper/filesystem.squashfs. You can preseed
+ubiquity/install/filesystem-images with a space-separated list of image
+paths to override this; if you provide more than one image, then they will
+be overlaid using unionfs.
+
+/cdrom/casper/filesystem.manifest should be a list of packages in the full
+live filesystem; the format is that produced by running "dpkg-query -W".
+/cdrom/casper/filesystem.manifest-remove should be a list of packages to
+remove from the target system after copying the live filesystem. This allows
+Ubiquity to ensure that, for example, Ubiquity itself doesn't end up on the
+target system.
+
+Language packs for the selected language are installed by default, using the
+Ubuntu naming scheme of language-pack-$LL and language-support-$LL. If you
+want to get rid of these (for example because their dependencies are
+inconvenient), then you can preseed pkgsel/language-packs to the empty
+string.
+
+If /cdrom/.disk/release_notes_url is present, a link to the release notes
+will be displayed on the language page. Instances of the string ${LANG} in
+that URL will be replaced with the locale, with any encoding removed (e.g.
+en, de, pt_BR, zh_CN).
+
+If you're installing from a medium other than a CD or DVD (e.g. over NFS),
+then the path of least resistance is to arrange that something that looks
+like a CD is available on /cdrom anyway. NFS-mounting an entire CD image is
+one approach that has worked with relatively little effort, but you could
+also set up the files listed above in some other way.
+
+Frequently Asked Questions
+--------------------------
+
+Q. Can I backport the version of Ubiquity from the current Ubuntu
+   development release to the previous stable release?
+
+A. Not without quite a bit of work. At present, Ubiquity is still a complex
+   piece of software with several bleeding-edge dependencies, and at the
+   moment I have no compunctions about making it depend on new packages or
+   newer versions of existing packages in order to get the job done
+   properly. In future, things may settle down such that there can be more
+   compatibility guarantees, particularly if Ubiquity is adopted by other
+   Debian-based distributions.
+
+   At the moment, I can think of the following specific issues with
+   backporting Ubiquity from Ubuntu 6.10 to Ubuntu 6.06:
+
+     * Ubiquity now uses the new Python policy, which involves a number of
+       packaging changes and even a couple of code changes that are
+       incompatible with Ubuntu 6.06. These would need to be reverted.
+
+     * Ubiquity now uses console-setup as the backend for the keyboard
+       screen rather than kbd-chooser. console-setup will not work on Ubuntu
+       6.06, so the kbd-chooser code would need to be resurrected.
+
+     * Ubiquity's GTK frontend now relies on new features in gparted in
+       order to fix some user interface bugs.
+
+     * Ubiquity now integrates with the apport crash reporting facility in
+       Ubuntu 6.10, which is not available in Ubuntu 6.06. (This would just
+       be a matter of removing dependencies; it's optional as far as the
+       code is concerned.)
+
+     * Ubiquity's debconf template translations now rely on new features in
+       po-debconf 1.0, which was not available in Ubuntu 6.06.
+
+   While I'm aware that there were a number of serious issues with the
+   version of Ubiquity that shipped with Ubuntu 6.06 (many of which were
+   corrected in Ubuntu 6.06.1), I feel that the right answer to these is to
+   backport selected fixes to that branch of Ubiquity rather than trying to
+   backport the whole package.
+
+   Similarly, there are at least the following issues with backporting
+   Ubiquity from Ubuntu 7.04 to Ubuntu 6.10:
+
+     * Ubiquity depends on a version of console-setup at least as new as the
+       one in its own source tree, so the two packages would need to be
+       backported together. The new version of console-setup in turn relies
+       on a newer version of xkb-data (although probably not inextricably).
+
+     * Ubiquity's GTK frontend now uses gtk.LinkButton, which isn't
+       available in the versions of GTK+/PyGTK in Ubuntu 6.10. Similarly,
+       you need a more recent version of glade-3 than is available in Ubuntu
+       6.10 to edit the user interface definition for the GTK frontend.
+
+     * Regenerating Ubiquity's autotools files (configure et al) requires
+       Automake 1.10, not available in Ubuntu 6.10.
+
+     * Ubiquity's apport crash handler now requires a new Python API
+       introduced in apport 0.33.
+
+
+Feel free to ask us (ubuntu-installer@lists.ubuntu.com) if you have any
+questions regarding Ubiquity's workings.

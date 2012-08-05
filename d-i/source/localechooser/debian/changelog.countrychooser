@@ -1,0 +1,595 @@
+countrychooser (1.12) unstable; urgency=low
+
+  * Colin Watson
+    - Make sure mk_shortlist_templates is executable during the build.
+  * Christian Perrier
+    - Rename the templates file to help out translators working
+      on a single file
+    - Remove the initial capital in the package description
+      Closes: #300910
+  * Frans Pop
+    - Don't add Denmark to shortlist for English (per #276067)
+
+ -- Christian Perrier <bubulle@debian.org>  Tue,  3 May 2005 14:52:10 +0200
+
+countrychooser (1.11) unstable; urgency=low
+
+  * Joey Hess
+    - Check seen flags before calling db_set, to avoid messing up preseeding.
+      Not an ideal fix.
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 10 Oct 2004 14:24:37 -0400
+
+countrychooser (1.10) unstable; urgency=low
+
+  * Updated translations: 
+    - Welsh (cy.po) by Dafydd Harries
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Hebrew (he.po) by Lior Kaplan
+    - Hungarian (hu.po) by VEROK Istvan
+    - Indonesian (id.po) by Debian Indonesia Team
+    - Japanese (ja.po) by Kenshi Muto
+    - Latvian (lv.po) by Aigars Mahinovs
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrisor
+    - Turkish (tr.po) by Recai Oktaş
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  6 Oct 2004 14:18:49 -0400
+
+countrychooser (1.09) unstable; urgency=low
+
+  * Frans Pop
+    - Revert patch by Christian Perrier in 1.08
+    - Fix some broken statements in postinst to really fix #274330
+    - Properly quote variables in echo statements. Closes #274413
+    - Fix nl.po file
+
+ -- Christian Perrier <bubulle@debian.org>  Fri,  1 Oct 2004 22:43:03 +0200
+
+countrychooser (1.08) unstable; urgency=high
+
+  * Christian Perrier
+    - Add Joey Hess to Uploaders
+    - mk_shortlist_templates now includes countrychooser/shortlist
+      template in the final templates file. Closes: 274330
+
+ -- Christian Perrier <bubulle@debian.org>  Fri,  1 Oct 2004 14:31:10 +0200
+
+countrychooser (1.07) unstable; urgency=low
+
+  * Christian Perrier
+    - Rebuilt with iso-codes 0.41
+    - ACK previous NMU. Closes: #265161
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 28 Sep 2004 07:26:06 +0200
+
+countrychooser (1.06) unstable; urgency=low
+
+  * Frans Pop
+    - Use seperate template for each language for shortlists.
+    - Set default country in shortlists. Closes: #265161
+    - Change name of template to countrychooser/shortlist
+  * Christian Perrier
+    - Add carriage return to awk scripts used for building
+      shortlist templates
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 27 Sep 2004 19:51:52 -0400
+
+countrychooser (1.05) unstable; urgency=low
+
+  * Christian Perrier
+    - Change the method for generating the templates from local
+      translations and iso-codes translations. This will be less
+      likely to give encoding mess. Closes: #272639
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 25 Sep 2004 08:36:12 +0200
+
+countrychooser (1.04) unstable; urgency=low
+
+  * Frans Pop
+    - Speed up the build of the short country list enough for
+      removing the need of a progress bar. Closes: #271260
+    - Variable quoting fixes. Closes: #272161
+    - Better test of the fallback locale : avoid inheriting
+      and keeping a wrong modifier when the fallback locale
+      is not supported. Closes: #272284
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 19 Sep 2004 18:43:52 +0200
+
+countrychooser (1.03) unstable; urgency=medium
+
+  * Christian Perrier
+    - [debian/postinst]
+      - Ask questions at high priority instead of critical. Closes: #260142
+      - Revert to languagechooser's locale only when it contains
+        an underscore and not when it only countains a language code
+        because the language is multi-country. Closes: #271209
+    - [debian/templates-in]
+      - Remove unused oldtitle template. Should save some space.
+  * Urgency set to medium because important bug fixed
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 12 Sep 2004 00:16:14 +0200
+
+countrychooser (1.02) unstable; urgency=low
+
+  * [get-SUPPORTED]
+    - do not drop the modifier part
+  * [debian/portinst]
+    - choose a locale which most closely resembles the initial locale
+      Closes: #263317
+    - handle the special case where neither language or country were changed
+      in countrychooser but the resulting locale differs from the one
+      inherited from languagechooser (most often for special purposes,
+      currently the Norwegian Bokmal transition). Closes: #260873
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 18 Aug 2004 18:21:26 +0200
+
+countrychooser (1.01) unstable; urgency=low
+
+  * Updated translations: 
+    - Arabic (ar.po) by Ossama M. Khayat
+    - Danish (da.po) by Frederik Dannemare
+    - Croatian (hr.po) by Kruno
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 25 Jul 2004 19:06:02 -0400
+
+countrychooser (1.00) unstable; urgency=medium
+
+  * Dennis Stampfer
+    - Fixed spelling-mistake in German translation. Closes: #253445
+  * Christian Perrier
+    - Fix encoding in dutch translation. Closes: #250530
+    - Fix the code keeping track or charset and modifiers in postinst
+      Thanks Eugeniy Meshcheryakov for spotting this which broke
+      Russian and Ukrainian 2nd stage
+  * Colin Watson
+    - Fix 'out = ""' syntax error in postinst.
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 11 Jul 2004 17:45:24 +0200
+
+countrychooser (0.020) unstable; urgency=low
+
+  * Christian Perrier
+    - Back to "new" layout
+    - Fallback to fallbacklocale for locale if xx_YY is invalid
+    - Cosmetic changes to mkshort for cleaning its output
+    - Remove YU country code
+    - Put AX in Europe
+    - Create an Arabic translation (empty) for getting the short
+      list for Arabic
+
+ -- Christian Perrier <bubulle@debian.org>  Mon,  7 Jun 2004 10:09:01 +0200
+
+countrychooser (0.019) unstable; urgency=low
+
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Catalan (ca.po) by Jordi Mallach
+    - Finnish (fi.po) by Tapio Lehtonen
+    - Gallegan (gl.po) by Héctor Fernández López
+    - Bøkmal, Norwegian (nb.po) by Knut Yrvin
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 25 May 2004 12:10:31 -0300
+
+countrychooser (0.018) unstable; urgency=high
+
+  * Urgency set to high as we need this in rc1
+  * Christian Perrier
+    - avoid changing locale we inherited from languagechooser if it was
+      already xx_YY
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 19 May 2004 09:26:09 +0200
+
+countrychooser (0.017) unstable; urgency=low
+
+  * Christian Perrier
+    - Applied patch from Eugeniy Meshcheryakov for translating
+      the short country list. Closes: #242006
+    - chmod u+x external scripts in debian/rules
+    - Changed the main menu entry to "Choose country or region"
+      Old "Choose country" kept
+    - Reworded the short list templates : simplify it and also
+      use "country or region". Remove the explanations about the "Other"
+      choice.
+  * Denis Barbier
+    - EG was listed twice in regionmap
+    - Remove po2debconf from source package, update intltool-merge to the
+      latest version and make changes minimal, and call po2debconf with
+      PODEBCONF_LIB=. in mktemplates so that this hacked script is run.
+    - patched mkshort for sorting country names
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 13 May 2004 20:10:56 +0200
+
+countrychooser (0.016) unstable; urgency=low
+
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Bokmal, Norwegian (nb.po) by Bjørn Steensrud
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Albanian (sq.po) by Elian Myftiu
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 23 Apr 2004 12:51:24 -0400
+
+countrychooser (0.015) unstable; urgency=low
+
+  * Updated translations: 
+    - Gallegan (gl.po) by Héctor Fernández López
+    - Hebrew (he.po) by Lior Kaplan
+    - Indonesian (id.po) by Parlin Imanuel Toh
+    - Italian (it.po) by Giuseppe Sacco
+    - Bokmal, Norwegian (nb.po) by Axel Bojer
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Turkish (tr.po) by Osman Yüksel
+    - Vietnamese (vi.po) by Vũ Quang Trung
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 20 Apr 2004 11:03:10 -0400
+
+countrychooser (0.014) unstable; urgency=low
+
+  * Matt Kraai
+    - Remove Taiwan from the Caribbean section of regionmap.
+    - Escape commas in country names instead of replacing them with " -".
+    - Remove "dash | ash" from the Build-Depends.
+  * Joshua Kwan
+    - Switch to debhelper's new udeb support.
+    - Bump debian/compat to 4, eschew DH_COMPAT.
+  * Denis Barbier
+    - Fix warnings in intltool-merge.
+  * Updated translations: 
+    - Welsh (cy.po) by Dafydd Harries
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Hebrew (he.po) by Lior Kaplan
+    - Russian (ru.po) by Nikolai Prokoschenko
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 10 Apr 2004 00:55:15 -0400
+
+countrychooser (0.013) unstable; urgency=low
+
+  * Denis Barbier
+    - Fix call to msgmerge in mktemplates.  In  the previous release,
+      nl.po was recoded into UTF-8 because otherwise debian/templates
+      contained empty lines for some Description-nl fields.  But
+      -pl and -ro are also wrong, all non-ASCII letters were dropped.
+      It is now fixed, PO files can contain any encoding.
+  * Christian Perrier : replaced "country" by more accurate description
+    in templates. Use definition from ISO-3166 maintenance agency and
+    United Nations
+  * Updated translations: 
+    - Bosnian (bs.po) by Safir Šećerović
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by Christian Perrier
+    - Hungarian (hu.po) by VERÓK István
+    - Indonesian (id.po) by Parlin Imanuel Toh
+    - Italian (it.po) by Giuseppe Sacco
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Dutch (nl.po) by Bart Cornelis
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luis Lopes
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Albanian (sq.po) by Elian Myftiu
+    - Swedish (sv.po) by André Dahlqvist
+    - Turkish (tr.po) by Osman Yüksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 30 Mar 2004 14:27:03 -0500
+
+countrychooser (0.012) unstable; urgency=low
+
+  * Joey Hess
+    - Change the hack to drop non-ascii countries entirely.
+  * Denis Barbier
+    - For yet unknown reasons, msgmerge fails with Dutch translations
+      and some strings are missing in the generated templates file.
+      This bug seems to disappear when debian/po/nl.po is UTF-8 encoded.
+  * Translations
+    - Nikolai Prokoschenko: Updated Russian translation (ru.po)
+    - Frans Pop: Updated Dutch translation (nl.po)
+    - Matjaz Horvat: Added Slovenian translation (sl.po)
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 14 Mar 2004 12:25:28 -0500
+
+countrychooser (0.011) unstable; urgency=HIGH
+
+  * Fixed massively broken translatons by a hack that changes Å to A in the
+    name of the Aland Islands.
+  * Make scripts set -e so this will never happen again.
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 13 Mar 2004 19:00:51 -0500
+
+countrychooser (0.010) unstable; urgency=low
+
+  * Denis Barbier
+    - Modify the code to preserve charset inherited from languagechooser
+      so that modifier is also preserved.
+      Closes: #234663
+  * Translations
+    - Dafydd Harries : Added Welsh translation (cy.po)
+    - Carlos Z.F. Liu: Updated Simplified Chinese translation (zh_CN.po)
+
+ -- Joey Hess <joeyh@debian.org>  Fri,  5 Mar 2004 10:21:59 -0900
+
+countrychooser (0.009) unstable; urgency=low
+
+  * Joey Hess
+    - Stop using non-breaking spaces, using new space escape code in
+      recent cdebconf. Fixes display on non-framebuffer terminal.
+
+ -- Joey Hess <joeyh@debian.org>  Fri,  5 Mar 2004 10:21:59 -0900
+
+countrychooser (0.008) unstable; urgency=low
+
+  * Translations
+    - Javier Fernandez-Sanguino
+      - Added Spanish translation (es.po)
+    - Ming Hua
+      - Initial Traditional Chinese translation (zh_TW.po), by Tetralet
+      - Updated Traditional Chinese translation (zh_TW.po), by Tetralet
+    - Eddy Petrisor
+          - Initial Romanian translation (ro.po)
+    - Håvard Korsvoll
+      - Added Norwegian, bokmål translation, (nb.po). From Axel Bojer
+
+ -- Joey Hess <joeyh@debian.org>  Tue,  2 Mar 2004 13:19:24 -0500
+
+countrychooser (0.007) unstable; urgency=low
+
+  * Joey Hess
+    - Remove debian/SUPPORTED-short on clean.
+    - Remove unused prebaseconfig script.
+  * Translations
+    - Bartosz Fenski
+      - Updated Polish translation (pl.po)
+    - Changwoo Ryu
+      - Updated Korean translation (ko.po)
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 22 Feb 2004 22:07:44 -0500
+
+countrychooser (0.006) unstable; urgency=low
+
+  * Translations
+    - Kęstutis Biliūnas
+      - Updated Lithuanian translation (lt.po)
+
+ -- Kęstutis Biliūnas <kestas@kaunas.init.lt>  Thu, 19 Feb 2004 19:11:55 +0200
+
+countrychooser (0.005) unstable; urgency=low
+
+  * Matt Kraai
+    - Do not queue bterm-unifont for installation.
+    - Build-depend on locales (closes: #233157).
+    - Add self to Uploaders.
+
+  * Translations
+    - Andre Dahlqvist
+      - Update Swedish translation (sv.po)
+    - Ognyan Kulev
+      - Added bulgarian translation (bg.po)
+    - Eugeniy Meshcheryakov
+      - Update Ukrainian translation (uk.po)
+
+ -- Matt Kraai <kraai@debian.org>  Tue, 17 Feb 2004 04:03:22 -0800
+
+countrychooser (0.004) unstable; urgency=low
+
+  * Christian Perrier
+    - Preserve charset inherited from languagechooser. Closes: #232049
+    - Use modified po2debconf/intltool-merge so that country names
+      may be shown with as much translations as possible even if not all
+      entries are translated. See #230838.
+  * Matt Kraai
+    - Queue bterm-unifont for installation if the language is ar, bg, el,
+      he, ja, ko, ru, tr, uk, or zh. Closes: #231453
+
+  * Translations
+    - Claus Hindsgaul
+      - Updated Danish translation (da.po).
+    - Miroslav Kure
+      - Update Czech translation
+    - Bart Cornelis
+      - Updated Dutch (nl.po) translation
+    - Carlos Z.F. Liu
+      - Updated Simplified Chinese translation (zh_CN.po)
+    - Dennis Stampfer
+      - Update German translation (de.po).
+    - André Luís Lopes
+      - Updated Brazilian Portuguese translation (pt_BR.po).
+    - Konstantinos Margaritis
+      - Updated Greek translation (el.po)
+		- Peter Mann
+			- Updated Slovak translation (sk.po)
+
+ -- Christian Perrier <bubulle@kheops.frmug.org>  Thu, 12 Feb 2004 11:41:02 +0100
+
+countrychooser (0.003) unstable; urgency=low
+
+  * Christian Perrier
+    - Commented menu entry in templates
+    - Removed Czech and Russian translations for iso-codes as they
+      now are in the main iso-codes package
+    - No more alternative locales use. Locale is now untouched
+      by countrychooser. Closes: #230463
+    - debian-installer/language now keeps the language list
+      inherited from languagechooser PLUS language_COUNTRY where
+      COUNTRY is the chosen country code. This variable is aimed
+      at filling the LANGUAGE environment variable
+    - mktemplates: Added correction copy destination when no iso_3166 translation
+      exists
+    - added Serbia and Montenegro to regionmap
+    - Two-step country choosing introduced:
+      - first choose among "valid" countries (with regards to SUPPORTED from
+        the locales package)
+      - if the user really wants another country, bring the full world
+        country list
+      - when a "valid" country is chosen, change locale accordingly
+      - current drawback : the first country list is not translated
+    - Now uses iso_3166.tab file:
+      - Pre-Depends: iso-3166-udeb
+      - Modified postinst
+      - Removed local iso_3166.tab in /etc
+    - New scheme for asking country:
+      - if a country is chosen from languagechooser, no country choice
+        except at medium priority
+      - if only language inherited from languagechooser, short country
+        list shown at high and then long if "Other" selected
+  * Joey Hess
+    - Fix strange source stanza pre-depends.
+    - Remove unnecessary dirs from udeb.
+    - Rename "Others" to "other", for consistency with other parts of d-i.
+    - Simplify the templates.
+    - Use a state machine to support backing up from the second question
+      to the first.
+
+  * Translations
+    - Bartosz Fenski
+      - Updated Polish (pl) translation
+    - Dennis Stampfer
+      - Update German translation (de.po)
+      - Update German translation (de.po)
+    - Giuseppe Sacco
+      - Added first italian translation (it.po)
+      - Updated italian translation
+    - Peter Mann
+      - Updated Slovak translation (sk.po)
+    - Kęstutis Biliūns       
+      - Updated Lithuanian translation (lt.po).
+    - Safir Secerovic         
+      - Add Bosnian translation (bs.po).
+    - Miguel Figueiredo       
+      - Add Portuguese translation (pt.po).
+      - Updated Portuguese translation (pt.po)
+    - Elyan Myftiu
+      - Add Albanian translation (sq.po)
+    - Jordi Mallach
+      - Add Catalan translation (ca.po).
+    - Christian Perrier
+      - Switched polish translation to UTF-8
+      - Updated French translation (fr.po)
+    - Claus Hindsgaul         
+      - Updated Danish translation (da.po).
+    - Konstantinos Margaritis 
+      - Updated Greek translation (el.po)
+    - Kenshi Muto             
+      - Updated Japanese translation (ja.po)
+    - Bart Cornelis           
+      - Updated Dutch (nl.po) translation
+    - Carlos Z.F. Liu         
+      - Updated Simplified Chinese translation (zh_CN.po)
+    - André Luís Lopes      
+      - Updated Brazilian Portuguese (pt_BR) translation.
+    - Miroslav Kure           
+      - Updated Czech translation
+    - Eugen Meshcheryakov     
+      - Added Ukrainian translation (uk.po)
+
+ -- Christian Perrier <bubulle@debian.org>  Sun,  8 Feb 2004 20:26:33 +0100
+
+countrychooser (0.002) unstable; urgency=low
+
+  * Bartosz Fenski
+    - Added Polish (pl) translation
+  * Christian Perrier
+    - Adapt to iso-codes file names changes:
+      mktemplates: s/iso-/iso_
+      get-iso-codes: s/iso-/iso_
+      debian/control: versioned Build-Depends on iso-codes >=0.21-1
+    - added fake Hebrew translation file to trigger he status pages on
+      Denis Barbier pages
+    - Changed get-iso-codes so that it does not fail when no
+      iso-codes.updates are there
+    - Better handling of locale just to be clean (anyway, kbd-chooser will
+      most often overwrite the locale we set there)
+    - Removed countrymap and countrycodemap scripts. Now included in
+      countrychooser as functions. countrymap now works with countries
+      including a space in their names such as United States..:-)
+  * Carlos Z.F. Liu
+    - Update Chinese translation zh_CN.po
+  * Joey Hess
+    - Move countrychooser into the postinst.
+    - Copyright update.
+    - Add backup support.
+    - Anchor the grep for a country.
+    - Add regionmap, countrylist, group list by region.
+  * Christian Perrier
+    - Updated regionmap
+  * Denis Barbier
+    - Add regions to the po files.
+  * Christian Perrier
+    - Added Caribbean to regions
+    - rephrased "Americas" to that they are sorted together
+    - French translation update
+  * Konstantinos Margaritis
+    - Updated Greek translation
+  * Kenshi Muto
+    - Update Japanese translation (ja.po)
+  * Bart Cornelis
+    - Update Dutch (nl.po) translation
+  * Miroslav Kure
+    - Update Czech translation
+  * Peter Mann
+    - Initial Slovak translation
+  * Joey Hess
+    - Put the list of regions in countrylist, to determine both order, and
+      for xgettext.
+    - Re-rephrased the Americas.
+  * Claus Hindsgaul
+    - Updated Danish translation (da.po).
+  * Konstantinos Margaritis
+    - Updated Greek translation
+  * Christian Perrier
+    - all translations converted to UTF-8. This is mandatory at
+      this time
+    - completed regionmap with regions with ultra high ratio of
+      Debian servers such as Bouvet, Heard&McDonald islands
+  * André Luís Lopes
+    - Updated Brazilian Portuguese (pt_BR) translation.
+  * Ming Hua
+    - Update Simplified Chinese translation
+  * Joey Hess
+    - Categorised TC.
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 22 Jan 2004 20:06:23 -0500
+
+countrychooser (0.001) unstable; urgency=low
+
+  * First release.
+  * Christian Perrier
+    - country defaults to the default country from languagechooser
+      (new countrycodemap script and changes to countrychooser)
+  * André Luís Lopes
+    - Converted changelog to UTF-8.
+    - Added Brazilian Portuguese (pt_BR) translation.
+  * Dennis Stampfer
+    - Initial German translation (de.po)
+  * Kęstutis Biliūnas
+    - Initial Lithuanian translation (lt.po).
+  * Claus Hindsgaul
+    - Initial Danish translation (da.po).
+  * Kenshi Muto
+    - Initial Japanese translation (ja.po)
+  * Konstantinos Margaritis
+    - Initial Greek translation (el.po)
+  * Christian Perrier
+    - sort the country list choice, at least in English
+  * Bart Cornelis
+    - Initial Dutch (nl.po) translation
+  * Miroslav Kure
+    - Initial Czech translation
+  * Christian Perrier
+    - debian/rules: add countrycodemap installation
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 17 Jan 2004 17:53:31 +0100

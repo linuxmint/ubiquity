@@ -1,0 +1,71 @@
+#! /bin/sh -e
+TYPE="$1"
+
+case $TYPE in
+    maybe-floppy)
+	logger -t list-devices "deprecated parameter maybe-floppy"
+	TYPE=floppy
+        ;;
+    cd|disk|partition|floppy)
+        ;;
+    usb-partition|maybe-usb-floppy)
+	# USB is not supported on hurd
+        exit 0
+        ;;
+    mmc-partition)
+        # MMC is not supported on hurd
+        exit 0
+        ;;
+    *)
+	echo "Usage: $0 cd|disk|partition|floppy|maybe-usb-floppy|usb-partition|mmc-partition" >&2
+	exit 2
+        ;;
+esac
+
+#
+# We are using the entries present in /dev to detect the different kind
+# of devices. Some heuristics are then used to refine the result.
+#
+
+is_cd_kernel() {
+	dev="${1#/dev/}"
+	grep -q "kernel: $dev: .* CDROM drive" /var/log/syslog
+}
+
+is_cd() {
+	# FIXME: this also detect hard drives, but anyway the mount will
+	# later fail
+
+	echo "$1" | egrep -q '^/dev/[sh]d[0-9]+$' || return 1
+	
+	is_cd_kernel "$1"
+}
+
+is_disk() {
+	echo "$1" | egrep -q '^/dev/[sh]d[0-9]+$' || return 1
+	
+	! is_cd_kernel "$1"
+}
+
+is_partition() {
+	echo "$1" | egrep -q '^/dev/[sh]d[0-9]+s[0-9]+$' || return 1
+	
+	return 0
+}
+
+is_floppy() {
+	echo "$1" | egrep -q '^/dev/fd[0-9]+$' || return 1
+
+	return 0
+}
+
+# Loop through some /dev/ entries and test all the character ones
+for x in /dev/fd* /dev/hd* /dev/sd* ; do
+	[ -b "$x" ] || continue
+
+	if is_$TYPE "$x" ; then
+		echo $x
+	fi
+done
+
+exit 0

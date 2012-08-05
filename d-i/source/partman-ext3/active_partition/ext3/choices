@@ -1,0 +1,103 @@
+#!/bin/sh
+
+. /usr/share/debconf/confmodule
+
+set -e
+
+dev=$1
+id=$2
+part=$dev/$id
+
+cd $dev
+
+[ -f $part/method -a -f $part/acting_filesystem ] || exit 0
+
+filesystem=$(cat $part/acting_filesystem)
+
+case "$filesystem" in
+    ext3|ext4)
+	:
+	;;
+    *)
+	exit 0
+	;;
+esac
+
+choice_mountpoint () {
+	if [ -f $part/mountpoint ]; then
+		mp=$(cat $part/mountpoint)
+	else
+		db_metaget partman-basicfilesystems/text/no_mountpoint description
+		mp="$RET"
+	fi
+	db_metaget partman-basicfilesystems/text/specify_mountpoint description
+	printf "mountpoint\t%s\${!TAB}%s\n" "$RET" "$mp"
+}
+
+choice_options () {
+	db_metaget partman-basicfilesystems/text/options description
+	printf "options\t%s\${!TAB}%.45s\n" "$RET" "$(get_mountoptions $dev $id)"
+}
+
+choice_label () {
+	# allow to set label only if the partition is to be formatted
+	[ -f $part/format ] || return 0
+	[ ! -f $part/formatted \
+	  -o $part/formatted -ot $part/method \
+	  -o $part/formatted -ot $part/filesystem ] || return 0
+	case "$filesystem" in
+	    ext3|ext4)
+		if [ -f $part/label ]; then
+			label=$(cat $part/label)
+		else
+			db_metaget partman-basicfilesystems/text/none description
+			label=$RET
+		fi
+		db_metaget partman-basicfilesystems/text/specify_label description
+		printf "label\t%s\${!TAB}%s\n" "$RET" "$label"
+		;;
+	esac
+}
+
+choice_reserved () {
+	local reserved
+	# allow to set reserved space only if the partition is to be formatted
+	[ -f $part/format ] || return 0
+	[ ! -f $part/formatted \
+	  -o $part/formatted -ot $part/method \
+	  -o $part/formatted -ot $part/filesystem ] || return 0
+	if [ -f $part/reserved_for_root ]; then
+		reserved=$(cat $part/reserved_for_root)
+	else
+		reserved=5
+	fi
+	db_metaget partman-basicfilesystems/text/reserved_for_root description
+	printf "reserved_for_root\t%s\${!TAB}%s\n" "$RET" "$reserved%"
+}
+
+choice_usage () {
+	local usage
+	# allow to set usage only if the partition is to be formatted
+	[ -f $part/format ] || return 0
+	[ ! -f $part/formatted \
+	  -o $part/formatted -ot $part/method \
+	  -o $part/formatted -ot $part/filesystem ] || return 0
+	if [ -f $part/usage ]; then
+		usage=$(cat $part/usage)
+	else
+		db_metaget partman-basicfilesystems/text/typical_usage description
+		usage=$RET
+	fi
+	db_metaget partman-basicfilesystems/text/usage description
+	printf "usage\t%s\${!TAB}%s\n" "$RET" "$usage"
+}
+
+choice_mountpoint
+
+choice_options
+
+choice_label
+
+choice_reserved
+
+choice_usage

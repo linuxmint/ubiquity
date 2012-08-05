@@ -1,0 +1,59 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+ARCH="$(archdetect)"
+
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ "$fs" != free ] || continue
+		partitions="$partitions $id,$num"
+	done
+	close_dialog
+
+	for part in $partitions; do
+		id=${part%,*}
+		num=${part#*,}
+		[ -f $id/method ] || continue
+		[ -f $id/acting_filesystem ] || continue
+		filesystem=$(cat $id/acting_filesystem)
+		case $filesystem in
+		    fat16|fat32|ntfs)
+			[ -f "$id/mountpoint" ] || continue
+			mountpoint="$(cat "$id/mountpoint")"
+			# Check for FAT file systems mounted in places where POSIX
+			# filesystem semantics are usually expected, and make the
+			# user choose again.
+			case $mountpoint in
+			    /boot)
+				case $ARCH in
+				    armel/omap)
+					# omap uboot has problems with ext2;
+					# the problems with FAT can be
+					# worked around.
+					continue
+					;;
+				esac
+			    ;;
+			esac
+			case $mountpoint in
+			    /|/boot|/home|/opt|/srv|/tmp|/usr|/usr/local|/var)
+				>"$id/visual_mountpoint"
+				db_subst partman-basicfilesystems/posix_filesystem_required FILESYSTEM "$filesystem"
+				db_subst partman-basicfilesystems/posix_filesystem_required MOUNTPOINT "$mountpoint"
+				db_metaget partman/filesystem_short/ext2 description || RET=
+				[ "$RET" ] || RET=ext2
+				db_subst partman-basicfilesystems/posix_filesystem_required EXT2 "$RET"
+				db_input critical partman-basicfilesystems/posix_filesystem_required || true
+				db_go || true
+				exit 1
+				;;
+			esac
+			;;
+		esac
+	done
+done

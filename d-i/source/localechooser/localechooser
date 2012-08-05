@@ -1,0 +1,949 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+db_capb backup
+
+tpl_di_locale="debian-installer/locale"
+tpl_di_language="debian-installer/language"
+tpl_di_country="debian-installer/country"
+tpl_di_consoledisplay="debian-installer/consoledisplay"
+tpl_languagelist="localechooser/languagelist"
+tpl_shortlist="localechooser/shortlist"
+tpl_continentlist="localechooser/continentlist"
+tpl_countrylist="localechooser/countrylist"
+tpl_countrytxt="localechooser/text/country"
+tpl_supportedlocales="localechooser/supported-locales"
+tpl_preferredlocale="localechooser/preferred-locale"
+
+SUPPORTEDLOCALES=/usr/share/localechooser/SUPPORTED
+if [ ! -f "$SUPPORTEDLOCALES" ]; then
+	SUPPORTEDLOCALES=/usr/share/i18n/SUPPORTED
+fi
+SHORTLISTS=/etc/shortlists
+if [ ! -f "$SHORTLISTS" ]; then
+	SHORTLISTS=/usr/share/localechooser/shortlists
+fi
+LANGUAGELISTFILE=/usr/share/localechooser/languagelist
+LANGUAGELISTDATA=/usr/share/localechooser/languagelist.data.gz
+
+ORIG_IFS="$IFS"
+NL="
+"
+
+error() {
+	logger -t localechooser "error: $@"
+	exit 1
+}
+
+log() {
+	logger -t localechooser "info: $@"
+}
+
+
+locale2countrycode() {
+	if [ -n "$1" ]; then
+		if echo $1 | grep -q "_"; then
+			echo $1 | cut -f2 -d_ | cut -f1 -d@ | cut -f1 -d\.
+		else
+			echo
+		fi
+	else
+		error "Missing argument"
+	fi
+}
+
+choices_add() {
+	echo "${1:+$1, }$2"
+}
+
+# Determine the display level
+language_display_level() {
+	local level
+
+	#log "Frontend in use: $DEBIAN_FRONTEND"
+	case $DEBIAN_FRONTEND in
+	    gtk)
+		level=4 ;;
+	    *)
+		# Keep only Latin1 languages if we don't have a framebuffer
+		if [ "$TERM_FRAMEBUFFER" ]; then
+			level=3
+		else
+			level=1
+		fi
+		# The hurd text-mode console has decent charset support
+		if [ "$TERM" = "hurd" ]; then
+			level=3
+		fi
+		# ASCII only if we are on serial console, dumb, or Mach terminal
+		# Both variables should already be set at init time
+		if [ "$TERM_TYPE" = "serial" ] || [ "$TERM" = "dumb" ] || [ "$TERM" = "mach-color" ] ; then
+			level=0
+		fi
+		;;
+	esac
+
+	if [ "$OVERRIDE_SHOW_ALL_LANGUAGES" ]; then
+		level=4
+	fi
+	#log "Language display level is $level"
+	echo $level
+}
+
+# Build list of available languages for a display level
+build_language_template() {
+	local level=$1
+	local oldlevel=$(cat /var/lib/localechooser/langlevel \
+		2>/dev/null || true)
+	if [ "$level" = "$oldlevel" ]; then
+		return 0
+	fi
+
+	local IFS RET line name codes names_en names_both
+	rm -f /var/lib/localechooser/langlevel
+
+	IFS="$NL"
+	for line in $(zcat $LANGUAGELISTDATA | grep "^[0-$level]:"); do
+		name="$(echo "$line" | cut -d: -f3)"
+		codes="$(choices_add "$codes" \
+			"$(echo "$line" | cut -d: -f2)")"
+		names_en="$(choices_add "$names_en" \
+			"$name")"
+		names_both="$(choices_add "$names_both" \
+			"$name\${!TAB}-\${!TAB}$(echo "$line" | cut -d: -f4)")"
+	done
+	IFS="$ORIG_IFS"
+
+	db_subst $tpl_languagelist CODES "$codes"
+	db_subst $tpl_languagelist NAMES_EN "$names_en"
+	db_subst $tpl_languagelist NAMES_BOTH "$names_both"
+
+	echo $level >/var/lib/localechooser/langlevel
+}
+
+get_preseed() {
+	local template="$1"
+	local RET value
+
+	if db_get "$template" && [ "$RET" ]; then
+		value="$RET"
+		db_fget "$template" seen
+		log "$template preseeded to '$value' (seen: $RET)"
+
+		echo "$value"
+	fi
+}
+
+do_preseed() {
+	local RET ps_language ps_country ps_locale seenflag
+
+	ps_language=$(get_preseed $tpl_di_language)
+	ps_country=$(get_preseed $tpl_di_country)
+	ps_locale=$(get_preseed $tpl_di_locale)
+
+	# Only mark variables seen if locale is valid and was preseeded seen.
+	db_fget $tpl_di_locale seen
+	seenflag=$RET
+	db_fset $tpl_di_locale seen false || true
+
+	# If language or country are preseeded the regular code will handle it,
+	# otherwise set default language and/or country based on locale
+	if [ "$ps_language" ] || [ "$ps_country" ]; then
+		if [ "$ps_language" ] &&
+		   ! has_choice $tpl_languagelist $lang; then
+			log "Preseeded language ignored: unknown language code"
+		fi
+		if [ "$ps_country" ]; then
+			country_preseeded=1
+		fi
+		if [ "$ps_locale" ]; then
+			if grep -q "^$ps_locale " $SUPPORTEDLOCALES; then
+				db_fset $tpl_di_locale seen $seenflag || true
+				db_fset $tpl_supportedlocales seen $seenflag || true
+				locale_preseeded=1
+			else
+				log "Preseeded locale ignored: unsupported locale"
+			fi
+		fi
+		return
+	elif [ -z "$ps_locale" ]; then
+		return # no preseeding
+	fi
+
+	# Only populate debconf if this is a supported locale
+	# and if the language is supported in D-I
+	ps_language=${ps_locale%%.*}
+	if ! has_choice $tpl_languagelist "$ps_language"; then
+		ps_language=${ps_language%%_*}
+		if ! has_choice $tpl_languagelist "$ps_language"; then
+			log "Preseeded locale ignored: unsupported language"
+			return
+		fi
+	fi
+
+	db_set $tpl_languagelist $ps_language
+	log "Set $tpl_languagelist = '$ps_language'"
+	db_fset $tpl_languagelist seen $seenflag || true
+	ps_country=$(locale2countrycode "$ps_locale")
+	if [ -n "$ps_country" ]; then
+		db_set $tpl_di_country "$ps_country"
+		log "Set $tpl_di_country = '$ps_country'"
+		db_fset $tpl_di_country seen $seenflag || true
+		country_preseeded=1
+
+		# Avoid (accidental) preseeding of legacy locales
+		if [ "$ps_locale" != "${ps_language}_$ps_country" ] && \
+		   grep -q "^$ps_locale " $SUPPORTEDLOCALES; then
+			db_set $tpl_di_locale $ps_locale
+			db_fset $tpl_di_locale seen $seenflag || true
+			db_fset $tpl_supportedlocales seen $seenflag || true
+			log "Set $tpl_di_locale = '$ps_locale'"
+			locale_preseeded=1
+		fi
+	fi
+}
+
+# Install specific packages depending on selected language
+# Those we install here are those required immediately
+# Otherwise we will install them in finish-install
+install_lang_specific() {
+	if [ "$DEFAULT_LOCALE" != C ]; then
+		case "$LANGUAGE" in
+		    ar|el|fa|he|ja|ko|ku|tr|vi|wo|zh*)
+			# We need a complete font for later steps
+			anna-install bterm-unifont
+			;;
+		esac
+	fi
+}
+
+# Change language and switch font for graphical installer
+set_debconf_language() {
+	local RET
+
+	db_set "debconf/language" "$1"
+
+	if type gtk-set-font >/dev/null 2>&1; then
+		gtk-set-font || true
+	fi
+}
+
+# Determine which template to display to warn for incomplete translations
+# and fill in the variable contents
+warning_template() {
+	local RET status template tbase twarn tabort
+	status=$1
+	tbase=localechooser/translation
+
+	case $status in
+	    0)	twarn=incomplete; tabort=abort ;;
+	    1)	twarn=normal-ok; tabort=abort ;;
+	    2)	twarn=partial; tabort=maybe-abort ;;
+	    3)	twarn=mostly-ok ;;
+	    4)	twarn=exceptions ;;
+	esac
+	if [ $status -le 2 ]; then
+		template=$tbase/warn-severe
+		db_metaget $tbase/text/$tabort description
+		db_subst $template TXT-ABORT "$RET"
+	else
+		template=$tbase/warn-light
+	fi
+
+	# Languages that have fallbacks may have special templates
+	if [ "$twarn" != exceptions ] && \
+	   expr $LANGUAGELIST : ".*:" >/dev/null && \
+	   db_metaget $tbase/text/warn_$twarn/$LANGUAGE description; then
+		:
+	else
+		db_metaget $tbase/text/warn_$twarn description
+	fi
+	db_subst $template TXT-WARN "$RET"
+
+	echo $template
+}
+
+# Return the first language in the list that's listed in the
+# language selection dialog
+get_current_language() {
+	local OLDIFS="$IFS"
+	local IFS lang
+
+	db_get $tpl_di_language
+	IFS=:
+	for lang in $RET; do
+		IFS="$OLDIFS"
+		if has_choice $tpl_languagelist $lang; then
+			echo $lang
+			break
+		fi
+	done
+}
+
+# Test if a template has the requested value among its choices
+has_choice() {
+	local RET template value
+	template="$1"
+	value="$2"
+
+	[ "$value" ] || return 1
+
+	db_metaget $template Choices-C
+	echo " $RET," | grep -q " $value,"
+}
+
+# Get translation of current selection in select list
+# Assumes untranslated values don't contain commas
+choice_trans() {
+	local RET template value list list_trans
+	template=$1
+	value=$2
+
+	# Use Choices-C to get the untranslated values
+	db_metaget $template Choices-C
+	list=$(echo $RET | sed 's/, */,/g')
+	db_metaget $template Choices
+	list_trans=$(echo $RET | sed 's/\\,/#%#/g; s/, */,/g')
+
+	while :; do
+		if [ "${list%%,*}" = "$value" ]; then
+			echo "${list_trans%%,*}" | sed 's/#%#/\\,/g'
+			break
+		fi
+		list=${list#*,}
+		list_trans=${list_trans#*,}
+	done
+}
+
+# Set defaults for continent based on country
+set_default_continent() {
+	local IFS RET country continents c continent
+	country="$1"
+
+	if [ -z "$country" ]; then
+		db_reset $tpl_continentlist
+		return
+	fi
+
+	# Use Choices-C to get the untranslated values
+	db_metaget $tpl_continentlist Choices-C
+	continents=$(echo $RET | sed 's/, */,/g')
+
+	IFS=,
+	for continent in $continents; do
+		IFS="$ORIG_IFS"
+		c=$(echo "$continent" | sed "s/ /_/g")
+		if has_choice $tpl_countrylist/$c "$country"; then
+			db_set $tpl_continentlist "$continent"
+			return 0
+		fi
+	done
+	return 1
+}
+
+# Test if a locale includes a country part
+is_complete_locale() {
+	echo "$1" | grep -q "_"
+}
+
+# Find the preferred locale given language, country, and encoding.
+preferred_locale() {
+	OLDIFS="$IFS"
+	IFS="$NL"
+	# Look for locales with the right encoding first.
+	for trylocale in $(grep "^$1_$2" $SUPPORTEDLOCALES || true); do
+		IFS="$OLDIFS"
+		if [ -z "$3" ] || [ "${trylocale#* }" = "$3" ]; then
+			echo "${trylocale% *}"
+			return
+		fi
+		IFS="$NL"
+	done
+	# Pick the first of any other available locales.
+	for trylocale in $(grep "^$1_$2" $SUPPORTEDLOCALES || true); do
+		IFS="$OLDIFS"
+		echo "${trylocale% *}"
+		return
+	done
+	IFS="$OLDIFS"
+}
+
+# Find a supported locale which best fits the selected language and country.
+# Refinement: use the modifier inherited from language selection (if the
+# resulting locale is valid).
+get_default_locale() {
+	local lang fallback entry
+	lang=${LANGUAGE%%_*}
+
+	# Special handling of cases where the locale defined in the
+	# language list is NOT the combination of language_COUNTRY.
+	# Used for Norwegian Bokmal transition in order to keep no_NO as
+	# locale. May be used in the future for other special cases, so
+	# we'd better keep this.
+	fallback=$(echo "$DEFAULT_LOCALE" | sed -e 's/[.@].*$//')
+	if [ "$COUNTRYCODE" = "$DEFAULT_COUNTRY" ] && \
+	   [ "${lang}_$COUNTRYCODE" != "$fallback" ] && \
+	   is_complete_locale "$fallback"; then
+		# Explanation: we fall back to the locale inherited from the
+		# language step if the country selection did NOT result in
+		# a change in country but the resulting locale is different
+		# from the one we had in first step.
+		return
+	fi
+
+	# Check if a valid locale exists for the selected language + country
+	for entry in $COUNTRYCODE$DEFAULT_LOCALE_POSTFIX \
+	             $COUNTRYCODE; do
+		PREFERRED_LOCALE="$(preferred_locale "$lang" "$entry" "$ENCODING")"
+		if [ "$PREFERRED_LOCALE" ]; then
+			echo "$PREFERRED_LOCALE"
+			break
+		fi
+	done
+}
+
+build_preferredlocale_choices() {
+	local script="$(echo "$1" | cut -f2 -d@)"
+	local lang=${1%%_*} # strip country part
+	local default=$2
+	local i ccode country locale
+	local sl_choices_c sl_choices choices_c choices
+
+	db_metaget $tpl_shortlist choices-c
+	sl_choices_c="$(echo "$RET" | sed 's/, */,/g')"
+	db_metaget $tpl_shortlist choices
+	# Allow for escaped comma's in country names
+	sl_choices="$(echo "$RET" | sed 's/\\,/#%#/g; s/, */,/g')"
+
+	i=1
+	while :; do
+		ccode="$(echo "$sl_choices_c" | cut -d, -f $i)"
+		if [ -z "$ccode" ] || [ "$ccode" = other ]; then
+			break
+		fi
+		country="$(echo "$sl_choices" | cut -d, -f $i)"
+		i=$(($i + 1))
+
+		if grep -q "^${lang}_$ccode\.UTF-8 " $SUPPORTEDLOCALES; then
+			locale=${lang}_$ccode.UTF-8
+		elif grep -q "^${lang}_$ccode " $SUPPORTEDLOCALES; then
+			locale=${lang}_$ccode
+		else
+			continue
+		fi
+
+		choices_c="${choices_c:+$choices_c, }$locale"
+		choices="${choices:+$choices, }$country\${!TAB}-\${!TAB}$locale"
+
+		if [ "$locale" = "$default" ]; then
+			db_set $tpl_preferredlocale $LOCALE
+		fi
+	done
+	choices="$(echo "$choices" | sed 's/#%#/\\,/g')"
+	db_subst $tpl_preferredlocale CHOICES-C "$choices_c"
+	db_subst $tpl_preferredlocale CHOICES "$choices"
+}
+
+# Also allows to preseed with only comma as separator
+validate_supportedlocales() {
+	local choices="$1"
+	local locale current new
+	local english=
+
+	db_get $tpl_supportedlocales
+	current="$(echo "$RET" | sed 's/, */ /g')"
+	for locale in $current; do
+		if echo ", $choices, " | grep -q ", $locale, "; then
+			new="${new:+$new, }$locale"
+		fi
+		if [ "$locale" = C ] || [ "$locale" = en_US.UTF-8 ]; then
+			english=1
+		fi
+	done
+	# Always support English (unless preseeded otherwise), so that we
+	# get English language packs etc.
+	if [ "$english" ]; then
+		db_set $tpl_supportedlocales "$new"
+	else
+		db_set $tpl_supportedlocales "${new:+$new, }en_US.UTF-8"
+	fi
+}
+
+# Extract a value from /etc/lsb-release
+lsb_extract () {
+	[ -f /etc/lsb-release ] || return 0
+	grep "^$1=" /etc/lsb-release | \
+		sed 's/^[^=]*=//; s/^"//; s/"$//' || true
+}
+
+
+# debconf/language is an alias for debian-installer/language
+db_register "$tpl_di_language" "debconf/language"
+
+# Only display the translated texts (ie the English "translation") when in
+# UTF-8 mode. Note: seems the only case this triggers is serial console;
+# probably not needed anymore: we already limit which languages we display.
+if echo $LANG $LC_CTYPE | grep -q UTF-8; then
+	INITIAL_LANGUAGE=en
+else
+	INITIAL_LANGUAGE=""
+fi
+
+# Find the display level and set languages in the template
+# Needs to be done before checking preseeding, so we can preseed the
+# correct template.
+build_language_template $(language_display_level)
+
+# Only check for preseeding the first time localechooser is run.
+country_preseeded=""
+locale_preseeded=""
+if [ ! -f /var/lib/localechooser/preseeded ]; then
+	do_preseed
+	>/var/lib/localechooser/preseeded
+fi
+
+db_fget $tpl_languagelist seen
+if [ "$RET" = true ]; then
+	db_get $tpl_languagelist
+	PREVIOUS_LANGUAGE="$RET"
+else
+	PREVIOUS_LANGUAGE=""
+fi
+
+
+# Main loop starts here
+# Use a state machine to allow jumping back to previous questions.
+# Main states are multiples of 10 to allow "preparation" states to be
+# skipped when backing up.
+STATE=10
+LASTSTATE=0
+while :; do
+	case $STATE in
+	    0)	# Back up to menu
+		exit 10
+		;;
+
+	   10)	# Display language list
+		db_settitle localechooser/title/language
+
+		if [ -x /usr/lib/espeakup/espeakup.restart ]
+		then
+			/usr/lib/espeakup/espeakup.restart "$INITIAL_LANGUAGE"
+		fi
+
+		sel_language=1
+		# Disabled because of #470258: template is set to true too early
+		if false && \
+		   db_get debconf/translations-dropped && [ "$RET" = true ]; then
+			db_fget $tpl_di_language seen
+			if [ "$RET" != true ]; then
+				sel_language=""
+				db_input high localechooser/translation/no-select || true
+			fi
+		else
+			# Set initial language for correct display of list
+			set_debconf_language $INITIAL_LANGUAGE
+
+			db_get $tpl_languagelist
+			if [ "$RET" != C ]; then
+				current_language=$(get_current_language)
+				if [ "$current_language" ]; then
+					db_set $tpl_languagelist $current_language
+					db_fget $tpl_di_language seen
+					db_fset $tpl_languagelist seen $RET || true
+				fi
+			fi
+
+			db_capb backup align
+			db_input critical $tpl_languagelist || [ $? -eq 30 ]
+		fi
+		;;
+
+	   11)	# We have a language
+		db_get $tpl_languagelist
+		LANGUAGE="$RET"
+		if [ -x /usr/lib/espeakup/espeakup.restart ]
+		then
+			/usr/lib/espeakup/espeakup.restart "$LANGUAGE"
+		fi
+
+		if [ "$LANGUAGE" = "$PREVIOUS_LANGUAGE" ]; then
+			# The user picked the same language as before. We
+			# don't need to reset the default country and
+			# locale, and doing so may be confusing.
+			STATE=12
+			continue
+		fi
+
+		# Determine defaults based on languagelist
+		. languagemap
+		db_set "$tpl_di_language" "$LANGUAGELIST"
+		log "Set $tpl_di_language = '$LANGUAGELIST'"
+
+		if [ -n "$DEFAULT_COUNTRY" ]; then
+			log "Default country = '$DEFAULT_COUNTRY'"
+		fi
+		if [ -n "$DEFAULT_LOCALE" ]; then
+			log "Default locale = '$DEFAULT_LOCALE'"
+		fi
+
+		db_set "$tpl_di_consoledisplay"  "$CONSOLE"
+		log "Set $tpl_di_consoledisplay = '$CONSOLE'"
+
+		X_INSTALLATION_MEDIUM="$(lsb_extract X_INSTALLATION_MEDIUM)"
+		if [ "$sel_language" ] && [ $LANGUAGE != en ] && \
+		   [ "$X_INSTALLATION_MEDIUM" = "floppy" ]; then
+			db_input high localechooser/translation/none-yet || true
+		fi
+
+		# The language was changed, so a preseeded locale is no
+		# longer relevant.
+		locale_preseeded=""
+		;;
+
+	   12)	# Warn if translation is incomplete
+		set_debconf_language "$LANGUAGELIST"
+
+		# Display warning for incomplete translations; skip it for
+		# automated installs to prevent a loop if the default is false
+		twarning=""
+		if [ "$sel_language" ] && \
+		   db_get debconf/priority && [ "$RET" != critical ] && \
+		   tstatus=$(translation-check "$LANGUAGE"); then
+			twarning=$(warning_template $tstatus)
+			db_input high $twarning || [ $? -eq 30 ]
+		fi
+		;;
+
+	   13)	# Continue or choose alternative language
+		if [ "$twarning" ]; then
+			if db_get $twarning && [ "$RET" = false ]; then
+				db_reset $twarning
+				STATE=10
+				continue
+			fi
+		fi
+
+		install_lang_specific
+
+		# Display language selection on backup or rerun
+		db_fset $tpl_di_language seen false || true
+		STATE=19
+		continue
+		;;
+
+	   19)	# Prepare for country selection
+		FIRST_LANG="${LANGUAGELIST%%:*}"
+
+		# We use /etc/shortlists to check if we should present a shortlist
+		# As we may unregister the question for shortlists, the value for the
+		# shortlist template is also saved with the language specific question
+		use_lang=""
+		if [ "$DEFAULT_LOCALE" != C ]; then
+			if grep -q "^$FIRST_LANG" $SHORTLISTS; then
+				use_lang=$FIRST_LANG
+			elif grep -q "^$LANGUAGE" $SHORTLISTS; then
+				use_lang=$LANGUAGE
+			fi
+		fi
+
+		db_metaget $tpl_countrytxt/1/country description
+		ctxt1=$RET
+		db_metaget $tpl_countrytxt/2 description
+		ctxt2=$RET
+
+		shortlist_prio=critical
+		continent_prio=critical
+		country_prio=critical
+		;;
+
+	   20)	# Display a country shortlist if there is one
+		db_settitle localechooser/title/location
+
+		askedshort=
+		db_get $tpl_di_country
+		current_country="$RET"
+
+		# Prompt with the short list for languages that are listed
+		# in /etc/shortlists; for others prompt with all continents
+		# and countries.
+		if [ "$use_lang" ]; then
+			shortlist_template="$tpl_shortlist/$use_lang"
+			db_unregister $tpl_shortlist || true
+			db_register $shortlist_template $tpl_shortlist
+
+			db_fget $tpl_di_country seen
+			db_fset $tpl_shortlist seen $RET || true
+			db_subst $tpl_shortlist TXT1 "$ctxt1"
+			db_subst $tpl_shortlist TXT2 "$ctxt2"
+			db_metaget $tpl_countrytxt/3/shortlist description
+			db_subst $tpl_shortlist TXT3 "$RET"
+
+			# Set default value
+			if [ $LASTSTATE -ne 21 ]; then
+				current_short=""
+				if [ "$current_country" ]; then
+					if has_choice $tpl_shortlist "$current_country"; then
+						current_short="$current_country"
+					else
+						current_short=other
+					fi
+				elif has_choice $tpl_shortlist "$DEFAULT_COUNTRY"; then
+					current_short="$DEFAULT_COUNTRY"
+				fi
+				db_set $tpl_shortlist "$current_short"
+			fi
+
+			# If a preseeded value is not in the shortlist, skip
+			# to continent/country dialogs
+			if ! ([ "$country_preseeded" ] && \
+			      [ "$current_short" = other ]); then
+				db_input $shortlist_prio $tpl_shortlist || [ $? -eq 30 ]
+				askedshort=1
+			fi
+			country_preseeded=""
+		else
+			# Initially show the continent dialog only at medium
+			# priority, but allow to back up from country selection
+			# to select countries on a different continent.
+			# But we need to ask for a country at critical priority
+			# if the fallback locale does not include a country
+			# (is not complete); example: Esperanto.
+			if is_complete_locale $DEFAULT_LOCALE; then
+				continent_prio=medium
+				country_prio=high
+			fi
+
+			# Display continents after backing up from locale
+			# selection for countries without shortlist
+			if [ $LASTSTATE -gt 21 ]; then
+				STATE=21
+				continue
+			fi
+		fi
+		;;
+
+	   21)	# Check if a country was selected from the short list
+		# and if not, allow to select a continent
+		if [ "$askedshort" ]; then
+			db_get $tpl_shortlist
+			COUNTRYCODE="$RET"
+			if [ "$COUNTRYCODE" != "other" ]; then
+				STATE=24
+				continue
+			fi
+		fi
+
+		# Set default value
+		if [ $LASTSTATE -ne 22 ]; then
+			if [ "$current_country" ]; then
+				tcountry="$current_country"
+			else
+				tcountry="$DEFAULT_COUNTRY"
+			fi
+			if set_default_continent "$tcountry"; then
+				db_fget $tpl_di_country seen
+				db_fset $tpl_continentlist seen $RET || true
+			else
+				# Incorrect preseeding, show dialogs
+				log "Preseeded country ignored: unknown country code"
+				db_fset $tpl_di_country seen false || true
+			fi
+		else
+			# Backed up; reset continent template if no country
+			# was actually selected so it can get a new default
+			if [ -z "$current_country" ]; then
+				db_reset $country_template
+			fi
+		fi
+
+		db_metaget $tpl_countrytxt/1/continent description
+		db_subst $tpl_continentlist TXT1 "$RET"
+		db_subst $tpl_continentlist TXT2 "$ctxt2"
+		db_metaget $tpl_countrytxt/3/continent description
+		db_subst $tpl_continentlist TXT3 "$RET"
+		db_input $continent_prio $tpl_continentlist || [ $? -eq 30 ]
+		;;
+
+	   22)	# Select a country on the continent
+		# Always display continent dialog when backing up
+		continent_prio=$country_prio
+
+		db_get $tpl_continentlist
+		continent=$RET
+		country_template="$tpl_countrylist/$(echo $continent | sed "s/ /_/g")"
+		db_fget $tpl_di_country seen
+		db_fset $country_template seen $RET || true
+		db_subst $country_template TXT1 "$ctxt1"
+		db_subst $country_template TXT2 "$ctxt2"
+		db_metaget $tpl_countrytxt/3/country description
+		db_subst $country_template TXT3 "$(printf "$RET" \
+				"$(choice_trans $tpl_continentlist "$continent")")"
+
+		if [ "$current_country" ] && \
+		   has_choice $country_template "$current_country"; then
+			db_set $country_template "$current_country"
+		elif db_get $country_template && [ -z "$RET" ] && \
+		   has_choice $country_template "$DEFAULT_COUNTRY"; then
+			db_set $country_template "$DEFAULT_COUNTRY"
+		fi
+
+		db_input $country_prio $country_template || [ $? -eq 30 ]
+		;;
+
+	   23)	# Get the selected country
+		db_get $country_template
+		COUNTRYCODE="$RET"
+		;;
+
+	   24)	# We have a country
+		db_set "$tpl_di_country"  "$COUNTRYCODE"
+		log "Set $tpl_di_country = '$COUNTRYCODE'"
+
+		# Display country selection on backup or rerun
+		db_fset $tpl_di_country seen false || true
+		STATE=29
+		continue
+		;;
+
+	   29)	# Prepare for locale selection; determine default locale
+		# If present, keep track of charset or modifier we got previously
+		DEFAULT_LOCALE_POSTFIX=$(echo $DEFAULT_LOCALE | sed -e 's/^[^.@]*//')
+
+		if [ "$locale_preseeded" ]; then
+			db_get "$tpl_di_locale"
+			LOCALE=$RET
+			log "Preseeded $tpl_di_locale = '$LOCALE'"
+		else
+			if [ "$DEFAULT_LOCALE" = C ]; then
+				LOCALE=$DEFAULT_LOCALE
+			else
+				LOCALE="$(get_default_locale)"
+
+				# Fall back to a supported locale
+				if [ -z "$LOCALE" ]; then
+					if grep -q "^$DEFAULT_LOCALE " $SUPPORTEDLOCALES; then
+						LOCALE="$DEFAULT_LOCALE"
+					else
+						LOCALE=$(echo $DEFAULT_LOCALE | \
+							 sed -e 's/[.@].*$//')
+					fi
+					log "Falling back to locale '$LOCALE'"
+				fi
+			fi
+		fi
+		;;
+
+	   30)	# Select preferred locale if needed
+		db_settitle localechooser/title/locale
+
+		askedpreflocale=
+		if [ -z "$locale_preseeded" ] && [ "$use_lang" ]; then
+			build_preferredlocale_choices $LANGUAGE $LOCALE
+
+			if has_choice $tpl_shortlist $COUNTRYCODE; then
+				preflocale_prio=medium
+				tpl_txt=localechooser/text/preferred-locale/multi
+			else
+				preflocale_prio=high
+				tpl_txt=localechooser/text/preferred-locale/none
+			fi
+			db_metaget $tpl_txt description
+			db_subst $tpl_preferredlocale TXT "$RET"
+
+			db_capb backup align
+			db_input $preflocale_prio $tpl_preferredlocale || [ $? -eq 30 ]
+			askedpreflocale=1
+		fi
+		;;
+
+	   31)	# Select additional locales
+		if [ "$askedpreflocale" ]; then
+			db_get $tpl_preferredlocale
+			LOCALE=$RET
+		fi
+		db_set "$tpl_di_locale" "$LOCALE"
+		log "Set $tpl_di_locale = '$LOCALE'"
+
+		CHOICES=
+		# *.UTF-8@euro locales are deprecated; don't use them
+		for i in $(grep -v '^#' $SUPPORTEDLOCALES | grep -v '\.UTF-8@euro$' | cut -d' ' -f1 | grep -v "^$LOCALE$"); do
+			CHOICES="${CHOICES:+$CHOICES, }$i"
+		done
+
+		# Validate current (preseeded) values
+		validate_supportedlocales "$CHOICES"
+
+		db_subst $tpl_supportedlocales LOCALE "$LOCALE"
+		db_subst $tpl_supportedlocales LOCALELIST "$CHOICES"
+		db_input low $tpl_supportedlocales || [ $? -eq 30 ]
+		;;
+
+	   32)	# Select system locale
+		# Display additional locale selection on backup or rerun
+		db_fset $tpl_supportedlocales seen false || true
+
+		# Display only if additional locales were selected
+		db_get $tpl_supportedlocales
+		if [ "$RET" ]; then
+			db_subst $tpl_di_locale LOCALELIST "$LOCALE, $RET"
+			# TODO: when run again, preserve previous choice if in list
+			db_set $tpl_di_locale $LOCALE
+			db_input low $tpl_di_locale || [ $? -eq 30 ]
+		fi
+		;;
+
+	   33) # We have a locale
+		# Display system locale selection on backup or rerun
+		db_fset $tpl_di_locale seen false || true
+
+		db_get $tpl_di_locale
+		log "System locale ($tpl_di_locale) = '$RET'"
+
+		# The code below adds lang_COUNTRY at the beginning of the
+		# language list we got from language selection, unless it's
+		# already included or no locale exists for the combination.
+		if [ "$askedpreflocale" ]; then
+			extra_lang=$(echo "$LOCALE" | sed -e 's/[.@].*$//')
+		else
+			extra_lang=${LANGUAGE%%_*}_$COUNTRYCODE
+		fi
+		if [ "$LOCALE" != C ] && \
+		   [ "$LANGUAGE" ] && [ "$COUNTRYCODE" ] && \
+		   [ "$COUNTRYCODE" != "$DEFAULT_COUNTRY" ] && \
+		   ! echo ":$LANGUAGELIST:" | grep -q ":$extra_lang:" && \
+		   grep -q "^$extra_lang" $SUPPORTEDLOCALES; then
+			LANGUAGELIST=$extra_lang:$LANGUAGELIST
+			db_set "$tpl_di_language" "$LANGUAGELIST"
+			log "Set $tpl_di_language = '$LANGUAGELIST'"
+			set_debconf_language "$LANGUAGELIST"
+		fi
+		;;
+
+	   34)	# All done
+		break
+		;;
+
+	    *)
+		error "undefined STATE '$STATE'"
+		exit 1
+		;;
+	esac
+
+	LASTSTATE=$STATE
+	if db_go; then
+		STATE=$(($STATE + 1))
+	else
+		STATELEVEL=$(($STATE / 10 * 10)) # round down to multiple of 10
+		if [ $STATE -eq $STATELEVEL ]; then
+			STATE=$(($STATE - 10))
+		else
+			STATE=$(($STATE - 1))
+		fi
+	fi
+	db_capb backup
+done
+
+exit 0

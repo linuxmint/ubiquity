@@ -1,0 +1,31 @@
+#!/bin/sh
+
+set -e
+
+if [ "$*" = "addr show eth0" ]; then
+	cat <<EOF
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP qlen 1000
+    link/ether 00:11:22:33:44:55 brd ff:ff:ff:ff:ff:ff
+    inet6 2001:db8::11:22ff:fe33:4455/64 scope global dynamic 
+       valid_lft 86400sec preferred_lft 3600sec
+    inet6 fe80::11:22ff:fe33:4455/64 scope link 
+       valid_lft forever preferred_lft forever
+EOF
+
+	exit 0
+fi
+
+if [ "$*" = "-6 route show" ]; then
+	cat <<EOF
+2001:db8::/64 dev eth0  metric 256  expires 0sec
+fe80::/64 dev eth0  metric 256
+default via fe80::aa:bbff:fecc:ddee dev eth0  metric 1024  expires 0sec
+unreachable default dev lo  metric -1  error -101
+ff00::/8 dev eth0  metric 256
+unreachable default dev lo  metric -1  error -101
+EOF
+
+	exit 0
+fi
+
+exit 1

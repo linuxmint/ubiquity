@@ -1,0 +1,29 @@
+#!/bin/sh
+
+set -e
+
+# Source debconf library.
+. /usr/share/debconf/confmodule
+
+OLDCONFIGFILE=/etc/default/console-setup
+
+if [ "$1" = "configure" ]; then
+    # For compatibility with programs that expect console-setup-mini
+    # to define XKB... variables in /etc/default/console-setup.
+    if \
+	[ ! -f $OLDCONFIGFILE ] \
+	|| ! grep '^ *[.] */etc/default/keyboard' $OLDCONFIGFILE >/dev/null
+    then
+	cat >>$OLDCONFIGFILE <<EOF
+
+if [ -f /etc/default/keyboard ]; then
+    . /etc/default/keyboard
+fi
+EOF
+    fi
+fi
+
+# This works even if we are not on the console
+setupcon --save-only
+
+#DEBHELPER#

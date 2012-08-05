@@ -1,0 +1,122 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+# Only run the first time
+if [ -f /var/lib/partman/initial_auto ]; then
+	exit 0
+fi
+
+. /lib/partman/lib/auto-shared.sh
+
+# Skip if no disks detected and don't run on S/390
+if [ -z "$(get_auto_disks)" ] || \
+   [ "$(udpkg --print-architecture)" = s390 ]; then
+	exit 0
+fi
+
+mkdir -p /var/lib/partman
+touch /var/lib/partman/initial_auto
+
+# See if any autopartition method has been set
+method=""
+if db_get partman-auto/method && [ "$RET" ]; then
+	method="$RET"
+fi
+
+# See if any autopartition disks have been set
+disks=""
+if db_get partman-auto/disk && [ "$RET" ]; then
+	disks="$RET"
+fi
+
+# If there's only one disk, then preseeding partman-auto/disk is
+# unnecessary, and sometimes inconvenient in heterogeneous environments
+if [ "$method" ] && [ -z "$disks" ]; then
+	DEVS="$(get_auto_disks)"
+	if [ "$(echo "$DEVS" | wc -l)" -eq 1 ]; then
+		disks="$(cat "${DEVS%$TAB*}"/device)"
+	fi
+fi
+
+# If both are set, let's try to do a completely automatic partitioning
+if [ "$method" ] && [ "$disks" ]; then
+	# The code for the methods could be merged, but in the future non-regular
+	# methods may support multiple disks
+	case "$method" in
+	    regular)
+		for disk in $disks; do
+			id=$(dev_to_partman "$disk") || true
+			if [ "$id" ]; then
+				autopartition "$id"
+				exit 0
+			fi
+		done
+		exit 1
+		;;
+	    lvm)
+		search-path autopartition-lvm || exit 1
+		ids=""
+		for disk in $disks; do
+			id=$(dev_to_partman "$disk") || true
+			ids="${ids:+$ids }$id"
+		done
+		if [ "$ids" ]; then
+			autopartition-lvm "$ids"
+			exit 0
+		fi
+		exit 1
+		;;
+	    crypto)
+		search-path autopartition-crypto || exit 1
+		for disk in $disks; do
+			id=$(dev_to_partman "$disk") || true
+			if [ "$id" ]; then
+				autopartition-crypto "$id"
+				exit 0
+			fi
+		done
+		exit 1
+		;;
+	    raid)
+		# Partition all the disks given ready for
+		# partman-auto-raid
+		ids=""
+		for disk in $disks; do
+			id=$(dev_to_partman "$disk") || true
+			ids="${ids:+$ids }$id"
+		done
+		auto_init_disks $ids || exit $?
+		autopartition "$ids"
+		exit 0
+		;;
+	    loop)
+		search-path autopartition-loop || exit 1
+		for disk in $disks; do
+			id=$(dev_to_partman "$disk") || true
+			if [ "$id" ]; then
+				autopartition-loop "$id"
+				exit 0
+			fi
+		done
+		exit 1
+		;;
+	    *)
+		logger -t partman-auto "Unsupported method '$method'"
+		exit 1
+		;;
+	esac
+fi
+
+qfile=/lib/partman/automatically_partition/question
+echo "partman-auto/init_automatically_partition" >$qfile
+code=99 # signals a retry
+while [ $code = 99 ]; do
+	ask_user /lib/partman/automatically_partition
+	code=$?
+done
+if [ $code -gt 0 ] && [ $code -lt 100 ]; then
+	rm -f /var/lib/partman/initial_auto # try again
+fi
+echo "partman-auto/automatically_partition" >$qfile
+exit $code

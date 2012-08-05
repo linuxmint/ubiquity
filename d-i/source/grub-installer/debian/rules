@@ -1,0 +1,11 @@
+#! /usr/bin/make -f
+
+DEB_HOST_ARCH := $(shell dpkg-architecture -qDEB_HOST_ARCH)
+
+%:
+	dh $@
+
+ifeq ($(DEB_HOST_ARCH),mipsel)
+override_dh_gencontrol:
+	dh_gencontrol -- -Vsubarch=loongson-2f
+endif

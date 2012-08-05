@@ -1,0 +1,39 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+swap=no
+ext2=no
+fat=no
+
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ "$fs" != free ] || continue
+		[ -f $id/method -a -f $id/acting_filesystem ] || continue
+		filesystem=$(cat $id/acting_filesystem)
+		case $filesystem in
+		    linux-swap)
+			swap=yes
+			;;
+		    ext2)
+			ext2=yes
+			;;
+		    fat16|fat32)
+			fat=yes
+			;;
+		esac
+	done
+	close_dialog
+done
+
+if [ "$ext2" = yes ]; then
+	apt-install e2fsprogs || true
+fi
+
+if [ "$fat" = yes ]; then
+	apt-install dosfstools || true
+fi

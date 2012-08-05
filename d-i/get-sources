@@ -1,0 +1,118 @@
+#!/bin/sh
+#
+# get-sources <package> | <update> ...
+#
+# Download source packages with the help of apt-get
+#
+# Files:
+#   sources.list / sources.list.local
+#
+# Environment:
+#   APTDIR       - basename for the apt directory (default: apt.$TYPE)
+#   ONLINE       - update Packages files (default: y)
+#
+# This is loosely based on get-packages in debian-installer, copyright (C)
+# 2001-2005 by Joey Hess <joeyh@debian.org> and the d-i team, and licensed
+# under the terms of the GNU General Public License.
+
+set -e
+
+PACKAGES=$*
+
+# Setup environment
+if [ ! $APTDIR ]; then
+	APTDIR="apt"
+fi
+if [ ! $SOURCEDIR ]; then
+	SOURCEDIR="source"
+fi
+if [ ! $ONLINE ]; then
+	ONLINE="y"
+fi
+
+# Set sources.list file
+if [ -f sources.list.local ]; then
+	LIST=sources.list.local
+else
+	LIST=sources.list
+fi
+
+# All these options make apt read the right sources list, and use APTDIR for
+# everything so it need not run as root.
+APT_GET="apt-get --assume-yes \
+	-o Dir::Etc::sourcelist=`pwd`/$LIST \
+	-o Dir::Etc::sourceparts=#clear \
+	-o Dir::State=`pwd`/$APTDIR/state \
+	-o Debug::NoLocking=true \
+	-o Dir::Cache=`pwd`/$APTDIR/cache \
+	-o Acquire::Retries=3"
+
+# Prepare APTDIR
+mkdir -p $APTDIR/state/lists/partial
+mkdir -p $APTDIR/cache/archives/partial
+echo -n > $APTDIR/state/status
+
+# Update package lists and autoclean cache.
+if [ "$ONLINE" = "y" ]; then
+	$APT_GET update || {
+		echo "Failed to update the Packages file. This usually means either of:"
+		echo
+		echo "A) $LIST does not contain a valid repository."
+		echo "   You can override the generated sources.list.$TYPE"
+		echo "   with sources.list.$TYPE.local if you haven't done so yet."
+		echo
+		echo "B) The repository in $LIST is not reachable."
+		echo "   If you are not working online, use 'export ONLINE=n' to skip updating"
+		echo "   the Packages files. Beware that this can result in images with"
+		echo "   out-of-date packages and should be used for private development only."
+		exit 1
+	}
+	$APT_GET autoclean
+else
+	# A Release.gpg may not be cached, allow continuing w/o it in
+	# offline mode.
+	APT_GET="$APT_GET --allow-unauthenticated"
+	
+	$APT_GET --no-list-cleanup update || echo "Ignoring update failure in offline mode"
+fi
+
+if [ "$PACKAGES" = update ]; then
+	exit 0
+fi
+
+if [ -f manifest ]; then
+	mv manifest manifest.old
+elif ! [ -f manifest.old ]; then
+	echo "Building manifest ..."
+	./build-manifest > manifest.old
+fi
+
+rm -rf $SOURCEDIR
+mkdir -p $SOURCEDIR
+
+# Get source packages.
+echo Need to download: $PACKAGES
+if [ -n "$PACKAGES" ]; then (
+	set -e
+	cd $SOURCEDIR
+	$APT_GET source $PACKAGES
+	rm -f *.dsc *.tar.gz
+	rename 's/-[0-9].*//' *-[0-9]*
+) fi
+
+# We don't build console-setup, as it takes too long, so these aren't
+# needed; we just need a couple of scripts from it.
+for subdir in .svn Fonts Keyboard/acm Keyboard/ckb Keyboard/locale; do
+	rm -rf "$SOURCEDIR/console-setup/$subdir"
+done
+
+# Add a warning to budding hackers.
+cat > "$SOURCEDIR/README" <<EOF
+The files in this directory are updated automatically from the distribution
+archive. Any changes you make under this directory will be lost!
+
+New ubiquity-specific scripts should be added to scripts/ instead; you can
+make local modifications here if you need to, but for inclusion in official
+builds the changes need to be applied to the corresponding source packages
+and uploaded.
+EOF

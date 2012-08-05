@@ -1,0 +1,71 @@
+#!/usr/bin/perl
+#
+# Authors: Petter Reinholdtsen (2003)
+# 	   Christian Perrier (2004)
+# 	   Frans Pop (2008)
+#
+# Extract language options for debian-installer
+
+use strict;
+use warnings;
+
+my $list       = shift;
+my $outfile    = shift;
+
+my $debug = 0;
+
+my %codes;
+my %levels;
+my %translations;
+
+sub get_language_names {
+    my $list = shift;
+    my @names;
+    print "Loading $list\n" if ($debug);
+    open(L, "< $list") || die "Unable to read $list";
+    while (<L>) {
+	print if ($debug);
+	chomp;
+	next if m/^\#/;
+	my ($code, $name, $translation, $level, ) = split(/;/);
+	push(@names, $name);
+
+	$codes{$name} = $code;
+	$levels{$name} = $level;
+	$translations{$name} = $translation;
+    }
+    close(L);
+    return @names;
+}
+
+my @languagenames = get_language_names($list);
+
+sub order_trans {
+    return $a cmp $b;
+}
+
+#Sorts languages, making sure that the C locale is listed first
+sub sort_C_first {
+    my @full_list = @_;
+    my @C_locale = grep /^C$/, @full_list;
+    my @languages = grep !/^C$/, @full_list;
+    my @new_list = sort order_trans @languages;
+    unshift @new_list, @C_locale;
+    return @new_list;
+}
+
+open(TOUT, "> $outfile") || die "Unable to write $outfile";
+for my $name (sort_C_first @languagenames) {
+    my $line;
+    if (exists $translations{$name}) {
+	$line = $levels{$name}.
+		":".
+		$codes{$name}.
+		":".
+		$name.
+		":".
+		$translations{$name};
+	print TOUT $line, "\n";
+    }
+}
+close(TOUT) || warn;

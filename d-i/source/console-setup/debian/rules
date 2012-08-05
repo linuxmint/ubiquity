@@ -1,0 +1,274 @@
+#!/usr/bin/make -f
+
+SHELL = /bin/bash
+
+xkbdir = /usr/share/X11/xkb
+export xkbdir
+pre = debian/preprocessor
+
+main_build:
+	$(MAKE) xkbdir=$(xkbdir)
+	cd Keyboard && $(MAKE) build-mini xkbdir=$(xkbdir)
+	touch main_build
+
+debian/kbdnames.gz: main_build
+	( cd Keyboard \
+	&& ./kbdnames-maker MyKeyboardNames.pl \
+		| grep -v '^C[*]' | grep -v '[*]model[*]' | sort | gzip -9 ) >$@
+
+build: main_build debian/kbdnames.gz
+
+.PHONY : clean
+clean:
+	dh_testdir
+	$(MAKE) maintainer-clean
+	-rm -f build main_build
+	-rm -f debian/kbdnames.gz
+	-rm -f debian/*~
+	dh_clean
+
+.PHONY : install
+install: install-configuration install-main install-mini install-bdf2psf install-udeb
+
+.PHONY : install-configuration
+install-configuration: build
+	dh_testdir
+	dh_testroot
+	dh_prep -pkeyboard-configuration
+	install -d debian/keyboard-configuration/usr/share/console-setup/
+	cp config.kbd debian/keyboard-configuration/usr/share/console-setup/keyboard
+	dh_link -pkeyboard-configuration usr/share/console-setup/keyboard usr/share/doc/keyboard-configuration/examples/keyboard
+	# no upstart job for keyboard-setup
+	dh_installinit --no-start --name console-setup -- start 49 S .
+	install -d debian/keyboard-configuration/usr/share/initramfs-tools/hooks \
+		debian/keyboard-configuration/usr/share/initramfs-tools/scripts/init-top \
+		debian/keyboard-configuration/usr/share/initramfs-tools/scripts/panic
+	install -m755 debian/console-setup.initramfs-hook \
+		debian/keyboard-configuration/usr/share/initramfs-tools/hooks/console_setup
+	install -m755 debian/console-setup.initramfs-top \
+		debian/keyboard-configuration/usr/share/initramfs-tools/scripts/init-top/console_setup
+	sed -e "/^OPTION=/d" \
+		< debian/console-setup.initramfs-top \
+		> debian/keyboard-configuration/usr/share/initramfs-tools/scripts/panic/console_setup
+	chmod 755 debian/keyboard-configuration/usr/share/initramfs-tools/scripts/panic/console_setup
+	install -d debian/keyboard-configuration/usr/share/apport/package-hooks
+	install -m644 debian/console-setup.apport \
+		debian/keyboard-configuration/usr/share/apport/package-hooks/source_console-setup.py
+	dh_install -pkeyboard-configuration console-setup-tty lib/udev
+	dh_installudev -pkeyboard-configuration --priority=85
+
+.PHONY : install-main
+install-main: build
+	dh_testdir
+	dh_testroot
+	dh_prep -pconsole-setup
+	$(MAKE) etcdir=debian/console-setup/etc \
+		prefix=debian/console-setup/usr install
+	rm -rf debian/console-setup/etc/console-setup/ckb/
+	dh_install -pconsole-setup Keyboard/pc105.tree \
+		usr/share/console-setup
+	dh_installinit --no-start --upstart-only --name setvtrgb
+	install -m 644 debian/vtrgb debian/console-setup/etc/console-setup/
+	install -m 644 debian/vtrgb.vga debian/console-setup/etc/console-setup/
+
+	install -d debian/keyboard-configuration/usr/share/console-setup/
+	rm debian/console-setup/etc/default/keyboard
+	mv debian/console-setup/etc/default/console-setup \
+		debian/console-setup/usr/share/console-setup/
+	dh_link -pconsole-setup usr/share/console-setup/console-setup \
+		 usr/share/doc/console-setup/examples/console-setup
+	install -d debian/console-setup/usr/share/lintian/overrides
+	install -m 644 debian/lintian.overrides \
+		debian/console-setup/usr/share/lintian/overrides/console-setup
+
+.PHONY : install-mini
+install-mini: build
+	dh_testdir
+	dh_testroot
+	dh_prep -pconsole-setup-mini
+	dh_installdirs -p console-setup-mini etc/default
+	dh_installdirs -p console-setup-mini etc/console-setup/
+	dh_install -pconsole-setup-mini Keyboard/*.ekmap.gz \
+		usr/share/console-setup-mini
+	dh_install -pconsole-setup-mini Fonts/Arabic-VGA16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-mini Fonts/Armenian-Fixed16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-mini Fonts/CyrAsia-Fixed16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-mini Fonts/CyrKoi-TerminusBold16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-mini Fonts/CyrSlav-TerminusBold16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-mini Fonts/Ethiopian-Goha16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-mini Fonts/Georgian-Fixed16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-mini Fonts/Greek-VGA16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-mini Fonts/Hebrew-VGA16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-mini Fonts/Lao-Fixed16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-mini Fonts/Lat15-TerminusBold16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-mini Fonts/Lat2-TerminusBold16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-mini Fonts/Lat38-VGA16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-mini Fonts/Lat7-TerminusBold16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-mini Fonts/Thai-Fixed16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-mini Fonts/Uni1-VGA16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-mini Fonts/Uni2-VGA16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-mini Fonts/Uni3-Fixed16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-mini Fonts/Vietnamese-Fixed16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-mini Keyboard/ckbcomp-mini bin
+	dh_link -pconsole-setup-mini bin/ckbcomp-mini usr/bin/ckbcomp
+	dh_install -pconsole-setup-mini setupcon bin
+	$(pre) --mini debian/console-setup-mini/bin/setupcon
+	$(pre) --mini debian/console-setup-mini/bin/ckbcomp-mini
+
+.PHONY : install-bdf2psf
+install-bdf2psf: build
+	dh_testdir
+	dh_testroot
+	dh_prep -pbdf2psf
+	dh_install -pbdf2psf Fonts/bdf2psf usr/bin/
+	dh_install -pbdf2psf Fonts/*.equivalents Fonts/*.set \
+		Fonts/fontsets usr/share/bdf2psf
+
+.PHONY : install-udeb
+install-udeb: build
+	dh_testdir
+	dh_testroot
+	dh_prep -pconsole-setup-amiga-ekmap
+	dh_prep -pconsole-setup-ataritt-ekmap
+	dh_prep -pconsole-setup-macintoshold-ekmap
+	dh_prep -pconsole-setup-pc-ekmap
+	dh_prep -pconsole-setup-sun4-ekmap
+	dh_prep -pconsole-setup-sun5-ekmap
+	dh_prep -pconsole-setup-fonts-udeb
+	dh_prep -pconsole-setup-udeb
+# console-setup-*-ekmap
+	dh_install -pconsole-setup-amiga-ekmap Keyboard/amiga.ekmap.gz \
+		usr/share/console-setup-mini
+	dh_install -pconsole-setup-ataritt-ekmap Keyboard/ataritt.ekmap.gz \
+		usr/share/console-setup-mini
+	dh_install -pconsole-setup-macintoshold-ekmap Keyboard/macintosh_old.ekmap.gz \
+		usr/share/console-setup-mini
+	dh_install -pconsole-setup-pc-ekmap Keyboard/pc105.ekmap.gz Keyboard/pc105.tree \
+		usr/share/console-setup-mini
+	dh_install -pconsole-setup-sun4-ekmap Keyboard/sun4.ekmap.gz \
+		usr/share/console-setup-mini
+	dh_install -pconsole-setup-sun5-ekmap Keyboard/sun5.ekmap.gz \
+		usr/share/console-setup-mini
+# console-setup-fonts-udeb
+	dh_install -pconsole-setup-fonts-udeb Fonts/Arabic-VGA16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-fonts-udeb Fonts/Armenian-Fixed16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-fonts-udeb Fonts/CyrAsia-Fixed16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-fonts-udeb Fonts/CyrKoi-TerminusBold16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-fonts-udeb Fonts/CyrSlav-TerminusBold16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-fonts-udeb Fonts/Ethiopian-Goha16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-fonts-udeb Fonts/Georgian-Fixed16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-fonts-udeb Fonts/Greek-VGA16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-fonts-udeb Fonts/Hebrew-VGA16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-fonts-udeb Fonts/Lao-Fixed16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-fonts-udeb Fonts/Lat15-TerminusBold16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-fonts-udeb Fonts/Lat2-TerminusBold16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-fonts-udeb Fonts/Lat38-VGA16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-fonts-udeb Fonts/Lat7-TerminusBold16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-fonts-udeb Fonts/Thai-Fixed16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-fonts-udeb Fonts/Uni1-VGA16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-fonts-udeb Fonts/Uni2-VGA16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-fonts-udeb Fonts/Uni3-Fixed16.psf \
+		usr/share/consolefonts
+	dh_install -pconsole-setup-fonts-udeb Fonts/Vietnamese-Fixed16.psf \
+		usr/share/consolefonts
+# console-setup-udeb
+	dh_install -pconsole-setup-udeb Keyboard/ckbcomp-mini bin
+	dh_link -pconsole-setup-udeb bin/ckbcomp-mini usr/bin/ckbcomp
+	dh_install -pconsole-setup-udeb setupcon bin
+	dh_installdirs -p console-setup-udeb usr/share/console-setup-mini
+	install -m0755  debian/keyboard-configuration.config \
+		debian/console-setup-udeb/usr/share/console-setup-mini
+	chmod a+x debian/console-setup-udeb/usr/share/console-setup-mini/keyboard-configuration.config
+	dh_install -p console-setup-udeb debian/kbdnames.gz usr/share/console-setup-mini
+	dh_installdirs -p console-setup-udeb lib/debian-installer.d
+	install -m0644 debian/console-setup-udeb.startup \
+		debian/console-setup-udeb/lib/debian-installer.d/S55console-setup
+	dh_installdirs -p console-setup-udeb usr/lib/base-installer.d
+	install -m0755 debian/console-setup-udeb.base-installer \
+		debian/console-setup-udeb/usr/lib/base-installer.d/20console-setup
+	dh_installdirs -p console-setup-udeb etc/default
+	dh_installdirs -p console-setup-udeb etc/console-setup/
+	install -m 644 debian/vtrgb debian/console-setup-udeb/etc/
+	install -m 644 debian/vtrgb.vga debian/console-setup-udeb/etc/
+	cp config.kbd debian/console-setup-udeb/usr/share/console-setup-mini/keyboard
+	$(pre) --mini debian/console-setup-udeb/usr/lib/base-installer.d/20console-setup
+	$(pre) --mini debian/console-setup-udeb/usr/share/console-setup-mini/keyboard-configuration.config
+	$(pre) --mini debian/console-setup-udeb/bin/setupcon
+	$(pre) --mini debian/console-setup-udeb/bin/ckbcomp-mini
+
+# Build architecture-independent files here.
+.PHONY : binary-indep
+binary-indep: build install
+	dh_testdir
+	dh_testroot
+	dh_installdebconf
+	dh_installdocs -pkeyboard-configuration
+	dh_installdocs -pconsole-setup README*
+	dh_installdocs -pconsole-setup FAQ
+	dh_install -p console-setup copyright.fonts \
+		 usr/share/doc/console-setup
+	dh_installdocs -pconsole-setup-mini
+	dh_install -p console-setup-mini copyright.fonts \
+		 usr/share/doc/console-setup-mini
+	dh_installdocs -pbdf2psf debian/README.fontsets
+	dh_installman -pconsole-setup Keyboard/ckbcomp.1
+	dh_installman -pconsole-setup-mini Keyboard/ckbcomp.1
+	dh_installman -pconsole-setup setupcon.1
+	dh_installman -pconsole-setup-mini setupcon.1
+	dh_installman -pbdf2psf Fonts/bdf2psf.1
+	dh_installchangelogs
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+	$(pre) debian/keyboard-configuration/DEBIAN/config
+	$(pre) debian/keyboard-configuration/DEBIAN/postinst
+	$(pre) debian/console-setup/DEBIAN/config
+	$(pre) debian/console-setup/DEBIAN/postinst
+	$(pre) --mini debian/console-setup-udeb/DEBIAN/postinst
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+# Build architecture-dependent files here.
+.PHONY : binary-arch
+binary-arch : build install
+# We have nothing to do by default.
+
+.PHONY : binary
+binary : binary-indep binary-arch

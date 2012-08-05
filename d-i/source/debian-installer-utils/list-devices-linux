@@ -1,0 +1,174 @@
+#! /bin/sh -e
+TYPE="$1"
+
+case $TYPE in
+    maybe-floppy)
+	logger -t list-devices "deprecated parameter maybe-floppy"
+	TYPE=floppy
+	;;
+    cd|disk|partition|floppy|maybe-usb-floppy|usb-partition|mmc-partition) ;;
+    *)
+	echo "Usage: $0 cd|disk|partition|floppy|maybe-usb-floppy|usb-partition|mmc-partition" >&2
+	exit 2
+	;;
+esac
+
+if [ ! -d /sys/block ]; then
+	exit 0
+fi
+if type udevadm >/dev/null 2>&1; then
+	device_info () {
+		udevadm info -q "$1" -p "$2" 2>/dev/null
+	}
+elif type udevinfo >/dev/null 2>&1; then
+	device_info () {
+		udevinfo -q "$1" -p "$2" 2>/dev/null
+	}
+else
+	exit 0
+fi
+
+device_name () {
+	local name
+	if ! name="$(device_info name "$1")"; then
+		name="$(printf %s "${1##*/}" | \
+			sed 's,!,/,g')"
+	fi
+	echo "/dev/$name"
+}
+
+is_sataraid () {
+	grep -qs ^DMRAID- "$1/dm/uuid"
+}
+
+is_sataraid_partition () {
+	# dmraid partitions are always slaved to another dm device
+	for slave in "$1"/slaves/dm-*; do
+		if [ -e "$slave" ]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
+if type dmraid >/dev/null 2>&1; then
+	raiddevs="$(dmraid -r -c || true)"
+else
+	raiddevs=
+fi
+
+# cloned-and-hacked from partman-base/init.d/parted
+part_of_sataraid () {
+	local raiddev
+	for raiddev in $raiddevs; do
+		if [ "$(readlink -f "$raiddev")" = "$1" ]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
+syspaths=
+scan_partition=false
+case $TYPE in
+    partition)
+	for x in /sys/block/*/*[0-9]; do
+		[ -d "$x" ] || continue
+		syspaths="${syspaths:+$syspaths }$x"
+	done
+	for x in /sys/block/dm-*; do
+		[ -d "$x" ] || continue
+		(is_sataraid "$x" && is_sataraid_partition "$x") || continue
+		syspaths="${syspaths:+$syspaths }$x"
+	done
+	TYPE=disk
+	# Also allow misdetected USB devices
+	scan_partition=:
+	;;
+    usb-partition|mmc-partition)
+	for x in /sys/block/*/*; do
+		[ -d "$x" ] || continue
+		syspaths="${syspaths:+$syspaths }$x"
+	done
+	;;
+    *)
+	for x in /sys/block/*; do
+		[ -d "$x" ] || continue
+		case $x in
+		    /sys/block/dm-*)
+			if is_sataraid "$x" && is_sataraid_partition "$x"; then
+				continue
+			fi
+			;;
+		    *)
+			name="$(device_name "$x")"
+			if part_of_sataraid "$name"; then
+				continue
+			fi
+			;;
+		esac
+		syspaths="${syspaths:+$syspaths }$x"
+	done
+	;;
+esac
+for x in $syspaths; do
+	devpath="${x#/sys}"
+	match=false
+	case $TYPE in
+	    floppy)
+		# TODO ugly special case for non-IDE floppies
+		case $devpath in
+		    /block/fd[0-9]*)
+			match=:
+			;;
+		esac
+		;;
+	esac
+	if ! $match && [ "$TYPE" = cd ]; then
+		if device_info env "$devpath" | grep -q '^ID_CDROM='; then
+			match=:
+		fi
+	fi
+	if ! $match; then
+		if device_info env "$devpath" | grep -q "^ID_TYPE=$TYPE"; then
+			match=:
+		fi
+	fi
+	if ! $match && [ "$TYPE" = disk ]; then
+		case $devpath in
+		    /block/cciss\!*|/block/ida\!*|/block/rd\!*|/block/mmcblk*|/block/vd[a-z]*|/block/xvd[a-z]*)
+			match=:
+			;;
+		    /block/dm-*)
+			# for now, we only understand dmraid
+			if is_sataraid "/sys$devpath"; then
+				match=:
+			fi
+			;;
+		esac
+	fi
+	# Some USB sticks and CD drives are misdetected as floppy
+	# This allows to scan for those
+	if ! $match && ( $scan_partition || [ "$TYPE" = maybe-usb-floppy ] ); then
+		if device_info env "$devpath" | grep -q '^ID_BUS=usb' && \
+		   device_info env "$devpath" | grep -q '^ID_TYPE=floppy'; then
+			match=:
+		fi
+	fi
+	# Disk partitions, but only on USB drives
+	if ! $match && [ "$TYPE" = usb-partition ]; then
+		if device_info env "$devpath" | grep -q '^ID_BUS=usb' && \
+		   device_info env "$devpath" | grep -q '^ID_TYPE=disk'; then
+			match=:
+		fi
+	fi
+	# Disk partitions, but only on (non-USB) MMC devices
+	if ! $match && [ "$TYPE" = mmc-partition ]; then
+		if device_info env "$devpath" | egrep -q '^ID_PATH=(platform-mmc|platform-orion-ehci|platform-mxsdhci)'; then
+			match=:
+		fi
+	fi
+	if $match; then
+		device_name "/sys$devpath"
+	fi
+done

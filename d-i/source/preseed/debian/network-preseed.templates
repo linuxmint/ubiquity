@@ -1,0 +1,43 @@
+Template: debian-installer/network-preseed/title
+Type: text
+#  Main menu item
+_Description: Download debconf preconfiguration file
+
+Template: preseed/url
+Type: string
+#:sl3:
+_Description: Location of initial preconfiguration file:
+ In order to perform an automated install, you need to supply a
+ preconfiguration file (which can in turn pull in other files).
+ To do that, you need to provide a (perhaps partial) URL.
+ .
+ This can be as simple as the machine name where your preseed
+ files reside up to a full URL. Any of these could be made to work:
+   intra		[for example.com, these three are equivalent]
+   intra.example.com
+   http://intra.example.com/d-i/./lenny/preseed.cfg
+   http://192.168.0.1/~phil/test47.txt
+   floppy://preseed.cfg
+   file:///hd-media/kiosk/./preseed.cfg
+ .
+ For fully automated installs, preseed/url should itself be preseeded
+ (via kernel command line, DHCP, or syslinux.cfg on customised media)
+ .
+ See http://wiki.debian.org/DebianInstaller/Preseed for inspiration.
+
+Template: preseed/url/checksum
+Type: string
+Description: for internal use; can be preseeded
+ Optional md5sum (or sums) for the preconfiguration files
+
+Template: auto-install/enable
+Type: boolean
+Default: false
+Description: for internal use; can be preseeded
+ If true, attempt a fully automatic install
+
+Template: auto-install/defaultroot
+Type: string
+Default: d-i/precise/./preseed.cfg
+Description: for internal use; can be preseeded
+ Path added to local server to give the preseed root

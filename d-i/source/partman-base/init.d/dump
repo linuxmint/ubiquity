@@ -1,0 +1,12 @@
+#!/bin/sh -e
+
+. /lib/partman/lib/base.sh
+
+for dev in /var/lib/partman/devices/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	open_dialog DUMP
+	close_dialog
+	cat /var/log/partition_dump >>/var/log/partman
+	rm /var/log/partition_dump
+done

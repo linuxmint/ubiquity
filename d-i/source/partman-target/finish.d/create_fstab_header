@@ -1,0 +1,40 @@
+#!/bin/sh
+
+mkdir -p /target/etc
+
+case `udpkg --print-os` in
+        linux) 
+		cat >/target/etc/fstab <<EOF
+# /etc/fstab: static file system information.
+#
+# Use 'blkid' to print the universally unique identifier for a
+# device; this may be used with UUID= as a more robust way to name devices
+# that works even if disks are added and removed. See fstab(5).
+#
+EOF
+		printf "%-15s %-15s %-7s %-15s %-7s %s\n" '# <file system>' '<mount point>' '<type>' '<options>' '<dump>' '<pass>' >> /target/etc/fstab
+
+		printf "%-15s %-15s %-7s %-15s %-7s %s\n" proc /proc proc nodev,noexec,nosuid 0 0 >> /target/etc/fstab
+	;;
+
+	kfreebsd)
+		cat >/target/etc/fstab <<EOF
+# /etc/fstab: static file system information.
+#
+EOF
+		printf "%-15s %-15s %-7s %-15s %-7s %s\n" '# <file system>' '<mount point>' '<type>' '<options>' '<dump>' '<pass>' >> /target/etc/fstab
+
+		printf "%-15s %-15s %-7s %-15s %-7s %s\n" proc /proc linprocfs rw 0 0 >> /target/etc/fstab
+		printf "%-15s %-15s %-7s %-15s %-7s %s\n" sys /sys linsysfs rw 0 0 >> /target/etc/fstab
+		printf "%-15s %-15s %-7s %-15s %-7s %s\n" fdesc /dev/fd fdescfs rw 0 0 >> /target/etc/fstab
+	;;
+
+	hurd)
+		cat >/target/etc/fstab <<EOF
+# /etc/fstab: static file system information.
+#
+EOF
+		printf "%-15s %-15s %-7s %-15s %-7s %s\n" '# <file system>' '<mount point>' '<type>' '<options>' '<dump>' '<pass>' >> /target/etc/fstab
+	;;
+esac
+

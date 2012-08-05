@@ -1,0 +1,19 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+dev=$1
+id=$2
+cd $dev
+
+open_dialog GET_LABEL_TYPE
+read_line label
+close_dialog
+
+# Disable on devices where there is no "real" partitioning
+if [ "$label" = loop ]; then
+	exit 0
+fi
+
+db_metaget partman-partitioning/text/delete description
+printf "delete\t${RET}\n"

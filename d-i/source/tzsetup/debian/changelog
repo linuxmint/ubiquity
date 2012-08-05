@@ -1,0 +1,752 @@
+tzsetup (1:0.26ubuntu11) precise; urgency=low
+
+  * Update translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 07 Mar 2012 23:34:13 +0000
+
+tzsetup (1:0.26ubuntu10) oneiric; urgency=low
+
+  * When getting "None" as a timezone from geoip.ubuntu.com, just show the
+    list. (LP: #771361).
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Tue, 19 Jul 2011 10:06:12 -0400
+
+tzsetup (1:0.26ubuntu9) lucid; urgency=low
+
+  * Only try to wget from geoip.ubuntu.com once, at least if we have
+    non-busybox wget (LP: #556890).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 22 Apr 2010 00:01:59 +0100
+
+tzsetup (1:0.26ubuntu8) lucid; urgency=low
+
+  * Use '-T 15' rather than '--timeout=15', to avoid breaking busybox wget.
+    (It still doesn't actually understand the option, but not breaking is a
+    step up ...)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 13 Apr 2010 00:55:10 +0100
+
+tzsetup (1:0.26ubuntu7) lucid; urgency=low
+
+  * Add a 15 second timeout to the wget of geoip.ubuntu.com
+    (LP: #556890).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Wed, 07 Apr 2010 11:00:33 +0100
+
+tzsetup (1:0.26ubuntu6) lucid; urgency=low
+
+  * Use LC_ALL=C when running sed over the geoip data, otherwise it
+    fails on UTF-8 text.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Tue, 06 Apr 2010 12:52:02 +0100
+
+tzsetup (1:0.26ubuntu5) lucid; urgency=low
+
+  * Only set http_proxy if mirror/http/proxy is non-empty (LP: #519241).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 10 Feb 2010 11:44:53 +0000
+
+tzsetup (1:0.26ubuntu4) lucid; urgency=low
+
+  * Set the geoip question to a higher priorty so it gets asked by
+    default.
+  * Properly go to the full list if the user says no to the geoip
+    question.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Fri, 29 Jan 2010 10:32:42 +0000
+
+tzsetup (1:0.26ubuntu3) lucid; urgency=low
+
+  * Fix the sed statement around the geoip detection to account for the
+    XML being on a single line.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Thu, 28 Jan 2010 22:42:09 +0000
+
+tzsetup (1:0.26ubuntu2) lucid; urgency=low
+
+  * Support getting the timezone from a geoip server (LP: #229884).
+
+ -- Evan Dandrea <evand@ubuntu.com>  Mon, 25 Jan 2010 15:53:09 +0000
+
+tzsetup (1:0.26ubuntu1) lucid; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Make it possible to select from a worldwide list of timezones if the
+      default list is insufficient.
+    - Offer UTC in worldwide list of timezones.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 10 Nov 2009 15:11:16 +0000
+
+tzsetup (1:0.26) unstable; urgency=low
+
+  * Also test that time/zone is not empty in post-base-installer script.
+    See #538344.
+  * Change Priority to optional since udeb gets pulled in by clock-setup
+    and is not functional by itself.
+
+  [ Updated translations ]
+  * Hindi (hi.po)
+  * Italian (it.po) by Milo Casagrande
+
+ -- Frans Pop <fjp@debian.org>  Sun, 02 Aug 2009 10:42:41 +0200
+
+tzsetup (1:0.25ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Make it possible to select from a worldwide list of timezones if the
+      default list is insufficient.
+    - Offer UTC in worldwide list of timezones.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 15 Jun 2009 15:51:53 +0100
+
+tzsetup (1:0.25) unstable; urgency=low
+
+  [ Christian Perrier ]
+  * Bump debhelper compatibility level to 6
+
+  [ Updated translations ]
+  * Asturian (ast.po) by Marcos Alvarez Costales
+  * Bengali (bn.po) by Md. Rezwan Shahid
+  * Estonian (et.po) by Mattias Põldaru
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by marce villarino
+  * Hindi (hi.po) by Kumar Appaiah
+  * Italian (it.po) by Milo Casagrande
+  * Kazakh (kk.po) by daur88
+  * Malayalam (ml.po) by Praveen Arimbrathodiyil
+  * Marathi (mr.po) by Sampada
+  * Tagalog (tl.po) by Eric Pareja
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 14 Jun 2009 19:24:43 +0200
+
+tzsetup (1:0.24ubuntu1) jaunty; urgency=low
+
+  * Make it possible to select from a worldwide list of timezones if the
+    default list is insufficient (LP: #28890).
+  * Offer UTC in worldwide list of timezones (LP: #262069).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 22 Dec 2008 13:44:01 +0000
+
+tzsetup (1:0.24) unstable; urgency=low
+
+  * Accept any preseeded time zone if the seen flag is set. This is needed to
+    undo a change in behavior introduced with cdebconf (0.132) which results
+    in invalid defaults for current choices list being rejected.
+    Closes: #503189.
+  * Check that (preseeded) time zone is valid before setting it for the target
+    system.
+
+ -- Frans Pop <fjp@debian.org>  Fri, 24 Oct 2008 22:11:16 +0200
+
+tzsetup (1:0.23) unstable; urgency=low
+
+  [ Otavio Salvador ]
+  * Use isoquery to generate iso_3166.tab during building.
+
+  [ Frans Pop ]
+  * Create temporary files in the debian directory.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Bosnian (bs.po) by Armin Besirovic
+  * Welsh (cy.po) by Jonathan Price
+  * Danish (da.po)
+  * Greek, Modern (1453-) (el.po)
+  * Esperanto (eo.po) by Felipe Castro
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * French (fr.po) by Christian Perrier
+  * Croatian (hr.po) by Josip Rodin
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Latvian (lv.po) by Peteris Krisjanis
+  * Macedonian (mk.po) by Arangel Angov
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Serbian (sr.po) by Veselin Mijušković
+
+ -- Frans Pop <fjp@debian.org>  Mon, 22 Sep 2008 12:14:00 +0200
+
+tzsetup (1:0.22) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Drop no longer relevant isinstallable file.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Pavel Piatruk
+  * Basque (eu.po) by Iñaki Larrañaga Murgoitio
+  * Croatian (hr.po) by Josip Rodin
+  * Italian (it.po) by Milo Casagrande
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Turkish (tr.po) by Mert Dirik
+  
+ -- Otavio Salvador <otavio@debian.org>  Tue, 29 Jul 2008 12:41:27 -0300
+
+tzsetup (1:0.21) unstable; urgency=low
+
+  [ Updated translations ]
+  * Amharic (am.po) by Tegegne Tefera
+  * Basque (eu.po) by Iñaki Larrañaga Murgoitio
+  * Gujarati (gu.po) by Kartik Mistry
+  * Malayalam (ml.po) by Praveen|പ്രവീണ്‍ A|എ
+  * Marathi (mr.po) by Sampada
+  * Panjabi (pa.po) by Amanpreet Singh Alam
+
+ -- Otavio Salvador <otavio@debian.org>  Thu, 08 May 2008 00:44:47 -0300
+
+tzsetup (1:0.20) unstable; urgency=low
+
+  [ Updated translations ]
+  * Amharic (am.po) by tegegne tefera
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Finnish (fi.po) by Esko Arajärvi
+  * Hindi (hi.po) by Kumar Appaiah
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Central Khmer (km.po) by Khoem Sokhem
+  * Korean (ko.po) by Changwoo Ryu
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Latvian (lv.po) by Viesturs Zarins
+  * Malayalam (ml.po) by Praveen|പ്രവീണ്‍ A|എ
+  * Panjabi (pa.po) by Amanpreet Singh Alam
+  * Slovak (sk.po) by Ivan Masár
+  * Slovenian (sl.po) by Matej Kovacic
+  * Turkish (tr.po) by Recai Oktaş
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 15 Feb 2008 09:18:24 -0200
+
+tzsetup (1:0.19) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Convert time zone selection templates to use Choices-C. This makes the
+    huge note for translators largely redundant and should lead to less
+    translation errors.
+  * Print country name instead of code in translator comment for time zones.
+
+  [ Christian Perrier ]
+  * Split out _Choices in __Choices. This will even more minimize the
+    translation errors.
+
+  [ Otavio Salvador ]
+  * Change tzsetup-udeb.install to avoid .svn dirs on post-base-installer.d.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Hleb Rubanau
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bengali (bn.po) by Jamil Ahmed
+  * Catalan (ca.po) by Jordi Mallach
+  * Czech (cs.po) by Miroslav Kure
+  * German (de.po) by Jens Seidel
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Hebrew (he.po) by Lior Kaplan
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Italian (it.po) by Stefano Canepa
+  * Japanese (ja.po) by Kenshi Muto
+  * Korean (ko.po) by Sunjae Park
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Nepali (ne.po) by Nabin Gautam
+  * Dutch (nl.po) by Bart Cornelis
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Peter Mann
+  * Swedish (sv.po) by Daniel Nylander
+  * Tamil (ta.po) by Dr.T.Vasudevan
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+  
+ -- Otavio Salvador <otavio@debian.org>  Sat, 27 Oct 2007 12:25:39 -0200
+
+tzsetup (1:0.18) unstable; urgency=low
+
+  [ Christian Perrier ]
+  * Consistent spelling of "time zone" in debconf templates.
+    Translations unfuzzied
+  * Menu entry and progress bar corrected for proper English
+    (missing article)
+
+  [ Joey Hess ]
+  * Add build-dep on tzdata as it's used explicitly.
+  * No longer provide a d-i menu item. Needs clock-setup 0.90, which calls it
+    from its menu item.
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bengali (bn.po) by Jamil Ahmed
+  * Catalan (ca.po) by Jordi Mallach
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Dzongkha (dz.po) by Tshewang Norbu
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hebrew (he.po) by Lior Kaplan
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Japanese (ja.po) by Kenshi Muto
+  * Norwegian Bokmal (nb.po) by Bjørn Steensrud
+  * Dutch (nl.po) by Frans Pop
+  * Punjabi (Gurmukhi) (pa.po) by A S Alam
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Romanian (ro.po) by Eddy Petrișor
+  * Russian (ru.po) by Yuri Kozlov
+  * Albanian (sq.po) by Elian Myftiu
+  * Swedish (sv.po) by Daniel Nylander
+  * Tamil (ta.po) by Dr.T.Vasudevan
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Tagalog (tl.po) by Eric Pareja
+  * Ukrainian (uk.po)
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 25 Jul 2007 13:38:53 -0400
+
+tzsetup (1:0.17) unstable; urgency=low
+
+  * Multiply menu-item-numbers by 100
+
+  [ Updated translations ]
+  * Esperanto (eo.po) by Serge Leblanc
+  * Basque (eu.po) by Piarres Beobide
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 10 Apr 2007 14:37:05 -0400
+
+tzsetup (1:0.16) unstable; urgency=low
+
+  [ Updated translations ]
+  * Hebrew (he.po) by Lior Kaplan
+  * Malayalam (ml.po) by Praveen A
+
+ -- Frans Pop <fjp@debian.org>  Tue, 27 Feb 2007 17:01:06 +0100
+
+tzsetup (1:0.15) unstable; urgency=low
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Danish (da.po) by Claus Hindsgaul
+  * Basque (eu.po) by Piarres Beobide
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Romanian (ro.po) by Eddy Petri?or
+  * Slovenian (sl.po) by Matej Kovačič
+
+ -- Frans Pop <fjp@debian.org>  Wed, 31 Jan 2007 11:56:25 +0100
+
+tzsetup (1:0.14) unstable; urgency=low
+
+  [ Petter Reinholdtsen ]
+  * Remove myself as uploader.
+
+  [ Frans Pop ]
+  * Copy timezone file from /target instead of d-i environment. Duh!
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Panjabi (pa.po) by A S Alam
+
+ -- Frans Pop <fjp@debian.org>  Wed, 29 Nov 2006 01:41:51 +0100
+
+tzsetup (1:0.13) unstable; urgency=low
+
+  * Make /target/etc/localtime a copy of instead of a symlink to the timezone
+    in line with what tzconfig now does (see #346342). Closes: #395524.
+    I suspect this also fixes the occasional reports we've had of the clock
+    being wrong after reboot. Closes: #397576, #397649.
+
+  [ Updated translations ]
+  * Bosnian (bs.po) by Safir Secerovic
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Kurdish (ku.po) by rizoye-xerzi
+
+ -- Frans Pop <fjp@debian.org>  Wed, 22 Nov 2006 13:16:54 +0100
+
+tzsetup (1:0.12) unstable; urgency=low
+
+  * Add missing debconf dependency.
+  * Remove standards-version and add Lintian override for it.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Andrei Darashenka
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Romanian (ro.po) by Eddy Petri?or
+  * Tamil (ta.po) by Damodharan Rajalingam
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Frans Pop <fjp@debian.org>  Tue, 24 Oct 2006 16:28:31 +0200
+
+tzsetup (1:0.11) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Put debhelper in Build-Depends rather than in Build-Depends-Indep.
+  * tzdata 2006l changes the description of Europe/Samara to "Moscow+01 -
+    Samara, Udmurtia"; since the comma is best avoided here, update our
+    description to "Moscow+01 - Samara" as Wikipedia says that Udmurtia is
+    on the "Samara Time Zone". tzdata 2006l also adds Europe/Volgograd
+    described as "Moscow+00 - Caspian Sea", which I've omitted since it's
+    been on Moscow time since 1992.
+
+  [ Frans Pop ]
+  * Move configuration of target system forward to post-base-installer.d to
+    prevent problems e.g. if tzdata is updated during pkgsel (#391529).
+
+  [ Updated translations ]
+  * Greek, Modern (1453-) (el.po) by quad-nrg.net
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Estonian (et.po) by Siim Põder
+  * Basque (eu.po) by Piarres Beobide
+  * Finnish (fi.po) by Tapio Lehtonen
+  * Gujarati (gu.po) by Kartik Mistry
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Nishant Sharma
+  * Croatian (hr.po) by Josip Rodin
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Panjabi (pa.po) by A S Alam
+  * Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Frans Pop <fjp@debian.org>  Mon,  9 Oct 2006 00:18:05 +0200
+
+tzsetup (1:0.10) unstable; urgency=low
+
+  * Switch to finish-install.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Bosnian (bs.po) by Safir Secerovic
+  * Catalan (ca.po) by Jordi Mallach
+  * Danish (da.po) by Claus Hindsgaul
+  * Dzongkha (dz.po)
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Irish (ga.po) by Kevin Patrick Scannell
+  * Hebrew (he.po) by Lior Kaplan
+  * Hungarian (hu.po) by SZERVÑC Attila
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Khmer (km.po) by Leang Chumsoben
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Nepali (ne.po) by Shiva Pokharel
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Russian (ru.po) by Yuri Kozlov
+  * Northern Sami (se.po) by Børre Gaup
+  * Slovenian (sl.po) by Jure Čuhalev
+  * Tamil (ta.po) by Damodharan Rajalingam
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  7 Jun 2006 22:13:27 -0400
+
+tzsetup (1:0.9) unstable; urgency=low
+
+  * Add isinstallable file to skip timezone setup when installing Sarge.
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Baishampayan Ghose
+  * Bosnian (bs.po) by Safir Secerovic
+  * Catalan (ca.po) by Jordi Mallach
+  * Basque (eu.po) by Piarres Beobide
+  * Finnish (fi.po) by Tapio Lehtonen
+  * Hindi (hi.po) by Nishant Sharma
+  * Hungarian (hu.po) by SZERVÑC Attila
+  * Khmer (km.po) by hok kakada
+  * Slovenian (sl.po) by Matej Kovačič
+  * Swedish (sv.po) by Daniel Nylander
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Frans Pop <fjp@debian.org>  Mon, 20 Mar 2006 18:29:16 +0100
+
+tzsetup (1:0.8) unstable; urgency=low
+
+  * Move dh_install arguments to debian/tzsetup-udeb.install.
+  * Build binary package in binary-indep, not binary-arch.
+  * Fix name of tzsetup/country/BR's Default field.
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Ognyan Kulev
+  * Catalan (ca.po) by Jordi Mallach
+  * Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Finnish (fi.po) by Tapio Lehtonen
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Nishant Sharma
+  * Indonesian (id.po) by Parlin Imanuel Toh
+  * Korean (ko.po) by Sunjae park
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Malagasy (mg.po) by Jaonary Rabarisoa
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Dutch (nl.po) by Bart Cornelis
+  * Dutch (pa_IN.po) by Amanpreet Singh Alam
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+  * Romanian (ro.po) by Eddy Petrişor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Peter Mann
+  * Slovenian (sl.po) by Jure Čuhalev
+  * Albanian (sq.po) by Elian Myftiu
+  * Swedish (sv.po) by Daniel Nylander
+  * Tagalog (tl.po) by Eric Pareja
+  * Turkish (tr.po) by Recai Oktaş
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Colin Watson <cjwatson@debian.org>  Mon, 23 Jan 2006 10:27:31 +0000
+
+tzsetup (1:0.7) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Restore Arizona to US question; it's distinct from US/Mountain in that
+    it does not use daylight savings time
+    (https://bugzilla.ubuntu.com/show_bug.cgi?id=20160).
+
+  [ Updated translations ]
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Icelandic (is.po) by David Steinn Geirsson
+  * Italian (it.po) by Giuseppe Sacco
+  * Japanese (ja.po) by Kenshi Muto
+  * Korean (ko.po) by Sunjae park
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Malagasy (mg.po) by Jaonary Rabarisoa
+  * Bokmål, Norwegian (nb.po) by Bjørn Steensrud
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Romanian (ro.po) by Eddy Petrişor
+  * Russian (ru.po) by Yuri Kozlov
+  * Swedish (sv.po) by Daniel Nylander
+  * Tagalog (tl.po) by Eric Pareja
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  7 Dec 2005 22:05:55 -0500
+
+tzsetup (1:0.6) unstable; urgency=low
+
+  * Default to Moscow time zone for Russia and Sao Paulo for Brazil.
+    Closes: #338024
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Ognyan Kulev
+  * Bengali (bn.po) by Baishampayan Ghose
+  * German (de.po) by Jens Seidel
+  * Icelandic (is.po) by David Steinn Geirsson
+  * Italian (it.po) by Giuseppe Sacco
+  * Polish (pl.po) by Bartosz Fenski
+  * Swedish (sv.po) by Daniel Nylander
+
+ -- Joey Hess <joeyh@debian.org>  Mon,  7 Nov 2005 17:10:08 -0500
+
+tzsetup (1:0.5) unstable; urgency=low
+
+  [ Frans Pop ]
+  * At medium priority, show automatically selected timezone.
+
+  [ Joey Hess ]
+  * Fix back up from new question.
+
+  [ Colin Watson ]
+  * Set epoch to supersede the base-config-based tzsetup-udeb in Ubuntu.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Bengali (bn.po) by Baishampayan Ghose
+  * Catalan (ca.po) by Guillem Jover
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Italian (it.po) by Giuseppe Sacco
+  * Japanese (ja.po) by Kenshi Muto
+  * Korean (ko.po) by Changwoo Ryu
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Bokmål, Norwegian (nb.po) by Bjørn Steensrud
+  * Dutch (nl.po) by Bart Cornelis
+  * Norwegian Nynorsk (nn.po)
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Romanian (ro.po) by Eddy Petrişor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Peter Mann
+  * Swedish (sv.po) by Daniel Nylander
+  * Tagalog (tl.po) by Eric Pareja
+  * Turkish (tr.po) by Recai Oktaş
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 25 Oct 2005 14:07:20 +0100
+
+tzsetup (0.4) unstable; urgency=low
+
+  [ Otavio Salvador ]
+  * Change Build-Depends to Build-Depends-Indep since this package is arch
+    independent.
+
+  [ Joey Hess ]
+  * Source confmodule in prebaseconfig script. Thanks, Frans Pop.
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 22 Sep 2005 07:12:06 +0200
+
+tzsetup (0.3) unstable; urgency=low
+
+  * Don't ask the time zone question for countries with only one choice,
+    just register/set it.
+
+  * Updated translations: 
+    - Basque (eu.po)
+    - Italian (it.po) by Stefano Canepa
+    - Bokmål, Norwegian (nb.po) by Bjørn Steensrud
+    - Vietnamese (vi.po) by Clytie Siddall
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 19 Aug 2005 18:47:48 -0400
+
+tzsetup (0.2) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Switch po files to a single long string per country and add a huge comment
+    that perhaps some more translators will understand.
+  * Only one time zone in China.
+  * Simplify the English lists as much as possible.
+  * Vary the question based on what sort of division is used in a country for
+    its timezones.
+  * Mexico has only three zones.
+  * Deuglify Porto Velho.
+
+  [ Colin Watson ]
+  * Update GPL notices with the FSF's new address.
+
+  [ Otavio Salvador ]
+  * Add Standards-Version field.
+
+  [ Joey Hess ]
+  * Fix time/zone template name, fixing support for languages with only
+    one zone. Closes: #320917
+
+  * Updated translations: 
+    - Catalan (ca.po) by Guillem Jover
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Spanish (es.po) by Javier Fernández-Sanguino Peña
+    - Basque (eu.po)
+    - French (fr.po) by Christian Perrier
+    - Japanese (ja.po) by Kenshi Muto
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Macedonian (mk.po) by Georgi Stanojevski
+    - Dutch (nl.po) by Frans Pop
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Russian (ru.po) by Yuri Kozlov
+    - Vietnamese (vi.po) by Clytie Siddall
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Tue,  2 Aug 2005 12:42:33 -0400
+
+tzsetup (0.1) unstable; urgency=low
+
+  * Split off from base-config and rewritten.
+  * Only generate udeb (for now).
+  * Remove GMT setting support, goes to a new udeb.
+  * Removed confirmation questions and command line flags.
+  * Renamed templates all around for consistency.
+  * Ripped out all the nasty complexity of the state machine, now asks only
+    one simple question.
+  * Ripped out preseed_zone thing as there is only one question that needs
+    preseding in all cases now: time/zone.
+  * Generate templates containing lists of time zones for countries at build
+    time, with overrides for specific countries in the .in file.
+  * Add a prebaseconfig hook script to set the time zone in /target.
+  * Time zone is set before boot, so no more issues with daemons.
+    Closes: #313279
+  * Allows easily entering timezone by hand (at boot prompt ;-)
+    Closes: #21698
+  * No more dual timezone selection methods, now there's only one.
+    Closes: #274617
+  * No more question for Argintina, which has only one modern time zone.
+    Closes: #283149
+  * No more question for Great Britian, which also has only one modern
+    time zone.
+  * Add a README.
+  * Remove Aleutian, Indiana-Starke, Michigan, and Arizona from US question
+    as all are only of historical interest.
+  * No more question for the Marshall Is, only one modern time zone.
+  * Same for Mali, Malaysia, Ukraine, and Uzbekistan.
+  * Svalbard and Jan Mayen are on Oslo time, add override.
+
+  * Updated translations: 
+    - Arabic (ar.po) by Ossama M. Khayat
+    - Belarusian (be.po) by Andrei Darashenka
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Bosnian (bs.po) by Safir Šećerović
+    - Catalan (ca.po) by Guillem Jover
+    - Czech (cs.po) by Miroslav Kure
+    - Welsh (cy.po) by Dafydd Harries
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Esperanto (eo.po) by Serge Leblanc
+    - Spanish (es.po) by Javier Fernández-Sanguino Peña
+    - Estonian (et.po) by Siim Põder
+    - Basque (eu.po) by Piarre Beobide Egaña
+    - Persian (fa.po) by Arash Bijanzadeh
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by Christian Perrier
+    - Gallegan (gl.po) by Jacobo Tarrio
+    - Hebrew (he.po) by Lior Kaplan
+    - Hindi (hi.po) by Ravishankar Shrivastava
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Hungarian (hu.po) by VEROK Istvan
+    - Indonesian (id.po) by Arief S Fitrianto
+    - Italian (it.po) by Giuseppe Sacco
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Latvian (lv.po) by Aigars Mahinovs
+    - Malagasy (mg.po) by Jaonary Rabarisoa
+    - Macedonian (mk.po) by Georgi Stanojevski
+    - Bokmål, Norwegian (nb.po) by Hans Fredrik Nordhaug
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Norwegian Nynorsk (pa_IN.po) by Amanpreet Singh Alam
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrişor
+    - Russian (ru.po) by Yuri Kozlov
+    - Slovak (sk.po) by Peter Mann
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Albanian (sq.po) by Elian Myftiu
+    - Swedish (sv.po) by Per Olofsson
+    - Tagalog (tl.po) by Eric Pareja
+    - Turkish (tr.po) by Recai Oktaş
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Vietnamese (vi.po) by Clytie Siddall
+    - Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+    - Xhosa (xh.po) by Canonical Ltd
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 25 Jul 2005 12:55:31 -0400

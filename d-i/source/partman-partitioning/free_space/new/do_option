@@ -1,0 +1,227 @@
+#!/bin/sh
+
+set -e
+
+. /lib/partman/lib/base.sh
+
+dev=$2
+freeid=$3
+
+cd $dev
+
+open_dialog PARTITION_INFO $freeid
+read_line x1 freeid freesize freetype x2 x3 x4
+close_dialog
+
+[ "$freeid" ] || exit 1
+
+freehsize=$(longint2human $freesize)
+
+ask_for_size () {
+	local noninteractive
+	noninteractive=true
+	while true; do
+		size=''
+		while [ ! "$size" ]; do
+			db_set partman-partitioning/new_partition_size "$freehsize"
+			db_subst partman-partitioning/new_partition_size MAXSIZE "$freehsize"
+			db_input critical partman-partitioning/new_partition_size ||
+			$noninteractive
+			noninteractive="return 1"
+			db_go || return 1
+			db_get partman-partitioning/new_partition_size
+
+			case "$RET" in
+			    max)
+				size=$freesize
+				hsize="$freehsize"
+				;;
+			    *%)
+				digits=$(expr "$RET" : '\([1-9][0-9]*\) *%$')
+				if [ "$digits" ]; then
+					maxmb=$(convert_to_megabytes $freesize)
+					size=$(($digits * $maxmb / 100))000000
+				fi
+				if [ "$digits" = 100 ]; then
+					hsize="$freehsize"
+				else
+					hsize=some_number
+				fi
+				;;
+			    *)
+				if valid_human "$RET"; then
+					size=$(human2longint "$RET")
+				fi
+				hsize="$RET"
+				;;
+			esac
+
+			if [ -z "$size" ]; then
+				db_input high partman-partitioning/bad_new_partition_size || true
+				db_go || true
+			fi
+		done
+		if ask_for_type; then break; fi
+	done
+	return 0
+}
+
+ask_for_type () {
+	local noninteractive has_primary parttype
+	has_primary=no
+	open_dialog PARTITIONS
+	while { read_line x1 x2 x3 parttype x5 x6 x7; [ "$parttype" ]; }; do
+		if [ "$parttype" = primary ]; then
+			has_primary=yes
+		fi
+	done
+	close_dialog
+
+	noninteractive=true
+	while true; do
+		case "$freetype" in
+		    primary)
+			$noninteractive
+			type=Primary
+			;;
+		    logical)
+			$noninteractive
+			type=Logical
+			;;
+		    pri/log)
+			if [ "$has_primary" = yes ]; then
+				db_set partman-partitioning/new_partition_type Logical
+			else
+				db_set partman-partitioning/new_partition_type Primary
+			fi
+			db_input critical partman-partitioning/new_partition_type ||
+				$noninteractive
+			db_go || return 1
+			db_get partman-partitioning/new_partition_type
+			type="$RET"
+		esac
+		if ask_for_place; then break; fi
+		noninteractive="return 1"
+	done
+}
+
+ask_for_place () {
+	local noninteractive
+	noninteractive=true
+	while true; do
+		if [ "$hsize" = "$freehsize" ]; then
+			$noninteractive
+			place=full
+		else
+			db_input critical partman-partitioning/new_partition_place ||
+				$noninteractive
+			db_go || return 1
+			db_get partman-partitioning/new_partition_place
+			place="$RET"
+		fi
+		if create_new_partition; then break; fi
+		noninteractive="return 1"
+	done
+}
+
+create_new_partition () {
+	# $type, $freeid, $place, and $size are global, passed down from
+	# elsewhere. TODO: these should really be function arguments.
+	open_dialog NEW_PARTITION $type ext2 $freeid $place $size
+	local num id fs mp mplist mpcurrent numparts device
+	id=''
+	read_line num id x1 x2 x3 x4 x5
+	close_dialog
+
+	partitions=''
+	numparts=1
+	open_dialog PARTITIONS
+	while { read_line x1 part x3 x4 x5 x6 x7; [ "$part" ]; }; do
+		partitions="$partitions $part"
+		numparts=$(($numparts + 1))
+	done
+	close_dialog
+
+	db_progress START 0 $numparts partman/text/please_wait
+	db_progress INFO partman-partitioning/new_state
+
+	db_get partman/default_filesystem
+	default_fs="$RET"
+	if [ "$id" ] && [ -f "../../$default_fs" ]; then
+		# make better defaults for the new partition
+		mkdir -p $id
+		echo format >$id/method
+		>$id/format
+		>$id/use_filesystem
+		echo "$default_fs" >$id/filesystem
+		mkdir -p $id/options
+		if [ -f "/lib/partman/mountoptions/${default_fs}_defaults" ]; then
+			for op in $(cat "/lib/partman/mountoptions/${default_fs}_defaults"); do
+				echo "$op" >"$id/options/$op"
+			done
+		fi
+		mplist='/ /home /usr /var /tmp /usr/local /opt /srv /boot'
+		mpcurrent=$(
+			for dev in $DEVICES/*; do
+				[ -d $dev ] || continue
+				cd $dev
+				open_dialog PARTITIONS
+				while { read_line num id x1 x2 fs x3 x4; [ "$id" ]; }; do
+					[ $fs != free ] || continue
+					[ -f "$id/method" ] || continue
+					[ -f "$id/acting_filesystem" ] || continue
+					[ -f "$id/use_filesystem" ] || continue
+					[ -f "$id/mountpoint" ] || continue
+					echo $(cat $id/mountpoint) # echo ensures 1 line
+				done
+				close_dialog
+			done
+		)
+		for mp in $mpcurrent; do
+			mplist=$(echo $mplist | sed "s,$mp,,")
+		done
+		mp=''
+		for mp in $mplist; do
+			break
+		done
+		if [ "$mp" ]; then
+			echo $mp >$id/mountpoint
+		fi
+		menudir_default_choice /lib/partman/active_partition "$default_fs" mountpoint || true
+		menudir_default_choice /lib/partman/choose_partition partition_tree $dev//$id || true
+		# setting the bootable flag is too much unnecessary work:
+		#   1. check if the disk label supports bootable flag
+		#   2. check if the mount point is / or /boot and the partition
+		#	  type is `primary'
+		#   3. get the current flags
+		#   4. add `boot' and set the new flags
+		#   5. moreover, when the boot loader is installed in MBR
+		#	  no bootable flag is necessary
+	fi
+
+	db_progress STEP 1
+
+	for part in $partitions; do
+		update_partition $dev $part
+		db_progress STEP 1
+	done
+
+	db_progress STOP
+
+	if [ "$id" ]; then
+		while true; do
+			set +e
+			local code=0
+			ask_active_partition "$dev" "$id" "$num" || code=$?
+			if [ "$code" -ge 128 ] && [ "$code" -lt 192 ]; then
+				exit "$code" # killed by signal
+			elif [ "$code" -ge 100 ]; then
+				break
+			fi
+			set -e
+		done
+	fi
+}
+
+ask_for_size || exit $?
+exit 0

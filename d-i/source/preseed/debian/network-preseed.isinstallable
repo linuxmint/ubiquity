@@ -1,0 +1,13 @@
+#!/bin/sh
+. /usr/share/debconf/confmodule
+. /lib/preseed/preseed.sh
+
+db_get preseed/url || exit 1
+if [ -n "$RET" ] || [ -n "$(dhcp_preseed_url)" ]; then
+	exit 0
+elif [ -e /var/run/preseed_unspecified_at_boot ]; then
+	# auto-install active: prompt for URL
+	exit 0
+fi
+
+exit 1

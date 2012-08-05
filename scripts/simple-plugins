@@ -1,0 +1,23 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+if [ "$1" = "prepare" ]; then
+    db_input high ubiquity/use_nonfree || true
+    db_get ubiquity/use_nonfree
+    if [ "$RET" = "true" ]; then
+        jockey-text -a || \
+		logger -t ubiquity "Jockey auto-install failed with code: $?"
+    fi
+elif [ "$1" = "wireless" ]; then
+    db_get ubiquity/online
+    if [ "$RET" != true ]; then
+        db_input high ubiquity/ssid || true
+    fi
+elif [ "$1" = "warning" ]; then
+    db_get ubiquity/show_alpha_warning
+    if [ "$RET" != false ]; then
+        db_input high ubiquity/show_alpha_warning || true
+    fi
+fi
+

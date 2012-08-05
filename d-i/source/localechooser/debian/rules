@@ -1,0 +1,43 @@
+#! /usr/bin/make -f
+%:
+	dh $@
+
+PACKAGE=localechooser
+DATAPACKAGE=localechooser-data
+
+ARCH=$(shell dpkg-architecture -qDEB_HOST_ARCH)
+
+ifeq (,$(findstring $(ARCH), s390 s390x))
+MENUITEMNUM=1000
+else # run after network-console for s390 
+MENUITEMNUM=2110
+endif
+
+override_dh_clean:
+	rm -rf debian/pobuild debian/iso-codes debian/short-tmp
+	rm -rf debian/locales debian/sort-tmp
+	dh_clean
+
+override_dh_install:
+	dh_install
+	cat languagelist | grep -v "^#.*" | cut -d";" -f1,4- \
+		>debian/$(PACKAGE)/usr/share/localechooser/languagelist
+	chmod 0644 debian/$(PACKAGE)/usr/share/localechooser/languagelist
+	gzip -c debian/languagelist.data \
+		>debian/$(PACKAGE)/usr/share/localechooser/languagelist.data.gz
+	chmod 0644 debian/$(PACKAGE)/usr/share/localechooser/languagelist.data.gz
+ifneq (,$(filter $(DATAPACKAGE),$(shell dh_listpackages)))
+	cp -a debian/$(PACKAGE)/usr/share/localechooser/languagelist \
+	      debian/$(PACKAGE)/usr/share/localechooser/languagelist.data.gz \
+	      debian/$(DATAPACKAGE)/usr/share/localechooser/
+endif
+	install -m644 /usr/share/i18n/SUPPORTED debian/$(PACKAGE)/usr/share/localechooser/SUPPORTED
+
+override_dh_installdebconf:
+	dh_installdebconf
+	# Sort countries and continents (including translations)
+	# MUST be after dh_installdebconf
+	./sort-templates
+
+override_dh_gencontrol:
+	dh_gencontrol -- -Vmenuitemnum=$(MENUITEMNUM)

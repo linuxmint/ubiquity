@@ -1,0 +1,156 @@
+partman-auto-loop (0ubuntu21) precise; urgency=low
+
+  * Close mount's fd 3 so that it doesn't inherit a debconf file descriptor.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 09 Mar 2012 10:59:14 +0000
+
+partman-auto-loop (0ubuntu20) oneiric; urgency=low
+
+  * Migrate from /var/run/sendsigs.omit to /run/sendsigs.omit.d/ntfs-3g,
+    matching ntfs-3g 1:2011.1.15-0.1ubuntu2.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 18 Jul 2011 12:21:33 +0100
+
+partman-auto-loop (0ubuntu19) natty; urgency=low
+
+  * Use 'dh $@ --options' rather than 'dh --options $@', for
+    forward-compatibility with debhelper v8.
+  * Improve wording of partman-auto-loop/unclean_ntfs.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 23 Mar 2011 16:49:50 +0000
+
+partman-auto-loop (0ubuntu18) karmic; urgency=low
+
+  * Bind-mount /host on /target/host during installation, to match the
+    installed system after reboot (LP: #435153).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 29 Sep 2009 22:12:41 +0100
+
+partman-auto-loop (0ubuntu17) karmic; urgency=low
+
+  * Upgrade to debhelper v7.
+  * Remove fstab.d/hostboot, which is no longer needed with GRUB 2's
+    loop-mounting support (LP: #428407).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 14 Sep 2009 11:41:02 +0100
+
+partman-auto-loop (0ubuntu16) jaunty; urgency=low
+
+  * Add ext4 support.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 04 Mar 2009 18:31:16 +0000
+
+partman-auto-loop (0ubuntu15) intrepid; urgency=low
+
+  * Adjust fstab.d/hostboot for move of definitions.sh to lib/base.sh.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 20 Jun 2008 13:23:03 +0100
+
+partman-auto-loop (0ubuntu14) hardy-proposed; urgency=low
+
+  * Make target mountpoint detection more robust in case of bindmounts
+    (LP: #238701).
+
+ -- Agostino Russo <agostino.russo@gmail.com>  Wed, 28 May 2008 23:08:22 +0100
+
+partman-auto-loop (0ubuntu13) hardy; urgency=low
+
+  [ Agostino Russo ]
+  * Allow disk images to be created externally (LP: #176019).
+  * Added template required by autopartition-loop.
+
+  [ Evan Dandrea ]
+  * Add /host/boot to fstab (LP: #173659).  Thanks Agostino Russo.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Fri, 18 Jan 2008 15:58:52 -0500
+
+partman-auto-loop (0ubuntu12) hardy; urgency=low
+
+  * Grab pids of mount.ntfs as well as mount.ntfs-3g (LP: #150822).
+  * Pass basenames rather than full paths to pidof.
+  * Vcs-Bzr is now an official field.
+  * Account for partman library code having moved to /lib/partman/lib/.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 10 Jan 2008 08:42:52 +0000
+
+partman-auto-loop (0ubuntu11) gutsy; urgency=low
+
+  * Use $mount_move for existing mountpoints too (thanks, Agostino Russo).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 02 Oct 2007 23:26:58 +0100
+
+partman-auto-loop (0ubuntu10) gutsy; urgency=low
+
+  * Call dh_installdebconf.
+  * Use an existing mountpoint for /host if there is one.
+  * Prevent ntfs-3g processes from being killed by /etc/init.d/sendsigs.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 28 Sep 2007 15:26:59 +0100
+
+partman-auto-loop (0ubuntu9) gutsy; urgency=low
+
+  * Remove the 'mountpoint' file for the partition mounted on /host so that
+    we don't try to mount it again later and get confused.
+  * Create sparse files for now. This is probably not ideal as they will
+    tend to fragment and this won't preallocate space, but the installer
+    experience is intolerable at the moment as it takes so long to dd
+    /dev/zero over the whole file.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 22 Sep 2007 03:20:40 +0100
+
+partman-auto-loop (0ubuntu8) gutsy; urgency=low
+
+  * Use 'mount --move' outside d-i rather than 'mount -o move';
+    inconveniently, util-linux doesn't like the latter, and busybox doesn't
+    like the former.
+  * Actually write the size to the partition's 'size' file, not the type!
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 22 Sep 2007 01:30:01 +0100
+
+partman-auto-loop (0ubuntu7) gutsy; urgency=low
+
+  * Read all output from fstab.d scripts; exiting early causes very strange
+    errors due to fstab.d scripts not making it to close_dialog before the
+    next one starts.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 20 Sep 2007 11:40:27 +0100
+
+partman-auto-loop (0ubuntu6) gutsy; urgency=low
+
+  * Skip any zero-sized partitions resulting from recipe expansion.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 17 Sep 2007 11:07:44 +0100
+
+partman-auto-loop (0ubuntu5) gutsy; urgency=low
+
+  * Create ordinary swap files rather than creating swap partitions on top
+    of loop devices.
+  * apt-install lupin-support.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 07 Sep 2007 12:48:41 +0100
+
+partman-auto-loop (0ubuntu4) gutsy; urgency=low
+
+  * Bail out if any of the specified image paths already exist.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 29 Aug 2007 15:04:50 +0100
+
+partman-auto-loop (0ubuntu3) gutsy; urgency=low
+
+  * Priority: standard to match overrides.
+  * Add finish.d script to create a /target/host mountpoint.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 30 Jul 2007 18:03:49 +0100
+
+partman-auto-loop (0ubuntu2) gutsy; urgency=low
+
+  * Never use more than 90% of the host filesystem.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 30 Jul 2007 14:39:43 +0100
+
+partman-auto-loop (0ubuntu1) gutsy; urgency=low
+
+  * Initial release. Not as well-integrated as one might like, as there's no
+    way to create individual loopback mounts in partman at the moment.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 30 Jul 2007 13:01:50 +0100

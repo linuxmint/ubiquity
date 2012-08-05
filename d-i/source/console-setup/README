@@ -1,0 +1,192 @@
+============
+INSTALLATION
+============
+
+Run "make build" and "make install".  The first of these commands will
+build the package and the second command will install the necessary
+data in /usr/local and /etc.
+
+This command will install in /etc/console-setup/ckb keyboard
+definitions that are more or less identical to the keyboard
+definitions used by X Window.  If your system uses X Window there are
+very good chances that there are already keyboard definitions in
+/etc/X11/xkb or /usr/X11R6/lib/X11/xkb.  In that case you can remove
+/etc/console-setup/ckb in order to use the data proveded by X Window
+and to have identical keyboard configuration on the console and in X
+Window.
+
+If you want to install the files in different places you can use a
+command like this one:
+
+   make etcdir=my_package/etc prefix=my_package/usr install
+
+This command will install the configuration files in the directory
+my_package/etc and the other files under the hierarchy my_package/usr.
+
+In order to uninstall the package use the comand "make uninstall".
+
+===========
+BASIC USAGE
+===========
+
+The easiest way to setup the console is to use the "setupcon" program.
+In most cases you will invoke it without arguments - it will read its
+configuration from ~/.console-setup or /etc/default/console-setup.
+The command "make install" installs the example configuration file
+"config" as /etc/default/console-setup.  You can edit it to suit your
+needs.
+
+In general, the configuration has two parts - font and keyboard.  The
+font configuration is straightforward, read README.fonts for more
+details.
+
+The keyboard configuration consists of giving values to four variables
+- XKBMODEL, XKBLAYOUT, XKBVARIANT and XKBOPTIONS.  These variables
+have the same meaning as the XkbModel, XkbLayout, XkbVariant and
+XkbOptions options in the fail /etc/X11/xorg.conf and also the same
+meaning as the parameters of the options -model, -layout, -variant and
+-options of the setxkbmap utility.  For detailed instructions read
+"The XKB Configuration Guide" by Kamil Toman and Ivan U. Pascal:
+
+   http://www.xfree86.org/current/XKB-Config.html
+
+Other possible readings are:
+
+   http://pascal.tsu.ru/en/xkb/
+   http://www.charvolant.org/~doug/xkb/
+
+If you do not want to read these, here are two examples:
+
+# This will give you the standard US QWERTY layout (us), where the
+# menu-key acts as Compose-key (compose:menu) and the CapsLock will be
+# third Control key (ctrl:nocaps).
+XKBMODEL=pc105
+XKBLAYOUT=us
+XKBVARIANT=
+XKBOPTIONS=compose:menu,ctrl:nocaps
+
+# In this configuration the Control+Shift combination will toggle
+# (grp:ctrl_shift_toggle) between French keyboard (fr) without dead
+# keys (nodeadkeys) and British (gb) "Dvorak" (dvorak) keyboard.  The
+# right Win-key will be Compose-key (compose:rwin) and the right
+# Alt-key will be AltGr (lv3:lalt_switch).
+XKBMODEL=pc105
+XKBLAYOUT=fr,gb
+XKBVARIANT=nodeadkeys,dvorak
+XKBOPTIONS=grp:ctrl_shift_toggle,compose:rwin,lv3:ralt_switch
+
+==========================
+ALTERNATIVE CONFIGURATIONS
+==========================
+
+If you have to switch often between different encodings, keyboards or
+languages you can prepare several alternative configuration files for
+setupcon.  Suppose that most of the time you use Greek language, Greek
+keyboard and UTF-8 encoding, but sometimes you need to type in German
+and ISO-8859-15 encoding.  Create the main configuration file
+/etc/default/console-setup for Greek:
+
+ACTIVE_CONSOLES="/dev/tty[1-6]"
+CHARMAP=UTF-8
+CODESET=Greek
+FONTFACE=VGA
+FONTSIZE=16
+XKBMODEL=pc105
+XKBLAYOUT=us,gr
+XKBVARIANT=
+# The right Alt toggles between Latin and Greek
+# The option grp_led:scroll is ignored
+XKBOPTIONS=grp:toggle,grp_led:scroll
+
+Create also a second file /etc/default/console-setup.german for German:
+
+ACTIVE_CONSOLES="/dev/tty[1-6]"
+CHARMAP=ISO-8859-15
+CODESET=Lat15
+FONTFACE=VGA
+FONTSIZE=16
+XKBMODEL=pc105
+XKBLAYOUT=de
+XKBVARIANT=
+# The right Alt functions as AltGr
+XKBOPTIONS=lv3:ralt_switch
+
+Then use the command "setupcon" to configure Greek console and the
+command "setupcon german" to configure German console.  (By the way,
+when you change the working encoding as in this example, you will have
+to change also the locale.)
+
+If you don't want to exploit superuser priviledges, use the files
+~/.console-setup and ~/.console-setup.german instead of
+/etc/default/console-setup and /etc/default/console-setup.german.
+
+
+==============
+ADVANCED USAGE
+==============
+
+You may want to make your system automatically configure the console.
+In this case make sure that the "setupcon" program is invoked during
+the system bootup.  You may want to use as example the startup script
+of Debian - debian/console-setup.console-setup.init.
+
+If you want to configure the console too early it may happen that the
+/usr file system is not yet mounted.  In order to overcome this
+obstacle make sure that "setupcon" is installed in /bin and not in
+/usr/local/bin or /usr/bin.  In addition use the command
+
+   setupcon --save
+
+This command will put in the directory /etc/console-setup all data
+(font, ACM and keyboard map) relevant to your configuration.  Notice
+that the following utilities are still necessary: "setfont" or
+"consolechars", "kbd_mode" and "loadkeys".  Depending of your
+distribution they may be installed in /bin (in which case you can have
+early console setup), or all or some of them may be in /usr/bin (in
+which case they will be unavailable before /usr is mounted).
+
+Sometimes only the keyboard part of the configuration is possible
+before the /usr file system becomes available.  In this case you can
+setup the console in two passes.  First, use the command
+
+   setupcon -k
+
+as early as possible to setup the keyboard (the early keyboard setup
+may be essential if for example fsck fails).  Next wait until /usr is
+mounted and use the command
+
+   setupcon -f
+
+to configure the font.
+
+=======
+CKBCOMP
+=======
+
+The "ckbcomp" utility is used to generate keyboard map that the kernel
+(and the "loadkeys" utility) understands.  It accepts more or less the
+same arguments as the setxkbmap utility:
+
+ckbcomp [args] [<layout> [<variant> [<option> ... ]]]
+
+Where legal args are:
+  -?,-help            Print this message
+  -charmap <name>         Specifies the encoding to use
+  -I<dir>             Add <dir> to list of directories to be used
+  -keycodes <name>    Specifies keycodes component name
+  -symbols <name>     Specifies symbols component name
+  -rules <name>       Name of rules file to use
+  -model <name>       Specifies model used to choose component names
+  -layout <name>      Specifies layout used to choose component names
+  -variant <name>     Specifies layout variant used to choose component names
+  -v[erbose] [<lvl>]  Sets verbosity (1..10).  Higher values yield
+                      more messages
+  -option <name>      Adds an option used to choose component names
+
+On its standard output "ckbcomp" dumps the generated keyboard
+definition.  The most important difference between the arguments of
+"setxkbmap" and the arguments of "ckbcomp" is that ckbcomp requires an
+additional parameter -charmap when non-Unicode map is wanted.  Without
+-charmap "ckbcomp" will generate Unicode keyboard.  Look at the
+example configuration file for setupcon to see the supported values
+for -charmap.

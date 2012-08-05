@@ -1,0 +1,15 @@
+#!/bin/sh
+
+dev=${1%//*}
+id=${1#*//}
+
+autopartition $dev $id
+code=$?
+if [ $code -eq 255 ]; then
+	code=99
+elif [ $code -eq 0 ]; then
+	# accept the autopartitioning
+	code=100
+fi
+
+exit $code

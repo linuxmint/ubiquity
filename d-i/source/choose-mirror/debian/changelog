@@ -1,0 +1,2943 @@
+choose-mirror (2.39ubuntu4) precise; urgency=low
+
+  * The fix in choose-mirror 2.39ubuntu3 for cases where the selected
+    country has no mirror broke preseeding of mirror/country=manual.  Fix
+    that.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 17 Feb 2012 11:24:37 +0000
+
+choose-mirror (2.39ubuntu3) precise; urgency=low
+
+  * Manage memory for 'country' variable more carefully.
+  * If the selected country has no mirror (excluding all-countries mirrors),
+    then fall back to the default (LP: #919356).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 10 Feb 2012 13:54:29 +0000
+
+choose-mirror (2.39ubuntu2) precise; urgency=low
+
+  * Exclude all-countries mirrors such as ports.ubuntu.com when determining
+    whether there is a mirror in the country specified in
+    debian-installer/country (LP: #919356).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 26 Jan 2012 01:27:36 +0000
+
+choose-mirror (2.39ubuntu1) precise; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Use Ubuntu mirrors.
+    - Ubuntu branding.
+    - Set default country to GB.
+    - Never ask mirror/suite, mark it untranslatable, and give it
+      appropriate choices for Ubuntu.
+    - Pick CC.archive.ubuntu.com (for the country selected in the installer)
+      as the default mirror. For ports architectures (armel, powerpc) use
+      ports.ubuntu.com instead.
+    - Drop the priorities of the country/mirror questions to medium if we're
+      installing from a CD that includes the base system.
+    - Support setting OVERRIDE_BASE_INSTALLABLE in the environment to force
+      choose-mirror to assume that the base system is installable.
+    - Skip mirror validation if the base system is installable and we're
+      installing from a mirror in the masterlist.
+    - Don't check if archive.ubuntu.com is reachable before asking for a
+      proxy.
+    - Allow preseeding the default CC.archive.ubuntu.com setup by preseeding
+      mirror/http/mirror to CC.archive.ubuntu.com, and likewise for
+      mirror/ftp/mirror.
+    - Force xgettext to use UTF-8 encoding when generating templates files,
+      to cope with Côte d'Ivoire.
+    - Only default mirror/country to the value of debian-installer/country
+      if the latter has any mirrors; otherwise, fall through to defaulting
+      to GB.
+  * Switch to precise by default.
+  * Add armhf support.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 18 Oct 2011 23:02:38 +0100
+
+choose-mirror (2.39) unstable; urgency=low
+
+  [ Tollef Fog Heen ]
+  * Update URL for master mirror list. Closes: #638877
+
+  [ Otavio Salvador ]
+  * Do not overwrite the contents of mirror/suite and mirror/codename in
+    case those has been preseeded. Thanks to Tokarski Boleslaw
+    <boleslaw.tokarski@tieto.com> for the patch. Closes: #635053.
+
+  [ Colin Watson ]
+  * Fix broken check for "://" in proxy value.
+
+  [ Updated translations ]
+  * Czech (cs.po) by Miroslav Kure
+  * German (de.po) by Holger Wansing
+  * Basque (eu.po)
+  * Hebrew (he.po) by Lior Kaplan
+  * Italian (it.po) by Milo Casagrande
+  * Japanese (ja.po) by Kenshi Muto
+  * Macedonian (mk.po) by Arangel Angov
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+
+ -- Colin Watson <cjwatson@debian.org>  Mon, 22 Aug 2011 21:33:45 +0100
+
+choose-mirror (2.38ubuntu2) oneiric; urgency=low
+
+  * Only default mirror/country to the value of debian-installer/country if
+    the latter has any mirrors; otherwise, fall through to defaulting to GB
+    (LP: #756719).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 27 May 2011 11:50:47 +0100
+
+choose-mirror (2.38ubuntu1) oneiric; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Use Ubuntu mirrors.
+    - Ubuntu branding.
+    - Set default country to GB.
+    - Never ask mirror/suite, mark it untranslatable, and give it
+      appropriate choices for Ubuntu.
+    - Pick CC.archive.ubuntu.com (for the country selected in the installer)
+      as the default mirror. For ports architectures (armel, powerpc) use
+      ports.ubuntu.com instead.
+    - Drop the priorities of the country/mirror questions to medium if we're
+      installing from a CD that includes the base system.
+    - Support setting OVERRIDE_BASE_INSTALLABLE in the environment to force
+      choose-mirror to assume that the base system is installable.
+    - Skip mirror validation if the base system is installable and we're
+      installing from a mirror in the masterlist.
+    - Don't check if archive.ubuntu.com is reachable before asking for a
+      proxy.
+    - Allow preseeding the default CC.archive.ubuntu.com setup by preseeding
+      mirror/http/mirror to CC.archive.ubuntu.com, and likewise for
+      mirror/ftp/mirror.
+    - Force xgettext to use UTF-8 encoding when generating templates files,
+      to cope with Côte d'Ivoire.
+  * Switch to oneiric by default.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 03 May 2011 13:50:57 +0100
+
+choose-mirror (2.38) unstable; urgency=low
+
+  * Team upload
+  * Append "http://" to proxy hostname (and optionnally port)
+    only when "://" is not found in what's supplied through debconf
+    Closes: #590507
+  * 
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Czech (cs.po) by Miroslav Kure
+  * Esperanto (eo.po) by Felipe Castro
+  * Spanish (es.po) by Javier Fernández-Sanguino
+  * Estonian (et.po) by Mattias Põldaru
+  * Korean (ko.po) by Changwoo Ryu
+  * Romanian (ro.po) by Eddy Petrișor
+  * Northern Sami (se.po) by Børre Gaup
+  * Slovak (sk.po) by Ivan Masár
+  * Swedish (sv.po) by Daniel Nylander
+  * Telugu (te.po) by Arjuna Rao Chavala
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Uyghur (ug.po) by Sahran
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 23 Apr 2011 07:55:32 +0200
+
+choose-mirror (2.37ubuntu2) natty; urgency=low
+
+  * Record a dummy "GB" entry in templates files for non-country-specific
+    mirrors (i.e. ports.ubuntu.com) so that ports installations have more
+    choices than just "enter information manually" (LP: #756719).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 14 Apr 2011 15:06:37 +0100
+
+choose-mirror (2.37ubuntu1) natty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Use Ubuntu mirrors.
+    - Ubuntu branding.
+    - Set default country to GB.
+    - Never ask mirror/suite, mark it untranslatable, and give it
+      appropriate choices for Ubuntu.
+    - Pick CC.archive.ubuntu.com (for the country selected in the installer)
+      as the default mirror. For ports architectures (armel, powerpc) use
+      ports.ubuntu.com instead.
+    - Drop the priorities of the country/mirror questions to medium if we're
+      installing from a CD that includes the base system.
+    - Support setting OVERRIDE_BASE_INSTALLABLE in the environment to force
+      choose-mirror to assume that the base system is installable.
+    - Skip mirror validation if the base system is installable and we're
+      installing from a mirror in the masterlist.
+    - Don't check if archive.ubuntu.com is reachable before asking for a
+      proxy.
+    - Allow preseeding the default CC.archive.ubuntu.com setup by preseeding
+      mirror/http/mirror to CC.archive.ubuntu.com, and likewise for
+      mirror/ftp/mirror.
+    - Force xgettext to use UTF-8 encoding when generating templates files,
+      to cope with Côte d'Ivoire.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 31 Jan 2011 18:48:20 +0000
+
+choose-mirror (2.37) unstable; urgency=low
+
+  [ Christian Perrier ]
+  * Use "mirror" as default hostname for custom FTP or HTTP mirror
+    Closes: #605579
+
+  [ Updated translations ]
+  * Lao (lo.po) by Anousak Souphavanh
+  * Northern Sami (se.po) by Børre Gaup
+  * Sinhala (si.po) by Danishka Navin
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Telugu (te.po) by Arjuna Rao Chavala
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 24 Dec 2010 19:33:11 -0200
+
+choose-mirror (2.36ubuntu1) natty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Use Ubuntu mirrors.
+    - Ubuntu branding.
+    - Set default country to GB.
+    - Never ask mirror/suite, mark it untranslatable, and give it
+      appropriate choices for Ubuntu.
+    - Pick CC.archive.ubuntu.com (for the country selected in the installer)
+      as the default mirror. For ports architectures (armel, powerpc) use
+      ports.ubuntu.com instead.
+    - Drop the priorities of the country/mirror questions to medium if we're
+      installing from a CD that includes the base system.
+    - Support setting OVERRIDE_BASE_INSTALLABLE in the environment to force
+      choose-mirror to assume that the base system is installable.
+    - Skip mirror validation if the base system is installable and we're
+      installing from a mirror in the masterlist.
+    - Don't check if archive.ubuntu.com is reachable before asking for a
+      proxy.
+    - Allow preseeding the default CC.archive.ubuntu.com setup by preseeding
+      mirror/http/mirror to CC.archive.ubuntu.com, and likewise for
+      mirror/ftp/mirror.
+    - Force xgettext to use UTF-8 encoding when generating templates files,
+      to cope with Côte d'Ivoire.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 15 Nov 2010 10:32:12 +0000
+
+choose-mirror (2.36) unstable; urgency=low
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Israt Jahan
+  * Catalan (ca.po) by Jordi Mallach
+  * Persian (fa.po) by Behrad Eslamifar
+  * Icelandic (is.po) by Sveinn  Felli
+  * Telugu (te.po) by Arjuna Rao Chavala
+
+ -- Otavio Salvador <otavio@ossystems.com.br>  Fri, 12 Nov 2010 15:06:39 -0200
+
+choose-mirror (2.35ubuntu1) natty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Use Ubuntu mirrors.
+    - Ubuntu branding.
+    - Set default country to GB.
+    - Never ask mirror/suite, mark it untranslatable, and give it
+      appropriate choices for Ubuntu.
+    - Pick CC.archive.ubuntu.com (for the country selected in the installer)
+      as the default mirror. For ports architectures (armel, powerpc) use
+      ports.ubuntu.com instead.
+    - Drop the priorities of the country/mirror questions to medium if we're
+      installing from a CD that includes the base system.
+    - Support setting OVERRIDE_BASE_INSTALLABLE in the environment to force
+      choose-mirror to assume that the base system is installable.
+    - Skip mirror validation if the base system is installable and we're
+      installing from a mirror in the masterlist.
+    - Don't check if archive.ubuntu.com is reachable before asking for a
+      proxy.
+    - Allow preseeding the default CC.archive.ubuntu.com setup by preseeding
+      mirror/http/mirror to CC.archive.ubuntu.com, and likewise for
+      mirror/ftp/mirror.
+    - Force xgettext to use UTF-8 encoding when generating templates files,
+      to cope with Côte d'Ivoire.
+  * Drop ia64 and sparc support, as those were EOL in Maverick.
+  * Switch to natty by default.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 22 Oct 2010 11:30:04 +0100
+
+choose-mirror (2.35) unstable; urgency=medium
+
+  * List in-country leaf mirrors before out-of-country GeoDNS mirrors
+    for countries that have no push mirrors. Closes: #598538
+    (Affects 20 countries.)
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Asturian (ast.po) by maacub
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bosnian (bs.po) by Armin Beširović
+  * Danish (da.po) by Jacob Sparre Andersen
+  * Persian (fa.po) by Behrad Eslamifar
+  * Finnish (fi.po) by Esko Arajärvi
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Serbian (sr.po) by Janos Guljas
+  * Telugu (te.po) by Arjuna Rao Chavala
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 29 Sep 2010 17:53:48 -0400
+
+choose-mirror (2.34) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Support entries in Mirrors.masterlist of "Type: GeoDNS".
+  * For now, GeoDNS mirrors are listed above Leaf mirrors, but after
+    Push-Primary and Push-Secondary mirrors. We may later choose to
+    change the ordering so cdn.debian.net is used by default.
+
+  [ Updated translations ]
+  * Amharic (am.po) by Tegegne Tefera
+  * Asturian (ast.po) by astur
+  * Belarusian (be.po) by Viktar Siarheichyk
+  * Bosnian (bs.po) by Armin Beširović
+  * Catalan (ca.po) by Jordi Mallach
+  * Danish (da.po) by Jacob Sparre Andersen
+  * German (de.po) by Holger Wansing
+  * Dzongkha (dz.po) by Jurmey Rabgay
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * Persian (fa.po) by acathur
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jorge Barreiro
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Kumar Appaiah
+  * Croatian (hr.po) by Josip Rodin
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Central Khmer (km.po) by Khoem Sokhem
+  * Korean (ko.po) by Changwoo Ryu
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Macedonian (mk.po) by Arangel Angov
+  * Malayalam (ml.po) by Praveen Arimbrathodiyil
+  * Marathi (mr.po) by Sampada
+  * Nepali (ne.po)
+  * Norwegian Nynorsk (nn.po) by Eirik U. Birkeland
+  * Panjabi (pa.po) by A S Alam
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Romanian (ro.po) by ioan-eugen stan
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Albanian (sq.po) by Elian Myftiu
+  * Tamil (ta.po) by Dr,T,Vasudevan
+  * Tagalog (tl.po) by Eric Pareja
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 11 Jul 2010 07:30:51 +0200
+
+choose-mirror (2.33ubuntu3) maverick; urgency=low
+
+  * Set mirror/suite Default to maverick (LP: #656037).
+  * Accept a mirror/suite default even if the base system is on the CD
+    (workaround for maverick).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 07 Oct 2010 10:30:43 +0100
+
+choose-mirror (2.33ubuntu2) maverick; urgency=low
+
+  * Fix mismerge of Ubuntu-specific change to skip mirror validation if the
+    base system is installable and we're installing from a mirror in the
+    masterlist.  With the reorganisation of suite validation in 2.30,
+    exiting early meant that the proxy question never got asked.  Instead,
+    modify get_release and check_arch to return early in this case, but
+    otherwise keep going (LP: #613550).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 03 Oct 2010 12:33:47 +0100
+
+choose-mirror (2.33ubuntu1) maverick; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Use Ubuntu mirrors.
+    - Ubuntu branding.
+    - Set default country to GB.
+    - Never ask mirror/suite, mark it untranslatable, and give it
+      appropriate choices for Ubuntu.
+    - Pick CC.archive.ubuntu.com (for the country selected in the installer)
+      as the default mirror. For ports architectures (armel, ia64, powerpc,
+      sparc) use ports.ubuntu.com instead.
+    - Drop the priorities of the country/mirror questions to medium if we're
+      installing from a CD that includes the base system.
+    - Support setting OVERRIDE_BASE_INSTALLABLE in the environment to force
+      choose-mirror to assume that the base system is installable.
+    - Skip mirror validation if the base system is installable and we're
+      installing from a mirror in the masterlist.
+    - Don't check if archive.ubuntu.com is reachable before asking for a
+      proxy.
+    - Allow preseeding the default CC.archive.ubuntu.com setup by preseeding
+      mirror/http/mirror to CC.archive.ubuntu.com, and likewise for
+      mirror/ftp/mirror.
+  * Drop lpia support, as lpia was EOL in Lucid.
+  * Switch to maverick by default.  Drop all old suites from the list of
+    suite choices; for better or worse, we've never really supported
+    installing older suites with a newer installer.
+  * Force xgettext to use UTF-8 encoding when generating templates files, to
+    cope with Côte d'Ivoire.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 24 May 2010 12:58:59 +0100
+
+choose-mirror (2.33) unstable; urgency=low
+
+  * Correctly move progress bar to 100% after reading suites.
+  * Fix incorrect sorting of country lists for English. Closes: #569199.
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Israt Jahan
+  * Basque (eu.po)
+  * Panjabi (pa.po) by A S Alam
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Frans Pop <fjp@debian.org>  Wed, 10 Feb 2010 23:08:52 +0100
+
+choose-mirror (2.32) unstable; urgency=low
+
+  * Improve generation of country selection templates to avoid display of
+    untranslated country codes. Closes: #502245.
+  * Use Norwegian Bokmaal country names if no iso-codes translation is
+    available for Northern Sami.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Pavel Piatruk
+  * German (de.po) by Holger Wansing
+  * Greek, Modern (1453-) (el.po)
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Finnish (fi.po) by Esko Arajärvi
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Turkish (tr.po) by Mert Dirik
+  * Simplified Chinese (zh_CN.po) by 苏运强
+
+ -- Frans Pop <fjp@debian.org>  Fri, 29 Jan 2010 23:45:47 +0100
+
+choose-mirror (2.31) unstable; urgency=low
+
+  * Fix inconsistency between network- and CD-based installs by always
+    cross-validating Release files to ensure identical behavior during
+    apt-setup.
+
+  [ Updated translations ]
+  * Asturian (ast.po) by astur
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Greek, Modern (1453-) (el.po)
+  * Japanese (ja.po) by Kenshi Muto
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Bokmål, Norwegian (nb.po) by Hans Fredrik Nordhaug
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Swedish (sv.po) by Daniel Nylander
+  * Thai (th.po) by Theppitak Karoonboonyanan
+
+ -- Frans Pop <fjp@debian.org>  Mon, 30 Nov 2009 07:27:04 +0100
+
+choose-mirror (2.30) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Upgrade to debhelper v7.
+
+  [ Frans Pop ]
+  * Remove no longer needed Lintian override for missing Standards-
+    Version field.
+  * Drop backwards compatibility support for preseeding of "manual" mirror
+    selection.
+  * Improve validation of suites available on selected mirror and suite
+    selection. Changes include:
+    - all suites available on a mirror get validated; if an inconsistency is
+      found in any suite (between directory/symlink names and Suite/Codename
+      fields in the Release file), the mirror will be rejected as invalid;
+    - if a release can be accessed using codename as well as suite, the
+      selection dialog will display both;
+    - proper support for oldstable; will only be listed in selection dialog if
+      it's the requested release (as installer default or through preseeding);
+    - improved support for mirror that only have codename directories, such as
+      archive.debian.org;
+    - support for mirrors that don't have codename directories (but use suite
+      names as directories);
+    - various code cleanups.
+    Many thanks to Jérémy Bobbio for reviewing the changes.
+    Closes: #405169, #418382. And solves #518319 for future releases.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Czech (cs.po) by Miroslav Kure
+  * German (de.po) by Holger Wansing
+  * Esperanto (eo.po) by Felipe Castro
+  * Estonian (et.po) by Mattias Põldaru
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Marce Villarino
+  * Italian (it.po) by Milo Casagrande
+  * Dutch (nl.po) by Frans Pop
+  * Russian (ru.po) by Yuri Kozlov
+
+ -- Frans Pop <fjp@debian.org>  Mon, 23 Nov 2009 11:23:04 +0100
+
+choose-mirror (2.29ubuntu3) lucid; urgency=low
+
+  * Expand CC.archive.ubuntu.com to archive.ubuntu.com if
+    debian-installer/locale is set to "C" (LP: #550694).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 13 Apr 2010 09:55:58 +0100
+
+choose-mirror (2.29ubuntu2) lucid; urgency=low
+
+  * Switch to lucid by default.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Wed, 11 Nov 2009 00:19:04 +0000
+
+choose-mirror (2.29ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Use Ubuntu mirrors.
+    - Ubuntu branding.
+    - Set default country to GB.
+    - Never ask mirror/suite, mark it untranslatable, and give it
+      appropriate choices for Ubuntu.
+    - Pick CC.archive.ubuntu.com (for the country selected in the installer)
+      as the default mirror. For ports architectures (armel, ia64, lpia,
+      powerpc, sparc) use ports.ubuntu.com instead.
+    - Drop the priorities of the country/mirror questions to medium if we're
+      installing from a CD that includes the base system.
+    - Support setting OVERRIDE_BASE_INSTALLABLE in the environment to force
+      choose-mirror to assume that the base system is installable.
+    - Skip mirror validation if the base system is installable and we're
+      installing from a mirror in the masterlist.
+    - Don't check if archive.ubuntu.com is reachable before asking for a
+      proxy.
+    - Allow preseeding the default CC.archive.ubuntu.com setup by preseeding
+      mirror/http/mirror to CC.archive.ubuntu.com, and likewise for
+      mirror/ftp/mirror.
+  * Drop hppa support, as hppa is EOL in Karmic.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 24 Jun 2009 13:22:11 +0100
+
+choose-mirror (2.29) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Remove myself as uploader.
+
+  [ Christian Perrier ]
+  * Use 6 as debhelper compatibility level
+  
+  [ Updated translations ]
+  * Asturian (ast.po) by Marcos Alvarez Costales
+  * Bengali (bn.po) by Md. Rezwan Shahid
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Estonian (et.po) by Mattias Põldaru
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by marce villarino
+  * Hindi (hi.po) by Kumar Appaiah
+  * Italian (it.po) by Milo Casagrande
+  * Kazakh (kk.po) by Dauren Sarsenov
+  * Malayalam (ml.po) by Praveen Arimbrathodiyil
+  * Marathi (mr.po) by Sampada
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Tagalog (tl.po) by Eric Pareja
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 08 May 2009 19:15:44 +0200
+
+choose-mirror (2.28ubuntu2) karmic; urgency=low
+
+  * Switch to karmic by default; drop gutsy from the list of suite choices.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 29 Apr 2009 02:18:36 +0100
+
+choose-mirror (2.28ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Use Ubuntu mirrors.
+    - Ubuntu branding.
+    - Set default country to GB.
+    - Never ask mirror/suite, mark it untranslatable, and give it
+      appropriate choices for Ubuntu.
+    - Pick CC.archive.ubuntu.com (for the country selected in the installer)
+      as the default mirror. For ports architectures (armel, hppa, ia64,
+      lpia, powerpc, sparc) use ports.ubuntu.com instead.
+    - Drop the priorities of the country/mirror questions to medium if we're
+      installing from a CD that includes the base system.
+    - Support setting OVERRIDE_BASE_INSTALLABLE in the environment to force
+      choose-mirror to assume that the base system is installable.
+    - Skip mirror validation if the base system is installable and we're
+      installing from a mirror in the masterlist.
+    - Don't check if archive.ubuntu.com is reachable before asking for a
+      proxy.
+    - Allow preseeding the default CC.archive.ubuntu.com setup by preseeding
+      mirror/http/mirror to CC.archive.ubuntu.com, and likewise for
+      mirror/ftp/mirror.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 28 Apr 2009 14:09:05 +0100
+
+choose-mirror (2.28) unstable; urgency=low
+
+  * Rebuilt using updated Mirrors.masterlist
+
+ -- Otavio Salvador <otavio@debian.org>  Tue, 02 Dec 2008 21:55:19 -0200
+
+choose-mirror (2.27ubuntu4) jaunty; urgency=low
+
+  * Allow preseeding the default CC.archive.ubuntu.com setup by preseeding
+    mirror/http/mirror to CC.archive.ubuntu.com, and likewise for
+    mirror/ftp/mirror (LP: #18225).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 05 Mar 2009 13:58:55 +0000
+
+choose-mirror (2.27ubuntu3) jaunty; urgency=low
+
+  * Fix build-dependencies broken in merge of 2.27, including restoring the
+    dependency on isoquery so that we can build a proper list of countries
+    (LP: #321225).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 29 Jan 2009 22:04:58 +0000
+
+choose-mirror (2.27ubuntu2) jaunty; urgency=low
+
+  * Switch default mirror for armel and lpia to
+    ports.ubuntu.com/ubuntu-ports/.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 29 Jan 2009 13:06:53 +0000
+
+choose-mirror (2.27ubuntu1) jaunty; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Use Ubuntu mirrors.
+    - Ubuntu branding.
+    - Set default country to GB.
+    - Never ask mirror/suite, mark it untranslatable, and give it
+      appropriate choices for Ubuntu.
+    - Pick CC.archive.ubuntu.com (for the country selected in the installer)
+      as the default mirror.
+    - Drop the priorities of the country/mirror questions to medium if we're
+      installing from a CD that includes the base system.
+    - Support setting OVERRIDE_BASE_INSTALLABLE in the environment to force
+      choose-mirror to assume that the base system is installable.
+    - Skip mirror validation if the base system is installable and we're
+      installing from a mirror in the masterlist.
+    - Don't check if archive.ubuntu.com is reachable before asking for a
+      proxy.
+    - Switch to jaunty by default.
+    - Drop unsupported releases from mirror/suite Choices.
+    - Set Vcs-Bzr for Ubuntu.
+    - Use ports.ubuntu.com for all countries.
+    - Move sparc to ports.ubuntu.com, and fix default hostname and directory
+      for sparc.
+    - Fix country selection for ports architectures.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Thu, 13 Nov 2008 14:00:22 -0800
+
+choose-mirror (2.27) unstable; urgency=low
+
+  * Use isoquery instead of a python script to generate iso_3166.tab and
+    generate the file only once instead of every time its needed.
+  * Remove obsolete versions in build dependencies.
+
+ -- Frans Pop <fjp@debian.org>  Mon, 22 Sep 2008 12:16:32 +0200
+
+choose-mirror (2.26) unstable; urgency=low
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Bosnian (bs.po) by Armin Besirovic
+  * Welsh (cy.po) by Jonathan Price
+  * Danish (da.po)
+  * Esperanto (eo.po) by Felipe Castro
+  * French (fr.po) by Christian Perrier
+  * Croatian (hr.po) by Josip Rodin
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Latvian (lv.po) by Peteris Krisjanis
+  * Macedonian (mk.po) by Arangel Angov
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Serbian (sr.po) by Veselin Mijušković
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Otavio Salvador <otavio@debian.org>  Sun, 21 Sep 2008 18:56:44 -0300
+
+choose-mirror (2.25) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Remove Martin Sjogren and Matt Kraai as Uploaders with many thanks for
+    their past contributions.
+
+  [ Joey Hess ]
+  * mirror_root can return null. If it does, flag the mirror as invalid.
+  * ftp.debian.org has been disabled in Mirrors.masterlist. So remove it as
+    the default. Do not set a default at all, we'll rely on the first mirror
+    in the list being a good default choice. Closes: #486558
+
+  [ Updated translations ]
+  * Basque (eu.po) by Iñaki Larrañaga Murgoitio
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Italian (it.po) by Milo Casagrande
+  * Malayalam (ml.po) by Praveen|പ്രവീണ്‍ A|എ
+  * Marathi (mr.po) by Sampada
+  * Panjabi (pa.po) by Amanpreet Singh Alam
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Slovak (sk.po) by Ivan Masár
+  * Turkish (tr.po) by Mert Dirik
+  * Simplified Chinese (zh_CN.po) by Kov Chai
+
+ -- Frans Pop <fjp@debian.org>  Wed, 16 Jul 2008 13:36:46 +0200
+
+choose-mirror (2.24ubuntu2) intrepid; urgency=low
+
+  * Fix extraneous Ubuntu-specific reference to PREFERRED_DISTRIBUTION; in
+    practice this should never be needed anymore, but in any case it's
+    currently not defined.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Thu, 12 Jun 2008 02:07:54 -0700
+
+choose-mirror (2.24ubuntu1) intrepid; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Use Ubuntu mirrors.
+    - Ubuntu branding.
+    - Set default country to GB.
+    - Never ask mirror/suite, mark it untranslatable, and give it
+      appropriate choices for Ubuntu.
+    - Pick CC.archive.ubuntu.com (for the country selected in the installer)
+      as the default mirror.
+    - Drop the priorities of the country/mirror questions to medium if we're
+      installing from a CD that includes the base system.
+    - Support setting OVERRIDE_BASE_INSTALLABLE in the environment to force
+      choose-mirror to assume that the base system is installable.
+    - Skip mirror validation if the base system is installable and we're
+      installing from a mirror in the masterlist.
+    - Don't check if archive.ubuntu.com is reachable before asking for a
+      proxy.
+    - Switch to hardy by default.
+    - Drop unsupported releases from mirror/suite Choices.
+    - Set Vcs-Bzr for Ubuntu.
+    - Use ports.ubuntu.com for all countries.
+    - Move sparc to ports.ubuntu.com, and fix default hostname and directory
+      for sparc.
+    - Fix country selection for ports architectures.
+  * Change the default target from hardy to intrepid; drop edgy from the list
+    of suite choices since it's no longer supported
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Wed, 11 Jun 2008 23:50:20 -0700
+
+choose-mirror (2.24) unstable; urgency=low
+
+  * Patch by Matthias Klose stolen from Ubuntu (closes: #468623):
+    - iso3166tab.py: Include ErrorPrinter and DefaultHandler from obsolete
+      saxutils.py
+    - drop build dependency on python-xml
+  * Remove PREFERRED_DISTRIBUTION; has been replaced by /etc/default-release.
+  * Improved version of the script used to sort the mirror country list.
+
+  [ Updated translations ]
+  * Basque (eu.po) by Piarres Beobide
+  * Finnish (fi.po) by Esko Arajärvi
+  * Marathi (mr.po)
+  * Dutch (nl.po) by Frans Pop
+  * Panjabi (pa.po) by Amanpreet Singh Alam
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Slovak (sk.po) by Ivan Masár
+
+ -- Frans Pop <fjp@debian.org>  Sun, 06 Apr 2008 11:48:18 +0200
+
+choose-mirror (2.23) unstable; urgency=low
+
+  * Rebuilt using updated Mirrors.masterlist which now includes official
+    armel mirrors.
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 15 Feb 2008 16:59:49 -0500
+
+choose-mirror (2.22) unstable; urgency=low
+
+  [ Updated translations ]
+  * Finnish (fi.po) by Esko Arajärvi
+  * French (fr.po) by Christian Perrier
+  * Hindi (hi.po) by Kumar Appaiah
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Korean (ko.po) by Changwoo Ryu
+  * Latvian (lv.po) by Viesturs Zarins
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Turkish (tr.po) by Recai Oktaş
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 15 Feb 2008 07:49:33 -0200
+
+choose-mirror (2.21) unstable; urgency=low
+
+  * If built from a clean VCS checkout, Mirrors.masterlist was not present
+    when the source package was built, and so was not included in the source
+    package, and so has to be individually downloaded by each build daemon.
+    Avoid this by updating Mirrors.masterlist in the clean rule.
+    Closes: #460389
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 12 Jan 2008 13:56:15 -0500
+
+choose-mirror (2.20) unstable; urgency=low
+
+  * Rebuild with latest Mirrors.masterlist. (Particularly for armel.)
+
+  [ Updated translations ]
+  * Amharic (am.po) by tegegne tefera
+  * Korean (ko.po) by Changwoo Ryu
+  * Malayalam (ml.po) by Praveen
+  * Panjabi (pa.po) by A S Alam
+  * Romanian (ro.po) by Eddy Petrișor
+  * Slovak (sk.po) by Ivan Masár
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 10 Jan 2008 13:41:21 -0500
+
+choose-mirror (2.19ubuntu6) hardy; urgency=low
+
+  * Fix default hostname and directory for sparc.
+  * Fix country selection for ports architectures (LP: #218801).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 18 Apr 2008 15:20:44 +0100
+
+choose-mirror (2.19ubuntu5) hardy; urgency=low
+
+  * Move sparc to ports.ubuntu.com, per
+    https://lists.ubuntu.com/archives/ubuntu-devel-announce/2008-March/000400.html.
+    (The actual packages have yet to be moved there, but that will happen
+    soon.)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 07 Apr 2008 22:49:03 +0100
+
+choose-mirror (2.19ubuntu4) hardy; urgency=low
+
+  * Use ports.ubuntu.com for all countries (LP: #176672).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 01 Apr 2008 16:39:21 +0100
+
+choose-mirror (2.19ubuntu3) hardy; urgency=low
+
+  * Set Vcs-Bzr for Ubuntu.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 21 Mar 2008 10:28:19 +0000
+
+choose-mirror (2.19ubuntu2) hardy; urgency=low
+
+  * Drop build dependency on python-xml.
+  * iso3166tab.py: Include ErrorPrinter and DefaultHandler from obsolete
+    saxutils.py
+
+ -- Matthias Klose <doko@ubuntu.com>  Fri, 29 Feb 2008 15:08:34 +0000
+
+choose-mirror (2.19ubuntu1) hardy; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Use Ubuntu mirrors.
+    - Ubuntu branding.
+    - Set default country to GB.
+    - Never ask mirror/suite, mark it untranslatable, and give it
+      appropriate choices for Ubuntu.
+    - Pick CC.archive.ubuntu.com (for the country selected in the installer)
+      as the default mirror.
+    - Drop the priorities of the country/mirror questions to medium if we're
+      installing from a CD that includes the base system.
+    - Support setting OVERRIDE_BASE_INSTALLABLE in the environment to force
+      choose-mirror to assume that the base system is installable.
+    - Skip mirror validation if the base system is installable and we're
+      installing from a mirror in the masterlist.
+  * Stop checking if archive.ubuntu.com is reachable before asking for a
+    proxy. This caused a number of very long delays on systems behind
+    firewalls that dropped packets they didn't like rather than rejecting
+    them. Furthermore, now that we have Ubiquity it is less important for
+    Ubuntu's d-i to ask as few questions as possible, and more important for
+    it to work correctly in corner cases.
+  * Switch to hardy by default.
+  * Drop unsupported releases from mirror/suite Choices.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 22 Oct 2007 13:12:49 +0100
+
+choose-mirror (2.19) unstable; urgency=low
+
+  [ Jérémy Bobbio ]
+  * Rebuild with latest Mirrors.masterlist.
+  * Fix lintian warning malformed-prompt-in-templates for mirror/country and
+    mirror/codename.
+
+  [ Updated translations ]
+  * Basque (eu.po) by Piarres Beobide
+  * Italian (it.po) by Stefano Canepa
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Swedish (sv.po) by Daniel Nylander
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Jérémy Bobbio <lunar@debian.org>  Sat, 06 Oct 2007 13:21:52 +0200
+
+choose-mirror (2.18) unstable; urgency=low
+
+  * Fix buggy handling of "enter information manually" introduced in
+    choose-mirror 2.17.
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Jamil Ahmed
+  * Panjabi (pa.po) by A S Alam
+  * Portuguese (pt.po) by Miguel Figueiredo
+
+ -- Colin Watson <cjwatson@debian.org>  Fri, 27 Jul 2007 14:58:03 +0100
+
+choose-mirror (2.17) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Remove old unused NO_MIRROR define from mirrors.h.
+  * Permit preseeding the country to "manual" as a more convenient spelling
+    of "enter information manually".
+  * If the proxy string does not already contain a colon, prepend http://
+    (closes: #257877).
+
+  [ Updated translations ]
+  * Punjabi (Gurmukhi) (pa.po) by A S Alam
+  * Portuguese (pt.po) by Miguel Figueiredo
+
+ -- Frans Pop <fjp@debian.org>  Fri, 06 Jul 2007 00:11:50 +0200
+
+choose-mirror (2.16) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Use codename from /etc/default-release as the default release for the
+    target system, which is set when D-I images are built. This replaces
+    the current hardcoded value in mirrors.h which will be removed after a
+    transition period. Closes: #426303.
+
+  [ Updated translations ]
+  * Esperanto (eo.po) by Serge Leblanc
+  * Basque (eu.po) by Piarres Beobide
+  * Japanese (ja.po) by Kenshi Muto
+  * Romanian (ro.po) by Eddy Petrișor
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+
+ -- Frans Pop <fjp@debian.org>  Mon, 28 May 2007 22:32:17 +0200
+
+choose-mirror (2.15ubuntu1) gutsy; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Use Ubuntu mirrors.
+    - Check if archive.ubuntu.com is reachable before asking for a proxy.
+    - Ubuntu branding.
+    - Set default country to GB.
+    - Never ask mirror/suite, mark it untranslatable, and give it
+      appropriate choices for Ubuntu.
+    - Pick CC.archive.ubuntu.com (for the country selected in the installer)
+      as the default mirror.
+    - Drop the priorities of the country/mirror questions to medium if we're
+      installing from a CD that includes the base system.
+    - Support setting OVERRIDE_BASE_INSTALLABLE in the environment to force
+      choose-mirror to assume that the base system is installable.
+    - Skip mirror validation if the base system is installable and we're
+      installing from a mirror in the masterlist.
+  * Move powerpc to ports.ubuntu.com (LP: #107838).
+  * Switch to gutsy by default.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 14 May 2007 11:10:00 +0100
+
+choose-mirror (2.15) unstable; urgency=low
+
+  * Multiply menu-item-numbers by 100.
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 10 Apr 2007 14:37:42 -0400
+
+choose-mirror (2.14) unstable; urgency=low
+
+  [ Colin Watson ]
+  * sort-countries: Add a small corner-case sanity check.
+
+  [ Joey Hess ]
+  * Switch PREFERRED_DISTRIBUTION to lenny.
+
+  [ Updated translations ]
+  * Norwegian Bokmål (nb.po) by Bjørn Steensrud
+  * Tamil (ta.po) by Dr.T.Vasudevan
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 09 Apr 2007 16:01:41 -0400
+
+choose-mirror (2.13) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Add a warning message about missing archive-architecture fields in
+    Mirrors.masterlist.
+  * Generate valid templates that won't crash cdebconf when there are no
+    mirrors for a given arch.
+
+  [ Updated translations ]
+  * Hebrew (he.po) by Lior Kaplan
+  * Malayalam (ml.po) by Praveen A
+
+ -- Frans Pop <fjp@debian.org>  Tue, 27 Feb 2007 17:38:13 +0100
+
+choose-mirror (2.12) unstable; urgency=low
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Danish (da.po) by Claus Hindsgaul
+  * Esperanto (eo.po) by Serge Leblanc
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Romanian (ro.po) by Eddy Petrișor
+
+ -- Frans Pop <fjp@debian.org>  Wed, 31 Jan 2007 11:29:29 +0100
+
+choose-mirror (2.11) unstable; urgency=low
+
+  * Enable ftp support again, but without the option to select country/mirror
+    to limit the size increase of the udeb. Closes: #377032.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Pavel Piatruk
+  * Kurdish (ku.po) by Amed Çeko Jiyan
+  * Panjabi (pa.po) by A S Alam
+  * Slovenian (sl.po) by Matej Kovačič
+
+ -- Frans Pop <fjp@debian.org>  Fri, 29 Dec 2006 04:24:19 +0100
+
+choose-mirror (2.10ubuntu2) feisty; urgency=low
+
+  * Set Maintainer to ubuntu-installer@lists.ubuntu.com.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 16 Feb 2007 10:10:28 +0000
+
+choose-mirror (2.10ubuntu1) feisty; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Use Ubuntu mirrors.
+    - Check if archive.ubuntu.com is reachable before asking for a proxy.
+    - Ubuntu branding.
+    - Set default country to GB.
+    - Never ask mirror/suite, mark it untranslatable, and give it
+      appropriate choices for Ubuntu.
+    - Pick CC.archive.ubuntu.com (for the country selected in the installer)
+      as the default mirror.
+    - Drop the priorities of the country/mirror questions to medium if we're
+      installing from a CD that includes the base system.
+    - Support setting OVERRIDE_BASE_INSTALLABLE in the environment to force
+      choose-mirror to assume that the base system is installable.
+    - Include FTP support, but with no translations to save space.
+    - Skip mirror validation if the base system is installable and we're
+      installing from a mirror in the masterlist.
+    - Minor corner-case tweak to sort-countries.
+  * Update Korean branding.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 19 Dec 2006 12:09:30 +0000
+
+choose-mirror (2.10) unstable; urgency=low
+
+  * Rebuilt after discovering typos in Mirrors.masterlist
+
+ -- Christian Perrier <bubulle@debian.org>  Sat,  2 Dec 2006 15:16:17 +0100
+
+choose-mirror (2.09) unstable; urgency=low
+
+  [ Colin Watson ]
+  * sort-countries: Defend against stale list.* and sortedlist.* files from
+    previous aborted sort-countries runs.
+
+  [ Christian Perrier ]
+  * Rebuilt after cleanups in Mirrors.masterlist
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bosnian (bs.po) by Safir Secerovic
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Kurdish (ku.po) by rizoye-xerzi
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Malayalam (ml.po) by Praveen A
+  * Norwegian Bokmål (nb.po) by Bjørn Steensrud
+  * Panjabi (pa.po) by A S Alam
+  * Swedish (sv.po) by Daniel Nylander
+
+ -- Christian Perrier <bubulle@debian.org>  Sat,  2 Dec 2006 14:02:46 +0100
+
+choose-mirror (2.08ubuntu1) feisty; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Use Ubuntu mirrors.
+    - Check if archive.ubuntu.com is reachable before asking for a proxy.
+    - Ubuntu branding.
+    - Set default country to GB.
+    - Never ask mirror/suite, mark it untranslatable, and give it
+      appropriate choices for Ubuntu.
+    - Pick CC.archive.ubuntu.com (for the country selected in the installer)
+      as the default mirror.
+    - Drop the priorities of the country/mirror questions to medium if we're
+      installing from a CD that includes the base system.
+    - Support setting OVERRIDE_BASE_INSTALLABLE in the environment to force
+      choose-mirror to assume that the base system is installable.
+    - Include FTP support, but with no translations to save space.
+    - Skip mirror validation if the base system is installable and we're
+      installing from a mirror in the masterlist.
+    - Minor corner-case tweaks to sort-countries.
+  * Switch to feisty by default.
+  * Fix encoding of Danish translation.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 27 Nov 2006 03:36:14 +0000
+
+choose-mirror (2.08) unstable; urgency=low
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Andrei Darashenka
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Hindi (hi.po) by Nishant Sharma
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Nepali (ne.po) by Shiva Prasad Pokharel
+  * Turkish (tr.po) by Recai Oktaş
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Frans Pop <fjp@debian.org>  Tue, 24 Oct 2006 14:19:38 +0200
+
+choose-mirror (2.07) unstable; urgency=low
+
+  * Rebuild with latest Mirrors.masterlist. (Notably, without
+    archive.progeny.com)
+
+  [ Updated translations ]
+  * Dzongkha (dz.po) by Jurmey Rabgay
+  * Estonian (et.po) by Siim Põder
+  * Norwegian Bokmål (nb.po) by Bjørn Steensrud
+  * Swedish (sv.po) by Daniel Nylander
+  * Tamil (ta.po) by Damodharan Rajalingam
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 13 Oct 2006 19:08:31 -0400
+
+choose-mirror (2.06) unstable; urgency=low
+
+  * Rebuild with latest Mirrors.masterlist.
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Mahay Alam Khan (???? ??? ???)
+  * Basque (eu.po) by Piarres Beobide
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Nishant Sharma
+  * Croatian (hr.po) by Josip Rodin
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Albanian (sq.po) by Elian Myftiu
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Joey Hess <joeyh@debian.org>  Tue,  3 Oct 2006 15:41:52 -0400
+
+choose-mirror (2.05) unstable; urgency=low
+
+  [ Christian Perrier ]
+  * Rebuild because of recent Mirrors.masterlist changes. Closes: #385316
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 31 Aug 2006 16:52:06 -0400
+
+choose-mirror (2.04ubuntu2) edgy; urgency=low
+
+  * Don't default to $CC.archive.ubuntu.com if it isn't in the mirror list
+    (e.g. on ports architectures).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 11 Oct 2006 16:30:22 +0100
+
+choose-mirror (2.04ubuntu1) edgy; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 12 Jul 2006 21:01:17 +0100
+
+choose-mirror (2.04) unstable; urgency=low
+
+  * Make sort-countries operate on choose-mirror-bin's templates file, not
+    choose-mirror's.
+
+  [ Updated translations ]
+  * Estonian (et.po) by Siim Põder
+  * Thai (th.po) by Theppitak Karoonboonyanan
+
+ -- Colin Watson <cjwatson@debian.org>  Wed, 28 Jun 2006 19:17:43 +0100
+
+choose-mirror (2.03ubuntu1) edgy; urgency=low
+
+  * Resynchronise with Debian.
+  * Set PREFERRED_DISTRIBUTION to edgy.
+  * Make sort-countries operate on choose-mirror-bin's templates file, not
+    choose-mirror's.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 28 Jun 2006 18:30:12 +0100
+
+choose-mirror (2.03) unstable; urgency=low
+
+  * Make sure that the templates end up in the correct udeb.
+
+ -- Frans Pop <fjp@debian.org>  Fri, 16 Jun 2006 22:30:27 +0200
+
+choose-mirror (2.02) unstable; urgency=low
+
+  * If choose-mirror is run with -n, don't set up or use a progress bar.
+    For situations where a progress bar is already displayed.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Catalan (ca.po) by Jordi Mallach
+  * Dzongkha (dz.po) by Jurmey Rabgay
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * Hebrew (he.po) by Lior Kaplan
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Khmer (km.po) by Khoem Sokhem
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Northern Sami (se.po) by Børre Gaup
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 15 Jun 2006 13:49:14 -0400
+
+choose-mirror (2.01) unstable; urgency=low
+
+  [ Christian Perrier ]
+  * Split out Choices in templates
+
+  [ Joey Hess ]
+  * Support "Archive-architecture: any" in Mirrors.masterlist.
+  * Rebuilt with new version of the masterlist, reflecting the mirror split
+    and amd64 archive integration.
+  * Remove special cases for amd64 mirror and directory.
+
+  [ Updated translations ]
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hungarian (hu.po) by SZERVÑC Attila
+  * Italian (it.po) by Giuseppe Sacco
+  * Khmer (km.po) by Khoem Sokhem
+  * Korean (ko.po) by Sunjae park
+  * Bokmål, Norwegian (nb.po) by Bjørn Steensrud
+  * Dutch (nl.po) by Bart Cornelis
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+  * Romanian (ro.po) by Eddy Petrişor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Peter Mann
+  * Swedish (sv.po) by Daniel Nylander
+  * Tamil (ta.po) by Damodharan Rajalingam
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Tagalog (tl.po) by Eric Pareja
+  * Turkish (tr.po) by Recai Oktaş
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 16 May 2006 16:22:35 -0500
+
+choose-mirror (2.00) unstable; urgency=low
+
+  * Do not allow to select a different suite when the base system will be
+    installed from CD. Closes: #356105.
+  * Simplify code for country selection.
+  * Split into two udebs: one that provides the actual program and one that
+    adds mirror selection in the menu. Will allow to run choose-mirror from
+    apt-setup for CD based installs without also having it in the menu.
+  * Version bump.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Bulgarian (bg.po) by Ognyan Kulev
+  * Bosnian (bs.po) by Safir Secerovic
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Dzongkha (dz.po)
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hungarian (hu.po) by SZERVÑC Attila
+  * Indonesian (id.po) by Parlin Imanuel Toh
+  * Italian (it.po) by Stefano Canepa
+  * Japanese (ja.po) by Kenshi Muto
+  * Khmer (km.po) by Khoem Sokhem
+  * Korean (ko.po) by Sunjae park
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Bokmål, Norwegian (nb.po) by Bjørn Steensrud
+  * Dutch (nl.po) by Bart Cornelis
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+  * Romanian (ro.po) by Eddy Petrişor
+  * Russian (ru.po) by Yuri Kozlov
+  * Northern Sami (se.po) by Børre Gaup
+  * Slovak (sk.po) by Peter Mann
+  * Slovenian (sl.po) by Jure Čuhalev
+  * Albanian (sq.po) by Elian Myftiu
+  * Swedish (sv.po) by Daniel Nylander
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Tagalog (tl.po) by Eric Pareja
+  * Turkish (tr.po) by Recai Oktaş
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+
+ -- Frans Pop <fjp@debian.org>  Sat, 29 Apr 2006 00:00:41 +0200
+
+choose-mirror (1.21) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Look if a udeb $codename-support is present and, if it is, load that.
+    This will allow to preserve backwards compatibility with previous
+    releases for a longer period. ATM it will allow to install Sarge again.
+  * Check if the selected mirror carries the architecture being installed.
+    Closes: #353556.
+
+  [ Christian Perrier ]
+  * Clearer comments for translators for the default mirror country
+    "translation".
+
+  [ Updated translations ]
+  * Basque (eu.po) by Piarres Beobide
+ 
+ -- Christian Perrier <bubulle@kheops.frmug.org>  Tue,  4 Apr 2006 10:09:30 +0200
+
+choose-mirror (1.20) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Avoid blank lines appearing in place of Indices files in the event that
+    localedef fails to generate a locale.
+
+  [ Joey Hess ]
+  * Rebuilt with new libd-i and cdebconf for great justice^W^Wproper udeb
+    deps.
+  * Add misc:Depends too.
+
+  [ Updated translations ]
+  * Bosnian (bs.po) by Safir Secerovic
+  * Esperanto (eo.po) by Serge Leblanc
+  * Basque (eu.po) by Piarres Beobide
+  * Hungarian (hu.po) by SZERVÑC Attila
+  * Slovak (sk.po) by Peter Mann
+  * Slovenian (sl.po) by Matej Kovačič
+  * Swedish (sv.po) by Daniel Nylander
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 18 Mar 2006 14:54:39 -0500
+
+choose-mirror (1.19) unstable; urgency=low
+
+  * Add check to see if template actually exists before sorting countries so we
+    don't end up with incorrect Indices lines.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Finnish (fi.po) by Tapio Lehtonen
+  * Slovenian (sl.po) by Jure Cuhalev
+
+ -- Frans Pop <fjp@debian.org>  Fri, 27 Jan 2006 23:34:00 +0100
+
+choose-mirror (1.18) unstable; urgency=low
+
+  * Avoid a possible crash in get_codename in the event that mirror/suite
+    somehow ends up unset.
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Ognyan Kulev
+  * Catalan (ca.po) by Jordi Mallach
+  * Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+  * Finnish (fi.po) by Tapio Lehtonen
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Nishant Sharma
+  * Indonesian (id.po) by Parlin Imanuel Toh
+  * Japanese (ja.po) by Kenshi Muto
+  * Korean (ko.po) by Sunjae park
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Malagasy (mg.po) by Jaonary Rabarisoa
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Dutch (nl.po) by Bart Cornelis
+  * Dutch (pa_IN.po) by Amanpreet Singh Alam
+  * Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+  * Romanian (ro.po) by Eddy Petrişor
+  * Slovak (sk.po) by Peter Mann
+  * Slovenian (sl.po) by Jure Čuhalev
+  * Albanian (sq.po) by Elian Myftiu
+  * Swedish (sv.po) by Daniel Nylander
+  * Turkish (tr.po) by Recai Oktaş
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+
+ -- Colin Watson <cjwatson@debian.org>  Mon, 23 Jan 2006 10:01:51 +0000
+
+choose-mirror (1.17ubuntu10) dapper; urgency=low
+
+  * To save time on networkless CD installs, skip mirror validation if the
+    base system is installable and we're installing from a mirror in the
+    masterlist.
+  * Include FTP support, but with no translations to save space; this at
+    least allows for preseeded installs from an FTP mirror (closes: Malone
+    #33634).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 18 May 2006 00:24:57 +0100
+
+choose-mirror (1.17ubuntu9) dapper; urgency=low
+
+  * debian/choose-mirror.templates.ftp-in,
+    debian/choose-mirror.templates.http-in: Update sparc here too.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 16 Apr 2006 10:16:26 +0100
+
+choose-mirror (1.17ubuntu8) dapper; urgency=low
+
+  * Mirrors.masterlist.ubuntu: Update sparc.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 16 Apr 2006 09:51:37 +0100
+
+choose-mirror (1.17ubuntu7) dapper; urgency=low
+
+  * Support setting OVERRIDE_BASE_INSTALLABLE in the environment to force
+    choose-mirror to assume that the base system is installable (useful for
+    installing from live CDs).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 10 Apr 2006 15:09:35 +0100
+
+choose-mirror (1.17ubuntu6) dapper; urgency=low
+
+  * Remove arch ,,undo cruft from source package.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri,  3 Feb 2006 13:08:19 +0000
+
+choose-mirror (1.17ubuntu5) dapper; urgency=low
+
+  * Avoid blank lines appearing in place of Indices files in the event that
+    localedef fails to generate a locale.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri,  3 Feb 2006 12:55:28 +0000
+
+choose-mirror (1.17ubuntu4) dapper; urgency=low
+
+  * Don't ask for a proxy if networking is disabled by telling netcfg "Do
+    not configure the network at this time" (closes: Malone #29839). This is
+    a very ugly way to figure this out, but unfortunately nothing else seems
+    to be reliable enough. Ideally, netcfg would write out a piece of
+    explicit state somewhere to let us know whether a network is available.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 27 Jan 2006 17:22:21 +0000
+
+choose-mirror (1.17ubuntu3) dapper; urgency=low
+
+  * If mirror validation fails but we're installing from a CD that includes
+    the base system, then set the suite and codename to reasonable defaults
+    and exit successfully (closes: Ubuntu #21309, #21091).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 11 Jan 2006 12:59:25 +0000
+
+choose-mirror (1.17ubuntu2) dapper; urgency=low
+
+  * Drop the priorities of the country/mirror questions to medium if we're
+    installing from a CD that includes the base system.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed,  7 Dec 2005 12:17:35 +0000
+
+choose-mirror (1.17ubuntu1) dapper; urgency=low
+
+  * Resynchronise with Debian.
+  * Set PREFERRED_DISTRIBUTION to dapper.
+  * Sync mirror/suite choices and description with other udebs.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 25 Nov 2005 14:30:12 +0000
+
+choose-mirror (1.17) unstable; urgency=low
+
+  * Switch default mirror for US installs from the ftp.us.debian.org rotation
+    to just ftp.debian.org. Using the rotation has been observed to cause
+    all sorts of nasty problems when one mirror in the rotation is out of
+    sync.
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 16 Nov 2005 16:55:15 -0500
+
+choose-mirror (1.16) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Split input templates files into separate files for http, ftp, and both,
+    modify build process so only the relevant templates get included based on
+    the protocol support that is built in to the binary. Allows saving
+    hundreds of K by disabling ftp support.
+  * Queue apt-mirror-setup for installation, this is part of the apt-setup
+    replacement that I've not quite gotten around to finishing yet. In the
+    meantime, queuing it should be harmless.
+
+  [ Colin Watson ]
+  * Read DISTRIB_CODENAME from /etc/lsb-release if it's present, and use
+    that to override the hardcoded PREFERRED_DISTRIBUTION.
+  * Remove unnecessary differences between the HTTP and FTP templates.
+
+  [ Sylvain Ferriol ]
+  * A mirror can not have an 'etch' dist. choose-mirror is now able to find
+    distributions avalaible in the mirror and select the preferred using a
+    built-in list.
+
+  [ Joey Hess ]
+  * Move some configurable stuff to the .h file.
+  * Formatting and comment fixes.
+  * Move proxy env var handing code to its own function.
+  * Much code refactoring and cleanup.
+  * Combine the steps of checking for a suite that is on the mirror
+    and the Release file download and parse, so that the Release file is only
+    downloaded once.
+  * Display the "bad mirror" message if the manually entered values are
+    obviously wrong, rather than the old behavior of silently looping back to
+    the start.
+  * If a preseeded suite turns out to be bad, go ahead and try to find a
+    usable suite on the mirror, rather than the old behavior of accepting the
+    bad value and letting things fail later.
+  * Make the postinst set mirror/suite based on the lsb_release file
+    rather than using a separate environment variable.
+
+  [ Frans Pop ]
+  * Make sure mirror/protocol template is included.
+  * After a suite has been selected, also determine its codename. This
+    can be used later to set apt sources by codename.
+  * Update text for mirror/protocol template after discussion on mailing list.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Bulgarian (bg.po) by Ognyan Kulev
+  * Bengali (bn.po) by Baishampayan Ghose
+  * Catalan (ca.po) by Guillem Jover
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Greek, Modern (1453-) (el.po) by Greek Translation Team
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * Persian (fa.po) by Arash Bijanzadeh
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hindi (hi.po) by Nishant Sharma
+  * Icelandic (is.po) by David Steinn Geirsson
+  * Italian (it.po) by Giuseppe Sacco
+  * Japanese (ja.po) by Kenshi Muto
+  * Korean (ko.po) by Sunjae park
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Bokmål, Norwegian (nb.po) by Bjørn Steensrud
+  * Dutch (nl.po) by Bart Cornelis
+  * Norwegian Nynorsk (nn.po)
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Romanian (ro.po) by Eddy Petrişor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Peter Mann
+  * Slovenian (sl.po) by Jure Čuhalev
+  * Swedish (sv.po) by Daniel Nylander
+  * Tagalog (tl.po) by Eric Pareja
+  * Turkish (tr.po) by Recai Oktaş
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+
+ -- Frans Pop <fjp@debian.org>  Tue, 15 Nov 2005 21:06:06 +0100
+
+choose-mirror (1.15) unstable; urgency=low
+
+  * Updated translations: 
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Tagalog (tl.po) by Eric Pareja
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 15 Jul 2005 16:48:00 +0300
+
+choose-mirror (1.14ubuntu2) breezy; urgency=low
+
+  * We only really support installing the default suite, so never ask
+    mirror/suite, and mark it untranslatable. This removes two strings that
+    are awkward for derivatives to brand. Advanced users can preseed
+    mirror/suite if they really don't want to go with the default.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 20 Jul 2005 18:27:10 +0100
+
+choose-mirror (1.14ubuntu1) breezy; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 18 Jul 2005 15:46:26 +0100
+
+choose-mirror (1.14) unstable; urgency=low
+
+  * Updated translations:
+    - Indonesian (id.po) by Arief S Fitrianto
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Vietnamese (vi.po) added by Clytie Siddall
+
+ -- Christian Perrier <bubulle@debian.org>  Wed,  6 Jul 2005 21:06:34 +0200
+
+choose-mirror (1.13ubuntu1) breezy; urgency=low
+
+  * Resynchronise with Debian.
+  * Mirrors.masterlist.ubuntu updates:
+    - Replace Architectures with Archive-architecture.
+    - Add $CC.archive.ubuntu.com, using new support for wildcard DNS
+      entries.
+  * Drop mirrorlist hack for $CC.archive.ubuntu.com.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu,  7 Jul 2005 21:15:26 +0100
+
+choose-mirror (1.13) unstable; urgency=low
+
+  * Joey Hess
+    - Turn on -Os and -fomit-frame-pointer, doesn't save much space tho.
+    - Switch PREFERRED_DISTRIBUTION to etch.
+  * Updated translations: 
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 28 Jun 2005 21:28:30 -0400
+
+choose-mirror (1.12) unstable; urgency=low
+
+  * Colin Watson
+    - Switch to using iso_3166.xml rather than the deprecated iso_3166.tab,
+      by the crude method of copying iso3166tab.py from the iso-codes source
+      to convert it to the old .tab format for us on the fly.
+    - Build-depend on the first version of iso-codes that shipped
+      /usr/share/xml/iso-codes/iso_3166.xml.
+    - Allow an alternate location for Mirrors.masterlist to be given on the
+      mirrorlist command line, and add Makefile support for this.
+    - 'make reallyclean' now depends on 'make clean'.
+    - Start counting site ids at 0 in mirrorlist.
+    - Support wildcard-DNS-style entries in Mirrors.masterlist, that get
+      expanded out to one entry for every country code in iso_3166.xml.
+    - Give debian/choose-mirror.templates the same mtime as
+      debian/choose-mirror.templates-in, so that po2debconf doesn't decide
+      that it needs to run debconf-updatepo on every binary package build.
+    - Add the facility to have different default mirrors, directories, etc.
+      on different architectures.
+    - Set a reasonable (per #debian-amd64) default mirror for amd64.
+  * Updated translations:
+    - Romanian (ro.po) by Eddy Petrişor
+
+ -- Colin Watson <cjwatson@debian.org>  Mon, 13 Jun 2005 17:25:44 +0100
+
+choose-mirror (1.11ubuntu2) breezy; urgency=low
+
+  * Switch default mirror for hppa, ia64, and sparc to
+    ports.ubuntu.com/ubuntu-ports/.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 22 Jun 2005 12:59:59 +0100
+
+choose-mirror (1.11ubuntu1) breezy; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu,  2 Jun 2005 18:48:40 +0100
+
+choose-mirror (1.11) unstable; urgency=low
+
+  * Colin Watson
+    - Support Archive-architecture: in Mirrors.masterlist. Architectures are
+      space-separated, e.g. "i386 amd64"; lines of the form "!hurd-i386
+      !netbsd-i386" are supported to say that the archive has all but the
+      listed architectures, although that should be used with caution.
+    - List country codes as C choices for mirror/*/countries, and add a
+      Choices-en.UTF-8 with the English country names (closes: #311021).
+    - Add myself to Uploaders.
+  * Updated translations:
+    - Arabic (ar.po) by Ossama M. Khayat
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Spanish (es.po) by Javier Fernández-Sanguino Peña
+    - Hebrew (he.po) by Lior Kaplan
+    - Italian (it.po) by Giuseppe Sacco
+    - Korean (ko.po) by Changwoo Ryu
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Albanian (sq.po) by Elian Myftiu
+    - Turkish (tr.po) by Recai Oktaş
+
+ -- Colin Watson <cjwatson@debian.org>  Wed,  1 Jun 2005 01:35:58 +0100
+
+choose-mirror (1.10) unstable; urgency=low
+
+  * Colin Watson
+    - Remove English "translation", obsoleted by new build system.
+    - Fix country sorting (don't split on backslash-escaped commas). Closes: #307989
+  * Updated translations: 
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - Greek, Modern (1453-) (el.po) by Kostas Papadimas
+    - Spanish (es.po) by Enrique Matias Sanchez
+    - Basque (eu.po) by n
+    - Italian (it.po) by Stefano Canepa
+    - Japanese (ja.po) by Kenshi Muto
+    - Dutch (nl.po) by Bart Cornelis
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 18 May 2005 12:41:53 -0400
+
+choose-mirror (1.09ubuntu1) breezy; urgency=low
+
+  * Resynchronise with Debian.
+  * Fix Catalan branding.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon,  9 May 2005 13:39:49 +0100
+
+choose-mirror (1.09) unstable; urgency=low
+
+  * Colin Watson
+    - Build-depend on iso-codes. Closes: #307500
+    - Remove debian/templates.tmp, debian/iso-codes, and debian/pobuild on
+      clean.
+    - Don't ship debian/choose-mirror.templates in the source package; it
+      can be built at build time.
+    - Convert translations to UTF-8 before merging them. Fixes Croatian,
+      French, and Polish templates.
+    - Move mirror/http/countries and mirror/ftp/countries into
+      debian/choose-mirror.templates-in (without the generated list of
+      country codes) so that they still get translated.
+  * Joey Hess
+    - Rename README.new to README.
+    - Make sort-countries executable and remove chmod stuff in debian/rules.
+    - Remove various obsolete comments.
+    - Rename makeheader.pl to mirrorlist to reflect its expanded capabilities.
+    - Some code cleanup in mirrorlist.
+    - Further improve file cleanups.
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+
+ -- Joey Hess <joeyh@debian.org>  Tue,  3 May 2005 23:03:13 -0400
+
+choose-mirror (1.08) unstable; urgency=low
+
+  * Colin Watson
+    - Build-depend on locales.
+    - Exec choose-mirror in postinst (saves a process).
+  * Christian Perrier
+    - Add self to Uploaders
+    - debian/rules: Activate the code to grab country names
+      and translations from iso-codes, saving double work to
+      translators.
+      Closes: #242689
+    - templates-in: renamed to choose-mirror.templates-in
+    - choose-mirror.templates-in:
+      Add details about specifying an alternate port for
+      HTTP and FTP mirror hostnames.
+      Closes: #253575
+
+ -- Christian Perrier <bubulle@debian.org>  Sun,  1 May 2005 20:12:37 +0200
+
+choose-mirror (1.07ubuntu1) breezy; urgency=low
+
+  * Resynchronise with Debian.
+  * Switch hppa, ia64, and sparc to ports.ubuntu.com (for when it exists).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 25 Apr 2005 20:00:09 +1000
+
+choose-mirror (1.07) unstable; urgency=low
+
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Bosnian (bs.po) by Safir Šećerović
+    - Catalan (ca.po) by Guillem Jover
+    - Welsh (cy.po) by Dafydd Harries
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by French Team
+    - Gallegan (gl.po) by Jacobo Tarrio
+    - Hebrew (he.po) by Lior Kaplan
+    - Italian (it.po) by Stefano Canepa
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Dutch (nl.po) by Bart Cornelis
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Dmitry Beloglazov
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Swedish (sv.po) by Per Olofsson
+    - Turkish (tr.po) by Recai Oktaş
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Traditional Chinese (zh_TW.po) by Tetralet
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 25 Feb 2005 19:33:22 -0500
+
+choose-mirror (1.06ubuntu18) breezy; urgency=low
+
+  * Set PREFERRED_DISTRIBUTION to breezy.
+  * Add breezy to mirror/suite choices, and make it the default.
+  * Update mirror/suite description.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 13 Apr 2005 14:57:51 +0100
+
+choose-mirror (1.06ubuntu17) hoary; urgency=low
+
+  * Update Norwegian Bokmål translation (thanks, Terance Edward Sola).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue,  5 Apr 2005 16:46:31 +0100
+
+choose-mirror (1.06ubuntu16) hoary; urgency=low
+
+  * Update Greek translation (thanks, Giorgos Logiotatidis).
+  * Update Romanian translation (thanks, Ovidiu Damian).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue,  5 Apr 2005 16:28:15 +0100
+
+choose-mirror (1.06ubuntu15) hoary; urgency=low
+
+  * Update Spanish translation (thanks, Enrique Matías Sánchez).
+  * Update Xhosa translation (thanks, Adi Attar).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 31 Mar 2005 18:45:44 +0100
+
+choose-mirror (1.06ubuntu14) hoary; urgency=low
+
+  * Update Hungarian translation (thanks, Gabor Burjan).
+  * Update Polish translation (thanks, Dominik Zabłotny).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 28 Mar 2005 20:11:32 +0100
+
+choose-mirror (1.06ubuntu13) hoary; urgency=low
+
+  * Update Brazilian Portuguese translation (thanks, Carlos Eduardo Pedroza
+    Santiviago).
+  * Update German translation (thanks, Herbert Straub).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 26 Mar 2005 01:14:13 +0000
+
+choose-mirror (1.06ubuntu12) hoary; urgency=low
+
+  * Build templates.pot from templates-in, not choose-mirror.templates-in,
+    and *really* regenerate it without country code msgids this time.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 25 Mar 2005 01:23:09 +0000
+
+choose-mirror (1.06ubuntu11) hoary; urgency=low
+
+  * Arrange for country code msgids not to show up in debian/po/*, to fix
+    translation statistics.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 23 Mar 2005 16:50:47 +0000
+
+choose-mirror (1.06ubuntu10) hoary; urgency=low
+
+  * Switch to new country list build system, fixing it up in the process so
+    that it works. This should give us much better country code
+    translations, and a properly sorted country list in all languages.
+    - Generate a fake debian/iso-codes/en.po.
+    - New map-cc script to map msgids (English country names) in iso-codes
+      .po files back to country codes, so that we can continue using country
+      codes as the untranslated choices.
+    - Build-depend on iso-codes.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 23 Mar 2005 13:23:45 +0000
+
+choose-mirror (1.06ubuntu9) hoary; urgency=low
+
+  * Add draft Xhosa translation.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 22 Mar 2005 13:56:44 +0000
+
+choose-mirror (1.06ubuntu8) hoary; urgency=low
+
+  * Remove ${countryprefix} from mirror/*/mirror default.
+  * Change mirror/*/countries and mirror/*/mirror priorities back to high.
+    It turns out to be incredibly awkward to use a local mirror otherwise,
+    even with preseeding; and these questions aren't on the CD install path.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 15 Mar 2005 17:03:53 +0000
+
+choose-mirror (1.06ubuntu7) hoary; urgency=low
+
+  * SUBSTing into a template's Default: is defined not to work, which broke
+    per-location mirror defaults. Use SET instead.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon,  7 Mar 2005 17:54:36 +0000
+
+choose-mirror (1.06ubuntu6) hoary; urgency=low
+
+  * Fix country sorting issue (don't split on backslash-escaped commas).
+  * Add FTP mirrors, to work around sort-countries problems when none are
+    defined.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat,  5 Mar 2005 16:11:11 +0000
+
+choose-mirror (1.06ubuntu5) hoary; urgency=low
+
+  * Build-depend on locales for /usr/share/i18n/SUPPORTED.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue,  1 Mar 2005 18:43:24 +0000
+
+choose-mirror (1.06ubuntu4) hoary; urgency=low
+
+  * Generate CC.archive.ubuntu.com mirror listings for every CC in
+    /usr/share/zoneinfo/iso3166.tab.
+  * Pick CC.archive.ubuntu.com (for the location selected in the installer)
+    as the default mirror.
+  * Update English translations from iso-codes. Other languages still need
+    to have this done.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue,  1 Mar 2005 17:47:03 +0000
+
+choose-mirror (1.06ubuntu3) hoary; urgency=low
+
+  * Mirrors.masterlist.ubuntu:
+    - Fix Archive-rsync: line for archive.ubuntu.com.
+    - Add sparc.ubuntu.com.
+    - Add Architectures: lines, so that sparc.ubuntu.com can be recorded as
+      sparc-only.
+  * debian/templates-in: Set sparc.ubuntu.com/ubuntu-sparc/ as default for
+    sparc.
+  * debian/templates-build.pl, makeheader.pl, Makefile: Add architecture
+    handling.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu,  3 Feb 2005 10:31:37 +0000
+
+choose-mirror (1.06ubuntu2) hoary; urgency=low
+
+  * Set default country to GB, since that's where the Ubuntu master site is.
+  * Drop priorities of mirror/*/countries and mirror/*/mirror questions to
+    medium.
+
+ -- Colin Watson <cjwatson@canonical.com>  Sat,  1 Jan 2005 23:49:26 +0000
+
+choose-mirror (1.06ubuntu1) hoary; urgency=low
+
+  * Merge from Debian.
+  * Update debian/templates-in so that debian/choose-mirror.templates gets
+    generated properly.
+  * Create a separate Mirrors.masterlist.ubuntu, to aid merging.
+  * Mark "warty, hoary" string as untranslatable.
+  * Default to hoary.
+
+ -- Colin Watson <cjwatson@canonical.com>  Tue, 26 Oct 2004 13:43:55 +0100
+
+choose-mirror (1.06) unstable; urgency=low
+
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kure
+    - Welsh (cy.po) by Dafydd Harries
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by French Team
+    - Hebrew (he.po) by Lior Kaplan
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Hungarian (hu.po) by VEROK Istvan
+    - Indonesian (id.po) by Debian Indonesia Team
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnasn
+    - Latvian (lv.po) by Aigars Mahinovs
+    - Bøkmal, Norwegian (nb.po) by Bjorn Steensrud
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Russian L10N Team
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Albanian (sq.po) by Elian Myftiu
+    - Swedish (sv.po) by Per Olofsson
+    - Turkish (tr.po) by Recai Oktaş
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  6 Oct 2004 14:37:26 -0400
+
+choose-mirror (1.05) unstable; urgency=low
+
+  * Updated translations: 
+    - Bøkmal, Norwegian (nb.po) by Axel Bojer
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 27 Sep 2004 21:36:40 -0400
+
+choose-mirror (1.04) unstable; urgency=low
+
+  * Joey Hess
+    - Peg the seen flags of http/country or ftp/country to that of
+      choose-mirror/country, to make preseeding more intuitive.
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by French Team
+    - Gallegan (gl.po) by Héctor Fenández López
+    - Hebrew (he.po) by Lior Kaplan
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Hungarian (hu.po) by VERÓK István
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnasn
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Russian L10N Team
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Swedish (sv.po) by Per Olofsson
+    - Turkish (tr.po) by Recai Oktaş
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 23 Sep 2004 13:57:17 +0200
+
+choose-mirror (1.03) unstable; urgency=low
+
+  * Joey Hess
+    - Remove long unused mirror/distribution template.
+    - Allow mirror/suite to be preseeded.
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  1 Sep 2004 13:19:34 -0400
+
+choose-mirror (1.02) unstable; urgency=low
+
+  * Kenshi Muto
+    - Mark one templates string for translation.
+  * Joey Hess
+    - Set proxy env variable without subjecting the value to shell
+      mangling. Closes: #268158
+  * Updated translations: 
+    - Catalan (ca.po) by Jordi Mallach
+    - Danish (da.po) by Claus Hindsgaul
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Basque (eu.po) by 
+    - French (fr.po) by French Team
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Italian (it.po) by Giuseppe Sacco
+    - Japanese (ja.po) by Kenshi Muto
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Bøkmal, Norwegian (nb.po) by 
+    - Dutch (nl.po) by Bart Cornelis
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Turkish (tr.po) by Recai Oktaş
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 27 Aug 2004 15:24:51 -0400
+
+choose-mirror (1.01) unstable; urgency=low
+
+  * Joey Hess
+    - Fabbione noticed that we forgot to free(command).
+    - Only ask what suite to use at medium priority.
+    - Clean debian/{ftp,http}list-countries.
+    - Allow preseeding of country or forcing of manual mirror entry via
+      mirror/country. Closes: #240686, #266647, #266758
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 27 Jul 2004 10:59:41 -0400
+
+choose-mirror (1.00) unstable; urgency=low
+
+  * Updated translations: 
+    - Arabic (ar.po) by Abdulaziz Al-Arfaj
+    - Danish (da.po) by Frederik Dannemare
+    - German (de.po) by Dennis Stampfer
+    - Croatian (hr.po) by Krunoslav Gernhard
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 25 Jul 2004 19:27:38 -0400
+
+choose-mirror (0.046) unstable; urgency=low
+
+  * Denis Barbier (integrated by Christian Perrier)
+    - sort countries
+  * Bastian Blank
+    - Update Installer-Menu-Item.
+  * Joey Hess
+    - Make sort-countries clean up after itself.
+  * Christian Perrier
+    - code for better handling of countries. Not used yet
+  * Joshua Kwan
+    - remove myself from Uploaders
+  * Updated translations: 
+    - Welsh (cy.po) by Dafydd Harries
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Persian (fa.po) by Arash Bijanzadeh
+    - Korean (ko.po) by Changwoo Ryu
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 17 Jul 2004 14:31:28 -0400
+
+choose-mirror (0.045ubuntu8) warty; urgency=low
+
+  * Updated translations:
+    - Catalan (ca.po) by Jordi Mallach
+    - German (de.po) by Martin Pitt
+    - Greek (el.po) by Logiotatidis George
+    - French (fr.po) by VETSEL Patrice
+
+ -- Colin Watson <cjwatson@canonical.com>  Tue, 12 Oct 2004 14:29:41 +0100
+
+choose-mirror (0.045ubuntu7) warty; urgency=low
+
+  * Move from ftp.no-name-yet.com to archive.ubuntu.com.
+  * Along the way, fix "ftp.no-name-yet-com", although choose-mirror managed
+    to tolerate the typo.
+  * Drop Maintainer: line from Mirrors.masterlist. It's not really needed
+    for the master site.
+
+ -- Colin Watson <cjwatson@canonical.com>  Sun, 12 Sep 2004 20:34:05 +0100
+
+choose-mirror (0.045ubuntu6) warty; urgency=low
+
+  * Tollef Fog Heen
+    - Ubuntu branding.
+  * Colin Watson
+    - Update most translations.
+
+ -- Colin Watson <cjwatson@flatline.org.uk>  Mon, 16 Aug 2004 20:52:33 +0100
+
+choose-mirror (0.045ubuntu5) warty; urgency=low
+
+  * Use ftp.no-name-yet-com in place of auckland.
+
+ -- Fabio M. Di Nitto <fabbione@fabbione.net>  Sat, 31 Jul 2004 18:23:05 +0200
+
+choose-mirror (0.045ubuntu4) warty; urgency=low
+
+  * Attempt to contact auckland before asking proxy information.
+  * Fix a possible memory leak in validate_mirror.
+
+ -- Fabio M. Di Nitto <fabbione@fabbione.net>  Sun, 25 Jul 2004 11:03:28 +0200
+
+choose-mirror (0.045ubuntu3) warty; urgency=low
+
+  * Change template to use a sane default and fix a failure when
+    DEBCONF_PRIORITY=critical
+
+ -- Fabio M. Di Nitto <fabbione@fabbione.net>  Thu, 15 Jul 2004 10:32:35 +0200
+
+choose-mirror (0.045ubuntu2) warty; urgency=low
+
+  * Disable automatic update of Mirrors.masterlist.
+  * Start to add our mirrors to Mirrors.masterlist.
+
+ -- Fabio M. Di Nitto <fabbione@fabbione.net>  Wed, 07 Jul 2004 15:25:56 +0200
+
+choose-mirror (0.045ubuntu1) warty; urgency=low
+
+  * Replace "stable, testing, unstable" choices for mirror/suite with
+    "warty, hoary".
+  * Default to installing warty.
+  * Ask for the choice of suite only at low priority for now.
+
+ -- Colin Watson <cjwatson@flatline.org.uk>  Tue,  6 Jul 2004 00:58:22 +0100
+
+choose-mirror (0.045) unstable; urgency=low
+
+  * Christian Perrier
+    - Ellipsis typography fixed
+  * Updated translations: 
+    - Spanish (Castilian) (es.po) by Javier Fernández-Sanguino
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Russian (ru.po) by Nikolai Prokoschenko
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 25 May 2004 12:44:37 -0300
+
+choose-mirror (0.044) unstable; urgency=low
+
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Finnish (fi.po) by Tapio Lehtonen
+    - Bokmal, Norwegian (nb.po) by Bjørn Steensrud
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 23 Apr 2004 13:24:27 -0400
+
+choose-mirror (0.043) unstable; urgency=low
+
+  * Updated translations: 
+    - Catalan (ca.po) by Jordi Mallach
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - Gallegan (gl.po) by Héctor Fernández López
+    - Hebrew (he.po) by Lior Kaplan
+    - Indonesian (id.po) by Parlin Imanuel Toh
+    - Italian (it.po) by Giuseppe Sacco
+    - Bokmal, Norwegian (nb.po) by Axel Bojer
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Nikolai Prokoschenko
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Turkish (tr.po) by Osman Yüksel
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 20 Apr 2004 11:15:36 -0400
+
+choose-mirror (0.042) unstable; urgency=low
+
+  * Updated translations: 
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - English (en.po) by Joey Hess
+    - French (fr.po) by Christian Perrier
+    - Hebrew (he.po) by Lior Kaplan
+    - Hungarian (hu.po) by VERÓK István
+    - Indonesian (id.po) by Parlin Imanuel Toh
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrisor
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Albanian (sq.po) by Elian Myftiu
+    - Swedish (sv.po) by André Dahlqvist
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 10 Apr 2004 18:37:27 -0400
+
+choose-mirror (0.041) unstable; urgency=low
+
+  * Joey Hess
+    - Make the postinst thunk to a choose-mirror binary again, so
+      other things than the main-menu can call choose-mirror as needed.
+    - Mirror list updated automatically.
+  * Updated translations: 
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - English (en.po) by Joey Hess
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - French (fr.po) by Christian Perrier
+    - Gallegan (gl.po) by Héctor Fernández López
+    - Hebrew (he.po) by Lior Kaplan
+    - Hungarian (hu.po) by VERÓK István
+    - Indonesian (id.po) by Parlin Imanuel Toh
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrisor
+    - Albanian (sq.po) by Elian Myftiu
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Thu,  8 Apr 2004 00:24:21 -0400
+
+choose-mirror (0.040) unstable; urgency=low
+
+  * Joshua Kwan
+    - For the mirror path name, append a slash if there isn't already one.
+      (Closes: #234356)
+    - Convert changelog to UTF-8.
+  * Updated translations: 
+    - Bosnian (bs.po) by Safir Šećerović
+    - Hebrew (he.po) by Lior Kaplan
+    - Indonesian (id.po) by Parlin Imanuel Toh
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Traditional Chinese (zh_TW.po) by Tetralet
+    - Albanian (sq.po) by Elian Myftiu
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 30 Mar 2004 14:58:02 -0500
+
+choose-mirror (0.039) unstable; urgency=low
+
+  * Joshua Kwan
+    - Instead of having a postinst script that calls choose-mirror,
+      make choose-mirror the postinst, just like netcfg works.
+    - Reject slashes in the mirror hostname. (Closes: #215620)
+  * Updated translations: 
+    - Finnish (fi.po) by Tapio Lehtonen
+    - Hungarian (hu.po) by VERÓK István
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Romanian (ro.po) by Eddy Petrisor
+    - Turkish (tr.po) by Osman Yüksel
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 22 Mar 2004 15:01:03 -0500
+
+choose-mirror (0.038) unstable; urgency=low
+
+  * Translations
+    - Dafydd Harries : translated AR to Welsh
+    - Russian by Nikolai Prokoschenko
+ 
+ -- Joey Hess <joeyh@debian.org>  Sun, 14 Mar 2004 13:03:21 -0500
+
+choose-mirror (0.037) unstable; urgency=low
+
+  * Denis Barbier
+    - Really made http/mirror and ftp/mirror descriptions the same.
+  * Translations
+    - Christian Perrier: Added translated country names of Argentina
+      (added in the last upload) when they exist in iso-codes, i.e.
+      for the following languages:
+        bg bs ca cs da de el en es fi fr hu it ja
+        ko lt nb nl pl pt pt_BR sl sq sv tr zh_TW
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 13 Mar 2004 12:09:52 -0500
+
+choose-mirror (0.036) unstable; urgency=low
+
+  * Joey Hess
+    - Made http/mirror and ftp/mirror descriptions the same.
+
+  * Translations
+    - Ognyan Kulev: Updated Bulgarian translation (bg.po).
+    - Dafydd Harries : Added Welsh translation (cy.po)
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 13 Mar 2004 00:09:17 -0500
+
+choose-mirror (0.035) unstable; urgency=low
+
+  * Joey Hess
+    - bumped the mirror questions back up to high
+
+  * Translations
+    - Miguel Figueiredo: Updated Portuguese translation (pt.po)
+    - Bartosz Fenski: Updated Polish translation (pl.po)
+    - Giuseppe Sacco: updated italian translation (it.po)
+    - Håvard Korsvoll: Updated Norwegian, nynorsk translation (nn.po).
+    - Andre Dahlqvist: Update Swedish translation (sv.po)
+    - Bart Cornelis: Update Dutch translation (nl.po) 
+    - Jure Cuhalev: Update Slovenian translation (sl.po) 
+    - Ming Hua: Initial and updated Traditional Chinese translation
+                (zh_TW.po), by Tetralet
+    - Changwoo Ryu: Updated Korean translation (ko.po)
+    - Dennis Stampfer: Update German trynslation (de.po)
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 29 Feb 2004 19:09:37 -0500
+
+choose-mirror (0.034) unstable; urgency=low
+
+  * Joshua Kwan
+    - When popening into a FILE*, pclose it, don't fclose it.
+    - Don't frob with memory that's not yours: suite[strlen(suite)] ->
+      suite[strlen(suite) - 1].
+    - Fix detection of proxy usage (or lack thereof), we were launching
+      'http_proxy= wget ...' and that actually _set_ the variable and broke
+      busybox's wget because '' is not a valid proxy.
+  * Stephen R. Marenka
+    - Add libdebian-installer-dev to build-deps.
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Mon, 23 Feb 2004 11:32:52 -0800
+
+choose-mirror (0.033) unstable; urgency=low
+
+  * Joey Hess
+    - Fixed two templates from type "test" to "text". Thank you, lintian.
+  
+ -- Joey Hess <joeyh@debian.org>  Sun, 22 Feb 2004 18:53:40 -0500
+
+choose-mirror (0.032) unstable; urgency=low
+
+  * Rebuild posibly fixing #233988.
+
+  * Translations
+    - Javier Fernandez-Sanguino: Updated Spanish translation (es.po)
+    - Changwoo Ryu             : Updated Korean translation (ko.po)
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 22 Feb 2004 01:27:05 +0100
+
+choose-mirror (0.031) unstable; urgency=low
+
+  * Translations:
+    - Miguel Figueiredo	    : Updated Portuguese translation (pt.po)
+    - Kenshi Muto           : Updated Japanese translation (ja.po)
+    - Claus Hindsgaul       : Updated Danish translation (da.po)
+    - Ognyan Kulev          : Updated Bulgarian translation (bg.po)
+    - K. Margaritis         : Updated Greek translation (el.po)
+    - Peter Mann            : Updated Slovak translation (sk.po)
+    - Eugeniy Meshcheryakov : Updated Ukrainian translation (uk.po)
+    - Andre Dahlqvist       : Update Swedish translation (sv.po)
+    - Dennis Stampfer       : Update German translation (de.po)
+    - Jordi Mallach         : Update Catalan translation (ca.po)
+    - Carlos Z.F. Liu       : Updated Simplified Chinese translation (zh_CN.po)
+    - Kęstutis Biliūnas     : Updated Lithuanian translation (lt.po)
+    - Christian Perrier     : Updated French translation (fr.po)
+    - Kęstutis Biliūnas     : Updated Lithuanian translation (lt.po)
+    - Miroslav Kure         : Updated Czech translation (cs.po)
+    - K. Margaritis         : Updated Greek translation (el.po)
+    - André Luís Lopes      : Updated Brazilian Portuguese translation (pt_BR.po)
+
+  * Christian Perrier
+    - Lowered priority of the country/mirror questions to medium
+      (countrychooser value used as default)
+    - Rewrote templates-in for DTGS compliance. This is the correct change
+      while my other changes (see below in changelog) were made to the wrong
+      file
+    - Added comments at the top of templates-in for avoiding such further
+      errors
+    - Ran templates file generation and debconf-updatepo (sorry, translators)
+
+   * Stephen R. Marenka
+    - Added proxy support for wget in validate_mirror.
+    - Added debug logging for wget command string.
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 19 Feb 2004 13:46:15 -0500
+
+choose-mirror (0.030) unstable; urgency=low
+
+  * Christian Perrier
+    - Mark some templates strings for translation. Closes: #231617
+    - Rewrite the mirror/*/country short description and several
+      other templates (lose some jargon use)
+  * Kenshi Muto
+    - When manual http/ftp, directory should be ended with /.
+      It is helpful to show users about this (or append automatically),
+      but I simply add / into default value of templates at now.
+  * Joey Hess
+    - Use debhelper's new udeb support.
+
+  * Translations:
+    - Miguel Figueiredo    : Updated Portuguese translation (pt.po)
+    - Kenshi Muto          : Updated Japanese translation (ja.po)
+    - Christian Perrier    : Updated French translation (fr.po)
+    - K. Margaritis        : Updated Greek translation (el.po)
+    - Claus Hindsgaul      : Updated Danish translation (da.po)
+    - André Luís Lopes     : Updated Brazilian Portuguese translation (pt_BR.po)
+    - Kęstutis Biliūnas    : Updated Lithuanian translation (lt.po)
+    - Giuseppe Sacco       : Updated italian translation (it.po)
+    - Jordi Mallach        : Updated Catalan translation (ca.po)
+    - Miroslav Kure        : Updated Czech translation (cs.po)
+    - Carlos Z.F. Liu      : Updated Simplified Chinese translation (zh_CN.po)
+    - Eugen Meshcheryakov  : added Ukrainian translation (uk.po)
+    - Bart Cornelis        : - Updated Dutch (nl.po) translation
+                             - Added corrections send by Bastiaan van
+                               Eeckhoudt
+    - Dennis Stampfer      : Update German translation (de.po)
+    - Peter Mann           : Updated Slovak translation (sk.po)
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 13 Feb 2004 13:16:45 -0500
+
+choose-mirror (0.029) unstable; urgency=low
+
+  * Joey Hess
+    - Rename mirror/distribution to the more accurate mirror/suite.
+    - Add a PREFERRED_DISTRIBUTION, which is currently sarge.
+    - Download and process the Release file from the selected mirror
+      for the preferred distribution, and work out which suite it is
+      part of, and use that as the defualt for the mirror/suite question.
+      This will ensure that, when sarge becomes stable, d-i knows to install
+      stable by default rather than sticking with testing.
+    - Don't freshen the Mirrors.masterlist if ONLINE=n
+    - Remove unnecessary seen flag setting code.
+    - Fix backup from manual mirror dir entry.
+    - Ask the manual hostname and directory questions in a block, so
+      interblock backup can be used, to fix backup from the second question.
+    - Fixed the backup support to use cdebconf's new improved backup
+      code. Not only is this much simpler, but it fixes many edge cases.
+      Closes: #219868
+    - Misc cleanups.
+    - Use po2debconf rather than hand-hackery in generating demo.templates.
+    - Update to debhelper v4.
+
+  * Translations:
+    - Dennis Stampfer
+      - Polished German translation de.po
+    - Peter Mann
+      - Update Slovak translation
+    - Jordi Mallach
+      - Update Catalan translation.
+    - Carlos Z.F. Liu
+      - fix some serious errors in Simplified Chinese translation.
+    - Lior Kaplan
+      - added Hebrew translation
+    - h3li0s
+      - Added Albanian translation (sq.po)
+
+ -- Joey Hess <joeyh@debian.org>  Thu,  5 Feb 2004 14:37:32 -0500
+
+choose-mirror (0.028) unstable; urgency=low
+
+  * Joey Hess
+    - Improve the wording of the ftp mirror question, following that of
+      the http mirror question.
+  * Anmar Oueja
+    - created and translated to Arabic (ar.po)
+  * André Luís Lopes
+    - Fixed inconsistencies among various pt_BR translations.
+      Thanks to Christian Perrier for noticing these.
+  * Ming Hua
+    - Updated Simplified Chinese translation (zh_CN.po)
+  * Dennis Stampfer
+    - Polished German translation de.po
+  * Christian Perrier
+    - Polished French translation fr.po
+  * Safir Secerovic
+    - Update Bosnian translation (bs.po).
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  7 Jan 2004 17:08:15 -0500
+
+choose-mirror (0.027) unstable; urgency=low
+
+  * Bartosz Fenski
+    - Updated Polish (pl) translation.
+  * Miguel Figueiredo
+    - Updated Portuguese translation (pt.po)
+  * Ming Hua
+    - Initial Simplified Chinese translation (zh_CN.po)
+    - Fix an error in Simplified Chinese translation (zh_CN.po)
+  * Miguel Figueiredo
+    - Initial Portuguese translation (pt.po)
+  * Kęstutis Biliūnas
+     - Updated Lithuanian translation (lt.po).
+  * Bart Cornelis
+      - Merged Norwegian Nynorsk (nn.po) translation from skolelinux-cvs
+  * Thiemo Seufer
+    - Fix memory leaks, code cleanup.
+  * Giuseppe Sacco
+    - Updated italian translation.
+  * Christian Perrier
+    - Changed the wording of one template after Nathanael Nerode's suggestions
+      in -boot. Unfuzzied all translations
+  * Teófilo Ruiz Suárez
+    - Fixed some inconsistencies in Spanish Translation (es.po)
+  * Denis Barbier
+    - Remove colon from comment in generated templates file so that
+      older po-debconf do not produce invalid templates files.
+  * Teófilo Ruiz Suárez
+    - Translated ISO country codes to translated country names
+  * Ognyan Kulev
+    - Updated bulgarian translation (bg.po).
+  * Andre Dahlqvist
+    - Update Swedish translation (sv.po)
+  * André Luís Lopes
+    - Fixed a minor typo made while translating the 'unstable' string.
+
+ -- Joey Hess <joeyh@debian.org>  Thu,  1 Jan 2004 14:28:19 -0500
+
+choose-mirror (0.026) unstable; urgency=low
+
+  * Bart cornelis
+    - Merged Norwegian Bokmael (nb.po) translation from skolelinux-cvs
+  * Dennis Stampfer
+    - Merged some strings in German translation de.po
+  * Giuseppe Sacco
+    - Updated italian translation
+  * Peter Mann
+    - Updated Slovak translation
+  * André Dahlqvist
+    - Added Swedish translation
+  * Claus Hindsgaul
+    - Updated Danish translation
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 25 Dec 2003 19:16:19 -0500
+
+choose-mirror (0.025) unstable; urgency=low
+
+  * Bartosz Fenski
+    - Updated Polish (pl) translation.
+  * Kenshi Muto
+    - Update Japanese translation (ja.po)
+  * Teófilo Ruiz Suárez
+    - Updated Spanish Translation
+    - Switched to utf-8
+  * André Dahlqvist
+    - Update Swedish translation. (sv.po)
+  * André Luís Lopes
+    - Update pt_BR (Brazilian Portuguese) translation.
+  * Verok Istvan
+    - Updated Hungarian translation
+  * Christian Perrier
+    - Update French translation.
+  * David Martínez Moreno
+    - Updated Spanish translation (es.po).
+  * Changwoo Ryu
+    - Initial Korean translation (ko.po).
+  * Claus Hindsgaul
+    - Updated Danish translation
+  * Konstantinos Margaritis
+    - Updated Greek translation (el.po)
+  * Peter Mann
+    - Updated Slovak translation. (sk.po)
+  * Denis Barbier
+    - Clean up PO files.  Country codes in msgids must be changed to
+      translated country names in msgstrs, so remove all country
+      codes wrongly put in msgstrs.  Some Default fields were also
+      ill formatted despite the comments inserted in PO files.
+  * Kęstutis Biliūnas
+     - Updated Lithuanian translation (lt.po).
+  * Joey Hess
+     - Add comment to template about country code translation.
+  * Miroslav Kure
+    - Updated Czech translation (cs.po)
+  * Steinar H. Gunderson
+    - Updated Norwegian translation (nb.po).
+  * Ognyan Kulev
+    - Added/updated bulgarian translation (bg.po).
+  * Petter Reinholdtsen
+    - Update Norwegian Nynorsk (nn.po), thanks to Gaute Hvoslef Kvalnes.
+  * Jure Cuhalev
+    - Added/updated slovenian translation (sl.po).
+  * Teófilo Ruiz Suárez
+    - Updated Spanish Translation
+  * Dennis Stampfer
+    - Update German translation (de.po).
+  * Bart Cornelis
+    - fixed typo in Dutch translation (nl.po)
+
+ -- Bart Cornelis <cobaco@linux.be>  Tue, 23 Dec 2003 15:26:06 +0100
+
+choose-mirror (0.024) unstable; urgency=low
+
+  * Bart Cornelis
+    - Updated Dutch translation (nl.po)
+  * Giuseppe Sacco
+    - Updated italian translation
+    - Switched to utf-8
+  * Joey Hess
+    - Per discussion on debian-boot, use symbolic distribution names in
+      mirror/distribution.
+    - Stop using the old udeb dpkg-distaddfile hack.
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 12 Dec 2003 16:39:53 -0500
+
+choose-mirror (0.023) unstable; urgency=low
+
+  * Verok Istvan
+    - Initial Hungarian translation.
+  * Alastair McKinstry
+    - English translation of country code names
+
+ -- Alastair McKinstry <mckinstry@debian.org>  Wed, 10 Dec 2003 21:07:48 +0000
+
+choose-mirror (0.022) unstable; urgency=low
+
+  * Javier Fernandez-Sanguino
+    - Updated spanish translation
+  * Claus Hindsgaul
+    - Update da (Danish) translation.
+  * Denis Barbier
+    - In makeheader.pl, default values for mirror countries were marked
+      as translatable, but the wrong way because msgids were similar to
+      the ones found in Choices fields.  As a result, Default values
+      were translated in the generated templates file.
+    - Discard sorting countries, it does not work within the
+      debian-installer, because locales are not installed.
+  * André Luís Lopes
+    - Update pt_BR (Brazilian Portuguese) translation.
+  * Miroslav Kure
+    - Update Czech translation.
+  * Bart Cornelis
+    - Update Dutch translation (nl.po)
+  * Kenshi Muto
+    - Update Japanese translation (ja.po)
+  * Ilgiz Kalmetev
+    - Initial Russian translation (ru.po).
+  * Matt Kraai
+    - Remove trailing spaces from templates.
+  * Konstantinos Margaritis
+    - Initial Greek translation (el.po).
+  * Bart Cornelis
+    - incorporated review comments send in by Pieter-Paul Spiertz and
+      Geert Stappers
+  * Safir Šećerović
+    - Updated Bosnian translation.
+  * Steinar H. Gunderson
+   - Update nb.po.
+  * Alastair McKinstry
+   - Add Irish translation (ga.po)
+  * Joey Hess
+   - Fix code that tried to parse the debconf string return code from
+     INPUT commands, a string that is not in the debconf spec and could
+     change at any time. Instead, use the well-defined numeric part of
+     the return code.
+   - Don't crash if debian-installer/country is unavailable.
+   - Try to update the Mirrors.masterlist every build (using a null "force"
+     target), to ensure that it is always up-to-date on new uploads of the
+     package.
+   - Remove the empty Mirrors.masterlist.new if retreival fails.
+  *Kęstutis Biliūnas
+   - Updated Lithuanian translation.
+
+ -- Joey Hess <joeyh@debian.org>  Tue,  9 Dec 2003 15:28:21 -0500
+
+choose-mirror (0.021) unstable; urgency=low
+
+  * Kęstutis Biliūnas
+    - Update Lithuanian translation.
+  * Tommi Vainikainen
+    - Update Finnish (fi.po) translation.
+  * Miroslav Kure
+    - Update Czech translation.
+  * Sebastian Ley
+    - Fix manual mirror entry  (Closes: #219503)
+  * Peter Mann
+    - Initial Slovak translation (sk.po).
+  * Alastair Mckinstry
+    - Reset default mirror question to "high" by popular demand.
+     Closes: #219716.
+    Ensure the correct previous question is chosen no matter what
+    priority the questions have.
+  * Denis Barbier
+    - Sort country names according to current language.
+
+ -- Sebastian Ley <ley@debian.org>  Mon, 10 Nov 2003 09:59:44 +0100
+
+choose-mirror (0.020) unstable; urgency=low
+
+  * André Luís Lopes
+    - Update pt_BR (Brazilian Portuguese) translation.
+    - Actually, unfuzzy one template translation.
+  * Bart cornelis
+    - update dutch translation (nl.po)
+  * Pierre Machard
+    - Update French translation.
+  * Kenshi Muto
+    - Update Japanese translation (ja.po)
+  * Joey Hess
+    - Change priority to extra; this package should not be pulled in
+      to CD installs and the like.
+
+ -- Joey Hess <joeyh@debian.org>  Sun,  2 Nov 2003 22:02:36 -0500
+
+choose-mirror (0.019) unstable; urgency=low
+
+  * Alastair McKinstry
+    - Support backup capabilities.
+    - Make country names translatable. Closes: #215208.
+    - Set default country question priority to "medium", picking a default
+      from debian-installer/language (eg. languagechooser).
+    - Polish the template language. Closes: #217775.
+    - Place the custom mirror choice at the top of the list, not the end;
+      Closes: #212456.
+    - Change "protocol" question from high to medium, default http.
+    - Put choose-mirror.templates, Mirrors.masterlist in tarball to aid
+      translators.
+  * Christian Perrier
+    - Update French translation.
+  * Bart Cornelis
+    - updated Dutch translation (nl.po)
+  * Claus Hindsgaul
+    - Update da (Danish) translation.
+  * Kenshi Muto
+    - Update Japanese translation (ja.po)
+  * André Luís Lopes
+    - Update Brazilian Portuguese (pt_BR) translation.
+  * Safir Secerovic, Amila Akagic
+    - Add Bosnian translation (bs.po).
+  * Pierre Machard 
+    - Update French translation.
+    - Run debconf-updatepo.
+  * Joey Hess
+    - Change Installer-Menu-Item from 14 to 20 as part of the 10-30
+      renumbering.
+    - Minor template polishing.
+
+ -- Joey Hess <joeyh@debian.org>  Sat,  1 Nov 2003 22:21:24 -0500
+
+choose-mirror (0.018) unstable; urgency=low
+
+  * Christian Perrier
+    - Update French translation.
+  * Alastair McKinstry
+    - Fix control: remove Standards-Version, re-add depends:
+      configured-network.
+  * Kęstutis Biliūnas
+    - Add Lithuanian (lt.po) translation.
+  * Matt Kraai
+    - Canonicalize the main-menu entry.
+    - Use ftp.us.debian.org as the default HTTP mirror (closes: #217281).
+    - Add self to uploaders.
+  * Tommi Vainikainen
+    - Add Finnish (fi.po) translation
+  * Miroslav Kure
+    - Update Czech translation (cs.po).
+
+ -- Matt Kraai <kraai@debian.org>  Fri, 24 Oct 2003 01:18:00 -0700
+
+choose-mirror (0.017) unstable; urgency=low
+
+  * Claus Hindsgaul
+    - Update da (Danish) translation.
+  * Denis Barbier
+    - Update translated country names in French translation
+  * Alastair McKinstry
+    - Depend on libdebconfclient0-dev >= 0.47 for fixed debconf_capb() macro.
+  * Jure Cuhalev
+    - Added Slovenian (sl.po) translation. Closes: #211223.
+  * André Luís Lopes
+    - Update pt_BR (Brazilian Portuguese) translation.
+  * Kenshi Muto
+    - Update Japanese po (ja.po)
+  * Bart Cornelis
+    - Update dutch translation (nl.po)
+
+ -- Sebastian Ley <ley@debian.org>  Tue, 14 Oct 2003 11:55:18 +0200
+
+choose-mirror (0.016) unstable; urgency=low
+
+  * Pierre Machard
+    - Update French translation
+    - Proofread [Christian Perrier]
+  * Giuseppe Sacco
+    - Added italian translation (it.po)
+  * Javier Fernandez-Sanguino
+    - Fixed spanish translation to use proper quotes
+    - Updated spanish translation.
+  * Kenshi Muto
+    - Added Japanese translation (ja.po)
+    - Update ja.po
+  * Denis Barbier
+    - Run debconf-updatepo
+  * Jordi Mallach
+    - Added Catalan (ca) translation.
+  * André Luís Lopes
+    - Update pt_BR (Brazilian Portuguese) translation.
+  * Bart Cornelis
+    - Updated dutch translation
+  * Alastair McKinstry
+    - Convert changelog to UTF-8 as per policy
+    - Tag country names for translation; update templates. Closes: #215208.
+    - Convert choose-mirror.c to new cdebconf macros.
+  * Miroslav Kure
+    - Initial Czech translation
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sun, 12 Oct 2003 19:37:03 +0200
+
+choose-mirror (0.015) unstable; urgency=low
+
+  * Bastian Blank
+    - don't translate distributions names
+    - update german translation
+  * André Luís Lopes
+    - Update pt_BR debconf template translation.
+  * Teófilo Ruiz Suárez
+    - Update es.po
+
+ -- Alastair McKinstry <mckinstry@computer.org>  Sat, 19 Jul 2003 14:02:29 +0100
+
+choose-mirror (0.014) unstable; urgency=low
+
+  * André Luís Lopes :
+    - Spellchecking and some minor cosmetic fixes for pt_BR
+      debconf template translation.
+  * Thorsten Sauter
+    - fix errors in german translation
+  * Alastair McKinstry
+    - Changed libdebconf1 to libdebconflient0. Closes: #194436.
+
+ -- Alastair McKinstry <mckinstry@computer.org>  Fri, 23 May 2003 21:27:50 +0100
+
+choose-mirror (0.013) unstable; urgency=low
+
+  * Carlos Valdivia Yague
+    - Translate to Spanish.
+  * Petter Reinholdtsen
+    - Update nb.po.
+  * Thorsten Sauter
+    - Update de.po.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sun,  4 May 2003 16:02:38 +0200
+
+choose-mirror (0.012) unstable; urgency=low
+
+  * Petter Reinholdtsen
+    - Change maintainer to debian-boot@lists.debian.org, and make the old
+      maintainer an uploader.
+    - Added Norwegian Bokmål and Nynorsk translations recieved from Bjørn
+      Steensrud and Gaute Hvoslef Kvalnes.
+  * Matt Kraai
+    - Remove woody description.
+  * Martin Sjögren
+    - Make choose-mirror a menu item.
+
+ -- Martin Sjogren <sjogren@debian.org>  Sun, 23 Feb 2003 17:07:18 +0100
+
+choose-mirror (0.011) unstable; urgency=low
+
+  * Martin Sjögren
+    - Updates to debian/po/sv.po
+  * Tollef Fog Heen
+    - Remove woody from distributions, since woody doesn't have any udebs.
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Tue, 26 Nov 2002 04:06:21 +0100
+
+choose-mirror (0.010) unstable; urgency=low
+
+  * Apply asprintf patch from Martin Sjögren
+  * Add Brazilian Portuguese debconf template.
+  * Convert to po-debconf, set Build-Depends: debhelper (>= 4.1.13) and
+    po-debconf (>= 0.5.0) to ensure that generated templates are right,
+    and set output encoding to UTF-8.
+  * André Luís Lopes
+    - Update Brazilian Portuguese (pt_BR) choose-mirror's
+      template translation.
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Thu, 24 Oct 2002 12:26:06 +0200
+
+choose-mirror (0.009) unstable; urgency=low
+
+  * Rebuild for new cdebconf
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Wed, 21 Aug 2002 19:00:10 +0200
+
+choose-mirror (0.008) unstable; urgency=low
+
+  * Change build-deps to libcdebconf-dev.
+  * Remove emacs changelog variables.
+  * Add support for choosing distribution as well.
+  * Add note in templates, giving a suggestion of ftp.$countrycode.debian.org
+    Thanks to Martin Sjögren for the suggestion
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Sun, 18 Aug 2002 14:28:49 +0200
+
+choose-mirror (0.007) unstable; urgency=low
+
+  * More recursive CFLAGS fixes, Closes: #141008
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  3 Apr 2002 10:40:41 -0500
+
+choose-mirror (0.006) unstable; urgency=low
+
+  * Reupload with freshened Mirrors.masterlist, since it's been a while.
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 19 Oct 2001 11:41:20 -0400
+
+choose-mirror (0.005) unstable; urgency=low
+
+  * Patch from Tollef Fog Heen <tollef@add.no> to add some sanity checking
+    in manual entry, and to enable ftp, http, or both. Right now, I am
+    keeping ftp off, as we do not have a retreiver that uses it.
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 25 Jan 2001 12:45:06 -0800
+
+choose-mirror (0.004) unstable; urgency=low
+
+  * Added German translation by Michael Bramer <grisu@debian.org>,
+    Closes: #83140
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 22 Jan 2001 11:53:11 -0800
+
+choose-mirror (0.003) unstable; urgency=low
+
+  * Now build-depends on debconf-dev, and removed the hack.
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 21 Jan 2001 19:24:24 -0800
+
+choose-mirror (0.002) unstable; urgency=low
+
+  * Arch any, not all, and I had targets swapped in debian/rules.
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 12 Dec 2000 21:30:56 -0800
+
+choose-mirror (0.001) unstable; urgency=low
+
+  * First release.
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  6 Dec 2000 16:21:22 -0800
+
+

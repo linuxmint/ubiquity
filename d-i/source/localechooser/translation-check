@@ -1,0 +1,49 @@
+#! /bin/sh
+set -e
+
+# Exits without error if translation is _not_ completely up-to-date;
+# with errror if translation is up-to-date or on errors.
+
+if [ "$1" = en ] || [ "$1" = C ]; then
+	exit 9	# up-to-date by definition
+fi
+
+sfile=/usr/share/localechooser/translation-status
+[ -f $sfile ] || exit 1
+
+tstatus=$(grep "^$1:" $sfile | sed "s/.*:[[:space:]]*//")
+[ "$tstatus" ] || exit 1
+
+tlevel=${tstatus% *}
+tcompl=${tstatus#* }
+expr "$tlevel" : "[1-5]" >/dev/null || exit 1
+expr "$tcompl" : "[FMPLU]" >/dev/null || exit 1
+
+arch=$(archdetect)
+case ${arch%/*} in
+    i386|amd64)
+	archlevel=3 ;;
+    arm*|mips*|powerpc|sparc)
+	archlevel=4 ;;
+    alpha|hppa|ia64|m68k|s390|s390x)
+	archlevel=5 ;;
+    *)
+	archlevel=5 ;;
+esac
+
+if [ "$tcompl" = F ]; then
+	exit 9	# up-to-date
+elif [ $archlevel = 3 ] && [ $tlevel -eq 2 ] && [ $tcompl != M ]; then
+	echo 0	# incomplete
+elif [ $archlevel = 3 ] && [ $tlevel -eq 2 ]; then
+	echo 1	# incomplete, but normal installs mostly OK
+elif [ $tlevel -lt $archlevel ] ||
+     ([ $tlevel -eq $archlevel ] && [ $tcompl = U ]); then
+	echo 0	# incomplete
+elif [ $tlevel -eq $archlevel ] && [ $tcompl != M ]; then
+	echo 2	# partial at wanted level
+elif [ $tlevel -eq $archlevel ]; then
+	echo 3	# mostly complete
+else
+	echo 4	# only exceptions untranslated
+fi

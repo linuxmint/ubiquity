@@ -1,0 +1,216 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+
+<html>
+
+<head>
+
+<meta http-equiv="content-type" content="text/html; charset=iso-8859-1">
+
+<title>The Hackers Guide for console-setup - The Legacy Fonts</title>
+
+</head>
+
+<body>
+
+<p><a name="ch3"></a></p>
+<hr>
+
+<p>
+[ <a href="ch2.html">previous</a> ]
+[ <a href="index.html#contents">Contents</a> ]
+[ <a href="ch1.html">1</a> ]
+[ <a href="ch2.html">2</a> ]
+[ 3 ]
+[ <a href="ch4.html">4</a> ]
+[ <a href="ch-ckbcomp.html">5</a> ]
+[ <a href="ch4.html">next</a> ]
+</p>
+
+<hr>
+
+<h1>
+The Hackers Guide for <samp>console-setup</samp>
+<br>Chapter 3 - The Legacy Fonts
+</h1>
+
+<hr>
+
+<p>
+The traditionally used font collection for the Linux console is a demonstration
+for the big mess.  There are many different fonts and nobody in the world knew
+the exact purpose of all of them.  During the years new fonts were added, but
+old were almost newer removed.
+</p>
+
+<p>
+Some of the fonts shared common typeface, i.e.  they were differently encoded
+but the common glyphs were equal.  In total, however, there were too many
+different typefaces that generally differ one from another only a little.
+</p>
+
+<p>
+In order to resolve this mess the old console fonts were converted to BDF
+format.
+</p>
+
+<hr>
+
+<h2><a name="s3.1"></a>3.1 Conversion from PSF to BDF</h2>
+
+<p>
+In order to reduce the total number of fonts, they were converted to BDF
+format.  During the conversion of the fonts, only one BDF font was generated
+for a group of fonts that share common typeface.  Console fonts that didn't
+have embedded Unicode table were simply ignored.  The fonts
+<code>LatArCyrHeb*</code> were also ignored - partialy due to technical reasons
+and partialy because the other BDF fonts are better source for making Unicode
+console fonts.
+</p>
+
+<p>
+The resulting BDF fonts are named after the scheme
+<code>legacy<var>NNp</var>.bdf</code>, where <var>NN</var> is 8, 10, 12, 14, 16
+or 19 (the number of scan lines of the font, i.e.  the font matrix is
+8x<var>NN</var>) and p is a, b, c, d, e,...  and serves to ensure the
+uniqueness of the file names.  Some of the resulting BDF fonts were produced by
+only one source PSF font (for example only <code>iso06.f08.psf</code> was used
+to produce <code>legacy8d.bdf</code>) while for others it was possible to
+incorporate the glyphs from more than one PSF font (for example six different
+PSF fonts were used to produce <code>legacy16e.bdf</code>).
+</p>
+
+<p>
+The following table documents the correspondence between the file names of the
+resulting BDF fonts and the names of the original PSF fonts:
+</p>
+
+<pre>
+     legacy8a.bdf: cp857-8x8.psf iso01.f08.psf iso05.f08.psf iso07.f08.psf iso09.f08.psf
+     legacy8b.bdf: Cyr_a8x8.psf koi8u_8x8.psf ruscii_8x8.psf
+     legacy8c.bdf: iso02.f08.psf iso03.f08.psf iso04.f08.psf iso10.f08.psf
+     legacy8d.bdf: iso06.f08.psf
+     legacy8e.bdf: iso08.f08.psf
+     legacy8f.bdf: lat0-08.psf lat9u-08.psf
+     legacy8g.bdf: lat1-08.psf lat1u-08.psf lat9v-08.psf lat9w-08.psf
+     legacy8h.bdf: lat2u-08.psf
+     legacy8i.bdf: lat4-08.psf lat4a-08.psf lat4u-08.psf
+     legacy10a.bdf: lat4-10.psf lat4a-10.psf lat4u-10.psf
+     legacy10b.bdf: lat0-10.psf lat9u-10.psf
+     legacy10c.bdf: lat1-10.psf lat1u-10.psf lat9v-10.psf lat9w-10.psf
+     legacy10d.bdf: lat2u-10.psf
+     legacy12a.bdf: lat0-12.psf lat9u-12.psf
+     legacy12b.bdf: lat1-12.psf lat1u-12.psf lat9v-12.psf lat9w-12.psf
+     legacy12c.bdf: lat2u-12.psf
+     legacy12d.bdf: lat4-12.psf lat4a-12.psf lat4u-12.psf
+     legacy14a.bdf: cp857-8x14.psf iso01.f14.psf iso05.f14.psf iso09.f14.psf
+     legacy14b.bdf: Cyr_a8x14.psf
+     legacy14c.bdf: koi8u_8x14.psf
+     legacy14d.bdf: ruscii_8x14.psf
+     legacy14e.bdf: iso02.f14.psf iso03.f14.psf iso04.f14.psf iso10.f14.psf
+     legacy14f.bdf: iso06.f14.psf
+     legacy14g.bdf: iso07.f14.psf
+     legacy14h.bdf: iso08.f14.psf
+     legacy14i.bdf: lat0-14.psf lat9u-14.psf
+     legacy14j.bdf: lat1-14.psf lat1u-14.psf lat9v-14.psf lat9w-14.psf
+     legacy14k.bdf: lat2u-14.psf
+     legacy14l.bdf: lat4-14.psf lat4a-14.psf lat4u-14.psf
+     legacy16a.bdf: cp857-8x16.psf iso01.f16.psf iso05.f16.psf iso07.f16.psf iso09.f16.psf
+     legacy16b.bdf: Cyr_a8x16.psf koi8u_8x16.psf ruscii_8x16.psf
+     legacy16c.bdf: default8x16.psf lat0-sun16.psf lat2-sun16.psf
+     legacy16d.bdf: viscii10-8x16.psf
+     legacy16e.bdf: iso02.f16.psf iso02g.psf iso03.f16.psf iso03g.psf iso04.f16.psf iso10.f16.psf lat2u-16.psf
+     legacy16f.bdf: iso06.f16.psf
+     legacy16g.bdf: iso08.f16.psf
+     legacy16h.bdf: iso14.f16.psf
+     legacy16i.bdf: lat0-16.psf lat9u-16.psf
+     legacy16j.bdf: lat1-16.psf lat1u-16.psf
+     legacy16k.bdf: lat4-16.psf lat4a-16.psf lat4u-16.psf
+     legacy16l.bdf: lat9v-16.psf lat9w-16.psf
+     legacy16m.bdf: lat4-16+.psf lat4a-16+.psf lat4u-16+.psf
+     legacy19a.bdf: lat4-19.psf lat4a-19.psf lat4u-19.psf
+     Goha12.bdf: Goha-12.psf
+     Goha14.bdf: Goha-14.psf
+     Goha16.bdf: Goha-16.psf
+     GohaClasic12.bdf: GohaClasic-12.psf
+     GohaClasic14.bdf: GohaClasic-14.psf
+     GohaClasic16.bdf: GohaClasic-16.psf
+</pre>
+
+<hr>
+
+<h2><a name="s3.2"></a>3.2 Back Conversion&mdash;from BDF to PSF</h2>
+
+<p>
+Only one PSF font per combination of charset-size is generated from the legacy
+fonts.  This font is named after the scheme
+<var>CHARSET</var>-vga<var>SIZE</var>.psf.  For example
+<code>Greek-vga14.psf</code> is the legacy font for Greek character set and
+size 14.  The list of BDF fonts that is used to produce Greek-vga14.psf was
+determined as folows.
+</p>
+
+<p>
+First, see which one of the legacy BDF fonts can provide as many glyphs for
+<code>Greek-vga14.psf</code> as possible.  This was <code>legacy14g.bdf</code>
+(produced from <code>iso07.f14.psf</code>).  Then see which one of the other
+legacy BDF fonts provides as much glyphs for <code>Greek-vga14.psf</code> that
+<code>legacy14g</code> does not provide.  And so on.  The resulting lists are
+represented as <samp>Charset-legacy<var>SIZE</var>-<var>BDFS</var></samp>
+targets in the <code>Makefile</code>.  It is perfectly OK to handtune them.
+For example if one decides that the look of <code>legacy16i.bdf</code> is
+superior it is OK to list <code>legacy16i.bdf</code> as primary font for
+<code>Lat15-vga16.psf</code> even though <code>legacy16c.bdf</code> provides
+more glyphs.
+</p>
+
+<p>
+There is one exception to the previous paragraph: the wonderful font
+<code>UNI_VGA</code> of Dmitry Bolkhovityanov was always used as a primary font
+for the <code>vga16</code> fontface.
+</p>
+
+<p>
+The targets <samp>VGA<var>SIZE</var>-CHARSET</samp> in the
+<code>Makefile</code> specify which charsets are suitable for a particular font
+size.  We see that for some of the sizes only the Lat15 and Lat2 charsets are
+supported by the traditional fonts.  The following charsets are completely
+unsupported by the traditional console fonts: Armenian, CyrAsia, Georgian, Lao,
+Thai and Vietnamese.
+</p>
+
+<p>
+The Ethiopian fonts <code>Goha??.bdf</code> and <code>GohaClasic??.bdf</code>
+are not used as legacy fonts.  In all currently available non-console BDF fonts
+the Ethiopian letters are double-width and can not be used on the console.
+Thats why these fonts are treated equaly to the other non-legacy BDF fonts.
+</p>
+
+<hr>
+
+<p>
+[ <a href="ch2.html">previous</a> ]
+[ <a href="index.html#contents">Contents</a> ]
+[ <a href="ch1.html">1</a> ]
+[ <a href="ch2.html">2</a> ]
+[ 3 ]
+[ <a href="ch4.html">4</a> ]
+[ <a href="ch-ckbcomp.html">5</a> ]
+[ <a href="ch4.html">next</a> ]
+</p>
+
+<hr>
+
+<p>
+The Hackers Guide for <samp>console-setup</samp>
+</p>
+
+<address>
+Anton Zinoviev <code><a href="mailto:anton@lml.bas.bg">anton@lml.bas.bg</a></code><br>
+<br>
+</address>
+<hr>
+
+</body>
+
+</html>
+

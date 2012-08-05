@@ -1,0 +1,33 @@
+The point of this package is to prompt the user who's installing Debian to
+get their timezone. We base the prompt on the country they told the
+installer they were in. 
+
+Most countries have only one timezone, and for those the country-zone
+mapping is stored in the tzmap file (automatically generated from
+zone.tab), and no question is asked. Some countries have multiple timezones
+listed in zone.tab, but these are only of historical interest (ie, to get
+the correct time at some point in the past), and are thus not worth
+bothering the user about during install. For these the tzmap.override file
+can be used to force a whole country to one zone.
+
+The remaining countries, those with more than one current timezone, have
+questions listing the zones. The build process will look for these and try
+to generate appropriate debconf templates, but as the data in zone.tab is
+not very user-friendly, manual modification is needed in almost all cases.
+For example, in the US, manual modification is used to pick a half-way good
+default time zone, and to list the most common zones first using the common
+names for the zones. So we have a manually edited
+debian/common.templates.in, which is processed and any missing questions
+added, to generate debian/common.templates.
+
+The appropriate template is registered to the time/zone question at
+runtime, so only that one question is ever asked.
+
+Another tricky bit is translation. Currently the C values in the templates
+are the raw timezone names. We use an English translation, which changes
+these to more human readable zone names or place names. Translators have to
+follow along, translating the C values into something that is appropriate
+in their languages.
+
+This does mean that this package will need the occasional update as
+timezones change, as it's not all pulled directly from the zoneinfo.

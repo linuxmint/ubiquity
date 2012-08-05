@@ -1,0 +1,66 @@
+.Dd December 22, 2008
+.Os Ubuntu
+.ds volume-operating-system Ubuntu
+.Dt OEM\-CONFIG\-FIRSTBOOT 8
+.Sh NAME
+.Nm oem\-config\-firstboot
+.Nd run oem\-config on first boot after shipping to end user
+.Sh SYNOPSIS
+.Nm
+.Op Fl Fl debug
+.Op Fl Fl automatic
+.Sh DESCRIPTION
+.Nm
+performs some minor set-up before calling
+.Xr oem\-config 8
+(possibly via
+.Xr oem\-config\-dm 8 )
+to ask configuration questions of the end user.
+It will call
+.Xr oem\-config 8
+up to five times until it succeeds (exiting zero).
+If it succeeds, it will clean up the temporary OEM configuration user
+created during initial installation, and arrange for
+.Nm
+not to be run again.
+If it fails every time, it will drop to a shell to help the end user fix
+things up.
+.Pp
+.Nm
+is suitable for calling from an init script, and is not intended to be run
+directly by users.
+.Pp
+The following options are available:
+.Bl -tag -width 4n
+.It Fl d , Fl Fl debug
+Run in debugging mode, sending verbose information to
+.Pa /var/log/oem\-config.log
+that may be useful to developers.
+.Em Note that passwords will be logged in debugging mode!
+.Pp
+In debugging mode,
+.Nm
+will only try to run
+.Xr oem\-config 8
+once, and will not provide a panic shell on failure.
+.It Fl Fl automatic
+Run in automatic mode, read a preseed file, quietly apply all preseeded
+values and do not ask any questions for already preseeded answers.
+If the option
+.Ic automatic\-oem\-config
+is set on the kernel command line at boot time, this option is used automatically.
+.El
+.Sh AUTHOR
+.An Colin Watson Aq cjwatson@ubuntu.com
+.Pp
+.An -nosplit
+.Ic oem\-config
+is copyright \(co 2005, 2006, 2007, 2008
+.An Canonical Ltd . ,
+and
+copyright \(co 2006, 2007
+.An Anirudh Ramesh .
+See the GNU General Public License version 2 or later for copying
+conditions.
+A copy of the GNU General Public License is available in
+.Pa /usr/share/common\-licenses/GPL .

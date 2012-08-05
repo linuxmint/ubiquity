@@ -1,0 +1,78 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+file="$1"
+
+db_get apt-setup/services-select-ubuntu
+if ! echo "$RET" | grep -q security; then
+	exit
+fi
+
+db_get apt-setup/security_host
+host="$RET"
+[ "$host" ] || exit
+
+db_get apt-setup/security_path
+directory="$RET"
+[ "$directory" ] || exit
+
+if ! db_get mirror/codename || [ -z "$RET" ]; then
+	db_get cdrom/codename
+fi
+codename="$RET"
+
+# Awful Ubuntu-specific hack. *-security suites for ports architectures
+# aren't available on security.ubuntu.com, only on ports.ubuntu.com.
+if [ "$host" = security.ubuntu.com ]; then
+	db_get mirror/protocol
+	protocol="$RET"
+	db_get mirror/$protocol/hostname
+	if [ "$RET" = ports.ubuntu.com ]; then
+		host="$RET"
+		db_get mirror/$protocol/directory
+		directory="$RET"
+	fi
+fi
+
+# To determine if restricted should be included, grep the file to see if it
+# is listed in it.
+dists="main"
+for dist in restricted; do
+	if grep -v 'cdrom:' $ROOT/etc/apt/sources.list.new | grep -q '^[^#]* '$dist; then
+		dists="$dists $dist"
+	fi
+done
+
+# Don't test mirror if no network selected in netcfg
+echo "deb http://$host$directory $codename-security $dists" >> $file
+echo "deb-src http://$host$directory $codename-security $dists" >> $file
+
+# Security sources for Ubuntu universe; not used much, but e.g. unsupported
+# binary packages from a supported source package will end up here.
+if db_get apt-setup/universe && [ "$RET" = true ]; then
+	COMMENT=
+else
+	COMMENT='# '
+fi
+cat >> $file <<EOF
+${COMMENT}deb http://$host$directory $codename-security universe
+${COMMENT}deb-src http://$host$directory $codename-security universe
+EOF
+
+# Security sources for Ubuntu multiverse, with the same caveats as for
+# universe.
+if db_get apt-setup/multiverse && [ "$RET" = true ]; then
+	COMMENT=
+else
+	COMMENT='# '
+fi
+cat >> $file <<EOF
+${COMMENT}deb http://$host$directory $codename-security multiverse
+${COMMENT}deb-src http://$host$directory $codename-security multiverse
+EOF
+
+apt-setup-signed-release security.ubuntu.com "$file"
+
+exit 0

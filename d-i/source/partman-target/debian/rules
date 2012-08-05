@@ -1,0 +1,20 @@
+#! /usr/bin/make -f
+%:
+	dh $@ --with d-i
+
+ARCH_OS=$(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
+
+ifeq ($(ARCH_OS),linux)
+DEFAULT_STYLE=uuid
+endif
+ifeq ($(ARCH_OS),kfreebsd)
+DEFAULT_STYLE=uuid
+endif
+ifeq ($(ARCH_OS),hurd)
+DEFAULT_STYLE=traditional
+endif
+
+override_dh_installdebconf:
+	dh_installdebconf
+	sed -i '/^Template: partman\/mount_style/,/^$$/s/^Default: .*/Default: $(DEFAULT_STYLE)/' \
+		debian/partman-target/DEBIAN/templates

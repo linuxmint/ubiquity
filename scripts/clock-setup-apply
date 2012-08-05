@@ -1,0 +1,62 @@
+#! /bin/sh
+set -e
+
+# Much of this is cloned-and-hacked from
+# clock-setup/finish-install.d/10clock-setup.
+
+. /usr/share/debconf/confmodule
+
+if [ "$UBIQUITY_OEM_USER_CONFIG" ]; then
+	roots=/
+else
+	roots='/ /target'
+fi
+
+rcsfile=/etc/default/rcS
+adjtimefile=/etc/adjtime
+
+db_get clock-setup/utc
+for root in $roots; do
+	if [ "$RET" = true ]; then
+		sed -i -e 's:^UTC="no":UTC="yes":' -e 's:^UTC=no:UTC=yes:' $root$rcsfile
+		if [ -e "$root$adjtimefile" ]; then
+			sed -i -e 's:^LOCAL:UTC:' $root$adjtimefile
+		fi
+		UTC='--utc'
+	else
+		sed -i -e 's:^UTC="yes":UTC="no":' -e 's:^UTC=yes:UTC=no:' $root$rcsfile
+		if [ -e "$root$adjtimefile" ]; then
+			sed -i -e 's:^UTC:LOCAL:' $root$adjtimefile
+		fi
+		UTC='--localtime'
+	fi
+done
+
+# It isn't strictly necessary to set the hardware clock here, but we do it
+# anyway in case the system crashes before being shut down.
+# TODO: progress information?
+
+log-output -t clock-setup hwclock --systohc --debug --noadjfile $UTC &
+pid="$!"
+count=0
+
+stop_hwclock () {
+	kill $pid || return
+	sleep 1
+	if [ -e /proc/$pid ]; then
+		kill -9 $pid || return
+	fi
+}
+
+while sleep 1; do
+	if [ ! -e /proc/$pid ]; then
+		break
+	fi
+	count=$(expr $count + 1)
+	if [ "$count" = 30 ]; then
+		stop_hwclock
+		break
+	fi
+done
+
+exit 0

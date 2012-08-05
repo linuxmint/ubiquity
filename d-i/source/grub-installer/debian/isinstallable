@@ -1,0 +1,37 @@
+#!/bin/sh
+. /usr/share/debconf/confmodule
+
+log() {
+	logger -t grub-installer "$@"
+}
+
+ARCH="$(archdetect)"
+
+case $ARCH in
+    i386/mac|amd64/mac)
+	# Note: depends on partman-efi to load the efivars module!
+	if [ -d /sys/firmware/efi ]; then
+		log "GRUB not yet usable on Intel-based Macs booted using EFI"
+		exit 1
+	fi
+	;;
+    powerpc/chrp_pegasos)
+	;;
+    powerpc/*)
+	log "GRUB not yet usable on PowerPC systems other than Pegasos/Efika"
+	exit 1
+	;;
+    mipsel/loongson-2f)
+	;;
+    mipsel/*)
+	log "GRUB not yet usable on MIPS systems other than Yeeloong"
+	exit 1
+	;;
+esac
+
+db_get grub-installer/skip
+if [ "$RET" = true ]; then
+	exit 1
+fi
+
+exit 0

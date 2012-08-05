@@ -1,0 +1,23 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+dev=$1
+id=$2
+
+cd "$dev"
+
+valid_biosgrub=no
+open_dialog VALID_FLAGS $id
+while { read_line flag; [ "$flag" ]; }; do
+	if [ "$flag" = bios_grub ]; then
+		valid_biosgrub=yes
+	fi
+done
+close_dialog
+
+[ "$valid_biosgrub" = yes ] || exit 0
+
+db_metaget partman/method_long/biosgrub description
+
+printf "biosgrub\t${RET}\n"

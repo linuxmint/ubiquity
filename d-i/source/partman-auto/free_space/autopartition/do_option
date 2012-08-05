@@ -1,0 +1,20 @@
+#!/bin/sh
+
+set -e
+
+. /lib/partman/lib/base.sh
+
+dev=$2
+freeid=$3
+
+cd $dev
+
+open_dialog PARTITION_INFO $freeid
+read_line x1 freeid freesize freetype x2 x3 x4
+close_dialog
+
+[ "$freeid" ] || exit 1
+
+autopartition $dev $freeid
+
+exit 0

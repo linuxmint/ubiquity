@@ -1,0 +1,40 @@
+#!/bin/sh
+
+set -- $1
+
+fs=$1
+mp=$2
+type=$3
+options=$4
+dump=$5
+pass=$6
+
+case $type in
+    btrfs)
+	options="${options%,subvol=*}"
+	#for removing the option subvol,when thats the only option
+	#eg: options=="subvol=@", no comma present
+	options="${options%subvol=*}"
+	mount -t btrfs ${options:+-o "$options"} $fs /target$mp || exit 1
+	case $mp in
+	    /)
+		btrfs subvolume create /target$mp/@
+		chmod 755 /target$mp/@
+		umount /target$mp
+		options="${options:+$options,}subvol=@"
+		mount -t btrfs -o $options $fs /target$mp
+		;;
+	    /home)
+		btrfs subvolume create /target$mp/@home
+		chmod 755 /target$mp/@home
+		umount /target$mp
+		options="${options:+$options,}subvol=@home"
+		mount -t btrfs -o $options $fs /target$mp
+		;;
+	esac
+	echo "umount /target$mp"
+	exit 0
+	;;
+esac
+
+exit 1

@@ -1,0 +1,51 @@
+#! /bin/sh
+# Look for an encrypted home directory.
+
+. /lib/partman/lib/base.sh
+
+working="$(mktemp -d)"
+tmpl=user-setup/force-encrypt-home
+db_set $tmpl false
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ "$fs" != free ] || continue
+		partitions="$partitions $id,$path"
+	done
+	close_dialog
+	for part in $partitions; do
+		id="${part%%,*}"
+		path="${part#*,}"
+		[ -f "$id/method" ] || continue
+		[ ! -f "$id/format" ] || continue
+		[ ! -f "$id/formatted" ] || continue
+		[ -f "$id/acting_filesystem" ] || continue
+		[ -f "$id/mountpoint" ] || continue
+		mountpoint="$(cat "$id/mountpoint")"
+		case $mountpoint in
+		/|/home)
+			mount "$path" "$working" 3>&-
+			if [ "$mountpoint" = / ]; then
+				dir="$working/home"
+			else
+				dir="$working"
+			fi
+			for d in "$dir"/*; do
+				[ -e "$d/.ecryptfs" ] || [ -L "$d/.ecryptfs" ] || continue
+				if ! db_set $tmpl true; then
+					db_register debian-installer/dummy "$tmpl"
+					db_set "$tmpl" true
+					db_subst "$tmpl" ID "$tmpl"
+				fi
+				umount "$path"
+				exit 0
+			done
+			umount "$working"
+			;;
+		esac
+	done
+done
+exit 0

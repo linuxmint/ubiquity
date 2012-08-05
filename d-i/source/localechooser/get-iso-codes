@@ -1,0 +1,23 @@
+#!/bin/sh
+
+# Get ISO codes from the iso-codes package and extract translations
+set -e
+
+rm -rf debian/iso-codes >/dev/null 2>&1
+mkdir debian/iso-codes
+
+for i in $(find /usr/share/locale/ -name iso_3166.mo); do
+	language=$(echo $i | cut -f5 -d/)
+	# If a file exists in iso-codes.updates, then use it
+	# else extract translations from the iso-codes package
+	if [ ! -f iso-codes.updates/$language.po ]; then
+		msgunfmt $i >debian/iso-codes/${language}.po 2>/dev/null
+	else
+		cp iso-codes.updates/$language.po debian/iso-codes
+	fi
+done
+
+# If no iso-codes translation is available for se, then use nb instead
+if [ ! -f debian/iso-codes/se.po ] && [ -f debian/iso-codes/nb.po ]; then
+	cp debian/iso-codes/nb.po debian/iso-codes/se.po
+fi

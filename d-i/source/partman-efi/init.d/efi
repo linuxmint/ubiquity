@@ -1,0 +1,70 @@
+#!/bin/sh
+
+# This script sets method "efi" for all fat16 partitions that have the boot
+# flag set.
+
+# Give the kernel a chance to create /proc/efi if appropriate.
+modprobe efivars >/dev/null 2>&1 || true
+
+if [ -d /proc/efi ] || [ -d /sys/firmware/efi ]; then
+	> /var/lib/partman/efi
+else
+	ARCH="$(archdetect)"
+	case $ARCH in
+	    i386/mac|amd64/mac)
+		# Intel Macs have an EFI partition, regardless of
+		# whether we're currently booted using BIOS
+		# compatibility or not (if we are, we won't be able to
+		# talk to EFI directly).
+		> /var/lib/partman/efi
+		;;
+	    *)
+		rm -f /var/lib/partman/efi
+		exit 0
+		;;
+	esac
+fi
+
+. /lib/partman/lib/base.sh
+
+gpt_efi_type=c12a7328-f81f-11d2-ba4b-00a0c93ec93b
+
+for dev in /var/lib/partman/devices/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+
+	open_dialog GET_LABEL_TYPE
+	read_line label_type
+	close_dialog
+
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		if [ "$fs" = fat16 ]; then
+			partitions="$partitions $id"
+		elif [ "$fs" = fat32 ] && echo "$name" |
+                     grep -i "^EFI System Partition" >/dev/null; then
+			partitions="$partitions $id"
+		elif [ "$label_type" = gpt ] && \
+		     [ "$(blkid -o value -s PART_ENTRY_TYPE -p "$path" 2>/dev/null)" = "$gpt_efi_type" ]; then
+			partitions="$partitions $id"
+		fi
+	done
+	close_dialog
+
+	for id in $partitions; do
+	efi=no
+	open_dialog GET_FLAGS $id
+	while { read_line flag; [ "$flag" ]; }; do
+		if [ "$flag" = boot ]; then
+			efi=yes
+			# cannot break here
+		fi
+	done
+	close_dialog
+	if [ "$efi" = yes ]; then
+		mkdir -p $id
+		echo efi >$id/method
+	fi
+	done
+done

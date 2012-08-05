@@ -1,0 +1,7 @@
+#! /usr/bin/make -f
+%:
+	dh $@
+
+override_dh_auto_install:
+	$(foreach PACKAGE, $(shell dh_listpackages), \
+	  $(MAKE) install-$(PACKAGE) DESTDIR=$(CURDIR)/debian/$(PACKAGE);)

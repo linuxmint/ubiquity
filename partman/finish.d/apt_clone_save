@@ -1,0 +1,70 @@
+#!/bin/sh
+set -e
+
+. /lib/partman/lib/base.sh
+
+mountpoint="$(mktemp -d)"
+root=
+var=
+
+fail () {
+	if [ -n "$var" ] && [ -e "$mountpoint/var" ]; then
+		umount "$mountpoint/var" || true
+	fi
+	if [ -e "$mountpoint" ]; then
+		umount "$mountpoint" && rmdir "$mountpoint" || true
+	fi
+	db_progress STOP
+	# TODO input an error question.
+	exit 1
+}
+
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ -f "$id/method" ] || continue
+		[ -f "$id/use_filesystem" ] || continue
+		[ -f "$id/mountpoint" ] || continue
+		[ "$fs" != free ] || continue
+		[ -f "$id/format" ] && continue
+		[ -f "$id/formatted" ] && continue
+		if [ "$(cat "$id/mountpoint")" = "/" ]; then
+			root="$path"
+		elif [ "$(cat "$id/mountpoint")" = "/var" ]; then
+			var="$path"
+		fi
+	done
+	close_dialog
+done
+
+if [ -z "$root" ]; then
+	# The partition is going to be formatted; there's nothing to preserve.
+	exit 0
+fi
+
+db_progress START 0 1 ubiquity/install/title
+db_progress INFO ubiquity/install/apt_clone_save
+
+mount "$root" "$mountpoint"
+[ -n "$var" ] && mount "$var" "$mountpoint/var"
+
+working="$mountpoint/ubiquity-apt-clone"
+
+mkdir -p "$working"
+if ! apt-clone clone --with-dpkg-repack --source "$mountpoint" "$working"; then
+	# TODO: if the above fails, ask a debconf error question.
+	fail
+fi
+
+db_progress STEP 1
+
+if [ -n "$var" ] && [ -e "$mountpoint/var" ]; then
+	umount "$mountpoint/var" || true
+fi
+if [ -e "$mountpoint" ]; then
+	umount "$mountpoint" && rmdir "$mountpoint" || true
+fi
+
+db_progress STOP

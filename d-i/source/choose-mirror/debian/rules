@@ -1,0 +1,16 @@
+#! /usr/bin/make -f
+%:
+	dh $@
+
+override_dh_auto_build:
+	$(MAKE) small
+
+override_dh_auto_clean:
+	rm -rf debian/locales debian/sort-tmp
+	$(MAKE) clean Mirrors.masterlist
+
+override_dh_installdebconf:
+	dh_installdebconf
+	# Sort mirror countries (including translations)
+	# MUST be after dh_installdebconf
+	./sort-templates

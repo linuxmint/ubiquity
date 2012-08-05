@@ -1,0 +1,18 @@
+#! /bin/sh
+set -e
+
+if [ -d /target/home/oem ]; then
+	for file in \
+	    /usr/share/applications/oem-config-prepare-gtk.desktop \
+	    /usr/share/applications/kde4/oem-config-prepare-kde.desktop; do
+		if [ -f "/target$file" ]; then
+			chroot /target install -d -o oem -g oem \
+				/home/oem/Desktop
+			chroot /target install -o oem -g oem \
+				"$file" "/home/oem/Desktop/$(basename "$file")"
+			break
+		fi
+	done
+fi
+
+exit 0

@@ -1,0 +1,113 @@
+========================================
+LEGACY FONTS: CONVERSION FROM PSF TO BDF
+========================================
+
+The traditional font collection for Linux consolle was a big mess.
+There were many different fonts and nobody in the world knew the exact
+purpose of all of them.  During the years new fonts were added, but
+old were almost newer removed.
+
+Some of the fonts shared common typeface, i.e. they were differently
+encoded but the common glyphs were equal.  In total, however, there
+were too many different typefaces that generally differ one from
+another only a little.
+
+In order to reduce the total number of fonts, they were converted to
+BDF format.  During the conversion of the fonts, only one BDF font was
+generated for a group of fonts that share common typeface.  Console
+fonts that didn't have embedded Unicode table were simply ignored.
+The fonts LatArCyrHeb* were also ignored - partialy due to technical
+reasons and partialy because the other BDF fonts are better source for
+making Unicode console fonts.
+
+The resulting BDF fonts are named after the scheme legacyNNp.bdf,
+where NN is 8, 10, 12, 14, 16 or 19 (the number of scan lines of the
+font, i.e. the font matrix is 8xNN) and p is a, b, c, d, e,... and
+serves to ensure the uniqueness of the file names.  The table at the
+end of this text, documents the correspondence between file names of
+the resulting BDF fonts and the names of the PSF fonts that were used
+to produce them.  We see that some of the resulting BDF fonts were
+produced by only one source PSF font (for example only iso06.f08.psf
+was used to produce legacy8d.bdf) while for others it was possible to
+incorporate the glyphs from more than one PSF font (for example six
+PSF fonts were used to produce legacy16e.bdf).
+
+
+================================================
+LEGACY FONTS: BACK CONVERSION -  FROM BDF TO PSF
+================================================
+
+Only one PSF font per combination of codeset-size is generated from
+the legacy fonts and is named after the scheme CODESET-vgaSIZE.psf.
+For example Greek-vga14.psf is the legacy font for Greek code set and
+size 14.  The list of BDF fonts that is used to produce
+Greek-vga14.psf was determined as folows.
+
+First, see which one of the legacy BDF fonts can provide as many
+glyphs for Greek-vga14.psf as possible.  This was legacy14g.bdf
+(produced from iso07.f14.psf).  Then see which one of the other legacy
+BDF fonts provides as much glyphs for Greek-vga14.psf that legacy14g
+does not provide.  And so on.  The resulting lists are represented as
+Codeset-legacySIZE-BDFS targets in the Makefile.  It is perfectly OK
+to handtune them.  For example if one decides that the look of
+legacy16i.bdf is superior it is OK to list legacy16i.bdf as primary
+font for Lat15-vga16.psf even though legacy16c.bdf provides more
+glyphs.
+
+There is one exception to the previous paragraph: the wonderful font
+UNI_VGA of Dmitry Bolkhovityanov was always used as a primary font for
+vga16 fontface.
+
+====================================
+THE SOURCES OF THE FONTS legacy*.bdf
+====================================
+
+legacy8a.bdf: cp857-8x8.psf iso01.f08.psf iso05.f08.psf iso07.f08.psf iso09.f08.psf
+legacy8b.bdf: Cyr_a8x8.psf koi8u_8x8.psf ruscii_8x8.psf
+legacy8c.bdf: iso02.f08.psf iso03.f08.psf iso04.f08.psf iso10.f08.psf
+legacy8d.bdf: iso06.f08.psf
+legacy8e.bdf: iso08.f08.psf
+legacy8f.bdf: lat0-08.psf lat9u-08.psf
+legacy8g.bdf: lat1-08.psf lat1u-08.psf lat9v-08.psf lat9w-08.psf
+legacy8i.bdf: lat4-08.psf lat4a-08.psf lat4u-08.psf
+legacy10a.bdf: lat4-10.psf lat4a-10.psf lat4u-10.psf
+legacy10b.bdf: lat0-10.psf lat9u-10.psf
+legacy10c.bdf: lat1-10.psf lat1u-10.psf lat9v-10.psf lat9w-10.psf
+legacy10d.bdf: lat2u-10.psf
+legacy12a.bdf: lat0-12.psf lat9u-12.psf
+legacy12b.bdf: lat1-12.psf lat1u-12.psf lat9v-12.psf lat9w-12.psf
+legacy12c.bdf: lat2u-12.psf
+legacy12d.bdf: lat4-12.psf lat4a-12.psf lat4u-12.psf
+legacy14a.bdf: cp857-8x14.psf iso01.f14.psf iso05.f14.psf iso09.f14.psf
+legacy14b.bdf: Cyr_a8x14.psf
+legacy14c.bdf: koi8u_8x14.psf
+legacy14d.bdf: ruscii_8x14.psf
+legacy14e.bdf: iso02.f14.psf iso03.f14.psf iso04.f14.psf iso10.f14.psf
+legacy14f.bdf: iso06.f14.psf
+legacy14g.bdf: iso07.f14.psf
+legacy14h.bdf: iso08.f14.psf
+legacy14i.bdf: lat0-14.psf lat9u-14.psf
+legacy14j.bdf: lat1-14.psf lat1u-14.psf lat9v-14.psf lat9w-14.psf
+legacy14k.bdf: lat2u-14.psf
+legacy14l.bdf: lat4-14.psf lat4a-14.psf lat4u-14.psf
+legacy16a.bdf: cp857-8x16.psf iso01.f16.psf iso05.f16.psf iso07.f16.psf iso09.f16.psf
+legacy16b.bdf: Cyr_a8x16.psf koi8u_8x16.psf ruscii_8x16.psf
+legacy16c.bdf: default8x16.psf lat0-sun16.psf lat2-sun16.psf
+legacy16d.bdf: viscii10-8x16.psf
+legacy16e.bdf: iso02.f16.psf iso02g.psf iso03.f16.psf iso03g.psf iso04.f16.psf iso10.f16.psf lat2u-16.psf
+legacy16f.bdf: iso06.f16.psf
+legacy16g.bdf: iso08.f16.psf
+legacy16h.bdf: iso14.f16.psf
+legacy16i.bdf: lat0-16.psf lat9u-16.psf
+legacy16j.bdf: lat1-16.psf lat1u-16.psf
+legacy16k.bdf: lat4-16.psf lat4a-16.psf lat4u-16.psf
+legacy16l.bdf: lat9v-16.psf lat9w-16.psf
+legacy16m.bdf: lat4-16+.psf lat4a-16+.psf lat4u-16+.psf
+legacy19a.bdf: lat4-19.psf lat4a-19.psf lat4u-19.psf
+Goha12.bdf: Goha-12.psf
+Goha14.bdf: Goha-14.psf
+Goha16.bdf: Goha-16.psf
+GohaClasic12.bdf: GohaClasic-12.psf
+GohaClasic14.bdf: GohaClasic-14.psf
+GohaClasic16.bdf: GohaClasic-16.psf
+

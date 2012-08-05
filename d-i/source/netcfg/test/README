@@ -1,0 +1,35 @@
+This is the test suite for netcfg.  At present, it is no more than a set of
+regression tests to ensure that refactoring and other invasive changes don't
+break existing functionality more than can be helped.
+
+Since the test suite does not comprehensively cover the entire codebase, it
+should not be run at package build time.  It is a development aid *only*.
+
+
+Running the tests
+-----------------
+
+Ensure you have the 'check' package installed, and run 'make test'. 
+Everything should sort itself out from there automatically.
+
+
+Adding tests
+------------
+
+See http://check.sourceforge.net/doc/check_html/index.html for documentation
+on how to use Check (the unit testing tool in use).
+
+Tests are grouped in files named after the function they test, prepended
+with 'test_' and with the standard '.c' suffix.  So tests for the inet_mton
+function go in 'test_inet_mton.c'.
+
+To add a new test for a function with existing tests, create a new test case
+in the appropraite file (see existing tests for an idea of the structure),
+then add a new 'tcase_add_test' line to the 'suite' function at the bottom
+of the file.
+
+To add tests for a function that doesn't already have tests, make a new
+file, create a new skeleton matching that of an existing test file, add an
+entry in the TESTS list in test/tests.mk, and then add a prototype for the
+suite function to srunner.h and an 'srunner_add_suite' line in srunner.c. 
+Simple!

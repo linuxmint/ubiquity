@@ -1,0 +1,80 @@
+#!/bin/sh
+set -e
+
+# The default in the template is to have all services enabled. Here, we
+# disable services that are not available before the question is asked.
+# This way, it is also possible select which services should be enabled
+# using preseeding.
+
+. /usr/share/debconf/confmodule
+
+# Returns 0 if the service was actually removed
+disable_service() {
+	local to_disable="$1"
+
+	db_get apt-setup/services-select-ubuntu
+	local services="$RET"
+
+	local new_services s
+	if echo "$services" | grep -q $to_disable; then
+		new_services=""
+		for s in $(echo "$services" | sed "s/,/ /"); do
+			if [ "$s" != $to_disable ]; then
+				new_services=${new_services:+$new_services, }$s
+			fi
+		done
+		db_set apt-setup/services-select-ubuntu "$new_services"
+		return 0
+	fi
+	return 1
+}
+
+# Returns 0 if the service was actually added
+enable_service() {
+	local to_enable="$1"
+
+	db_get apt-setup/services-select-ubuntu
+	local services="$RET"
+
+	if ! echo "$services" | grep -q $to_enable; then
+		db_set apt-setup/services-select-ubuntu "${services:+$services, }$to_enable"
+		return 0
+	fi
+}
+
+if ! db_get mirror/suite || [ -z "$RET" ]; then
+	db_get cdrom/suite
+fi
+suite="$RET"
+
+if (! db_get apt-setup/restricted || [ "$RET" = false ]) && \
+   (! db_get apt-setup/multiverse || [ "$RET" = false ]); then
+	disable_service partner
+elif db_get apt-setup/partner && [ "$RET" = true ]; then
+	enable_service partner
+fi
+if db_get apt-setup/extras && [ "$RET" = true ]; then
+	enable_service extras
+fi
+
+db_get apt-setup/security_host
+db_subst apt-setup/services-select-ubuntu SEC_HOST "$RET"
+db_subst apt-setup/services-select-ubuntu PARTNER_HOST archive.canonical.com
+db_subst apt-setup/services-select-ubuntu EXTRAS_HOST extras.ubuntu.com
+
+db_input medium apt-setup/services-select-ubuntu || true
+if ! db_go; then
+	exit 10 # back up
+fi
+
+# No need to set up proxy here if no services were selected
+db_get apt-setup/services-select-ubuntu
+[ "$RET" ] || exit 0
+
+# Proxy configuration is common to all services
+if db_get mirror/http/proxy && [ -n "$RET" ]; then
+	proxy="$RET"
+	if ! grep -iq "Acquire::http::Proxy" $ROOT/etc/apt/apt.conf.new; then
+		echo "Acquire::http::Proxy \"$proxy\";" >> $ROOT/etc/apt/apt.conf.new
+	fi
+fi

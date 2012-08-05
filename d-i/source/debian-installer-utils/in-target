@@ -1,0 +1,31 @@
+#!/bin/sh
+set -e
+. /lib/chroot-setup.sh
+
+STDOUT=
+if [ "$1" = "--pass-stdout" ]; then
+	STDOUT=$1
+	shift
+fi
+
+if ! chroot_setup; then
+	logger -t in-target -- "Unexpected error; command not executed: '$@'"
+	exit 1
+fi
+
+DEBCONF_READFD=0
+export DEBCONF_READFD
+DEBCONF_WRITEFD=3
+export DEBCONF_WRITEFD
+DEBIAN_FRONTEND=passthrough
+export DEBIAN_FRONTEND
+ERRCODE=0
+log-output -t in-target $STDOUT chroot /target "$@" || ERRCODE=$?
+
+chroot_cleanup
+
+if [ "$ERRCODE" != 0 ]; then
+	exit $ERRCODE
+else
+	exit 0
+fi

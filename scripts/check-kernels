@@ -1,0 +1,86 @@
+#! /bin/sh
+
+ARCH="$(dpkg --print-architecture)"
+SUBARCH="$(archdetect)"
+SUBARCH="${SUBARCH#*/}"
+CPUINFO=/proc/cpuinfo
+UNAME_R="$(uname -r)"
+KERNEL_MAJOR="$(echo "$UNAME_R" | cut -d . -f 1,2)"
+KERNEL_VERSION="$(echo "$UNAME_R" | cut -d - -f 1)"
+KERNEL_ABI="$(echo "$UNAME_R" | cut -d - -f 1,2)"
+MACHINE="$(uname -m)"
+NUMCPUS=
+
+if [ -f /usr/lib/ubiquity/base-installer/kernel.sh ]; then
+	. /usr/lib/ubiquity/base-installer/kernel.sh
+else
+	exit 0
+fi
+
+kernels="$(dpkg-query -f '${status} ${package}\n' -W linux-image-\* | \
+		grep '^install ok installed ' | cut -d' ' -f4 | xargs)"
+
+flavour="$(arch_get_kernel_flavour || true)"
+preferred_kernels="$(arch_get_kernel "$flavour")"
+install_new=
+compatible=
+incompatible=
+
+# TODO cjwatson 2009-10-19: Nasty hack for PAE-capable systems; see
+# https://launchpad.net/bugs/413135. We should generalise this somehow.
+case $preferred_kernels in
+    linux-generic-pae*)
+	if [ "$(apt-cache search -n '^linux-generic-pae$')" ]; then
+		install_new="${install_new:+$install_new }linux-generic-pae"
+		for kernel in $kernels; do
+			case $kernel in
+			    *-generic-pae)
+				compatible="${compatible:+$compatible }$kernel"
+				;;
+			    *)
+				incompatible="${incompatible:+$incompatible }$kernel"
+				;;
+			esac
+		done
+	fi
+	;;
+esac
+
+if [ -z "$compatible" ] && [ -z "$install_new" ]; then
+	for kernel in $kernels; do
+		if arch_check_usable_kernel "$kernel" "$flavour"; then
+			compatible="${compatible:+$compatible }$kernel"
+		else
+			if [ "${kernel%-$UNAME_R}" != "$kernel" ]; then
+				echo 'Would try to remove running kernel;' \
+				     'bailing out for sanity' >&2
+				exit 0
+			fi
+			incompatible="${incompatible:+$incompatible }$kernel"
+		fi
+	done
+fi
+
+kernel_to_headers () {
+	echo "$1" | sed 's/linux\(-image\|\)/linux-headers/'
+}
+
+if [ -z "$compatible" ] && [ -z "$install_new" ]; then
+	# We must be wrong. After all, we got this far ...
+	echo 'No usable kernel found; assuming foreign package naming' >&2
+else
+	mkdir -p /var/lib/ubiquity
+	for kernel in $install_new; do
+		echo "$kernel" >>/var/lib/ubiquity/install-kernels
+		kernel_to_headers "$kernel" >>/var/lib/ubiquity/install-kernels
+	done
+	for kernel in $compatible; do
+		apt-install "$kernel" "$(kernel_to_headers "$kernel")"
+	done
+	for kernel in $incompatible; do
+		echo "$kernel" >> /var/lib/ubiquity/remove-kernels
+		kernel_to_headers "$kernel" >>/var/lib/ubiquity/remove-kernels
+	done
+fi
+
+exit 0

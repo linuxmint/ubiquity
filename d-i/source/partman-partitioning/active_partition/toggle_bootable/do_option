@@ -1,0 +1,59 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+task=$1
+dev=$2
+id=$3
+
+cd $dev
+
+if [ "$task" = bootable ]; then
+	open_dialog PARTITION_INFO $id
+	read_line x1 x2 x3 type x5 x6 x7
+	close_dialog
+	if [ "$type" = logical ]; then
+		db_input high partman-partitioning/bootable_logical || true
+		db_go || exit 0
+		db_get partman-partitioning/bootable_logical
+		[ "$RET" = true ] || exit 0
+	fi
+fi
+
+flags=''
+open_dialog GET_FLAGS $id
+while { read_line flag; [ "$flag" ]; }; do
+	if [ "$flag" != boot ]; then
+		flags="${flags:+$flags$NL}$flag"
+	fi
+done
+close_dialog
+
+if [ $task = bootable ]; then
+	flags="$flags${NL}boot"
+fi
+
+open_dialog SET_FLAGS $id
+write_line "$flags"
+write_line NO_MORE
+close_dialog
+
+partitions=''
+numparts=1
+open_dialog PARTITIONS
+while { read_line num id size type fs path name; [ "$id" ]; }; do
+	[ "$fs" != free ] || continue
+	partitions="$partitions $id"
+	numparts=$(($numparts + 1))
+done
+close_dialog
+
+db_progress START 0 $numparts partman/text/please_wait
+db_progress INFO partman-partitioning/new_state
+
+for id in $partitions; do
+	update_partition $dev $id
+	db_progress STEP 1
+done
+
+db_progress STOP

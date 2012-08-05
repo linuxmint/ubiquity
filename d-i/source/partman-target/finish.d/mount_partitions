@@ -1,0 +1,76 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+fstab=$(
+	for i in /lib/partman/fstab.d/*; do
+		[ -x "$i" ] || continue
+		$i
+	done |
+	while read fs mp type options dump pass; do
+		echo $mp $fs $type $options $dump $pass
+	done |
+	sort |
+	while read mp fs type options dump pass; do
+		newoptions=
+		while [ "$options" ]; do
+			case $options in
+			    (ro,*)
+				options="${options#ro,}"
+				;;
+			    (ro)
+				options=
+				;;
+			    (*,*)
+				newoptions="${newoptions:+$newoptions,}${options%%,*}"
+				options="${options#*,}"
+				;;
+			    (*)
+				newoptions="${newoptions:+$newoptions,}$options"
+				options=
+				;;
+			esac
+		done
+		if [ -z "$newoptions" ]; then
+			newoptions=defaults
+		fi
+		echo $fs $mp $type $newoptions $dump $pass
+	done
+)
+
+IFS="$NL"
+for f in $fstab; do
+	restore_ifs
+	set -- $f
+	case "$2" in
+	    /media/*)
+		mkdir -p "/target$2"
+		continue
+		;;
+	    /*)
+		mkdir -p "/target$2"
+		;;
+	esac
+	for m in /lib/partman/mount.d/*; do
+		[ -x "$m" ] || continue
+
+		# partman-doc specifies that mount.d scripts output the command
+		# needed to unmount the partition; currently this is unused
+		unmount_cmd=$($m "$f")
+		if [ "$?" = 0 ]; then
+			continue 2
+		fi
+	done
+
+	db_subst partman-target/mount_failed DEVICE $(humandev $1)
+	db_subst partman-target/mount_failed MOUNTPOINT $2
+	db_subst partman-target/mount_failed TYPE $3
+	db_input critical partman-target/mount_failed || true
+	db_go || exit 1
+	db_get partman-target/mount_failed
+	if [ "$RET" = true ]; then
+		exit 1
+	else
+		exit 2
+	fi
+done

@@ -1,0 +1,28 @@
+#!/bin/sh
+
+. /usr/share/debconf/confmodule
+
+# Only run the first time
+if [ -f /var/lib/partman/initial_help ]; then
+	exit 0
+fi
+mkdir -p /var/lib/partman
+touch /var/lib/partman/initial_help
+
+if [ -x /bin/archdetect ]; then
+	arch=$(archdetect)
+else
+	arch=unknown/generic
+fi
+
+db_reset partman-target/arch_help/$arch
+db_subst partman-target/arch_help/$arch BOOTABLE 'B'
+
+db_reset partman-target/help
+db_metaget partman-target/arch_help/$arch description || RET=''
+db_subst partman-target/help ARCHITECTURE_HELP  "$RET"
+db_subst partman-target/help KEEP 'K'
+db_subst partman-target/help DESTROY 'F'
+db_subst partman-target/help FORMAT 'f'
+
+exit 0

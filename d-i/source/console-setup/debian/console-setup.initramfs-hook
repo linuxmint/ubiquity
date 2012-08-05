@@ -1,0 +1,53 @@
+#! /bin/sh -e
+
+PREREQ="kbd|console_tools"
+
+prereqs () {
+	echo "$PREREQ"
+}
+
+case $1 in
+prereqs)
+	prereqs
+	exit 0
+	;;
+esac
+
+. /usr/share/initramfs-tools/hook-functions
+[ -r /etc/default/keyboard ] || exit 0
+[ -r /etc/default/console-setup ] || exit 0
+. /etc/default/console-setup # also sources /etc/default/keyboard
+
+# Copy console-setup configuration
+mkdir -p "$DESTDIR/etc/default"
+cp -p /etc/default/keyboard "$DESTDIR/etc/default"
+cp -p /etc/default/console-setup "$DESTDIR/etc/default"
+
+# Assume setupcon --save has been run
+if [ -f "$FONT" ]; then
+	FONT="/etc/console-setup/${FONT##*/}"
+	FONT="${FONT%.gz}"
+else
+	FONT="/etc/console-setup/$CODESET-$FONTFACE$FONTSIZE.psf"
+fi
+if [ -f "$FONT" ]; then
+	mkdir -p "$DESTDIR${FONT%/*}"
+	cp -p "$FONT" "$DESTDIR$FONT"
+fi
+if [ -f "$ACM" ]; then
+	ACM="/etc/console-setup/${ACM##*/}"
+	ACM="${ACM%.gz}"
+else
+	ACM="/etc/console-setup/$CHARMAP.acm"
+fi
+if [ -f "$ACM" ]; then
+	mkdir -p "$DESTDIR${ACM%/*}"
+	cp -p "$ACM" "$DESTDIR$ACM"
+fi
+if [ -f /etc/console-setup/cached.kmap.gz ]; then
+	mkdir -p "$DESTDIR/etc/console-setup"
+	cp -p /etc/console-setup/cached.kmap.gz \
+		"$DESTDIR/etc/console-setup/cached.kmap.gz"
+fi
+
+exit 0

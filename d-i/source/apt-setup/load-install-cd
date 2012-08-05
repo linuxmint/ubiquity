@@ -1,0 +1,46 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+ROOT="$1"
+[ "$ROOT" ] || exit 1
+
+[ -e /var/lib/install-cd.id ] || exit 0
+
+logoutput="log-output -t load-install-cd"
+
+check_id() {
+	cd_ids=$(LC_ALL=C $logoutput --pass-stdout chroot $ROOT \
+		 apt-cdrom ident | grep "^Identifying" | cut -d" " -f2)
+
+	for cd_id in $cd_ids; do
+		if [ "$cd_id" = "$(head -n1 /var/lib/install-cd.id)" ]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
+cd_label=$(tail -n1 /var/lib/install-cd.id)
+db_subst apt-setup/cdrom/media-change LABEL "$cd_label"
+while ! check_id; do
+	db_input critical apt-setup/cdrom/media-change || true
+	db_go || exit 10
+done
+
+fs=iso9660
+if db_get cdrom-detect/cdrom_fs && [ "$RET" ]; then
+	fs="$RET"
+fi
+OS=$(udpkg --print-os)
+case "$OS" in
+	hurd)
+		OPTIONS=ro
+		;;
+	*)
+		OPTIONS=ro,exec
+		;;
+esac
+db_get cdrom-detect/cdrom_device
+$logoutput mount -t "$fs" -o $OPTIONS $RET /cdrom

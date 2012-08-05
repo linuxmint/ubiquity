@@ -1,0 +1,88 @@
+#! /bin/sh
+set -e
+
+. /lib/partman/lib/base.sh
+
+dev=${1%//*}
+id=${1#*//}
+
+cd $dev
+device=$(humandev $(cat device))
+
+# If the user wants to modify a device or partition
+# the device may not be locked
+if [ -e "$dev/locked" ]; then
+	locked=$(cat "$dev/locked")
+	db_subst partman-base/devicelocked DEVICE "$device"
+	db_subst partman-base/devicelocked MESSAGE "$locked"
+	db_set partman-base/devicelocked false
+	db_input critical partman-base/devicelocked
+	db_capb
+	db_go || true
+	db_capb backup align
+	exit 0
+fi
+
+# Two scenarios to check for here:
+# 1) If the user wants to modify a partition - it may not be locked
+# 2) If the user wants to modify a device - none of its partitions may be locked
+open_dialog PARTITIONS
+while { read_line num tmpid size type fs path name; [ "$tmpid" ]; }; do
+	if [ -n "$id" ]; then
+		[ "$id" = "$tmpid" ] || continue
+	fi
+
+	if [ -e "$dev/$tmpid/locked" ]; then
+		locked=$(cat "$dev/$tmpid/locked")
+		db_subst partman-base/partlocked DEVICE "$device"
+		db_subst partman-base/partlocked PARTITION "$num"
+		db_subst partman-base/partlocked MESSAGE "$locked"
+		db_set partman-base/partlocked false
+		db_input critical partman-base/partlocked
+		db_capb
+		db_go || true
+		db_capb backup align
+		close_dialog
+		exit 0
+	fi
+done
+close_dialog
+
+
+if [ -z "$id" ]; then
+	# ask_user /lib/partman/storage_device "$dev" "$id" || true
+	open_dialog GET_LABEL_TYPE
+	read_line x
+	close_dialog
+	# do not try to create partition table on sw RAID device or LVM LV
+	if [ "$x" = loop ]; then
+		exit 0
+	fi
+	mklabel=$(echo /lib/partman/storage_device/[0-9][0-9]label/do_option)
+	[ -x "$mklabel" ] || exit 0
+	$mklabel label "$dev" || true
+	exit 0
+else
+	open_dialog PARTITION_INFO $id
+	read_line num id size type fs path name
+	close_dialog
+	[ "$id" ] || exit 0
+	case "$fs" in
+	    free)
+		ask_user /lib/partman/free_space "$dev" "$id" || true
+		;;
+	    *)
+		while true; do
+			set +e
+			code=0
+			ask_active_partition "$dev" "$id" "$num" || code=$?
+			if [ "$code" -ge 128 ] && [ "$code" -lt 192 ]; then
+				exit "$code" # killed by signal
+			elif [ "$code" -ge 100 ]; then
+				break
+			fi
+			set -e
+		done
+		;;
+	esac
+fi

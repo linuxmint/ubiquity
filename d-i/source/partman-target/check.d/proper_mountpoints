@@ -1,0 +1,93 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+# At least one file system to mount on /
+no_root () {
+	mountpoints=$(
+		for i in /lib/partman/fstab.d/*; do
+			[ -x "$i" ] || continue
+			$i
+		done |
+		while read fs mp type options dump pass; do
+			echo $mp
+		done
+	)
+
+	for mp in $mountpoints; do
+		if [ "$mp" = / ]; then
+			return 0
+		fi
+	done
+
+	db_capb align
+	db_input critical partman-target/no_root || true
+	db_go || true
+	db_capb backup align
+	exit 1
+}
+
+# No two file systems with one and the same mount point
+same_mountpoints () {
+	mountpoints=$(
+		for i in /lib/partman/fstab.d/*; do
+			[ -x "$i" ] || continue
+			$i
+		done |
+		while read fs mp type options dump pass; do
+			case "$mp" in
+			    (/*)
+				echo $mp,$fs;;
+			esac
+		done |
+		sort
+	)
+
+	oldmp=' '
+	for x in $mountpoints; do
+		mp=${x%,*}
+		fs=${x##*,}
+		if [ "$mp" = "$oldmp" ]; then
+			db_subst partman-target/same_mountpoint PART1 $(humandev $oldfs)
+			db_subst partman-target/same_mountpoint PART2 $(humandev $fs)
+			db_subst partman-target/same_mountpoint MOUNTPOINT "$mp"
+			db_capb align
+			db_input critical partman-target/same_mountpoint || true
+			db_go || true
+			db_capb backup align
+			exit 1
+		else
+			oldmp="$mp"
+			oldfs="$fs"
+		fi
+	done
+}
+
+# Some directories must be on the root file system
+must_be_on_root () {
+	mountpoints=$(
+		for i in /lib/partman/fstab.d/*; do
+			[ -x "$i" ] || continue
+			$i
+		done |
+		while read fs mp type options dump pass; do
+			echo $mp
+		done
+	)
+
+	for mp in $mountpoints; do
+		case $mp in
+		    /bin|/dev|/etc|/lib|/lib32|/lib64|/media|/sbin)
+			db_subst partman-target/must_be_on_root MOUNTPOINT "$mp"
+			db_capb align
+			db_input critical partman-target/must_be_on_root || true
+			db_go || true
+			db_capb backup align
+			exit 1
+		esac
+	done
+}
+
+no_root
+same_mountpoints
+must_be_on_root

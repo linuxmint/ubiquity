@@ -1,0 +1,49 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+dev=$1
+id=$2
+cd $dev
+
+open_dialog GET_LABEL_TYPE
+read_line label
+close_dialog
+
+# Disable on devices where there is no "real" partitioning
+if [ "$label" = loop ]; then
+	exit 0
+fi
+
+if [ -f $id/detected_filesystem ]; then
+	fs=$(cat $id/detected_filesystem)
+	case "$fs" in
+	    linux-swap|fat16|fat32|hfs|hfs+|hfsx)
+		;;
+	    ext2|ext3|ext4)
+		if ! search-path tune2fs || ! search-path resize2fs; then
+			exit 0
+		fi
+		;;
+	    ntfs)
+		if ! search-path ntfsresize; then
+			exit 0
+		fi
+		;;
+	    *)
+		exit 0
+		;;
+	esac
+else
+	exit 0
+fi
+
+open_dialog PARTITION_INFO $id
+read_line x1 id size x4 x5 x6 x7 x8
+close_dialog
+
+hsize=$(longint2human $size)
+
+db_subst partman-partitioning/text/resize SIZE "$hsize"
+db_metaget partman-partitioning/text/resize description
+printf "resize\t%s\n" "${RET}"

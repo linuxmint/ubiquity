@@ -1,0 +1,41 @@
+#!/bin/sh
+
+. /lib/partman/lib/resize.sh
+
+dev=$2
+oldid=$3
+
+cd $dev
+
+check_virtual
+
+if [ "$virtual" = no ] && [ -f $oldid/detected_filesystem ]; then
+	if ! get_real_resize_range "$oldid" \
+			"$(cat "$oldid/detected_filesystem")"; then
+		db_input critical partman-partitioning/impossible_resize || true
+		db_go || true
+		exit 1
+	fi
+else
+	get_resize_range
+fi
+
+if [ -z "$maxsize" ]; then
+	logger -t partman "Error: unable to determine maximum new size for partition"
+	db_input critical partman-partitioning/impossible_resize || true
+	db_go || true
+	exit 1
+fi
+
+human_resize_range
+
+if [ "$virtual" = no ]; then
+	db_set partman-partitioning/confirm_resize false
+	db_input critical partman-partitioning/confirm_resize || true
+	db_go || exit 0
+	db_get partman-partitioning/confirm_resize
+	[ "$RET" = true ] || exit 0
+fi
+
+ask_for_size || exit $?
+exit 100

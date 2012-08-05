@@ -1,0 +1,33 @@
+#! /usr/bin/make -f
+%:
+	dh $@
+
+ARCH = $(shell dpkg-architecture -qDEB_HOST_ARCH)
+
+override_dh_auto_build: debian/templates.gen
+ifeq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
+	$(MAKE) small
+else
+	$(MAKE) DEBUG=1
+endif
+
+debian/templates.gen: debian/templates-arch
+	debian/templates-build.pl $(ARCH) < $< > $@
+	# give the new templates file the same mtime as the input file, so
+	# that po2debconf doesn't decide that it needs to run
+	# debconf-updatepo
+	touch -mr $< $@
+
+test:
+	dh_auto_test
+
+override_dh_install:
+	dh_install
+	if [ -e "kernel/$(ARCH).sh" ]; then \
+		install -D -m644 "kernel/$(ARCH).sh" \
+		                 debian/bootstrap-base/usr/lib/base-installer/kernel.sh; \
+	fi
+
+override_dh_installdebconf:
+	dh_installdebconf
+	(echo ; cat debian/templates.gen) >> debian/bootstrap-base/DEBIAN/templates

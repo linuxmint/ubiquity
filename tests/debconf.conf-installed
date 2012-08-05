@@ -1,0 +1,34 @@
+# This makes some rather naughty assumptions about the system debconf
+# database layout, but we can get away with that since this is intended
+# purely for consumption by autopkgtest.
+
+Config: configdb
+Templates: templatedb
+
+Name: system-config
+Driver: File
+Mode: 644
+Filename: /var/cache/debconf/config.dat
+
+Name: test-config
+Driver: File
+Mode: 644
+Filename: tests/config.dat
+
+Name: configdb
+Driver: Stack
+Stack: system-config, test-config
+
+Name: system-templates
+Driver: File
+Mode: 644
+Filename: /var/cache/debconf/templates.dat
+
+Name: test-templates
+Driver: File
+Mode: 644
+Filename: tests/templates.dat
+
+Name: templatedb
+Driver: Stack
+Stack: system-templates, test-templates

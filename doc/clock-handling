@@ -1,0 +1,48 @@
+Clock handling during installation
+==================================
+
+For background and terminology, see https://wiki.ubuntu.com/HardwareClock.
+
+The installer needs to be careful to handle the clock in ways that do not
+cause problems for the installed system, particularly when the hardware
+clock is kept in local time (cf.
+http://www.cl.cam.ac.uk/~mgk25/mswish/ut-rtc.html).
+
+We should adhere to the following rules:
+
+  * Any changes to the clock should be made before writing anything to disk.
+
+    This rule ensures that filesystem superblock timestamps are written
+    using a consistent system wall clock. If the clock is changed after disk
+    writes, then the superblock timestamp may appear to be in the future
+    after reboot.
+
+  * The hardware clock should be set using a consistent configuration.
+
+    Noting that the hardware clock is typically saved on live CD shutdown,
+    the live CD installer should ensure that the UTC= configuration in the
+    live system is consistent with that in the target system, so that
+    hwclock is not inadvertently run multiple times with different
+    configurations.
+
+  * If possible, the user should be asked to confirm the system wall clock
+    time, and encouraged to reset it if it is incorrect.
+
+    This is a good idea on general principles, particularly when NTP is not
+    available. It's better for the time to be set correctly as early as
+    possible.
+
+  * The installer should make an effort to minimise the magnitude of changes
+    to the hardware clock.
+
+    While the installer attempts to guess hardware clock configuration based
+    on which other operating systems installed, this kind of approach is not
+    and cannot be entirely accurate. If NTP is available, then after
+    timezone selection it is possible to compare the hardware clock against
+    the system wall clock offset by timezone. If local time appears to be
+    a better guess than UTC, then it would be reasonable to use that.
+
+(As of version 1.99.24, note that Ubiquity only follows the first two of
+these rules.)
+
+# vim: set tw=76 sts=2 sw=2 comments=bf\:*:

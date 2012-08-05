@@ -1,0 +1,9 @@
+#! /bin/sh
+set -e
+
+# Disable CD image in sources.list if any other sources are present
+if ([ -e /cdrom/.disk/base_installable ] || [ "$OVERRIDE_BASE_INSTALLABLE" ]) && \
+   grep -q "^deb \(ht\|f\)tp" /target/etc/apt/sources.list; then
+	logger -t finish-install "Disabling CD in sources.list"
+	sed -i "/^deb cdrom:/s/^/#/" /target/etc/apt/sources.list
+fi

@@ -1,0 +1,23 @@
+#! /usr/bin/make -f
+%:
+	dh $@ --with d-i
+
+ARCH=$(shell dpkg-architecture -qDEB_HOST_ARCH)
+
+ifeq (,$(wildcard recipes-$(ARCH)))
+DI_NUMBERS := recipes
+else
+DI_NUMBERS := recipes-$(ARCH)
+endif
+DI_NUMBERS += $(wildcard recipes-$(ARCH)-*)
+
+override_dh_di_numbers:
+	dh_di_numbers $(DI_NUMBERS) lib/partman
+
+ifeq ($(ARCH),powerpc)
+override_dh_link:
+	# temporary hack until chrp_rs6k goes away entirely
+	rm -rf debian/partman-auto/lib/partman/recipes-powerpc-chrp_rs6k
+	dh_link lib/partman/recipes-powerpc-chrp_ibm \
+		lib/partman/recipes-powerpc-chrp_rs6k
+endif

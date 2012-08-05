@@ -1,0 +1,54 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+. /lib/partman/lib/recipes.sh
+. /lib/partman/lib/auto-shared.sh
+
+dev=$1
+free_space=$2
+recipe=$3
+
+# Let us be safe and update the directories
+update_all
+
+cd $dev
+open_dialog PARTITION_INFO $free_space
+read_line x1 x2 free_size free_type x3 x4 x5
+close_dialog
+
+free_size=$(convert_to_megabytes $free_size)
+
+if [ "$free_type" = unusable ]; then
+	db_input critical partman-auto/unusable_space || true
+	db_go || true
+	exit 1
+fi
+
+db_progress START 0 5 partman-auto/text/automatically_partition
+db_progress INFO partman-auto/progress/info
+
+decode_recipe $recipe default
+
+db_progress STEP 1
+
+expand_scheme
+
+ensure_primary
+
+reuse_partitions
+
+db_progress STEP 1
+
+create_primary_partitions
+
+db_progress STEP 1
+
+create_partitions
+
+db_progress STEP 1
+
+update_all
+
+db_progress STOP
+
+exit 0

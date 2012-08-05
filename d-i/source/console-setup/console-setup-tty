@@ -1,0 +1,100 @@
+#! /bin/sh
+set -e
+# Based on setupcon, but stripped down for use in a udev rule.
+
+# We have to do several basic things here, each of which has specific state
+# requirements:
+#
+# 1) Set Unicode/non-Unicode mode on each virtual console.
+#
+#    The terminal line emulation on the virtual console must not be in raw
+#    mode (as in cfmakeraw).
+#
+# 2) Set the font and ACM on each virtual console.
+#
+#    The virtual console must not be in KD_GRAPHICS mode.  If using vgacon,
+#    the *foreground* virtual console must not be in KD_GRAPHICS mode either
+#    as then we'll corrupt video memory.
+#
+# 3) Set the keyboard mode on each virtual console to K_XLATE or K_UNICODE
+#    as appropriate.
+#    
+#    The virtual console must not be in K_RAW or K_MEDIUMRAW mode.
+#
+# We don't have to set the console keymap here.  This only needs to be done
+# once after setting the keyboard mode, so it belongs in an Upstart job
+# instead.
+
+export PATH="/bin:/sbin:$PATH"
+
+. /etc/default/console-setup
+
+setup_unicode () {
+    # Set up Unicode/non-Unicode mode.
+    # TODO: this will probably break something if terminal line emulation is
+    # in raw mode.
+    if [ "$CHARMAP" = UTF-8 ] || [ -z "$ACM$CHARMAP" ]; then
+	printf '\033%%G' >"$1"
+    else
+	printf '\033%%@' >"$1"
+    fi
+}
+
+setup_font () {
+    # Set the font and ACM.  setfont will silently do nothing for a console
+    # in graphics mode.
+    SETFONT_ARGS=
+    if [ "$FONT" ]; then
+	FONT="/etc/console-setup/${FONT##*/}"
+	FONT="${FONT%.gz}"
+    else
+	FONT="/etc/console-setup/$CODESET-$FONTFACE$FONTSIZE.psf"
+    fi
+    if [ -f "$FONT" ]; then
+	SETFONT_ARGS="${SETFONT_ARGS:+$SETFONT_ARGS }$FONT"
+    fi
+    if [ "$ACM" ]; then
+	ACM="/etc/console-setup/${ACM##*/}"
+	ACM="${ACM%.gz}"
+    else
+	ACM="/etc/console-setup/$CHARMAP.acm"
+    fi
+    if [ -f "$ACM" ]; then
+	SETFONT_ARGS="${SETFONT_ARGS:+$SETFONT_ARGS }-m $ACM"
+    fi
+    if [ "$SETFONT_ARGS" ]; then
+	setfont -C "$1" $SETFONT_ARGS
+    fi
+}
+
+setup_keyboard_mode () {
+    # Set the keyboard mode.
+    # TODO: this will probably break something if the console is in K_RAW or
+    # K_MEDIUMRAW mode.  There doesn't seem to be a non-racy way to say "set
+    # to K_UNICODE only if currently K_XLATE".
+    if [ "$CHARMAP" = UTF-8 ] || [ -z "$ACM" ]; then
+	kbd_mode -u <"$1"
+    else
+	kbd_mode -a <"$1"
+    fi
+}
+
+if [ "$1" = fbcon ]; then
+    # Technically we have to wait for /dev/tty[1-6] to appear; but these are
+    # created in vty_init, so I think it will always be early enough.  If
+    # I'm wrong, then the -w test will fail and we end up with the wrong
+    # fonts on some virtual consoles; the user can run setupcon to fix it.
+    for console in $ACTIVE_CONSOLES; do
+	if [ -w "$console" ]; then
+	    setup_font "$console"
+	fi
+    done
+else
+    if [ -w "$1" ]; then
+	setup_unicode "$1"
+	setup_font "$1"
+	setup_keyboard_mode "$1"
+    fi
+fi
+
+exit 0

@@ -1,0 +1,86 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+enable_swap
+
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ "$fs" != free ] || continue
+		partitions="$partitions $id,$num"
+	done
+	close_dialog
+
+	for part in $partitions; do
+		id=${part%,*}
+		num=${part#*,}
+		[ -f $id/method -a -f $id/format \
+		  -a -f $id/acting_filesystem ] || continue
+		filesystem=$(cat $id/acting_filesystem)
+		case $filesystem in
+		    jfs)
+			if [ -f $id/formatted ] && \
+			   [ $id/formatted -nt $id/method ] && \
+			   ([ ! -f $id/filesystem ] || \
+			    [ $id/formatted -nt $id/filesystem ]); then
+				continue
+			fi
+			log "Try to create file system for $dev/$id"
+			if [ -f $id/mountpoint ]; then
+				template=partman-basicfilesystems/progress_formatting_mountable
+				db_subst $template MOUNT_POINT "$(cat $id/mountpoint)"
+			else
+				template=partman-basicfilesystems/progress_formatting
+			fi
+			open_dialog PARTITION_INFO $id
+			read_line x1 x2 x3 x4 x5 device x6
+			close_dialog
+
+			RET=''
+			db_metaget  partman/filesystem_short/"$filesystem" description || RET=''
+			[ "$RET" ] || RET="$filesystem"
+			db_subst $template TYPE "$RET"
+			db_subst $template PARTITION "$num"
+			db_subst $template DEVICE $(humandev $(cat device))
+
+			db_progress START 0 3 partman/text/formatting
+			db_progress INFO $template
+			db_progress SET 1
+			log-output -t partman --pass-stdout \
+				mkfs.jfs -q $device >/dev/null
+			code=$?
+			sync
+			db_progress STOP
+
+			if [ "$code" = 0 ]; then
+				label=''
+				if [ -f $id/label ]; then
+					label=$(cat $id/label | \
+						sed 's/\(................\).*/\1/g')
+				fi
+				if [ "$label" ]; then
+					jfs_tune -L "$label" $device
+				fi
+			fi
+
+			if [ "$code" != 0 ]; then
+				T=partman-basicfilesystems/create_failed
+				db_subst $T TYPE jfs
+				db_subst $T PARTITION "$num"
+				db_subst $T DEVICE $(humandev $(cat device))
+				db_input critical $T || true
+				db_go || true
+				#disable_swap
+				exit 1
+			fi
+			>$id/formatted
+			;;
+		esac
+	done
+done
+
+#disable_swap

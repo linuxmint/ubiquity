@@ -1,0 +1,24 @@
+#!/bin/sh -e
+# A cut-down version of 'which' from debianutils. Returns zero if executable
+# $1 is found on $PATH.
+PROGRAM="$1"
+IFS=:
+RET=1
+case $PROGRAM in
+	*/*)
+		if [ -f "$ELEMENT/$PROGRAM" ] && \
+		   [ -x "$ELEMENT/$PROGRAM" ]; then
+			exit 0
+		fi
+		;;
+	*)
+		for ELEMENT in $PATH; do
+			if [ -z "$ELEMENT" ]; then ELEMENT=.; fi
+			if [ -f "$ELEMENT/$PROGRAM" ] && \
+			   [ -x "$ELEMENT/$PROGRAM" ]; then
+				exit 0
+			fi
+		done
+		;;
+esac
+exit 1

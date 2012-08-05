@@ -1,0 +1,99 @@
+#!/bin/sh
+
+export LC_ALL=C # avoid sed hang
+
+SHORTLIST_DIR="./debian/short-tmp"
+SHORTLIST_LANGS=$(cd $SHORTLIST_DIR; ls *.short | cut -d. -f1)
+
+TEMPLATE_BASE="./debian/templates.base"
+TEMPLATE_TMP="./debian/templates.tmp"
+TEMPLATE_NEW="./debian/templates"
+TEMPLATE_NAME="localechooser/shortlist"
+
+NL="
+"
+
+print_trans () {
+	ITEM_TRANS=$(awk -v ITEM="$1-$LANG.UTF-8:" \
+		-f template_get_item.awk $TEMPLATE_TMP)
+	if [ -n "$ITEM_TRANS" ] ; then
+		echo "$ITEM_TRANS"
+	else
+		# We use the original entry as default
+		REGEXP="s/$1:/$1-$LANG.UTF-8:/"
+		echo "$2" | sed "$REGEXP"
+	fi
+}
+
+# First create empty new files
+:>$TEMPLATE_NEW
+:>$TEMPLATE_TMP
+
+# Extract the template for the shortlists to TEMPLATE_TMP
+# Extract all other templates to TEMPLATE_NEW
+awk -v TFILE1="$TEMPLATE_TMP" -v TFILE2="$TEMPLATE_NEW" \
+	-v TEMPLATE="$TEMPLATE_NAME" -f template_extract.awk \
+	$TEMPLATE_BASE
+echo "" >>$TEMPLATE_NEW
+
+# Get the English versions of the template items
+EN_CHOICES=$(awk -v ITEM="Choices:" -f template_get_item.awk $TEMPLATE_TMP)
+EN_DESCR=$(awk -v ITEM="Description:" -f template_get_item.awk $TEMPLATE_TMP)
+
+# Add new templates for each language that needs a shortlist
+for LANG in $SHORTLIST_LANGS; do
+	echo "$LANG"
+
+	# Write the 'template header' to the file
+	echo "Template: $TEMPLATE_NAME/$LANG" >>$TEMPLATE_NEW
+	echo "Type: select" >>$TEMPLATE_NEW
+
+	# Next we put the countrycodes in the untranslated shortlist
+	SHORTLIST=
+	for COUNTRYCODE in $(cat $SHORTLIST_DIR/$LANG.short | cut -f 1) ; do
+		SHORTLIST="$SHORTLIST$COUNTRYCODE, "
+	done
+	C_CHOICES=$(echo $EN_CHOICES | sed "s/Choices:/Choices-C:/")
+	REGEXP="s/\${SHORTLIST}, /$SHORTLIST/"
+	echo "$C_CHOICES" | sed "$REGEXP" >>$TEMPLATE_NEW
+
+	# Next we build a shortlist containing the countrynames in English
+	SHORTLIST=
+	OLD_IFS="$IFS"
+	IFS="$NL"
+	COUNTRYLIST=
+	for COUNTRYNAME in $(cut -f 3 $SHORTLIST_DIR/$LANG.short); do
+		# Comma's in countrynames must be double-escaped here
+		# in order to end up escaped in the final list.
+		SL_NAME=$(echo "$COUNTRYNAME" | sed -e 's/,/\\\\,/')
+		SHORTLIST="$SHORTLIST$SL_NAME, "
+	done
+	IFS="$OLD_IFS"
+	REGEXP="s/\${SHORTLIST}, /$SHORTLIST/" >>$TEMPLATE_NEW
+	echo "$EN_CHOICES" | sed "$REGEXP" >>$TEMPLATE_NEW
+
+	# Next we build the translated shortlist containing translated countrynames
+	if [ "$LANG" != en ]; then
+		SHORTLIST=
+		OLD_IFS="$IFS"
+		IFS="$NL"
+		COUNTRYLIST=
+		for COUNTRYNAME in $(cut -f 2 $SHORTLIST_DIR/$LANG.short) ; do
+			# Comma's in countrynames must be double-escaped here
+			# in order to end up escaped in the final list.
+			SL_NAME=$(echo "$COUNTRYNAME" | sed -e 's/,/\\\\,/')
+			SHORTLIST="$SHORTLIST$SL_NAME, "
+		done
+		IFS="$OLD_IFS"
+		TRANS_CHOICES=$(print_trans "Choices" "$EN_CHOICES")
+		REGEXP="s/\${SHORTLIST}, /$SHORTLIST/" >>$TEMPLATE_NEW
+		echo "$TRANS_CHOICES" | sed "$REGEXP"  >>$TEMPLATE_NEW
+	fi
+
+	# Finally we add the description and translated description
+	echo "$EN_DESCR" >>$TEMPLATE_NEW
+	if [ ! "$LANG" = en ]; then
+		print_trans "Description" "$EN_DESCR" >>$TEMPLATE_NEW
+	fi
+	echo "" >>$TEMPLATE_NEW
+done

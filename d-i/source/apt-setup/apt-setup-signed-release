@@ -1,0 +1,52 @@
+#!/bin/sh
+# Pre-populate signed Release files for an archive.
+set -e
+
+archive_id="$1"
+sources_list="$2"
+
+chroot=
+if [ "$ROOT" ]; then
+	chroot=chroot
+fi
+
+if [ "$ROOT" ] && [ "${sources_list#$ROOT/}" = "$sources_list" ]; then
+	# Generate a new temporary file that can be accessed by APT in the
+	# chroot.
+	file="$($chroot $ROOT tempfile)"
+	cat "$sources_list" > "$ROOT$file"
+else
+	file="${sources_list#$ROOT}"
+fi
+
+# Slightly awkward output format, e.g.:
+#   'http://archive.ubuntu.com/ubuntu/dists/hardy/Release' archive.ubuntu.com_ubuntu_dists_hardy_Release 0
+lines="$($chroot $ROOT \
+	 apt-get -o APT::Get::List-Cleanup=false \
+		 -o Dir::Etc::sourcelist="$file" update --print-uris | \
+	 grep "^'.*'")"
+
+NEWLINE='
+'
+OLD_IFS="$IFS"
+IFS="$NEWLINE"
+for line in $lines; do
+	IFS="$OLD_IFS"
+	uri="$(echo "$line" | sed "s/^'//; s/'.*//")"
+	file="$(echo "$line" | sed "s/^'[^']*' //; s/ .*//")"
+	base="${uri##*/}"
+	dir="${uri%/*}"
+	codename="${dir##*/}"
+	case $base in
+	    Release|Release.gpg)
+		release="/usr/share/apt-setup/release-files/$archive_id/$codename/$base"
+		if [ -f "$release" ]; then
+			cp -a "$release" "$ROOT/var/lib/apt/lists/$file"
+		fi
+		;;
+	esac
+	IFS="$NEWLINE"
+done
+IFS="$OLD_IFS"
+
+exit 0

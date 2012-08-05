@@ -1,0 +1,4026 @@
+netcfg (1.68ubuntu14) precise; urgency=low
+
+  * Fix detection of empty domains when writing to /etc/hosts in the case
+    where there is no static IP address (LP: #950664).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 09 Mar 2012 16:06:35 +0000
+
+netcfg (1.68ubuntu13) precise; urgency=low
+
+  * When wireless detection doesn't find any network and the user doesn't
+    enter any essid, skip directly to the hostname dialog rather than
+    prompt for security options on a non-existing network. (LP: #36426)
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Mon, 05 Mar 2012 15:41:00 -0500
+
+netcfg (1.68ubuntu12) precise; urgency=low
+
+  * Apply patch from Matthew L. Dailey to fix the dns- entries in
+    /etc/network/interfaces. (LP: #932275)
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Thu, 23 Feb 2012 12:27:28 -0500
+
+netcfg (1.68ubuntu11) precise; urgency=low
+
+  * Drop additional debug statements that were included in ubuntu10 by
+    mistake...
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Tue, 07 Feb 2012 09:27:24 -0500
+
+netcfg (1.68ubuntu10) precise; urgency=low
+
+  * Fix bug where netcfg gets the wrong return value of dhclient6 and
+    marked the DHCPv6 connection as failed when it shouldn't.
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Mon, 06 Feb 2012 21:18:45 -0500
+
+netcfg (1.68ubuntu9) precise; urgency=low
+
+  * Add a post-base-install hook to detect resolvconf and copy
+    /run/resolvconf/resolv.conf to outside the target so that when /run
+    is bind-mounted DNS resolving continues to work. (LP: #926447)
+  * Apply patch from Alec Warner making netcfg respect netcfg/dhcpv6_timeout
+    and running dhclient in one-shot mode (-1). (LP: #917905)
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Mon, 06 Feb 2012 12:05:02 -0500
+
+netcfg (1.68ubuntu8) precise; urgency=low
+
+  * Don't copy /etc/resolv.conf to target if resolvconf is installed.  (We
+    already write resolvconf configuration to /etc/network/interfaces.)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 27 Jan 2012 17:50:50 +0000
+
+netcfg (1.68ubuntu7) oneiric; urgency=low
+
+  * Fix crash when there are no network interfaces (LP: #870212).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 08 Oct 2011 00:42:42 +0100
+
+netcfg (1.68ubuntu6) oneiric; urgency=low
+
+  [ Colin Watson ]
+  * Backport from trunk:
+    - Don't log "Starting netcfg" messages when invoked as ptom.
+
+  [ Stéphane Graber ]
+  * Flush all addresses and routes before configuring interfaces (LP: #848072)
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Thu, 29 Sep 2011 13:46:34 -0400
+
+netcfg (1.68ubuntu5) oneiric; urgency=low
+
+  * Don't preseed IP addresses as hostnames (LP: #856088).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 26 Sep 2011 12:31:41 +0100
+
+netcfg (1.68ubuntu4) oneiric; urgency=low
+
+  * print-dhcpv6-info: Exit immediately if reason is not BOUND6, RENEW6, or
+    REBIND6.
+  * Don't bother unlinking /var/lib/netcfg/dhcp6c-finished unless we're
+    using dhcp6c.
+  * print-dhcpv6-info: Actually apply IPv6 address and resolv.conf entries
+    received from the DHCPv6 server.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 19 Sep 2011 21:40:25 +0100
+
+netcfg (1.68ubuntu3) oneiric; urgency=low
+
+  * Make print-dhcp6c-info and print-dhcpv6-info executable.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 19 Sep 2011 19:53:11 +0100
+
+netcfg (1.68ubuntu2) oneiric; urgency=low
+
+  * Rebuild source package without spurious BASE/THIS/OTHER files.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 07 Sep 2011 14:29:08 +0100
+
+netcfg (1.68ubuntu1) oneiric; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Drop priority of netcfg/get_domain to medium for non-static
+      configurations.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Bump the DHCP timeout to 30 seconds.
+    - Build for armhf and ppc64.
+  * Merge upstream IPv6 branch (not yet mergeable in Debian since it's
+    waiting for ifupdown 0.7).  Thanks to Matt Palmer for the bulk of this
+    work.
+  * Backport from trunk:
+    - Explicitly ignore some errors to placate -Wunused-result.
+    - Adjust start_dhcp_client to placate -Wformat-security.
+    - Handle failure to read a pid from the wpasupplicant pid file.
+  * Use isc-dhcp-client-udeb on all architectures.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 10 Aug 2011 14:53:45 +0100
+
+netcfg (1.68) unstable; urgency=low
+
+  [ Updated translations ]
+  * Czech (cs.po) by Miroslav Kure
+  * Basque (eu.po)
+  * French (fr.po) by Christian Perrier
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 08 Aug 2011 09:05:58 +0200
+
+netcfg (1.67) unstable; urgency=low
+
+  * Reuploading with all the translations
+
+ -- Gaudenz Steinlin <gaudenz@debian.org>  Sun, 31 Jul 2011 11:21:26 +0200
+
+netcfg (1.66) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Strip trailing dots from domain when writing to /etc/hosts
+    (LP: #255117).
+
+  [ Gaudenz Steinlin ]
+  * Include WPA support.  Thanks to Glen Saberton and Darren Salt
+    for the patch. (Closes: #327309)
+
+  [ Updated translations ]
+  * Hebrew (he.po) by Lior Kaplan
+  * Macedonian (mk.po) by Arangel Angov
+  * Sinhala (si.po) by Danishka Navin
+
+ -- Gaudenz Steinlin <gaudenz@debian.org>  Sun, 31 Jul 2011 11:08:02 +0200
+
+netcfg (1.65) unstable; urgency=low
+
+  [ Samuel Thibault ]
+  * Disable find_bootif_iface on hurd-i386, as it will not work (and even
+    compile).
+
+  [ Christian Perrier ]
+  * Fix in Russian translation. Closes: #630523
+
+  [ Colin Watson ]
+  * Actually declare netcfg/network-manager template.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 19 Jul 2011 14:08:35 +0100
+
+netcfg (1.64) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Appease -Wunused-but-set-variable warning.
+  * Fix fd leak in ethtool-lite.
+  * Fix file handle leak in no_default_route's Hurd case.
+  * Assign NETCFG_VERSION and NETCFG_BUILD_DATE using := rather than =; this
+    is more efficient, and also avoids inconsistent build times being
+    reported in the case where the build crossed a minute boundary.
+  * Rearrange BOOTIF handling to allow us to handle the case where
+    netcfg/choose_interface is preseeded with an Ethernet hardware address
+    (LP: #708908).  The latter case should work on kFreeBSD as well.
+  * Also release lease at end of install when using isc-dhcp-client.
+  * Merge from Ubuntu:
+    - Call /usr/lib/NetworkManager/ifblacklist_migrate.sh from
+      finish-install if present, so that 'auto dhcp' interfaces are disabled
+      if network-manager is in use.  May be preseeded away with
+      netcfg/network-manager.  (Thanks, Matt Palmer; closes: #614884.)
+
+  [ Wouter Verhelst ]
+  * Move 50release-dhcp-lease to 97release-dhcp-lease, so that the
+    network isn't brought down before the target is unmounted, which
+    breaks installing to a network target such as NBD.
+
+ -- Colin Watson <cjwatson@debian.org>  Wed, 06 Jul 2011 14:47:12 +0100
+
+netcfg (1.63ubuntu2) oneiric; urgency=low
+
+  * Free domain_nodot at the end of netcfg_write_common (thanks, Bryce
+    Harrington; LP: #724636).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 24 Jul 2011 13:48:49 +0100
+
+netcfg (1.63ubuntu1) oneiric; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Drop priority of netcfg/get_domain to medium for non-static
+      configurations.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Call /usr/lib/NetworkManager/ifblacklist_migrate.sh from
+      finish-install if present, so that 'auto dhcp' interfaces are disabled
+      if network-manager is in use. May be preseeded away with
+      netcfg/network-manager.
+    - Bump the DHCP timeout to 30 seconds.
+    - Strip trailing dots from domain when writing to /etc/hosts.
+    - Build for ppc64.
+    - Move release-dhcp-lease finish-install script after unmounting
+      filesystems, to avoid interfering with iSCSI.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 16 Jun 2011 18:10:47 +0100
+
+netcfg (1.63) unstable; urgency=low
+
+  * If BOOTIF= is set on the Linux command line, look for an interface with
+    that address and use it by default (closes: #615600, LP: #56679).
+
+  [ Updated translations ]
+  * Asturian (ast.po) by MAAC
+  * German (de.po) by Holger Wansing
+  * Italian (it.po) by Milo Casagrande
+
+ -- Colin Watson <cjwatson@debian.org>  Thu, 16 Jun 2011 18:03:01 +0100
+
+netcfg (1.62ubuntu2) oneiric; urgency=low
+
+  * finish-install.d/55netcfg: call ifblacklist_migrate.sh from
+    /usr/lib/NetworkManager now. (LP: #790604)
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Tue, 31 May 2011 16:02:49 +0100
+
+netcfg (1.62ubuntu1) oneiric; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Drop priority of netcfg/get_domain to medium for non-static
+      configurations.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Call /usr/lib/network-manager/ifblacklist_migrate.sh from
+      finish-install if present, so that 'auto dhcp' interfaces are disabled
+      if network-manager is in use. May be preseeded away with
+      netcfg/network-manager.
+    - Bump the DHCP timeout to 30 seconds.
+    - Strip trailing dots from domain when writing to /etc/hosts.
+    - Build for ppc64.
+    - Move release-dhcp-lease finish-install script after unmounting
+      filesystems, to avoid interfering with iSCSI.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 03 May 2011 16:18:01 +0100
+
+netcfg (1.62) unstable; urgency=low
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Pavel Piatruk
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * German (de.po) by Holger Wansing
+  * Esperanto (eo.po) by Felipe Castro
+  * Estonian (et.po) by Mattias Põldaru
+  * Bokmål, Norwegian (nb.po) by Hans Fredrik Nordhaug
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Ivan Masár
+  * Swedish (sv.po) by Daniel Nylander
+  * Uyghur (ug.po) by Sahran
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 23 Apr 2011 11:39:38 +0200
+
+netcfg (1.61) unstable; urgency=low
+
+  [ Konstantinos Margaritis]
+  * Added armhf in arch field. Closes: #605013.
+
+  [ Robert Edmonds ]
+  * Wait for the network to be usable before trying to use it
+    (in the case of STP-enabled switch for instance
+    Use busybox's arping with the '-f' flag (quit on first ARP reply).  
+    Wait up to 45 seconds for an ARP reply from the default gateway
+    Closes: #537271
+
+  [ Samuel Thibault ]
+  * Make netcfg depend on isc-dhcp-client-udeb on hurd-any too, for the same
+    reason as kfreebsd: no support for udhcp in busybox.
+  * dhcp.c: Implement no_default_route on Hurd.
+  * Increase the frequency of DHCP discover packets sent during DHCP
+    configuration using dhclient too.
+  * netcfg.h: Fix the isc-dhcp dhclient.conf path.
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Israt Jahan
+  * Esperanto (eo.po) by Felipe Castro
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Korean (ko.po) by Changwoo Ryu
+  * Marathi (mr.po) by sampada
+  * Nepali (ne.po)
+  * Romanian (ro.po) by Eddy Petrișor
+
+ -- Otavio Salvador <otavio@debian.org>  Sat, 12 Mar 2011 14:40:39 -0300
+
+netcfg (1.60ubuntu3) natty; urgency=low
+
+  * Move release-dhcp-lease finish-install script after unmounting
+    filesystems, to avoid interfering with iSCSI.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 07 Apr 2011 15:06:17 +0100
+
+netcfg (1.60ubuntu2) natty; urgency=low
+
+  * Build for ppc64.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 08 Feb 2011 19:23:18 +0000
+
+netcfg (1.60ubuntu1) natty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Drop priority of netcfg/get_domain to medium for non-static
+      configurations.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Call /usr/lib/network-manager/ifblacklist_migrate.sh from
+      finish-install if present, so that 'auto dhcp' interfaces are disabled
+      if network-manager is in use. May be preseeded away with
+      netcfg/network-manager.
+    - Bump the DHCP timeout to 30 seconds.
+    - Strip trailing dots from domain when writing to /etc/hosts.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 08 Feb 2011 13:00:39 +0000
+
+netcfg (1.60) unstable; urgency=low
+
+  [ Matt Palmer ]
+  * Increase the frequency of DHCP discover packets sent during DHCP
+    configuration using udhcpc.  This should ameliorate some problems with
+    DHCP configuration when a link is slow to become available.
+    Thanks to Ferenc Wagner for the patch.
+  * Clarify the requirements for hostnames.  Closes: #399071.
+  * Modify ethtool-lite so that it distinguishes between "ethtool failed"
+    and "ethtool says link is down".  This should reduce link up/link down
+    confusion.  Closes: #496647.
+  * Wait for up to 3 seconds (in 0.25s increments) looking for the link on
+    an interface.  Add a progress bar to show the progress of this
+    operation.  Closes: #414117.
+  * Wait for link detection on static interface configuration.
+    Closes: #606515.
+  * Release DHCP lease at the completion of the install.  Closes: #610553.
+
+  [ Updated translations ]
+  * Czech (cs.po) by Miroslav Kure
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Nepali (ne.po)
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Ivan Masár
+  * Swedish (sv.po) by Daniel Nylander
+  * Telugu (te.po) by Arjuna Rao Chavala
+  * Thai (th.po) by Theppitak Karoonboonyanan
+
+ -- Matt Palmer <mpalmer@debian.org>  Sun, 06 Feb 2011 12:59:07 +1100
+
+netcfg (1.59ubuntu1) natty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Drop priority of netcfg/get_domain to medium for non-static
+      configurations.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Call /usr/lib/network-manager/ifblacklist_migrate.sh from
+      finish-install if present, so that 'auto dhcp' interfaces are disabled
+      if network-manager is in use. May be preseeded away with
+      netcfg/network-manager.
+    - Bump the DHCP timeout to 30 seconds.
+    - Strip trailing dots from domain when writing to /etc/hosts.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 05 Jan 2011 17:16:06 +0000
+
+netcfg (1.59) unstable; urgency=low
+
+  [ Matt Palmer ]
+  * Modify the DHCP configuration process to write out elements of
+    resolv.conf that the user has entered manually, because the DHCP server
+    didn't supply them.  Closes: #362029.
+  * Add an ethtool-lite Makefile target, to assist people in building a
+    standalone ethtool-lite for debugging purposes.  Closes: #608452.
+
+  [ Updated translations ]
+  * Northern Sami (se.po) by Børre Gaup
+
+ -- Otavio Salvador <otavio@ossystems.com.br>  Sun, 02 Jan 2011 14:29:22 -0200
+
+netcfg (1.58) unstable; urgency=low
+
+  [ Updated translations ]
+  * Lao (lo.po) by Anousak Souphavanh
+  * Northern Sami (se.po) by Børre Gaup
+  * Sinhala (si.po) by Danishka Navin
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 24 Dec 2010 20:06:41 -0200
+
+netcfg (1.57ubuntu3) natty; urgency=low
+
+  * Revert <net/if.h> avoidance from 1.57ubuntu2; linux-libc-dev has been
+    fixed.
+  * Strip trailing dots from domain when writing to /etc/hosts
+    (LP: #255117).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 17 Dec 2010 14:24:55 +0000
+
+netcfg (1.57ubuntu2) natty; urgency=low
+
+  * Temporarily include <linux/if.h> rather than <net/if.h> on Linux, to
+    work around LP #673073.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 15 Nov 2010 12:04:04 +0000
+
+netcfg (1.57ubuntu1) natty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Drop priority of netcfg/get_domain to medium for non-static
+      configurations.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Call /usr/lib/network-manager/ifblacklist_migrate.sh from
+      finish-install if present, so that 'auto dhcp' interfaces are disabled
+      if network-manager is in use. May be preseeded away with
+      netcfg/network-manager.
+    - Bump the DHCP timeout to 30 seconds.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 15 Nov 2010 10:54:21 +0000
+
+netcfg (1.57) unstable; urgency=low
+
+  [ Otavio Salvador ]
+  * Don't duplicate localhost definition for IPv4 and IPv6. Closes:
+    #595107.
+
+  [ Petter Reinholdtsen ]
+  * Log detected link status to make it possible to see if link
+    detection work properly or not.
+
+  [ Otavio Salvador ]
+  * netcfg: do not provide an empty /etc/dhcp3 dir.
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Israt Jahan
+  * Catalan (ca.po) by Jordi Mallach
+  * Danish (da.po) by Anders Jenbo
+  * Persian (fa.po) by Behrad Eslamifar
+  * Icelandic (is.po) by Sveinn  Felli
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Romanian (ro.po) by Andrei Popescu
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 12 Nov 2010 14:27:38 -0200
+
+netcfg (1.56ubuntu1) natty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Drop priority of netcfg/get_domain to medium for non-static
+      configurations.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Call /usr/lib/network-manager/ifblacklist_migrate.sh from
+      finish-install if present, so that 'auto dhcp' interfaces are disabled
+      if network-manager is in use. May be preseeded away with
+      netcfg/network-manager.
+    - Bump the DHCP timeout to 30 seconds.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 15 Oct 2010 11:26:45 +0100
+
+netcfg (1.56) unstable; urgency=low
+
+  [ Aurelien Jarno ]
+  * Add sparc64 to the architectures list.
+
+  [ Updated translations ]
+  * Asturian (ast.po) by maacub
+  * Bulgarian (bg.po) by Damyan Ivanov
+
+ -- Aurelien Jarno <aurel32@debian.org>  Fri, 27 Aug 2010 19:35:49 +0200
+
+netcfg (1.55) unstable; urgency=low
+
+  [ Jeremie Koenig ]
+  * More fixes for Hurd support, including network device detection
+    (closes: 588761).
+
+  [ Aurelien Jarno ]
+  * dhcp: ask udhcpc for dns and not namesrv.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Fri, 06 Aug 2010 17:54:02 +0200
+
+netcfg (1.54) unstable; urgency=low
+
+  [ Samuel Thibault ]
+  * Fixes for Hurd support.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Viktar Siarheichyk
+  * Croatian (hr.po) by Josip Rodin
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Macedonian (mk.po) by Arangel Angov
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 11 Jul 2010 17:12:11 +0200
+
+netcfg (1.53) unstable; urgency=low
+
+  [ Samuel Thibault ]
+  * Fixes for Hurd support. Closes: #573878.
+
+  [ Joey Hess ]
+  * Do not assume that debhelper acts on packages not relevant to build arch.
+    (See #576885)
+
+  [ Frans Pop ]
+  * Revert workaround for FTBFS on s390 which is no longer needed as of
+    debhelper version 7.4.17.
+
+  [ Otavio Salvador ]
+  * kfreebsd-{amd64,i386}: depends on isc-dhcp-client-udeb (as it replaces
+    the dhcp3-client-udeb).
+  * dhcp: drop dhcp3 compatibility since isc-dhcp looks exactly as
+    regular dhclient.
+
+  [ Aurelien Jarno ]
+  * simplify kfreebsd dependencies.
+  * depends on freebsd-net-tools-udeb on kfreebsd.
+  * add support for GNU/kFreeBSD.
+
+  [ Updated translations ]
+  * Asturian (ast.po) by astur
+  * Danish (da.po) by Jacob Sparre Andersen
+  * German (de.po) by Holger Wansing
+  * Persian (fa.po) by acathur
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jorge Barreiro
+  * Hebrew (he.po) by Lior Kaplan
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Central Khmer (km.po) by Khoem Sokhem
+  * Korean (ko.po) by Changwoo Ryu
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Norwegian Nynorsk (nn.po) by Eirik U. Birkeland
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Romanian (ro.po) by Andrei Popescu
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Thai (th.po) by Theppitak Karoonboonyanan
+
+ -- Otavio Salvador <otavio@debian.org>  Mon, 05 Jul 2010 19:08:45 -0300
+
+netcfg (1.52) unstable; urgency=low
+
+  [ Aurelien Jarno ]
+  * Loopback network interface name is lo on GNU/Linux and lo0 on
+    GNU/kFreeBSD; generalize it with a macro.
+  * Build the netcfg binary package on sh4.
+
+  [ Otavio Salvador ]
+  * Add support to disable network configuration using preseeding in
+    netcfg/enable template. Thanks to Anthony L. Awtrey
+    <tony@awtrey.com> for the patch. Closes: #538265
+
+  [ Colin Watson ]
+  * On Linux, feed the output of 'ip addr show' into /dev/random after the
+    network is up to improve entropy. Idea picked up from Theodore Y. Ts'o,
+    http://lkml.org/lkml/2007/12/8/108.
+  * Upgrade to debhelper v7.
+  * Tell dhclient to wait for netcfg/dhcp_timeout seconds before exiting
+    (closes: #566006, LP: #315231).
+
+  [ Otavio Salvador ]
+  * Use busybox' udhcpc by default but kfreebsd-amd64 and kfreebsd-i386
+    since they lack support in busybox at this moment.
+
+  [ Frans Pop ]
+  * Remove no longer needed Lintian override for missing Standards-
+    Version field.
+  * Disable wireless support for s390.
+  * Fix FTBS on s390 caused by upgrade to debhelper v7.
+  * Drop support for the discontinued lpia architecture.
+  * Improve test for presence of dhcp/dhcp3.
+  * Don't ship unnecessary/unused dhcp directories.
+
+ -- Otavio Salvador <otavio@debian.org>  Sun, 21 Feb 2010 23:02:42 -0300
+
+netcfg (1.51ubuntu2) lucid; urgency=low
+
+  * Rebuild against libiw30.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 01 Mar 2010 17:47:09 +0000
+
+netcfg (1.51ubuntu1) lucid; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Drop priority of netcfg/get_domain to medium for non-static
+      configurations.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Call /usr/lib/network-manager/ifblacklist_migrate.sh from
+      finish-install if present, so that 'auto dhcp' interfaces are disabled
+      if network-manager is in use. May be preseeded away with
+      netcfg/network-manager.
+    - Bump the DHCP timeout to 30 seconds.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Thu, 12 Nov 2009 03:39:44 -0800
+
+netcfg (1.51) unstable; urgency=low
+
+  [ Luca Favatella ]
+  * /var/run/stab is Linux PCMCIA specific; provide a stub implementation of
+    find_in_stab for non-Linux systems.
+  * Don't build-dep on libiw-dev on kfreebsd-{i386,amd64}.
+  * Add kfreebsd-{i386,amd64} architectures.
+
+  [ Aurelien Jarno ]
+  * Use kernel independent code to determine loopback interfaces.
+  * Simplify detection of up interfaces.
+  * Don't detect interfaces twice or more.
+  * Sort interfaces by name.
+  * Port ethtool-lite to GNU/kFreeBSD, and default to unkwown status if
+    not on GNU/Linux or GNU/kFreeBSD.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Tue, 21 Jul 2009 23:17:11 +0200
+
+netcfg (1.50) unstable; urgency=low
+
+  [ Christian Perrier ]
+  * No longer add ff02::3 to /etc/hosts
+    Thanks to Marco d'Itri for the proposed change
+    Closes: #533384
+
+  [ Luca Favatella ]
+  * If wireless is disabled, don't build and link wireless related stuff.
+  * Disable by default wireless on non-linux architectures.
+  * Inverse the logic about building without wireless support (WIRELESS=0).
+  * Substitute Linux-specific code in get_all_ifs() using getifaddrs().
+
+  [ Colin Watson ]
+  * check_kill_switch is Linux-specific; provide a stub implementation for
+    non-Linux systems.
+
+  [ Otavio Salvador ]
+  * Refactor dhcp.c code to use an argument list instead of an string.
+  * Add support for udhcpc. This was based on Luk Claes but changed to
+    avoid dropping support for dhclient, dhclient3 and pump for now.
+
+  [ Updated translations ]
+    * Hindi (hi.po)
+    * Italian (it.po) by Milo Casagrande
+
+ -- Otavio Salvador <otavio@debian.org>  Sun, 19 Jul 2009 15:02:44 -0300
+
+netcfg (1.49ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Drop priority of netcfg/get_domain to medium for non-static
+      configurations.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Call /usr/lib/network-manager/ifblacklist_migrate.sh from
+      finish-install if present, so that 'auto dhcp' interfaces are disabled
+      if network-manager is in use. May be preseeded away with
+      netcfg/network-manager.
+    - Bump the DHCP timeout to 30 seconds.
+
+ -- Muharem Hrnjadovic <muharem@ubuntu.com>  Mon, 15 Jun 2009 08:50:06 +0200
+
+netcfg (1.49) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Drop support for the ppc64 architecture.
+
+  [ Christian Perrier ]
+  * Bump debhelper compatibility level to 6
+  * Add myself to uploaders
+  * No longer depends on -1 revision for libiw-dev
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Md. Rezwan Shahid
+  * Estonian (et.po) by Mattias Põldaru
+  * Slovak (sk.po) by Ivan Masár
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 14 Jun 2009 19:45:15 +0200
+
+netcfg (1.48ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Drop priority of netcfg/get_domain to medium for non-static
+      configurations.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Call /usr/lib/network-manager/ifblacklist_migrate.sh from
+      finish-install if present, so that 'auto dhcp' interfaces are disabled
+      if network-manager is in use. May be preseeded away with
+      netcfg/network-manager.
+    - Bump the DHCP timeout to 30 seconds.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 29 Apr 2009 22:26:31 +0100
+
+netcfg (1.48) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Remove myself as uploader.
+
+  [ Glenn Saberton ]
+  * Coding style improvements.
+  * Refactor dhcp configuration code.
+
+  [ Updated translations ]
+  * Italian (it.po) by Milo Casagrande
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Ivan Masár
+
+ -- Otavio Salvador <otavio@debian.org>  Sun, 05 Apr 2009 17:46:46 -0300
+
+netcfg (1.47) unstable; urgency=low
+
+  * Merge from Ubuntu:
+    - Build for lpia.
+    - Add an /etc/network/interfaces stanza for lo even if the netcfg menu
+      item wasn't run (LP: #9532).
+    - If we detect that the user entered a fully-qualified domain name as
+      the hostname, then remove the domain part from the hostname as well as
+      copying it to netcfg/get_domain (thanks, Alain Knaff; closes: #401220,
+      LP: #11019).
+  * Trim leading dots from netcfg/get_domain (closes: #459321).
+
+  [ Updated translations ]
+  * Esperanto (eo.po) by Felipe Castro
+  * Basque (eu.po) by Piarres Beobide
+  * Galician (gl.po) by marce villarino
+  * Italian (it.po) by Milo Casagrande
+  * Kazakh (kk.po) by Sarsenov D.
+  * Malayalam (ml.po) by Praveen Arimbrathodiyil
+  * Marathi (mr.po) by Sampada
+  * Tagalog (tl.po) by Eric Pareja
+
+ -- Colin Watson <cjwatson@debian.org>  Thu, 19 Feb 2009 01:16:16 +0000
+
+netcfg (1.46ubuntu1) jaunty; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Drop priority of netcfg/get_domain to medium for non-static
+      configurations.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Call /usr/lib/network-manager/ifblacklist_migrate.sh from
+      finish-install if present, so that 'auto dhcp' interfaces are disabled
+      if network-manager is in use. May be preseeded away with
+      netcfg/network-manager.
+    - Add an /etc/network/interfaces stanza for lo even if the netcfg menu
+      item wasn't run.
+    - Build for lpia.
+    - Bump the DHCP timeout to 30 seconds.
+    - If we detect that the user entered a fully-qualified domain name as
+      the hostname, then remove the domain part from the hostname as well as
+      copying it to netcfg/get_domain.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 09 Nov 2008 17:02:05 +0000
+
+netcfg (1.46) unstable; urgency=low
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Mahay Alam Khan (মাহে আলম খান)
+  * Bosnian (bs.po) by Armin Besirovic
+  * Danish (da.po)
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Latvian (lv.po) by Peteris Krisjanis
+  * Macedonian (mk.po) by Arangel Angov
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Serbian (sr.po) by Veselin Mijušković
+
+ -- Otavio Salvador <otavio@debian.org>  Sun, 21 Sep 2008 19:21:14 -0300
+
+netcfg (1.45) unstable; urgency=low
+
+  [ Martin Michlmayr ]
+  * Put in a special case to allow preseeding of no gateway via
+    netcfg/get_gateway=none.  (Closes: #497285).
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Belarusian (be.po) by Pavel Piatruk
+  * Greek, Modern (1453-) (el.po) by quad-nrg.net
+  * Esperanto (eo.po) by Felipe Castro
+  * Basque (eu.po) by Iñaki Larrañaga Murgoitio
+  * Finnish (fi.po) by Esko Arajärvi
+  * French (fr.po) by Christian Perrier
+  * Gujarati (gu.po) by Kartik Mistry
+  * Hebrew (he.po) by Omer Zak
+  * Croatian (hr.po) by Josip Rodin
+  * Italian (it.po) by Milo Casagrande
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Tamil (ta.po) by Dr.T.Vasudevan
+  * Turkish (tr.po) by Mert Dirik
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Mon, 08 Sep 2008 16:27:20 +0300
+
+netcfg (1.44ubuntu4) intrepid; urgency=low
+
+  [ Alain Knaff ]
+  * If we detect that the user entered a fully-qualified domain name as the
+    hostname, then remove the domain part from the hostname as well as
+    copying it to netcfg/get_domain (LP: #11019).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 13 Oct 2008 20:46:52 +0100
+
+netcfg (1.44ubuntu3) intrepid; urgency=low
+
+  * Bump the DHCP timeout to 30 seconds (slightly reluctantly - I still
+    advise that people use netcfg/dhcp_timeout to adjust the timeout where
+    necessary and possible; LP: #267656).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 16 Sep 2008 12:13:51 +0100
+
+netcfg (1.44ubuntu2) intrepid; urgency=low
+
+  * Build for lpia.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 07 Aug 2008 15:59:17 +0100
+
+netcfg (1.44ubuntu1) intrepid; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Drop priority of netcfg/get_domain to medium for non-static
+      configurations.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Call /usr/lib/network-manager/ifblacklist_migrate.sh from
+      finish-install if present, so that 'auto dhcp' interfaces are disabled
+      if network-manager is in use. May be preseeded away with
+      netcfg/network-manager.
+    - Add an /etc/network/interfaces stanza for lo even if the netcfg menu
+      item wasn't run.
+  * Drop libiw-dev build-dependency change; it's no longer a practical
+    problem.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 17 May 2008 18:06:18 +0200
+
+netcfg (1.44) unstable; urgency=low
+
+  [ Frans Pop ]
+  * killall.sh: use pidof instead of parsing the output of ps to determine
+    pids of dhcp clients as the regexp used could result in false positives.
+    See #476524 for background.
+
+  [ Jérémy Bobbio ]
+  * Define IPv6 ::1 address as "localhost".  (Closes: #477700)
+    Thanks to Marco d'Itri for the patch.
+
+  [ Updated translations ]
+  * Basque (eu.po) by Iñaki Larrañaga Murgoitio
+  * Finnish (fi.po) by Esko Arajärvi
+  * Malayalam (ml.po) by Praveen|പ്രവീണ്‍ A|എ
+  * Marathi (mr.po) by Sampada
+  * Panjabi (pa.po) by Amanpreet Singh Alam
+  * Thai (th.po) by Theppitak Karoonboonyanan
+
+ -- Otavio Salvador <otavio@debian.org>  Thu, 08 May 2008 13:25:15 -0300
+
+netcfg (1.43) unstable; urgency=low
+
+  [ Colin Watson ]
+  * RFC 2181 clarifies that host names may be as short as one octet, so
+    allow that (LP: #193054).
+
+  [ Frans Pop ]
+  * Remove incorrect space before ellipses.
+  * Remove David Kimdon, Joshua Kwan, Matt Kraai, Tollef Fog Heen and
+    Thomas Hood as Uploaders with many thanks for their past contributions.
+
+  [ Jérémy Bobbio ]
+  * Skip raw IEEE 802.11 network devices when looking up available interfaces.
+
+  [ Updated translations ]
+  * Amharic (am.po) by Tegegne Tefera
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Esperanto (eo.po) by Serge Leblanc
+  * Basque (eu.po) by Piarres Beobide
+  * Finnish (fi.po) by Esko Arajärvi
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Gujarati (gu.po) by Kartik Mistry
+  * Korean (ko.po) by Changwoo Ryu
+  * Marathi (mr.po)
+  * Dutch (nl.po) by Frans Pop
+  * Panjabi (pa.po) by Amanpreet Singh Alam
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Ivan Masár
+  * Swedish (sv.po) by Daniel Nylander
+  * Thai (th.po) by Theppitak Karoonboonyanan
+
+ -- Frans Pop <fjp@debian.org>  Wed, 09 Apr 2008 17:30:33 +0200
+
+netcfg (1.42) unstable; urgency=low
+
+  [ Frans Pop ]
+  * No longer include the dhclient-script as it is now provided by the
+    dhcp3-client-udeb (>= 3.1.0-2).
+
+  [ Updated translations ]
+  * Finnish (fi.po) by Esko Arajärvi
+  * French (fr.po) by Christian Perrier
+  * Hindi (hi.po) by Kumar Appaiah
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Central Khmer (km.po) by Khoem Sokhem
+  * Latvian (lv.po) by Viesturs Zarins
+  * Norwegian Bokmål (nb.po) by Hans Fredrik Nordhaug
+  * Nepali (ne.po) by Shyam Krishna Bal
+  * Panjabi (pa.po) by Amanpreet Singh Alam
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Slovenian (sl.po) by Matej Kovacic
+  * Turkish (tr.po) by Recai Oktaş
+  * Ukrainian (uk.po)
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 15 Feb 2008 15:17:34 -0200
+
+netcfg (1.41) unstable; urgency=low
+
+  * No longer copy the dhclient.conf script to the target system. The reason
+    this was originally done looks to be obsolete and we should not overwrite
+    conffiles from other packages.
+  * Don't link against libm; according to dpkg-shlibdeps it's not used.
+  * Don't ignore errors in clean target.
+
+  [ Updated translations ]
+  * Amharic (am.po) by tegegne tefera
+  * German (de.po) by Jens Seidel
+  * Dzongkha (dz.po) by Jurmey Rabgay
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Korean (ko.po) by Changwoo Ryu
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Malayalam (ml.po) by Praveen|പ്രവീണ്‍ A|എ
+  * Norwegian Bokmål (nb.po) by Hans Fredrik Nordhaug
+  * Panjabi (pa.po) by A S Alam
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Slovak (sk.po) by Ivan Masár
+
+ -- Frans Pop <fjp@debian.org>  Mon, 14 Jan 2008 02:58:40 +0100
+
+netcfg (1.40ubuntu5) hardy; urgency=low
+
+  * Support preseeding netcfg/network-manager to false to suppress
+    adjustment of /etc/network/interfaces for network-manager (thanks,
+    Andrew Pollock).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 08 Apr 2008 00:06:06 +0100
+
+netcfg (1.40ubuntu4) hardy; urgency=low
+
+  * Backport from trunk:
+    - RFC 2181 clarifies that host names may be as short as one octet, so
+      allow that (LP: #193054).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 19 Feb 2008 11:19:22 +0000
+
+netcfg (1.40ubuntu3) hardy; urgency=low
+
+  * Add an /etc/network/interfaces stanza for lo even if the netcfg menu
+    item wasn't run (LP: #9532).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 21 Dec 2007 15:55:33 +0000
+
+netcfg (1.40ubuntu2) hardy; urgency=low
+
+  * Change priority of netcfg/get_domain to high for static network
+    configurations.
+
+ -- Soren Hansen <soren@ubuntu.com>  Wed, 12 Dec 2007 23:56:25 +0100
+
+netcfg (1.40ubuntu1) hardy; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Drop priority of netcfg/get_domain to medium.
+    - Bump libiw-dev build-dependency to ensure building against libiw29.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Call /usr/lib/network-manager/ifblacklist_migrate.sh from
+      finish-install if present, so that 'auto dhcp' interfaces are disabled
+      if network-manager is in use.
+  * debian/control: Add XS-Vcs-Bzr for the Ubuntu branch.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Fri, 23 Nov 2007 13:48:46 -0500
+
+netcfg (1.40) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Remove alternative dependencies for DHCP clients (not supported by udpkg).
+
+  [ Colin Watson ]
+  * Revert change to copy udev's persistent-net rules to the target system,
+    as udev-udeb already does this. Closes: #433936.
+
+  [ Joey Hess ]
+  * Stop mentioning FireWire in generic description for ethX devices, to avoid
+    confusing users. ;-)
+    I think this is ok to drop as since hw-detect 1.47, devnames should have
+    descriptions for firewire devices. When #405421 was filed,
+    sysfs-update-devnames had not been fixed to look in
+    /sys/class/net/<foo>/device/bus and so firewire interfaces lacked special
+    descriptions.
+
+  [ dann frazier ]
+  * Remove unused extern declaration for netcfg_get_dhcp() function in
+    netcfg.h. This function was removed in r15113.
+  * Request ntp-servers option from dhcp server and store in
+    netcfg/dhcp_ntp_servers for later processing by clock-setup.
+    See #447071
+  * Use POSIX-compliant 'printf' instead of 'echo -n' in dhclient-script
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Hleb Rubanau
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bengali (bn.po) by Jamil Ahmed
+  * Catalan (ca.po) by Jordi Mallach
+  * Czech (cs.po) by Miroslav Kure
+  * German (de.po) by Jens Seidel
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hebrew (he.po) by Lior Kaplan
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Italian (it.po) by Stefano Canepa
+  * Japanese (ja.po) by Kenshi Muto
+  * Korean (ko.po) by Sunjae Park
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Nepali (ne.po) by Nabin Gautam
+  * Dutch (nl.po) by Bart Cornelis
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Panjabi (pa.po) by A S Alam
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Romanian (ro.po) by Eddy Petrișor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Peter Mann
+  * Albanian (sq.po) by Elian Myftiu
+  * Swedish (sv.po) by Daniel Nylander
+  * Tamil (ta.po) by Dr.T.Vasudevan
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 29 Oct 2007 13:34:15 -0400
+
+netcfg (1.39ubuntu4) gutsy; urgency=low
+
+  * Add missing line-continuation backslash to finish-install script.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 22 Sep 2007 12:13:02 +0100
+
+netcfg (1.39ubuntu3) gutsy; urgency=low
+
+  * Call /usr/lib/network-manager/ifblacklist_migrate.sh from finish-install
+    if present, so that 'auto dhcp' interfaces are disabled if
+    network-manager is in use (LP: #139403).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 19 Sep 2007 12:38:08 +0100
+
+netcfg (1.39ubuntu2) gutsy; urgency=low
+
+  * Revert change to copy udev's persistent-net rules to the target system;
+    udev-udeb 113-0ubuntu6 does this now.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 20 Jul 2007 13:50:18 +0100
+
+netcfg (1.39ubuntu1) gutsy; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Drop priority of netcfg/get_domain to medium.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Bump libiw-dev build-dependency to ensure building against libiw29.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 16 Jul 2007 16:32:45 +0100
+
+netcfg (1.39) unstable; urgency=low
+
+  * Switch to dhcp3 as the default DHCP client in the installer.
+
+  [ Updated translations ]
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Tamil (ta.po) by Dr.T.Vasudevan
+  * Thai (th.po) by Theppitak Karoonboonyanan
+
+ -- Frans Pop <fjp@debian.org>  Fri, 13 Jul 2007 00:54:52 +0200
+
+netcfg (1.38) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Copy udev's persistent-net rules to the target system if possible
+    (closes: #259747).
+
+  [ Christian Perrier ]
+  * Consistent writing in templates: use "has been aborted" instead
+    of "will be aborted"
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Catalan (ca.po) by Jordi Mallach
+  * Czech (cs.po) by Miroslav Kure
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Japanese (ja.po) by Kenshi Muto
+  * Dutch (nl.po) by Frans Pop
+  * Punjabi (Gurmukhi) (pa.po) by A S Alam
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Romanian (ro.po) by Eddy Petrișor
+  * Russian (ru.po) by Yuri Kozlov
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+
+ -- Frans Pop <fjp@debian.org>  Fri, 06 Jul 2007 00:31:33 +0200
+
+netcfg (1.37ubuntu2) gutsy; urgency=low
+
+  * Remove /etc/iftab generation code; copy
+    /etc/udev/rules.d/70-persistent-net.rules to /target instead.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 17 Jun 2007 11:16:12 +0100
+
+netcfg (1.37ubuntu1) gutsy; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Write an /etc/iftab entry for each network interface.
+    - Set default hostname to 'ubuntu'.
+    - Drop priority of netcfg/get_domain to medium.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+  * Bump libiw-dev build-dependency to ensure building against libiw29.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 27 Apr 2007 15:24:40 +0100
+
+netcfg (1.37) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Merge from Ubuntu:
+    - Fix backup from netcfg/no_interfaces to behave more usefully.
+    - Give up gracefully if netcfg/wireless_essid was preseeded but
+      association failed.
+
+  [ Joey Hess ]
+  * Multiply menu-item-numbers by 100
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Mahay Alam Khan (মাহে আলম)
+  * Esperanto (eo.po) by Serge Leblanc
+  * Norwegian Bokmål (nb.po) by Bjørn Steensrud
+  * Tamil (ta.po) by Dr.T.Vasudevan
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 10 Apr 2007 14:33:56 -0400
+
+netcfg (1.36) unstable; urgency=low
+
+  * Forgot to revert string for not yet updated translations.
+
+ -- Frans Pop <fjp@debian.org>  Tue, 27 Feb 2007 17:46:48 +0100
+
+netcfg (1.35) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Add armel architecture.
+
+  [ Updated translations ]
+  * Hebrew (he.po) by Lior Kaplan
+  * Malayalam (ml.po) by Praveen A
+  * Nepali (ne.po) by Shiva Pokharel
+  * Dutch (nl.po) by Bart Cornelis
+  * Polish (pl.po) by Bartosz Fenski
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Frans Pop <fjp@debian.org>  Tue, 27 Feb 2007 16:56:10 +0100
+
+netcfg (1.34) unstable; urgency=low
+
+  * Add default entries in /etc/networks in line with netbase (static config).
+    Closes: #399293.
+
+ -- Frans Pop <fjp@debian.org>  Mon,  5 Feb 2007 21:08:15 +0100
+
+netcfg (1.33) unstable; urgency=low
+
+  * Mention FireWire in generic description for ethX devices to help avoid
+    confusing users. Should really be supported as a separate class.
+    Thanks to Filipus Klutiero. Closes: #405421.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Belarusian (be.po) by Hleb Rubanau
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bosnian (bs.po) by Safir Secerovic
+  * Catalan (ca.po) by Guillem Jover
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Greek, Modern (1453-) (el.po) by quad-nrg.net
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Estonian (et.po) by Siim Põder
+  * Finnish (fi.po) by Tapio Lehtonen
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Nishant Sharma
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Italian (it.po) by Stefano Canepa
+  * Japanese (ja.po) by Kenshi Muto
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Khmer (km.po) by Khoem Sokhem
+  * Korean (ko.po) by Sunjae park
+  * Kurdish (ku.po) by Amed Çeko Jiyan
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Malayalam (ml.po) by Praveen A
+  * Norwegian Bokmål (nb.po) by Bjørn Steensrud
+  * Dutch (nl.po) by Bart Cornelis
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Panjabi (pa.po) by A S Alam
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Romanian (ro.po) by Eddy Petrișor
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Peter Mann
+  * Slovenian (sl.po) by Matej Kovačič
+  * Albanian (sq.po) by Elian Myftiu
+  * Swedish (sv.po) by Daniel Nylander
+  * Tamil (ta.po) by Dr.T.Vasudevan
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Tagalog (tl.po) by Eric Pareja
+  * Turkish (tr.po) by Recai Oktaş
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+  * Traditional Chinese (zh_TW.po) by Asho Yeh
+
+ -- Frans Pop <fjp@debian.org>  Wed, 31 Jan 2007 22:24:25 +0100
+
+netcfg (1.32ubuntu4) feisty; urgency=low
+
+  * Revert change in 1.32ubuntu3.
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Tue, 03 Apr 2007 14:53:54 +0200
+
+netcfg (1.32ubuntu3) feisty; urgency=low
+
+  * Add comments in interfaces files on how to enable IPv6 autoconfiguration.
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Sat, 31 Mar 2007 07:16:34 +0200
+
+netcfg (1.32ubuntu2) feisty; urgency=low
+
+  * Set Maintainer to ubuntu-installer@lists.ubuntu.com.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 15 Mar 2007 00:26:31 +0000
+
+netcfg (1.32ubuntu1) feisty; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Write an /etc/iftab entry for each network interface.
+    - Set default hostname to 'ubuntu'.
+    - Fix up some backup cases to behave more usefully.
+    - Drop priority of netcfg/get_domain to medium.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Give up gracefully if netcfg/wireless_essid was preseeded but
+      association failed.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 19 Dec 2006 16:31:58 +0000
+
+netcfg (1.32) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Fix missing iface subst into netcfg/wireless_essid_again.
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bosnian (bs.po) by Safir Secerovic
+  * Catalan (ca.po) by Jordi Mallach
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Kurdish (ku.po) by Rêzan Tovjîn
+  * Norwegian Bokmål (nb.po) by Bjørn Steensrud
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Panjabi (pa.po) by A S Alam
+  * Romanian (ro.po) by Eddy Petrișor
+  * Russian (ru.po) by Yuri Kozlov
+  * Swedish (sv.po) by Daniel Nylander
+
+ -- Frans Pop <fjp@debian.org>  Thu, 30 Nov 2006 15:36:07 +0100
+
+netcfg (1.31ubuntu1) feisty; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Write an /etc/iftab entry for each network interface.
+    - Set default hostname to 'ubuntu'.
+    - Fix up some backup cases to behave more usefully.
+    - Drop priority of netcfg/get_domain to medium.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Give up gracefully if netcfg/wireless_essid was preseeded but
+      association failed.
+    - Fix missing iface subst into netcfg/wireless_essid_again.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 21 Nov 2006 10:39:24 +0000
+
+netcfg (1.31) unstable; urgency=low
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Andrei Darashenka
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Hindi (hi.po) by Nishant Sharma
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Italian (it.po) by Stefano Canepa
+  * Korean (ko.po) by Sunjae park
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Norwegian Bokmål (nb.po) by Bjørn Steensrud
+  * Nepali (ne.po) by Shiva Prasad Pokharel
+  * Romanian (ro.po) by Eddy Petrișor
+  * Tamil (ta.po) by Damodharan Rajalingam
+  * Turkish (tr.po) by Recai Oktaş
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Frans Pop <fjp@debian.org>  Tue, 24 Oct 2006 15:20:07 +0200
+
+netcfg (1.30) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Improve wording of wireless network type template.
+
+  [ Colin Watson ]
+  * Avoid infinite loop on wireless configuration if no access points are
+    available, by introducing a slightly different question the second time
+    round the loop; entering an empty ESSID there breaks out of wireless
+    configuration.
+
+  [ Philip Hands ]
+  * free(old_selection) wasn't being called in netcfg_get_interface if only
+    one interface was found.
+  * Fix random C coding styles (except for ethtool-lite.c, which is internally
+    consistent, even if not consistent with the rest of the package).
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Mahay Alam Khan (মাহে আলম খান)
+  * Catalan (ca.po) by Jordi Mallach
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Greek (el.po) by quad-nrg.net
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Estonian (et.po) by Siim Põder
+  * Basque (eu.po) by Piarres Beobide
+  * Finnish (fi.po) by Tapio Lehtonen
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Nishant Sharma
+  * Croatian (hr.po) by Josip Rodin
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Italian (it.po) by Giuseppe Sacco
+  * Japanese (ja.po) by Kenshi Muto
+  * Khmer (km.po) by Khoem Sokhem
+  * Korean (ko.po) by Sunjae park
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Norwegian Bokmal (nb.po) by Bjørn Steensrud
+  * Dutch (nl.po) by Bart Cornelis
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Romanian (ro.po) by Eddy Petrişor
+  * Russian (ru.po) by Yuri Kozlov
+  * Northern Sami (se.po) by Børre Gaup
+  * Slovak (sk.po) by Peter Mann
+  * Slovenian (sl.po) by Jure Čuhalev
+  * Albanian (sq.po) by Elian Myftiu
+  * Swedish (sv.po) by Daniel Nylander
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Tagalog (tl.po) by Eric Pareja
+  * Turkish (tr.po) by Recai Oktaş
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Frans Pop <fjp@debian.org>  Fri,  6 Oct 2006 02:43:28 +0200
+
+netcfg (1.29) unstable; urgency=low
+
+  [ Christian Perrier ]
+  * Unmark ${wifireconf} as translatable in templates
+
+  [ Frans Pop ]
+  * Set up the loopback interface with address 127.0.0.1/8.
+  * Also set up the loopback interface when doing static configuration.
+    Closes: #381085.
+  * Remove standards-version and add Lintian override for it.
+
+  [ Updated translations ]
+  * Catalan (ca.po) by Jordi Mallach
+  * German (de.po) by Jens Seidel
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Finnish (fi.po) by Tapio Lehtonen
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Panjabi (pa.po) by A S Alam
+  * Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+  * Swedish (sv.po) by Daniel Nylander
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Frans Pop <fjp@debian.org>  Mon, 21 Aug 2006 01:06:55 +0200
+
+netcfg (1.28) unstable; urgency=low
+
+  [ Philip Hands ]
+  * killall.sh: optimise out the greps.
+
+  [ Updated translations ]
+  * Estonian (et.po) by Siim Põder
+  * Galician (gl.po) by Jacobo Tarrio
+  * Gujarati (gu.po) by Kartik Mistry
+  * Bokmål, Norwegian (nb.po) by Bjørn Steensrud
+  * Dutch (nl.po) by Bart Cornelis
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Thai (th.po) by Theppitak Karoonboonyanan
+
+ -- Frans Pop <fjp@debian.org>  Thu, 13 Jul 2006 17:15:47 +0200
+
+netcfg (1.27ubuntu2) edgy; urgency=low
+
+  * Bring .po files back into sync with reality.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 30 Jun 2006 14:09:09 +0100
+
+netcfg (1.27ubuntu1) edgy; urgency=low
+
+  [ Ubuntu Merge-o-Matic ]
+  * Merge from debian unstable.
+
+ -- Scott James Remnant <scott@ubuntu.com>  Thu, 29 Jun 2006 22:56:02 +0100
+
+netcfg (1.27) unstable; urgency=low
+
+  * Remove the now useless mapping clause from the interfaces file.
+    Closes: #367264
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 15 Jun 2006 19:21:13 -0400
+
+netcfg (1.26) unstable; urgency=low
+
+  [ Christian Perrier ]
+  * Take advantage of the new po-debconf commenting capabilities
+    and adapt translators comment to it
+  * Split _Choices to __choices in templates
+
+  [ Bastian Blank ]
+  * Ignore sit devices.
+
+  [ Colin Watson ]
+  * Make sure empty ESSIDs don't get written to /etc/network/interfaces;
+    this causes ifup to fail to bring up lo due to the syntax error.
+  * Turn off cancel button on DHCP progress bar once DHCP succeeds (closes:
+    https://launchpad.net/bugs/47733).
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Catalan (ca.po) by Jordi Mallach
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Dzongkha (dz.po)
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hebrew (he.po) by Lior Kaplan
+  * Hungarian (hu.po) by SZERVÑC Attila
+  * Italian (it.po) by Stefano Canepa
+  * Japanese (ja.po) by Kenshi Muto
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Khmer (km.po) by Khoem Sokhem
+  * Korean (ko.po) by Sunjae park
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Bokmål, Norwegian (nb.po) by Bjørn Steensrud
+  * Nepali (ne.po) by Shiva Pokharel
+  * Dutch (nl.po) by Bart Cornelis
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+  * Romanian (ro.po) by Eddy Petrişor
+  * Russian (ru.po) by Yuri Kozlov
+  * Northern Sami (se.po) by Børre Gaup
+  * Slovak (sk.po) by Peter Mann
+  * Slovenian (sl.po) by Jure Čuhalev
+  * Albanian (sq.po) by Elian Myftiu
+  * Swedish (sv.po) by Daniel Nylander
+  * Tamil (ta.po) by Damodharan Rajalingam
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Tagalog (tl.po) by Eric Pareja
+  * Turkish (tr.po) by Recai Oktaş
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  7 Jun 2006 22:08:32 -0400
+
+netcfg (1.25) unstable; urgency=low
+
+  * Remove temporary workaround for #322723 introduced in 1.13; problem can no
+    longer be reproduced.
+  * Hack in debian/rules to correct libiw dependency is no longer needed.
+
+  [ Updated translations ]
+  * Bosnian (bs.po) by Safir Secerovic
+  * Dzongkha (dz.po) by Sonam Rinchen
+  * Esperanto (eo.po) by Serge Leblanc
+  * Basque (eu.po) by Piarres Beobide
+  * Irish (ga.po) by Kevin Patrick Scannell
+  * Hungarian (hu.po) by SZERVÑC Attila
+  * Khmer (km.po) by Leang Chumsoben
+  * Romanian (ro.po) by Eddy Petrişor
+  * Russian (ru.po) by Yuri Kozlov
+  * Northern Sami (se.po) by Børre Gaup
+  * Slovenian (sl.po) by Jure Cuhalev
+
+ -- Frans Pop <fjp@debian.org>  Fri, 14 Apr 2006 02:17:42 +0200
+
+netcfg (1.24) unstable; urgency=low
+
+  [ Martin Michlmayr ]
+  * Add armeb to the Architecture field.
+
+  [ Joey Hess ]
+  * Change class identifier of the dhcp client from "NetcfgDHClient" to just
+    "d-i", which is a bit easier to remeber and type.
+  * Rebuild with current libd-i to fix udeb deps.
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Baishampayan Ghose
+  * Bosnian (bs.po) by Safir Secerovic
+  * Catalan (ca.po) by Jordi Mallach
+  * Esperanto (eo.po) by Serge Leblanc
+  * Finnish (fi.po) by Tapio Lehtonen
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hindi (hi.po) by Nishant Sharma
+  * Hungarian (hu.po) by SZERVÑC Attila
+  * Khmer (km.po) by Hok Kakada
+  * Malagasy (mg.po) by Jaonary Rabarisoa
+  * Punjabi (Gurmukhi) (pa_IN.po) by Amanpreet Singh Alam
+  * Polish (pl.po) by Bartosz Fenski
+  * Romanian (ro.po) by Eddy Petrişor
+  * Slovak (sk.po) by Peter Mann
+  * Slovenian (sl.po) by Matej Kovačič
+  * Albanian (sq.po) by Elian Myftiu
+  * Swedish (sv.po) by Daniel Nylander
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 18 Mar 2006 15:28:29 -0500
+
+netcfg (1.23ubuntu6) dapper; urgency=low
+
+  * Fix the last change so it actually compiles correctly.
+
+ -- Adam Conrad <adconrad@ubuntu.com>  Wed, 12 Apr 2006 21:40:58 +1000
+
+netcfg (1.23ubuntu5) dapper; urgency=low
+
+  * Always append "arp X" to /etc/iftab lines, to deal with cards which
+    suddenly change driver and break.
+
+ -- Scott James Remnant <scott@ubuntu.com>  Wed, 12 Apr 2006 08:40:45 +0100
+
+netcfg (1.23ubuntu4) dapper; urgency=low
+
+  * Avoid writing duplicated MAC/ARP matching lines to /etc/iftab, as
+    we can't handle that.  This notably breaks Sparc machines which can
+    have multiple interfaces with the same MAC address (as it's generated
+    from the machine id).  Ubuntu #33787.
+
+ -- Scott James Remnant <scott@ubuntu.com>  Mon,  6 Mar 2006 12:37:37 +0000
+
+netcfg (1.23ubuntu3) dapper; urgency=low
+
+  * Don't write out a "mapping" section, it's completely meaningless.
+
+ -- Scott James Remnant <scott@ubuntu.com>  Wed, 15 Feb 2006 13:03:01 +0000
+
+netcfg (1.23ubuntu2) dapper; urgency=low
+
+  * When writing /etc/iftab check to see whether another interface shares
+    the same MAC address, if so write an arp selector out as well.
+
+ -- Scott James Remnant <scott@ubuntu.com>  Tue, 14 Feb 2006 02:29:24 +0000
+
+netcfg (1.23ubuntu1) dapper; urgency=low
+
+  * Resynchronise with Debian.
+  * Drop casper symlinks, no longer required following casper's
+    reimplementation as initramfs hooks.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 17 Jan 2006 13:19:35 +0000
+
+netcfg (1.23) unstable; urgency=low
+
+  * Don't propagate NetcfgDHClient class identifier to installed system.
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 17 Jan 2006 12:51:16 +0000
+
+netcfg (1.22) unstable; urgency=low
+
+  [ Joey Hess ]
+  * The return of my friend liw.
+
+  [ Colin Watson ]
+  * Make progress bars for DHCP and wireless AP search cancellable
+    (closes: #247045). Requires cdebconf 0.95, but will degrade to the
+    old-style bars if running with earlier versions.
+  * Add myself to Uploaders.
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Ognyan Kulev
+  * Catalan (ca.po) by Guillem Jover
+  * Greek, Modern (1453-) (el.po) by quad-nrg.net
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Finnish (fi.po) by Tapio Lehtonen
+  * Hebrew (he.po) by Lior Kaplan
+  * Indonesian (id.po) by Parlin Imanuel Toh
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Latvian (pa_IN.po) by Amanpreet Singh Alam
+  * Polish (pl.po) by Bartosz Fenski
+  * Slovenian (sl.po) by Jure Čuhalev
+  * Swedish (sv.po) by Daniel Nylander
+  * Turkish (tr.po) by Recai Oktaş
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Colin Watson <cjwatson@debian.org>  Mon, 16 Jan 2006 16:14:01 +0000
+
+netcfg (1.21ubuntu2) dapper; urgency=low
+
+  * Use 'auto <interface>' for all interfaces for now, dropping
+    allow-hotplug which doesn't seem to work with current udev.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue,  3 Jan 2006 16:03:33 +0000
+
+netcfg (1.21ubuntu1) dapper; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 13 Dec 2005 16:22:43 +0000
+
+netcfg (1.21) unstable; urgency=low
+
+  * dhcp3 calls the "dhcp-class-identifier" option "vendor-class-identifier"
+    instead.
+
+  [ Updated translations ]
+  * Galician (gl.po) by Jacobo Tarrio
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 13 Dec 2005 16:11:09 +0000
+
+netcfg (1.20ubuntu1) dapper; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed,  7 Dec 2005 12:46:36 +0000
+
+netcfg (1.20) unstable; urgency=low
+
+  * Fix segfault because of error in hotplug configuration code.
+
+  [ Updated translations ]
+  * Latvian (lv.po) by Aigars Mahinovs
+
+ -- Frans Pop <fjp@debian.org>  Sat,  3 Dec 2005 18:54:41 +0100
+
+netcfg (1.19) unstable; urgency=low
+
+  * Fix error in hotplug configuration for interfaces other than eth0.
+
+ -- Frans Pop <fjp@debian.org>  Mon, 28 Nov 2005 23:17:29 +0100
+
+netcfg (1.18) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Make netcfg-static use the same menu item number as netcfg, no reason for
+    it to differ.
+
+  [ Frans Pop ]
+  * Change hotplug configuration as written to interface file. This new
+    syntax is supported by both udev and hotplug (from 0.0.20040329-25).
+    Closes: #340935.
+
+  [ Updated translations ]
+  * German (de.po) by Jens Seidel
+  * French (fr.po) by Christian Perrier
+  * Malagasy (mg.po) by Jaonary Rabarisoa
+  * Romanian (ro.po) by Eddy Petrişor
+  * Russian (ru.po) by Yuri Kozlov
+
+ -- Frans Pop <fjp@debian.org>  Mon, 28 Nov 2005 16:36:15 +0100
+
+netcfg (1.17ubuntu1) dapper; urgency=low
+
+  * Resynchronise with Debian.
+  * Restore some translations accidentally dropped from 1.16ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 28 Nov 2005 21:23:00 +0000
+
+netcfg (1.17) unstable; urgency=low
+
+  [ Thomas Hood ]
+  * Don't make 'localhost.localdomain' the canonical hostname of 127.0.0.1.
+    See Oct 2005 debian-devel discussion with Subject: localhost.localdomain,
+    e.g., http://lists.debian.org/debian-devel/2005/10/msg00559.html
+
+  [ Frans Pop ]
+  * Remove netcfg-dhcp udeb as it is no longer used and maintained.
+    The full netcfg is used instead. Closes: #329885.
+
+  [ Geert Stappers ]
+  * Identify client in dhcp-requests using "NetcfgDHClient" as
+    dhcp-class-identifier. This allows a DHCP server to send DHCP user
+    parameters. These parameters can be extracted from the lease file.
+    A possible improvement is to allow the class identifier to be preseeded.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Bulgarian (bg.po) by Ognyan Kulev
+  * Bengali (bn.po) by Baishampayan Ghose
+  * Czech (cs.po) by Miroslav Kure
+  * German (de.po) by Jens Seidel
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hindi (hi.po) by Nishant Sharma
+  * Icelandic (is.po) by David Steinn Geirsson
+  * Italian (it.po) by Giuseppe Sacco
+  * Korean (ko.po) by Sunjae park
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Dutch (nl.po) by Bart Cornelis
+  * Norwegian Nynorsk (nn.po)
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Slovak (sk.po) by Peter Mann
+  * Swedish (sv.po) by Daniel Nylander
+  * Tagalog (tl.po) by Eric Pareja
+  * Turkish (tr.po) by Recai Oktaş
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+
+ -- Frans Pop <fjp@debian.org>  Tue, 15 Nov 2005 20:59:54 +0100
+
+netcfg (1.16ubuntu1) dapper; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 31 Oct 2005 07:12:05 -0500
+
+netcfg (1.16) unstable; urgency=low
+
+  * Use a less confising progress bar string for base-installer step.
+  * Temporarily switch to statically linking libiw, since the kde transition
+    is holding the new version out of testing right now.
+
+  [ Updated translations ]
+  * Czech (cs.po) by Miroslav Kure
+  * German (de.po) by Jens Seidel
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Italian (it.po) by Giuseppe Sacco
+  * Japanese (ja.po) by Kenshi Muto
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Bokmål, Norwegian (nb.po) by Bjørn Steensrud
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Romanian (ro.po) by Eddy Petrisor
+  * Slovak (sk.po) by Peter Mann
+  * Swedish (sv.po) by Daniel Nylander
+  * Tagalog (tl.po) by Eric Pareja
+
+ -- Joey Hess <joeyh@debian.org>  Sun,  9 Oct 2005 19:05:16 -0400
+
+netcfg (1.15) unstable; urgency=low
+
+  [ Geert Stappers ]
+  * Use the macro for the resolve file in dhcp.c
+    (patch by Torsten Landschoff from #328646).
+
+  [ Joey Hess ]
+  * Add ppc64 to arch lists. Closes: #328087
+
+  [ Updated translations ]
+  * Greek, Modern (1453-) (el.po) by Greek Translation Team
+  * Galician (gl.po) by Jacobo Tarrio
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Dutch (nl.po) by Bart Cornelis
+  * Polish (pl.po) by Bartosz Fenski
+  * Slovak (sk.po) by Peter Mann
+  * Tagalog (tl.po) by Eric Pareja
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 26 Sep 2005 17:14:25 +0200
+
+netcfg (1.14) unstable; urgency=high
+
+  * Update libiw build-dep and rebuild to fix crash with new version of the
+    library. Closes: #327390
+  * Updated translations: 
+    - Danish (da.po) by Claus Hindsgaul
+    - Spanish (es.po) by Javier Fernández-Sanguino Peña
+    - Basque (eu.po) by Piarres Beobide
+    - French (fr.po) by Christian Perrier
+    - Kurdish (ku.po) by Erdal Ronahi
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrisor
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Vietnamese (vi.po) by Clytie Siddall
+    - Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 10 Sep 2005 12:59:40 -0400
+
+netcfg (1.13) unstable; urgency=low
+
+  [ Thomas Hood ]
+  * If there is no permanent IP address with which the system hostname
+    (i.e., that which is returned by the "hostname" command) can be
+    associated in /etc/hosts then associate it with address 127.0.1.1
+    rather than 127.0.0.1.  Associating the system hostname with the
+    latter had the unwanted effect of making 'localhost.localdomain'
+    the canonical hostname associated with the system hostname.
+    That is, 'hostname --fqdn' returned 'localhost.localdomain'.
+    (Closes: #316099)
+    Programs that access local services at the IP address obtained by
+    resolving the system hostname SHOULD NOT DO THIS, but those that
+    do so will not be disappointed: most services that listen locally
+    listen on all 127/8 addresses, not just on 127.0.0.1.
+
+  [ Joshua Kwan ]
+  * Add a netcfg/dhcp_timeout template that can be preseeded in case
+    a network or a set of machines are known to take a long time to
+    acquire a DHCP lease.
+  [ Colin Watson ]
+  * Update GPL notices with the FSF's new address.
+  * Reword a couple of templates to avoid unnecessary Debian "branding".
+  * Close debconf client output when starting the DHCP client, to avoid the
+    DHCP client holding it open.
+
+  [ Joey Hess ]
+  * Add description for internal-usb template as used for usb net.
+  * Fix fallthrough on missing template.
+
+  [ Frans Pop ]
+  * Temporary workaround for #322723: use 'route add' instead of
+    'ip route add' for both dynamic and static network configuration.
+  * Fix error setting default value for new netcfg/dhcp_timeout template.
+  * Add myself to uploaders
+
+  * Updated translations: 
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Holger Wansing
+    - Greek (el.po) by Greek Translation Team
+    - Esperanto (eo.po) by Serge Leblanc
+    - Basque (eu.po)
+    - Persian (fa.po) by Arash Bijanzadeh
+    - French (fr.po) by Christian Perrier
+    - Gallegan (gl.po) by Jacobo Tarrio
+    - Indonesian (id.po) by Arief S Fitrianto
+    - Italian (it.po) by Stefano Canepa
+    - Japanese (ja.po) by Kenshi Muto
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Macedonian (mk.po) by Georgi Stanojevski
+    - Norwegian (nb.po) by Bjørn Steensrud
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Tagalog (tl.po) by Eric Pareja
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Vietnamese (vi.po) by Clytie Siddall
+    - Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+
+ -- Frans Pop <fjp@debian.org>  Fri, 19 Aug 2005 21:08:39 +0200
+
+netcfg (1.12ubuntu2) breezy; urgency=low
+
+  * Backport from trunk:
+    - Close debconf client output when starting the DHCP client, to avoid
+      the DHCP client holding it open.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon,  8 Aug 2005 13:34:41 +0100
+
+netcfg (1.12ubuntu1) breezy; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 13 Jul 2005 12:39:23 +0100
+
+netcfg (1.12) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Apply patch from Christian Weeks and Geert Stappers to respect preseeded
+    nameserver values. Closes: #315030
+  * Similar fix to respect preseeded gateway value. Closes: #314618, #308964
+  * Above also Closes: #282650
+  * Note that above changes do make netcfg not fill in calculated values if
+    the user re-does static network config a second time.
+  * Fix spelling of IBM's Hipersocket. Closes: #285124
+  * A few interface types seem to be pure product names and not translatable.
+    Do not mark these templates as translatable.
+
+  * Updated translations: 
+    - Czech (cs.po) by Miroslav Kure
+    - French (fr.po) by Christian Perrier
+    - Italian (it.po) by Giuseppe Sacco
+    - Japanese (ja.po) by Kenshi Muto
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrişor
+    - Slovak (sk.po) by Peter Mann
+    - Albanian (sq.po) by Elian Myftiu
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 26 Jun 2005 11:46:23 -0400
+
+netcfg (1.11) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Switch to using libiw28.
+  * Add a hack to sed the substvars files to get proper dependency on 
+    the libiw udeb w/o a versioned dependency on the deb.
+    
+  * Updated translations: 
+    - Catalan (ca.po) by Guillem Jover
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Basque (eu.po) by Piarres Beobide
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Romanian (ro.po) by Eddy Petrişor
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 20 Jun 2005 16:57:39 -0400
+
+netcfg (1.10) unstable; urgency=low
+
+  * Colin Watson
+    - Support building without wireless support (NO_WIRELESS=1).
+  * Updated translations:
+    - Arabic (ar.po) by Ossama M. Khayat
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Spanish (es.po) by Javier Fernández-Sanguino Peña
+    - Italian (it.po) by Giuseppe Sacco
+    - Korean (ko.po) by Changwoo Ryu
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Turkish (tr.po) by Recai Oktaş
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Colin Watson <cjwatson@debian.org>  Wed,  1 Jun 2005 00:32:07 +0100
+
+netcfg (1.09) unstable; urgency=low
+
+  * Christian Perrier
+    - Change the comment about the Choices length for translators
+      The limit is 65 characters, not 70
+  * Joey Hess
+    - Check to see if a preseeded interface name contains the card name too,
+      in case the user uses debconf-get-selections to generate their preseed
+      file.
+  * Colin Watson
+    - On glibc 2.3.5, getaddrinfo() doesn't return a host name in
+      res->ai_canonname, so seeding the host name from DNS failed. This
+      appears to have been a bug in earlier versions of glibc, since POSIX
+      says: "A numeric host address string is not a 'name', and thus does
+      not have a 'canonical name' form; no address to host name translation
+      is performed." Use getnameinfo() instead.
+    - Detect ipw2100 and ipw2200 hardware kill switches, and warn the user
+      if they're enabled (Ubuntu bug #1877).
+  * Updated translations:
+    - Arabic (ar.po) by Ossama M. Khayat
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Bosnian (bs.po) by Safir Šećerović
+    - Catalan (ca.po) by Guillem Jover
+    - Czech (cs.po) by Miroslav Kure
+    - Welsh (cy.po) by Dafydd Harries
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Kostas Papadimas
+    - Spanish (es.po) by Enrique Matias Sanchez
+    - Basque (eu.po) by Piarres Beobide
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by Christian Perrier
+    - Hebrew (he.po) by Lior Kaplan
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Hungarian (hu.po) by Gabor Burjan
+    - Indonesian (id.po) by Yoppy Hidayanto
+    - Italian (it.po) by Stefano Canepa
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Bokmål, Norwegian (nb.po) by Terance Edward Sola
+    - Dutch (nl.po) by Bart Cornelis
+    - Polish (pl.po) by Dominik Zablotny
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Ovidiu Damian
+    - Russian (ru.po) by Yuri Kozlov
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Albanian (sq.po) by Elian Myftiu
+    - Swedish (sv.po) by Per Olofsson
+    - Turkish (tr.po) by Recai Oktaş
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Colin Watson <cjwatson@debian.org>  Fri, 20 May 2005 19:56:07 +0100
+
+netcfg (1.08ubuntu9) breezy; urgency=low
+
+  * Backport from trunk:
+    - On glibc 2.3.5, getaddrinfo() doesn't return a host name in
+      res->ai_canonname, so seeding the host name from DNS failed. This
+      appears to have been a bug in earlier versions of glibc, since POSIX
+      says: "A numeric host address string is not a 'name', and thus does
+      not have a 'canonical name' form; no address to host name translation
+      is performed." Use getnameinfo() instead.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 13 May 2005 17:06:50 +0100
+
+netcfg (1.08ubuntu8) hoary; urgency=low
+
+  * Update French translation (thanks, Sebastien Bacher).
+  * Update German translation (thanks, Michael Vogt).
+  * Update Greek translation (thanks, Giorgos Logiotatidis).
+  * Update Norwegian Bokmål translation (thanks, Terance Edward Sola).
+  * Update Romanian translation (thanks, Ovidiu Damian).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue,  5 Apr 2005 17:11:01 +0100
+
+netcfg (1.08ubuntu7) hoary; urgency=low
+
+  * Update Spanish translation (thanks, Enrique Matías Sánchez).
+  * Update Xhosa translation (thanks, Adi Attar).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 31 Mar 2005 18:38:58 +0100
+
+netcfg (1.08ubuntu6) hoary; urgency=low
+
+  * Update French translation (thanks, Sebastien Bacher).
+  * Update German translation (thanks, Maximilian Gerlach).
+  * Update Hungarian translation (thanks, Gabor Burjan).
+  * Update Indonesian translation (thanks, Yoppy Hidayanto).
+  * Update Polish translation (thanks, Dominik Zabłotny).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 28 Mar 2005 20:17:17 +0100
+
+netcfg (1.08ubuntu5) hoary; urgency=low
+
+  * Update Brazilian Portuguese translation (thanks, Carlos Eduardo Pedroza
+    Santiviago).
+  * Update German translation (thanks, Herbert Straub).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 26 Mar 2005 03:00:46 +0000
+
+netcfg (1.08ubuntu4) hoary; urgency=low
+
+  * Substitute ${iface} in netcfg/wireless_essid_again (closes: Ubuntu
+    #8174).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 25 Mar 2005 00:56:40 +0000
+
+netcfg (1.08ubuntu3) hoary; urgency=low
+
+  * If an interface's kill switch is enabled but the user continues without
+    disabling it, go on to the next interface (closes: Ubuntu #7451).
+  * Avoid infinite loop on wireless configuration if no access points are
+    available, by introducing a slightly different question the second time
+    round the loop; entering an empty ESSID there breaks out of wireless
+    configuration (closes: Ubuntu #7098).
+  * Add draft Xhosa translation.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 23 Mar 2005 14:32:46 +0000
+
+netcfg (1.08ubuntu2) hoary; urgency=low
+
+  * Check correct variable for read() return value when checking RF kill
+    switch (really closes: Ubuntu #1877).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 28 Feb 2005 10:15:38 +0000
+
+netcfg (1.08ubuntu1) hoary; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 22 Feb 2005 13:37:53 +0000
+
+netcfg (1.08) unstable; urgency=low
+
+  * Joshua Kwan
+    - Ask for nameserver information if the DHCP server did not provide
+      any. closes: #281924
+    - Pass broadcast parameter to ip because it doesn't actually set it.
+      Generally harmless, but we crash DSL modems now. closes: #295482
+    - Fix some translation issues with Choices.
+  * Joey Hess
+    - If heuristics fail to determine a default interface, use the first
+      interface as the default.
+    - Back up netcfg/choose_interface preseeded value, and if the question
+      is not displayed to the user, restore that value, overriding the
+      selected default interface. Unless it was preseeded to "auto", then we
+      use the selected default interface anyway.
+    - That should make interface preseeding work in all situations.
+      Closes: #293682
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Wed, 16 Feb 2005 21:44:33 -0800
+
+netcfg (1.07.1) unstable; urgency=low
+
+  * Joshua Kwan
+    - Fix adhoc -> ad-hoc typo in dhcp.c. (closes: #282407)
+  * Christian Perrier
+    - Add a note to translators about the maximum length of
+      individual Choices translations for Select templates
+  * Includes fixes for substitutions in translated templates.
+  * Updated translations: 
+    - Bosnian (bs.po) by Safir Šećerović
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - French (fr.po) by French Team
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Bøkmal, Norwegian (nb.po) by Hans Fredrik Nordhaug
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Romanian (ro.po) by Eddy Petrisor
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  2 Feb 2005 18:31:11 -0500
+
+netcfg (1.07ubuntu7) hoary; urgency=low
+
+  * If wireless association fails, we re-ask netcfg/wireless_essid. If this
+    question isn't going to be asked, perhaps because it was preseeded, just
+    give up rather than going into an infinite loop.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 18 Feb 2005 12:36:09 +0000
+
+netcfg (1.07ubuntu6) hoary; urgency=low
+
+  * Update Polish branding (thanks, Piotr Szotkowski).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 14 Feb 2005 11:50:38 +0000
+
+netcfg (1.07ubuntu5) hoary; urgency=low
+
+  * Update Hebrew branding (thanks, Sivan Green).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri,  4 Feb 2005 17:04:39 +0000
+
+netcfg (1.07ubuntu4) hoary; urgency=low
+
+  * Detect ipw2100 and ipw2200 hardware kill switches, and warn the user if
+    they're enabled (closes: Ubuntu #1877).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 19 Jan 2005 14:09:31 +0000
+
+netcfg (1.07ubuntu3) hoary; urgency=low
+
+  * Add link to base-installer script in /usr/lib/casper/pre.d.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 18 Jan 2005 20:15:36 +0000
+
+netcfg (1.07ubuntu2) hoary; urgency=low
+
+  * Drop priorities back to high of several questions that had been locally
+    changed in Ubuntu from high to critical.
+  * Drop priority of netcfg/get_domain to medium.
+
+ -- Colin Watson <cjwatson@canonical.com>  Sat,  1 Jan 2005 23:56:06 +0000
+
+netcfg (1.07ubuntu1) hoary; urgency=low
+
+  * Resynchronise with Debian.
+    - Add comment from Debian .po files to netcfg-common.templates to avoid
+      lots of needless diffs.
+    - Apply Ubuntu branding from scratch.
+
+ -- Colin Watson <cjwatson@canonical.com>  Mon, 15 Nov 2004 11:31:58 +0000
+
+netcfg (1.07) unstable; urgency=high
+
+  * Joshua Kwan
+    - Add missing strdup of WEP key, so that it gets into interfaces.
+      closes: #275920
+    - Also fix some problems setting WEP keys by passing a missing length
+      parameter in the data structure. closes: #280185, #270304
+      (Note: this seems to fix s:xxxxx passphrase entry.)
+    - Rectify some poor wording and missing examples in netcfg/wireless_wep
+      template.
+  * Updated translations: 
+    - Arabic (ar.po) by Ossama M. Khayat
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Bosnian (bs.po) by Safir Šećerović
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kure
+    - Welsh (cy.po) by Dafydd Harries
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by French Team
+    - Gallegan (gl.po) by Héctor Fenández López
+    - Hebrew (he.po) by Lior Kaplan
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Hungarian (hu.po) by VEROK Istvan
+    - Indonesian (id.po) by Debian Indonesia Team
+    - Italian (it.po) by Giuseppe Sacco
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Bøkmal, Norwegian (nb.po) by Bjorn Steensrud
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Russian L10N Team
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Albanian (sq.po) by Elian Myftiu
+    - Swedish (sv.po) by Per Olofsson
+    - Turkish (tr.po) by Recai Oktaş
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 10 Nov 2004 11:42:37 -0500
+
+netcfg (1.06) unstable; urgency=high
+
+  * Colin Watson
+    - Fix substitution variables in Greek and Swedish translations.
+  * Joshua Kwan
+    - Really apply Andrew Pollock's WEP patch. closes: #262624
+  * Updated translations: 
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Finnish (fi.po) by Tapio Lehtonen
+    - Hebrew (he.po) by Lior Kaplan
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Hungarian (hu.po) by VEROK Istvan
+    - Italian (it.po) by Giuseppe Sacco
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Russian (ru.po) by Yuri Kozlov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 31 Oct 2004 13:46:46 -0500
+
+netcfg (1.05ubuntu1) hoary; urgency=low
+
+  * Resynchronise with Debian (thanks, Scott James Remnant).
+  * Drop netcfg/internal-wlan template; it's not worth it without proper
+    userspace support.
+
+ -- Colin Watson <cjwatson@canonical.com>  Fri, 29 Oct 2004 13:36:10 +0100
+
+netcfg (1.05) unstable; urgency=high
+
+  * Joey Hess
+    - Rebuild, fixing dependencies on libiw27.
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 10 Oct 2004 14:55:38 -0400
+
+netcfg (1.04) unstable; urgency=low
+
+  * Thiemo Seufer
+    - Sanitize the ifdef TEST maze in ethtool-lite.c.
+  * Joshua Kwan
+    - Remove -V option. (closes: #275096) 
+  * Updated translations: 
+    - Welsh (cy.po) by Dafydd Harries
+    - Hebrew (he.po) by Lior Kaplan
+    - Hungarian (hu.po) by VEROK Istvan
+    - Latvian (lv.po) by Aigars Mahinovs
+    - Dutch (nl.po) by Bart Cornelis
+    - Polish (pl.po) by Bartosz Fenski
+    - Romanian (ro.po) by Eddy Petrisor
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  6 Oct 2004 14:23:21 -0400
+
+netcfg (1.03) unstable; urgency=low
+
+  * Joshua Kwan
+    - mii-diag support is back, but once again, as a function. Hopefully
+      it works better than the old one. This time, it only chooses a
+      default interface based on the first connected one it finds. It also
+      prefers ethtool to MII.
+    - Also add a rudimentary wireless link detection heuristic to go with
+      the new ethtool support.
+    - Apply Andrew Pollock's WEP key patch. Thanks!
+  * Thomas Hood
+    - Use "wireless-key1" option in /e/n/i rather than "wireless-key"
+      since the former allows the key string to contain whitespace
+      whereas the latter does not.  (Closes: #271978)
+  * Updated translations:
+    - Arabic (ar.po) by Ossama M. Khayat
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Catalan (ca.po) by Steve Langasek
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek (el.po) by Greek Translation Team
+    - Spanish (es.po) by Javier Fernandez-Sanguino Peña
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by French Team
+    - Gallegan (gl.po) by Héctor Fenández López
+    - Hebrew (he.po) by Lior Kaplan
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Indonesian (id.po) by Debian Indonesia Team
+    - Italian (it.po) by Giuseppe Sacco
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnasn
+    - Latvian (lv.po) by Aigars Mahinovs
+    - Norwegian (nb.po) by Bjorn Steensrud
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Russian L10N Team
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Albanian (sq.po) by Elian Myftiu
+    - Swedish (sv.po) by Per Olofsson
+    - Turkish (tr.po) by Recai Oktaş
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Sun,  3 Oct 2004 17:13:42 -0700
+
+netcfg (1.02) unstable; urgency=low
+
+  * Colin Watson
+    - Ask netcfg/get_nameservers at priority critical; if you're doing
+      static network configuration, you probably need to be asked this.
+  * Joshua Kwan
+    - Rip out mii-diag support. Incidentally, this closes the 'Go Back'
+      bugs regarding a template that now no longer exists.
+      (Closes: #269081, #269236)
+    - Code consolidation - don't duplicate the code that writes resolv.conf
+  * Thomas Hood
+    - Change function of backup button from netcfg/dhcp_options so that
+      instead of causing an exit from netcfg it backs up to the
+      choose-interface question (if there is more than one interface)
+      (Closes: #269081)
+  * Joey Hess
+    - Remove mii-diag-udeb dependencies, which were bogus even before mii-diag
+      support was removed.
+    - Allow netcfg/choose_interface to be preseeded to just an interface name,
+      don't choke on the lack of a colon after it.
+  * Updated translations: 
+    - Arabic (ar.po) by Ossama M. Khayat
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Bosnian (bs.po) by Safir Šećerović
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kure
+    - Welsh (cy.po) by Dafydd Harries
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by French Team
+    - Hebrew (he.po) by Lior Kaplan
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Italian (it.po) by Giuseppe Sacco
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Latvian (lv.po) by Aigars Mahinovs
+    - Bøkmal, Norwegian (nb.po) by Bjørn Steensrud
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Russian (ru.po) by Yuri Kozlov
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Turkish (tr.po) by Recai Oktaş
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 10 Sep 2004 14:18:39 -0400
+
+netcfg (1.01ubuntu11) warty; urgency=low
+
+  * Updated translations:
+    - Catalan (ca.po) by Jordi Mallach
+    - German (de.po) by Martin Pitt
+    - Greek (el.po) by Logiotatidis George
+
+ -- Colin Watson <cjwatson@canonical.com>  Tue, 12 Oct 2004 14:47:38 +0100
+
+netcfg (1.01ubuntu10) warty; urgency=low
+
+  * If the first WEP key entered fails, make sure to retry the question at
+    priority critical, not high.
+
+ -- Colin Watson <cjwatson@canonical.com>  Sun, 12 Sep 2004 17:19:13 +0100
+
+netcfg (1.01ubuntu9) warty; urgency=low
+
+  * Add netcfg/internal-wlan template, identical to netcfg/internal-wifi,
+    for wireless devices using the wlan-ng drivers.
+  * Repair upload following clashing uploads of 1.01ubuntu7 about which I
+    didn't find out until after uploading 1.01ubuntu8.
+
+ -- Colin Watson <cjwatson@canonical.com>  Sun, 12 Sep 2004 15:41:51 +0100
+
+netcfg (1.01ubuntu8) warty; urgency=low
+
+  * Ask about WEP keys at priority critical. "See if it works, then ask"
+    would be nicer, but there's no code for this yet.
+
+ -- Colin Watson <cjwatson@canonical.com>  Thu,  9 Sep 2004 14:48:27 +0100
+
+netcfg (1.01ubuntu7) warty; urgency=low
+
+  * Add a reference to iftab(5) to the comment added to /etc/iftab
+
+ -- Matt Zimmerman <mdz@canonical.com>  Wed,  8 Sep 2004 11:56:15 -0700
+
+netcfg (1.01ubuntu6) warty; urgency=low
+
+  * Copy networking configuration files to /target before base-installer
+    runs rather than in prebaseconfig.
+
+ -- Colin Watson <cjwatson@canonical.com>  Thu,  2 Sep 2004 16:48:12 +0100
+
+netcfg (1.01ubuntu5) warty; urgency=low
+
+  * debconf_go() returns 30 on backup, not 10.
+
+ -- Colin Watson <cjwatson@flatline.org.uk>  Wed,  1 Sep 2004 13:28:10 +0100
+
+netcfg (1.01ubuntu4) warty; urgency=low
+
+  * Fix up some backup cases to behave more usefully.
+
+ -- Colin Watson <cjwatson@flatline.org.uk>  Tue, 31 Aug 2004 21:42:00 +0100
+
+netcfg (1.01ubuntu3) warty; urgency=low
+
+  * Ask netcfg/get_nameservers at priority critical; if you're doing static
+    network configuration, you probably need to be asked this.
+
+ -- Colin Watson <cjwatson@flatline.org.uk>  Fri, 27 Aug 2004 16:19:15 +0100
+
+netcfg (1.01ubuntu2) warty; urgency=low
+
+  * Ask netcfg/continue_configure_static at priority critical.
+
+ -- Colin Watson <cjwatson@flatline.org.uk>  Wed, 25 Aug 2004 17:50:13 +0100
+
+netcfg (1.01ubuntu1) warty; urgency=low
+
+  * Merge from Debian: several fixes in 1.01 are relevant to us.
+  * Update Ubuntu branding.
+
+ -- Colin Watson <cjwatson@flatline.org.uk>  Wed, 25 Aug 2004 15:26:01 +0100
+
+netcfg (1.01) unstable; urgency=medium
+
+  * Joey Hess
+    - Ignore failure from ip in dhclient-script when setting mtu, in case
+      the supplied mtu is invalid.
+  * Joshua Kwan
+    - Give the user a choice to leave the network unconfigured if nothing is
+      plugged in. (Closes: #264476)
+    - netcfg-dhcp.templates: "may work" becomes "may succeed".
+      (Closes: #261471)
+    - Remove completely braindamaged pointer handling in
+      seed_hostname_from_dns, caused by myself.
+      (Closes: #261460, #261527, #263187, #265651, #266245, #266549)
+    - Don't let a positive result from mii-diag override netcfg/disable_dhcp.
+      (Closes: #266641)
+  * Updated translations:
+    - Arabic (ar.po) by Christian Perrier
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - Greek (el.po) by Greek Translation Team
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by French Team
+    - Hebrew (he.po) by Lior Kaplan
+    - Hungarian (hu.po) by VERÓK István
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Dutch (nl.po) by Bart Cornelis
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Christian Perrier
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Swedish (sv.po) by Per Olofsson
+    - Turkish (tr.po) by Recai Oktaş
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Sat, 21 Aug 2004 15:18:18 -0700
+
+netcfg (1.00) unstable; urgency=low
+
+  * Updated translations: 
+    - Arabic (ar.po) by Abdulaziz Al-Arfaj
+    - Welsh (cy.po) by Dafydd Harries
+    - Danish (da.po) by Frederik Dannemare
+    - German (de.po) by Dennis Stampfer
+    - Persian (fa.po) by Arash Bijanzadeh
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Italian (it.po) by Giuseppe Sacco
+    - Swedish (sv.po) by Per Olofsson
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 25 Jul 2004 19:09:47 -0400
+
+netcfg (0.72ubuntu6) warty; urgency=low
+
+  * Fix Ubuntu branding; debian/*.templates hadn't been updated, and fuzzy
+    markers were broken.
+
+ -- Colin Watson <cjwatson@flatline.org.uk>  Wed, 25 Aug 2004 13:47:56 +0100
+
+netcfg (0.72ubuntu5) warty; urgency=low
+
+  * Set default hostname to 'ubuntu'.
+
+ -- Colin Watson <cjwatson@flatline.org.uk>  Mon, 23 Aug 2004 23:30:36 +0100
+
+netcfg (0.72ubuntu4) warty; urgency=low
+
+  * Bump hostname question to critical. It's too awkward to change it after
+    the install.
+
+ -- Colin Watson <cjwatson@flatline.org.uk>  Mon, 23 Aug 2004 21:25:49 +0100
+
+netcfg (0.72ubuntu3) warty; urgency=low
+
+  * Ubuntu branding.
+
+ -- Tollef Fog Heen <tfheen@raw.no>  Fri, 20 Aug 2004 10:24:24 +0200
+
+netcfg (0.72ubuntu2) warty; urgency=low
+
+  * Switch from /etc/mactab to /etc/iftab
+
+ -- Matt Zimmerman <mdz@alcor.net>  Thu, 12 Aug 2004 11:09:26 -0700
+
+netcfg (0.72ubuntu1) warty; urgency=low
+
+  * Write an /etc/mactab entry for each ethernet interface, so that interface
+    names stay consistent
+
+ -- Matt Zimmerman <mdz@alcor.net>  Fri, 30 Jul 2004 19:25:33 -0700
+
+netcfg (0.72) unstable; urgency=low
+
+  * Joshua Kwan
+    - Don't bother depending on mii-diag-udeb for netcfg-static as it's not
+      used.
+    - Patch by Adam Thornton to add recognition for IUCV devices in static
+      configuration. (Closes: #258109)
+    - Don't suggest hostname given by the DHCP server if it's invalid.
+      (Closes: #258207)
+    - Ask netcfg/choose_interface at prio critical. (Closes: #257963)
+    - Build with NDEBUG.
+    - Indicate which interfaces are wireless. (Closes: #258338)
+    - Cut off domain when seeding hostname from DNS. (Closes: #258852)
+      Seed get_domain with it instead.
+  * Colin Watson
+    - Fix typo (s/occured/occurred/g). Unfuzzy translations.
+  * Per Olofsson
+    - Generate hotplug mapping entries for 16-bit PCMCIA cards as well,
+      since they will be managed by hotplug in pcmcia-cs 3.2.5-8.
+  * Updated translations:
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Bosnian (bs.po) by Safir Šećerović
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Alwin Meschede
+    - Greek (el.po) by George Papamichelakis
+    - Spanish (es.po) by Javier Fernandez-Sanguino Peña
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Persian (fa.po) by n
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by Philippe Batailler
+    - Hebrew (he.po) by Lior Kaplan
+    - Hungarian (hu.po) by VERÓK István
+    - Indonesian (id.po) by Parlin Imanuel Toh
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Nikolai Prokoschenko
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Albanian (sq.po) by Elian Myftiu
+    - Turkish (tr.po) by Osman Yüksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu  
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Sat, 17 Jul 2004 18:44:18 -0700
+
+netcfg (0.71) unstable; urgency=low
+
+  * Joshua Kwan
+    - Remove XSIisms in dhclient-script.
+    - Evaluate argv[0] after calling basename on it so that we can strcmp it
+      against "ptom". It somehow didn't happen in the internal dhclient-script
+      context, but appeared during testing in the shell.
+    - Add Thomas Hood to Uploaders.
+    - Re-enable broadcast stuff in dhclient-script, fixing a Sparc (at least)
+      regression.
+    - Remove kill_dhcp_client prototype from netcfg.h because it's now static.
+    - Change newline + a space to just a newline to end some disable_dhcp
+      woes.
+    - Warn if there's no default route available after getting a DHCP lease.
+      (Closes: #253543)
+    - Don't add 'auto' or hotplug mapping lines for 16-bit PCMCIA devices.
+      (Closes: #248071, #239284)
+    - Add a missing fclose in iface_is_hotpluggable.
+  * Christian Perrier
+    - netcfg-dhcp.templates
+      Some rewrite for being clearer, possibly. Run debconf-updatepo
+  * Thomas Hood
+    - Change interfaces options that use underscore to hyphens. No loss
+      of functionality. (Closes: #255185)
+    - *.c:
+      + Test for NULL pointers before using empty_str()
+    - netcfg.c, netcfg-dhcp.c, netcfg-static.c
+      + Handle the case where there are no interfaces.  Just ask for a
+        hostname and write basic /etc/network/interfaces and /etc/hosts
+        files.  (Closes: #243543)
+    - netcfg-common.c:
+      + netcfg_get_interface(): Don't exit if there are no interfaces.
+        Instead just return with variables set to 0.
+      + netcfg_write_common(): write basic /etc/network/interfaces and
+        /etc/hosts files even if the ipaddress is 0.
+    - static.c:
+      + Add resolvconf support (Closes: #255187)
+      + Add comments to /e/n/i about which packages implement which options
+    - dhcp.c
+      + Add comments to /e/n/i about which packages implement which options
+      + Fix race to dhcp_exit_status after dhcp_running set to 0.
+      + Count iterations in the polling loop instead of checking the time()
+      + Use waitpid(dhcp_pid,,) instead of wait() to get child status
+        since we don't want the status of, e.g., killall.sh
+      + Eliminate use of dhcp_running and use (dhcp_pid>0) in its place
+      + Eliminate some unnecessary calls to kill_dhcp_client()
+      + Mark local variables with "static"
+      + Eliminate use of quit_after_hostname by creating HOSTNAME_SANS_NETWORK
+        from HOSTNAME and DOMAIN_SANS_NETWORK from DOMAIN
+      + Use DHCP hostname as the default hostname if no hostname is set
+        (Closes: #239591)
+      + Write hostname provided to the DHCP client in order to get a lease
+        on the "hostname" option line for the interface in /e/n/i
+      + If the user backs up from netcfg/get_hostname, go to retry question
+      + Wait at least two seconds for DHCP client to exit  (Closes: #255984)
+      + Clean up code
+        . Always use spaces for indentation
+        . Improve comments
+        . Reorder state machine states
+        . Move some functions around
+    - netcfg-dhcp.templates:
+      + More updates
+      + Run debconf-updatepo again
+   * Updated translations:
+    - Albanian (sq.po) by Elian Myftiu
+    - German (de.po) by Alwin Meschede
+    - Greek (el.po) by George Papamichelakis
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Hebrew (he.po) by Lior Kaplan
+    - Japanese (ja.po) by Kenshi Muto
+    - Dutch (nl.po) by Bart Cornelis
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Turkish (tr.po) by Osman Yüksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Tue, 29 Jun 2004 10:51:48 -0700
+
+netcfg (0.70) unstable; urgency=medium
+
+  * Joshua Kwan
+    - Brown paper bag upload.
+    - Add the netcfg/disable_dhcp template, default to false.
+    - usleep(1500) actually sleeps for 1500 _micro_seconds, not milliseconds.
+      sleep(2) instead for simplicity.
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Tue, 15 Jun 2004 15:00:53 -0700
+
+netcfg (0.69) unstable; urgency=medium
+
+  * Sylvain Ferriol
+    - fix error message during plip config. (Closes: #253361)
+  * Christian Perrier
+    - Remove trailing exclamation mark from netcfg/dhcp_success_note
+    - Run debconf-updatepo and unfuzzy templates for removed exclamation mark
+  * Joshua Kwan
+    - Corrected reference to the pppconfig package. (Closes: #253086)
+    - killall.sh: add grep -v grep (Closes: #253099)
+    - Allow netcfg/disable_dhcp option that governs what use_dhcp is
+      set to every time we start, instead of hardcoding true. Defaults
+      to true, so default behavior has not changed. (Closes: #248147)
+    - Fix /etc/hosts writing after much deliberation. (Closes: #247734)
+    - Use a static buffer for mii-diag call.
+    - Sleep for 1.5 seconds before mii-diag, because slow network cards
+      just take that long to answer. And for those that take more that's
+      just too bad.
+  * Bastian Blank
+    - Readd postinst files for netcfg-dhcp and netcfg-static.
+  * Updated translations:
+    - Bosnian (bs.po) by Safir Šećerović
+    - German (de.po) by Alwin Meschede
+    - Hebrew (he.po) by Lior Kaplan
+    - Polish (pl.po) by Bartosz Fenski
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Tue, 15 Jun 2004 14:34:25 -0700
+
+netcfg (0.68) unstable; urgency=medium
+
+  * Severity medium for the static configuration fix.
+  * Joshua Kwan
+    - When we get a hostname from DHCP, seed the domain name with whatever
+      was received.
+    - Rework is_hotpluggable_iface a tad.
+    - Fix problem where broadcast address was being used twice.. only on
+      some architectures, due to code with unspecified behavior.
+    - Excise our dynamic prebaseconfig system and replace with a static one
+      that copies all available files into /target.
+    - For this, make sure we always start with a clean slate by removing
+      those files at startup.
+    - Move a bunch of static strings to the header file.
+  * Updated translations:
+    - Welsh (cy.po) by Dafydd Harries
+    - German (de.po) by Alwin Meschede
+    - Hebrew (he.po) by Lior Kaplan
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Fri, 28 May 2004 10:05:29 -0700
+
+netcfg (0.67) unstable; urgency=high
+
+  * The "we love bugfixes that make new bugs" release.
+  * Per Olofsson
+    - Fixed segfault in find_in_devnames when a card was missing a devnames
+      entry.
+  * Joshua Kwan
+    - Add a NETCFG_VERSION thingy so it's easier to figure out who's using
+      what.
+    - Don't reset the hostname to 'debian' on a failed seed from DNS.
+    - Write resolv.conf and nothing else before preliminary activation
+      for static configuration. This fixes the overwriting of static-specific
+      interface entries with the common (lo) entry.
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Mon, 24 May 2004 16:27:06 -0700
+
+netcfg (0.66) unstable; urgency=low
+
+  * Joshua Kwan
+    - Ask for a hostname and domain when user chooses not to configure the
+      network.
+    - Add useful canned IPv6 entries into the hosts file.
+  * Updated translations:
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Mon, 24 May 2004 08:11:57 -0700
+
+netcfg (0.65) unstable; urgency=low
+
+  * Joshua Kwan
+    - Fix machine state in static configuration to call QUIT.
+      (Closes: #250074)
+    - Rewrite resolv.conf in static configuration once we acquire a
+      domain name.
+    - DHCP server is not required to supply a domain name. (Closes: #250021)
+    - Switch to using mii-diag-udeb instead of mii-lite.c, which doesn't
+      seem to work across the board. (also addresses #250074)
+    - In static configuration, if the IP address specified turns out to be
+      the same as what we suggest for the gateway, nuke the last part of
+      the dotted quad because gateway == IP makes no sense. (Closes: #241490)
+    - Turn off backup for error messages in static configuration.
+    - Bake all of the getif* functions into one big char**-returning jelly
+      roll, get_all_ifs().
+  * Bastian Blank
+    - Make it buildable again on s390.
+  * Updated translations:
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Catalan (ca.po) by Jordi Mallach
+    - German (de.po) by Alwin Meschede
+    - Spanish (es.po) by Javier Fernandez-Sanguino Peña
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - Gallegan (gl.po) by Héctor Fernández López
+    - Norwegian (nb.po) by Knut Yrvin
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Romanian (ro.po) by Eddy Petrisor
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Albanian (sq.po) by Elian Myftiu
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Sun, 23 May 2004 03:04:02 -0700
+
+netcfg (0.64) unstable; urgency=medium
+
+  * Joshua Kwan
+    - Split out all functions into static.c, dhcp.c, wireless.c.
+    - Remove dep alternative to busybox-cvs-udeb etc., since udhcpc is no
+      longer available in any initrd. This causes businesscard and netinst
+      installs to fail because busybox is already provided and hence gets
+      used.
+    - Remove udhcpc support in dhcp.c.
+    - Port wireless fixes back to netcfg-static and netcfg-dhcp, which
+      have been rather neglected lately.
+    - Fix the GO_BACK interaction between WEP and ESSID configuration.
+    - Switch to using iproute for everything, a step towards removing
+      ifconfig and route applets from busybox.
+    - Add amd64 support. (Closes: #249363)
+    - Open one set of socket FDs and use them for the whole runtime.
+    - Write loopback all the time, even when you abort network config.
+      (Closes: #248636)
+    - Redesign DHCP strategy with a new template that uses a select,
+      allowing the user to clearly alternate to static network config
+      (Closes: #244901, #227722)
+    - Display a brief note when DHCP lease gets acquired. (Closes: #247751)
+    - Now we can ask for a DHCP hostname to add. (Closes: #236533, #239591)
+    - If we didn't use one, see if the server is offering us one and seed
+      netcfg/get_hostname with it. (Closes: #239121, #240701)
+    - Failing that, bring the interface up and try to reverse-resolve
+      the IP address into a hostname.
+    - For idempotency reasons, down all interfaces after finding each
+      one so that we can start from a clean slate. (Probably deals with
+      Bug#227722)
+    - Silently load af_packet. (Closes: #244441)
+    - Add some code hunks from mii-diag to determine code path on link
+      connection. (Closes: #247178)
+    - Add some interface_up and interface_down functions.
+    - Fix a long standing bug in devnames retrieval that did not strip
+      newlines from the devnames input and caused cdebconf to screw
+      up on subsequent questions.
+    - Bump the DHCP wait to 15 seconds. The magic number seems to be just
+      over 10 for me. (Closes: #244819)
+    - Template cleanups: netcfg/static-title, netcfg/dhcp-title,
+      netcfg/internal-pcmcia, netcfg/confirm_dhcp
+    - Add dhcp3-client support. Not that it actually gets used now that
+      we can get a DHCP-supplied hostname from dhcp-client.
+    - Remove a lot of calls to /sbin/this and /sbin/that in response to Joey's
+      rant on debian-boot.
+  * Bastian Blank
+    - Remove sleep.
+  * Updated translations:
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Alwin Meschede
+    - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by Philippe Batailler
+    - Hebrew (he.po) by Lior Kaplan
+    - Hungarian (hu.po) by VERÓK István
+    - Indonesian (id.po) by Parlin Imanuel Toh
+    - Italian (it.po) by Giuseppe Sacco
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Bøkmal, Norwegian (nb.po) by Bjørn Steensrud
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Yuri Kozlov
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Swedish (sv.po) by André Dahlqvist
+    - Turkish (tr.po) by Osman Yüksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Sun, 16 May 2004 20:36:04 -0700
+
+netcfg (0.63) unstable; urgency=low
+
+  * Per Olofsson
+    - Map 127.0.0.1 to localhost in /etc/hosts, make the hostname
+      an alias instead.
+  * Joey Hess
+    - Corrected innaccuracy in the description of ad-hoc networks.
+  * Matt Kraai
+    - Do not overwrite the resolv.conf created by the DHCP client.
+  * Joshua Kwan
+    - Remove debugging code that was not intended for 0.62.
+    - Disambiguate wireless_wep template that was confusing if the card
+      had associated successfully without previous user intervention by
+      pointing out that ${device} is a wireless device.
+
+ -- Matt Kraai <kraai@debian.org>  Thu, 15 Apr 2004 20:41:59 -0700
+
+netcfg (0.62) unstable; urgency=low
+
+  * Joshua Kwan
+    - Switch to new debhelper udeb support.
+    - Stick /sbin back. It was module-init-tools' fault.
+    - Re-UTF8ize changelog.
+    - Add a progress bar that waits 3 seconds for us to associate with an
+      AP. If after 3 seconds there is no association, then bail out, and
+      have the user type in the ESSID. From here it's possible to return
+      to automatic configuration, if, say, the user moves closer to the AP
+      and it can associate.
+    - Pull udhcpc.default.script because udhcpc-udeb isn't available
+      anymore.
+    - Blank gateway is now accepted. (Closes: #241509, #238809)
+    - Put own hostname in 127.0.0.1 hosts entry. (Closes: #238305, #237779)
+    - Add some missing newlines for wireless devices to netcfg_write_dhcp.
+    - Prune unused #defines.
+    - Nuke unused netcfg/title template.
+    - Clarify nameserver question by adding an introductory sentence.
+      (Closes: #243251) 
+    - Touch resolv.conf when using DHCP, to fix problems with pppoeconf
+      (at least for now. Closes: #241075)
+  * Per Olofsson
+    - Check for hotpluggable (PCMCIA) network interfaces in
+      /etc/network/devhotplug and don't generate auto entries for them.
+      Also put them in a "mapping hotplug" stanza. Closes: #239284.
+  * Updated translations: 
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - French (fr.po) by Philippe Batailler
+    - Gallegan (gl.po) by , Héctor Fernández López
+    - Hebrew (he.po) by Lior Kaplan
+    - Hungarian (hu.po) by VERÓK István
+    - Indonesian (id.po) by Parlin Imanuel Toh
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Romanian (ro.po) by Eddy Petrisor
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Albanian (sq.po) by Elian Myftiu
+    - Swedish (sv.po) by André Dahlqvist
+    - Turkish (tr.po) by Osman Yüksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+    - Albanian (sq.po) by Elian Myftiu
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Sun, 11 Apr 2004 22:55:40 -0700
+
+netcfg (0.61) unstable; urgency=high
+
+  * Kenshi Muto
+    - modprobe in busybox won't load af_packet. This causes DHCP
+      configuration fail.
+      This can be avoid by running modprobe without '/sbin/'.
+  * Updated translations: 
+    - Welsh (cy.po) by Dafydd Harries
+    - German (de.po) by Alwin Meschede
+    - Polish (pl.po) by Bartosz Fenski
+    - Russian (ru.po) by Nikolai Prokoschenko
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Albanian (sq.po) by Elian Myftiu
+
+ -- Joey Hess <joeyh@debian.org>  Thu,  1 Apr 2004 20:26:33 -0500
+
+netcfg (0.60) unstable; urgency=low
+
+  * Updated translations: 
+    - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+    - Hebrew (he.po) by Lior Kaplan
+    - Indonesian (id.po) by Parlin Imanuel Toh
+    - Korean (ko.po) by Changwoo Ryu
+    - Albanian (sq.po) by Elian Myftiu
+    - Swedish (sv.po) by André Dahlqvist
+    - Turkish (tr.po) by Osman Yüksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 30 Mar 2004 14:32:01 -0500
+
+netcfg (0.59) unstable; urgency=low
+
+  * Joey Hess
+    - Fix endian problem in gateway calculation.
+  * Updated translations: 
+    - Bosnian (bs.po) by Safir Šećerović
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - French (fr.po) by Philippe Batailler
+    - Hungarian (hu.po) by VERÓK István
+    - Indonesian (id.po) by Parlin Imanuel Toh
+    - Italian (it.po) by Giuseppe Sacco
+    - Japanese (ja.po) by Kenshi Muto
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Dutch (nl.po) by Bart Cornelis
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Albanian (sq.po) by Elian Myftiu
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 25 Mar 2004 14:19:18 -0500
+
+netcfg (0.58) unstable; urgency=low
+
+  * Joey Hess
+    - Convert netcfg/get_method, a select list, to netcfg/use_dhcp, a boolean.
+      This will make it easier to override at the boot prompt.
+  * Updated translations: 
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - French (fr.po) by Philippe Batailler
+    - Hungarian (hu.po) by VERÓK István
+    - Italian (it.po) by Giuseppe Sacco
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Dutch (nl.po) by Bart Cornelis
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Albanian (sq.po) by Elian Myftiu
+    - Swedish (sv.po) by André Dahlqvist
+    - Turkish (tr.po) by Osman Yüksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 22 Mar 2004 15:49:59 -0500
+
+netcfg (0.57) unstable; urgency=low
+
+  * Bastian Blank
+    - Use inet_pton and inet_ntop. Why must people always write their own
+      instead of using well tested standard functions?
+    - Only recalculate gateway if ipaddress or netmask is changed.
+    - Never recalculate nameserver.
+  * Joshua Kwan
+    - Make the question about adhoc/managed actually do something,
+      add a template for its question. Note: needs translation.
+    - Make interfaces honor the decision made in the adhoc/managed question.
+    - Make sure the WEP question, priority high, always gets asked.
+    - No gateway, no point-to-point address is OK. (Closes: #238653)
+    - If netcfg/get_hostname returns a FQDN, seed netcfg/get_domain with it
+      and do not ask that question a second time. Only ask it if FQDN was
+      _not_ passed. (Closes: #174360)
+    - Write out some informative text to INTERFACES_FILE.
+  * Updated translations: 
+    - Danish (da.po) by Claus Hindsgaul
+    - French (fr.po) by Philippe Batailler
+    - Hungarian (hu.po) by VERÓK István
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Dutch (nl.po) by Bart Cornelis
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Albanian (sq.po) by Elian Myftiu
+    - Swedish (sv.po) by André Dahlqvist
+    - Turkish (tr.po) by Osman Yüksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Fri, 19 Mar 2004 18:30:38 -0800
+
+netcfg (0.56) unstable; urgency=low
+
+  * Petter Reinholdtsen
+    - Undo code changes done by Bastian Blank.  They need more testing
+      so we only include the translations for beta3.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sun, 14 Mar 2004 19:50:33 +0100
+
+netcfg (0.55) unstable; urgency=low
+
+  * Bastian Blank
+    - Use inet_pton and inet_ntop. Why must people always write its own
+      instead of using well tested default functions?
+    - Only recalculate gateway if ipaddress or netmask is changed.
+    - Never recalculate nameserver.
+  * Translations:
+    - Kęstutis Biliūnas: Updated Lithuanian translation (lt.po)
+    - Jordi Mallach: Updated Catalan translation (ca.po)
+    - Giuseppe Sacco: Updated italian translation (it.po)
+    - Nikolai Prokoschenko: Russian updates (ru.po)
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sun, 14 Mar 2004 19:22:30 +0100
+
+netcfg (0.54) unstable; urgency=low
+
+  * Strip the binaries again. 
+
+ -- Joey Hess <joeyh@debian.org>  Tue,  9 Mar 2004 15:38:56 -0500
+
+netcfg (0.53) unstable; urgency=low
+
+  * Fix dhcp killer to not segfault if the pid is < 1000 or > 9999.
+
+ -- Joey Hess <joeyh@debian.org>  Tue,  9 Mar 2004 15:01:06 -0500
+
+netcfg (0.52) unstable; urgency=low
+
+  * Joey Hess
+    - Fix "search (null)" in /etc/resolv.conf, again, sigh.
+
+ -- Joey Hess <joeyh@debian.org>  Mon,  8 Mar 2004 19:19:30 -0500
+
+netcfg (0.51) unstable; urgency=low
+
+  * Joey Hess
+   - Clarify the DHCP retry message to make better sense if you don't know
+     what DHCP is.
+   - Kill dhcp client before beginning static network config, to keep the
+     memory footprint as low as possible.
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Alwin Meschede
+    - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by Philippe Batailler
+    - Hungarian (hu.po) by VERÓK István
+    - Italian (it.po) by Giuseppe Sacco
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Bokmal, Norwegian (nb.po) by Axel Bojer
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Albanian (sq.po) by Elian Myftiu
+    - Swedish (sv.po) by André Dahlqvist
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Mon,  8 Mar 2004 18:08:59 -0500
+
+netcfg (0.50) unstable; urgency=low
+
+  * Joshua Kwan:
+    - netcfg-{dhcp,static} Depends: libiw27-udeb.
+  * Translations:
+    - Håvard Korsvoll
+      - Updated Norwegian, bokmål translation, (nb.po). From Axel Bojer
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Tue,  2 Mar 2004 10:33:14 -0800
+
+netcfg (0.49) unstable; urgency=low
+
+  * Joshua Kwan:
+    - Make netcfg read /etc/network/devnames (generated by ethdetect and
+      hw-detect) to show names of ethernet devices in the interface
+      selection menu. Will _not_ work for PCMCIA devices ... yet.
+      (Closes: #224662, #234311, #234395)
+  * Translations:
+    - Javier Fernandez-Sanguino Pe~na
+      - Updated Spanish translation
+    - Ming Hua
+      - Initial Traditional Chinese translation (zh_TW.po), by Tetralet
+      - Updated Traditional Chinese translation (zh_TW.po), by Tetralet
+    - Jure Cuhalev
+      - Updated Slovenian translation (sl.po)
+    - Giuseppe Sacco
+      - Updated italian translation (it.po)
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Fri, 27 Feb 2004 01:08:46 -0800
+
+netcfg (0.48) unstable; urgency=low
+
+  * Joshua Kwan:
+    - libiw27-udeb exists, yay! We can go back to relinking with libiw
+      dynamically.
+    - Remove redundant configure{,-stamp} target in rules.
+  * Translations :
+    - Bartosz Fenski
+      - Updated Polish translation (pl.po)
+    - Carlos Z.F. Liu
+      - Updated Simplified Chinese translation (zh_CN.po)
+    - Peter Mann
+      - Updated Slovak translation (sk.po)
+    - Eugeniy Meshcheryakov
+      - Updated Ukrainian translation (uk.po)
+    - Jordi Mallach
+      - Updated Catalan translation (ca.po)
+    - Alwin Meschede
+      - Updated German translation (de.po)
+    - Miroslav Kure
+      - Updated Czech translation (cs.po)
+    - Håvard Korsvoll
+      - Updated Norwegian nynorsk translation (nn.po)
+    - Konstantinos Margaritis
+      - Updated Greek translation (el.po)
+    - Kenshi Muto
+      - Updated Japanese translation (ja.po)
+    - Bart Cornelis
+      - Updated Dutch translation (nl.po)
+    - Thorsten Sauter
+      - Fix german translation (de.po)
+    - Changwoo Ryu
+      - Updated Korean translation (ko.po)
+    - Claus Hindsgaul
+      - Updated Danish translation (da.po)
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 26 Feb 2004 21:08:11 -0500
+
+netcfg (0.47) unstable; urgency=low
+
+  * Joey Hess
+    - Use three dots in ellipses for consistency.
+    - Link libiw statically. This is temporary, until there is a libiw-udeb.
+  * Joshua Kwan
+    - Brown paper bag: Fix egregiously broken is_valid_ip() tests.
+      (In more ways than one...)
+  * Translations :
+    - Philippe Batailler
+      - Updated French translation (fr.po)
+    - André Luís Lopes
+      - Updated Brazilian Portuguese translation (pt_BR.po)
+    - Kęstutis Biliūnas
+      - Updated Lithuanian translation (lt.po)
+    - KEnshi Muto
+      - Updated Japanese translation (ja.po)
+    - Giuseppe Sacco
+      - Updated italian translation (it.po)
+    - Konstantinos Margaritis
+      - Updated Greek translation (el.po)
+    - Carlos Z.F. Liu
+      - Updated Simplified Chinese translation (zh_CN.po)
+    - Jordi Mallach
+      - Updated Catalan translation (ca.po)
+    - Eugeniy Meshcheryakov
+      - Updated Ukrainian translation (uk.po)
+    - Elian Myftiu
+      - Updated Albanian translation (sq.po)
+    - Håvard Korsvoll
+      - Updated Norwegian, nynorsk (nn.po) translation.
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 25 Feb 2004 00:44:43 -0500
+
+netcfg (0.46) unstable; urgency=low
+
+  * Joshua Kwan
+    - Added wireless configuration support for ESSIDs and WEP keys
+      using libiw. (Closes: #225512, #214491)
+    - Made default text for nameserver match gateway when in static
+      configuration. (Closes: #231106)
+    - Bump netcfg/get_domain to priority high. (Closes: #231107)
+      using libiw.
+    - Check entered IP addresses for gateway, netmask (special case allowing
+      '0' entries), IP address, and PPP endpoint. (Closes: #224912)
+  * Joey Hess
+    - First round of template polishing on new templates.
+  * Translations:
+    - Miroslav Kure
+      - Updated Czech translation
+    - Elian Myftiu
+      - Updated Albanian translation (sq.po) 
+    - Carlos Z.F. Liu
+      - Updated Simplified Chinese translation (zh_CN.po)
+    - Kenshi Muto
+      - Updated Japanese translation (ja.po)
+    - Eugeniy Meshcheryakov
+      - Updated Ukrainian translation (uk.po)
+    - André Luís Lopes
+      - Updated Brazilian Portuguese translation (pt_BR.po)
+    - Jordi Mallach
+      - Updated Catalan translation (ca.po)
+    * Claus Hindsgaul
+      - Updated Danish translation (da.po)
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Mon, 23 Feb 2004 09:32:27 -0800
+
+netcfg (0.45) unstable; urgency=low
+
+  * Joey Hess
+    - Use just one prebaseconfig script for all three netcfg programs.
+      This is to simplify the necessary progress templates.
+    - Add a prebaseconfig progress template.
+  * Translations :
+    - André Luís Lopes
+      - Updated Brazilian Portuguese translations (pt_BR.po)
+    - Kenshi Muto
+      - Updated Japanese translation (ja.po)
+    - Changwoo Ryu
+      - Added Korean translation (ko.po)
+    * Claus Hindsgaul
+      - Updated Danish translation (da.po)
+    - Eugeniy Meshcheryakov
+      - Updated Ukrainian translation (uk.po)
+    - Kęstutis Biliūnas
+      - Updated Lithuanian translation (lt.po)
+    - Carlos Z.F. Liu
+      - Updated Simplified Chinese translation (zh_CN.po)
+    - Konstantinos Margaritis
+      - Updated Greek translation (el.po)
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 21 Feb 2004 14:57:37 -0500
+
+netcfg (0.44) unstable; urgency=low
+
+  * Translators:
+    - Peter Mann: Update Slovak translation
+    - Miguel Figueiredo : Updated pt.po
+    - Carlos Z.F. Liu
+      - fix some serious errors in Simplified Chinese translation.
+    - h3li0s: added albanian translation sq.po
+    - Jordi Mallach: Update Catalan translation (ca.po).
+  * Eugen Meshcheryakov : added Ukrainian translation (uk.po)
+
+ -- Christian Perrier <bubulle@debian.org>  Sun,  8 Feb 2004 20:26:40 +0100
+
+netcfg (0.43) unstable; urgency=low
+
+  * Steinar H. Gunderson
+    - The state machine in netcfg-dhcp was broken and never really
+      activated DHCP; fixed.
+
+ -- Steinar H. Gunderson <sesse@debian.org>  Sun, 25 Jan 2004 19:23:42 +0100
+
+netcfg (0.42) unstable; urgency=low
+
+  * Bartosz Fenski
+    - Updated Polish (pl) translation.
+  * Giuseppe Sacco
+    - Update italian translation (it.po)
+  * Matt Kraai
+    - Remove an extra space from the netcfg/get_hostname template.
+  * Christian Perrier
+    - Run debconf-updatepo after the above change
+    - Unfuzzied translations after the above change
+  * Andre Dahlqvist
+    - Updated Swedish translation (sv.po)
+  * Joey Hess
+    - Reworded the interface selection question.
+  * Christian Perrier
+    - Run debconf-updatepo
+  * Kenshi Muto
+    - Update Japanese translation (ja.po)
+  * Bart Cornelis
+    - Updated Dutch (nl.po) translation
+  * André Luís Lopes
+    - Updated Brazilian Portuguese (pt_BR) translation.
+  * Konstantinos Margaritis
+    - Updated Greek translation (el.po)
+  * Anmar Oueja
+    - created and translated to Arabic (ar.po)
+  * Philippe Batailler
+    - Updated French translation (fr.po)
+  * Miroslav Kure
+    - Updated Czech translation
+  * Peter Mann
+    - Updated Slovak translation
+  * Teófilo Ruiz Suárez
+    - Updated Spanish translation (po/es.po)
+  * Nikolai Prokoschenko
+    - updated russian translation (ru.po)
+  * Anmar Oueja
+    - Update Arabic translation (ar.po)
+  * Claus Hindsgaul
+    - Updated Danish translation.
+  * Alwin Meschede
+    - Updated German translation (de.po)
+  * Kęstutis Biliūnas
+    - Updated Lithuanian translation (lt.po).
+  * Ming Hua
+    - Updated Simplified Chinese translation (zh_CN.po)
+  * Andre Dahlqvist
+    - Update Swedish translation (sv.po)
+  * Safir Secerovic
+    - Update Bosnian translation (bs.po).
+  * Joey Hess
+    - Only prompt for a hostname after dhcp has succeeded, to avoid
+      double prompt on failed dhcp followed by static config.
+      Closes: #227897
+    - Add back button to the dhcp retry dialog. Closes half of #225861
+      The other half will be fixed in cdebconf.
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 22 Jan 2004 20:02:45 -0500
+
+netcfg (0.41) unstable; urgency=low
+
+  * Change priority of the hostname question to high.
+
+ -- Joey Hess <joeyh@debian.org>  Thu,  1 Jan 2004 22:21:28 -0500
+
+netcfg (0.40) unstable; urgency=low
+
+  * Ming Hua
+    - Initial Simplified Chinese translation (zh_CN.po)
+  * Bart Cornelis
+    - Merged Norwegian Nynorsk (nn.po) translation from skolelinux-cvs
+  * Thiemo Seufer
+    - Code cleanup and whitespace police, run through the testmill
+      this time.
+  * Andre Dahlqvist
+    - Initial Swedish translation (sv.po).
+  * Matt Kraai
+    - Do not overwrite /etc/resolv.conf if using DHCP.
+    - Do not set the domain if it is the empty string.
+  * Joey Hess
+    - Only copy /etc/resolv.conf to /target in static config.
+    - Do not write badly formatted /etc/mailname. Instead, set the hostname
+      in /proc and let the MTA postinst do the rest.
+      Closes: #212143, #222631
+    - If the domain is left blank, do not add a search line to
+      /etc/resolv.conf
+    - Write hostname to /etc/hostname and copy to target in prebaseconfig,
+      to avoid the localhost effect from 50config-target-network in
+      prebaseconfig. Closes: #224644
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 30 Dec 2003 19:54:27 -0500
+
+netcfg (0.39) unstable; urgency=high
+
+   * Reverted Thiemo Seufer's "code cleanup", which broke the state machine
+     and made netcfg hang after getting a dhcp lease. Test before committing,
+     people!
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 26 Dec 2003 13:35:58 -0500
+
+netcfg (0.38) unstable; urgency=low
+
+  * Peter Mann
+    - Initial Slovak translation
+  * André Dahlqvist
+    - Added Swedish translation
+  * Giuseppe Sacco
+    - Updated italian translation
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 25 Dec 2003 19:31:07 -0500
+
+netcfg (0.37) unstable; urgency=low
+
+  * Thiemo Seufer
+    - Code cleanup.
+  * Gaudenz Steinlin
+    - prefer udhcpc to pump (Closes: #224663)
+    - copy hostname to /target/etc/mailname (Closes: #212143)
+  * Bart Cornelis
+    - Merged Norwegian Bokmael (nb.po) translation from skolelinux-cvs
+  * Jure Cuhalev
+    - Added/updated slovenian translation (sl.po). 
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 23 Dec 2003 21:47:33 -0500
+
+netcfg (0.36) unstable; urgency=low
+
+  * Bartosz Fenski
+    - Updated Polish (pl) translation.
+  * Steinar H. Gunderson
+    - Updated Norwegian translation (nb.po).
+  * Philippe Batailler
+    - French translation improvements.
+  * Christian Perrier
+    - Corrected typo in templates (s/If must/It must) and updated
+      all translations
+  * Thiemo Seufer
+    - Fix function prototypes. Improve Makefile.
+  * Ognyan Kulev
+    - Added/updated bulgarian translation (bg.po).
+  * Kęstutis Biliūnas
+    - Updated Lithuanian translation (lt.po).
+  * Petter Reinholdtsen
+    - Update Norwegian Nynorsk (nn.po), thanks to Gaute Hvoslef Kvalnes.
+  * Bart Cornelis
+    - Updated Dutch translation (nl.po)
+  * Daniel Costa
+    - Updated Portuguese translation (pt.po)
+  * Teófilo Ruiz Suárez
+    - (Very) updated Spanish translation (es.po)
+    - Switched to UTF-8
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 22 Dec 2003 14:26:37 -0500
+
+netcfg (0.35) unstable; urgency=low
+
+  * André Luís Lopes
+    - Update pt_BR (Brazilian Portuguese) translation.
+  * Kęstutis Biliūnas
+    - Updated Lithuanian translation
+  * Christian Perrier
+    - Debconf templates polishing (Closes: #223762)
+  * Joey Hess
+    - English fixes.
+  * Kenshi Muto
+    - Update Japanese translation (ja.po)
+  * Oliver Elphick
+    - More template polishing.
+  * Verok Istvan
+    - Updated Hungarian translation
+  * Claus Hindsgaul
+    - Updated Danish translation.
+  * Konstantinos Margaritis
+    - Updated Greek translation (el.po)
+  * Giuseppe Sacco
+    - add italian translation by Filippo Giunchedi
+  * Gaudenz Steinlin
+    - write to prebaseconfig.d/40netcfg in netcfg
+  * Alwin Meschede
+    - Updated German translation (de.po)
+  * Miroslav Kure
+    - Updated Czech translation (cs.po)
+  * Philippe Batailler
+    - Updated French translation (fr.po)
+
+ -- Gaudenz Steinlin <gaudenz@soziologie.ch>  Wed, 17 Dec 2003 01:11:31 +0100
+
+netcfg (0.34) unstable; urgency=low
+
+  * Kenshi Muto
+    - Update Japanese translation (ja.po)
+  * André Luís Lopes
+    - Update pt_BR (Brazilian Portuguese) translation.
+  * Verok Istvan
+    - Initial Hungarian translation
+  * Denis Barbier
+    - Unfuzzy French translation
+  * Gaudenz Steinlin
+    - add new combined dhcp and static netcfg
+      (udeb netcfg)
+    - implement joey's dhcp idea
+      (wait 10s and then ask if we should try 
+       longer)
+    - move common code to netcfg-common.c
+    - improve state machines
+
+ -- Gaudenz Steinlin <gaudenz@soziologie.ch>  Thu, 11 Dec 2003 12:08:48 +0100
+
+netcfg (0.33) unstable; urgency=low
+
+  * André Luís Lopes
+    - Update pt_BR (Brazilian Portuguese) translation.
+  * Miroslav Kure
+    - Update Czech translation.
+  * Steinar H. Gunderson
+    - Update nb.po.
+  * Konstantinos Margaritis
+    - Initial Greek translation (el.po)
+  * Christian Perrier
+    - Refined and standardized templates. Closes: #219633
+  * Claus Hindsgaul
+    - Update da (Danish) translation.
+  * Axel Noetzold
+    - Remove spurious space from the netcfg/no_interfaces template.
+      Closes: #221203
+  * Safir Šećerović
+    - Update Bosnian translation (bs.po)
+  * Bastian Blank
+    - remove dependency against different dhcp clients.
+  * Jordi Mallach
+    - Add Catalan translation (ca.po).
+  * Kenshi Muto
+    - Update Japanese translation (ja.po)
+  * Ilgiz Kalmetev
+    - Update Russian translation. Closes: #221824.
+  * Joey Hess
+    - Fix tense in netcfg/error template.
+  * Thiemo Seufer
+    - Add CLFAGS -W.
+
+ -- Joey Hess <joeyh@debian.org>  Tue,  9 Dec 2003 15:52:11 -0500
+
+netcfg (0.32) unstable; urgency=low
+
+  * Denis Barbier
+    - Run debconf-updatepo to update PO files
+  * Philippe Batailler
+    - Update French translation.
+  * Kenshi Muto
+    - Update Japanese translation (ja.po)
+  * Petter Reinholdtsen
+    - Updated nb.po.
+  * Claus Hindsgaul
+    - Update da (Danish) translation.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Fri, 14 Nov 2003 15:26:00 +0100
+
+netcfg (0.31) unstable; urgency=low
+
+  * Gaudenz Steinlin
+    - remove useless and confusing dhcp
+      confirm question
+    - apply debconf templates polishing
+      (Thanks to Christian Perrier and
+       Chris Tillman) (Closes: #219633)
+    - reworked state machine in netcfg-static to
+      show iface, ipaddr, p2p, netmask, gateway,
+      nameservers, hostname, domain, confirm
+      (Closes: #220182)
+    - set nameserver question to high
+    - depend on ethernet-card-detection
+      (Closes: #219309)
+
+ -- Gaudenz Steinlin <steinlin@sowipc4.unibe.ch>  Thu, 13 Nov 2003 22:44:23 +0100
+
+netcfg (0.30) unstable; urgency=low
+
+  * Kenshi Muto
+    - Update Japanese translation (ja.po)
+  * Bart Cornelis
+    - Udate Dutch translation (nl.po)
+  * Steinar H. Gunderson
+    - Fix so that netcfg asks debconf for the description for
+      "netcfg/internal-eth" instead of (e.g.) "netcfg/internal-eth0".
+    - Make multiple network cards work properly, by stripping off the
+      trailing ", " from the choices list sent to cdebconf.
+  * Alastair McKinstry
+    - Enable <goback> button to work. Closes: #212771.
+  * Claus Hindsgaul
+    - Update da (Danish) translation.
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 10 Nov 2003 13:46:20 -0500
+
+netcfg (0.29) unstable; urgency=low
+
+  * Joey Hess
+    - Temporary fix to refer to correct menu item title for ethdetect.
+    - Add myself to uploaders.
+  * Matt Kraai
+    - Pass -e to dhclient so that it exits unsuccessfully if it is unable
+      to obtain a lease (closes: #219392).
+  * Philippe Batailler
+     - Update French translation.
+  * Christian Perrier
+     - Fix Turkish PO file (closes: #219396).
+  * André Luís Lopes
+     - Update pt_BR (Brazilian Portuguese) translation.
+  * Miroslav Kure
+     - Update Czech translation.
+  * Tommi Vainikainen
+    - Update Finnish translation.
+
+ -- Joey Hess <joeyh@debian.org>  Fri,  7 Nov 2003 13:19:11 -0500
+
+netcfg (0.28) unstable; urgency=low
+
+  * André Luís Lopes
+    - Updated pt_BR (Brazilian Portuguese) translation.
+  * Kenshi Muto
+    - Update Japanese translation (ja.po)
+  * Bart Cornelis
+    - Updated dutch translation (nl.po)
+    - added lituanian (lt.po) translation from Kestutis Biliunas
+  * Tommi Vainikainen
+    - Add Finnish (fi.po) translation
+  * Miroslav Kure
+    - Update Czech translation (cs.po).
+  * Petter Reinholdtsen
+    - Updated nb.po.
+  * Claus Hindsgaul
+    - Update da (Danish) translation.
+  * Philippe Batailler
+    - Update French translation.
+  * Joey Hess
+    - Change Installer-Menu-Items from 11 to 18 and 20 as part of the
+      10-30  renumbering.
+  * Safir Secerovic, Amila Akagic
+    - Add Bosnian translation (bs.po).
+
+ -- Joey Hess <joeyh@debian.org>  Sun,  2 Nov 2003 13:13:34 -0500
+
+netcfg (0.27) unstable; urgency=low
+
+  * Step dhcp progress display to 100% before clearing it.
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 17 Oct 2003 17:22:24 -0400
+
+netcfg (0.26) unstable; urgency=low
+
+  * Claus Hindsgaul
+    - Update da (Danish) translation.
+  * Alastair McKinstry
+    - Move to new cdebconf macros.
+    - Added versioned depends on libdebconfclient-dev to ensure we get
+      working debonf_* macros
+  * Joey Hess
+    - Fixed the libdebconfclient0-dev package name.
+    - Run a progress bar with dhcp, just so something will be on the screen
+      then.
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 17 Oct 2003 15:23:52 -0400
+
+netcfg (0.25) unstable; urgency=low
+
+  * Alastair McKinstry
+    - Change references to "Configure network hardware" to "Detect hardware"
+    - remove unnecessary menutest scripts
+    - Move changelog to UTF-8
+    - Moved to Standards-Version: 3.6.1
+  * ANdré Luís Lopes
+    - Update Brazilian Portuguese (pt_BR) debconf template translations.
+  * Martin Sjögren
+    - Fix hostname corruption bug.
+    - Remove empty netcfg-ppp package.
+    - Use SETTITLE instead of TITLE for i18n reasons.
+    - Use debconf templates for i18n.
+  * Pierre Machard
+    - Update French debconf template translation [Philippe Batailler]
+  * Javier Fernandez-Sanguino:
+    - Updated Spanish translation
+  * Kenshi Muto
+    - Added Japanese translation (ja.po)
+  * Steinar H. Gunderson
+    - Now includes directory /etc/network. (Closes: #211300)
+  * Chris Tillman
+    - Update English usage in message templates
+  * Bart Cornelis
+    - Update Dutch po-debconf translation, incorporated changes
+      suggested by newly started review process of debian-l10n-dutch
+      team
+  * Kenshi Muto
+    - Update ja.po
+  * Petter Reinholdtsen
+    - Make menu entries translatable.
+    - Improve text of the missing interface template.
+    - Use the error template type on error templates.
+    - Update dependency from libdebian-installer3-dev to
+      libdebian-installer4-dev, patch from Goswin von Brederlow.
+  * Denis Barbier
+    - Add comments in templates files to tell which strings are titles
+      and menu entries.  These comments are removed by po2debconf.
+  * Miroslav Kure
+    - Added Czech translation.
+
+ -- Sebastian Ley <ley@debian.org>  Thu,  9 Oct 2003 17:09:04 +0200
+
+netcfg (0.24) unstable; urgency=low
+
+  * Thorsten Sauter
+    - Update de.po
+  * Christian Perrier
+    - Update fr.po
+  * Alastair McKinstry
+    - Replace libdebconf depends with libdebconfclient. Closes: #194438.
+
+ -- Alastair McKinstry <mckinstry@computer.org>  Mon, 19 May 2003 22:20:12 +0200
+
+netcfg (0.23) unstable; urgency=low
+
+  * Petter Reinholdtsen
+    - Updated nb.po recieved from Bjørn Steensrud.
+    - Added Norwegian Nynorsk (nn.po) translations recieved from
+      Gaute Hvoslef Kvalnes.
+  * André Luís Lopes
+    - Update Brazilian Portuguese (pt_BR) template translations.
+  * Alastair McKinstry
+    - netcfg.c: Add additional interfaces that we may use
+  * Bastian Blank
+    - add udhcpc script to support busybox-cvs
+    - don't build netcfg-dhcp for s390
+  * Javier Fernández-Sanguino
+    - Translated to Spanish the template
+
+ -- Bastian Blank <waldi@debian.org>  Sun, 04 May 2003 14:49:29 +0200
+
+netcfg (0.22) unstable; urgency=low
+
+  * Richard Hirst
+    - rename debconf_input() to my_debconf_input() to avoid clashes with
+      #defines in cdebconf/debconfclient.h
+  * Tollef Fog Heen
+    - Reinstate netcfg-dhcp.templates which got lost in a branch
+  * Matt Kraai
+    - Copy configuration to /target and make it work (closes: #177666)
+  * Petter Reinholdtsen
+    - Added Norwegian Bokmål (nb.po) translations recieved from
+      Bjørn Steensrud.
+
+ -- Matt Kraai <kraai@debian.org>  Mon, 03 Feb 2003 20:28:31 -0800
+
+netcfg (0.21) unstable; urgency=low
+
+  * Martin Sjögren
+    - Added sv.po (thanks to David Weinehall)
+    - Use libdebian-installer3
+  * Denis Barbier
+    - Add _ macro for future i18n
+  * Tolef Fog Heen
+    - Fix installer-menu-item
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Thu,  5 Dec 2002 01:32:10 +0100
+
+netcfg (0.20) unstable; urgency=low
+
+  * Matt Kraai:
+    - modprobe af_packet before trying DHCP.
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Tue, 26 Nov 2002 04:12:21 +0100
+
+netcfg (0.19) unstable; urgency=low
+
+  * Martin Sjögren
+    - Replace XBC with XB so our special control fields don't confuse the
+      changes files.
+  * André Lusí Lopes
+    - Set pt_BR.po control fields.
+    - Update pt_BR translation.
+  * Tollef Fog Heen:
+    - Fix menutest script
+    - Make -dhcp have higher priority than -static, since we presume more
+      people will be using that.
+    - Multiply installer-menu-item by ten.
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Thu, 14 Nov 2002 01:55:02 +0100
+
+netcfg (0.18) unstable; urgency=low
+
+  * Make netcfg-dchp not ask about name servers and such -- those should
+    be gotten from the dhcp server.
+  * Make netcfg-static be a bit smarter about default gw and subnet masks.
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Fri,  8 Nov 2002 04:19:47 +0100
+
+netcfg (0.17) unstable; urgency=low
+
+  * added libdebian-installer2-dev to Build-Depends, because it is needed by
+    other packages and it conflicts with libdebian-installer1-dev which was at
+    Build-Depends before.
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Wed,  6 Nov 2002 02:05:55 +0100
+
+netcfg (0.16) unstable; urgency=low
+
+  * Build-dep on libdebian-installer1-dev, not libdebian-installer-dev.
+    Thanks to Thomas Poindessous for fixing this.
+  * kraai: canonicalize ethdetect description capitalization
+  * waldi: add s390 network types
+  * kraai: fix handling of empty DHCP hostname
+  * Convert to po-debconf, set Build-Depends: debhelper (>= 4.1.13)
+    to ensure that generated templates are right, and set output encoding
+    to UTF-8.  Update debian/rules to call po2debconf instead of
+    debconf-mergetemplate.
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Thu, 24 Oct 2002 12:47:31 +0200
+
+netcfg (0.15) unstable; urgency=low
+
+  * remove util.[ch] (functions now in libdebian-installer)
+  * check hostname for rfc 1123 compliance
+  * increase netcfg-* priority to force it after ddetect
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Mon, 16 Sep 2002 17:52:49 +0200
+
+netcfg (0.14) unstable; urgency=low
+
+  * Rebuild for new cdebconf
+  * Danish templates thanks to Claus Hindsgaul
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Wed, 21 Aug 2002 19:06:16 +0200
+
+netcfg (0.13) unstable; urgency=low
+
+  * French templates thanks to 
+    Philippe Batailler <pbatailler@teaser.fr> (closes: #138073)
+  * some build cleanup
+  * tfheen: Use libdebian-installer, thanks to thomas poindessous
+  * tfheen: Add libdebian-installer-dev to build-depends.
+  * tfheen: Change cdebconf-dev to libcdebconf-dev.
+  * tfheen: Change maintainer to debian-boot, add David Kimdon and Tollef
+    Fog Heen to Uploaders.
+  * tfheen: Fix rules file to not munge the templates.
+  * tfheen: get rid of emacs changelog variables
+  * cjwatson: Correct dpkg-gencontrol call so it picks up ${shlibs:Depends}.
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Tue, 23 Jul 2002 22:22:03 +0200
+
+netcfg (0.12) unstable; urgency=low
+
+  * Make netcfg-static actually work by calling num2dot at most once per
+    sprintf, since num2dot uses a static buffer.
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Tue, 29 Jan 2002 21:12:31 +0100
+
+netcfg (0.11) unstable; urgency=low
+
+  * use new dpkg features so build is less cludgy 
+  * dhcp and static templates thanks to 
+    ilgiz kalmetev <i.kalmetev@bis.bashtelecom.ru>
+    (closes: #114843, #114844, #114845)
+
+ -- David Kimdon <dwhedon@debian.org>  Mon,  7 May 2001 23:31:11 -0700
+
+netcfg (0.10) unstable; urgency=low
+
+  * fix broken handling of nameservers, build with cdebconf-dev. 
+
+ -- David Whedon <dwhedon@debian.org>  Wed, 14 Feb 2001 20:33:40 -0800
+
+netcfg (0.09) unstable; urgency=low
+
+  * make necessary dirs at build time rather than runtime
+  * call it dhclient rather than dhclient-2.2.x
+
+ -- David Whedon <dwhedon@debian.org>  Tue,  6 Feb 2001 21:41:50 -0800
+
+netcfg (0.08) unstable; urgency=low
+
+  * route is now in /sbin 
+
+ -- David Whedon <dwhedon@debian.org>  Wed, 31 Jan 2001 09:58:18 -0800
+
+netcfg (0.07) unstable; urgency=low
+
+  * if a gateway is specified, netcfg-static needs to add a default route 
+
+ -- David Whedon <dwhedon@debian.org>  Tue, 30 Jan 2001 23:30:18 -0800
+
+netcfg (0.06) unstable; urgency=low
+
+  * added German translations from Michael Bramer <grisu@debian.org> 
+    (Closes: #83153, #83159)
+  * automatically choose between dhcp-client or pump
+
+ -- David Whedon <dwhedon@debian.org>  Tue, 23 Jan 2001 20:20:00 -0800
+
+netcfg (0.05) unstable; urgency=low
+
+  * added support for dhclient and pump.
+  * removed support for dhcpcd. 
+  * split things up more cleanly b/w dhcp and static.
+
+ -- David Whedon <dwhedon@debian.org>  Sun, 21 Jan 2001 22:07:15 -0800
+
+netcfg (0.04) unstable; urgency=low
+
+  * fixed a segfault found by "Randolph Chung" <randolph@tausq.org>  
+
+ -- David Whedon <dwhedon@gordian.com>  Mon,  8 Jan 2001 19:19:17 -0800
+
+netcfg (0.03) unstable; urgency=low
+
+  * cleaned up much, now it plays well with main-menu and
+    actually configures the network.
+
+ -- David Whedon <dwhedon@gordian.com>  Sat, 30 Dec 2000 23:01:09 -0800
+
+netcfg (0.02) unstable; urgency=low
+
+  * dhcp and static config now in two separate udebs 
+
+ -- David Whedon <dwhedon@gordian.com>  Tue, 26 Dec 2000 20:53:58 -0800
+
+netcfg (0.01) unstable; urgency=low
+
+  * Initial Release.
+
+ -- David Whedon <dwhedon@gordian.com>  Fri,  8 Dec 2000 22:19:20 -0800

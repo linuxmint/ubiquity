@@ -1,0 +1,136 @@
+#! /bin/bash
+# Run oem-config on the first boot after shipping to the end user.
+set -e
+
+DEBUG=
+AUTOMATIC=
+for option;do
+	case $option in
+		--debug)
+			DEBUG=--debug
+			;;
+		--automatic)
+			AUTOMATIC=--automatic
+			;;
+	esac
+done
+
+# KDM stores the default user here, and apparently gets upset that we've
+# just removed its previous default user.
+rm -f /var/lib/kdm/kdmsts
+# Revert to creating a user at uid 1000.
+echo RESET passwd/user-uid | debconf-communicate >/dev/null
+if [ -z "$AUTOMATIC" ]; then
+	# These two templates have been preseeded, which does nasty things
+	# to their templates.  It's probably a bug in cdebconf's
+	# debconf-copydb that they end up still registered to
+	# debian-installer/dummy at this point, but let's just work around
+	# it for now so that we get sensible translated descriptions.
+	for q in passwd/user-fullname passwd/username; do
+		echo REGISTER "$q" "$q"
+		echo RESET "$q"
+	done | debconf-communicate oem-config >/dev/null
+fi
+
+# Remove the oem-config-prepare menu item.
+rm -f /usr/share/applications/oem-config-prepare-gtk.desktop \
+      /usr/share/applications/kde4/oem-config-prepare-kde.desktop
+# Adjust fontconfig configuration, if possible.
+if type fontconfig-voodoo >/dev/null 2>&1; then
+	RET="$(echo GET debian-installer/locale | debconf-communicate)"
+	if [ "${RET%% *}" = 0 ]; then
+		LC_ALL="${RET#* }" fontconfig-voodoo --auto --force --quiet \
+			|| true
+	fi
+fi
+# Run a command just before starting oem-config.
+RET="$(echo GET oem-config/early_command | debconf-communicate)" || true
+if [ "${RET%% *}" = 0 ]; then
+	command="${RET#* }"
+	log-output sh -c "$command" || true
+fi
+
+# TODO: will this work for X-based frontends when X isn't up yet?
+if [ -z "$FRONTEND" ]; then
+	FRONTEND="$(/usr/sbin/oem-config -q)"
+fi
+
+if [ ! -e '/var/log/installer' ]; then
+	mkdir -p /var/log/installer
+fi
+
+if [ "$DEBUG" ]; then
+	TRY=1
+else
+	TRY=5
+fi
+for try in $(seq 1 $TRY); do
+	CODE=0
+	if [ "$FRONTEND" = debconf_ui ]; then
+		plymouth quit || true
+		LANG=en_US.UTF-8 FRONTEND="$FRONTEND" \
+		/usr/sbin/oem-config-wrapper $DEBUG $AUTOMATIC --only \
+			2>>/var/log/oem-config.log \
+			|| CODE=$?
+	else
+		FRONTEND="$FRONTEND" \
+		/usr/bin/ubiquity-dm vt7 :0 oem \
+			/usr/sbin/oem-config-wrapper $DEBUG $AUTOMATIC --only || CODE=$?
+	fi
+	if [ "$CODE" -eq 0 ]; then
+		exit 0
+	elif [ "$CODE" -eq 10 ]; then
+		cat <<EOF
+Your system is not yet configured. Press 'a' to try again, 's' for a
+recovery shell, or 'r' to reboot.
+EOF
+		while :; do
+			read -p '[asr] ' -n 1 REPLY
+			echo
+			case $REPLY in
+				A|a)	continue 2 ;;
+				S|s)
+					cat <<EOF
+After you type 'exit', your system will reboot.
+EOF
+					bash
+					reboot
+					sleep 3600
+					exit 1
+					;;
+				R|r)	reboot; sleep 3600; exit 1 ;;
+			esac
+		done
+		exit 1
+	fi
+done
+
+if [ -z "$DEBUG" ]; then
+	# Panic. At this point, probably the best thing we can do is drop to
+	# a shell so that the user has some hope of fixing things up.
+	cat <<EOF
+ERROR: The OEM installer failed. Your system may not be usable yet. Please
+report this as a bug to your vendor.
+
+To create a user so that you can use your new system normally, type:
+
+    adduser USERNAME
+
+... replacing USERNAME with the username you would like to use (your first
+name in lower case is normally a reasonable choice), and follow the prompts.
+If this succeeds, type 'exit' to reboot the system.
+
+EOF
+	bash
+
+	# Don't run again.
+	rm -f /var/lib/oem-config/run
+	RET="$(echo GET oem-config/remove | debconf-communicate)"
+	if [ "${RET#* }" = true ]; then
+		apt-get -y purge ubiquity >>/var/log/oem-config.log 2>&1
+	fi
+
+	reboot
+fi
+
+exit 0

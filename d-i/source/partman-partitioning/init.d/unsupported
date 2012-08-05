@@ -1,0 +1,41 @@
+#!/bin/sh
+
+if [ -f /var/lib/partman/supported ]; then
+	exit 0
+fi
+
+. /usr/share/debconf/confmodule
+. /lib/partman/lib/disk-label.sh
+
+mkdir -p /var/lib/partman
+>/var/lib/partman/supported
+
+default_label=$(default_disk_label)
+
+case "$default_label" in
+    UNKNOWN)
+	db_input critical partman-partitioning/unknown_label
+	db_go || exit 10
+	db_get partman-partitioning/unknown_label
+	if [ "$RET" = false ]; then
+		db_reset partman-partitioning/unknown_label
+		exit 10
+	fi
+	db_reset partman-partitioning/unknown_label
+	exit 0
+	;;
+    UNSUPPORTED)
+	db_input critical partman-partitioning/unsupported_label
+	db_go || exit 10
+	db_get partman-partitioning/unsupported_label
+	if [ "$RET" = false ]; then
+		db_reset partman-partitioning/unsupported_label
+		exit 10
+	fi
+	db_reset partman-partitioning/unsupported_label
+	exit 0
+	;;
+    *)
+	exit 0
+	;;
+esac

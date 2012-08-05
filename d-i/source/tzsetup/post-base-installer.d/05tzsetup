@@ -1,0 +1,16 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+db_get time/zone
+zone="$RET"
+
+if [ -z "$zone" ] || [ ! -e /target/usr/share/zoneinfo/$zone ]; then
+	logger -t tzsetup "Warning: ignoring invalid time zone '$zone'"
+	exit 0
+fi
+
+echo "$zone" > /target/etc/timezone
+rm -f /target/etc/localtime
+cp -f /target/usr/share/zoneinfo/$zone /target/etc/localtime

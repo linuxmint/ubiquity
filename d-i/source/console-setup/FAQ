@@ -1,0 +1,225 @@
+The following topics are addressed:
+
+     1) THE OUTPUT ON THE CONSOLE
+   1.1) The font is broken after I switch to X and back to the console
+   1.2) The screen size is wrong.  The buttom 2-3 lines are cut off
+   1.3) How can I load the big fonts?
+   1.4) How to enlarge the image on the screen of my laptop?
+   1.5) The symbols on the screen of my LCD are ugly
+   1.6) I can not use my boot splash screen program or SVGATextMode!
+
+     2) THE INPUT ON THE CONSOLE
+   2.1) I cannot type any non-ASCII character.  How do I fix the keymap?
+   2.2) The layouts toggle wrong when three keyboard layouts are set!
+   2.3) Where is the Dvorak keyboard?
+   2.4) Why the Backspace key doesn't work properly?
+   2.5) Why doesn't the CapsLock led work?
+
+
+1) THE OUTPUT ON THE CONSOLE
+
+1.1) The font is broken after I switch to X and back to the console
+
+   Actually the boot-time font replaces the font of console-setup.  In
+   most cases this means the non-ASCII symbols are replaced by some
+   other funny symbols.
+
+   This happens because sometimes the X video driver is unable to
+   restore properly the state of the console when you switch from X to
+   text-mode.  How severe the problem is depends on the combination
+   Video-card/X-driver you use.
+
+   Notice that all this can happen only if the console is in
+   text-mode, i.e. you are not using framebuffer.  If you add to
+   /etc/modules the kernel module for framebuffer you will be able to
+   switch from X to console whenever you want and the font will never
+   be broken.
+
+   Sometimes the problem doesn't exists at all.  It is rumored that
+   some old video adapters (more than 10 years old) fall in this
+   category but I have never seen such videocard.
+
+   The most common case seams to be that the state at the time the X
+   server is started is remembered.  Try to setup the console before X
+   Window is started and if the problem disappears then you are in
+   this category.  The problem will reappear if you change the console
+   setup while X Window is already started.  All video adapters I have
+   had are in this category.
+
+   And sometimes the console setup is never remembered.  In this case
+   you will have to use framebuffer (try "modprobe vga16fb").  Another
+   uption is to to use the "setupcon" utility whenever you need to
+   restore the console setup and hope that the problem will be fixed
+   in some future version of X Window.  You may want to send a bug
+   report to the X developers.
+
+   Some chipsets might require specific video driver options in order
+   to restore all console settings correctly. For example, if you
+   selected any font size other than 16 for console, it is necessary
+   to add the following line into "Device" section of xorg.conf when
+   using i810 driver with some integrated graphics controllers:
+
+      Option "VBERestore" "true"
+
+   Please, read 'man i810' (or 'man <your driver name>') for
+   additional information and, more importantly, for warnings on using
+   the options.
+
+ 
+1.2) The screen size is wrong.  The buttom 2-3 lines are cut off
+
+   The reason and the fix of the problem are the same as in the
+   previous question.  I suppose you use X Window and you set on the
+   console a font whose size is not the same as the size of the font
+   that was active when X Window was started.  Then the following
+   happens:
+
+      1. When X Window is started the X server remembers the active
+         font (let this be font A).
+
+      2. You use the Ctrl+Alt+F1 combination and then you change the
+         font on the console (let this be font B).  However the X
+         server doesn't want to know about this.
+
+      3. You return to X (Alt+F7).
+
+      4. Again Ctrl+Alt+F1.  The X server restores font A.  However
+         the kernel doesn't know that B is no more the active font.
+
+      5. If font A has say 16 scan lines and font B has 14 scan lines
+         the font on the screen has 16 scan lines but the kernel
+         doesn't know this and draws the screen as if the scan lines
+         were only 14.  The result is that the bottom lines are
+         outside the screen.
+
+
+1.3) How can I load the big fonts?
+
+   First, "consolechars" can not load big font.  But most current
+   systems use "setfont" and "setfont" can load big fonts.
+
+   Second, the big fonts require framebuffer.  This is hardware
+   limitation.  The old 8514 videostandard had special text mode with
+   12x20 fonts but I suppose this video mode is not supported by the
+   kernel and it is unlikely that you own such video adapter anyway.
+
+   Third, the big fonts can not be used with some of the framebuffer
+   drivers.  For example on my computer if I use matroxfb then all
+   font sizes work.  However if I use vga16fb instead of matroxfb
+   then, all fonts load with no error messages but only the fonts with
+   size 14, 16 or 32x16 are displayed correctly.
+
+
+1.4) How to enlarge the image on the screen of my laptop?
+
+   Many laptops do not scale the screen when the resolution is less
+   than the resolution of the display.  And since the resolution of
+   the default text-mode is much lower than the resolution of the LCD
+   of the laptop (text mode: 720x400, LCD: at least 1024x768), only
+   the central part of the screen is used.
+
+   There are two ways to fix this.  The first is to reconfigure the
+   laptop to scale the image and to use the whole screen.  For many
+   laptops there is corresponding setting in the BIOS.
+
+   The second way is to use some high resolution framebufer mode in
+   combination with some of the large fonts of console-setup.  The
+   drawback is that the screen will be slow.
+
+
+1.5) The symbols on the screen of my LCD are ugly
+
+   The resolution of the text-mode is much lower than the resolution
+   of your LCD and because of that your LCD has to scale the image.
+   Unfortunately many LCD do not do this job well.
+
+   How well your LCD will perform in text mode doesn't depend much of
+   its price but rather by the company that produced it.  Before you
+   buy an LCD you may want to check how it performs in text mode.
+
+   In order to fix this problem use high resolution framebuffer mode
+   in combination with some of the large fonts of console-setup.  This
+   way you will have a slow but excellent and impressive screen.
+
+
+1.6) I can not use my boot splash screen program or SVGATextMode!
+
+   Some programs that change the state of the console must reload the
+   console font.  If this happens after the execution of the boot
+   script of console-setup, then the font of the console-setup will be
+   overwritten.  Add a new boot script that simply executes 'setupcon'
+   (with no parameters) after these programs load their own font.
+
+
+2) THE INPUT ON THE CONSOLE
+
+2.1) I cannot type any non-ASCII character.  How do I fix the keymap?
+
+   In most cases the keymap does not need a fix.
+
+   Are you sure that you have correct locale?  For example if you use
+   ISO-8859-1 in Denmark, then the LANG environment variable should
+   have value "da_DK".  With some distributions you also have to set
+   the LC_ALL environment variable.
+
+   Type the command 'locale charmap'.  If you see "UTF-8" then you are
+   using an Unicode locale.  Otherwise you are using an 8-bit
+   encoding.  Now look at the setting CHARMAP in the configuration
+   file of console-setup (/etc/default/console-setup).  If you are
+   using an Unicode locale then this setting has to be CHARMAP=UTF-8.
+   Otherwise it has to be something like CHARMAP=ISO-8859-15.
+
+   Are you sure also that your command interpreter accepts non-ASCII
+   symbols?  Can you enter these characters in X in terminal emulator?
+   If not, then try to make a file ~/.inputrc with the following
+   contents:
+
+      set meta-flag on
+      set convert-meta off
+      set output-meta on
+
+
+2.2) The layouts toggle wrong when three keyboard layouts are set!
+
+   Unfortunately it is impossible to implement three-layouts toggle on
+   the console.  Because of this console-setup toggle them in the
+   following order Layout 1->Layout 2->Layout 1->Layout 3.  If you
+   want different order, then use four-layout configuration.  For
+   example if you use XKBLAYOUT=rs,rs,us,rs and XKBVARIANT=latin,,,
+   the layouts will be toggled in the following order:
+
+       Serbian Latin -> Serbian Cyrillic -> US -> Serbian Cyrillic
+
+
+2.3) Where is the Dvorak keyboard?
+
+   The Dvorak layouts are variants of the national layouts.  For
+   example if you want to use the Norwegian variant of the Dvorak
+   layout, use 
+
+      XKBLAYOUT="no"
+      XKBVARIANT="dvorak"
+
+   in /etc/default/console-setup.
+
+
+2.4) Why doesn't the Backspace key work properly?
+
+   When the console is in UTF-8 mode, then the Backspace doesn't work
+   properly for the non-ASCII symbols.  This is a bug in the kernel.
+   If you want to make getty ignore the non-ASCII symbols, then add an
+   option -8 to it.  For example in /etc/inittab you can have a line
+   like
+	  1:2345:respawn:/sbin/getty -8 38400 tty1
+
+
+2.5) Why doesn't the CapsLock led work?
+
+   This happens if your working encoding is UTF-8.  Unfortunately due
+   to bugs in the kernel and possibly in loadkeys also, when the
+   console is in Unicode mode, CapsLock doesn't work for the non-ASCII
+   letters.  That is why we decided to use regular modifiers instead
+   of CapsLock.  We hope the kernel developers will find a better
+   solution of this problem.
+
+   When the console is not in UTF-8 mode CapsLock works as it should.

@@ -1,0 +1,47 @@
+#! /bin/sh
+
+# This script forces the root partition to have the label "/", since kboot
+# relies on that.
+
+. /lib/partman/lib/base.sh
+
+ARCH="$(archdetect)"
+case $ARCH in
+    powerpc/ps3)
+	;;
+    *)
+	exit 0
+	;;
+esac
+
+dev="$1"
+num="$2"
+id="$3"
+size="$4"
+type="$5"
+fs="$6"
+path="$7"
+name="$8"
+
+cd "$dev"
+
+[ "$fs" != free ] || exit 0
+[ -f "$id/method" ] || exit 0
+method="$(cat "$id/method")"
+
+case $method in
+    keep|format)
+	[ -f "$id/mountpoint" ] || exit 0
+	mountpoint="$(cat "$id/mountpoint")"
+	if [ "$mountpoint" = / ]; then
+	    echo / >"$id/label"
+	elif [ -f "$id/label" ]; then
+	    label="$(cat "$id/label")"
+	    if [ "$label" = / ]; then
+		rm -f "$label"
+	    fi
+	fi
+	;;
+esac
+
+exit 0

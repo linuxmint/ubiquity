@@ -1,0 +1,97 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+. /lib/partman/lib/resize.sh
+
+dev=${1%//*}
+oldid=${1#*//}
+
+cd $dev
+
+bestsize=0
+bestid=
+
+check_virtual
+
+resize_range_failed=
+if [ "$virtual" = no ] && [ -f $oldid/detected_filesystem ]; then
+	case "$(cat $oldid/detected_filesystem)" in
+	    ntfs)
+		get_ntfs_resize_range || resize_range_failed=1
+		;;
+	    ext2|ext3|ext4)
+		get_ext2_resize_range || resize_range_failed=1
+		;;
+	    *)
+		get_resize_range
+		;;
+	esac
+else
+	get_resize_range
+fi
+
+if [ "$resize_range_failed" ] || [ -z "$maxsize" ]; then
+	db_input critical partman-partitioning/impossible_resize || true
+	if db_go; then
+		exit 1
+	else
+		exit 99
+	fi
+fi
+
+# Limit to sizes that will allow enough room for the installation.
+maxsize="$(expr "$maxsize" - \( 2 \* 1024 + 510 \) \* 1024 \* 1024)"
+if ! longint_le $minsize $maxsize; then
+	db_input critical partman-partitioning/impossible_resize || true
+	if db_go; then
+		exit 1
+	else
+		exit 99
+	fi
+fi
+
+human_resize_range
+prefsize="$(expr \( "$minsize" + "$maxsize" \) / 2)"
+# ask_for_size will set the default size to $hcursize.
+hcursize=$(longint2human $prefsize)
+
+if [ "$virtual" = no ]; then
+	db_set partman-partitioning/confirm_resize 'false'
+	db_input critical partman-partitioning/confirm_resize || true
+	db_go || exit 99
+	db_get partman-partitioning/confirm_resize
+	[ "$RET" = 'true' ] || exit 99
+fi
+
+# perform_resizing might exit 100, so use a subshell to catch that
+if (ask_for_size); then
+	cd $dev
+	open_dialog PARTITIONS
+	while :; do
+		read_line num id size type fs path name
+		[ "$id" ] || break
+		if [ "$fs" = free ] && longint_le $bestsize $size; then
+			bestsize=$size
+			bestid=$id
+		fi
+	done
+	close_dialog
+	if ! longint_le "$(expr \( 2 \* 1024 + 200 \) \* 1024 \* 1024)" $bestsize; then
+		db_input critical partman-auto/resize_insufficient_space
+		db_go || true
+		exit 1
+	fi
+
+	autopartition $dev $bestid || exit $?
+
+	# accept the autopartitioning
+	exit 100
+else
+	code=$?
+	if [ "$code" -eq 1 ]; then
+		exit 99 # backup
+	else
+		# TODO: error?
+		exit 0
+	fi
+fi

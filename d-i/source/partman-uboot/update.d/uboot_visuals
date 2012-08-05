@@ -1,0 +1,46 @@
+#!/bin/sh
+
+. /usr/share/debconf/confmodule
+
+ARCH="$(archdetect)"
+case $ARCH in
+    arm*/dove)
+	;;
+    *)
+	exit 0
+	;;
+esac
+
+dev=$1
+num=$2
+id=$3
+size=$4
+type=$5
+fs=$6
+path=$7
+name=$8
+
+cd $dev
+
+# The purpose of this preliminary code is to execute the time
+# consuming file system detection. check using tune2fs only once.
+# From now on, we no longer need to run tune2fs but simply check
+# for the existence of detected_uboot.
+if [ ! -f /var/lib/partman/filesystems_detected ] && \
+   [ -f $id/detected_filesystem ] && \
+   [ "$(cat $id/detected_filesystem)" = ext2 ]; then
+	if $(tune2fs -l $path | \
+	     grep -q '^Filesystem revision #: \+0 (original)$'); then
+		>$id/detected_uboot
+	else
+		rm -f $id/detected_uboot
+	fi
+fi
+
+# List the uboot partition as uboot in the main partman screen
+if [ "$fs" != free ] && [ ! -f $id/method ] && [ -f $id/detected_filesystem ] && \
+   [ "$(cat $id/detected_filesystem)" = ext2 ] && [ -f $id/detected_uboot ]; then
+	db_metaget partman/filesystem_short/uboot description || RET=''
+	RET="${RET:-uboot}"
+	printf "$RET" >$id/visual_filesystem
+fi

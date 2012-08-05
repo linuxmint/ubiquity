@@ -1,0 +1,14 @@
+protocol_fetch() {
+    local url file RETVAL i server remote_file
+    url="$1"
+    file="$2"
+    server="$(echo $url | cut -d/ -f 3)"
+    remote_file="/$(echo $url | cut -d/ -f 4-)"
+    RETVAL=0
+    for i in 1 2; do
+        tftp -g -l "$file" -r "$remote_file" "$server" || RETVAL=$?
+        [ $RETVAL = 1 ] || return $RETVAL
+        [ "$TRY_REPEAT" ] || break
+    done
+    return $RETVAL
+}

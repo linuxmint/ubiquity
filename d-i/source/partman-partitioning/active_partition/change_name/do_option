@@ -1,0 +1,24 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+dev=$2
+id=$3
+
+cd $dev
+
+open_dialog PARTITION_INFO $id
+read_line x1 id x3 x4 x5 x6 old_name
+close_dialog
+
+[ "$id" ] || exit 1
+
+db_set partman-partitioning/set_name "$old_name"
+db_input critical partman-partitioning/set_name || true
+db_go || exit 1
+db_get partman-partitioning/set_name
+
+open_dialog SET_NAME "$id" "$RET"
+close_dialog
+
+update_partition $dev $id

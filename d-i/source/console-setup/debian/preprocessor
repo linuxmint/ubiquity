@@ -1,0 +1,94 @@
+#!/bin/sh
+set -e
+
+tmp=`tempfile`
+
+mini=''
+file=''
+
+while [ "$1" ]; do
+    case "$1" in
+	--mini)
+	    mini=1
+	    ;;
+	-*)
+	    echo Unknown parameter: "$1" 1>&2
+	    exit 1
+	    ;;
+	*)
+	    if [ -f "$1" ]; then
+		file="$1"
+	    else
+		echo Unknown parameter: "$1" 1>&2
+		exit 1
+	    fi
+	    ;;
+    esac
+    shift
+done
+
+templatesfile=`dirname $0`/keyboard-configuration.templates
+seentemplates=$(
+    grep '^Template: keyboard-configuration' <"$templatesfile" | \
+	grep -v unsupported | \
+	grep -v ctrl_alt_bksp | \
+	sed -e 's/Template: */printf "/' -e 's/$/ ";\n/')
+
+awk '
+/## *KEYBOARD_PRESENT *##/ {
+    system("cat debian/keyboard_present.sh");
+    next;
+}
+/## *FONTSETS *##/ {
+    printf "fontsets='\''";
+    system("cd Fonts && ls *.psf | sed '\''s/.psf$//'\''");
+    printf "'\''";
+    next;
+}
+/## *CHARMAPS *##/ {
+    printf "charmaps='\''";
+    system("cd Keyboard && ls acm/*.acm |sed -e '\''s/^acm.//'\'' -e '\''s/.acm$//'\''");
+    printf "UTF-8'\''\n";
+    next;
+}
+/## *SEEN TEMPLATES *##/ {
+    '"$seentemplates"'
+    printf "\n";
+}
+{
+   print;
+}' "$file" >$tmp && cat $tmp >"$file"
+
+if [ "$mini" ]; then
+    awk '
+/## *KBDNAMES *##/ {
+    printf "all_kbdnames () {\n cat <<'\''EOF'\'' \n";
+    system("cd Keyboard && ./kbdnames-maker MyKeyboardNames.pl | grep '\''^C[*]'\'' | grep -v '\''[*]model[*]'\''");
+    printf "EOF\n [ ! -f /usr/share/console-setup-mini/kbdnames.gz ] || zcat /usr/share/console-setup-mini/kbdnames.gz \n}\n";
+    next;
+}
+{
+   print;
+}' "$file" >$tmp && cat $tmp >"$file"
+else
+    awk '
+/## *KBDNAMES *##/ {
+    printf "all_kbdnames () {\n cat <<'\''EOF'\''\n";
+    system("cd Keyboard && ./kbdnames-maker MyKeyboardNames.pl");
+    printf "EOF\n}\n";
+    next;
+}
+{
+   print;
+}' "$file" >$tmp && cat $tmp >"$file"
+fi
+
+if [ "$mini" ]; then
+    sed -e 's/^[ \t]*//' -e 's/^#[^!].*//' -e 's/^#$//' <"$file" >$tmp \
+	&& grep . $tmp >"$file"
+fi
+
+rm $tmp
+
+exit 0
+

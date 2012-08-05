@@ -1,0 +1,23 @@
+#!/bin/sh -e
+# Run a preseeded command.
+ct=$1
+
+. /usr/share/debconf/confmodule
+
+log () {
+	logger -t preseed "$@"
+}
+
+db_get "$ct"
+command="$RET"
+if [ "$command" != "" ]; then
+	log "running preseed command $ct: $command"
+	code=0
+	log-output sh -c "$command" || code=$?
+	if [ "$code" != 0 ]; then
+		db_subst preseed/command_failed COMMAND "$command"
+		db_subst preseed/command_failed CODE "$code"
+		db_input critical preseed/command_failed || true
+		db_go || true
+	fi
+fi

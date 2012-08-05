@@ -1,0 +1,30 @@
+#! /usr/bin/make -f
+%:
+	dh $@ --with d-i
+
+ARCH=$(shell dpkg-architecture -qDEB_HOST_ARCH)
+
+# Add ntfs-3g-udeb for arches that have recent versions of Windows.
+# Perhaps this should be in partman-basicfilesystems instead ...
+FS_DEPENDS=
+ifeq ($(ARCH), i386)
+FS_DEPENDS=ntfs-3g-udeb (>= 1:2011.4.12AR.4-2ubuntu2)
+endif
+ifeq ($(ARCH), amd64)
+FS_DEPENDS=ntfs-3g-udeb (>= 1:2011.4.12AR.4-2ubuntu2)
+endif
+ifeq ($(ARCH), ia64)
+FS_DEPENDS=ntfs-3g-udeb (>= 1:2011.4.12AR.4-2ubuntu2)
+endif
+ifeq ($(ARCH), alpha)
+FS_DEPENDS=ntfs-3g-udeb (>= 1:2011.4.12AR.4-2ubuntu2)
+endif
+ifeq ($(ARCH), kfreebsd-i386)
+FS_DEPENDS=ntfs-3g-udeb (>= 1:2011.4.12AR.4-2ubuntu2)
+endif
+ifeq ($(ARCH), kfreebsd-amd64)
+FS_DEPENDS=ntfs-3g-udeb (>= 1:2011.4.12AR.4-2ubuntu2)
+endif
+
+override_dh_gencontrol:
+	dh_gencontrol -- -Vfs:Depends="$(FS_DEPENDS)"

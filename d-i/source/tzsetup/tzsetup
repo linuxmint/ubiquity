@@ -1,0 +1,104 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+db_capb backup
+
+# Leave preseeded time zone untouched if seen flag is set
+db_fget time/zone seen
+if [ "$RET" = true ]; then
+	exit 0
+fi
+
+db_get debian-installer/country
+CC="$RET"
+detected=
+multiple=
+if db_get "tzsetup/country/$CC"; then
+	multiple=1
+fi
+STATE=0
+while :; do
+	case $STATE in
+	    0)
+		db_get tzsetup/geoip_server
+		if [ -n "$RET" ]; then
+			server="$RET"
+			if db_get mirror/http/proxy && [ "$RET" ]; then
+				export http_proxy="$RET"
+			fi
+			detected=$(wget "$server" -T 15 -t 1 -O - 2>/dev/null | grep "TimeZone" \
+				| LC_ALL=C sed 's,.*<TimeZone>\(.*\)</TimeZone>.*,\1,')
+		fi
+		if [ -n "$detected" ] && [ "$detected" != "None" ]; then
+			db_register time/zone time/zone # might be registered to something else
+			db_set time/zone "$detected"
+			db_subst tzsetup/detected ZONE $detected
+			db_input high tzsetup/detected || true
+		# per-country templates are used for countries with multiple choices
+		elif [ "$multiple" ]; then
+			db_register "tzsetup/country/$CC" time/zone
+			db_input high time/zone || :
+		else
+			db_register time/zone time/zone # might be registered to something else
+			zone=$(grep "^$CC" /usr/share/tzsetup/tzmap | cut -d ' ' -f 2)
+			db_set time/zone "$zone"
+
+			db_subst tzsetup/selected ZONE $zone
+			db_input medium tzsetup/selected || true
+		fi
+		;;
+	    1)
+		select_all=
+		if [ -n "$detected" ]; then
+			db_get tzsetup/detected
+			if [ "$RET" = false ]; then
+				select_all=1
+			fi
+		elif [ "$multiple" ]; then
+			db_get time/zone
+			if [ "$RET" = other ]; then
+				select_all=1
+			fi
+		else
+			db_get tzsetup/selected
+			if [ "$RET" = false ]; then
+				select_all=1
+			fi
+		fi
+		# Asking tzsetup/select_all is done in a distinct state so
+		# that our handling of the user selecting a separator works
+		# properly.
+		;;
+	    2)
+		if [ "$select_all" ]; then
+			db_register tzsetup/select_all time/zone
+			db_input high time/zone || :
+		fi
+		;;
+	    3)
+		if [ "$select_all" ]; then
+			db_get time/zone
+			if [ -z "$RET" ] || [ "${RET# }" != "$RET" ] || \
+			   [ "${RET#---}" != "$RET" ]; then
+				# User selected a separator; try again.
+				STATE=2
+				continue
+			fi
+		fi
+		;;
+	    *)
+		break
+		;;
+	esac
+
+	if db_go; then
+		STATE=$(($STATE + 1))
+	else
+		STATE=$(($STATE - 1))
+	fi
+done
+
+if [ "$STATE" = -1 ]; then
+	exit 10 # back to menu
+fi

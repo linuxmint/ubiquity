@@ -1,0 +1,50 @@
+#!/bin/sh
+
+# I'm sure replicating much of debian/rules is entirely wrong, but I'm going to
+# do it anyway...
+
+if ! dpkg-checkbuilddeps; then
+	sudo apt-get -y build-dep ubiquity
+fi
+
+if [ ! -e d-i/source ]; then
+	make -C d-i update
+	make -C d-i build
+fi
+[ -e src/Makefile ] || ./configure
+make -C src
+
+rebuild=false
+if [ ! -e d-i/templates ]; then
+	# For debian-installer-utils
+	DEB_HOST_ARCH_OS=$(dpkg-architecture -qDEB_HOST_ARCH_OS) \
+	fakeroot make -C d-i install
+	rebuild=:
+fi
+# For loading the console-setup plugin.  This is needed for at least testing
+# loading of plugins.
+[ -e ubiquity/keyboard_names.py ] || ./debian/rules ubiquity/keyboard_names.py
+
+[ -e tests/debconf-stamp ] || rebuild=:
+if ! $rebuild && [ -e tests/debconfdb ]; then
+	for x in d-i/templates debian/ubiquity.templates \
+		debian/ubiquity.templates-imported; do
+		if [ $x -nt tests/debconf-stamp ]; then
+			rebuild=:
+			break
+		fi
+	done
+else
+	rebuild=:
+fi
+$rebuild && (cat d-i/templates; echo;
+	po2debconf debian/ubiquity.templates; echo;
+	po2debconf debian/ubiquity.templates-imported \
+		--podir=debian/imported-po) > tests/debconfdb
+    touch tests/debconf-stamp
+
+export DEBCONF_SYSTEMRC=tests/debconf.conf
+$rebuild && debconf-loadtemplate ubiquity tests/debconfdb
+
+rm -rf tests/partman-tree
+for x in d-i/source/part*.udeb; do dpkg -x $x tests/partman-tree; done

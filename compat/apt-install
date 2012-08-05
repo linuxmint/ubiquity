@@ -1,0 +1,39 @@
+#! /bin/sh -e
+
+setup_env()
+{
+	unset DEBIAN_HAS_FRONTEND
+	export DEBIAN_FRONTEND=noninteractive
+	unset DEBCONF_FRONTEND
+	unset DEBCONF_REDIR
+	export DEBCONF_ADMIN_EMAIL=
+	export APT_LISTCHANGES_FRONTEND=none
+}
+
+apt_get_args="--no-upgrade -o Acquire::gpgv::Options::=--ignore-time-conflict -y"
+
+if [ -n "$UBIQUITY_OEM_USER_CONFIG" ]; then
+	# The installer uses apt-install to queue packages for installation in the
+	# target system. In oem user config mode, we can just install them directly.
+	setup_env
+	apt-get $apt_get_args install "$@" </dev/null
+	exit 0
+fi
+
+mkdir -p /var/lib/ubiquity
+for package; do
+	echo "$package" >> /var/lib/ubiquity/apt-installed
+done
+# TODO cjwatson 2006-09-04: queueing not implemented
+if [ -f /var/lib/ubiquity/apt-install-direct ]; then
+	installed="$(mktemp -t ubiquity.XXXXXX)"
+	trap "rm -f '$installed'" EXIT HUP INT QUIT TERM
+	chroot /target dpkg-query -W --showformat='${Package} ${Status}\n' | \
+		grep ' installed$' | cut -d' ' -f1 | sort > "$installed"
+	toinstall="$(echo "$@" | xargs -n1 | sort | join -v1 - "$installed")"
+	if [ "$toinstall" ]; then
+		# TODO: use chroot-setup
+		setup_env
+		chroot /target apt-get $apt_get_args install $toinstall </dev/null
+	fi
+fi

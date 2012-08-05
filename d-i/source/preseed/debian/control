@@ -1,0 +1,46 @@
+Source: preseed
+Section: debian-installer
+Priority: optional
+Maintainer: Ubuntu Installer Team <ubuntu-installer@lists.ubuntu.com>
+XSBC-Original-Maintainer: Debian Install System Team <debian-boot@lists.debian.org>
+Uploaders: Philip Hands <phil@hands.com>
+Build-Depends: debhelper (>= 7.3.10), dpkg-dev (>= 1.9)
+XS-Debian-Vcs-Browser: http://git.debian.org/?p=d-i/preseed.git
+XS-Debian-Vcs-Git: git://git.debian.org/d-i/preseed.git
+Vcs-Bzr: http://bazaar.launchpad.net/~ubuntu-core-dev/preseed/ubuntu
+
+Package: preseed-common
+Architecture: all
+Priority: standard
+Depends: ${misc:Depends}, ${shlibs:Depends}, di-utils (>= 1.58)
+Description: common files for preseeding
+XC-Package-Type: udeb
+
+Package: network-preseed
+Architecture: all
+Priority: standard
+Depends: ${misc:Depends}, ${shlibs:Depends}, configured-network, preseed-common
+Description: download debconf preseed file
+XC-Package-Type: udeb
+XB-Installer-Menu-Item: 2100
+
+Package: file-preseed
+Architecture: all
+Depends: ${misc:Depends}, ${shlibs:Depends}, di-utils, preseed-common
+Description: load debconf preseed file
+XC-Package-Type: udeb
+XB-Installer-Menu-Item: 1400
+
+Package: initrd-preseed
+Architecture: all
+Priority: extra
+Depends: ${shlibs:Depends}, preseed-common
+Description: load debconf preseed file from /preseed.cfg on the initrd
+XC-Package-Type: udeb
+
+Package: env-preseed
+Architecture: all
+Priority: extra
+Depends: ${shlibs:Depends}
+Description: debconf preseeding via environment variables
+XC-Package-Type: udeb

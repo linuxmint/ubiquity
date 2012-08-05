@@ -1,0 +1,83 @@
+#!/bin/sh
+
+. /usr/share/debconf/confmodule
+
+[ -f /target/etc/fstab ] || exit 0
+
+OS=$(udpkg --print-os)
+
+escape () {
+	printf %s "$1" | \
+		sed 's/\\/\\134/g; s/ /\\040/g; s/	/\\011/g; s/\n/\\012/g'
+}
+
+# dev, mountpoint, type, options, dump, pass
+addfstab () {
+	printf "%-15s %-15s %-7s %-15s %-7s %s\n" \
+		"$(escape "$1")" "$(escape "$2")" \
+		"$(escape "$3")" "$(escape "$4")" \
+		"$5" "$6"
+	if [ "$OS" = hurd ] ;
+	then
+		if [ -x /target/hurd/"$3" ]
+		then
+			settrans -pk "/target/$2" /hurd/"$3" "$1"
+		elif [ -x /target/hurd/"$3fs" ]
+		then
+			settrans -pk "/target/$2" /hurd/"$3fs" "$1"
+		fi
+	fi
+}
+
+db_get partman/mount_style
+style="$RET"
+
+fstab=$(
+	for i in /lib/partman/fstab.d/*; do
+		[ -x "$i" ] || continue
+		$i
+	done |
+	while read fs mp type options dump pass; do
+		echo $mp $fs $type $options $dump $pass
+	done |
+	sort |
+	while read mp fs type options dump pass; do
+		case "$fs" in
+		    (/dev/disk/*|/dev/fd[0-9]*|/dev/mapper/*)
+			addfstab "$(mapdevfs $fs)" "$mp" "$type" "$options" "$dump" "$pass"
+			;;
+		    (/*)
+			dev="/var/lib/partman/devices/$(echo "$fs" | sed 's:/:=:g')"
+			if [ -f "$dev/loop" ]; then
+				loop="$(cat "$dev/loop")"
+				if [ "$options" = defaults ]; then
+					options=loop
+				else
+					options="loop,$options"
+				fi
+				addfstab "$loop" "$mp" "$type" "$options" "$dump" "$pass"
+			else
+				case "$mp" in
+				    (/*)	desc="$mp" ;;
+				    (*)		desc="$type" ;;
+				esac
+				if [ "$style" = label ] && \
+				   label="$(block-attr --label $fs)" && \
+				   [ "$label" ]; then
+					printf "# %s was on %s during installation\n" "$desc" "$(mapdevfs $fs)"
+					addfstab "LABEL=$label" "$mp" "$type" "$options" "$dump" "$pass"
+				elif ([ "$style" = label ] || [ "$style" = uuid ]) && \
+				     uuid="$(block-attr --uuid $fs)" && \
+				     [ "$uuid" ]; then
+					printf "# %s was on %s during installation\n" "$desc" "$(mapdevfs $fs)"
+					addfstab "UUID=$uuid" "$mp" "$type" "$options" "$dump" "$pass"
+				else
+					addfstab "$(mapdevfs $fs)" "$mp" "$type" "$options" "$dump" "$pass"
+				fi
+			fi
+			;;
+		esac
+	done
+)
+
+echo "$fstab" >>/target/etc/fstab

@@ -1,0 +1,37 @@
+#!/bin/sh
+
+. /usr/share/debconf/confmodule
+
+dev=$1
+id=$2
+part=$dev/$id
+filesystem=$(cat $part/acting_filesystem)
+os=$(udpkg --print-os)
+
+cd $dev
+
+optionsfiles=''
+if [ -f /lib/partman/mountoptions/$filesystem.$os ] ; then
+	optionsfiles="/lib/partman/mountoptions/$filesystem.$os"
+else
+	optionsfiles="/lib/partman/mountoptions/$filesystem"
+fi
+
+devtype=${dev#*=dev=}
+devtype=${devtype%[0-9]*}
+
+if [ -f /lib/partman/mountoptions/$devtype ] ; then
+	optionsfiles="$optionsfiles /lib/partman/mountoptions/$devtype"
+fi
+
+options=''
+for op in $(cat $optionsfiles); do
+	if [ -f $part/options/$op ]; then
+		options="${options:+$options,}$op"
+	fi
+done
+if [ -z "$options" ]; then
+	options=defaults
+fi
+
+echo $options

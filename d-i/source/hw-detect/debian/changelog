@@ -1,0 +1,4475 @@
+hw-detect (1.88ubuntu2) precise; urgency=low
+
+  * Update Ubuntu-specific translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 11 Apr 2012 11:45:59 +0100
+
+hw-detect (1.88ubuntu1) precise; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Remove FireWire Ethernet support.
+    - Register lp module on i386 and amd64.
+    - Exit zero if you continue all the way through ethdetect's errors about
+      having no network interfaces.
+    - Register rtc module on amd64.
+    - Drop priorities of a couple of ethdetect questions to medium.
+    - On powerpc/ps3 systems, load ps3rom, ps3disk, and ps3_gelic, and add
+      snd_ps3 to /etc/modules.
+    - Install elfspe2 on Cell (powerpc/ps3 and powerpc/cell) platforms.
+    - disk-detect.sh: Do not check the kernel command line for any option
+      to enable dmraid support. If functional dmraid arrays are found, the
+      user will be asked if they wish to activate them.
+    - Make dmraid logging a bit neater.
+    - 'dmraid -c -s' changed its output format; cope with both old and new.
+    - Remove dm-emc from the multipath modules, since it's gone since
+      2.6.27.
+    - Improve checks for dm-* drivers being present to avoid relying on them
+      being built as modules.
+    - Offer iSCSI targets for preseeding if partman-iscsi is available and
+      no disk devices are found.
+    - Stop installing acpi, acpid, and acpi-support-base if acpi is
+      available.
+    - Add an 'archdetect-deb' package, containing /usr/bin/archdetect.  Add
+      an archdetect(1) manual page.
+    - Refer to /usr/share/common-licenses/GPL-2 in debian/copyright.
+    - Load xenbus_probe_frontend if we're running under the Xen hypervisor.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 28 Nov 2011 15:43:43 +0000
+
+hw-detect (1.88) unstable; urgency=low
+
+  [ Milan Kupcevic ]
+  * discover-mac-io.sh: Detect OHare, Heathrow/Paddington, and KeyLargo ATA
+    controllers to support transition from formerly compiled-in ide-pmac driver
+    to pata_macio module. Ref: #636269.
+
+  [ Joey Hess ]
+  * check-missing-firmware.sh: Add a special case for USB devices, for
+    which the devpath provided from firmware.agent claims to be for the
+    usbcore module. Search through subdirectories of the devpath to find
+    the actual driver module for the USB hardware. Closes: #648631
+    (Thanks, Brian Potkin, for testing the fix.)
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 17 Nov 2011 12:38:54 -0400
+
+hw-detect (1.87ubuntu1) precise; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Remove FireWire Ethernet support.
+    - Register lp module on i386 and amd64.
+    - Exit zero if you continue all the way through ethdetect's errors about
+      having no network interfaces.
+    - Register rtc module on amd64.
+    - Drop priorities of a couple of ethdetect questions to medium.
+    - On powerpc/ps3 systems, load ps3rom, ps3disk, and ps3_gelic, and add
+      snd_ps3 to /etc/modules.
+    - Install elfspe2 on Cell (powerpc/ps3 and powerpc/cell) platforms.
+    - disk-detect.sh: Do not check the kernel command line for any option
+      to enable dmraid support. If functional dmraid arrays are found, the
+      user will be asked if they wish to activate them.
+    - Make dmraid logging a bit neater.
+    - 'dmraid -c -s' changed its output format; cope with both old and new.
+    - Remove dm-emc from the multipath modules, since it's gone since
+      2.6.27.
+    - Improve checks for dm-* drivers being present to avoid relying on them
+      being built as modules.
+    - Offer iSCSI targets for preseeding if partman-iscsi is available and
+      no disk devices are found.
+    - Stop installing acpi, acpid, and acpi-support-base if acpi is
+      available.
+    - Add an 'archdetect-deb' package, containing /usr/bin/archdetect.  Add
+      an archdetect(1) manual page.
+    - Refer to /usr/share/common-licenses/GPL-2 in debian/copyright.
+    - Load xenbus_probe_frontend if we're running under the Xen hypervisor.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 23 Oct 2011 20:08:42 +0100
+
+hw-detect (1.87) unstable; urgency=low
+
+  [ Jurij Smakov ]
+  * check-missing-firmware.sh: support new missing firmware directory
+    location (/run/udev/firmware-missing) in addition to the old one.
+
+ -- Jurij Smakov <jurij@debian.org>  Thu, 23 Jun 2011 20:55:23 +0100
+
+hw-detect (1.86) unstable; urgency=low
+
+  * Team upload
+
+  [ Miguel Figueiredo ]
+  * discover-mac-io.sh: blacklist snd-aoa-* modules to allow snd-powermac 
+    to work. Closes #606984.
+  * Change priority of driver-injection-disk/load template. Closes: #583650.
+ 
+  [ Otavio Salvador ]
+  * Blacklist snd-aoa to allow snd-powermac to work. Refs: #606984.
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Esperanto (eo.po) by Felipe Castro
+  * Korean (ko.po) by Changwoo Ryu
+  * Romanian (ro.po) by Eddy Petrișor
+  * Slovak (sk.po) by Ivan Masár
+  * Swedish (sv.po) by Daniel Nylander
+  * Uighur (ug.po) by Sahran
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 22 Apr 2011 22:22:00 +0200
+
+hw-detect (1.85) unstable; urgency=low
+
+  * discover-mac-io.sh: Fix module loading for Ibook G4 (powermac). Closes:
+    #525902, #525946, #606984. 
+    Thanks to Risto Suominen <risto.suminen@gmail.com>.
+  * Install mmc-modules if no disk is found, since some devices may not
+    have hard drives, but SD slots instead. Closes: #593108
+  * Increase the number of attempts to detect the new disk devices in
+    disk_found() of disk-detect.sh to 15, bringing the total waiting time
+    to 28 seconds. Current timeout of 4 seconds is not sufficient for
+    some SCSI subsystems with long driver/disk initialization time.
+    Closes: #611314
+
+ -- Jurij Smakov <jurij@debian.org>  Sun, 27 Feb 2011 12:33:23 +0000
+
+hw-detect (1.84) unstable; urgency=low
+
+  [ Joey Hess ]
+  * check-missing-firmware: Avoid reloading modules that have a network
+    interface that is already configured. Closes: #605983
+
+  [ Petter Reinholdtsen ]
+  * Add Vcs-Browser entry to control file, in addition to the Vcs-Svn
+    entry.
+
+  [ Updated translations ]
+  * Northern Sami (se.po) by Børre Gaup
+  * Telugu (te.po) by Arjuna Rao Chavala
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 24 Dec 2010 19:27:22 -0200
+
+hw-detect (1.83) unstable; urgency=low
+
+  * Set DI_PROGRESS_BAR_VISIBLE flag when running discover-pkginstall
+    to avoid it destroying pkgsel's progress bar.
+    (Bug #605938 asks for discover to honor this flag.)
+
+  [ Updated translations ]
+  * Lao (lo.po) by Anousak Souphavanh
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 04 Dec 2010 16:16:59 -0400
+
+hw-detect (1.82) unstable; urgency=low
+
+  [ Joey Hess ]
+  * check-missing-firmware: When called from ethdetect, take interfaces
+    up and down each time through the loop. Previously this was only done
+    once, which caused a bug, as the first pass through does not prompt
+    for missing firmware, and on subsequent passes, the firmware was not
+    requested. Closes: #537502
+    (Thanks, Asbjørn Sloth Tønnesen)
+
+  [ Updated translations ]
+  * Malayalam (ml.po) by Praveen Arimbrathodiyil
+  * Sinhala (si.po) by Danishka Navin
+  * Slovenian (sl.po) by Vanja Cvelbar
+
+ -- Otavio Salvador <otavio@debian.org>  Wed, 24 Nov 2010 09:52:34 -0200
+
+hw-detect (1.81ubuntu3) oneiric; urgency=low
+
+  * Load xenbus_probe_frontend if we're running under the Xen hypervisor
+    (LP: #857662).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 23 Sep 2011 23:21:48 +0100
+
+hw-detect (1.81ubuntu2) natty; urgency=low
+
+  * Add an 'archdetect-deb' package, containing /usr/bin/archdetect.  Add an
+    archdetect(1) manual page.
+  * Refer to /usr/share/common-licenses/GPL-2 in debian/copyright.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 10 Jan 2011 12:14:44 -0600
+
+hw-detect (1.81ubuntu1) natty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Remove FireWire Ethernet support.
+    - Register lp module on i386 and amd64.
+    - Exit zero if you continue all the way through ethdetect's errors about
+      having no network interfaces.
+    - Register rtc module on amd64.
+    - Drop priorities of a couple of ethdetect questions to medium.
+    - On powerpc/ps3 systems, load ps3rom, ps3disk, and ps3_gelic, and add
+      snd_ps3 to /etc/modules.
+    - Install elfspe2 on Cell (powerpc/ps3 and powerpc/cell) platforms.
+    - disk-detect.sh: Do not check the kernel command line for any option
+      to enable dmraid support. If functional dmraid arrays are found, the
+      user will be asked if they wish to activate them.
+    - Make dmraid logging a bit neater.
+    - 'dmraid -c -s' changed its output format; cope with both old and new.
+    - Reinstate snd-powermac for i2s-a devices since apparently the lock-up
+      has been fixed.
+    - Remove dm-emc from the multipath modules, since it's gone since
+      2.6.27.
+    - Improve checks for dm-* drivers being present to avoid relying on them
+      being built as modules.
+    - Offer iSCSI targets for preseeding if partman-iscsi is available and
+      no disk devices are found.
+    - Stop installing acpi, acpid, and acpi-support-base if acpi is
+      available.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 15 Nov 2010 10:45:26 +0000
+
+hw-detect (1.81) unstable; urgency=low
+
+  [ Thibaut Girka ]
+  * The g_ether module is used to provide networking over USB on the
+    Openmoko phones. Register it in order to have network in the
+    installed system. Closes #593109
+
+  [ Otavio Salvador ]
+  * Handle all_generic_ide=1 kernel param.
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Israt Jahan
+  * Catalan (ca.po) by Jordi Mallach
+  * Persian (fa.po) by Behrad Eslamifar
+  * Icelandic (is.po) by Sveinn  Felli
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 12 Nov 2010 14:42:31 -0200
+
+hw-detect (1.80ubuntu1) natty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Remove FireWire Ethernet support.
+    - Register lp module on i386 and amd64.
+    - Exit zero if you continue all the way through ethdetect's errors about
+      having no network interfaces.
+    - Register rtc module on amd64.
+    - Drop priorities of a couple of ethdetect questions to medium.
+    - On powerpc/ps3 systems, load ps3rom, ps3disk, and ps3_gelic, and add
+      snd_ps3 to /etc/modules.
+    - Install elfspe2 on Cell (powerpc/ps3 and powerpc/cell) platforms.
+    - disk-detect.sh: Do not check the kernel command line for any option
+      to enable dmraid support. If functional dmraid arrays are found, the
+      user will be asked if they wish to activate them.
+    - Make dmraid logging a bit neater.
+    - 'dmraid -c -s' changed its output format; cope with both old and new.
+    - Reinstate snd-powermac for i2s-a devices since apparently the lock-up
+      has been fixed.
+    - Remove dm-emc from the multipath modules, since it's gone since
+      2.6.27.
+    - Improve checks for dm-* drivers being present to avoid relying on them
+      being built as modules.
+    - Offer iSCSI targets for preseeding if partman-iscsi is available and
+      no disk devices are found.
+    - Stop installing acpi, acpid, and acpi-support-base if acpi is
+      available.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 15 Oct 2010 13:21:28 +0100
+
+hw-detect (1.80) unstable; urgency=low
+
+  * Add -g/--guess option to archdetect to ask for heuristics that make it
+    easier to bring up new boards, based on a patch from Michael Casadevall.
+    See http://lists.debian.org/debian-boot/2010/08/msg00641.html for
+    rationale.  Requires libdebian-installer4-dev (>= 0.76).
+
+  [ Updated translations ]
+  * Asturian (ast.po) by maacub
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bosnian (bs.po) by Armin Beširović
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Jacob Sparre Andersen
+  * Persian (fa.po) by Behrad Eslamifar
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Romanian (ro.po) by Andrei Popescu
+  * Serbian (sr.po) by Janos Guljas
+  * Tamil (ta.po) by Dr.T.Vasudevan
+  * Telugu (te.po) by Arjuna Rao Chavala
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 14 Sep 2010 18:23:23 +0100
+
+hw-detect (1.79) unstable; urgency=low
+
+  [ Christian Perrier ]
+  * Reviewed driver injection disks templates with the help
+    of debian-l10n-english. Unjargonized and wordig aligned with
+    other D-I templates. Moved strings to sublevel 3 as this template
+    is used in some corner cases.
+  * Add dependency on cdebconf-udeb for driver-injection-disk-detect
+    udeb
+
+  [ Updated translations ]
+  * Amharic (am.po) by Tegegne Tefera
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Asturian (ast.po) by maacub
+  * Belarusian (be.po) by Viktar Siarheichyk
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bengali (bn.po) by Israt Jahan
+  * Bosnian (bs.po) by Armin Beširović
+  * Catalan (ca.po) by Jordi Mallach
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Jacob Sparre Andersen
+  * German (de.po) by Holger Wansing
+  * Dzongkha (dz.po) by Jurmey Rabgay
+  * Greek, Modern (1453-) (el.po) by debian-l10n-greek
+  * Esperanto (eo.po) by Felipe Castro
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Estonian (et.po) by Mattias Põldaru
+  * Basque (eu.po) by Piarres Beobide
+  * Persian (fa.po) by acathur
+  * Finnish (fi.po) by Esko Arajärvi
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jorge Barreiro
+  * Hebrew (he.po) by Omer Zak
+  * Hindi (hi.po) by Kumar Appaiah
+  * Croatian (hr.po) by Josip Rodin
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Italian (it.po) by Milo Casagrande
+  * Japanese (ja.po) by Kenshi Muto
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Central Khmer (km.po) by Khoem Sokhem
+  * Korean (ko.po) by Changwoo Ryu
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Macedonian (mk.po) by Arangel Angov
+  * Marathi (mr.po) by Sampada
+  * Bokmål, Norwegian (nb.po) by Hans Fredrik Nordhaug
+  * Dutch (nl.po) by Frans Pop
+  * Norwegian Nynorsk (nn.po) by Eirik U. Birkeland
+  * Panjabi (pa.po) by A S Alam
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Romanian (ro.po) by ioan-eugen STAN
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Ivan Masár
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Swedish (sv.po) by Daniel Nylander
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Turkish (tr.po) by Mert Dirik
+  * Ukrainian (uk.po) by Borys Yanovych
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 11 Jul 2010 12:22:45 +0200
+
+hw-detect (1.78) unstable; urgency=low
+
+  [ Petter Reinholdtsen ]
+  * Add support for Dell Driver Injection disk v1, an integrated flash
+    media based solution for adding in drivers after OS launches.
+    Patch from Mario Limonciello and Ubuntu (LP: #341526).  This
+    add some untranslated strings the the .po files.
+  * Install mouseemu on systems likely to have single-button mice
+    (i.e.  non-desktop Macs LP: #251830), but not powerpc64 since it
+    is said to cause an oops in the input layer.  Patch from Colin
+    Watson and Ubuntu.
+  * Depend on pciutils-udeb for lspci.  Patch from Colin Watson and
+    Ubuntu.
+  * Adjust code reloading modules in check-missing-firmware.sh to
+    only reload once when a module need several firmware files.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Wed, 26 May 2010 08:04:02 +0200
+
+hw-detect (1.77) unstable; urgency=low
+
+  [ Frans Pop ]
+  * check-missing-firmware: install loose firmware files in subdirectories
+    if that's where the kernel expects them. Closes: #572785.
+
+  [ Petter Reinholdtsen ]
+  * Use discover-pkginstall to install hardware related packages
+    automatically during installation (Closes: #577451).  Run it
+    from pre-pkgsel to make sure a upgraded discover package is
+    available.
+  * Make sure check-missing-firmware follow symlinks and copy the
+    content to make sure symlinked firmware files work too.
+  * Move code checking for firmware in check-missing-firmware to a
+    separate function, to allow it to be used several places.
+  * Also look for firmware debs and udebs in the PXE initrd and
+    on the CD media, in a firmware/ directory (Closes: #574116).
+  * Add cross building support (Closes: #572369).  Patch from
+    Hector Oron.
+  * Run preinst script of firmware debs in case there is a license
+    question there to accept, and do not activate firmware if the
+    preinst script return non-zero exit code (Closes: #574158).
+
+  [ Joey Hess ]
+  * Remove myself from Uploaders.
+
+   [ Updated translations ]
+   * Asturian (ast.po) by Iñigo Varela
+   * Danish (da.po) by Jacob Sparre Andersen
+   * German (de.po) by Holger Wansing
+   * French (fr.po) by Christian Perrier
+   * Hebrew (he.po) by Lior Kaplan
+   * Korean (ko.po) by Changwoo Ryu
+   * Lithuanian (lt.po) by Kęstutis Biliūnas
+   * Marathi (mr.po) by Sampada
+   * Norwegian Nynorsk (nn.po) by Eirik U. Birkeland
+   * Romanian (ro.po) by ioan-eugen stan
+   * Slovenian (sl.po) by Vanja Cvelbar
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sat, 22 May 2010 17:58:26 +0200
+
+hw-detect (1.76) unstable; urgency=low
+
+  [ Joey Hess ]
+  * check-missing-firmware: Try probing once for missing firmware before
+    prompting for it to be provided.
+  * Add new preseedable ethdetect/prompt_missing_firmware, which will
+    be used by oldsys-preseed to avoid firmware prompting happening
+    before network-console starts.
+
+  [ Frans Pop ]
+  * Queue pciutils for installation if the system has a pci bus.
+  * Drop --no-recommends option for installation of acpi-related packages.
+    Requires base-installer 1.105.
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Israt Jahan
+  * German (de.po) by Holger Wansing
+  * Slovenian (sl.po) by Vanja Cvelbar
+
+ -- Frans Pop <fjp@debian.org>  Mon, 22 Feb 2010 04:29:28 +0100
+
+hw-detect (1.75) unstable; urgency=low
+
+  * check-missing-firmware: not all drivers register themselves if firmware
+    is missing; in that case fall back to determining the module using the
+    device's modalias. Patch provided by Jérémy Bobbio. Closes: #562594.
+
+  [ Updated translations ]
+  * Slovenian (sl.po) by Vanja Cvelbar
+
+ -- Frans Pop <fjp@debian.org>  Tue, 29 Dec 2009 13:08:20 +0100
+
+hw-detect (1.74) unstable; urgency=low
+
+  [ Gaudenz Steinlin ]
+  * The driver which turns the USB chip on the Openmoko phones into a network
+    card is not automatically loaded by udev. This special code in hw-detect
+    loads the needed kernel module.
+
+  [ Colin Watson ]
+  * Exec ethdetect/disk-detect from their respective postinsts, saving a fork.
+  * Upgrade to debhelper v7.
+
+  [ Joey Hess ]
+  * Fix firmware loading.
+    Current udev+kernel no longer supports PHYSDEVDRIVER. Instead make
+    firmware.agent log the DEVPATH, and check-missing-firmware can look
+    up the module name using sysfs. Closes: #542282
+  * Sync firmware.agent with udev, and make check-missing-firmware
+    use /dev/.udev/firmware-missing/
+
+  [ Ian Campbell ]
+  * Do not present an error to the user if loading ide-generic fails.
+
+  [ Frans Pop ]
+  * Remove code to wait for initialization of megaraid_mbox driver. Should
+    no longer be needed with current kernels.
+  * Remove no longer needed Lintian override for missing Standards-Version
+    field.
+  * Always test for USB support using /sys/bus/usb. Closes: #534413.
+  * Drop firmware.agent udev script; it's been included in udev-udeb since
+    version 146-2. Closes: #552497.
+  * hw-detect.sh: avoid pulling in console-{common,data} through console-tools
+    when apt-installing acpid and acpi-support-base.
+    Requires di-utils 1.73 and base-installer 1.104.
+
+  [ Updated translations ]
+  * Amharic (am.po) by Tegegne Tefera
+  * Asturian (ast.po) by Marcos Antonio Alvarez Costales
+  * Belarusian (be.po) by Pavel Piatruk
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Esperanto (eo.po) by Felipe Castro
+  * Estonian (et.po) by Mattias Põldaru
+  * Galician (gl.po) by Marce Villarino
+  * Italian (it.po) by Milo Casagrande
+  * Slovenian (sl.po) by Vanja Cvelbar
+
+ -- Frans Pop <fjp@debian.org>  Thu, 24 Dec 2009 03:23:27 +0100
+
+hw-detect (1.73ubuntu5) maverick; urgency=low
+
+  * Backport from trunk:
+    - Add -g/--guess option to archdetect to ask for heuristics that make it
+      easier to bring up new boards, based on a patch from Michael
+      Casadevall.  See
+      http://lists.debian.org/debian-boot/2010/08/msg00641.html for
+      rationale.  Requires libdebian-installer4-dev (>= 0.76).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 14 Sep 2010 18:46:00 +0100
+
+hw-detect (1.73ubuntu4) lucid; urgency=low
+
+  * Enable backup while running iscsi_login, to match behaviour when running
+    iscsi_login from partman.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 23 Apr 2010 21:09:45 +0100
+
+hw-detect (1.73ubuntu3) lucid; urgency=low
+
+  * Update Ubuntu-specific translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 15 Apr 2010 00:17:52 +0100
+
+hw-detect (1.73ubuntu2) lucid; urgency=low
+
+  * Don't try to install libc6-vfp any more; it hasn't been built since
+    eglibc 2.10.1-0ubuntu10 in karmic.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 10 Feb 2010 12:26:38 +0000
+
+hw-detect (1.73ubuntu1) lucid; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Remove FireWire Ethernet support.
+    - Register lp module on i386 and amd64.
+    - Exit zero if you continue all the way through ethdetect's errors about
+      having no network interfaces.
+    - Register rtc module on amd64.
+    - Drop priorities of a couple of ethdetect questions to medium.
+    - Install mouseemu on systems likely to have single-button mice (i.e.
+      non-desktop Macs), but not powerpc64 since that causes an oops in the
+      input layer.
+    - On powerpc/ps3 systems, load ps3rom, ps3disk, and ps3_gelic, and add
+      snd_ps3 to /etc/modules.
+    - Install elfspe2 on Cell (powerpc/ps3 and powerpc/cell) platforms.
+    - disk-detect.sh: Do not check the kernel command line for any option
+      to enable dmraid support. If functional dmraid arrays are found, the
+      user will be asked if they wish to activate them.
+    - Make dmraid logging a bit neater.
+    - 'dmraid -c -s' changed its output format; cope with both old and new.
+    - Reinstate snd-powermac for i2s-a devices since apparently the lock-up
+      has been fixed.
+    - Remove dm-emc from the multipath modules, since it's gone since
+      2.6.27.
+    - Improve checks for dm-* drivers being present to avoid relying on them
+      being built as modules.
+    - Install libc6-vfp on armel systems where the vfp word is found in the
+      /proc/cpuinfo features.
+    - Offer iSCSI targets for preseeding if partman-iscsi is available and
+      no disk devices are found.
+    - Stop installing acpi, acpid, and acpi-support-base if acpi is
+      available.
+    - Add support for Dell Driver Injection disk v1, an integrated flash
+      media based solution for adding in drivers after OS launches.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 09 Nov 2009 10:38:34 +0000
+
+hw-detect (1.73) unstable; urgency=low
+
+  [ Otavio Salvador ]
+  * Skip the start_pcmcia question since it has been enabled by default
+    for ages without known problems. In case it fails it ought to be fixed
+    in kernel anyway. The question template has been kept to avoid double
+    work for translators in case we get too many bug reports about it.
+
+  [ Colin Watson ]
+  * Improve cardbus_check_netdev quoting.
+  * Explicitly set seen flag of hw-detect/pcmcia_resources to true so that
+    it doesn't get asked on second and subsequent runs of hw-detect if
+    pcmcia_core fails to get loaded for some reason.
+  * Suppress unused-parameter warnings in archdetect.
+
+  [ Updated translations ]
+  * Czech (cs.po) by Miroslav Kure
+  * Esperanto (eo.po) by Felipe Castro
+  * Hindi (hi.po)
+  * Italian (it.po) by Milo Casagrande
+  * Swedish (sv.po) by Daniel Nylander
+
+ -- Colin Watson <cjwatson@debian.org>  Thu, 23 Jul 2009 16:40:23 +0100
+
+hw-detect (1.72ubuntu5) karmic; urgency=low
+
+  * Fix db_fget arguments when checking for partman-iscsi preseeding.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 14 Oct 2009 20:51:53 +0100
+
+hw-detect (1.72ubuntu4) karmic; urgency=low
+
+  [ Colin Watson ]
+  * Drop disk-detect/iscsi/enable template, which is no longer used.
+  * Don't install mouseemu on Intel Mac desktops (LP: #251830).
+
+  [ Mario Limonciello ]
+  * Add support for Dell Driver Injection disk v1, an integrated flash media based 
+    solution for adding in drivers after OS launches.  This feature will be on 
+    upcoming Dell servers. (LP: #341526)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 28 Aug 2009 09:59:27 +0100
+
+hw-detect (1.72ubuntu3) karmic; urgency=low
+
+  * Support preseeding of partman-iscsi/login/address.
+  * Don't call 'anna-install open-iscsi-udeb' if the iSCSI login choice is
+    selected; partman-iscsi must already be installed for this choice to be
+    offered, and it depends on open-iscsi-udeb already.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 10 Aug 2009 18:05:43 +0100
+
+hw-detect (1.72ubuntu2) karmic; urgency=low
+
+  * Default iSCSI configuration to true, and stop installing open-iscsi-udeb
+    unconditionally here; partman-iscsi will take care of that. Instead,
+    offer iSCSI targets as a choice if partman-iscsi is available and no
+    disk devices are found, and implement compatibility with old-style
+    open-iscsi/targets preseeding (LP: #237460).
+  * Stop installing acpi, acpid, and acpi-support-base if acpi is available.
+    Most of these are going away and desktop facilities should take care of
+    whatever's left.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 10 Aug 2009 13:24:35 +0100
+
+hw-detect (1.72ubuntu1) karmic; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Remove FireWire Ethernet support.
+    - Register lp module on i386 and amd64.
+    - Exit zero if you continue all the way through ethdetect's errors about
+      having no network interfaces.
+    - Register rtc module on amd64.
+    - Drop priorities of a couple of ethdetect questions to medium.
+    - Install mouseemu on systems likely to have single-button mice (i.e.
+      Macs), but not powerpc64 since that causes an oops in the input layer.
+    - On powerpc/ps3 systems, load ps3rom, ps3disk, and ps3_gelic, and add
+      snd_ps3 to /etc/modules.
+    - Install elfspe2 on Cell (powerpc/ps3 and powerpc/cell) platforms.
+    - Add hooks for iSCSI support.
+    - disk-detect.sh: Do not check the kernel command line for any option
+      to enable dmraid support. If functional dmraid arrays are found, the
+      user will be asked if they wish to activate them.
+    - Make dmraid logging a bit neater.
+    - 'dmraid -c -s' changed its output format; cope with both old and new.
+    - Reinstate snd-powermac for i2s-a devices since apparently the lock-up
+      has been fixed.
+    - Remove dm-emc from the multipath modules, since it's gone since
+      2.6.27.
+    - Improve checks for dm-* drivers being present to avoid relying on them
+      being built as modules.
+    - Install libc6-vfp on armel systems where the vfp word is found in the
+      /proc/cpuinfo features.
+  * Don't use 'grep -w' in VFP-detection code, since busybox doesn't
+    implement it (LP: #359915).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 02 Jun 2009 17:14:06 +0100
+
+hw-detect (1.72) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Ask the correct parameters question if modprobe fails.
+  * Cope with dm-mod being built-in (e.g. custom kernels).
+  * Merge from Ubuntu:
+    - Check dmraid's exit code rather than parsing its output.
+    - Use 'update-dev --settle' rather than 'update-dev' after loading
+      modules (although not after installing new module packages, which may
+      still require a trigger). Requires di-utils 1.66.
+    - Activate only non-degraded dmraid arrays (thanks, Luke Yelavich;
+      closes: #499482).
+
+  [ Frans Pop ]
+  * Install usbutils based on presence of /sys/bus/usb.
+
+  [ Javier Fernández-Sanguino Peña ]
+  * Fix Spanish translation. Closes: #510304
+
+  [ Frans Pop ]
+  * Remove myself as uploader.
+  * Move hook scripts to directories to simplify including them.
+  * hppa: starting with kernel 2.6.29 modules for devices on the parisc bus
+    should be loaded automatically.
+
+ -- Frans Pop <fjp@debian.org>  Fri, 08 May 2009 07:45:48 +0200
+
+hw-detect (1.71ubuntu6) jaunty; urgency=low
+
+  [ Loic Minier ]
+  * Install libc6-vfp on armel systems where the vfp word is found in the
+    /proc/cpuinfo features.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 27 Mar 2009 11:52:40 +0000
+
+hw-detect (1.71ubuntu5) jaunty; urgency=low
+
+  * Use 'update-dev --settle' rather than 'update-dev' after loading modules
+    (although not after installing new module packages, which may still
+    require a trigger). Requires di-utils 1.66.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 04 Mar 2009 16:31:50 +0000
+
+hw-detect (1.71ubuntu4) jaunty; urgency=low
+
+  * Check dmraid's exit code as well as parsing its output, the latter for
+    backward compatibility with dmraid << 1.0.0.rc15-1~exp4 only
+    (LP: #325947).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 12 Feb 2009 10:19:04 +0000
+
+hw-detect (1.71ubuntu3) jaunty; urgency=low
+
+  * Improve checks for dm-* drivers being present to avoid relying on them
+    being built as modules.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 30 Dec 2008 14:38:36 +0000
+
+hw-detect (1.71ubuntu2) jaunty; urgency=low
+
+  * Backport from trunk:
+    - Ask the correct parameters question if modprobe fails.
+    - Cope with dm-mod being built-in.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 29 Dec 2008 21:28:16 +0000
+
+hw-detect (1.71ubuntu1) jaunty; urgency=low
+
+  [ Timo Aaltonen ]
+  * disk-detect.sh: Remove dm-emc from the multipath modules, since
+    it's gone since 2.6.27.
+
+  [ Colin Watson ]
+  * Resynchronise with Debian. Remaining changes:
+    - Remove FireWire Ethernet support.
+    - Register lp module on i386 and amd64.
+    - Exit zero if you continue all the way through ethdetect's errors about
+      having no network interfaces.
+    - Register rtc module on amd64.
+    - Drop priorities of a couple of ethdetect questions to medium.
+    - Install mouseemu on systems likely to have single-button mice (i.e.
+      Macs), but not powerpc64 since that causes an oops in the input layer.
+    - On powerpc/ps3 systems, load ps3rom, ps3disk, and ps3_gelic, and add
+      snd_ps3 to /etc/modules.
+    - Install elfspe2 on Cell (powerpc/ps3 and powerpc/cell) platforms.
+    - Add hooks for iSCSI support.
+    - disk-detect.sh: Do not check the kernel command line for any option
+      to enable dmraid support. If functional dmraid arrays are found, the
+      user will be asked if they wish to activate them.
+    - Make dmraid logging a bit neater.
+    - 'dmraid -c -s' changed its output format; cope with both old and new.
+    - Reinstate snd-powermac for i2s-a devices since apparently the lock-up
+      has been fixed.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 23 Dec 2008 19:01:16 +0000
+
+hw-detect (1.71) unstable; urgency=low
+
+  * Pass all_generic_ide as a plain boot option instead of with the value 1 as
+    initramfs-tools ignores it otherwise. Whether or not initramfs-tools'
+    behavior is correct is debatable.
+
+ -- Frans Pop <fjp@debian.org>  Wed, 17 Dec 2008 20:54:19 +0100
+
+hw-detect (1.70ubuntu3) jaunty; urgency=low
+
+  * Reinstate snd-powermac for i2s-a devices since apparently the lock-up
+    has been fixed (LP: #87652).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 27 Nov 2008 17:46:21 +0000
+
+hw-detect (1.70ubuntu2) jaunty; urgency=low
+
+  * Make dmraid logging a bit neater.
+  * 'dmraid -c -s' changed its output format; cope with both old and new.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 20 Nov 2008 18:20:39 +0000
+
+hw-detect (1.70ubuntu1) jaunty; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Remove FireWire Ethernet support.
+    - Register lp module on i386 and amd64.
+    - Exit zero if you continue all the way through ethdetect's errors about
+      having no network interfaces.
+    - Register rtc module on amd64.
+    - Drop priorities of a couple of ethdetect questions to medium.
+    - Install mouseemu on systems likely to have single-button mice (i.e.
+      Macs), but not powerpc64 since that causes an oops in the input layer.
+    - On powerpc/ps3 systems, load ps3rom, ps3disk, and ps3_gelic, and add
+      snd_ps3 to /etc/modules.
+    - Install elfspe2 on Cell (powerpc/ps3 and powerpc/cell) platforms.
+    - Add hooks for iSCSI support.
+    - disk-detect.sh: Do not check the kernel command line for any option
+      to enable dmraid support. If functional dmraid arrays are found, the
+      user will be asked if they wish to activate them.
+
+ -- Luke Yelavich <themuso@ubuntu.com>  Wed, 05 Nov 2008 10:56:29 +1100
+
+hw-detect (1.70) unstable; urgency=low
+
+  [ Frans Pop ]
+  * The partman-dmraid component is no longer needed for Serial ATA RAID
+    (dmraid) installations.
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Mahay Alam Khan (মাহে আলম খান)
+  * Bosnian (bs.po) by Armin Besirovic
+  * Danish (da.po)
+  * Esperanto (eo.po) by Felipe Castro
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Macedonian (mk.po) by Arangel Angov
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Albanian (sq.po) by Elian Myftiu
+  * Serbian (sr.po) by Veselin Mijušković
+  * Ukrainian (uk.po) by Borys Yanovych
+
+ -- Otavio Salvador <otavio@debian.org>  Sun, 21 Sep 2008 21:57:19 -0300
+
+hw-detect (1.68) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Fix libc6-i686 queuing on smp. Closes: #497863
+
+  [ Jérémy Bobbio ]
+  * check-missing-firmware: Don't ask for firmware files that have already
+    been denied by the user in a previous question. Closes: #497395
+
+  [ Updated translations ]
+  * Catalan (ca.po) by Jordi Mallach
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Hebrew (he.po) by Omer Zak
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Central Khmer (km.po) by KHOEM Sokhem
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Nepali (ne.po) by Shiva Prasad Pokharel
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+  * Simplified Chinese (zh_CN.po) by Deng Xiyue
+
+ -- Jérémy Bobbio <lunar@debian.org>  Sun, 14 Sep 2008 20:16:35 +0000
+
+hw-detect (1.67) unstable; urgency=low
+
+  [ Jérémy Bobbio ]
+  * Install virtio-modules when virtio devices are detected on the PCI bus.
+    (Closes: #497238)
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Pavel Piatruk
+  * Catalan (ca.po) by Jordi Mallach
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Kumar Appaiah
+  * Croatian (hr.po) by Josip Rodin
+  * Malayalam (ml.po) by പ്രവീണ്‍ അരിമ്പ്രത്തൊടിയില്‍
+  * Panjabi (pa.po) by Amanpreet Singh Alam
+  * Polish (pl.po) by Bartosz Fenski
+
+ -- Jérémy Bobbio <lunar@debian.org>  Thu, 04 Sep 2008 12:32:35 +0000
+
+hw-detect (1.66) unstable; urgency=low
+
+  [ Jérémy Bobbio ]
+  * On frontends other than GTK+, only ask about PCMCIA resource range when
+    user decided to start PCMCIA.  (Closes: #479391)
+  * Fix ethdetect and hw-detect for NICs named differently than ethX.
+    (Closes: #495676)
+    Thanks to Frans Pop for suggesting a better implementation.
+
+  [ Ian Campbell ]
+  * Add Xen virtual Ethernet to list of known Ethernet drivers.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Belarusian (be.po) by Pavel Piatruk
+  * German (de.po) by Jens Seidel
+  * Dzongkha (dz.po) by Jurmey Rabgay(Bongop) (DIT,BHUTAN)
+  * Greek, Modern (el.po) by Emmanuel Galatoulas
+  * Esperanto (eo.po) by Felipe Castro
+  * Basque (eu.po) by Piarres Beobide
+  * Finnish (fi.po) by Esko Arajärvi
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Gujarati (gu.po) by Kartik Mistry
+  * Hindi (hi.po) by Kumar Appaiah
+  * Croatian (hr.po) by Josip Rodin
+  * Korean (ko.po) by Changwoo Ryu
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Malayalam (ml.po) by Praveen|പ്രവീണ്‍ A|എ
+  * Norwegian Bokmål (nb.po) by Hans Fredrik Nordhaug
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Romanian (ro.po) by Eddy Petrișor
+  * Russian (ru.po) by Yuri Kozlov
+  * Swedish (sv.po) by Daniel Nylander
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Jérémy Bobbio <lunar@debian.org>  Tue, 26 Aug 2008 12:19:11 +0200
+
+hw-detect (1.65) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Look for firmware files in a firmware subdirectory of the media, 
+    as well as at the top level, for neat freaks.
+  * Call check-missing-firmware at the end of ethdetect and disk-detect,
+    as those programs can manually load modules, that could need firmware too.
+
+  [ Frans Pop ]
+  * Starting with initramfs-tools 0.92d the module ide-generic will be loaded
+    if the all_generic_ide parameter is passed. Advantage is that with that
+    option the module is loaded last instead of first.
+  * If the megaraid_mbox driver is in use, wait for the RAID hardware
+    initialization to finish before proceeding with the installation and add
+    the 'rootdelay' boot parameter for the target system. Closes: #486298.
+
+  [ Joey Hess ]
+  * ethdetect: Some modules do not request firmware until their interface
+    has been brought up. So up and down every interface so missing firmware
+    can be detected. Closes: #491712
+  * check-missing-firmware: Don't display dups. Closes: #492246
+  * check-missing-firmware: Check that debs are the right architecture before
+    trying to use them. Closes: #492249
+  * post-base-installer: If dpkg fails to install a firmware package, likely
+    because it has dependencies outside base, remove it rather than leaving
+    the db in an inconsistent state. Note that bugs have been filed to get all
+    such firmware packages fixed. Closes: #492248
+  * check-missing-firmware: Avoid trailing space in $files that caused it to
+    look for firmware packages containing a file named "" (and probably match
+    any package). Closes: #492247
+  * check-missing-firmware: Add a 1 second sleep before reading the missing
+    firmware log, just in case a module delays requesting firmware
+    until after modprobe returns, resulting in the log not being written in
+    time. (No such modules currently known.)
+  * hw-detect: Fix syntax error in code added for #472487.
+  * Add test for syntax errors in scripts to build process.
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 25 Jul 2008 13:32:08 -0400
+
+hw-detect (1.64) unstable; urgency=low
+
+  * floppy-retriever renamed to media-retriever.
+  * Change wording of question since drivers can now be loaded from other
+    media than floppies.
+  * Add a modified copy of udev's firmware.agent, that records to
+    /tmp/missing-firmware.
+  * Add check-missing-firmware.
+  * Add a post-base-installer hook to install firmware into /target.
+    Closes: #487228
+  * If firmware debs are installed, default apt-setup to using non-free.
+    This is so that apt can upgrade those debs.
+  * RM note: udev-udeb 0.124-1 has dropped the firmware.agent, so needs
+    this version of hw-detect. This version of hw-detect will work with
+    older versions of udev-udeb, although it will be indetermanate whether the
+    missing firmware detection works.
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 07 Jul 2008 13:50:33 -0400
+
+hw-detect (1.63ubuntu4) intrepid; urgency=low
+
+  * disk-detect.sh, debian/disk-detect.templates: If dmraid arrays are found,
+    ask the user if they want to use them. (LP: #279288)
+
+ -- Luke Yelavich <themuso@ubuntu.com>  Wed, 15 Oct 2008 09:41:15 +1100
+
+hw-detect (1.63ubuntu3) intrepid; urgency=low
+
+  * disk-detect.sh: Do not pass the complete device node path to
+    dmraid-activate, since it no longer uses basename.
+
+ -- Luke Yelavich <themuso@ubuntu.com>  Thu, 25 Sep 2008 11:09:36 +1000
+
+hw-detect (1.63ubuntu2) intrepid; urgency=low
+
+  * disk-detect.sh: Do not check the kernel command line for any option
+    to enable dmraid support. If functional dmraid arrays are found, they
+    will be activated.
+  * debian/disk-detect.templates: Remove disk-detect/dmraid/enable template.
+
+ -- Luke Yelavich <themuso@ubuntu.com>  Thu, 28 Aug 2008 00:13:21 +1000
+
+hw-detect (1.63ubuntu1) intrepid; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Remove FireWire Ethernet support.
+    - Register lp module on i386 and amd64.
+    - Exit zero if you continue all the way through ethdetect's errors about
+      having no network interfaces.
+    - Register rtc module on amd64.
+    - Drop priorities of a couple of ethdetect questions to medium.
+    - Install mouseemu on systems likely to have single-button mice (i.e.
+      Macs), but not powerpc64 since that causes an oops in the input layer.
+    - On powerpc/ps3 systems, load ps3rom, ps3disk, and ps3_gelic, and add
+      snd_ps3 to /etc/modules.
+    - Install elfspe2 on Cell (powerpc/ps3 and powerpc/cell) platforms.
+    - Add hooks for iSCSI support.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 26 Jun 2008 13:00:09 +0100
+
+hw-detect (1.63) unstable; urgency=low
+
+  [ Colin Watson, Frans Pop ]
+  * The esp module is now called esp_scsi. linux-kernel-di-sparc-2.6 was
+    updated last October, but sbus.list wasn't updated to match.
+    Turns out the corrent module to load is sun_esp, not esp_scsi which is
+    only a mid-level module. See #485961.
+
+  [ Updated translations ]
+  * Basque (eu.po) by Iñaki Larrañaga Murgoitio
+  * Korean (ko.po) by Changwoo Ryu
+  * Russian (ru.po) by Yuri Kozlov
+
+ -- Frans Pop <fjp@debian.org>  Tue, 17 Jun 2008 14:08:02 +0200
+
+hw-detect (1.62ubuntu1) intrepid; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Remove FireWire Ethernet support.
+    - Register lp module on i386 and amd64.
+    - Exit zero if you continue all the way through ethdetect's errors about
+      having no network interfaces.
+    - Register rtc module on amd64.
+    - Drop priorities of a couple of ethdetect questions to medium.
+    - Install mouseemu on systems likely to have single-button mice (i.e.
+      Macs), but not powerpc64 since that causes an oops in the input layer.
+    - On powerpc/ps3 systems, load ps3rom, ps3disk, and ps3_gelic, and add
+      snd_ps3 to /etc/modules.
+    - Install elfspe2 on Cell (powerpc/ps3 and powerpc/cell) platforms.
+    - Add hooks for iSCSI support.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 15 Jun 2008 22:37:38 +0100
+
+hw-detect (1.62) unstable; urgency=low
+
+  [ Updated translations ]
+  * Marathi (mr.po) by Sampada
+  * Punjabi (Gurmukhi) (pa.po) by Amanpreet Singh Alam
+
+ -- Otavio Salvador <otavio@debian.org>  Thu, 08 May 2008 00:14:58 -0300
+
+hw-detect (1.61) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Remove Bdale Garbee, Christian Perrier and Matt Kraai as Uploaders with
+    many thanks for their past contributions.
+
+  [ Guido Guenther ]
+  * Run depmod after pulling in the multipath kernel modules.
+    Closes: #476836
+
+  [ Updated translations ]
+  * Malayalam (ml.po) by Praveen|പ്രവീണ്‍ A|എ
+  * Marathi (mr.po)
+
+ -- Frans Pop <fjp@debian.org>  Thu, 01 May 2008 10:47:19 +0200
+
+hw-detect (1.60) unstable; urgency=low
+
+  [ Guido Guenther ]
+  * Add optional multipath detection to disk-detect.sh (triggered by
+    disk-detect/multipath/enable). Closes: #440439.
+
+  [ Frans Pop ]
+  * Some older systems have a disk controller that is not listed by lspci,
+    but that is supported by ide-generic. Load ide-generic if an ISA bus is
+    detected and, if new block devices become available, register the module
+    for inclusion in the initrd. Closes: #472487.
+  * hw-detect: simplify is_available() function.
+
+  [ Updated translations ]
+  * Basque (eu.po) by Piarres Beobide
+  * Finnish (fi.po) by Esko Arajärvi
+  * Panjabi (pa.po) by Amanpreet Singh Alam
+
+ -- Frans Pop <fjp@debian.org>  Thu, 03 Apr 2008 13:31:39 +0200
+
+hw-detect (1.59) unstable; urgency=low
+
+  [ Updated translations ]
+  * Amharic (am.po) by tegegne tefera
+  * Dzongkha (dz.po) by Jurmey Rabgay
+  * Finnish (fi.po) by Esko Arajärvi
+  * Hindi (hi.po) by Kumar Appaiah
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Korean (ko.po) by Changwoo Ryu
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Latvian (lv.po) by Viesturs Zarins
+  * Malayalam (ml.po) by Praveen|പ്രവീണ്‍ A|എ
+  * Panjabi (pa.po) by Amanpreet Singh Alam
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Turkish (tr.po) by Recai Oktaş
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Otavio Salvador <otavio@debian.org>  Fri, 15 Feb 2008 08:14:58 -0200
+
+hw-detect (1.58ubuntu2) hardy; urgency=low
+
+  * Add hooks for iSCSI support.
+
+ -- Soren Hansen <soren@ubuntu.com>  Fri, 08 Feb 2008 17:08:44 +0100
+
+hw-detect (1.58ubuntu1) hardy; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Remove FireWire Ethernet support.
+    - Register lp module on i386 and amd64.
+    - Exit zero if you continue all the way through ethdetect's errors about
+      having no network interfaces.
+    - Register rtc module on amd64.
+    - Drop priorities of a couple of ethdetect questions to medium.
+    - Install mouseemu on systems likely to have single-button mice (i.e.
+      Macs), but not powerpc64 since that causes an oops in the input layer.
+    - On powerpc/ps3 systems, load ps3rom, ps3disk, and ps3_gelic, and add
+      snd_ps3 to /etc/modules.
+    - Install elfspe2 on Cell (powerpc/ps3 and powerpc/cell) platforms.
+  * Set Vcs-Bzr for Ubuntu.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 27 Nov 2007 14:13:59 +0000
+
+hw-detect (1.58) unstable; urgency=low
+
+  * Install acpi-support-base, needed now to get power button shutdowns to
+    work in non-gui environments since acpid dropped that support.
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 17 Nov 2007 21:34:08 -0500
+
+hw-detect (1.57) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Discard errors from grepping /sys/bus/pci/devices/*/class, in case
+    /sys/bus/pci/devices exists but not the class files.
+
+  [ Frans Pop ]
+  * Various code and whitespace cleanups.
+  * No longer load isofs by default as it's loaded automatically when mount is
+    called with '-t iso9660' which we do both in cdrom-detect and iso-scan.
+  * No longer explicitly load ide-core.
+  * Stop loading all IDE driver modules by default as they should be loaded
+    correctly automatically by the kernel/udev. For now, the old behavior can
+    still be forced by booting with hw-detect/load-ide=true.
+    The ide-floppy driver module may not be loaded automatically, but
+    mountfloppy (0.14) will try to load it when needed.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Hleb Rubanau
+  * Esperanto (eo.po) by Serge Leblanc
+  * Korean (ko.po) by Sunjae Park
+  * Romanian (ro.po) by Eddy Petrișor
+
+ -- Frans Pop <fjp@debian.org>  Tue, 13 Nov 2007 14:06:56 +0100
+
+hw-detect (1.56) unstable; urgency=low
+
+  [ Jérémy Bobbio ]
+  * Add missing "fi" in hw-detect.sh.
+  * Fix debian-rules-ignores-make-clean-error lintian warning.
+
+ -- Jérémy Bobbio <lunar@debian.org>  Sun, 30 Sep 2007 04:20:41 +0200
+
+hw-detect (1.55) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Only ask PCMCIA resource question at low priority as we've not seen any
+    installation reports mentioning that issue in a long time.
+
+  [ Joey Hess ]
+  * Linux 2.6.22 renames the firewire bus and modules from "1394" to
+    "firewire". Support the new module names.
+  * While eth1394 is not currently being built for 2.6.22, go ahead and modify
+    sysfs-update-devnames to recognise ethernet devices that point to
+    /sys/bus/firewire as firewire ethernet.
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Jamil Ahmed
+  * Italian (it.po) by Stefano Canepa
+  * Panjabi (pa.po) by A S Alam
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 28 Sep 2007 19:18:04 -0400
+
+hw-detect (1.54) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Remove cruft left over from the days of pcmcia-cs.
+    - pcmciautils doesn't create a cardmgr.pid, so stop looking for it to
+      determine if pcmcia is started. Look for the pcmcia_core module being
+      loaded  instead.
+    - No need for funky redirections when running the init script as it no
+      longer starts a daemon.
+    - /var/run/stab was only produced by pcmcia-cs, so the whole
+      gen_pcmcia_devnames section can no longer run; remove.
+    - Only modify config.opts in /target if pcmcia_resources is preseeded.
+  * Remove workaround for long fixed cdebconf bug.
+
+  [ Frans Pop ]
+  * disk-detect: detect Serial ATA RAID disks if requested by setting
+    disk-detect/dmraid/enable at the boot prompt. Closes: #405484.
+    Thanks to Criss Carr for all the information he has provided, much of
+    which has been used in implementing the experimental dmraid support
+    available with this release of hw-detect and other components. Also
+    thanks to Jérémy Bobbio for his patches and Mark Brown for providing
+    a test system.
+
+  [ Updated translations ]
+  * Punjabi (Gurmukhi) (pa.po) by A S Alam
+  * Russian (ru.po) by Yuri Kozlov
+
+ -- Frans Pop <fjp@debian.org>  Fri, 06 Jul 2007 00:17:19 +0200
+
+hw-detect (1.53ubuntu3) gutsy; urgency=low
+
+  * We now need to use ps3rom and ps3disk rather than ps3_storage.
+  * gelic_net was renamed to ps3_gelic.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 27 Sep 2007 14:28:19 +0100
+
+hw-detect (1.53ubuntu2) gutsy; urgency=low
+
+  * Install elfspe2 on Cell (powerpc/ps3 and powerpc/cell) platforms.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 20 Sep 2007 21:42:09 +0100
+
+hw-detect (1.53ubuntu1) gutsy; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Remove FireWire Ethernet support.
+    - Register lp module on i386 and amd64.
+    - Exit zero if you continue all the way through ethdetect's errors about
+      having no network interfaces.
+    - Register rtc module on amd64.
+    - Drop priorities of a couple of ethdetect questions to medium.
+    - Install mouseemu on systems likely to have single-button mice (i.e.
+      Macs), but not powerpc64 since that causes an oops in the input layer.
+    - On powerpc/ps3 systems, load ps3_storage and gelic_net and add snd_ps3
+      to /etc/modules.
+
+ -- Evan Dandrea <evand@ubuntu.com>  Mon, 11 Jun 2007 10:31:27 -0400
+
+hw-detect (1.53) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Install eject on systems that seem to have a CD drive. Previously, it
+    was installed by cdrom-detect, only when installing from CD.
+
+  [ Updated translations ]
+  * Romanian (ro.po) by Eddy Petrișor
+
+ -- Frans Pop <fjp@debian.org>  Mon, 21 May 2007 16:38:31 +0200
+
+hw-detect (1.52ubuntu2) gutsy; urgency=low
+
+  * Install ps3pf-utils on powerpc/ps3 systems.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 17 May 2007 14:58:59 +0100
+
+hw-detect (1.52ubuntu1) gutsy; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Remove FireWire Ethernet support.
+    - Register lp module on i386 and amd64.
+    - Exit zero if you continue all the way through ethdetect's errors about
+      having no network interfaces.
+    - Register rtc module on amd64.
+    - Drop priorities of a couple of ethdetect questions to medium.
+    - Depend on pciutils-udeb for lspci.
+    - Install mouseemu on systems likely to have single-button mice (i.e.
+      Macs), but not powerpc64 since that causes an oops in the input layer.
+    - On powerpc/ps3 systems, load ps3_storage and gelic_net and add snd_ps3
+      to /etc/modules.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 26 Apr 2007 15:30:32 +0100
+
+hw-detect (1.52) unstable; urgency=low
+
+  * Code cleanup:
+    - remove support for 2.4 series kernels
+    - remove support for discover
+    - remove support for old versions of hotplug/udev
+
+ -- Frans Pop <fjp@debian.org>  Sat, 21 Apr 2007 00:59:06 +0200
+
+hw-detect (1.51) unstable; urgency=low
+
+  * Multiply menu-item-numbers by 100
+
+  [ Updated translations ]
+  * Esperanto (eo.po) by Serge Leblanc
+  * Norwegian Bokmål (nb.po) by Bjørn Steensrud
+  * Tamil (ta.po) by Dr.T.Vasudevan
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 10 Apr 2007 14:44:32 -0400
+
+hw-detect (1.50) unstable; urgency=low
+
+  [ Updated translations ]
+  * Hebrew (he.po) by Lior Kaplan
+  * Malayalam (ml.po) by Praveen A
+  * Swedish (sv.po) by Daniel Nylander
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Frans Pop <fjp@debian.org>  Tue, 27 Feb 2007 16:49:26 +0100
+
+hw-detect (1.49) unstable; urgency=low
+
+  [ Updated translations ]
+  * Hebrew (he.po) by Lior Kaplan
+  * Romanian (ro.po) by Eddy Petrișor
+
+ -- Frans Pop <fjp@debian.org>  Wed, 31 Jan 2007 11:35:05 +0100
+
+hw-detect (1.48) unstable; urgency=low
+
+  * hw-detect.sh: [hppa] make sure initramfs-tools will load scsi modules for
+    controlers on a native HP bus. Closes: #406735.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Malayalam (ml.po) by Praveen A
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+
+ -- Frans Pop <fjp@debian.org>  Wed, 24 Jan 2007 02:14:10 +0100
+
+hw-detect (1.47) unstable; urgency=low
+
+  * sysfs-update-devnames.sh
+    FireWire Ethernet devices are often a subdevice of the actual (PCI)
+    controller and thus do not have vendor/device info under /sys/class/net.
+    However, we can recognize FireWire devices by their bus type. Having this
+    recognition should make it easier for users to identify their "regular"
+    Ethernet NIC.
+
+  [ Updated translations ]
+  * Danish (da.po) by Claus Hindsgaul
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Galician (gl.po) by Jacobo Tarrio
+  * Kurdish (ku.po) by Amed Çeko Jiyan
+  * Panjabi (pa.po) by A S Alam
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Slovenian (sl.po) by Matej Kovačič
+  * Swedish (sv.po) by Daniel Nylander
+
+ -- Frans Pop <fjp@debian.org>  Thu, 11 Jan 2007 15:17:33 +0100
+
+hw-detect (1.46) unstable; urgency=low
+
+  * Change menu item for ethdetect from 18 to 17 so that ppp-udeb does not
+    get skipped.
+
+  [ Updated translations ]
+  * Panjabi (pa.po) by A S Alam
+
+ -- Frans Pop <fjp@debian.org>  Thu, 21 Dec 2006 16:24:44 +0100
+
+hw-detect (1.45ubuntu5) feisty; urgency=low
+
+  * Don't install mouseemu on powerpc64 for now; it causes a kernel oops
+    somewhere in the input layer (thanks, Benjamin Herrenschmidt).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 15 Apr 2007 10:06:28 +0100
+
+hw-detect (1.45ubuntu4) feisty; urgency=low
+
+  * Load ps3_storage and gelic_net on powerpc/ps3 systems. (The initramfs
+    will take care of loading them on the installed system.)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 11 Apr 2007 03:10:38 +0100
+
+hw-detect (1.45ubuntu3) feisty; urgency=low
+
+  * Add snd_ps3 to /etc/modules on powerpc/ps3 systems.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 30 Mar 2007 17:59:32 +0100
+
+hw-detect (1.45ubuntu2) feisty; urgency=low
+
+  * Install mouseemu on systems likely to have single-button mice (i.e.
+    Macs).
+  * Set Maintainer to ubuntu-installer@lists.ubuntu.com.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 23 Feb 2007 14:59:32 +0000
+
+hw-detect (1.45ubuntu1) feisty; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Remove FireWire Ethernet support.
+    - Register lp module on i386 and amd64.
+    - Exit zero if you continue all the way through ethdetect's errors about
+      having no network interfaces.
+    - Register rtc module on amd64.
+    - Drop priorities of a couple of ethdetect questions to medium.
+    - Depend on pciutils-udeb for lspci.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 19 Dec 2006 14:07:25 +0000
+
+hw-detect (1.45) unstable; urgency=low
+
+  * Add sbus-discover back in as sysfs support for sbus turns out to be
+    incomplete. Closes: #402102,
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Pavel Piatruk
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Malayalam (ml.po) by Praveen A
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovenian (sl.po) by Matej Kovačič
+
+ -- Frans Pop <fjp@debian.org>  Mon, 11 Dec 2006 08:41:58 +0100
+
+hw-detect (1.44) unstable; urgency=low
+
+  * Remove sbus-discover now that the kernel has sysfs support for sbus
+    devices.
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bosnian (bs.po) by Safir Secerovic
+  * Catalan (ca.po) by Jordi Mallach
+  * Esperanto (eo.po) by Serge Leblanc
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Kurdish (ku.po) by rizoye-xerzi
+  * Norwegian Bokmål (nb.po) by Bjørn Steensrud
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Panjabi (pa.po) by A S Alam
+  * Romanian (ro.po) by Eddy Petrișor
+  * Slovenian (sl.po) by Matej Kovačič
+  * Swedish (sv.po) by Daniel Nylander
+
+ -- Frans Pop <fjp@debian.org>  Thu, 30 Nov 2006 15:33:36 +0100
+
+hw-detect (1.43ubuntu1) feisty; urgency=low
+
+  * Resynchronise with Debian. Remaining changes:
+    - Remove FireWire Ethernet support.
+    - Register lp module on i386 and amd64.
+    - Exit zero if you continue all the way through ethdetect's errors about
+      having no network interfaces.
+    - Register rtc module on amd64.
+    - Drop priorities of a couple of ethdetect questions to medium.
+    - Depend on pciutils-udeb for lspci.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 22 Nov 2006 12:01:12 +0000
+
+hw-detect (1.43) unstable; urgency=low
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Belarusian (be.po) by Andrei Darashenka
+  * Greek, Modern (1453-) (el.po) by quad-nrg.net
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Estonian (et.po) by Siim Põder
+  * Hindi (hi.po) by Nishant Sharma
+  * Croatian (hr.po) by Josip Rodin
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Khmer (km.po) by Khoem Sokhem
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Norwegian Bokmål (nb.po) by Bjørn Steensrud
+  * Nepali (ne.po) by Shiva Prasad Pokharel
+  * Dutch (nl.po) by Bart Cornelis
+  * Polish (pl.po) by Bartosz Fenski
+  * Romanian (ro.po) by Eddy Petrișor
+  * Albanian (sq.po) by Elian Myftiu
+  * Tamil (ta.po) by Damodharan Rajalingam
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Turkish (tr.po) by Recai Oktaş
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Simplified Chinese (zh_CN.po) by Ming Hua
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Frans Pop <fjp@debian.org>  Tue, 24 Oct 2006 14:54:27 +0200
+
+hw-detect (1.42) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Improve sbus detection based on a scan of kernel code:
+    - qlogic_isp has been renamed to qlogicpti.
+    - Better sunlance, sunhme, esp, and qlogicpti detection.
+    - Add sunbmac detection.
+    - David Miller says that espdma is unnecessary for esp detection.
+  * Use list-devices to check for disks if parted_devices if unavailable.
+    Requires di-utils 1.33.
+
+  [ Joey Hess ]
+  * Finally install libc6-i686, if the machine's CPU can support it.
+    Libc guys tell me this is safe enough that it should be the default.
+  * Patch from Aurelien Jarno to install libc6-sparcv9[b] if the CPU supports
+    it.
+  * Improve wording of the pcmcia question.
+
+  [ Joshua Kwan ]
+  * Remove myself from Uploaders, I seriously lack the time for this..
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Mahay Alam Khan (মাহে আলম খান)
+  * Catalan (ca.po) by Jordi Mallach
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * Finnish (fi.po) by Tapio Lehtonen
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hebrew (he.po) by Lior Kaplan
+  * Indonesian (id.po) by Arief S Fitrianto
+  * Italian (it.po) by Giuseppe Sacco
+  * Japanese (ja.po) by Kenshi Muto
+  * Korean (ko.po) by Sunjae park
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Norwegian Bokmål (nb.po) by Bjørn Steensrud
+  * Dutch (nl.po) by Bart Cornelis
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+  * Romanian (ro.po) by Eddy Petrişor
+  * Russian (ru.po) by Yuri Kozlov
+  * Northern Sami (se.po) by Børre Gaup
+  * Slovak (sk.po) by Peter Mann
+  * Swedish (sv.po) by Daniel Nylander
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Tagalog (tl.po) by Eric Pareja
+  * Turkish (tr.po) by Recai Oktaş
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+
+ -- Frans Pop <fjp@debian.org>  Sat, 16 Sep 2006 11:38:58 +0200
+
+hw-detect (1.41ubuntu2) edgy; urgency=low
+
+  * Backport from trunk:
+    - Use list-devices to check for disks if parted_devices if unavailable.
+      Requires di-utils 1.33.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 29 Aug 2006 11:13:10 +0100
+
+hw-detect (1.41ubuntu1) edgy; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 29 Aug 2006 10:25:30 +0100
+
+hw-detect (1.41) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Install pcmciautils on 2.6 installs even if pcmcia-cs-udeb is present
+    for some reason (closes: #381863).
+
+  [ Frans Pop ]
+  * Remove standards-version and add Lintian override for it.
+
+  [ Updated translations ]
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+
+ -- Frans Pop <fjp@debian.org>  Sun, 20 Aug 2006 01:10:14 +0200
+
+hw-detect (1.40) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Only install discover into /target if udev is not being used. The only
+    user of discover on 2.6 systems is X, which gets it installed via the
+    desktop task preinst.
+
+  [ Frans Pop ]
+  * discover-mac-io.sh: snd-powermac can lock up G5 iMac and Power Mac.
+    Patch proposed by Colin Watson. Closes: #380082.
+
+  [ Updated translations ]
+  * Catalan (ca.po) by Jordi Mallach
+  * Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Frans Pop <fjp@debian.org>  Sun, 30 Jul 2006 01:39:50 +0200
+
+hw-detect (1.39) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Only ask FireWire question if a FireWire interface is actually present.
+
+  [ Colin Watson ]
+  * Fix disk_found to return 1 (no disks found) if it falls off the end of
+    its loop.
+  * If /proc/sys/kernel/hotplug is empty or /sbin/udevsend, then
+    HOTPLUG_TYPE is always udev even if /etc/hotplug is present (closes:
+    https://launchpad.net/bugs/53400).
+
+  [ Otavio Salvador ]
+  * Install pbbuttonsd if /sys/class/misc/pmu/ is found. Closes: #379197
+
+  [ Updated translations ]
+  * Estonian (et.po) by Siim Põder
+  * Gujarati (gu.po) by Kartik Mistry
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Dutch (nl.po) by Bart Cornelis
+  * Panjabi (pa.po) by A S Alam
+
+ -- Frans Pop <fjp@debian.org>  Tue, 25 Jul 2006 13:04:38 +0200
+
+hw-detect (1.38ubuntu3) edgy; urgency=low
+
+  * If /proc/sys/kernel/hotplug is empty or /sbin/udevsend, then
+    HOTPLUG_TYPE is always udev even if /etc/hotplug is present (closes:
+    Malone #53400).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 19 Jul 2006 07:35:48 +0100
+
+hw-detect (1.38ubuntu2) edgy; urgency=low
+
+  * Backport from trunk:
+    - Fix disk_found to return 1 (no disks found) if it falls off the end of
+      its loop.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 18 Jul 2006 15:29:49 +0100
+
+hw-detect (1.38ubuntu1) edgy; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 28 Jun 2006 13:21:11 +0100
+
+hw-detect (1.38) unstable; urgency=low
+
+  * Change ethdetect menu item number from 15 to 18. cdrom-detect, load-iso,
+    load-cdrom, ethdetect, and s390-netdevice are all changed due to this and
+    should transition together.
+    Closes: #373097
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 13 Jun 2006 20:31:08 -0400
+
+hw-detect (1.37) unstable; urgency=low
+
+  * prebaseconfig transition
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  7 Jun 2006 22:02:51 -0400
+
+hw-detect (1.36) unstable; urgency=low
+
+  [ Frans Pop ]
+  * devnames-static.txt: update descriptions for some Sun Ethernet devices.
+
+  [ Joey Hess ]
+  * Remove code for i8042 and atkbd on powerpc, has been in rootskel for a
+    long time.
+  * Only register the psmouse module for 2.4 kernels, udev will handle it for
+    2.6.
+  * Only register ide-detect, ide-cd, and ide-disk for 2.4, ditto.
+  * Only register sr_mod and sd_mod for 2.4 as well.
+
+  [ Christian Perrier ]
+  * Split Choices fields in debconf templates. Will minimize translators errors.
+
+  [ Colin Watson ]
+  * Fix sysfs-update-devnames not to try to use 'local' outside a function,
+    which bash doesn't like.
+  * Use /etc/init.d/pcmciautils if available, so that pcmciautils-udeb and
+    pcmcia-cs-udeb don't have to contain the same file (and thus break if
+    pcmcia-cs-udeb accidentally gets unpacked into a 2.6 installer).
+
+  [ Joey Hess ]
+  * Removed some unnecessary and/or redundant debugging lines.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Catalan (ca.po) by Jordi Mallach
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Dzongkha (dz.po)
+  * Esperanto (eo.po) by Serge Leblanc
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hungarian (hu.po) by SZERVÑC Attila
+  * Italian (it.po) by Giuseppe Sacco
+  * Japanese (ja.po) by Kenshi Muto
+  * Georgian (ka.po) by Aiet Kolkhi
+  * Khmer (km.po) by Khoem Sokhem
+  * Korean (ko.po) by Sunjae park
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Bokmål, Norwegian (nb.po) by Bjørn Steensrud
+  * Nepali (ne.po) by Shiva Pokharel
+  * Dutch (nl.po) by Bart Cornelis
+  * Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+  * Romanian (ro.po) by Eddy Petrişor
+  * Russian (ru.po) by Yuri Kozlov
+  * Northern Sami (se.po) by Børre Gaup
+  * Slovak (sk.po) by Peter Mann
+  * Slovenian (sl.po) by Jure Čuhalev
+  * Albanian (sq.po) by Elian Myftiu
+  * Swedish (sv.po) by Daniel Nylander
+  * Tamil (ta.po) by Damodharan Rajalingam
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Turkish (tr.po) by Recai Oktaş
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Colin Watson <cjwatson@debian.org>  Wed,  7 Jun 2006 01:20:20 +0100
+
+hw-detect (1.35) unstable; urgency=low
+
+  * hwdetect.sh: look in /proc/modules instead of using lsmod.
+  * discover-sbus: queue SCSI sbus modules for inclusion in initrd and NIC
+    modules for addition to /etc/modules. Closes: #358532.
+  * Needs di-utils 1.26.
+  * Add myself to uploaders.
+
+  [ Updated translations ]
+  * Bosnian (bs.po) by Safir Secerovic
+  * German (de.po) by Jens Seidel
+  * Dzongkha (dz.po) by Sonam Rinchen
+  * Esperanto (eo.po) by Serge Leblanc
+  * Basque (eu.po) by Piarres Beobide
+  * Irish (ga.po) by Kevin Patrick Scannell
+  * Hungarian (hu.po) by SZERVÑC Attila
+  * Khmer (km.po) by Leang Chumsoben
+  * Polish (pl.po) by Bartosz Fenski
+  * Northern Sami (se.po) by Børre Gaup
+  * Slovenian (sl.po) by Jure Cuhalev
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Frans Pop <fjp@debian.org>  Wed, 19 Apr 2006 19:45:38 +0200
+
+hw-detect (1.34) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Remove most code that prompted for module parameters. The new model d-i
+    uses for module parameters is that the user should enter them on the
+    kernel command line at boot, using the form module.param=value. This
+    allows module parameters to be specified before udev loads modules during
+    boot. Closes: #271065
+  * Needs rootskel 1.30.
+
+  [ Frans Pop ]
+  * sbus.list: SUNW,qfe (Quattro HME) needs sunhme driver instead of sunqe.
+    See: #306476.
+  * sbus.list: add qec (QuadEthernet) which uses sunqe driver.
+
+  [ Joey Hess ]
+  * Rebuilt with new libdebian-installer to get correct udeb dependency
+    for archdetect.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama M. Khayat
+  * Bulgarian (bg.po) by Ognyan Kulev
+  * Bosnian (bs.po) by Safir Secerovic
+  * Catalan (ca.po) by Jordi Mallach
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Claus Hindsgaul
+  * German (de.po) by Jens Seidel
+  * Greek, Modern (1453-) (el.po) by quad-nrg.net
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Basque (eu.po) by Piarres Beobide
+  * French (fr.po) by Christian Perrier
+  * Galician (gl.po) by Jacobo Tarrio
+  * Hungarian (hu.po) by SZERVÑC Attila
+  * Italian (it.po) by Giuseppe Sacco
+  * Japanese (ja.po) by Kenshi Muto
+  * Korean (ko.po) by Sunjae park
+  * Lithuanian (lt.po) by Kęstutis Biliūnas
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Macedonian (mk.po) by Georgi Stanojevski
+  * Bokmål, Norwegian (nb.po) by Bjørn Steensrud
+  * Dutch (nl.po) by Bart Cornelis
+  * Polish (pl.po) by Bartosz Fenski
+  * Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Peter Mann
+  * Swedish (sv.po) by Daniel Nylander
+  * Tagalog (tl.po) by Eric Pareja
+  * Ukrainian (uk.po) by Eugeniy Meshcheryakov
+  * Vietnamese (vi.po) by Clytie Siddall
+  * Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 18 Mar 2006 14:05:32 -0500
+
+hw-detect (1.33) unstable; urgency=low
+
+  [ Martin Michlmayr ]
+  * Add a description of Intel's IXP400 Ethernet driver.
+
+  [ Colin Watson ]
+  * Replace another udevsynthesize call with update-dev.
+  * Remove old DEB_HOST_ARCH_* and CFLAGS_ARCH cruft.
+  * Fix CFLAGS so that the apparently-intended version formerly in
+    debian/rules actually gets used; no impact on size, though.
+  * Offer disk devices from drivers/message/fusion and drivers/message/i2o
+    (https://launchpad.net/distros/ubuntu/+bug/22220).
+
+  [ Frans Pop ]
+  * Add support for detecting sbus devices on sparc now that we are not using
+    discover anymore. May need to be extended to also add the drivers to the
+    initramfs initrd or /etc/modules. Uses prtconf from sparc-utils-udeb.
+
+  [ Updated translations ]
+  * Catalan (ca.po) by Jordi Mallach
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Finnish (fi.po) by Tapio Lehtonen
+  * Japanese (ja.po) by Kenshi Muto
+  * Latvian (lv.po) by Aigars Mahinovs
+  * Punjabi (Gurmukhi) (pa_IN.po) by Amanpreet Singh Alam
+  * Romanian (ro.po) by Eddy Petrişor
+  * Slovak (sk.po) by Peter Mann
+  * Slovenian (sl.po) by Jure Cuhalev
+  * Albanian (sq.po) by Elian Myftiu
+  * Turkish (tr.po) by Recai Oktaş
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Frans Pop <fjp@debian.org>  Wed,  1 Feb 2006 15:40:33 +0100
+
+hw-detect (1.32ubuntu6) dapper; urgency=low
+
+  * Backport from trunk:
+    - Fix sysfs-update-devnames not to try to use 'local' outside a
+      function, which bash doesn't like.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon,  8 May 2006 11:48:09 +0100
+
+hw-detect (1.32ubuntu5) dapper; urgency=low
+
+  * Take floppy back out of /etc/modules; turns out the kernel's PnP
+    subsystem is broken.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu,  2 Mar 2006 13:11:19 +0000
+
+hw-detect (1.32ubuntu4) dapper; urgency=low
+
+  * Add floppy to /etc/modules (closes: Malone #32599).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 28 Feb 2006 11:03:44 +0000
+
+hw-detect (1.32ubuntu3) dapper; urgency=low
+
+  * Remove old hack to register specific sparc modules.
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Fri, 24 Feb 2006 11:28:14 +0100
+
+hw-detect (1.32ubuntu2) dapper; urgency=low
+
+  * Stop registering mousedev, which is built into the kernel now.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu,  2 Feb 2006 18:15:21 +0000
+
+hw-detect (1.32ubuntu1) dapper; urgency=low
+
+  * Resynchronise with Debian.
+  * Drop casper symlinks, no longer required following casper's
+    reimplementation as initramfs hooks.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 18 Jan 2006 01:06:30 +0000
+
+hw-detect (1.32) unstable; urgency=low
+
+  * I observed a scsi disk that required three seconds from the end of
+    hw-detect until the kernel brought it up. (This may have involved udev,
+    not sure). Try to deal with this kind of race slightly better in
+    disk-detect by probing a few times with short pauses before concluding
+    that there is no disk.
+
+  [ Updated translations ]
+  * Catalan (ca.po) by Guillem Jover
+  * Greek, Modern (1453-) (el.po) by quad-nrg.net
+  * Finnish (fi.po) by Tapio Lehtonen
+  * Swedish (sv.po) by Daniel Nylander
+  * Vietnamese (vi.po) by Clytie Siddall
+
+ -- Joey Hess <joeyh@debian.org>  Mon,  2 Jan 2006 21:15:56 -0500
+
+hw-detect (1.31) unstable; urgency=low
+
+  * If d-i is using pcmciautils-udeb instead of pcmcia-cs-udeb (needed on
+    2.6.13 kernels), then install pcmciautils as well as pcmcia-cs.
+  * The new update-dev that handles udev has been around for a while, so
+    drop old calls to udevstart/udevsynthesize.
+  * Install discover1 in /target even if d-i is using udev, since X's
+    maintainer scripts need discover.
+
+  [ Updated translations ]
+  * Galician (gl.po) by Jacobo Tarrio
+  * Malagasy (mg.po) by Jaonary Rabarisoa
+  * Slovenian (sl.po) by Jure Čuhalev
+
+ -- Colin Watson <cjwatson@debian.org>  Sun, 25 Dec 2005 15:12:11 +0000
+
+hw-detect (1.30) unstable; urgency=low
+
+  * udebs are not allowed to have ORed deps (and it was adding cruft to the
+    build) so remove the discover/udev deps entirely. It would be better to
+    use a depends on something provided by both packages, but these deps are
+    not really needed since both hw-detect and one or the other is part of the
+    d-i base system.
+
+ -- Joey Hess <joeyh@debian.org>  Sat,  3 Dec 2005 12:55:10 -0500
+
+hw-detect (1.29ubuntu2) dapper; urgency=low
+
+  * Replace another udevsynthesize call with update-dev.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon,  5 Dec 2005 22:50:30 +0000
+
+hw-detect (1.29ubuntu1) dapper; urgency=low
+
+  * Resynchronise with Debian.
+  * Depend on udev-udeb ahead of discover to make sure germinate doesn't get
+    confused.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri,  2 Dec 2005 11:31:56 +0000
+
+hw-detect (1.29) unstable; urgency=low
+
+  * Add udev-udeb as alternate dependency for discover.
+
+  [ Updated translations ]
+  * Latvian (lv.po) by Aigars Mahinovs
+
+ -- Colin Watson <cjwatson@debian.org>  Fri,  2 Dec 2005 10:38:29 +0000
+
+hw-detect (1.28ubuntu1) dapper; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu,  1 Dec 2005 13:26:37 +0000
+
+hw-detect (1.28) unstable; urgency=low
+
+  [ Frans Pop ]
+  * Drop dependency on hotplug-udeb for hw-detect as there's no such thing.
+  * ethdetect.sh: avoid grep error if /etc/network/devnames doesn't exist.
+
+  [ Colin Watson ]
+  * Rename /etc/network/devnames.gz to /etc/network/devnames-static.gz to
+    avoid confusion with /etc/network/devnames (closes: #340919).
+  * Consider HOTPLUG_TYPE as udev if the hotplug handler is empty (i.e.
+    udevd is listening for events on a netlink socket).
+
+  [ Updated translations ]
+  * Malagasy (mg.po) by Jaonary Rabarisoa
+  * Russian (ru.po) by Yuri Kozlov
+
+ -- Colin Watson <cjwatson@debian.org>  Thu,  1 Dec 2005 13:04:27 +0000
+
+hw-detect (1.27) unstable; urgency=low
+
+  * If we're running with udev, apt-install udev rather than hotplug.
+
+  [ Updated translations ]
+  * French (fr.po) by Christian Perrier
+  * Japanese (ja.po) by Kenshi Muto
+  * Romanian (ro.po) by Eddy Petrişor
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 22 Nov 2005 21:16:15 +0000
+
+hw-detect (1.26ubuntu1) dapper; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 21 Nov 2005 13:03:49 +0000
+
+hw-detect (1.26) unstable; urgency=low
+
+  [ Colin Watson ]
+  * If udevstart is missing, try udevsynthesize instead to try to get udev
+    to create pending device nodes.
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 16 Nov 2005 18:30:21 -0500
+
+hw-detect (1.25) unstable; urgency=low
+
+  [ Colin Watson ]
+  * If we're using coldplugging udev rather than hotplug, run udevsynthesize
+    when modules are added.
+  * Add a udev rule to make sure our net event hook is run even without the
+    rest of hotplug.
+
+  [ Sven Luther ]
+  * chrp_rs6k -> chrp_ibm change, still keeping backward compatible support.
+
+  [ Updated translations ]
+  * Bengali (bn.po) by Baishampayan Ghose
+  * Hindi (hi.po) by Nishant Sharma
+  * Icelandic (is.po) by David Steinn Geirsson
+  * Korean (ko.po) by Sunjae park
+  * Norwegian Nynorsk (nn.po)
+  * Romanian (ro.po) by Eddy Petrişor
+  * Slovak (sk.po) by Peter Mann
+  * Swedish (sv.po) by Daniel Nylander
+  * Turkish (tr.po) by Recai Oktaş
+
+ -- Frans Pop <fjp@debian.org>  Tue, 15 Nov 2005 20:55:09 +0100
+
+hw-detect (1.24ubuntu1) dapper; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 27 Oct 2005 12:07:54 +0100
+
+hw-detect (1.24) unstable; urgency=low
+
+  * Use log-output.
+
+  * Updated translations: 
+    - Catalan (ca.po) by Guillem Jover
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Kurdish (ku.po) by Erdal Ronahi
+    - Dutch (nl.po) by Bart Cornelis
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Romanian (ro.po) by Eddy Petrisor
+    - Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 26 Sep 2005 16:58:23 +0200
+
+hw-detect (1.23) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Install net-hotplug.sh as hw-detect.hotplug, not ddetect.hotplug.
+
+  [ Joey Hess ]
+  * Move explicit ide-core load to before hardware autodetection, to
+    avoid ugly message in the log and to allow module parameters to really be
+    passed for it.
+  * Run update-dev from userdevfs at end to allow it to create device nodes.
+
+  * Updated translations: 
+    - German (de.po) by Holger Wansing
+    - Basque (eu.po)
+    - Bokmål, Norwegian (nb.po) by Bjørn Steensrud
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 17 Aug 2005 09:29:46 -0400
+
+hw-detect (1.22ubuntu3) breezy; urgency=low
+
+  * Sparc only change: remove sunlance, sunbmac and sunqe autoprobe.
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Sat, 01 Oct 2005 17:29:03 +0200
+
+hw-detect (1.22ubuntu2) breezy; urgency=low
+
+  * Sparc only change: be sure to load modules for devices that can be on sbus
+    (not hotplug friendly yet)
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Thu, 29 Sep 2005 15:45:59 +0200
+
+hw-detect (1.22ubuntu1) breezy; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 28 Jul 2005 16:30:32 +0100
+
+hw-detect (1.22) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Robustness fix in apply_pcmcia_resource_opts: ignore incomplete user input
+
+  [ Colin Watson ]
+  * Most of archdetect moved to libdebian-installer so that it can be used
+    by other C code in d-i more conveniently. Use di_system_subarch_analyze
+    from there.
+
+  * Updated translations:
+    - German (de.po) by Dennis Stampfer
+    - Spanish (es.po) by Javier Fernández-Sanguino Peña
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Macedonian (mk.po) by Georgi Stanojevski
+    - Dutch (nl.po) by Bart Cornelis
+    - Polish (pl.po) by Bartosz Fenski
+    - Russian (ru.po) by Yuri Kozlov
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Colin Watson <cjwatson@debian.org>  Thu, 28 Jul 2005 10:59:46 +0100
+
+hw-detect (1.21ubuntu1) breezy; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 20 Jul 2005 14:43:23 +0100
+
+hw-detect (1.21) unstable; urgency=low
+
+  * Updated translations: 
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Hebrew (he.po) by Lior Kaplan
+    - Indonesian (id.po) by Arief S Fitrianto
+    - Japanese (ja.po) by Kenshi Muto
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Tagalog (tl.po) by Eric Pareja
+    - Wolof (wo.po) by Mouhamadou Mamoune Mbacke
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 15 Jul 2005 16:52:02 +0300
+
+hw-detect (1.20) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Remove the missing modules warning, which was confusing to users and only
+    useful for debugging. Missing modules are still logged, and d-i already 
+    handles helping the user with important undeteted hardware (ethernet,
+    cdrom, disk).
+  
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Catalan (ca.po) by Guillem Jover
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Basque (eu.po) by Piarres Beobide
+    - French (fr.po) by Christian Perrier
+    - Gallegan (gl.po) by Jacobo Tarrio
+    - Italian (it.po) by Giuseppe Sacco
+    - Japanese (ja.po) by Kenshi Muto
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrişor
+    - Slovak (sk.po) by Peter Mann
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 30 Jun 2005 17:09:55 -0400
+
+hw-detect (1.19) unstable; urgency=low
+
+  * Colin Watson
+    - Don't install pcmcia-cs if hw-detect/start_pcmcia=false; at least on
+      2.6 kernels, the /sys nodes can end up being present even if PCMCIA
+      hasn't been started (Ubuntu bug #8678).
+    - Fix DEB_HOST_ARCH_* compatibility code to handle the various special
+      cases.
+  * Joey Hess
+    - Rename hw-detect-full to disk-detect.
+    - Add a disk-detect command, which uses hw-detect to load any additional
+      drivers, as hw-detect-full did, but which also checks to see if any
+      disks were found, and if none are, allows the user to select driver
+      modules from a list, or load more from a floppy. Closes: #283193
+    - disk-detect will use partman's parted_devices command if available to
+      see if any disks are found. Otherwise it falls back to a devfs find
+      similar to that used by partitioner and autopartkit. This is probably
+      good enough, but partman could be extended for network filesystems or
+      something else and disk-detect's check would not know about it.
+    - Move retry_params template to hw-detect so disk-detect can use it too.
+      hw-detect might also use it in the future. Same with load_floppy
+      template.
+    - Remove ethdetect/modprobe_error template, as it's identical to
+      hw-detect/modprobe_error. Use the latter in ethdetect.
+    - Direct some modprobe output to /var/log/messages in ethdetect as is done
+      in hw-detect.
+    - Add a cleanup function to ethdetect.
+    - Rename the source package as it's going through NEW anyway.
+  * Updated translations: 
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Romanian (ro.po) by Eddy Petrişor
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 17 Jun 2005 23:06:58 -0400
+
+ddetect (1.18ubuntu2) breezy; urgency=low
+
+  * Don't register ide-* modules; hotplug is responsible for loading them
+    now (closes: Ubuntu #9099).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 29 Jun 2005 12:59:14 +0100
+
+ddetect (1.18ubuntu1) breezy; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue,  7 Jun 2005 21:07:06 +0100
+
+ddetect (1.18) unstable; urgency=low
+
+  * Joey Hess
+    - archdetect postinst removed
+    - debian-installer/kernel/subarchitecture is no longer supported,
+      just run archdetect instead.
+    - remove archdetect-deb binary and source as it and archdetect are now
+      identical
+  * Colin Watson
+    - Use DEB_HOST_ARCH_* variables if available so that we work correctly
+      with dpkg 1.13.
+    - hw-detect and ethdetect are entirely Linux-specific, so make them do
+      nothing on the Hurd for now.
+    - Make discover | hotplug-udeb dependency Linux-specific.
+    - No longer build-depend on libdebconfclient0-dev, due to archdetect
+      change.
+  * Updated translations:
+    - Arabic (ar.po) by Ossama M. Khayat
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Basque (eu.po)
+    - Hebrew (he.po) by Lior Kaplan
+    - Italian (it.po) by Giuseppe Sacco
+    - Dutch (nl.po) by Bart Cornelis
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Albanian (sq.po) by Elian Myftiu
+    - Turkish (tr.po) by Recai Oktaş
+
+ -- Colin Watson <cjwatson@debian.org>  Mon, 30 May 2005 01:08:39 +0100
+
+ddetect (1.17ubuntu1) breezy; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 11 May 2005 14:35:22 +0100
+
+ddetect (1.17) unstable; urgency=low
+
+  * Joey Hess
+    - Set hw-detect-full priority to optional to match overrides.
+  * Colin Watson
+    - Tolerate failure of sysfs-update-devnames in ethdetect, to cope with
+      old initrds (closes: #308340).
+  * Updated translations:
+    - Greek, Modern (1453-) (el.po) by Kostas Papadimas
+    - Portuguese (Brazil) (pt_BR.po) by Carlos Eduardo Pedroza Santiviago
+
+ -- Colin Watson <cjwatson@debian.org>  Mon,  9 May 2005 22:15:14 +0100
+
+ddetect (1.16) unstable; urgency=low
+
+  * Colin Watson
+    - If udev is available, call udevstart at the end of hardware detection
+      to make sure that device nodes are created synchronously.
+    - Don't break if no modules need to be loaded.
+    - Add integration with hotplug:
+      + Re-run hotplug rc scripts during hardware detection.
+      + Hook into net events so that we can record them for netcfg.
+      Requires lspci in udeb form, which isn't yet available (#284110).
+  * Joey Hess
+    - Allow module parameters to be preseeded on a per-module basis, using
+      hw-detect/module_params/$module as the question name.
+    - Turn seen flag setting back on after trying to ask the pcmcia start
+      question, now that #257180 is fixed. Add a dependency on the version of
+      cdebconf that fixed it. Closes: #280025
+    - Revert change to force load sunhme, sunbmac, and esp, since a discover1
+      patch exists (thought not yet applied), and the change caused nasty
+      error messages during the install.
+  * Updated translations: 
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Japanese (ja.po) by Kenshi Muto
+
+ -- Joey Hess <joeyh@debian.org>  Sat,  7 May 2005 20:16:28 -0400
+
+ddetect (1.15) unstable; urgency=low
+
+  * Joey Hess
+    - Force register and load sunhme, sunbmac, and esp on sparc since
+      apparently discover does not find these on at least an E4500.
+      This is kind of a work around for #299074, and will be reverted once
+      discover is fixed.
+    - Detect if only one ethernet interface is found, and if it's a firewire
+      interface, warn the user and allow them to manually select modules to
+      load. This after noticing that 2.6 installs that fail to load the
+      ethernet driver fail unexpectedly when the firewire ethernet ends up
+      being used. Closes: #303445
+    - Add a few missing 2.6 ethernet drivers to devnames.txt.
+  * Colin Watson
+    - Register apm_emu on systems with via-pmu mac-io devices.
+  * Frans Pop
+    - Schedule acpi packages for installation if system has acpi support.
+      Works only for 2.6 kernels. Closes: #300545
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Catalan (ca.po) by Guillem Jover
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Spanish (es.po) by Javier Fernandez-Sanguino Peña
+    - French (fr.po) by Christian Perrier
+    - Gallegan (gl.po) by Jacobo Tarrio
+    - Hebrew (he.po) by Lior Kaplan
+    - Italian (it.po) by Stefano Canepa
+    - Korean (ko.po) by Changwoo Ryu
+    - Dutch (nl.po) by Bart Cornelis
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Yuri Kozlov
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Sun,  1 May 2005 16:51:56 -0400
+
+ddetect (1.14ubuntu1) breezy; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 14 Apr 2005 19:38:00 +0100
+
+ddetect (1.14) unstable; urgency=low
+
+  * Kurt Roeckx
+    - Also do the register-module psmouse for amd64.
+  * Note that this includes some sustitution fixes in translated templates.
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Welsh (cy.po) by Dafydd Harries
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Gallegan (gl.po) by Hctor Fenndez Lpez
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Russian (ru.po) by Dmitry Beloglazov
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  2 Feb 2005 17:13:59 -0500
+
+ddetect (1.13) unstable; urgency=low
+
+  * Bdale Garbee
+    - force loading of some hppa nic and scsi modules that discover doesn't
+      know about in hw-detect.sh, so modular (2.6) kernels work better
+
+ -- Bdale Garbee <bdale@gag.com>  Fri, 14 Jan 2005 16:53:47 -0700
+
+ddetect (1.12) unstable; urgency=low
+
+  * Joey Hess
+    - Load ide-core explicitly rather than implicitly to allow the user to
+      specify parameters such as hda=stroke when the module is loaded.
+    - Add ide-disk to /etc/modules on systems with ide. I'm not yet sure 
+      what situation calls for this as it's normally autoloaded. Maybe
+      something to do with lvm? See bug #289377.
+    - Moved register-module psmouse calls to here from rootskel.
+      Currently done for some powerpc subarches, ia64, and also now for i386,
+      since some races have been reported on i386 with the module being loaded
+      on demand as X starts.
+  * Sven Luther
+    - Added detection code for NuBus powermacs.
+  * Updated translations: 
+    - Romanian (ro.po) by Eddy Petrisor
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 10 Jan 2005 15:56:59 -0500
+
+ddetect (1.11ubuntu13) hoary; urgency=low
+
+  * Don't install pcmcia-cs if hw-detect/start_pcmcia=false (closes: Ubuntu
+    #8678).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue,  5 Apr 2005 14:14:20 +0100
+
+ddetect (1.11ubuntu12) hoary; urgency=low
+
+  * Add draft Xhosa translation.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 22 Mar 2005 13:55:05 +0000
+
+ddetect (1.11ubuntu11) hoary; urgency=low
+
+  * Move udevstart call to the end of hw-detect, in an attempt to make
+    device creation more reliable.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue,  8 Mar 2005 11:50:12 +0000
+
+ddetect (1.11ubuntu10) hoary; urgency=low
+
+  * Don't exit early if there are no modules to load (as can easily happen,
+    since Ubuntu's rootskel coldplugs everything it can at boot time when
+    using hotplug).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat,  5 Mar 2005 16:17:27 +0000
+
+ddetect (1.11ubuntu9) hoary; urgency=low
+
+  * Run udevstart after running hotplug scripts, to make sure that it
+    creates device nodes synchronously.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 28 Feb 2005 19:35:55 +0000
+
+ddetect (1.11ubuntu8) hoary; urgency=low
+
+  * Escape commas in lspci output for devnames.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 24 Feb 2005 15:45:28 +0000
+
+ddetect (1.11ubuntu7) hoary; urgency=low
+
+  * Add pciutils-udeb dependency to ethdetect too so that cdrom installs
+    pull it in.
+  * Check that lspci is available before updating devnames from sysfs.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 18 Feb 2005 11:14:10 +0000
+
+ddetect (1.11ubuntu6) hoary; urgency=low
+
+  * After each hardware detection run, update /etc/network/devnames from
+    /sys/class/net, using lspci to get the network device name.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue,  8 Feb 2005 18:06:24 +0000
+
+ddetect (1.11ubuntu5) hoary; urgency=low
+
+  * Add link to prebaseconfig script in /usr/lib/casper/pre.d.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 18 Jan 2005 20:02:09 +0000
+
+ddetect (1.11ubuntu4) hoary; urgency=low
+
+  * Test for the /etc/hotplug directory rather than hotplug.real or udevsend
+    to decide whether we're using real hotplug.
+
+ -- Colin Watson <cjwatson@canonical.com>  Wed, 12 Jan 2005 15:10:49 +0000
+
+ddetect (1.11ubuntu3) hoary; urgency=low
+
+  * Acknowledge the presence of udevsend, as well as hotplug.real, when
+    deciding whether we are using real hotplug
+
+ -- Matt Zimmerman <mdz@canonical.com>  Wed, 12 Jan 2005 00:26:01 -0800
+
+ddetect (1.11ubuntu2) hoary; urgency=low
+
+  * Drop priorities of a couple of ethdetect questions to medium.
+
+ -- Colin Watson <cjwatson@canonical.com>  Sat,  1 Jan 2005 23:50:49 +0000
+
+ddetect (1.11ubuntu1) hoary; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Colin Watson <cjwatson@canonical.com>  Sun,  5 Dec 2004 16:09:34 +0000
+
+ddetect (1.11) unstable; urgency=low
+
+  * Colin Watson
+    - Portable shell fix in hotplug-pcmcia.
+  * Joey Hess
+    - Work around de4x5 / tulip problem by using tulip if de4x5 is not
+      available, and blacklisting de4x5. So we can control which is used
+      on a per-arch or kernel basis by including the right one on the
+      initrd.
+    - If above hack causes tulip to be used for the first stage, call
+      register-modules to make it be used on the installed system.
+      Closes: #282814
+    - On hppa 2.4 this doesn't happen, since tulip is built in.
+      In that case, de4x5 will still be blacklisted so the hang will be
+      avoided. Closes: #283754
+  * Updated translations: 
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kure
+    - Finnish (fi.po) by Tapio Lehtonen
+    - Italian (it.po) by Giuseppe Sacco
+    - Dutch (nl.po) by Bart Cornelis
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Russian L10N Team
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Albanian (sq.po) by Elian Myftiu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  1 Dec 2004 16:14:06 -0500
+
+ddetect (1.10ubuntu4) hoary; urgency=low
+
+  * Test $HOTPLUG_TYPE, not $hotplug_type.
+
+ -- Colin Watson <cjwatson@canonical.com>  Wed, 24 Nov 2004 17:44:59 +0000
+
+ddetect (1.10ubuntu3) hoary; urgency=low
+
+  * Depend on hotplug-udeb | discover rather than just discover.
+
+ -- Colin Watson <cjwatson@canonical.com>  Tue, 23 Nov 2004 20:23:47 +0000
+
+ddetect (1.10ubuntu2) hoary; urgency=low
+
+  * Add integration with hotplug:
+    - Re-run hotplug rc scripts during hardware detection.
+    - Hook into net events so that we can record them for netcfg.
+    - Remove firmware loading support. hotplug itself should be able to
+      handle this now.
+
+ -- Colin Watson <cjwatson@canonical.com>  Tue, 23 Nov 2004 18:08:04 +0000
+
+ddetect (1.10ubuntu1) hoary; urgency=low
+
+  * Resynchronise with Debian (thanks, Scott James Remnant).
+
+ -- Colin Watson <cjwatson@canonical.com>  Thu, 28 Oct 2004 19:41:11 +0100
+
+ddetect (1.10) unstable; urgency=low
+
+  * Colin Watson
+    - Run discover-mac-io before discover, since that matches the ordering
+      post-reboot.
+  * Updated translations:
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - French (fr.po) by French Team
+
+ -- Colin Watson <cjwatson@debian.org>  Mon, 18 Oct 2004 19:41:06 +0100
+
+ddetect (1.09) unstable; urgency=low
+
+  * Joey Hess
+    - Disable the archdetect-deb as I don't want to try to get it through NEW
+      and I need to upload for other reasons.
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  6 Oct 2004 15:07:47 -0400
+
+ddetect (1.08) unstable; urgency=low
+
+  * Updated translations: 
+    - Welsh (cy.po) by Dafydd Harries
+    - Hebrew (he.po) by Lior Kaplan
+    - Hungarian (hu.po) by VEROK Istvan
+    - Romanian (ro.po) by Eddy Petrisor
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  6 Oct 2004 14:27:12 -0400
+
+ddetect (1.07) unstable; urgency=low
+
+  * Colin Watson
+    - Look through all of /proc/device-tree/, not just the mac-io bus.
+      Slower but apparently necessary for at least the therm_* fan
+      controllers, which are on uni-n here.
+  * Joshua Kwan
+    - Fix C99isms from arch-specific archdetects to eliminate build
+      failures (don't know why they were not caught before):
+        . archdetect-arm-linux.c
+        . archdetect-m68k-linux.c
+    - There was only an isblank warning in here (build succeeded, but
+      best to fix nonetheless):
+        . archdetect-powerpc-linux.c
+  * Updated translations:
+    - Czech (cs.po) by Miroslav Kure
+    - Greek (el.po) by Greek Translation Team
+    - Hebrew (he.po) by Lior Kaplan
+    - Indonesian (id.po) by Debian Indonesia Team
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnasn
+    - Latvian (lv.po) by Aigars Mahinovs
+    - Norwegian (nb.po) by Bjorn Steensrud
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian (nn.po) by Håvard Korsvoll
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Russian L10N Team
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Albanian (sq.po) by Elian Myftiu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Sun,  3 Oct 2004 15:49:38 -0700
+
+ddetect (1.06) unstable; urgency=low
+
+  * Colin Watson
+    - Add the ability to back up from the error messages you get if
+      ethdetect can't find any network interfaces. We could probably do with
+      a state machine of some kind here.
+    - mac-io bus detection improvements:
+      + Detect mesh SCSI controller (closes: #269655, #271419).
+      + Detect mace Ethernet controller.
+      + Detect mac53c94 SCSI controller.
+      + Detect therm_adt746x and therm_windtunnel fan controllers, although
+        only post-reboot for now since those modules aren't in
+        linux-kernel-di-powerpc-*.
+      + Cope with /proc/device-tree/aliases/mac-io pointing to a symlink.
+  * Bastian Blank
+    - Add archdetect-deb package.
+  * Joey Hess
+    - Temporarily disable archdetect-deb for this upload, don't want to wait
+      for NEW processing for a deb.
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - German (de.po) by Dennis Stampfer
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - French (fr.po) by French Team
+    - Hebrew (he.po) by Lior Kaplan
+    - Lithuanian (lt.po) by Kęstutis Biliūnasn
+    - Bøkmal, Norwegian (nb.po) by Axel Bojer
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Russian (ru.po) by Russian L10N Team
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Swedish (sv.po) by Per Olofsson
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 27 Sep 2004 17:02:47 -0400
+
+ddetect (1.05) unstable; urgency=low
+
+  * Joey Hess
+    - Add usb nic modules to the manual module list. Closes: #262638, #267402
+    - Hack to make this work for 2.4 which does not have a usb/nic subdir.
+    - In ethdetect, don't prompt twice for module params in a low priority
+      install.
+  * Updated translations: 
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+    - Spanish (Castilian) (es.po) by Javier Fernandez-Sanguino Peña
+    - French (fr.po) by French Team
+    - Hebrew (he.po) by Lior Kaplan
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Korean (ko.po) by Changwoo Ryu
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Turkish (tr.po) by Recai Oktaş
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Mon,  6 Sep 2004 17:15:48 -0400
+
+ddetect (1.04) unstable; urgency=low
+
+  * Joey Hess
+    - Work around kernel bug #269823 by not loading the hpt366 module
+      automatically.
+
+ -- Joey Hess <joeyh@debian.org>  Fri,  3 Sep 2004 15:06:55 -0400
+
+ddetect (1.03ubuntu14) warty; urgency=low
+
+  * register-module rtc on amd64 (closes: Ubuntu #1659).
+
+ -- Colin Watson <cjwatson@canonical.com>  Sun, 17 Oct 2004 20:13:52 +0100
+
+ddetect (1.03ubuntu13) warty; urgency=low
+
+  * Create /sbin! Both /sbin/hotplug and (on powerpc) /bin/discover-mac-io
+    go missing otherwise.
+
+ -- Colin Watson <cjwatson@canonical.com>  Sat,  2 Oct 2004 18:49:19 +0100
+
+ddetect (1.03ubuntu12) warty; urgency=low
+
+  * Look through all of /proc/device-tree/, not just the mac-io bus. Slower
+    but apparently necessary for at least the therm_* fan controllers, which
+    are on uni-n here (closes: Ubuntu #1606).
+
+ -- Colin Watson <cjwatson@canonical.com>  Thu, 30 Sep 2004 20:46:05 +0100
+
+ddetect (1.03ubuntu11) warty; urgency=low
+
+  * Copy firmware loading code from hotplug-pcmcia.sh to hotplug-misc.sh,
+    installed as /sbin/hotplug, so that firmware loading works for
+    non-PCMCIA devices.
+
+ -- Colin Watson <cjwatson@canonical.com>  Wed, 29 Sep 2004 00:46:27 +0100
+
+ddetect (1.03ubuntu10) warty; urgency=low
+
+  * Use /lib/hotplug/firmware rather than /lib/firmware, to match current
+    hotplug.
+
+ -- Colin Watson <cjwatson@canonical.com>  Wed, 29 Sep 2004 00:15:12 +0100
+
+ddetect (1.03ubuntu9) warty; urgency=low
+
+  * Register ide-disk in /etc/modules if IDE devices are present (closes:
+    Warty #1400).
+
+ -- Colin Watson <cjwatson@canonical.com>  Mon, 20 Sep 2004 14:35:28 +0100
+
+ddetect (1.03ubuntu8) warty; urgency=low
+
+  * Several improvements to discover-mac-io, backported from Debian:
+    - Detect mesh SCSI controller.
+    - Detect mace Ethernet controller.
+    - Detect mac53c94 SCSI controller.
+    - Detect therm_adt746x and therm_windtunnel fan controllers, although
+      only post-reboot for now since those modules aren't in
+      linux-kernel-di-powerpc-*.
+    - Cope with /proc/device-tree/aliases/mac-io pointing to a symlink.
+
+ -- Colin Watson <cjwatson@canonical.com>  Mon, 20 Sep 2004 13:53:10 +0100
+
+ddetect (1.03ubuntu7) warty; urgency=low
+
+  * Search for firmware in /lib/firmware as well as
+    /usr/lib/hotplug/firmware.
+  * Search for firmware with filenames including the kernel version number
+    (closes: Warty #1316).
+
+ -- Colin Watson <cjwatson@canonical.com>  Fri, 17 Sep 2004 20:28:37 +0100
+
+ddetect (1.03ubuntu6) warty; urgency=low
+
+  * Add the ability to back up from the error messages you get if ethdetect
+    can't find any network interfaces.
+  * Exit zero if you continue all the way through said errors. The warnings
+    are scary enough, and netcfg handles the no-interfaces case reasonably
+    gracefully.
+
+ -- Colin Watson <cjwatson@canonical.com>  Sun, 12 Sep 2004 16:16:20 +0100
+
+ddetect (1.03ubuntu5) warty; urgency=low
+
+  * Unconditionally load the psmouse module for i386. 
+
+ -- Daniel Stone <daniels@debian.org>  Sun, 12 Sep 2004 02:07:17 +1000
+
+ddetect (1.03ubuntu4) warty; urgency=low
+
+  * Add firmware loading support (somewhat temporarily hacked-up until we
+    get a real hotplug-udeb).
+  * Register lp module on i386 and amd64 (closes: Warty #1039).
+
+ -- Colin Watson <cjwatson@canonical.com>  Mon,  6 Sep 2004 15:09:51 +0100
+
+ddetect (1.03ubuntu3) warty; urgency=low
+
+  * Register mousedev module, unconditionally.
+
+ -- Colin Watson <cjwatson@canonical.com>  Fri,  3 Sep 2004 03:56:45 +0100
+
+ddetect (1.03ubuntu2) warty; urgency=low
+
+  * Register apm_emu module on powerpc systems with a via-pmu (closes: Warty
+    #974).
+
+ -- Colin Watson <cjwatson@canonical.com>  Fri,  3 Sep 2004 03:35:28 +0100
+
+ddetect (1.03ubuntu1) warty; urgency=low
+
+  * Merge from Debian to get mac-io detection improvements.
+
+ -- Colin Watson <cjwatson@canonical.com>  Thu,  2 Sep 2004 14:51:54 +0100
+
+ddetect (1.03) unstable; urgency=low
+
+  * Martin Michlmayr
+    - Upstream changed how the SGI O2 (IP 32) is reported in /proc/cpuinfo.
+      Deal with the old and the new value.
+  * Joey Hess
+    - Remove seen flag unsetting code, not necessary for a long time in the
+      d-i environment.
+  * Colin Watson
+    - Make hw-detect Architecture: any so that we don't have to have
+      discover-mac-io on non-powerpc architectures.
+  * Updated translations:
+    - Arabic (ar.po) by Ossama M. Khayat
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Bosnian (bs.po) by Safir Šećerović
+    - Welsh (cy.po) by Dafydd Harries
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - French (fr.po) by French Team
+    - Hebrew (he.po) by Lior Kaplan
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Latvian (lv.po) by Aigars Mahinovs
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Russian (ru.po) by Yuri Kozlov
+
+ -- Colin Watson <cjwatson@debian.org>  Thu,  2 Sep 2004 14:40:18 +0100
+
+ddetect (1.02) unstable; urgency=low
+
+  * Colin Watson
+    - Don't bother trying to load psmouse in d-i; just register it for use
+      after the first reboot.
+    - Move mac-io hardware detection out to a separate file, only installed
+      on powerpc.
+    - Detect dmasound_pmac/snd-powermac (depending on kernel version) on
+      PowerMacs.
+  * Joshua Kwan
+    - Add USB stuff to devnames.txt.
+    - Don't try to load sbp2 unless we also have scsi_mod lying around.
+  * Updated translations:
+    - Catalan (ca.po) by Jordi Mallach
+    - Greek, Modern (1453-) (el.po) by Greek Translation Team
+    - French (fr.po) by French Team
+    - Japanese (ja.po) by Kenshi Muto
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Bøkmal, Norwegian (nb.po) by
+    - Polish (pl.po) by Bartosz Fenski
+    - Turkish (tr.po) by Recai Oktaş
+
+ -- Colin Watson <cjwatson@debian.org>  Thu, 26 Aug 2004 19:47:35 +0100
+
+ddetect (1.01) unstable; urgency=medium
+
+  * Joshua Kwan
+    - Add more entries to devnames.txt.
+    - grep for ^${module}: to prevent e1000's description matching for
+      e100. (Closes: #262626, #266328)
+    - 'hardware architecture', not 'hardware architect' in control.
+  * Sven Luther
+    - Added support for loading the psmouse modules on powerpc/chrp
+      and prep too, since X is complaining after the reboot.
+  * Updated translations:
+    - Danish (da.po) by Claus Hindsgaul
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - French (fr.po) by Christian Perrier
+    - Lithuanian (lt.po) by Kęstutis Biliūnasn
+    - Latvian (lv.po) by Aigars Mahinovs
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Mon, 23 Aug 2004 01:44:51 -0700
+
+ddetect (1.00ubuntu1) warty; urgency=low
+
+  * Remove FireWire Ethernet support. We'll be removing it from hotplug too.
+
+ -- Colin Watson <cjwatson@flatline.org.uk>  Wed,  1 Sep 2004 17:46:06 +0100
+
+ddetect (1.00) unstable; urgency=low
+
+  * Updated translations: 
+    - Swedish (sv.po) by Per Olofsson
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 25 Jul 2004 19:15:02 -0400
+
+ddetect (0.110) unstable; urgency=low
+
+  * Joey Hess
+    - Have discover output ide devices, so sata modules are loaded.
+      Closes: #260658
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 25 Jul 2004 14:04:28 -0400
+
+ddetect (0.109) unstable; urgency=low
+
+  * Colin Watson
+    - Detect BMAC Ethernet controllers, found on some PowerMacs. Ideally
+      discover would be able to walk the mac-io bus ... (closes: #260427)
+    - Add myself to Uploaders.
+  * Joey Hess
+    - Fix display of card names in the missing modules list.
+  * Updated translations:
+    - Arabic (ar.po) by Abdulaziz Al-Arfaj
+    - German (de.po) by Dennis Stampfer
+    - Persian (fa.po) by Arash Bijanzadeh
+    - Croatian (hr.po) by Krunoslav Gernhard
+    - Italian (it.po) by Giuseppe Sacco
+
+ -- Colin Watson <cjwatson@debian.org>  Sat, 24 Jul 2004 12:58:38 +0100
+
+ddetect (0.108) unstable; urgency=low
+
+  * Joey Hess
+    - Undo my incorrect yenta_socket change of 0.105.
+  * Updated translations: 
+    - Bosnian (bs.po) by Safir Šećerović
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 17 Jul 2004 17:35:22 -0400
+
+ddetect (0.107) unstable; urgency=low
+
+  * Joshua Kwan
+    - Add a cardname parameter to load_module eth1394 so it shows up as
+      Firewire ethernet.
+  * Joey Hess
+    - Don't bother with eth1394 for 2.4 kernel, it's only close to the
+      spec in 2.6.
+    - Don't register-module eth1394, hotplug takes care of it.
+
+ -- Joey Hess <joeyh@debian.org>  Thu,  8 Jul 2004 20:53:30 -0400
+
+ddetect (0.106) unstable; urgency=low
+
+  * Joey Hess
+    - Check to see if modules are available before loading them in all cases,
+      and if they're unavailable, add them to the standard missing modules
+      list.
+
+ -- Joey Hess <joeyh@debian.org>  Thu,  8 Jul 2004 18:20:01 -0400
+
+ddetect (0.105) unstable; urgency=low
+
+  * Sylvain Ferriol
+    - add plip in devnames
+  * Joshua Kwan
+    - add more devnames descriptions for powerpc
+  * Joey Hess
+    - Load yenta_socket a bit later, after the discover run, because it
+      looked strange to load a module before it said it was detecting
+      hardware. It still loads before any other modules.
+    - Add progress display when loading modules for firewire CD.
+    - Try to enable firewire ethernet support if ohci1394 is loaded.
+      For now it does no real detection, just loads it.
+
+ -- Joey Hess <joeyh@debian.org>  Tue,  6 Jul 2004 22:13:52 -0400
+
+ddetect (0.104) unstable; urgency=low
+
+  * Joey Hess
+    - sleep may not be available, so don't completly crash out if it's not.
+      (Of course, instead something with a race that the sleep call is working
+      around will probably not work right.)
+
+ -- Joey Hess <joeyh@debian.org>  Thu,  1 Jul 2004 17:51:00 -0400
+
+ddetect (0.103) unstable; urgency=low
+
+  * Sven Luther
+    - Added support for loading the i8042 and atkbd modules on
+    powerpc/chrp and prep in order to have keyboard input :).
+  * Joshua Kwan
+    - Use devnames descriptions for ethdetect.sh where possible.
+      Closes: #225166
+    - Create 'BLACKLIST' entries for stuff that shouldn't be seen in
+      ethdetect's module loading menu.
+    - Update a whole ton of descriptions.
+  * Joey Hess
+    - Don't mess with the seen flag of a question that has not yet been
+      displayed, that tickled a cdebconf bug (#257180) and broke pcmcia.
+
+ -- Joey Hess <joeyh@debian.org>  Thu,  1 Jul 2004 15:55:42 -0400
+
+ddetect (0.102) unstable; urgency=low
+
+  * Joshua Kwan
+    - Holy batman, Discover groks SBUS now! Disable the sunhme registration
+      hack in hw-detect.sh.
+    - And with that, add sbus to the list of busses probed by discover's
+      invocation.
+    - Fix Joey's template typo that caused modules to stop loading.
+    - Correct some trivial Makefile style things.
+  * Joey Hess
+    - Add a "no ethernet card" option in ethdetect if autodetection finds
+      nothing, to break out of the loop. Closes: #255247
+    - If a module fails to load and there were no parameters, prompt for
+      parameters at critical priority using a special template, and try the
+      load again. Closes: #242827
+    - Remove special case for ne, it should be handled by the above.
+    - Prompt about whether to prompt for module parameters, to avoid 20
+      useless questions on low priority installs (any better ideas?)
+      Closes: #239890
+  * Thiemo Seufer
+    - Expand list of SGI ip32 CPUs.
+  * Updated translations:
+    - Albanian (sq.po) by Elian Myftiu
+    - Bosnian (bs.po) by Safir Šećerović
+    - fa (fa.po) by Arash Bijanzadeh
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Sun, 27 Jun 2004 17:36:05 -0700
+
+ddetect (0.101) unstable; urgency=low
+
+  * Joey Hess
+    - Register the airport module if it's detected so it will be available in
+      the installed system.
+    - apt-install usbutils when installing hotplug to avoid the "can't
+      synthesize root hub events" with 2.6 kernels.
+    - Change the example kernel parameters to use lower case, as they usually.
+      do. Unfuzzy all translations. Closes: #253683
+  * Thiemo Seufer
+    - Add detection for more mips/mipsel systems.
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 10 Jun 2004 23:32:40 -0400
+
+ddetect (0.100) unstable; urgency=low
+
+  * Per Olofsson
+    - On 2.6 kernels, load yenta_socket before the regular PCI detection
+      if the hardware is available so that Cardbus cards will be found.
+    - Log something less confusing on pcmcia_socket hotplug events.
+  * Colin Watson
+    - Don't try to load floppy or ide-floppy on NewWorld PowerMacs. Most
+      (all?) newworld systems don't have floppy drives, and loading the
+      module apparently hangs G5s (closes: #251089).
+  * Joshua Kwan
+    - Since Discover doesn't grok SBUS yet, load sunhme in the manual
+      module loading section because most sparc32 machines have either
+      lance (built-in) or HME network connections.
+    - To this effect, add a simple archdetect-sparc-linux.c. It will
+      certainly have use later.
+  * Joey Hess and Christian Perrier
+    - Add support for firewire CDs, including scsi bus rescanning for 2.4
+      kernels. Closes: #246790, #248011, #233497, #234208
+    - Have discover load bridge support so it will find ieee1394 bridges.
+  * Christian Perrier
+    - Add myself to uploaders
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 30 May 2004 14:09:07 -0300
+
+ddetect (0.99) unstable; urgency=low
+
+  * Per Olofsson
+    - When generating PCMCIA network card device names, also put them in
+      /etc/network/devhotplug.
+    - Check /sys for Cardbus cards on 2.6 kernels and add them to
+      devhotplug.
+  * Joey Hess
+    - register-module ide-generic for 2.6 kernels. Fixes ide-cds on
+      scsi systems with 2.6 kernels. Closes: #251050
+
+ -- Petter Reinholdtsen <pere@debian.org>  Wed, 26 May 2004 17:09:35 -0300
+
+ddetect (0.98) unstable; urgency=low
+
+  * Per Olofsson
+    - Only ask whether PCMCIA should be started once. Closes: #250285.
+    - Install /etc/pcmcia/config.opts using prebaseconfig.
+    - Queue Cardbus modules if they are not available, so that we can still
+      catch their hotplug events and add them to /etc/network/devhotplug.
+  * Updated translations: 
+    - Greek, Modern (1453-) (el.po) by George Papamichelakis
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Albanian (sq.po) by Elian Myftiu
+
+ -- Per Olofsson <pelle@dsv.su.se>  Mon, 24 May 2004 21:58:05 +0200
+
+ddetect (0.97) unstable; urgency=low
+
+  * Per Olofsson
+    - Added question about PCMCIA resource range options.
+  * Joshua Kwan
+    - Refine our PCMCIA heuristic on 2.6 by checking for the existence of
+      any directories in /sys/class/pcmcia_socket. Thanks Russell King
+      <rmk+pcmcia@arm.linux.org.uk>.
+    - Try hard to only apt-install pcmcia-cs and generate PCMCIA devnames
+      once.
+  * Bastian Blank
+    - hw-detect-full enhanced hw-detect.
+  * Joey Hess
+    - Ignore errors loading the ide-cd module, which can happen
+      on at least sun hardware if the system has no IDE CD drive.
+      Closes: #250324
+  * Updated translations:
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Catalan (ca.po) by Jordi Mallach
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Alwin Meschede
+    - Spanish (es.po) by Javier Fernández-Sanguino
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by Christian Perrier
+    - Gallegan (gl.po) by Héctor Fernández López
+    - Hungarian (hu.po) by VERÓK István
+    - Indonesian (id.po) by Parlin Imanuel Toh
+    - Italian (it.po) by Giuseppe Sacco
+    - Japanese (ja.po) by Kenshi Muto
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Norwegian (nb.po) by Knut Yrvin
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrisor
+    - Russian (ru.po) by Yuri Kozlov
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Slovenian (sl.po) by Jure Čuhalev
+    - Turkish (tr.po) by Osman Yüksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Mon, 24 May 2004 08:05:21 -0700
+
+ddetect (0.96) unstable; urgency=low
+
+  * Joey Hess
+    - Change the wording of the question before starting pcmcia;
+      no detection of pcmcia is done before asking this question because the
+      most reliable way to detect pcmcia is to try to start it (discover's
+      pcmcia bridge detection may not work in all cases). Closes: #249420
+  * Joshua Kwan
+    - It turns out our PCMCIA detection heuristics really suck, so do
+      not assume that /var/run/stab automatically exists if cardmgr has been
+      started, otherwise hw-detect will error out. Do a -f check to work
+      around it for now.
+    - Change IFS to " " for netdev parsing state, restore it later.
+      Fixes cases where one would see 'eth0 eth1: Device name', thanks
+      Cit <debian@loathe.ms>.
+  * Updated translations:
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Alwin Meschede
+    - Spanish (es.po) by Javier Fernández-Sanguino
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - French (fr.po) by Christian Perrier
+    - Hungarian (hu.po) by VERÓK István
+    - Indonesian (id.po) by Parlin Imanuel Toh
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by Kęstutis Biliūnas
+    - Dutch (nl.po) by Bart Cornelis
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Russian (ru.po) by Nikolai Prokoschenko
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Turkish (tr.po) by Osman Yüksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Tue, 18 May 2004 10:16:13 -0700
+
+ddetect (0.95) unstable; urgency=low
+
+  * Colin Watson
+    - Bump priorities of hw-detect and hw-detect-full to standard, in line
+      with the override file.
+  * Joey Hess
+    - Follow cdrom-detect's lead by making ethdetect ask for a driver
+      floppy if the network card detection fails and no module was
+      selected from the manual list. The previous method didn't work
+      since many media lack a menu item to load floppies. Closes: #247941
+    - BTW, think "firmware floppy". :-(
+    - Always autodetect network hardware. The question about whether to do
+      this was asked as low priority; hw-detect is safe and always asks at low
+      priority before loading modules, so the question was redundant.
+      Closes: #219890
+  * Joshua Kwan
+    - Devnames for PCMCIA devices, as given by their built in names, using
+      the information from /var/run/stab. Woohoo!
+  * Christian Perrier
+    - s/ethernet/Ethernet in new templates
+    - Ellipsis typography fixed
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 14 May 2004 12:20:30 -0300
+
+ddetect (0.94) unstable; urgency=low
+
+  * Joey Hess
+    - Find unavailable modules before calculating the size of the progress
+      bar and stop displaying progress messages about skipping such modules.
+      Closes: #241467
+    - Made checking for already loaded modules O(n) instead of previous
+      O(n^2).
+    - Other speedups.
+    - Never display "[Unknown]" as a module name in the selection list.
+    - The airport test is good enough to not belong in get_manual_hw_info.
+    - Ask the start_pcmcia qestion.
+    - Mark the start_pcmcia question as translatable.
+    - Only ask the question if pcmcia is not running (uses its pid file).
+    - Restart cardmgr if it's already running to make sure it uses any modules
+      that were not available before. Closes: #234564
+    - Redirect fd 3 from /dev/null when starting pcmcia to avoid debconf fd
+      hang issues.
+  * Christian Perrier
+    - Removed the double questioning in the pcmcia_start template
+      Reworded the template for simplification
+  * Kenshi Muto
+    - Check module name includes '_' also by replacing '-' for Linux 2.6.
+      Closes: #247249
+  * Stephen R. Marenka
+    - Add support for q40 and sun3(x) m68k subarchs.
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Alwin Meschede
+    - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - French (fr.po) by Christian Perrier
+    - Hebrew (he.po) by Lior Kaplan
+    - Hungarian (hu.po) by VERÓK István
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by André Luís Lopes
+    - Romanian (ro.po) by Eddy Petrisor
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Albanian (sq.po) by Elian Myftiu
+    - Turkish (tr.po) by Osman Yüksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Wed,  5 May 2004 00:01:13 -0400
+
+ddetect (0.93) unstable; urgency=low
+
+  * Joey Hess
+    - There is no reason to hardcode the path to discover. Especially not
+      when you hardcode the wrong path. Especially not when it breaks with
+      discover 2 on 2.6 kernels.
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 27 Apr 2004 20:39:29 -0400
+
+ddetect (0.92) unstable; urgency=low
+
+  * Joey Hess
+    - Add || true after calls to discover --version, makes it work on 2.6
+      kernel again.
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 27 Apr 2004 19:57:12 -0400
+
+ddetect (0.91) unstable; urgency=low
+
+  * Joey Hess
+    - Complete the discover transition by apt-installing discover1, which is
+      now in testing.
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 24 Apr 2004 12:05:28 -0400
+
+ddetect (0.90) unstable; urgency=low
+
+  * Petter Reinholdtsen
+    - Stop hw-detect from failing if /etc/network/ is
+      missing. (Closes: #245535)
+    - Log when pcmcia and hotplut support is detected.
+    - Rewrite the code detecting which version of discover to use, and
+      make it easier to change which package to install in /target/
+      based on this.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sat, 24 Apr 2004 11:47:42 +0200
+
+ddetect (0.89) unstable; urgency=low
+
+  * Updated translations: 
+    - Bulgarian (bg.po) by Ognyan Kulev
+    - Bokmal, Norwegian (nb.po) by Bjørn Steensrud
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+    - Albanian (sq.po) by Elian Myftiu
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 23 Apr 2004 13:03:38 -0400
+
+ddetect (0.88) unstable; urgency=low
+
+  * Joey Hess
+    - In ethdetect, always register-module manually selected modules.
+  * Updated translations: 
+    - Bokmal, Norwegian (nb.po) by Bjørn Steensrud
+    - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 21 Apr 2004 23:35:31 -0400
+
+ddetect (0.87) unstable; urgency=low
+
+  * Joey Hess
+    - Add a new template, hw-detect/start_pcmcia, as a kind of workaround for
+      systems where starting pcmcia hangs the system (Dell inspirons..).
+      Due to the string freeze, this question is not translated or displayed
+      to the user yet, but it can be overridden at boot time.
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 19 Apr 2004 20:23:26 -0400
+
+ddetect (0.86) unstable; urgency=low
+
+  * Colin Watson
+    - Better error checking and quoting around airport detection.
+  * Updated translations: 
+    - German (de.po) by Alwin Meschede
+    - Finnish (fi.po) by Tapio Lehtonen
+    - Hebrew (he.po) by Lior Kaplan
+    - Indonesian (id.po) by Parlin Imanuel Toh
+    - Norwegian (nn.po) by Håvard Korsvoll
+
+ -- Colin Watson <cjwatson@debian.org>  Mon, 19 Apr 2004 15:13:26 +0100
+
+ddetect (0.85) unstable; urgency=low
+
+  * Sven Luther
+    - Don't always load the airport module on powerpc, but do the real thing,
+      and check if it is available or not (Closes: #221533).
+  * Martin Michlmayr
+    - Don't show missing modules twice (Closes: #244145).
+  * Colin Watson
+    - Add support for IBM iSeries logical partitions as powerpc/iseries
+      (thanks, Karl Kappel; closes: #239794).
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Sat, 17 Apr 2004 00:55:40 +0100
+
+ddetect (0.84) unstable; urgency=low
+
+  * Per Olofsson
+    - List PCMCIA network interfaces in /etc/network/devhotplug and load
+      modules for Cardbus cards in a temporary hotplug agent.
+  * Martin Michlmayr
+    - Detect Cobalt machines running new kernels (which identify the
+      exact machine in /proc/cpuinfo rather than just "MIPS Cobalt").
+  * Joey Hess
+    - Try ide-generic, for 2.6 kernels.
+    - Don't display loading message on progress bar for skipped modules.
+  * Updated translations: 
+    - Basque (eu.po) by Piarres Beobide Egaña
+    - Gallegan (gl.po) by Héctor Fernández López
+    - Hebrew (he.po) by Lior Kaplan
+    - Indonesian (id.po) by Parlin Imanuel Toh
+    - Italian (it.po) by Davide Viti
+    - Dutch (nl.po) by Bart Cornelis
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Turkish (tr.po) by Osman Yüksel
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 13 Apr 2004 16:53:03 -0400
+
+ddetect (0.83) unstable; urgency=low
+
+  * Martin Michlmayr
+    - Added support for MIPS based Cobalt machines as mipsel/cobalt.
+  * Joey Hess
+    - Remove the hw-detect/detect_progress_title template, it should no
+      longer be used as everything is switched to custom titles, and this
+      regains some space. As a fallback just in case, use
+      hw-detect/load_progress_step.
+  * Updated translations: 
+    - Catalan (ca.po) by Jordi Mallach
+
+ -- Joey Hess <joeyh@debian.org>  Sun,  4 Apr 2004 16:02:37 -0400
+
+ddetect (0.82) unstable; urgency=low
+
+  * On powerpc, always try to load the airport driver, which discover cannot
+    detect. Closes: #221533
+  * Updated translations: 
+    - Czech (cs.po) by Miroslav Kure
+    - Welsh (cy.po) by Dafydd Harries
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Alwin Meschede
+    - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+    - Spanish (Castilian) (es.po) by Javier FernÃ¡ndez-Sanguino
+    - French (fr.po) by Christian Perrier
+    - Hungarian (hu.po) by VERÃ?K IstvÃ¡n
+    - Indonesian (id.po) by Parlin Imanuel Toh
+    - Japanese (ja.po) by Kenshi Muto
+    - Korean (ko.po) by Changwoo Ryu
+    - Lithuanian (lt.po) by KÄ?stutis BiliÅ«nas
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by AndrÃ© LuÃ­s Lopes
+    - Russian (ru.po) by Nikolai Prokoschenko
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Slovenian (sl.po) by Jure Ä?uhalev
+    - Swedish (sv.po) by AndrÃ© Dahlqvist
+    - Turkish (tr.po) by Osman YÃ¼ksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Sun,  4 Apr 2004 00:33:24 -0500
+
+ddetect (0.81) unstable; urgency=low
+
+  * Joey Hess
+    - Remove manual title setting.
+    - hw-detect can now be called with a parameter that is the name of a
+      debconf template. If it is, it will use that template as the title 
+      for the progress bar. This allows for cusomised progress bars
+      during the different hardware detection steps. Of course, it's kinda a
+      gyp because hw-detect still loads all the modules it can in each pass.
+    - ethdetect passes a custom title, as does hw-detect-full (so do
+      cdrom-detect and iso-scan). Closes: #239429, #231105
+  * Updated translations: 
+    - Welsh (cy.po) by Dafydd Harries
+    - Danish (da.po) by Claus Hindsgaul
+    - German (de.po) by Alwin Meschede
+    - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+    - Spanish (Castilian) (es.po) by Javier Fernández-Sanguino
+    - French (fr.po) by Christian Perrier
+    - Hungarian (hu.po) by VERÓK István
+    - Indonesian (id.po) by Parlin Imanuel Toh
+    - Japanese (ja.po) by Kenshi Muto
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Russian (ru.po) by Nikolai Prokoschenko
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Swedish (sv.po) by André Dahlqvist
+    - Turkish (tr.po) by Osman Yüksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Albanian (sq.po) by Elian Myftiu
+
+ -- Joey Hess <joeyh@debian.org>  Fri,  2 Apr 2004 00:48:06 -0500
+
+ddetect (0.80) unstable; urgency=low
+
+  * Updated translations: 
+    - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+    - Indonesian (id.po) by Parlin Imanuel Toh
+    - Korean (ko.po) by Changwoo Ryu
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Slovenian (sl.po) by Jure Ä?uhalev
+    - Albanian (sq.po) by Elian Myftiu
+    - Swedish (sv.po) by AndrÃ© Dahlqvist
+    - Turkish (tr.po) by Osman YÃ¼ksel
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+    - Traditional Chinese (zh_TW.po) by Tetralet
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 30 Mar 2004 14:48:48 -0500
+
+ddetect (0.79) unstable; urgency=low
+
+  * Joey Hess
+    - Reworded the missing modules warning to try to make it less confusing to
+      users who think we don't have the modules at *all*, when in fact they've
+      just not been retreived yet.
+    - Depend on discover, which will be provided by discover-udeb or
+      discover1-udeb.
+  * Vincent Sanders
+    - added ARM machine detection
+  * Updated translations: 
+    - Catalan (ca.po) by Jordi Mallach
+    - Danish (da.po) by Claus Hindsgaul
+    - French (fr.po) by Christian Perrier
+    - Hungarian (hu.po) by VERÃ?K IstvÃ¡n
+    - Italian (it.po) by Davide Viti
+    - Japanese (ja.po) by Kenshi Muto
+    - Lithuanian (lt.po) by KÄ?stutis BiliÅ«nas
+    - Dutch (nl.po) by Bart Cornelis
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by AndrÃ© LuÃ­s Lopes
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Albanian (sq.po) by Elian Myftiu
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 24 Mar 2004 18:00:31 -0500
+
+ddetect (0.78) unstable; urgency=low
+
+  * Bastian Blank
+    - hw-detect-full provides harddrive-detection.
+    - Change priority of hw-detect(-full) to optional.
+  * Joshua Kwan
+    - hw-detect should check for kernel hotplug support before apt-installing
+      it
+  * Joey Hess
+    - Clean hw-detect/select_modules's seen flag, to make sure it is always
+      displayed after the first hw-detect run. Closes: #239172
+  * Updated translations:
+    - French (fr.po) by Denis Barbier
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 23 Mar 2004 11:34:37 -0500
+
+ddetect (0.77) unstable; urgency=low
+
+  * Martin Michlmayr
+    - Added support for the Broadcom MIPS development board "SWARM"
+      (BCM91250A) as mips/sb1-swarm-bn and mipsel/sb1-swarm-bn.
+  * Joey Hess
+    - Add a progress bar entry when starting pcmcia.
+    - Look for /proc/bus/pccard/drivers before apt-installing pcmcia-cs;
+      /proc/bus/pccard may exist on systems w/o pcmcia support.
+  * Updated translations: 
+    - Czech (cs.po) by Miroslav Kure
+    - Danish (da.po) by Claus Hindsgaul
+    - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
+    - Spanish (Castilian) (es.po) by Javier FernÃ¡ndez-Sanguino
+    - Finnish (fi.po) by Tapio Lehtonen
+    - French (fr.po) by Christian Perrier
+    - Hungarian (hu.po) by VERÃ?K IstvÃ¡n
+    - Japanese (ja.po) by Kenshi Muto
+    - Lithuanian (lt.po) by KÄ?stutis BiliÅ«nas
+    - Dutch (nl.po) by Bart Cornelis
+    - Norwegian Nynorsk (nn.po) by HÃ¥vard Korsvoll
+    - Polish (pl.po) by Bartosz Fenski
+    - Portuguese (pt.po) by Miguel Figueiredo
+    - Portuguese (Brazil) (pt_BR.po) by AndrÃ© LuÃ­s Lopes
+    - Slovak (sk.po) by Peter KLFMANiK Mann
+    - Albanian (sq.po) by Elian Myftiu
+    - Swedish (sv.po) by AndrÃ© Dahlqvist
+    - Ukrainian (uk.po) by Eugeniy Meshcheryakov
+    - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 20 Mar 2004 13:14:07 -0500
+
+ddetect (0.76) unstable; urgency=low
+
+  * Joshua Kwan
+    - Save a few calls to uname by pre-setting a $MODPATH variable.
+    - Fix case where a module would initialize more than one network
+      device. (ie, two identical tulips in the same box)
+    - Some static device name polishing.
+  * Translations:
+    - Davide Viti
+      - Updated italian translation (it.po)
+        corrected a typo and got rid of the fuzzy entries.
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Mon, 15 Mar 2004 17:02:57 -0800
+
+ddetect (0.75) unstable; urgency=low
+
+  * Translations:
+    - Giuseppe Sacco
+      - Just corrected two typos in the italian translation (it.po)
+        and notified the translator.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sun, 14 Mar 2004 19:02:18 +0100
+
+ddetect (0.74) unstable; urgency=low
+
+  * Joey Hess
+    - Don't display the modprobe error message if a floppy or ide-floppy
+      module fails to load. At least one time it fails is when there is no
+      floppy.. This should perhaps be done for all get_manual_hw_info
+      modules, but I went for the quick hack.
+  * sylvain ferriol
+    - Run depmod -a in ethdetect, in case the user chooses not to run
+      hw-detect.   
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 10 Mar 2004 21:17:59 -0500
+
+ddetect (0.73) unstable; urgency=low
+
+  * Joey Hess
+    - Remove the largely duplicate ethdetect/module_params template.
+      Instead, ethdetect uses hw-detect's template.
+
+  * Translations:
+    - Giuseppe Sacco
+      - Updated italian translation by Davide Viti (it.po)
+    - Ognyan Kulev
+      - Updated Bulgarian translation (bg.po).
+    - Dafydd Harries : Added Welsh translation (cy.po)
+    
+ -- Joey Hess <joeyh@debian.org>  Tue,  9 Mar 2004 13:45:24 -0500
+
+ddetect (0.72) unstable; urgency=low
+
+  * Matt Kraai
+    - Make snapshot_devs in ethdetect print the device list to stdout
+      instead of returning it as the exit status.
+    - Add self to Uploaders.
+
+ -- Matt Kraai <kraai@debian.org>  Thu, 04 Mar 2004 03:54:08 -0800
+
+ddetect (0.71) unstable; urgency=low
+
+  * Joshua Kwan
+    - Make sure cardmgr is started with -f so it doesn't fork until it's
+      finished loading all it thinks it needs to load. This allows netcfg
+      to see all of the possible ethernet devices the first time it runs.
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Tue,  2 Mar 2004 22:06:34 -0800
+
+ddetect (0.70) unstable; urgency=low
+
+  * Translations:
+    - Håvard Korsvoll
+      - Updated Norwegian, bokmål translation, (nb.po). From Axel Bojer
+
+ -- Joey Hess <joeyh@debian.org>  Tue,  2 Mar 2004 13:19:45 -0500
+
+ddetect (0.69) unstable; urgency=low
+
+  * Joshua Kwan:
+    - Provide interface->driver description bindings for netcfg.
+  * Joey Hess
+    - Simplify hw-detect, removing the load_modules and get_modinfo function,
+      and passing card name to the load_module function.
+  * Translations:
+    - Bartosz Fenski
+      - Updated Polish translation (pl.po)
+    - Ming Hua
+      - Initial Traditional Chinese translation (zh_TW.po), by Tetralet
+      - Updated Traditional Chinese translation (zh_TW.po), by Tetralet
+    - Eugeniy Meshcheryakov
+      - Updated Ukrainian translation (uk.po)
+    - Jure Cuhalev 
+      - Updated Slovenian translation (sl.po)
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Thu, 26 Feb 2004 21:34:14 -0800
+
+ddetect (0.68) unstable; urgency=low
+
+  * Joey Hess
+    - Update to debhelper v4, and use its udeb support.
+    - Remove empty and apparently unused prebaseconfig script from ethdetect.
+    - Check to see if each module is already loaded before loading it.
+      Some earlier loaded module may have pulled it in, and that would cause
+      a failure when it's re-loaded. Happens with ide-disk and hpt366.
+    - Make missing_modules a note, not an error, since it is not really an
+      error (I suppose), and since we don't want it shown during high
+      priority installs.
+  * Thiemo Seufer
+    - Cleanup match pattern for sd_mod, sr_mod in hw-detect.sh.
+  * Sylvain Ferriol
+    - Add a case statement in ethdetect for special case modules like ne
+      and plip, and register separate questions for each.
+  * Translations:
+    - Kenshi Muto
+      - Update Japanese translation (ja.po)
+    - KÄ?stutis BiliÅ«nas
+      - Updated Lithuanian translation (lt.po)
+    - Changwoo Ryu
+      - Added Korean translation (ko.po)
+    - Håvard Korsvoll
+      - Updated Norwegian, nynorsk (nn.po) translation.
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 13 Feb 2004 13:46:31 -0500
+
+ddetect (0.67) unstable; urgency=low
+
+  * Joey Hess
+    - Avoid an infinite loop in ethdetect if there are no ethernet drivers
+      available at all.
+  * Matt Kraai
+    - Always ask for module parameters when loading the ne module (closes:
+      #220971).
+  * Translations
+    - Andre Dahlqvist
+      - Update Swedish translation (sv.po)
+  * Eugen Meshcheryakov : added Ukrainian translation (uk.po)
+
+ -- Joey Hess <joeyh@debian.org>  Sun,  8 Feb 2004 19:11:54 -0500
+
+ddetect (0.66) unstable; urgency=low
+
+  * Christian Perrier
+    - Switch one template in ethdetect to error type
+  * Translations
+    - Bartosz Fenski
+      - Updated Polish (pl) translation.
+    - Giuseppe Sacco
+      - applied patch for normalizing menus and some italian translation (it.po)
+    - Kenshi Muto
+      - Updated Japanese translation (ja.po)
+    - Miguel Figueiredo
+      - Updated Portuguese translation (pt.po)
+    - AndrÃ© LuÃ­s Lopes
+      - Updated Brazilian Portuguese (pt_BR) translation.
+    - h3li0s
+      - Added Albanian translation (sq.po)
+    - Jordi Mallach
+      - Update Catalan translation (ca.po).
+    - KÄ?stutis BiliÅ«nas
+      - Update Lithuanian translation (lt.po).
+    - Alwin Meschede
+      - Updated German translation (de.po)
+    - Safir Å eÄ?eroviÄ?
+      - Update Bosnian translation (bs.po).
+    - Christian Perrier
+      - Updated French (fr) translation.
+    - Bart Cornelis
+      - Updated Dutch (nl.po) translation
+
+ -- Joey Hess <joeyh@debian.org>  Thu,  5 Feb 2004 14:50:56 -0500
+
+ddetect (0.65) unstable; urgency=low
+
+  * Petter Reinholdtsen
+    - Move install request for hotplut into hw-detect, next to
+      the install request for discover.
+  * Joey Hess
+    - Continue after manual module loading w/o displaying
+      ethdetect/cannot_find. Thanks, Sylvain Ferriol.
+    - Make hw-detect list the modules it plans to load at medium priority,
+      so the user can opt not to load known-problimatic modules.
+  * Christian Perrier
+    - Removed "Choose the modules to load" by "Modules to load"
+      for consistency with other d-i modules prompting
+    - s/linux/Linux in templates
+  * Translators:
+    - Peter Mann: Update Slovak translation
+    - Carlos Z.F. Liu
+      - fix some serious errors in Simplified Chinese translation.
+    - Claus Hindsgaul
+      - Update da (Danish) translation.
+    - Konstantinos Margaritis
+      - Update Greek translation
+    - Miroslav Kure
+      - Update Czech translation (cs.po)
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 31 Jan 2004 15:33:40 -0500
+
+ddetect (0.64) unstable; urgency=low
+
+  * Matt Kraai
+    - Ignore the exit status of apt-install (closes: #228984).
+  * Konstantinos Margaritis
+    - Fixed some typos and made some strings smaller in el.po
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 22 Jan 2004 19:53:12 -0500
+
+ddetect (0.63) unstable; urgency=low
+
+  * Anmar Oueja
+    - created and translated to Arabic (ar.po)
+  * Nikolai Prokoschenko
+    - updated russian translation (ru.po)
+  * Kenshi Muto
+    - Install hotplug (for USB, IEEE1394, CardBus, and some SCSI) at
+      hw-detect-full.postinst.
+  * Christian Perrier
+    - fuzzied two german translations which were obviously outdated.
+      Thanks Erich Waelde for noticing this
+  * Alwin Meschede
+    - fixed German translation (de.po)
+  * Stephen R. Marenka
+    - Initial m68k support.
+  * Joey Hess
+    - In the degenerate case where there are no ethernet driver modules,
+      do not prompt with an empty list.
+    - Fix order of ethernet driver list (thanks, Sylvain Ferriol).
+  * Andre Dahlqvist
+    - Update Swedish translation (sv.po)
+  * Safir Secerovic
+    - Update Bosnian translation (bs.po).
+  * Bastian Blank
+    - Add postinst script for archdetect.
+  * Not for beta 2.
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 21 Jan 2004 14:29:54 -0500
+
+ddetect (0.62) unstable; urgency=low
+
+  * Miguel Figueiredo
+    - Added Portuguese translation (pt.po)
+  * Ming Hua
+    - Initial Simplified Chinese translation (zh_CN.po)
+  * Bart Cornelis
+    - Merged Norwegian Nynorsk (nn.po) translation from skolelinux-cvs
+  * Andre Dahlqvist
+    - Update Swedish translation (sv.po)
+  * Christian Perrier
+    - Correct mistake in french translation (fr.po). Closes: #226293
+  * Richard Hirst
+    - Load ide-mod and ide-probe-mod also, for older (2.4.20) kernels (ia64)
+
+ -- Joey Hess <joeyh@debian.org>  Tue,  6 Jan 2004 22:28:16 -0500
+
+ddetect (0.61) unstable; urgency=low
+
+  * Peter Mann
+    - Updated Slovak translation
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 25 Dec 2003 19:29:49 -0500
+
+ddetect (0.60) unstable; urgency=low
+
+  * Karsten Merker
+    - Fix hw-detect error messages about missing sd_mod and
+      sr_mod when SCSI-disk- and SCSI-CDROM support is compiled
+      into the kernel statically. (closes: Bug#224745)
+  * Joey Hess
+    - busybox sed does not use -e, fix broken sed commands in above changes.
+    - Add back the missing register-module calls for sd_mod and sr_mod.
+    - Better IFS newline setting.
+    - Send ide pci modules find stderr to /dev/null.
+    - Use only one progress bar for both hardware detection and module
+      loading, and add the sd_mod and sr_mod loading to it.
+    - Fix sed quoting, it was broken for .ko.
+  * Bart Cornelis
+    - incorporated improvements from debian-l10n-dutch into nl.po
+    - Merged Norwegian Bokmael (nb.po) translation from skolelinux-cvs
+  * Jure Cuhalev
+    - Added/updated slovenian translation (sl.po).
+  * Gaudenz Steinlin
+    - add support for discover 2 without the didiscover utility
+      (Thanks to Thiemo Seufer for dumb_join_discover)
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 24 Dec 2003 01:36:30 -0500
+
+ddetect (0.59) unstable; urgency=low
+
+  * Bartosz Fenski
+    - Updated Polish (pl) translation.
+  * Verok Istvan
+    - Initial Hungarian translation
+  * Kenshi Muto
+    - Update Japanese translation (ja.po)
+  * AndrÃ© Dahlqvist
+    - Update Swedish translation. (sv.po)
+  * Konstantinos Margaritis
+    - Updated Greek translation (el.po)
+  * TeÃ³filo Ruiz SuÃ¡rez
+    - Updated Spanish translation (es.po)
+    - Switched to UTF-8
+  * Alwin Meschede
+    - Updated German translation (de.po)
+  * Marco d'Itri
+    - Add premiminary support for .ko kernel modules.
+  * Petter Reinholdtsen
+    - Updated Norwegian BokmÃ¥l (nb.po).
+    - Update Norwegian Nynorsk (nn.po), thanks to Gaute Hvoslef Kvalnes.
+  * Joey Hess
+    - sed -re does not work with busybox, use 2 sed calls instead
+    - busybox shell doesn't elide failed globs, use find instead
+    - busybox grep does not support regexps, use less exact match
+  * Giuseppe Sacco
+    - first italian translation by Davide Viti (it.po)
+  * Bart Cornelis
+    - Updated Dutch translation (nl.po)
+  * Steinar H. Gunderson
+    - Updated Norwegian BokmÃ¥l (nb.po).
+  *  KÄ?stutis BiliÅ«nas
+    - Updated Lithuanian translation (lt.po).
+  * Ognyan Kulev
+    - Added/updated bulgarian translation (bg.po).
+  * Jure Cuhalev
+    - Added/updated slovenian translation (sl.po).
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 22 Dec 2003 14:15:11 -0500
+
+ddetect (0.58) unstable; urgency=low
+
+  * Joey Hess
+    - Remove the bogus "false" from the end of the modprobe error message
+      display.
+    - Sort the list of modules for manual selection.
+    - Use register-module to register modules for ide and scsi CDROMS,
+      so they will be available for base-config.
+    - Use register-module to register any module parameters that are entered
+      by the user.
+    - Fix ethdetect to not write kernel module parameters to
+      /target/etc/modules; instead use register-module here too.
+    - Add a versioned dep on rootskel.
+    - Based on user reports, users are very confused to see the missing
+      modules dialog for stuff like ide-floppy, which is both unavailable
+      and not autodetected. So leave off non-autodetectable modules from the
+      missing modules message.
+  * Claus Hindsgaul
+    - Update da (Danish) translation.
+  * Konstantinos Margaritis
+    - Initial Greek translation (el.po)
+  * Christian Perrier/Chris Tillman
+    - Refined and standardized templates. Closes: #219469
+  * Safir Å eÄ?eroviÄ?
+    - Update Bosnian translation.
+  * Christian Perrier
+    - Update French translation.
+  * Miroslav Kure
+    - Update Czech translation.
+  * Jordi Mallach
+    - Update Catalan translation.
+  * Kenshi Muto
+    - Update Japanese translation (ja.po)
+  * Ilgiz Kalmetev
+    - Update Russian translation. Closes: #221648.
+  * AndrÃ© LuÃ­s Lopes
+    - Update pt_BR (Brazilian Portuguese) translation.
+  * Thiemo Seufer
+    - Add support for mips, mipsel to archdetect.
+    - Remove unused #includes.
+    - Unify code formatting.
+    - Add CFLAGS for warnings and space optimization.
+ 
+ -- Joey Hess <joeyh@debian.org>  Tue,  9 Dec 2003 15:46:32 -0500
+
+ddetect (0.57) unstable; urgency=low
+
+  * Peter Mann
+    - Initial Slovak translation (sk.po).
+  * Joey Hess
+    - typo fix
+    - remove commented out sr_mod load line, code below loads it
+    - try to load usb-storage if the system has usb. Needed for usb storage
+      booted installs
+  * Steinar H. Gunderson
+    - Remove db_stop from hw-detect.sh, which confuses main-menu later on
+      and doesn't really make a difference anyhow with cdebconf.
+      (Closes: #219897)
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 10 Nov 2003 11:51:27 -0500
+
+ddetect (0.56) unstable; urgency=low
+
+  * Kenshi Muto
+    - Update Japanese translation (ja.po)
+  * Bart Cornelis
+    - Updated Dutch translation (nl.po)
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sat,  8 Nov 2003 20:26:16 +0100
+
+ddetect (0.55) unstable; urgency=low
+
+  * Christian Perrier
+    - Update French translation.
+  * AndrÃ© LuÃ­s Lopes
+    - Update pt_BR (Brazilian Portuguese) translation.
+  * Miroslav Kure
+    - Update Czech translation.
+  * Tommi Vainikainen
+    - Update Finnish translation.
+  * Petter Reinholdtsen
+    - Updated nb.po.
+
+ -- Joey Hess <joeyh@debian.org>  Thu,  6 Nov 2003 16:53:48 +0100
+
+ddetect (0.54) unstable; urgency=low
+
+  *  KÄ?stutis BiliÅ«nas
+    - Update Lithuanian translation.
+  * Joey Hess
+    - Check for already loaded modules before saying anything about loading
+      them. Should be faster and clearer.
+    - If a module is not available, don't say we're loading it, instead
+      mention that it was unavailable. The summary of unavailable modules is
+      retained because it's easy to miss otherwise.
+    - Remove the "(full version)" from hw-detect-full's menu item.
+      There is no other version on the menu.
+    - Versioned dependencies are not allowed in udebs, removed version from
+      cdebconf-udeb dependency.
+    - ORed dependencies are not allowed either, removed modutils-basic |
+      modutils-full, which was obsolete anyway.
+
+ -- Joey Hess <joeyh@debian.org>  Mon,  3 Nov 2003 21:27:21 +0000
+
+ddetect (0.53) unstable; urgency=low
+
+  * Try to start pcmcia if it is available.
+  * If there seems to be pcmcia hardware, apt-install pcmcia-cs to 
+    make it available on the installed system. Closes: #214492
+  * Change hw-detect/modprobe_error to an error.
+
+ -- Joey Hess <joeyh@debian.org>  Sun,  2 Nov 2003 22:15:00 -0500
+
+ddetect (0.52) unstable; urgency=low
+
+  * Safir Secerovic, Amila Akagic
+    - Add Bosnian translation (bs.po).
+  * Joey Hess
+    - Change Installer-Menu-Item from 13 to 15 as part of the 10-30
+      renumbering.
+
+ -- Joey Hess <joeyh@debian.org>  Sat,  1 Nov 2003 21:44:36 -0500
+
+ddetect (0.51) unstable; urgency=low
+
+  * Kenshi Muto
+    - Update Japanese translation (ja.po)
+  * Jure Cuhalev
+    - Add Slovenian translation. Closes: #218025.
+  * Claus Hindsgaul
+    - Update da (Danish) translation.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sat,  1 Nov 2003 12:36:47 +0100
+
+ddetect (0.50) unstable; urgency=low
+
+  * AndrÃ© LuÃ­s Lopes
+    - Updated pt_BR (Brazilian Portuguese) translation.
+  * Kenshi Muto
+    - Update Japanese translation (ja.po)
+  * Pierre Machard
+    - Update French translation.
+  * Bart Cornelis
+    - Updated dutch translation (nl.po)
+  * Tommi Vainikainen
+    - Add Finnish (fi.po) translation
+  * Miroslav Kure
+    - Update Czech translation (cs.po).
+  * KÄ?stutis BiliÅ«nas
+    - Update Lithuanian translation (lt.po).
+
+ -- Petter Reinholdtsen <pere@debian.org>  Fri, 24 Oct 2003 16:18:45 +0200
+
+ddetect (0.49) unstable; urgency=low
+
+  * Pierre Machard
+    - Update French po-debconf translation [Christian Perrier].
+  * Petter Reinholdtsen
+    - Do not fail if the 'missing modules' template is not
+      displayed.  Log when this happen.
+    - Correct the template substitution variable used by hw-detect to
+      match the template text.
+    - Make it easier to disable ide chipset module loading.
+    - Update nb.po.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sat, 18 Oct 2003 19:02:30 +0200
+
+ddetect (0.48) unstable; urgency=low
+
+  * AndrÃ© LuÃ­s Lopes
+    - Updated pt_BR (Brazilian Portuguese) translation.
+  * Pierre Machard
+    - Update French po-debconf translation [Christian Perrier].
+  * Claus Hindsgaul
+    - Update da (Danish) translation.
+  * Miroslav Kure
+    - Update Czech translation (cs.po).
+  * Joey Hess
+    - ethdetect: exit 1 if no hardware is detected. This will avoid a
+      useless run of eg, dhcp after it at high priority.
+    - hw-detect: fset various questions to unseen before displaying
+    - hw-detect: put up a progress bar while running disvocer, so there 
+      will be something onscreen if that step should hang
+    - hw-detect: run discover only once per use, not twice
+  * Matt Kraai
+    - Use the error template type for errors.
+
+ -- Andre Luis Lopes <andrelop@debian.org>  Wed, 15 Oct 2003 04:26:10 -0200
+
+ddetect (0.47) unstable; urgency=low
+
+  * Joey Hess
+    - A slightly less grody means of loading IDE chipset drivers.
+    - Simplified the text on the menu items.
+    - Lower-cased parts of driver names in hwdetect.
+  * KÄ?stutis BiliÅ«nas
+    - Add Lithuanian translation (lt.po).
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 15 Oct 2003 17:04:54 -0400
+
+ddetect (0.46) unstable; urgency=low
+
+  * Claus Hindsgaul
+    - Update da (Danish) translation.
+  * AndrÃ© LuÃ­s Lopes
+    - Update pt_BR (Brazilian Portuguese) translation.
+  * Denis Barbier
+    - Add a comment in templates files to flag main menu items.
+  * Christian Perrier
+    - Update French translation.
+  * Petter Reinholdtsen
+    - Correct module name match to avoid matching
+      substrings. (Closes: #215453)
+    - Try to load ide-floppy as well, as some platforms need it,
+      and I am not sure how to probe for it. (Closes: #215455)
+  * Joey Hess
+    - Load all the PCI IDE drivers before ide-detect, to fix DMA
+      issues on some systems. Closes: #215442
+    - Remove the hard-coded list of modules from ethdetect, instead search
+      for all net drivers and put them in the list, which is not 100% right
+      but still much better.
+    - Remove the confusing question about manually specifying the module to
+      load. Anyone who knows where a non-modprobe-able module is can use the
+      shell..
+    - Remove redundant ethdetect/title template, and unused
+      ethdetect/module_prompt template.
+    - hw-detect: collect any modprobe failures, and show them all in one
+      screen at the end. Closes: #215163
+    - hw-detect: Say "Loading module", not "Detected module", as not all
+      the loaded modules were detected.
+    - ethdetect: Loop if manual loading does not work, to let the user try
+      several modules. Add error if ethernet card is not found.
+    - Add myself to uploaders, at least temporarily.
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 15 Oct 2003 12:35:13 -0400
+
+ddetect (0.45) unstable; urgency=low
+
+  * Petter Reinholdtsen
+    - Reduce the debconf priority of the question reporting about
+      modprobe problems.
+    - Make menu entries translatable.
+  * Miroslav Kure
+    - Initial Czech translation.
+  * Alastair McKinstry
+    - Move to debconf macros.
+  * Kenshi Muto
+    - Update Japanese po (ja.po)
+  * Bart Cornelis
+    - Updated dutch translation (nl.po)
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sun, 12 Oct 2003 17:48:49 +0200
+
+ddetect (0.44) unstable; urgency=low
+
+  * Matt Kraai
+    - Add libdebconfclient0-dev to the build-depends (closes: #214295).
+
+ -- Petter Reinholdtsen <pere@debian.org>  Tue,  7 Oct 2003 20:29:41 +0200
+
+ddetect (0.43) unstable; urgency=low
+
+  * Alastair McKinstry
+    - Fix UTF-8 brokenness in changelog.
+    - Move to Standards-Version: 3.6.1; no changes required.
+  * Pierre Machard
+    - Update French po-debconf translation.
+  * Bastian Blank
+    - Add archdetect.
+
+ -- Bastian Blank <waldi@debian.org>  Thu, 02 Oct 2003 17:05:21 +0200
+
+ddetect (0.42) unstable; urgency=low
+  
+  * AndrÃ© LuÃ­s Lopes
+    - Update pt_BR (Brazilian Portuguese) translation.
+  * Kenshi Muto
+    - Update ja.po.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sun, 28 Sep 2003 15:02:16 +0200
+
+ddetect (0.41) unstable; urgency=low
+
+  * Kenshi Muto
+    - Update ja.po
+  * Pierre Machard
+    - Update French po-debconf translation [Christian Perrier]
+    - Run debconf-updatepo
+  *  AndrÃ© LuÃ­s Lopes
+    - Update pt_BR (Brazilian Portuguese) translation.
+  * Bart Cornelis
+    - updated dutch translation
+  * Petter Reinholdtsen
+    - Change old TITLE command to new SETTITLE command.
+    - Updated nb.po.
+
+ -- Bart Cornelis <cobaco@bartLaptop>  Sat, 27 Sep 2003 14:26:52 +0200
+
+ddetect (0.40) unstable; urgency=low
+
+  * Petter Reinholdtsen
+    - Added Russian debconf template translation (ru.po), patch
+      from Serge Winitzki.
+    - Kernel 2.4.22 uses ide-detect, not ide-probe-mod and ide-mod.  Try
+      to load it.
+  * Denis Barbier
+    - Run debconf-updatepo
+  * Jordi Mallach
+    - Added Catalan (ca) translation.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Fri, 19 Sep 2003 20:40:05 +0200
+
+ddetect (0.39) unstable; urgency=low
+
+  * TeÃ³filo Ruiz SuÃ¡rez
+    - Updated Spanish translation (es.po)
+
+ -- Petter Reinholdtsen <pere@debian.org>  Fri,  5 Sep 2003 23:14:34 +0200
+
+ddetect (0.38) unstable; urgency=low
+
+  * Remove reference to obsolete S60hw-detect.
+  * Javier Fernandez-Sanguino:
+    - Minor change to the spanish translation
+  * Kenshi Muto
+    - Added Japanese translation (ja.po)
+
+ -- Petter Reinholdtsen <pere@debian.org>  Thu, 28 Aug 2003 23:06:55 +0200
+
+ddetect (0.37) unstable; urgency=low
+
+  * Update da.po, thanks to Finn G. Larsen.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sat,  9 Aug 2003 16:31:17 +0200
+
+ddetect (0.36) unstable; urgency=low
+
+  * Correct typos in two log messages.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Wed, 30 Jul 2003 15:55:09 +0200
+
+ddetect (0.35) unstable; urgency=low
+
+  * Log to syslog instead of /var/log/messages.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Mon, 28 Jul 2003 15:50:27 +0200
+
+ddetect (0.34) unstable; urgency=low
+
+  * Florian Lohoff
+    - Updated de.po.  Thanks to from Maximilian Wilhelm.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Mon, 21 Jul 2003 08:53:51 +0200
+
+ddetect (0.33) unstable; urgency=low
+
+  * Remove  S60hw-detect; its messy
+  * AndrÃ© LuÃ­s Lopes
+    - Fix some mispelling erros in Brazilian Portuguese (pt_BR)
+      debconf template translation.
+  * Convert to changelog to UTF-8, as per Standards-Version 3.6.0
+
+ -- Alastair McKinstry <mckinstry@computer.org>  Sun, 20 Jul 2003 09:18:06 +0100
+
+ddetect (0.32) unstable; urgency=low
+
+  * Remove unwanted menutest files 
+
+ -- Alastair McKinstry <mckinstry@computer.org>  Wed, 16 Jul 2003 13:32:47 +0100
+
+ddetect (0.31) unstable; urgency=low
+
+  * Change separator character from '\t' to ':' to make it easier to
+    discover2.
+  * Update nl.po, thanks to Bart Cornelis.
+  * Add script /lib/debian-installer.d/S60hw-detect to get HW detection
+    as the first thing before main-menu start.
+  * Drop the call to paste (which is missing in d-i), and try harder
+    to handle discover2.
+  * Remove code to load kernel modules from floppy, and tell the user to
+    fetch more module packages if needed.
+  * Alastair McKinstry
+    - Drop explanation of 'driver floppy' in hwdetect, as it was wrong.
+
+ -- Alastair McKinstry <mckinstry@computer.org>  Tue, 15 Jul 2003 00:21:41 +0200
+
+ddetect (0.30) unstable; urgency=low
+
+  * Thorsten Sauter
+    - Update German translation
+  * Pierre Machard
+    - Update French translation
+  * Petter Reinholdtsen
+    - Avoid hardcoded kernel version number in hw-detect.
+    - Correct the arguments for discover2 in hw-detect.sh.
+    - Only try to load a module once. (Closes: #166353)
+
+ -- Petter Reinholdtsen <pere@debian.org>  Tue,  3 Jun 2003 23:07:24 +0200
+
+ddetect (0.29) unstable; urgency=low
+
+  * Changed hw-detect to probe for ethernet cards, to make it useful
+    to call the script from ethdetect.  Based on patch from Peter
+    Hawkins.
+  * Martin SjÃ¶gren
+    - Use new progress bar API.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Fri, 16 May 2003 21:06:49 +0200
+
+ddetect (0.28) unstable; urgency=low
+
+  * Make sure to load sr_mod in addition to sd_mod on SCSI machines, to
+    find CDROM drives.
+  * Avoid 'yes' and 'no' in template text, to make it more frontend
+    neutral.
+  * Updated nb.po.
+  * AndrÃ© LuÃ­s Lopes :
+    - Update pt_BR debconf template translations.
+  * Thorsten Sauter
+    - Update de.po
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sat, 10 May 2003 11:43:05 +0200
+
+ddetect (0.27) unstable; urgency=low
+
+  * Updated nb.po and nn.po.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sun,  4 May 2003 15:28:30 +0200
+
+ddetect (0.26) unstable; urgency=low
+
+  * Change priority of ethdetect from standard to optional.  It is only
+    usefull for network installs, and there is no need to use it unless
+    it already is on the boot floppy.
+  * Remove everyone but me from the uploaders list.  I am the current
+    maintainer of this package.
+  * Start on support for discover2.
+  * Correct typo in nb.po.
+  * Change some variable names to get more consistent names.
+  * Remove unused debconf template ethdetect/load_module and
+    update translations with new variable name.
+  * Try to make sure discover is installed into /target/.
+  * Updated nn.po.
+  * Pierre Machard: Update the French template
+  * AndrÃ© LuÃ­s Lopes :
+    - Run debconf-updatepo.
+    - Update pt_BR debconf template translation.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sat,  3 May 2003 12:51:59 +0200
+
+ddetect (0.25) unstable; urgency=low
+
+  * In ethdetect, report the error to main-menu if the manual loading
+    failed.
+  * Drop the replaces/provides disk-detect in hw-detect-full.  It confuses
+    main-menu, and make it loop if disk-detect and hw-detect-full is
+    installed at the same time.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Mon, 21 Apr 2003 09:55:37 +0200
+
+ddetect (0.24) unstable; urgency=low
+
+  * Petter Reinholdtsen
+    - Improved the question text used when loading modules, and when
+      something goes wrong.
+    - Rewritten ethdetect as shell script, changing arch to 'all' and
+      changing build-depends to build-depends-indep.
+    - Two new packages, hw-detect (to be used by cdrom-detect, now
+      used by new ethdetect and hw-detect-full), and hw-detect-full
+      (replacing disk-detect).
+    - Rename module 'eepro100' to 'e100' to match the 2.4.20
+      kernel. (Closes: #189054)
+    - Expand HW to hardware, and rephrase the ethdetect menu item.
+    - Updated nb debconf template translation.
+  * AndrÃ© LuÃ­s Lopes :
+    - Update pt_BR debconf template translations.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sun, 20 Apr 2003 16:34:53 +0200
+
+ddetect (0.23) unstable; urgency=low
+
+  * Petter Reinholdtsen
+    - Updated nb.po received from BjÃ¸rn Steensrud.
+    - Added Norwegian Nynorsk (nn.po) translations recieved from Gaute
+      Hvoslef Kvalnes.
+    - Acnowlege NMU: (Closes: #95653)
+    - Translations for german, dutch, spanish and Brazilian portuguese
+      are now included. (Closes: #84986, #95727, #103216, #108539)
+    - Add myself to uploaders.
+  * Tollef Fog Heen
+    - Lower priority of load module question
+    - Automatically ask about manual module if no card is detected.
+      (Closes: #180772)
+  * Thorsten Sauter
+    - Run depmod before try to load modules
+
+ -- Petter Reinholdtsen <pere@debian.org>  Wed,  9 Apr 2003 10:36:50 +0200
+
+ddetect (0.22) unstable; urgency=low
+
+  * Richard Hirst
+    - rename debconf_input() to my_debconf_input() to avoid clashes with
+      #defines in cdebconf/debconfclient.h
+  * Tollef Fog Heen
+    - Change build-deps to libdebian-installer-dev instead of
+      libdebian-installer3-dev.  Thanks to Thorsten Sauter for spotting 
+      this.
+  * Matt Kraai
+    - Fix prebaseconfig script.
+    - Fix array bounds in module_loaded.
+  * Petter Reinholdtsen
+    - Added Norwegian BokmÃ¥l translations recieved from BjÃ¸rn Steensrud.
+
+ -- Matt Kraai <kraai@debian.org>  Mon, 03 Feb 2003 20:17:38 -0800
+
+ddetect (0.21) unstable; urgency=low
+
+  * Martin SjÃ¶gren
+    - Use libdebian-installer3
+  * Tollef Fog Heen
+    - Fix installer-menu-item
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Thu,  5 Dec 2002 01:03:04 +0100
+
+ddetect (0.20) unstable; urgency=low
+
+  * Tollef Fog Heen
+    - Multiply installer-menu-item by ten
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Thu, 14 Nov 2002 02:16:17 +0100
+
+ddetect (0.19) unstable; urgency=low
+
+  * Martin SjÃ¶gren
+    - Replace XBC with XB so our special control fields don't confuse the
+      changes files.
+  * AndrÃ© LusÃ­ Lopes
+    - Set pt_BR.po control fields.
+    - Update Brazilian Portuguese (pt_BR)
+      template translation.
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Thu, 14 Nov 2002 02:08:08 +0100
+
+ddetect (0.18) unstable; urgency=low
+
+  * Make detecting hardware the default.
+  * Adjust some debconf priorities
+  * Only load a module once.
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Wed,  6 Nov 2002 02:03:51 +0100
+
+ddetect (0.17) unstable; urgency=low
+
+  * canonicalize description capitalization
+  * fix template problems noted by Denis Barbier
+  * waldi: don't build ethdetect for s390
+  * Convert to po-debconf, set Build-Depends: debhelper (>= 4.1.13)
+    to ensure that generated templates are right, and set output encoding
+    to UTF-8.
+  * change to libdebian-installer2-dev in build-deps (no source changes
+    necessary)
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Thu, 24 Oct 2002 12:38:59 +0200
+
+ddetect (0.16) unstable; urgency=low
+
+  * add python to build-deps
+  * when a module is successfully loaded, add it to /etc/modules
+  * Get rid of silly configure target
+  * decrease priority to force ddetect before netcfg-*
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Mon, 16 Sep 2002 16:34:31 +0200
+
+ddetect (0.15) unstable; urgency=low
+
+  * Add Brazilian Portuguese debconf template.
+  * Add Danish debconf template.
+  * Generate minimized discover data file at build time.
+  * Remove unused detection programs.
+  * Keep each language template in a separate file.
+  * remove broken ISA detection code.
+
+ -- David Kimdon <dwhedon@debian.org>  Fri, 30 Aug 2002 16:41:55 -0700
+
+ddetect (0.14) unstable; urgency=low
+
+  * Rebuild for new cdebconf
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Wed, 21 Aug 2002 19:02:16 +0200
+
+ddetect (0.13) unstable; urgency=low
+
+  * patch from Thomas Poindessous <thomas@poindessous.com>
+    - corrects TEST compiling in ethdetect.c
+    - corrects path for -L
+    - cosmetic change for lst2header help
+  * build depend on cdebconf-dev
+  * switch to discover from libdetect
+  * cleanup
+  * Switch maintainer name in control file to debian-boot, put David
+    Kimdon and Tollef Fog Heen into Uploaders field.
+  * Change build-deps from cdebconf-dev to libcdebconf-dev
+  * Colin Watson:
+    - Correct dpkg-gencontrol call so it picks up ${shlibs:Depends}.
+    - Name menutest as such in the control area rather than as
+      ethdetect.menutest.
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Sat, 17 Aug 2002 15:04:48 +0200
+
+ddetect (0.12) unstable; urgency=low
+
+  * Switch to discover instead of detect.
+  * Remove obsolete emacs variables block at end of changelog.
+
+ -- Tollef Fog Heen <tfheen@debian.org>  Sun,  5 May 2002 15:28:56 +0200
+
+ddetect (0.11) unstable; urgency=low
+
+  * German translations contributed by 
+    Sebastian Feltel <sebastian@feltel.de>
+  * German translation update thanks to
+    Joerg.Rieger@informatik.med.uni-giessen.de
+    (closes: #84986)
+  * Dutch template thanks to "Thomas J. Zeeman" <tjzeeman@cs.vu.nl> 
+    (closes: #95727)
+  * Spanish template thanks to Carlos Valdivia <valyag@teleline.es>
+    (closes: #103216)
+  * Brazilian portuguese template thanks to Andre Luis Lopes 
+    <andrelop@ig.com.br> (closes: #108539)
+  * Danish translations contributed by 
+    Claus Hindsgaul <claus_h@image.dk>
+
+ -- David Whedon <dwhedon@debian.org>  Tue,  8 May 2001 17:41:45 -0700
+
+ddetect (0.10) unstable; urgency=low
+
+  * use new dpkg features so build is less cludgy
+  * don't depend on libdetect0-udeb, not needed (closes: #96258)
+
+ -- David Whedon <dwhedon@debian.org>  Mon,  7 May 2001 23:49:43 -0700
+
+ddetect (0.09) unstable; urgency=low
+
+  * turn on ISA detection. 
+
+ -- David Whedon <dwhedon@debian.org>  Wed, 31 Jan 2001 21:20:23 -0800
+
+ddetect (0.08) unstable; urgency=low
+
+  * use modprobe instead of insmod 
+
+ -- David Whedon <dwhedon@debian.org>  Tue, 30 Jan 2001 01:17:16 -0800
+
+ddetect (0.07) unstable; urgency=low
+
+  * debconf support added, isa detection still not working  
+
+ -- David Whedon <dwhedon@gordian.com>  Tue,  2 Jan 2001 22:50:32 -0800
+
+ddetect (0.06) unstable; urgency=low
+
+  * remove vendor and model information, still using libdetect
+    structure, resulting size reductions:
+    ethdetect 32k -> 26k,  mdmdetect 30k -> 27k, 
+    snddetect 28k -> 25k
+   
+ -- David Whedon <dwhedon@gordian.com>  Wed, 29 Nov 2000 19:53:54 -0800
+
+ddetect (0.05) unstable; urgency=low
+
+  * now we build separate .udeb's and they have a 'Provides' field 
+
+ -- David Whedon <dwhedon@gordian.com>  Tue, 14 Nov 2000 20:37:41 -0800
+
+ddetect (0.04) unstable; urgency=low
+
+  * added snddetect, cleanup
+
+ -- David Whedon <dwhedon@gordian.com>  Tue, 14 Nov 2000 20:37:11 -0800
+
+ddetect (0.03) unstable; urgency=low
+
+  * Initial Release.
+
+ -- David Whedon <dwhedon@gordian.com>  Mon, 13 Nov 2000 23:46:39 -0800

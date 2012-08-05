@@ -1,0 +1,149 @@
+Template: partman-target/help
+Type: note
+# :sl1:
+#flag:translate!:8
+_Description: Help on partitioning
+ Partitioning a hard drive consists of dividing it to create the space
+ needed to install your new system.  You need to choose which
+ partition(s) will be used for the installation.
+ .
+ Select a free space to create partitions in it.
+ .
+ Select a device to remove all partitions in it and create a new empty
+ partition table.
+ .
+ Select a partition to remove it or to specify how it should be used.
+ At a bare minimum, you need one partition to contain the root of the
+ file system (whose mount point is /).  Most people also feel that a
+ separate swap partition is a necessity.  "Swap" is scratch space for an
+ operating system, which allows the system to use disk storage as
+ "virtual memory".
+ .
+ When the partition is already formatted you may choose to keep and
+ use the existing data in the partition.  Partitions that will be used
+ in this way are marked with "${KEEP}" in the main partitioning menu.
+ .
+ In general you will want to format the partition with a newly created
+ file system.  NOTE: all data in the partition will be irreversibly
+ deleted.  If you decide to format a partition that is already
+ formatted, it will be marked with "${DESTROY}" in the main
+ partitioning menu.  Otherwise it will be marked with "${FORMAT}".
+ .
+ ${ARCHITECTURE_HELP}
+
+Template: partman-target/arch_help/i386/generic
+Type: text
+# :sl1:
+_Description: In order to start your new system, a so called boot loader is used.  It can be installed either in the master boot record of the first hard disk, or in a partition.  When the boot loader is installed in a partition, you must set the bootable flag for it. Such a partition will be marked with "${BOOTABLE}" in the main partitioning menu.
+
+Template: partman-target/arch_help/powerpc/powermac_newworld
+Type: text
+# :sl4:
+_Description: In order to start your new system, a so called boot loader is used.  It is installed in a boot partition.  You must set the bootable flag for the partition.  Such a partition will be marked with "${BOOTABLE}" in the main partitioning menu.
+
+Template: partman-target/same_label
+Type: error
+# :sl2:
+_Description: Identical labels for two file systems
+ Two file systems are assigned the same label (${LABEL}): ${PART1} and
+ ${PART2}. Since file system labels are usually used as unique identifiers,
+ this is likely to cause reliability problems later.
+ .
+ Please correct this by changing labels.
+
+Template: partman-target/same_mountpoint
+Type: error
+# :sl2:
+_Description: Identical mount points for two file systems
+ Two file systems are assigned the same mount point (${MOUNTPOINT}):
+ ${PART1} and ${PART2}.
+ .
+ Please correct this by changing mount points.
+
+Template: partman-target/no_root
+Type: error
+# :sl2:
+_Description: No root file system
+ No root file system is defined.
+ .
+ Please correct this from the partitioning menu.
+
+Template: partman-target/must_be_on_root
+Type: error
+# :sl2:
+_Description: Separate file system not allowed here
+ You assigned a separate file system to ${MOUNTPOINT}, but in order for
+ the system to start correctly this directory must be on the root file
+ system.
+ .
+ Please correct this from the partitioning menu.
+
+Template: partman-target/mount_failed
+Type: boolean
+Default: true
+# :sl2:
+_Description: Do you want to resume partitioning?
+ The attempt to mount a file system with type ${TYPE} in ${DEVICE} at
+ ${MOUNTPOINT} failed.
+ .
+ You may resume partitioning from the partitioning menu.
+
+Template: partman-target/choose_method
+Type: select
+# :sl2:
+Choices-C: ${CHOICES}
+Choices: ${DESCRIPTIONS}
+_Description: How to use this partition:
+Help: partman-target/help
+
+Template: partman-target/text/method
+Type: text
+# :sl2:
+_Description: Use as:
+
+Template: partman-target/text/get_help
+Type: text
+# :sl1:
+_Description: Help on partitioning
+
+Template: partman/mount_style
+Type: select
+Choices: traditional, label, uuid
+Default: uuid
+Description: for internal use; can be preseeded
+ Normally, filesystems are mounted using a universally unique identifier
+ (UUID) as a key; this allows them to be mounted properly even if their
+ device name changes. UUIDs are long and difficult to read, so, if you
+ prefer, the installer can mount filesystems based on the traditional device
+ names, or based on a label you assign. However, note that traditional
+ device names may change based on the order in which the kernel discovers
+ devices at boot, which may cause the wrong filesystem to be mounted;
+ similarly, labels are likely to clash if you plug in a new disk or a USB
+ drive, and if that happens your system's behaviour when started will be
+ random.
+ .
+ If you set "label" here, any filesystems without a label will be mounted
+ using a UUID instead.
+ .
+ Devices with stable names, such as LVM logical volumes, will continue to
+ use their traditional names rather than UUIDs.
+
+Template: partman-target/clear_partitions_failed
+Type: error
+_Description: Failed to remove conflicting files
+ The installer needs to remove operating system files from the install target,
+ but was unable to do so.  The install cannot continue.
+
+Template: partman-target/clear_partitions_progress
+Type: text
+_Description: Removing conflicting operating system files...
+
+Template: ubiquity/partman-system-unformatted
+Type: boolean
+_Description: Do you want to return to the partitioner?
+ The file system on ${PARTITION} assigned to ${MOUNTPOINT} has not been marked
+ for formatting.  Directories containing system files (/etc, /lib, /usr, /var,
+ ...) that already exist under any defined mountpoint will be deleted during the
+ install.
+ .
+ Please ensure that you have backed up any critical data before installing.

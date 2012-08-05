@@ -1,0 +1,105 @@
+Template: partman-uboot/progress_checking
+Type: text
+# :sl4:
+_Description: Checking the u-boot file system in partition #${PARTITION} of ${DEVICE}...
+
+Template: partman-uboot/check_failed
+Type: boolean
+# :sl4:
+_Description: Go back to the menu and correct errors?
+ The test of the file system with type u-boot in partition
+ #${PARTITION} of ${DEVICE} found uncorrected errors.
+ .
+ If you do not go back to the partitioning menu and correct these errors,
+ the partition will not be used at all.
+
+Template: partman-uboot/create_failed
+Type: error
+# :sl4:
+_Description: Failed to create a file system
+ The u-boot file system creation in partition
+ #${PARTITION} of ${DEVICE} failed.
+
+Template: partman-uboot/no_mount_point
+Type: boolean
+# :sl4:
+_Description: Do you want to return to the partitioning menu?
+ No mount point is assigned for the u-boot file system in
+ partition #${PARTITION} of ${DEVICE}.
+ .
+ If you do not go back to the partitioning menu and assign a mount point
+ from there, this partition will not be used at all.
+
+Template: partman-uboot/mountpoint
+Type: select
+# :sl4:
+#flag:translate!:1,2
+#flag:comment:3
+# what's to be entered is a mount point
+#flag:comment:4
+# "it" is a partition
+__Choices: /, /boot, Enter manually, Do not mount it
+_Description: Mount point for this partition:
+
+Template: partman-uboot/bad_mountpoint
+Type: error
+# :sl4:
+_Description: Invalid mount point
+ The mount point you entered is invalid.
+ .
+ Mount points must start with "/". They cannot contain spaces.
+
+Template: partman-uboot/text/uboot
+Type: text
+# :sl4:
+# File system name (untranslatable in many languages)
+_Description: uboot
+
+Template: partman/filesystem_long/uboot
+Type: text
+# :sl4:
+# File system name
+_Description: u-boot file system
+
+Template: partman/filesystem_short/uboot
+Type: text
+# :sl4:
+# Short file system name (untranslatable in many languages)
+_Description: uboot
+
+Template: partman-uboot/boot_not_uboot
+Type: boolean
+# :sl4:
+_Description: Go back to the menu and correct this problem?
+ Your boot partition has not been configured with the u-boot file system.
+ This is needed by your machine in order to boot. Please go back and
+ use the u-boot file system.
+ .
+ If you do not go back to the partitioning menu and correct this error,
+ the partition will be used as is. This means that you may not be able
+ to boot from your hard disk.
+
+Template: partman-uboot/boot_not_first_partition
+Type: boolean
+# :sl4:
+_Description: Go back to the menu and correct this problem?
+ Your boot partition is not located on the first primary partition of your
+ hard disk. This is needed by your machine in order to boot. Please go
+ back and use your first primary partition as a boot partition.
+ .
+ If you do not go back to the partitioning menu and correct this error,
+ the partition will be used as is. This means that you may not be able
+ to boot from your hard disk.
+
+Template: partman-uboot/root_not_primary
+Type: boolean
+# :sl4:
+_Description: Go back to the menu and correct this problem?
+ Your root partition is not a primary partition of your hard disk. This is
+ needed by your machine in order to boot. Please go back and use a
+ primary partition for your root partition.
+ .
+ If you do not go back to the partitioning menu and correct this error,
+ the partition will be used as is. This means that you may not be able
+ to boot from your hard disk.
+

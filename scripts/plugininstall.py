@@ -160,7 +160,7 @@ class Install(install_misc.InstallBase):
 
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/apt')
-        self.configure_apt()
+        #self.configure_apt()
 
         self.configure_plugins()
         self.configure_face()
@@ -194,10 +194,10 @@ class Install(install_misc.InstallBase):
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/installing')
 
-        if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
-            self.install_oem_extras()
-        else:
-            self.install_extras()
+        #if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
+            #self.install_oem_extras()
+        #else:
+            #self.install_extras()
 
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/bootloader')
@@ -429,7 +429,7 @@ class Install(install_misc.InstallBase):
         except debconf.DebconfError:
             domain = ''
         if hostname == '':
-            hostname = 'ubuntu'
+            hostname = 'netrunner'
 
         hosts = open(os.path.join(self.target, 'etc/hosts'), 'w')
         print >>hosts, "127.0.0.1\tlocalhost"

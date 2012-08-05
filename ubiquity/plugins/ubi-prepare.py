@@ -152,6 +152,9 @@ class PageKde(PreparePageBase):
             self.prepare_foss_disclaimer = self.page.prepare_foss_disclaimer
             self.prepare_sufficient_space = StateBox(self.page)
             self.page.vbox1.addWidget(self.prepare_sufficient_space)
+            self.prepare_download_updates.setVisible(False)
+            self.prepare_nonfree_software.setVisible(False)
+            self.prepare_foss_disclaimer.setVisible(False)
             # TODO we should set these up and tear them down while on this page.
             try:
                 self.prepare_power_source = StateBox(self.page)
@@ -209,7 +212,7 @@ class PageKde(PreparePageBase):
         for widget in (self.page.prepare_heading_label, self.page.prepare_best_results, self.page.prepare_foss_disclaimer):
             text = widget.text()
             text = text.replace('${RELEASE}', release.name)
-            text = text.replace('Ubuntu', 'Kubuntu')
+            text = text.replace('Ubuntu', 'Netrunner')
             text = "<b>" + text + "</b>"
             widget.setText(text)
 

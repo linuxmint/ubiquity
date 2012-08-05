@@ -68,7 +68,7 @@ class UbiquityUI(kdeui.KMainWindow):
         # this to be restartable.
         signal.siginterrupt(signal.SIGCHLD, False)
 
-        distro_name = "Kubuntu"
+        distro_name = "Netrunner"
         distro_release = ""
 
         ## setup the release and codename
@@ -77,7 +77,7 @@ class UbiquityUI(kdeui.KMainWindow):
         for line in fp:
             if "DISTRIB_ID=" in line:
                 name = str.strip(line.split("=")[1], '\n')
-                if name != "Ubuntu":
+                if name != "Netrunner":
                     distro_name = name
             elif "DISTRIB_RELEASE=" in line:
                 distro_release = str.strip(line.split("=")[1], '\n')
@@ -93,7 +93,7 @@ class UbiquityUI(kdeui.KMainWindow):
 
         # don't use stylesheet cause we want to scale the wallpaper for various
         # screen sizes as well as support larger screens
-        self.bgImage = QtGui.QImage("/usr/share/wallpapers/kde-default.png")
+        self.bgImage = QtGui.QImage("/usr/share/netrunner/ubiquity/background.jpg")
         self.scaledBgImage = self.bgImage
 
     def paintEvent(self, pe):

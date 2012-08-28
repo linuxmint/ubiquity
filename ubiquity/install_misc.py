@@ -811,7 +811,7 @@ class InstallBase:
                             (item.destfile, e))
                         continue
 
-                    if candidate.sha256 is not None:
+                    if candidate.sha256 is not "":
                         sha256 = hashlib.sha256()
                         for chunk in iter(lambda: destfile.read(16384), b''):
                             sha256.update(chunk)

@@ -22,6 +22,7 @@ import os
 
 from ubiquity.filteredcommand import FilteredCommand
 
+
 class Install(FilteredCommand):
     def prepare(self, unfiltered=False):
         automatic_mode = 'UBIQUITY_AUTOMATIC' in os.environ

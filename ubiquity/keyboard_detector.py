@@ -1,5 +1,5 @@
 class KeyboardDetector:
-    UNKNOWN, PRESS_KEY, KEY_PRESENT, KEY_PRESENT_P, RESULT = range(5)
+    UNKNOWN, PRESS_KEY, KEY_PRESENT, KEY_PRESENT_P, RESULT = list(range(5))
 
     def __init__(self):
         self.current_step = -1
@@ -19,7 +19,10 @@ class KeyboardDetector:
 
     def read_step(self, step):
         if self.current_step != -1:
-            if step not in self.keycodes.values() + [self.present] + [self.not_present]:
+            valid_steps = (
+                list(self.keycodes.values()) +
+                [self.present] + [self.not_present])
+            if step not in valid_steps:
                 raise KeyError('invalid argument')
             if self.result:
                 raise Exception('already done')
@@ -54,7 +57,7 @@ class KeyboardDetector:
                 if step_type != KeyboardDetector.PRESS_KEY:
                     raise Exception
                 keycode = int(line[5:line.find(' ', 5)])
-                s = int(line[line.find(' ', 5)+1:])
+                s = int(line[line.find(' ', 5) + 1:])
                 self.keycodes[keycode] = s
             elif line.startswith('FIND '):
                 # Ask the user whether that character is present on their

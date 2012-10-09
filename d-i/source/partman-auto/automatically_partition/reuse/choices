@@ -45,20 +45,32 @@ for dev in $DEVICES/*; do
 		[ "$fs" != free ] || continue
 		[ -e "$path" ] || continue
 		part=$dev//$id
-		blockdev --setro $path || continue
-		cleanup_ro_partitions="$cleanup_ro_partitions $path"
 		t="$(blkid -o value -s TYPE $path)" || true
-		if [ -n "$t" ] && [ "$t" != "swap" ] && \
-		mount -o ro $path $mountpoint 3>&- 6>&- 7<&-; then
+		if [ -n "$t" ] && [ "$t" != "swap" ]; then
+		    mounted=
+		    if type grub-mount >/dev/null 2>&1 && \
+			grub-mount "$path" "$mountpoint" 2>/dev/null; then
+			mounted=1
+		    else
+			blockdev --setro "$path" || continue
+			cleanup_ro_partitions="$cleanup_ro_partitions $path"
+			if mount -o ro "$path" "$mountpoint" 3>&- 6>&- 7<&-; then
+			    mounted=1
+			fi
+		    fi
+		    if [ "$mounted" ]; then
 			release="$(grep -s DISTRIB_ID $mountpoint/etc/lsb-release)" || true
-			umount -l $mountpoint || true
+			umount -l "$mountpoint" || true
 			if [ "${release##DISTRIB_ID=}" = "Ubuntu" ]; then
 				db_subst partman-auto/text/reuse PARTITION "$(humandev "$path")"
 				db_metaget partman-auto/text/reuse description
 				reuse="$reuse$NL$part$TAB$RET"
 			fi
+		    fi
 		fi
-		blockdev --setrw $path || true
+	done
+	for p in $cleanup_ro_partitions; do
+		blockdev --setrw $p || true
 	done
 	close_dialog
 done

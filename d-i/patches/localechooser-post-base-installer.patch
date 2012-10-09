@@ -1,0 +1,72 @@
+Index: b/source/localechooser/post-base-installer.d/05localechooser
+===================================================================
+--- a/source/localechooser/post-base-installer.d/05localechooser
++++ b/source/localechooser/post-base-installer.d/05localechooser
+@@ -42,18 +42,18 @@
+ 	db_get debian-installer/country
+ 	COUNTRY="$RET"
+ 
+-	if grep -q "^$ORIG_LANGUAGE;" /usr/share/localechooser/languagelist; then
+-		SUPPORTEDLOCALES=/usr/share/localechooser/SUPPORTED
++	if grep -q "^$ORIG_LANGUAGE;" /usr/lib/ubiquity/localechooser/languagelist; then
++		SUPPORTEDLOCALES=/usr/lib/ubiquity/localechooser/SUPPORTED
+ 		if [ ! -f "$SUPPORTEDLOCALES" ]; then
+ 			SUPPORTEDLOCALES=/usr/share/i18n/SUPPORTED
+ 		fi
+ 
+-		LOCALE_TRANSLATIONS="$(grep "^$ORIG_LANGUAGE;" /usr/share/localechooser/languagelist | cut -d';' -f5)"
++		LOCALE_TRANSLATIONS="$(grep "^$ORIG_LANGUAGE;" /usr/lib/ubiquity/localechooser/languagelist | cut -d';' -f5)"
+ 		newlocale="$(echo "$LOCALE" | sed "s/_[A-Z][A-Z]*/_$COUNTRY/")"
+ 		if grep -q "^${newlocale%%[.@]*}[.@ ]" $SUPPORTEDLOCALES && \
+ 		   [ "$newlocale" != "$LOCALE_TRANSLATIONS" ]; then
+ 			LOCALE="$newlocale"
+-			LANGLIST="$(grep "^$ORIG_LANGUAGE;" /usr/share/localechooser/languagelist | cut -d';' -f6)"
++			LANGLIST="$(grep "^$ORIG_LANGUAGE;" /usr/lib/ubiquity/localechooser/languagelist | cut -d';' -f6)"
+ 		fi
+ 	fi
+ 	;;
+@@ -113,7 +113,7 @@
+ # For language with multiple entries such as pt/pt_BR or zh_CN/zh_TW
+ # we don't really care about the entry we will match as the level will always
+ # be the same
+-LEVEL=`cat /usr/share/localechooser/languagelist |\
++LEVEL=`cat /usr/lib/ubiquity/localechooser/languagelist |\
+ 	cut -f 2-3 -d\; | \
+ 	grep "$LANGUAGECODE" | \
+ 	head -n 1 | \
+@@ -126,11 +126,33 @@
+ 	echo "LANGUAGE=C" >>$ROOTPROFILE
+ fi
+ 
++locale_gen () {
++	# Arrange for the installation environment to have a copy of the
++	# locale as well.
++	local locale old_locales new_locales added_dirs
++	old_locales="$(ls /target/usr/lib/locale 2>/dev/null | sort -u | xargs)"
++	log-output -t localechooser chroot /target /usr/sbin/locale-gen --no-archive "$@" || return 0
++	new_locales="$(ls /target/usr/lib/locale 2>/dev/null | sort -u | xargs)"
++	added_dirs=
++	for locale in $new_locales; do
++		case " $old_locales " in
++		    *" $locale "*)
++			;;
++		    *)
++			cp -a "/target/usr/lib/locale/$locale" "/usr/lib/locale/$locale" || true
++			added_dirs="${added_dirs:+$added_dirs }/usr/lib/locale/$locale"
++			;;
++		esac
++	done
++	log-output -t localechooser chroot /target localedef --add-to-archive $added_dirs || true
++	log-output -t localechooser chroot /target rm -rf $added_dirs || true
++}
++
+ if [ "$LOCALE" != C ]; then
+-	log-output -t localechooser chroot /target /usr/sbin/locale-gen "$LOCALE" || true
++	locale_gen "$LOCALE" || true
+ fi
+ if [ "$EXTRAS" ]; then
+-	log-output -t localechooser chroot /target /usr/sbin/locale-gen $EXTRAS || true
++	locale_gen $EXTRAS || true
+ fi
+ 
+ exit 0

@@ -1,0 +1,356 @@
+#!/bin/sh
+
+# Copyright (C) 2011  Loïc Minier <lool@dooz.org>
+
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301,
+# USA.
+
+. ./testlib
+
+functions="${FK_CHECKOUT:-$FK_DIR}/functions"
+
+test_syntax() {
+    sh -n "$functions"
+}
+add_test test_syntax
+
+test_mtdblock() {
+    get_tempfile
+    mock_proc_mtd="$last_tempfile"
+    cat >"$mock_proc_mtd" <<EOF
+dev:    size   erasesize  name
+mtd0: 00580000 00020000 "root"
+mtd1: 00100000 00020000 "kernel"
+mtd2: 00160000 00020000 "initrd"
+mtd3: 00020000 00020000 "reset"
+mtd4: 00800000 00020000 "jffs2"
+EOF
+    (
+        . "$functions"
+        PROC_MTD="$mock_proc_mtd"
+        root_mtd=$(mtdblock "root")
+        if [ "$root_mtd" != "/dev/mtdblock0" ]; then
+            echo "Expected root mtd to be /dev/mtdblock0 but got $root_mtd" >&2
+            exit 1
+        fi
+        jffs2_mtd=$(mtdblock "jffs2")
+        if [ "$jffs2_mtd" != "/dev/mtdblock4" ]; then
+            echo "Expected jffs2 mtd to be /dev/mtdblock4 but got $jffs2_mtd" >&2
+            exit 1
+        fi
+    )
+}
+add_test test_mtdblock
+
+test_mtdsize() {
+    get_tempfile
+    mock_proc_mtd="$last_tempfile"
+    cat >"$mock_proc_mtd" <<EOF
+dev:    size   erasesize  name
+mtd0: 00580000 00020000 "root"
+mtd1: 00100000 00020000 "kernel"
+mtd2: 00160000 00020000 "initrd"
+mtd3: 00020000 00020000 "reset"
+mtd4: 00800000 00020000 "jffs2"
+EOF
+    (
+        . "$functions"
+        PROC_MTD="$mock_proc_mtd"
+        root_size=$(mtdsize "root")
+        if [ "$root_size" != 5767168 ]; then
+            echo "Expected root size of 5767168 but got $root_size" >&2
+            exit 1
+        fi
+        jffs2_size=$(mtdsize "jffs2")
+        if [ "$jffs2_size" != 8388608 ]; then
+            echo "Expected jffs2 size of 8388608 but got $jffs2_size" >&2
+            exit 1
+        fi
+    )
+}
+add_test test_mtdsize
+
+test_check_kflavors() {
+    (
+        . "$functions"
+        if check_kflavors "ksuffix" "kflavor1" "kflavor2"; then
+            echo "Expected check_kflavors to fail with kernel suffix not in expected flavors, but it succeeded" >&2
+            exit 1
+        fi
+        if ! check_kflavors "foo" "kflavor1" "foo" "kflavor3"; then
+            echo "Expected check_kflavors to succeed with kernel suffix in expected flavors, but it failed" >&2
+            exit 1
+        fi
+        if ! check_kflavors "" "kflavor1" "kflavor2" "kflavor3"; then
+            echo "Expected check_kflavors to succeed with empty kernel suffix, but it failed" >&2
+            exit 1
+        fi
+    )
+}
+add_test test_check_kflavors
+
+test_check_size() {
+    (
+        . "$functions"
+        error() {
+            return 1
+        }
+        if check_mtd_size "MTD" 2 1; then
+            echo "Expected check_mtd_size to fail for too small size, but it succeeded" >&2
+            exit 1
+        fi
+        if ! check_mtd_size "MTD" 1 1; then
+            echo "Expected check_supported to succeed with large enough size, but it failed" >&2
+            exit 1
+        fi
+    )
+}
+add_test test_check_size
+
+test_check_supported() {
+    (
+        . "$functions"
+        if check_supported "Dummy"; then
+            echo "Expected check_supported to fail for non-existent board, but it succeeded" >&2
+            exit 1
+        fi
+        machine="Marvell SheevaPlug Reference Board"
+        if ! check_supported "$machine"; then
+            echo "Expected check_supported to succeed with machine $machine, but it failed" >&2
+            exit 1
+        fi
+    )
+}
+add_test test_check_supported
+
+test_get_cpuinfo_hardware() {
+    get_tempfile
+    mock_proc_cpuinfo="$last_tempfile"
+    cat >"$mock_proc_cpuinfo" <<EOF
+Processor       : Feroceon 88FR131 rev 1 (v5l)
+BogoMIPS        : 1192.75
+Features        : swp half thumb fastmult edsp
+CPU implementer : 0x56
+CPU architecture: 5TE
+CPU variant     : 0x2
+CPU part        : 0x131
+CPU revision    : 1
+
+Hardware        : Marvell SheevaPlug Reference Board
+Revision        : 0000
+Serial          : 0000000000000000
+EOF
+    (
+        . "$functions"
+        PROC_CPUINFO="$mock_proc_cpuinfo"
+        machine=$(get_cpuinfo_hardware)
+        if [ "$machine" != "Marvell SheevaPlug Reference Board" ]; then
+            echo "Expected machine to be Marvell SheevaPlug Reference Board but got $machine" >&2
+            exit 1
+        fi
+    )
+}
+add_test test_get_cpuinfo_hardware
+
+test_get_kfile_suffix() {
+    (
+        . "$functions"
+        kfile_suffix=$(get_kfile_suffix "/boot/vmlinuz-2.6.32-5-kirkwood")
+        if [ "$kfile_suffix" != "kirkwood" ]; then
+            echo "Expected kernel file suffix to be kirkwood but got $kfile_suffix" >&2
+            exit 1
+        fi
+    )
+}
+add_test test_get_kfile_suffix
+
+test_get_machine_field() {
+    (
+        . "$functions"
+        machine="Marvell SheevaPlug Reference Board"
+        if machine_field="$(get_machine_field "$machine" "Machine")"; then
+            if [ "$machine_field" != "$machine" ]; then
+                echo "Expected Machine field to be $machine but got $machine_field" >&2
+                exit 1
+            fi
+        else
+            echo "Expected get_machine_field to succeed on Machine field but it failed" >&2
+            exit 1
+        fi
+        kflavors="$(get_machine_field "$machine" "Kernel-Flavors")"
+        if [ "$kflavors" != "kirkwood" ]; then
+            echo "Expected Kernel-Flavors field to be kirkwood but got $kflavors" >&2
+            exit 1
+        fi
+        if dummy_field="$(get_machine_field "$machine" "Dummy")"; then
+            echo "Expected get_machine_field to fail on unknown field Dummy but it succeeded" >&2
+            exit 1
+        fi
+    )
+}
+add_test test_get_machine_field
+
+test_machine_uses_flash() {
+    (
+        . "$functions"
+        if ! machine_uses_flash "Dummy"; then
+            echo "Expected machine_uses_flash to succeed for non-existent board, but it failed" >&2
+            exit 1
+        fi
+        machine="Buffalo Linkstation Mini"
+        if machine_uses_flash "$machine"; then
+            echo "Expected machine_uses_flash to fail for $machine, but it succeeded" >&2
+            exit 1
+        fi
+        machine="Lanner EM7210"
+        if ! machine_uses_flash "$machine"; then
+            echo "Expected machine_uses_flash to succeed for $machine, but it failed" >&2
+            exit 1
+        fi
+    )
+}
+add_test test_machine_uses_flash
+
+test_set_machine_id() {
+    (
+        . "$functions"
+        arm_code="$(set_machine_id 2097 | od -x)"
+        expected="0000000 1c08 e3a0 1031 e381
+0000010"
+        if [ "$arm_code" != "$expected" ]; then
+            echo "Expected \"$expected\" for machine-id 2097 but got \"$arm_code\"" >&2
+            exit 1
+        fi
+        arm_code="$(set_machine_id "" | od -x)"
+        expected="0000000"
+        if [ "$arm_code" != "$expected" ]; then
+            echo "Expected \"$expected\" for empty machine-id but got \"$arm_code\"" >&2
+            exit 1
+        fi
+    )
+}
+add_test test_set_machine_id
+
+test_mkimage_kernel() {
+    (
+        mkimage() {
+            saved_args="$@"
+        }
+        . "$functions"
+        saved_args=""
+        mkimage_kernel "0xdeadbeef" "desc" "input" "output" 2>/dev/null
+        expected="-A arm -O linux -T kernel -C none -a 0xdeadbeef -e 0xdeadbeef -n desc -d input output"
+        if [ "$expected" != "$saved_args" ]; then
+            echo "Expected mkimage_kernel to be called with \"$expected\" but it was called with \"$saved_args\"" >&2
+            exit 1
+        fi
+    )
+}
+add_test test_mkimage_kernel
+
+test_mkimage_initrd() {
+    (
+        mkimage() {
+            saved_args="$@"
+        }
+        . "$functions"
+        saved_args=""
+        mkimage_initrd "0xdeadbeef" "desc" "input" "output" 2>/dev/null
+        expected="-A arm -O linux -T ramdisk -C gzip -a 0xdeadbeef -e 0xdeadbeef -n desc -d input output"
+        if [ "$expected" != "$saved_args" ]; then
+            echo "Expected mkimage_initrd to be called with \"$expected\" but it was called with \"$saved_args\"" >&2
+            exit 1
+        fi
+    )
+}
+add_test test_mkimage_initrd
+
+test_mkimage_multi() {
+    (
+        mkimage() {
+            saved_args="$@"
+        }
+        . "$functions"
+        saved_args=""
+        mkimage_multi "0xdeadbeef" "desc" "kinput" "iinput" "output" 2>/dev/null
+        expected="-A arm -O linux -T multi -C none -a 0xdeadbeef -e 0xdeadbeef -n desc -d kinput:iinput output"
+        if [ "$expected" != "$saved_args" ]; then
+            echo "Expected mkimage_multi to be called with \"$expected\" but it was called with \"$saved_args\"" >&2
+            exit 1
+        fi
+    )
+}
+add_test test_mkimage_multi
+
+test_gen_kernel() {
+    get_tempfile
+    kernel_input="$last_tempfile"
+    echo "foo" >"$kernel_input"
+    get_tempfile
+    kernel_output="$last_tempfile"
+    (
+        . "$functions"
+        gen_kernel "$kernel_input" "$kernel_output" 2097
+        result="$(od -t x1 "$kernel_output")"
+        expected="0000000 08 1c a0 e3 31 10 81 e3 66 6f 6f 0a
+0000014"
+        if [ "$result" != "$expected" ]; then
+            echo "With machine id 2097, expected \"$expected\" but got \"$result\"" >&2
+            exit 1
+        fi
+        gen_kernel "$kernel_input" "$kernel_output" ""
+        result="$(od -t x1 "$kernel_output")"
+        expected="0000000 66 6f 6f 0a
+0000004"
+        if [ "$result" != "$expected" ]; then
+            echo "With no machine id, expected \"$expected\" but got \"$result\"" >&2
+            exit 1
+        fi
+    )
+}
+add_test test_gen_kernel
+
+test_flash_initrd() {
+    get_tempfile
+    initrd_input="$last_tempfile"
+    echo "foo" >"$initrd_input"
+    get_tempfile
+    initrd_output="$last_tempfile"
+    (
+        . "$functions"
+        flash_initrd "$initrd_input" "$initrd_output" 3 2>/dev/null
+        result="$(od -t x1 "$initrd_output")"
+        expected="0000000 66 6f 6f 0a 00 00 00
+0000007"
+        if [ "$result" != "$expected" ]; then
+            echo "With 3 bytes of padding, expected \"$expected\" but got \"$result\"" >&2
+            exit 1
+        fi
+        flash_initrd "$initrd_input" "$initrd_output" 0 2>/dev/null
+        result="$(od -t x1 "$initrd_output")"
+        expected="0000000 66 6f 6f 0a
+0000004"
+        if [ "$result" != "$expected" ]; then
+            echo "With no padding, expected \"$expected\" but got \"$result\"" >&2
+            exit 1
+        fi
+    )
+}
+add_test test_flash_initrd
+
+
+test_main
+
+# vim:syntax=sh

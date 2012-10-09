@@ -95,16 +95,24 @@ if ! db_go; then
 fi
 
 # Update target system configuration for utc/localtime selection
-rcsfile=/target/etc/default/rcS
+utcfile=/target/etc/default/rcS
 
 db_get clock-setup/utc
 if [ "$RET" = true ]; then
-	sed -i -e 's:^UTC="no":UTC="yes":' -e 's:^UTC=no:UTC=yes:' $rcsfile
+	sed -i -e 's:^UTC="no":UTC="yes":' -e 's:^UTC=no:UTC=yes:' $utcfile
+	if [ -e /target/etc/adjtime ]; then
+		sed -i -e 's:^LOCAL$:UTC:' /target/etc/adjtime
+	fi
 	OPT="--utc"
 else
-	sed -i -e 's:^UTC="yes":UTC="no":' -e 's:^UTC=yes:UTC=no:' $rcsfile
+	sed -i -e 's:^UTC="yes":UTC="no":' -e 's:^UTC=yes:UTC=no:' $utcfile
+	if [ -e /target/etc/adjtime ]; then
+		sed -i -e 's:^UTC$:LOCAL:' /target/etc/adjtime
+	fi
 	OPT="--localtime"
 fi
+
+[ "$(udpkg --print-os)" != hurd ] || OPT="$OPT --directisa"
 
 # Only update the hardware clock if the system clock was updated using rdate
 db_get clock-setup/system-time-changed

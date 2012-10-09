@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 
 import os
 import shutil
@@ -6,6 +6,7 @@ import tempfile
 import unittest
 
 from ubiquity import install_misc
+
 
 class InstallMiscTests(unittest.TestCase):
     def setUp(self):

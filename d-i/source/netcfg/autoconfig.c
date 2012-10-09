@@ -375,7 +375,7 @@ stop:
 		/* If we didn't get a lease, stop dhcp6c. */
 		FILE *pidfile = fopen(DHCP6C_PIDFILE, "r");
 		if (pidfile) {
-			char *line;
+			char *line = NULL;
 			size_t dummy;
 
 			if (getline(&line, &dummy, pidfile) >= 0) {

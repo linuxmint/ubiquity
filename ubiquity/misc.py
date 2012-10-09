@@ -1,40 +1,39 @@
-#!/usr/bin/python
 # -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
+from collections import namedtuple
+import contextlib
+import grp
 import os
 import pwd
-import grp
 import re
+import shutil
 import subprocess
 import syslog
-import shutil
-import contextlib
 
 from ubiquity import osextras
 
+
 def utf8(s, errors="strict"):
     """Decode a string as UTF-8 if it isn't already Unicode."""
-    if isinstance(s, unicode):
+    if isinstance(s, str):
         return s
     else:
-        return unicode(s, "utf-8", errors)
+        return str(s, "utf-8", errors)
+
 
 def is_swap(device):
-    swap = False
-    fp = None
     try:
-        fp = open('/proc/swaps')
-        for line in fp:
-            if line.startswith(device + ' '):
-                swap = True
-    except:
-        swap = False
-    finally:
-        if fp:
-            fp.close()
-    return swap
+        with open('/proc/swaps') as fp:
+            for line in fp:
+                if line.startswith(device + ' '):
+                    return True
+    except Exception:
+        pass
+    return False
+
 
 _dropped_privileges = 0
+
 
 def set_groups_for_uid(uid):
     if uid == os.geteuid() or uid == os.getuid():
@@ -46,6 +45,7 @@ def set_groups_for_uid(uid):
         import traceback
         for line in traceback.format_exc().split('\n'):
             syslog.syslog(syslog.LOG_ERR, line)
+
 
 def drop_all_privileges():
     # gconf needs both the UID and effective UID set.
@@ -62,7 +62,9 @@ def drop_all_privileges():
         uid = int(uid)
         os.setreuid(uid, uid)
         os.environ['HOME'] = pwd.getpwuid(uid).pw_dir
+        os.environ['LOGNAME'] = pwd.getpwuid(uid).pw_name
     _dropped_privileges = None
+
 
 def drop_privileges():
     global _dropped_privileges
@@ -80,6 +82,7 @@ def drop_privileges():
             os.seteuid(uid)
     _dropped_privileges += 1
 
+
 def regain_privileges():
     global _dropped_privileges
     assert _dropped_privileges is not None
@@ -88,6 +91,7 @@ def regain_privileges():
         os.seteuid(0)
         os.setegid(0)
         os.setgroups([])
+
 
 def drop_privileges_save():
     """Drop the real UID/GID as well, and hide them in saved IDs."""
@@ -105,12 +109,14 @@ def drop_privileges_save():
     if uid is not None:
         os.setresuid(uid, uid, 0)
 
+
 def regain_privileges_save():
     """Recover our real UID/GID after calling drop_privileges_save."""
     assert _dropped_privileges is not None and _dropped_privileges > 0
     os.setresuid(0, 0, 0)
     os.setresgid(0, 0, 0)
     os.setgroups([])
+
 
 @contextlib.contextmanager
 def raised_privileges():
@@ -120,6 +126,7 @@ def raised_privileges():
         yield
     finally:
         drop_privileges()
+
 
 def raise_privileges(func):
     """As raised_privileges, but as a function decorator."""
@@ -132,6 +139,7 @@ def raise_privileges(func):
 
     return helper
 
+
 @raise_privileges
 def grub_options():
     """ Generates a list of suitable targets for grub-installer
@@ -141,8 +149,9 @@ def grub_options():
     l = []
     try:
         oslist = {}
-        subp = subprocess.Popen(['os-prober'], stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
+        subp = subprocess.Popen(
+            ['os-prober'], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            universal_newlines=True)
         result = subp.communicate()[0].splitlines()
         for res in result:
             res = res.split(':')
@@ -150,22 +159,12 @@ def grub_options():
         p = PartedServer()
         for disk in p.disks():
             p.select_disk(disk)
-            dev = ''
-            mod = ''
-            size = ''
-            try:
-                fp = open(p.device_entry('model'))
+            with open(p.device_entry('model')) as fp:
                 mod = fp.readline()
-                fp.close()
-                fp = open(p.device_entry('device'))
+            with open(p.device_entry('device')) as fp:
                 dev = fp.readline()
-                fp.close()
-                fp = open(p.device_entry('size'))
+            with open(p.device_entry('size')) as fp:
                 size = fp.readline()
-                fp.close()
-            finally:
-                if fp:
-                    fp.close()
             if dev and mod:
                 if size.isdigit():
                     size = format_size(int(size))
@@ -189,6 +188,7 @@ def grub_options():
         for line in traceback.format_exc().split('\n'):
             syslog.syslog(syslog.LOG_ERR, line)
     return l
+
 
 @raise_privileges
 def boot_device():
@@ -216,6 +216,7 @@ def boot_device():
         return boot
     return root
 
+
 def is_removable(device):
     if device is None:
         return None
@@ -225,7 +226,7 @@ def is_removable(device):
     removable_bus = False
     subp = subprocess.Popen(['udevadm', 'info', '-q', 'property',
                              '-n', device],
-                            stdout=subprocess.PIPE)
+                            stdout=subprocess.PIPE, universal_newlines=True)
     for line in subp.communicate()[0].splitlines():
         line = line.strip()
         if line.startswith('DEVPATH='):
@@ -240,15 +241,17 @@ def is_removable(device):
             devpath = os.path.dirname(devpath)
         is_removable = removable_bus
         try:
-            if open('/sys%s/removable' % devpath).readline().strip() != '0':
-                is_removable = True
+            with open('/sys%s/removable' % devpath) as removable:
+                if removable.readline().strip() != '0':
+                    is_removable = True
         except IOError:
             pass
         if is_removable:
             try:
                 subp = subprocess.Popen(['udevadm', 'info', '-q', 'name',
                                          '-p', devpath],
-                                        stdout=subprocess.PIPE)
+                                        stdout=subprocess.PIPE,
+                                        universal_newlines=True)
                 return ('/dev/%s' %
                         subp.communicate()[0].splitlines()[0].strip())
             except Exception:
@@ -256,8 +259,9 @@ def is_removable(device):
 
     return None
 
+
 def mount_info(path):
-    """Return the filesystem name, type, and ro/rw used for a given mountpoint."""
+    """Return filesystem name, type, and ro/rw for a given mountpoint."""
     fsname = ''
     fstype = ''
     writable = ''
@@ -270,11 +274,13 @@ def mount_info(path):
                 writable = line[3].split(',')[0]
     return fsname, fstype, writable
 
+
 def udevadm_info(args):
     fullargs = ['udevadm', 'info', '-q', 'property']
     fullargs.extend(args)
     udevadm = {}
-    subp = subprocess.Popen(fullargs, stdout=subprocess.PIPE)
+    subp = subprocess.Popen(
+        fullargs, stdout=subprocess.PIPE, universal_newlines=True)
     for line in subp.communicate()[0].splitlines():
         line = line.strip()
         if '=' not in line:
@@ -282,6 +288,7 @@ def udevadm_info(args):
         name, value = line.split('=', 1)
         udevadm[name] = value
     return udevadm
+
 
 def partition_to_disk(partition):
     """Convert a partition device to its disk device, if any."""
@@ -294,8 +301,10 @@ def partition_to_disk(partition):
     udevadm_disk = udevadm_info(['-p', disk_syspath])
     return udevadm_disk.get('DEVNAME', partition)
 
+
 def is_boot_device_removable():
     return is_removable(boot_device())
+
 
 def cdrom_mount_info():
     """Return mount information for /cdrom.
@@ -308,12 +317,14 @@ def cdrom_mount_info():
     cdsrc = partition_to_disk(cdsrc)
     return cdsrc, cdfs
 
+
 @raise_privileges
 def grub_device_map():
     """Return the contents of the default GRUB device map."""
     subp = subprocess.Popen(['grub-mkdevicemap', '--no-floppy', '-m', '-'],
-                            stdout=subprocess.PIPE)
+                            stdout=subprocess.PIPE, universal_newlines=True)
     return subp.communicate()[0].splitlines()
+
 
 def grub_default():
     """Return the default GRUB installation target."""
@@ -346,7 +357,7 @@ def grub_default():
     except OSError:
         same = False
     if ((same or target == '(hd0)') and
-        (cdfs and cdfs != 'iso9660') or is_removable(cdsrc)):
+        ((cdfs and cdfs != 'iso9660') or is_removable(cdsrc))):
         # Installing from removable media other than a CD.  Make sure that
         # we don't accidentally install GRUB to it.
         boot = boot_device()
@@ -363,22 +374,32 @@ def grub_default():
 
     return target
 
+
 _os_prober_oslist = {}
+_os_prober_osvers = {}
 _os_prober_called = False
 
-def find_in_os_prober(device):
-    '''Look for the device name in the output of os-prober.
-       Returns the friendly name of the device, or the empty string on error.'''
+
+def find_in_os_prober(device, with_version=False):
+    """Look for the device name in the output of os-prober.
+
+    Return the friendly name of the device, or the empty string on error.
+    """
     try:
-        oslist = os_prober()
+        oslist, osvers = os_prober()
         if device in oslist:
             ret = oslist[device]
         elif is_swap(device):
             ret = 'swap'
         else:
-            syslog.syslog('Device %s not found in os-prober output' % str(device))
+            syslog.syslog('Device %s not found in os-prober output' % device)
             ret = ''
-        return utf8(ret, errors='replace')
+        ret = utf8(ret, errors='replace')
+        ver = utf8(osvers.get(device, ''), errors='replace')
+        if with_version:
+            return ret, ver
+        else:
+            return ret
     except (KeyboardInterrupt, SystemExit):
         pass
     except:
@@ -386,28 +407,34 @@ def find_in_os_prober(device):
         syslog.syslog(syslog.LOG_ERR, "Error in find_in_os_prober:")
         for line in traceback.format_exc().split('\n'):
             syslog.syslog(syslog.LOG_ERR, line)
-    return unicode('')
+    return ''
+
 
 @raise_privileges
 def os_prober():
     global _os_prober_oslist
+    global _os_prober_osvers
     global _os_prober_called
 
     if not _os_prober_called:
         _os_prober_called = True
-        subp = subprocess.Popen(['os-prober'], stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
+        subp = subprocess.Popen(
+            ['os-prober'], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            universal_newlines=True)
         result = subp.communicate()[0].splitlines()
         for res in result:
             res = res.split(':')
             if res[2] == 'Ubuntu':
+                version = [v for v in re.findall('[0-9.]*', res[1]) if v][0]
                 # Get rid of the superfluous (development version) (11.04)
                 text = re.sub('\s*\(.*\).*', '', res[1])
                 _os_prober_oslist[res[0]] = text
+                _os_prober_osvers[res[0]] = version
             else:
                 # Get rid of the bootloader indication. It's not relevant here.
                 _os_prober_oslist[res[0]] = res[1].replace(' (loader)', '')
-    return _os_prober_oslist
+    return _os_prober_oslist, _os_prober_osvers
+
 
 @raise_privileges
 def remove_os_prober_cache():
@@ -415,7 +442,6 @@ def remove_os_prober_cache():
     shutil.rmtree('/var/lib/ubiquity/linux-boot-prober-cache',
                   ignore_errors=True)
 
-from collections import namedtuple
 
 def windows_startup_folder(mount_path):
     locations = [
@@ -434,7 +460,9 @@ def windows_startup_folder(mount_path):
             return path
     return ''
 
+
 ReleaseInfo = namedtuple('ReleaseInfo', 'name, version')
+
 
 def get_release():
     if get_release.release_info is None:
@@ -445,14 +473,17 @@ def get_release():
                     line = line.split()
                     if line[2] == 'LTS':
                         line[1] += ' LTS'
-                    get_release.release_info = ReleaseInfo(name=line[0], version=line[1])
+                    get_release.release_info = ReleaseInfo(
+                        name=line[0], version=line[1])
         except:
             syslog.syslog(syslog.LOG_ERR, 'Unable to determine the release.')
 
         if not get_release.release_info:
             get_release.release_info = ReleaseInfo(name='Ubuntu', version='')
     return get_release.release_info
+
 get_release.release_info = None
+
 
 def get_release_name():
     import warnings
@@ -461,26 +492,26 @@ def get_release_name():
                   category=DeprecationWarning)
 
     if not get_release_name.release_name:
-        fp = None
         try:
-            fp = open('/cdrom/.disk/info')
-            line = fp.readline()
-            if line:
-                line = line.split()
-                if line[2] == 'LTS':
-                    get_release_name.release_name = ' '.join(line[:3])
-                else:
-                    get_release_name.release_name = ' '.join(line[:2])
+            with open('/cdrom/.disk/info') as fp:
+                line = fp.readline()
+                if line:
+                    line = line.split()
+                    if line[2] == 'LTS':
+                        get_release_name.release_name = ' '.join(line[:3])
+                    else:
+                        get_release_name.release_name = ' '.join(line[:2])
         except:
-            syslog.syslog(syslog.LOG_ERR,
-                "Unable to determine the distribution name from /cdrom/.disk/info")
-        finally:
-            if fp:
-                fp.close()
+            syslog.syslog(
+                syslog.LOG_ERR,
+                "Unable to determine the distribution name from "
+                "/cdrom/.disk/info")
         if not get_release_name.release_name:
             get_release_name.release_name = 'Ubuntu'
     return get_release_name.release_name
+
 get_release_name.release_name = ''
+
 
 @raise_privileges
 def get_install_medium():
@@ -495,7 +526,9 @@ def get_install_medium():
                 "Unable to determine install medium.")
             get_install_medium.medium = 'CD'
     return get_install_medium.medium
+
 get_install_medium.medium = ''
+
 
 def execute(*args):
     """runs args* in shell mode. Output status is taken."""
@@ -505,7 +538,7 @@ def execute(*args):
 
     try:
         status = subprocess.call(log_args)
-    except IOError, e:
+    except IOError as e:
         syslog.syslog(syslog.LOG_ERR, ' '.join(log_args))
         syslog.syslog(syslog.LOG_ERR,
                       "OS error(%s): %s" % (e.errno, e.strerror))
@@ -517,9 +550,11 @@ def execute(*args):
         syslog.syslog(' '.join(log_args))
         return True
 
+
 @raise_privileges
 def execute_root(*args):
     return execute(*args)
+
 
 def format_size(size):
     """Format a partition size."""
@@ -540,9 +575,11 @@ def format_size(size):
         factor = 1000 * 1000 * 1000 * 1000
     return '%.1f %s' % (float(size) / factor, unit)
 
+
 def debconf_escape(text):
     escaped = text.replace('\\', '\\\\').replace('\n', '\\n')
     return re.sub(r'(\s)', r'\\\1', escaped)
+
 
 def create_bool(text):
     if text == 'true':
@@ -552,6 +589,7 @@ def create_bool(text):
     else:
         return text
 
+
 @raise_privileges
 def dmimodel():
     model = ''
@@ -560,8 +598,9 @@ def dmimodel():
         # Silence annoying warnings during the test suite.
         kwargs['stderr'] = open('/dev/null', 'w')
     try:
-        proc = subprocess.Popen(['dmidecode', '--string',
-            'system-manufacturer'], stdout=subprocess.PIPE, **kwargs)
+        proc = subprocess.Popen(
+            ['dmidecode', '--string', 'system-manufacturer'],
+            stdout=subprocess.PIPE, universal_newlines=True, **kwargs)
         manufacturer = proc.communicate()[0]
         if not manufacturer:
             return
@@ -578,7 +617,8 @@ def dmimodel():
             else:
                 key = 'system-product-name'
             proc = subprocess.Popen(['dmidecode', '--string', key],
-                                    stdout=subprocess.PIPE)
+                                    stdout=subprocess.PIPE,
+                                    universal_newlines=True)
             model = proc.communicate()[0]
         if 'apple' in manufacturer:
             # MacBook4,1 - strip the 4,1
@@ -595,8 +635,9 @@ def dmimodel():
             kwargs['stderr'].close()
     return model
 
+
 def set_indicator_keymaps(lang):
-    import libxml2
+    import xml.etree.cElementTree as ElementTree
     from gi.repository import Xkl, GdkX11
     # GdkX11.x11_get_default_xdisplay() segfaults if Gtk hasn't been
     # imported; possibly finer-grained than this, but anything using this
@@ -607,8 +648,7 @@ def set_indicator_keymaps(lang):
     # pacify pyflakes
     Gtk
 
-    xpath = "//iso_639_3_entry[@part1_code='%s']"
-    gsettings_key = ['org.gnome.libgnomekbd.keyboard','layouts']
+    gsettings_key = ['org.gnome.libgnomekbd.keyboard', 'layouts']
     lang = lang.split('_')[0]
     variants = []
 
@@ -647,7 +687,8 @@ def set_indicator_keymaps(lang):
 
     def process_variant(*args):
         if hasattr(args[2], 'name'):
-            variants.append('%s\t%s' % (item_str(args[1].name), item_str(args[2].name)))
+            variants.append(
+                '%s\t%s' % (item_str(args[1].name), item_str(args[2].name)))
         else:
             variants.append(item_str(args[1].name))
 
@@ -677,21 +718,23 @@ def set_indicator_keymaps(lang):
             # We have a problem, X only supports 4
 
             # Add as many entry as we can that are layouts without variant
-            country_variants = sorted([entry for entry in variants if '\t' not in entry])
-            for entry in country_variants[:4-len(new_variants)]:
+            country_variants = sorted(
+                entry for entry in variants if '\t' not in entry)
+            for entry in country_variants[:4 - len(new_variants)]:
                 new_variants.append(entry)
                 variants.remove(entry)
 
             if len(new_variants) < 4:
                 # We can add some more
-                simple_variants = sorted([entry for entry in variants if '_' not in entry])
-                for entry in simple_variants[:4-len(new_variants)]:
+                simple_variants = sorted(
+                    entry for entry in variants if '_' not in entry)
+                for entry in simple_variants[:4 - len(new_variants)]:
                     new_variants.append(entry)
                     variants.remove(entry)
 
             if len(new_variants) < 4:
                 # Now just add anything left
-                for entry in variants[:4-len(new_variants)]:
+                for entry in variants[:4 - len(new_variants)]:
                     new_variants.append(entry)
                     variants.remove(entry)
         else:
@@ -715,11 +758,13 @@ def set_indicator_keymaps(lang):
                 kb_layouts.append(fields[0])
                 kb_variants.append("")
 
-        execute("setxkbmap", "-layout", ",".join(kb_layouts), "-variant", ",".join(kb_variants))
+        execute(
+            "setxkbmap", "-layout", ",".join(kb_layouts),
+            "-variant", ",".join(kb_variants))
 
-    fp = libxml2.parseFile('/usr/share/xml/iso-codes/iso_639_3.xml')
-    context = fp.xpathNewContext()
-    nodes = context.xpathEvalExpression(xpath % lang)
+    iso_639_3 = ElementTree.parse('/usr/share/xml/iso-codes/iso_639_3.xml')
+    nodes = [element for element in iso_639_3.findall('iso_639_3_entry')
+             if element.get('part1_code') == lang]
     display = GdkX11.x11_get_default_xdisplay()
     engine = Xkl.Engine.get_instance(display)
     if nodes:
@@ -728,13 +773,15 @@ def set_indicator_keymaps(lang):
 
         # Apparently part2_code doesn't always work (fails with French)
         for prop in ('part2_code', 'id', 'part1_code'):
-            if nodes[0].hasProp(prop):
-                code = nodes[0].prop(prop)
+            code = nodes[0].get(prop)
+            if code is not None:
                 configreg.foreach_language_variant(code, process_variant, None)
                 if variants:
                     restricted_variants = restrict_list(variants)
                     call_setxkbmap(restricted_variants)
-                    gsettings.set_list(gsettings_key[0], gsettings_key[1], restricted_variants)
+                    gsettings.set_list(
+                        gsettings_key[0], gsettings_key[1],
+                        restricted_variants)
                     break
         else:
             # Use the system default if no other keymaps can be determined.
@@ -742,18 +789,21 @@ def set_indicator_keymaps(lang):
 
     engine.lock_group(0)
 
+
 NM = 'org.freedesktop.NetworkManager'
 NM_STATE_CONNECTED_GLOBAL = 70
+
 
 def get_prop(obj, iface, prop):
     import dbus
     try:
         return obj.Get(iface, prop, dbus_interface=dbus.PROPERTIES_IFACE)
-    except dbus.DBusException, e:
+    except dbus.DBusException as e:
         if e.get_dbus_name() == 'org.freedesktop.DBus.Error.UnknownMethod':
             return None
         else:
             raise
+
 
 def has_connection():
     import dbus
@@ -762,10 +812,13 @@ def has_connection():
     state = get_prop(manager, NM, 'state')
     return state == NM_STATE_CONNECTED_GLOBAL
 
+
 def add_connection_watch(func):
     import dbus
+
     def connection_cb(state):
         func(state == NM_STATE_CONNECTED_GLOBAL)
+
     bus = dbus.SystemBus()
     bus.add_signal_receiver(connection_cb, 'StateChanged', NM, NM)
     try:
@@ -775,6 +828,7 @@ def add_connection_watch(func):
         # using ssh with X forwarding, and are therefore connected.  This
         # allows us to proceed with a minimum of complaint.
         func(True)
+
 
 def install_size():
     if min_install_size:
@@ -793,7 +847,7 @@ def install_size():
         pass
 
     # TODO substitute into the template for the state box.
-    min_disk_size = size * 2 # fudge factor.
+    min_disk_size = size * 2  # fudge factor
 
     # Set minimum size to 8GB if current minimum size is larger
     # than 8GB and we still have an extra 20% of free space
@@ -801,6 +855,7 @@ def install_size():
         min_disk_size = max_size
 
     return min_disk_size
+
 min_install_size = None
 
 # vim:ai:et:sts=4:tw=80:sw=4:

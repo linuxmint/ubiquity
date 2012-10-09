@@ -4,6 +4,10 @@
 
 set -e
 
+FK_DIR="/usr/share/flash-kernel"
+
+. "${FK_CHECKOUT:-$FK_DIR}/functions"
+
 . /usr/share/debconf/confmodule
 
 log() {
@@ -20,123 +24,15 @@ findfs () {
 	mount | grep "on /target${1%/} " | tail -n1 | cut -d' ' -f1
 }
 
-install_mkimage() {
-	if ! apt-install u-boot-tools && ! apt-install uboot-mkimage; then
-		error "apt-install uboot-mkimage failed"
-	fi
-}
-
-# Are we writing to flash or constructing an image on disk?
-write_to_flash() {
-	case "$machine" in
-		"Buffalo Linkstation Pro/Live")
-			return 1
-		;;
-		"Buffalo/Revogear Kurobox Pro")
-			return 1
-		;;
-		"GLAN Tank")
-			return 1
-		;;
-		"Highbank")
-			return 1
-		;;
-		"HP Media Vault mv2120")
-			return 1
-		;;
-		"Marvell OpenRD Base Board")
-			return 1
-		;;
-		"Marvell OpenRD Client Board")
-			return 1
-		;;
-		"Marvell SheevaPlug Reference Board")
-			return 1
-		;;
-		"Marvell eSATA SheevaPlug Reference Board")
-			return 1
-		;;
-		"Marvell DB-MV88F6781-BP Development Board")
-			return 1
-		;;
-		"Marvell Armada XP Development Board")
-			return 1
-		;;
-		"Highbank")
-			return 1
-		;;
-		# Assume that we write to flash for all other devices
-		*)
-			return 0
-		;;
-	esac
-}
-
-machine=$(grep "^Hardware" /proc/cpuinfo | sed 's/Hardware\s*:\s*//')
-
-dove_flash_kernel_installer() {
-	in-target update-initramfs -u || true
-	install_mkimage
-
-	# Add the rootfs to the flash-kernel.conf file
-	rootfs=$(findfs /)
-	uuid="$(block-attr --uuid "$rootfs")"
-	echo "rootfs='root=UUID=$uuid'" > /target/etc/flash-kernel.conf
-}
-
-omap_install_uboot() {
-	# Find the rootfs
-	rootfs=$(findfs /)
-
-        if ! apt-install $uboot_pkg; then
-                error "apt-install u-boot failed"
-        fi
-
-	# Add the u-boot partition to the flash-kernl.conf file
-	# FIXME: figure out how to properly autodetect this
-	echo "UBOOT_PART=/dev/mmcblk0p1" > /target/etc/flash-kernel.conf
-
-	# Add the root
-        uuid="$(block-attr --uuid "$rootfs")"
-	rootfs="root=UUID=$uuid"
-
-	# Write out the boot script
-        cat >"/target/boot/boot.script" <<EOF
-echo Starting Ubuntu...
-fatload mmc 0:1 0x80000000 uImage
-fatload mmc 0:1 0x81600000 uInitrd
-setenv bootargs $rootfs ro quiet splash
-bootm 0x80000000 0x81600000
+# check if live-installer diverted update-initramfs, revert before we move on
+if [ -e /target/usr/sbin/update-initramfs.flash-kernel-diverted ];then
+		rm -f /target/usr/sbin/update-initramfs
+		in-target dpkg-divert --remove --local --rename /usr/sbin/update-initramfs
 fi
-EOF
 
-	# HACK: need to reinstall f-k to install the bootloader
-	cp /target/tmp/flash-kernel.$$ /target/usr/sbin/flash-kernel
-	if ! in-target flash-kernel --update-bootloader; then
-		error "bootloader installation failure"
-	fi
-	rm -f /target/usr/sbin/flash-kernel
+machine="$(get_cpuinfo_hardware)"
 
-}
-
-omap_flash_kernel_installer() {
-	in-target update-initramfs -u || true
-
-	install_mkimage
-	uboot_pkg="u-boot-linaro-omap3-beagle"
-	omap_install_uboot
-}
-
-omap4_flash_kernel_installer() {
-	in-target update-initramfs -u || true
-
-	install_mkimage
-	uboot_pkg="u-boot-linaro-omap4-panda"
-	omap_install_uboot
-}
-
-	# Add the rootfs to the flash-kernel.conf file
-if write_to_flash; then
+if machine_uses_flash "$machine"; then
 	db_progress START 0 3 flash-kernel-installer/progress
 else
 	db_progress START 0 3 flash-kernel-installer/progress_disk
@@ -158,151 +54,47 @@ trap "mv /target/tmp/flash-kernel.$$ /target/usr/sbin/flash-kernel" EXIT HUP INT
 
 db_progress STEP 1
 
+for package in $(get_machine_field "$machine" "Optional-Packages"); do
+	if ! apt-install "$package"; then
+		log "apt-install $package failed"
+	fi
+done
+for package in $(get_machine_field "$machine" "Required-Packages"); do
+	if ! apt-install "$package"; then
+		error "apt-install $package failed"
+	fi
+done
+
 case "$machine" in
-	"Buffalo Linkstation Pro/Live" | "Buffalo/Revogear Kurobox Pro")
-		in-target update-initramfs -u || true
-		install_mkimage
-	;;
-	"D-Link DNS-323")
-		in-target update-initramfs -u || true
-		install_mkimage
-	;;
-	"Freescale MX51 Babbage Board")
-		if ! anna-install redboot-tools-udeb; then
-			error "anna-install redboot-tools-udeb failed"
-		fi
-		if ! apt-install redboot-tools; then
-			error "apt-install redboot-tools failed"
-		fi
-		# hardcoded defaults
-		fis_dev="/dev/mmcblk0"
-		fis_offset_hex="0x40000"
-		fis_size_hex="0x1F000"
-		# create flash-kernel.conf
-		echo "fis_dev=${fis_dev}" > /target/etc/flash-kernel.conf
-		echo "fis_offset_hex=${fis_offset_hex}" >> /target/etc/flash-kernel.conf
-		echo "fis_size_hex=${fis_size_hex}" >> /target/etc/flash-kernel.conf
-		# find fis configuration
-		ofst=$(LC_ALL=C fis -d "$fis_dev" -o $fis_offset_hex list | sed -rn "s/^[[:space:]]*RedBoot config: addr = (0x[0-9a-f]{8}), size = 0x[0-9a-f]{8}, entry = 0x[0-9a-f]{8}, length = 0x[0-9a-f]{8}, cksum = 0x[0-9a-f]{8}\$/\1/p")
-		if [ -z "$ofst" ]; then
-			error "could not find fis configuration on $fis_dev"
-		fi
-		# required to assemble redboot script
-		initrd_names="initrd initramfs"
-		for name in $initrd_names; do
-			if fis -d "$fis_dev" -o $fis_offset_hex list | grep -q "^[[:space:]]*$name:"; then
-		        initrd_name=$name
-		    fi
-		done
-		if [ -z "$initrd_name" ];then
-		    error "no fis partition with valid name for initramfs found"
-		fi
-		kernel_names="vmlinuz kernel"
-		for name in $kernel_names; do
-			if fis -d "$fis_dev" -o $fis_offset_hex list | grep -q "^[[:space:]]*$name:"; then
-		        kernel_name=$name
-		    fi
-		done
-		if [ -z "$kernel_name" ];then
-		    error "no fis partition with valid name for kernel found"
-		fi
-		load_initrd="fis load $initrd_name"
-		load_kernel="fis load $kernel_name"
-		# find target UUID
-		rootfs="$(findfs /)"
-		uuid="$(block-attr --uuid "$rootfs")"
-		# assemble cmdline
-		cmdline="\"root=UUID=$uuid ro quiet splash\""
-		script="$load_initrd\\$load_kernel\\exec -r 0x1000000 -s 0x00940000 -c $cmdline\\"
-		fconfig -w -s -d "$fis_dev" -o $ofst -n boot_script_data -x "$script"
-		in-target update-initramfs -u || true
-	;;
-	"GLAN Tank")
-		in-target update-initramfs -u || true
-	;;
-	"Highbank")
-		dove_flash_kernel_installer
-	;;
-	"HP Media Vault mv2120")
-		if ! apt-install mv2120-utils; then
-			# mv2120-utils includes some initramfs-tools scripts
-			# that would be nice to have but which are not
-			# essential.
-			log "apt-install mv2120-utils failed"
-		fi
-		in-target update-initramfs -u || true
-		install_mkimage
-		# The firmware loads /boot/uImage from the first partition
-		# but uImage will be in / if a separate boot partition is
-		# used.  In this case, create a /boot/boot -> /boot symlink.
-		# Note that a partman check will make sure that /boot (if
-		# it exists) or / (if there's no separate /boot) are on the
-		# first partition.
-		rootfs=$(findfs /)
-		bootfs=$(findfs /boot)
-		if [ "$rootfs" != "$bootfs" ]; then
-			if [ ! -e /target/boot/boot ]; then
-				ln -s . /target/boot/boot
-			fi
-		fi
-	;;
 	"Linksys NSLU2")
-		if ! apt-install ixp4xx-firmware; then
-			# not fatal, firmware can be provided other ways
-			# and is not always needed
-			log "apt-install ixp4xx-firmware failed"
-		fi
-		# nslu2-utils will call update-initramfs -u to include the
-		# firmware and to run the hook from flash-kernel
-		if ! apt-install nslu2-utils; then
-			error "apt-install nslu2-utils failed"
-		fi
-		if ! apt-install apex-nslu2; then
-			error "apt-install apex-nslu2 failed"
-		fi
-	;;
-	"OMAP3 Beagle Board")
-		omap_flash_kernel_installer
-	;;
-	"OMAP4 Panda board")
-		omap4_flash_kernel_installer
-	;;
-	"Marvell OpenRD Base Board" | "Marvell OpenRD Client Board" | "Marvell SheevaPlug Reference Board" | "Marvell eSATA SheevaPlug Reference Board")
-		in-target update-initramfs -u || true
-		install_mkimage
-	;;
-	"Marvell DB-MV88F6781-BP Development Board")
-		dove_flash_kernel_installer
-	;;
-	"Marvell Armada XP Development Board")
-		dove_flash_kernel_installer
-	;;
-	"Highbank")
-		dove_flash_kernel_installer
-	;;
-	"Thecus N2100" | "Thecus N4100")
-		in-target update-initramfs -u || true
-	;;
-	"QNAP TS-109/TS-209" | "QNAP TS-119/TS-219" | "QNAP TS-409" | "QNAP TS-41x")
-		in-target update-initramfs -u || true
-		install_mkimage
-	;;
-	"Lanner EM7210")
-		in-target update-initramfs -u || true
+		# installing nslu2-utils will call update-initramfs -u
+		:
 	;;
 	*)
-		case "`archdetect`" in
-			"arm*/dove" | "arm*/armadaxp" | "arm*/highbank")
-				dove_flash_kernel_installer
-			;;
-			"arm*/omap" | "arm*/omap4")
-				omap_flash_kernel_installer
-			esac
+		mount -o bind /dev /target/dev
+		in-target update-initramfs -c -k $(uname -r) || true
+		umount /target/dev || true
 	;;
 esac
 
+if [ "$machine" = "HP Media Vault mv2120" ]; then
+	# The firmware loads /boot/uImage from the first partition
+	# but uImage will be in / if a separate boot partition is
+	# used.  In this case, create a /boot/boot -> /boot symlink.
+	# Note that a partman check will make sure that /boot (if
+	# it exists) or / (if there's no separate /boot) are on the
+	# first partition.
+	rootfs=$(findfs /)
+	bootfs=$(findfs /boot)
+	if [ "$rootfs" != "$bootfs" ]; then
+		if [ ! -e /target/boot/boot ]; then
+			ln -s . /target/boot/boot
+		fi
+	fi
+fi
+
 db_progress STEP 1
-if write_to_flash; then
+if machine_uses_flash "$machine"; then
 	db_progress INFO flash-kernel-installer/flashing
 else
 	db_progress INFO flash-kernel-installer/generating_image
@@ -310,6 +102,14 @@ fi
 
 trap - EXIT HUP INT QUIT TERM
 mv /target/tmp/flash-kernel.$$ /target/usr/sbin/flash-kernel
+
+# set ubuntu defaults
+if echo $(get_machine_field "$machine" "U-Boot-Script-Name") | grep -q "uEnvtxt"; then
+		export VOLID=$(blkid -o value $(findfs /)|head -1)
+		# hide the boot partition from udisks automounting
+		bootdev=$(get_machine_field "$machine" "Boot-Device")
+		[ -b $bootdev ] && in-target dosfslabel $bootdev "SERVICEV001"
+fi
 
 # We need the udev /dev which has the MTD devices
 mount -o bind /dev /target/dev
@@ -321,3 +121,5 @@ umount /target/dev || true
 
 db_progress STEP 1
 db_progress STOP
+
+# vim:noexpandtab shiftwidth=8

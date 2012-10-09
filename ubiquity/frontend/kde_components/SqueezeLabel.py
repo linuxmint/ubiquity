@@ -2,10 +2,11 @@
 
 from PyQt4 import QtGui, QtCore
 
-#idea from
-#http://trac.transmissionbt.com/browser/trunk/qt/squeezelabel.cc
+
+# idea from
+# http://trac.transmissionbt.com/browser/trunk/qt/squeezelabel.cc
 class SqueezeLabel(QtGui.QLabel):
-    def __init__(self, parent = None):
+    def __init__(self, parent=None):
         QtGui.QLabel.__init__(self, parent)
 
     def paintEvent(self, pe):

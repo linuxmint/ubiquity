@@ -164,11 +164,11 @@ for x in $syspaths; do
 	fi
 	# Disk partitions, but only on (non-USB) MMC devices
 	if ! $match && [ "$TYPE" = mmc-partition ]; then
-		if device_info env "$devpath" | egrep -q '^ID_PATH=(platform-mmc|platform-orion-ehci|platform-mxsdhci)'; then
+		if device_info env "$devpath" | egrep -q '^ID_PATH=(platform-mmc|platform-orion-ehci|platform-mxsdhci|platform-omap)'; then
 			match=:
 		fi
 	fi
-	if $match; then
+	if $match && ! device_info env "$devpath" | egrep -q '^ID_PART_ENTRY_TYPE=0x(5|f|85)$'; then
 		device_name "/sys$devpath"
 	fi
 done

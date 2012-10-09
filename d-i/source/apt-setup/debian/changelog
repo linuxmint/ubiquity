@@ -1,3 +1,107 @@
+apt-setup (1:0.56ubuntu2) quantal; urgency=low
+
+  * Convert multiarch setup to new world order as of dpkg >= 1.16.2.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 20 Jun 2012 09:29:22 +0100
+
+apt-setup (1:0.56ubuntu1) quantal; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Install the Ubuntu mirror generator instead of Debian's.
+    - Set apt-setup/security_host to security.ubuntu.com, or
+      ports.ubuntu.com on ports architectures; adjust directory and
+      distribution to match.
+    - Add security sources for restricted, universe, and multiverse,
+      commented out unless the respective components are enabled. Disable
+      security generator checks for contrib and non-free.
+    - For CD installs, leave the sources.list created by apt-setup in
+      /etc/apt/sources.list.apt-setup, and restore the sources.list created
+      during base installation for the rest of the installation.
+    - Honour OVERRIDE_BASE_INSTALLABLE when checking
+      /cdrom/.disk/base_installable.
+    - Set the mirror verification timeout to 30 seconds.
+    - Adjust services-select for Ubuntu, removing volatile and adding
+      partner (apt-setup/partner) and extras (apt-setup/extras).
+    - Always disable the CD at the end of installation if any mirrors are
+      present, even if it's a complete CD.
+    - Pre-populate apt's lists directory with signed Release files for
+      archive.ubuntu.com (and mirrors) and security.ubuntu.com, to protect
+      against downgrade attacks right from initial installation.
+    - Run 'apt-get update' for all sources.list lines produced by a single
+      generator in one go, and don't comment out sources.list lines if it
+      fails.
+    - Make the path to security updates configurable, as well as the host.
+    - Remove restricted from cdrom entry if apt-setup/restricted is false.
+    - Make sure apt-cdrom doesn't unmount the CD if cd_type ends with
+      /single.
+    - Enable all network sources, including security updates, even if the
+      network is unconfigured.
+    - Honour apt-setup/restricted, apt-setup/universe, and
+      apt-setup/multiverse when writing -backports lines.
+    - Run 'apt-get update', without downloading package lists or cleaning up
+      old files, after moving the sources.list generated during base system
+      installation back into place.
+    - If OVERRIDE_LEAVE_CD_MOUNTED is set, don't unmount /cdrom; this is a
+      bad idea in a live CD environment!
+    - Bail out cleanly from cdrom generator if /cdrom/.disk/info doesn't
+      exist or has zero size.
+    - Enable backports by default now that we have NotAutomatic enabled and
+      working.
+    - If apt-setup/multiarch is empty, remove
+      /etc/dpkg/dpkg.cfg.d/multiarch.
+  * Add Release files for quantal, and remove those for precise (except for
+    extras.ubuntu.com, where quantal doesn't exist yet).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 08 Jun 2012 16:16:42 +0100
+
+apt-setup (1:0.56) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Allow preseeding apt-setup/multiarch to configure the target system for
+    multiarch.  Not enabled by default for any architectures yet since
+    multiarch dpkg is not yet in unstable.
+
+  [ Joey Hess ]
+  * Improve prompting for mirror when no network is configured.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama Khayat
+  * Belarusian (be.po) by Viktar Siarheichyk
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bengali (bn.po) by Zenat Rahnuma
+  * Bosnian (bs.po) by Armin Besirovic
+  * Czech (cs.po) by Miroslav Kure
+  * German (de.po) by Holger Wansing
+  * Greek (el.po) by galaxico
+  * Esperanto (eo.po) by Felipe Castro
+  * Spanish (es.po) by Javier Fernández-Sanguino
+  * Basque (eu.po)
+  * Persian (fa.po) by Behrad Eslamifar
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Kumar Appaiah
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Italian (it.po) by Milo Casagrande
+  * Japanese (ja.po) by Kenshi Muto
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Kannada (kn.po) by vignesh prabhu
+  * Korean (ko.po) by Changwoo Ryu
+  * Lao (lo.po) by Anousak Souphavanh
+  * Macedonian (mk.po) by Arangel Angov
+  * Marathi (mr.po) by sampada
+  * Dutch (nl.po) by Jeroen Schot
+  * Polish (pl.po) by Marcin Owsiany
+  * Romanian (ro.po) by Ioan Eugen Stan
+  * Sinhala (si.po) by Danishka Navin
+  * Swedish (sv.po) by Martin Bagge / brother
+  * Tamil (ta.po) by Dr.T.Vasudevan
+  * Telugu (te.po) by Arjuna Rao Chavala
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Turkish (tr.po) by Mert Dirik
+  * Ukrainian (uk.po) by Borys Yanovych
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+
+ -- Otavio Salvador <otavio@debian.org>  Sat, 19 Nov 2011 16:10:11 -0200
+
 apt-setup (1:0.55ubuntu4) precise; urgency=low
 
   * Add extras.ubuntu.com Release files for precise, and remove those for

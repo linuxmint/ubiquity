@@ -1,6 +1,19 @@
 #!/bin/sh
 
-# This code is covered by the GNU General Public License (GPLv2 or higher)
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301,
+# USA.
 
 PREREQ=""
 
@@ -9,72 +22,16 @@ prereqs() {
 }
 
 pause_error() {
+	local _ignored
+
 	#exit 1 # won't work; initramfs-tools ignores hook script exit code
 	echo "" >&2
 	if [ "$DEBIAN_FRONTEND" = "noninteractive" ] ; then
 		echo "Unable to abort; system will probably be broken!" >&2
 	else
 		echo "Press Ctrl-C to abort build, or Enter to continue" >&2
-		read
+		read _ignored
 	fi
-}
-
-# Should we override the root device or merely provide a default root
-# device?
-root_type() {
-	case "$1" in
-		"Buffalo Linkstation Pro/Live")
-			echo "override"
-		;;
-		"Buffalo/Revogear Kurobox Pro")
-			echo "override"
-		;;
-		"D-Link DNS-323")
-			echo "override"
-		;;
-		"GLAN Tank")
-			echo "override"
-		;;
-		"HP Media Vault mv2120")
-			echo "override"
-		;;
-		"Linksys NSLU2")
-			echo "default"
-		;;
-		"QNAP TS-109/TS-209")
-			echo "override"
-		;;
-		"QNAP TS-119/TS-219")
-			echo "override"
-		;;
-		"QNAP TS-409")
-			echo "override"
-		;;
-		"QNAP TS-41x")
-			echo "override"
-		;;
-		"Marvell OpenRD Base Board")
-			echo "default"
-		;;
-		"Marvell OpenRD Client Board")
-			echo "default"
-		;;
-		"Marvell SheevaPlug Reference Board")
-			echo "default"
-		;;
-		"Marvell eSATA SheevaPlug Reference Board")
-			echo "default"
-		;;
-		"Thecus N2100")
-			echo "override"
-		;;
-		"Lanner EM7210")
-			echo "override"
-		;;
-		*)
-			echo
-		;;
-	esac
 }
 
 case $1 in
@@ -84,11 +41,19 @@ prereqs)
 	;;
 esac
 
+FK_DIR="/usr/share/flash-kernel"
+
+. "${FK_CHECKOUT:-$FK_DIR}/functions"
+
 . /usr/share/initramfs-tools/hook-functions
 
-# Only run this hook on some machines
-machine=$(grep "^Hardware" /proc/cpuinfo | sed 's/Hardware\s*:\s*//')
-if [ -z "$(root_type "$machine")" ]; then
+machine="$(get_cpuinfo_hardware)"
+
+# Should we override the root device or merely provide a default root
+# device?
+blsr="$(get_machine_field "$machine" "Bootloader-sets-root")"
+
+if [ "$blsr" = "yes" ] || [ -n "$FLASH_KERNEL_SKIP" ]; then
 	exit 0
 fi
 
@@ -97,9 +62,11 @@ rootdev=$(egrep '^[^# 	]+[ 	]+/[ 	]' /etc/fstab | awk '{print $1}') || true
 
 # Map LVM devices in the form of /dev/vg/lv to /dev/mapper/..., otherwise
 # initramfs won't initialize them.
-path=$(readlink -f $rootdev)
-if echo "$path" | grep -q "^/dev/mapper/"; then
-	rootdev=$path
+if [ -n "$rootdev" ]; then
+	path=$(readlink -f $rootdev)
+	if echo "$path" | grep -q "^/dev/mapper/"; then
+		rootdev=$path
+	fi
 fi
 
 # Translate LABEL and UUID entries into a proper device name.
@@ -123,33 +90,20 @@ if echo "$rootdev" | grep -q "="; then
 		;;
 		*)
 			echo "/etc/fstab parse error; cannot recognize root $rootdev" >&2
+			rootdev=/dev/sda2
+			echo "guessing that the root device is $rootdev" >&2
 		;;
 	esac
 fi
 
 if [ ! -e "$rootdev" ]; then
-	rootdev=/dev/sda2
-	echo "Warning: /etc/fstab parse error; guessing that the root device is $rootdev" >&2
+	echo "Warning: root device $rootdev does not exist" >&2
 	pause_error
 fi
-case "$(root_type "$machine")" in
-	# The boot loader doesn't pass root= on the command line, so
-	# provide a default.
-	"default")
-		install -d $DESTDIR/conf/conf.d
-		echo "ROOT=\"$rootdev\"" > $DESTDIR/conf/conf.d/default_root
-	;;
-	# The boot loader passes a bogus root= (e.g. root=/dev/ram), so
-	# override the command line parameter.
-	"override")
-		install -d $DESTDIR/conf
-		echo "ROOT=\"$rootdev\"" >> $DESTDIR/conf/param.conf
-	;;
-	# This shouldn't happen - only if a device from the case statement
-	# above wasn't added here.
-	*)
-		echo "Device $machine not supported.  Please file a bug." >&2
-		pause_error
-	;;
-esac
 
+# The boot loader doesn't pass root= on the command line, so
+# provide a default.
+install -d $DESTDIR/conf/conf.d
+echo "ROOT=\"$rootdev\"" > $DESTDIR/conf/conf.d/default_root
+
+# vim:noexpandtab shiftwidth=8

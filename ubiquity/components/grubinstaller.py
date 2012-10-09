@@ -20,6 +20,7 @@
 from ubiquity.filteredcommand import FilteredCommand
 from ubiquity import misc
 
+
 class GrubInstaller(FilteredCommand):
     def prepare(self):
         return (['/usr/share/grub-installer/grub-installer', '/target'],

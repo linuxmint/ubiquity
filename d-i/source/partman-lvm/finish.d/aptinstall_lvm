@@ -1,0 +1,11 @@
+#! /bin/sh
+set -e
+
+if grep -q " device-mapper$" /proc/misc; then
+	# Avoid warnings from lvm2 tools about open file descriptors
+	export LVM_SUPPRESS_FD_WARNINGS=1
+
+	if pvdisplay | grep -iq "physical volume ---"; then
+		apt-install lvm2 || true
+	fi
+fi

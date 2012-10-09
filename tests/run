@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import unittest
 import os
@@ -76,7 +76,8 @@ os.environ['GI_TYPELIB_PATH'] = ':'.join(
 
 if 'DEB_HOST_ARCH' not in os.environ:
     os.environ['DEB_HOST_ARCH'] = subprocess.check_output(
-        ['dpkg-architecture', '-qDEB_HOST_ARCH']).strip()
+        ['dpkg-architecture', '-qDEB_HOST_ARCH'],
+        universal_newlines=True).strip()
 
 if options.installed:
     sys.path.insert(0, '/usr/lib/ubiquity')
@@ -115,7 +116,8 @@ else:
     test_filter = ''
 
 tests = [t[:-3] for t in os.listdir('tests')
-         if t.startswith('test_') and t.endswith('.py') and re.search(test_filter, t)]
+         if t.startswith('test_') and t.endswith('.py') and
+            re.search(test_filter, t)]
 tests.sort()
 suite = unittest.TestLoader().loadTestsFromNames(tests)
 res = unittest.TextTestRunner(verbosity=2).run(suite)

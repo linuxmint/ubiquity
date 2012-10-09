@@ -15,6 +15,16 @@ warning() {
 	log "warning: $@"
 }
 
+ask_no_mirror() {
+	db_input critical apt-setup/no_mirror
+	db_go || exit 10
+
+	db_get apt-setup/no_mirror
+	if [ "$RET" = true ]; then
+		exit 1
+	fi
+}
+
 # Ask if a mirror should be used if the base system can be installed from CD
 # Default value and priority vary with the CD type used and number of CDs
 # that has been scanned in 41cdset
@@ -30,10 +40,21 @@ if [ -e /cdrom/.disk/base_installable ] || [ "$OVERRIDE_BASE_INSTALLABLE" ]; the
 	fi
 	cd_count=$(grep "^deb cdrom:" $ROOT/etc/apt/sources.list.new | wc -l)
 
+	no_network=
+	if db_get netcfg/dhcp_options && \
+	   [ "$RET" = "Do not configure the network at this time" ]; then
+		no_network=1
+	fi
+
 	case "$cd_type" in
 	    not_complete)
 		use_mirror=true
-		use_prio=medium
+		if [ "$no_network" ]; then
+			ask_no_mirror
+			exit 0
+		else
+			use_prio=medium
+		fi
 		db_metaget apt-setup/use/netinst description
 		db_subst apt-setup/use_mirror EXPLANATION "$RET"
 		;;
@@ -90,11 +111,8 @@ if [ -e /cdrom/.disk/base_installable ] || [ "$OVERRIDE_BASE_INSTALLABLE" ]; the
 		;;
 	esac
 
-	# Default to false if no network selected in netcfg
-	if db_get netcfg/dhcp_options && \
-	   [ "$RET" = "Do not configure the network at this time" ]; then
+	if [ "$no_network" ]; then
 		use_mirror=false
-		use_prio=medium
 	fi
 
 	# Only set default if not preseeded or already asked
@@ -123,13 +141,7 @@ if [ -e /cdrom/.disk/base_installable ] || [ "$OVERRIDE_BASE_INSTALLABLE" ]; the
 			break
 		elif [ $CODE -eq 10 ]; then
 			# User backed out of choose-mirror
-			db_input critical apt-setup/no_mirror
-			db_go || exit 10
-
-			db_get apt-setup/no_mirror
-			if [ "$RET" = true ]; then
-				exit 1
-			fi
+			ask_no_mirror
 		else
 			logger -t apt-setup "choose-mirror failed with error code $CODE"
 			exit $CODE

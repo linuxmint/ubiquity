@@ -1,0 +1,42 @@
+echo Starting Ubuntu...
+if test -n ${fs} && test -n ${interface} && test -n ${device} && test -n ${prefix}; then
+	${fs}load ${interface} ${device} 0x02000000 ${prefix}uImage
+	${fs}load ${interface} ${device} 0x20000000 ${prefix}uInitrd
+	setenv bootargs  ro quiet splash
+	bootm 0x02000000 0x20000000
+fi
+
+echo boot information not recieved from u-boot, scanning for startup device
+
+if test -e ${reinitalize_devices}; then
+	usb start;
+	ide reset;
+fi
+
+for i in usb ide; do
+	for j in 0 1; do
+		for l in / /boot/; do
+			for m in fat ext2; do
+				setenv interface $i;
+				setenv device $j;
+				setenv prefix $l;
+				setenv fs $m;
+
+				echo Scanning ${fs} ${interface} ${device} on prefix ${prefix} ...;
+
+				# This "if" avoids loading an old image but
+				# doesn't work in stock u-boot 1.3.4 and is
+				# only fixed in Canonical u-boot from October
+				# 1st or later
+
+				if ${fs}load ${interface} ${device} 0x1000 ${prefix}boot.scr; then
+					if imi 0x1000; then
+						echo boot.scr found! Executing ...;
+						autoscr 0x1000;
+					fi;
+				fi
+			done;
+		done;
+	done;
+done
+echo No boot device found.;

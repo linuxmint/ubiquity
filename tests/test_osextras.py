@@ -1,13 +1,14 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 
 import errno
 import os
 import shutil
 import tempfile
-from test import test_support
+from test.support import EnvironmentVarGuard
 import unittest
 
 from ubiquity import osextras
+
 
 class OsextrasTests(unittest.TestCase):
     def setUp(self):
@@ -17,7 +18,7 @@ class OsextrasTests(unittest.TestCase):
     def create_empty_file(self, path, mode=None):
         try:
             os.makedirs(os.path.dirname(path))
-        except OSError, e:
+        except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
         with open(path, "w"):
@@ -46,7 +47,7 @@ class OsextrasTests(unittest.TestCase):
         inner_bin = os.path.join(chroot, self.temp_dir[1:], "bin")
         self.create_empty_file(os.path.join(outer_bin, "executable"), 0o755)
         self.create_empty_file(os.path.join(inner_bin, "executable"), 0o755)
-        with test_support.EnvironmentVarGuard() as env:
+        with EnvironmentVarGuard() as env:
             env['PATH'] = outer_bin
             self.assertTrue(osextras.find_on_path_root(chroot, "executable"))
 

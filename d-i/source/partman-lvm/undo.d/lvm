@@ -1,0 +1,112 @@
+#!/bin/sh
+
+# This script sets method "lvm" for all partitions that have the lvm
+# flag set.  It also discovers the logical volumes and creates in them
+# a loop partition table and partition.
+
+. /lib/partman/lib/base.sh
+
+# Avoid warnings from lvm2 tools about open file descriptors
+export LVM_SUPPRESS_FD_WARNINGS=1
+
+log-output -t partman pvscan
+log-output -t partman vgscan
+
+if [ -x /sbin/vgdisplay ]; then
+	vgroups=$(/sbin/vgdisplay | grep '^[ ]*VG Name' | \
+		sed -e 's/.*[[:space:]]\(.*\)$/\1/' | sort)
+else
+	vgroups=''
+fi
+
+for dev in /var/lib/partman/devices/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		if [ "$fs" != free ]; then
+			partitions="$partitions $id"
+		fi
+	done
+	close_dialog
+
+	for id in $partitions; do
+		lvm=no
+
+		# If the device is in fact being used for lvm, mark it as such.
+		# This is a hack and it only works for full block devices, not
+		# partitions. It makes raid devices used for lvm show up as such.
+		if pvdisplay $(cat $dev/device) >/dev/null 2>&1 ; then
+			lvm=yes
+		fi
+
+		open_dialog GET_FLAGS $id
+		while { read_line flag; [ "$flag" ]; }; do
+			if [ "$flag" = lvm ]; then
+				lvm=yes
+				# can not break here
+			fi
+		done
+		close_dialog
+		if [ "$lvm" = yes ]; then
+			mkdir -p $id
+			echo lvm >$id/method
+		fi
+	done
+
+	if [ -f device ]; then
+		# Obtain the VG from the device name
+		device=`cat device`
+		case "$device" in
+		    # LVM2
+		    /dev/mapper/*)
+			vglv=${device#/dev/mapper/}
+			vglv=$(echo "$vglv" | sed -e 's/\([^-]\)-\([^-]\)/\1 \2/' |
+			       sed -e 's/--/-/g')
+			vg=$(echo "$vglv" | cut -d" " -f1)
+			;;
+		    # LVM1
+		    *)
+			vg=$(sed 's,^/[^/]*/\([^/]*\)/.*,\1,' device)
+			;;
+		esac
+		is_vg=no
+		for vgs in $vgroups; do
+			[ "$vgs" = "$vg" ] && is_vg=yes
+		done
+		if [ "$is_vg" = yes ] ; then
+			# this is an activated logical volume
+			# let's create label on it
+			open_dialog NEW_LABEL loop
+			close_dialog
+			# find the free space
+			open_dialog PARTITIONS
+			free_space=''
+			while { read_line num id size type fs path name; [ "$id" ]; }; do
+				if [ "$fs" = free ]; then
+					free_space=$id
+					free_size=$size
+				fi
+			done
+			close_dialog
+			# create partition in the free space
+			if [ "$free_space" ]; then
+				open_dialog NEW_PARTITION primary ext2 $free_space full $free_size
+				read_line num id size type fs path name
+				close_dialog
+				if [ "$id" ]; then
+					open_dialog GET_FILE_SYSTEM $id
+					read_line filesystem
+					close_dialog
+					if [ "$filesystem" != none ]; then
+						open_dialog CHANGE_FILE_SYSTEM $id $filesystem
+						close_dialog
+					fi
+				fi
+			fi
+			open_dialog DISK_UNCHANGED
+			close_dialog
+		fi
+	fi
+done

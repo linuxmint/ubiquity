@@ -17,6 +17,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+from __future__ import print_function
+
 import os
 import datetime
 import time
@@ -27,6 +29,7 @@ import sys
 
 TZ_DATA_FILE = '/usr/share/zoneinfo/zone.tab'
 ISO_3166_FILE = '/usr/share/xml/iso-codes/iso_3166.xml'
+
 
 def _seconds_since_epoch(dt):
     # TODO cjwatson 2006-02-23: %s escape is not portable
@@ -148,6 +151,7 @@ def _parse_position(position, wholedigits):
     else:
         return whole - fraction / pow(10.0, len(fractionstr))
 
+
 class Location(object):
     def __init__(self, zonetab_line, iso3166):
         bits = zonetab_line.rstrip().split('\t', 3)
@@ -178,15 +182,15 @@ class Location(object):
 
         # Grab md5sum of the timezone file for later comparison
         try:
-            tz_file = file(os.path.join('/usr/share/zoneinfo', self.zone) ,'rb')
-            self.md5sum = hashlib.md5(tz_file.read()).digest()
-            tz_file.close()
+            with open(os.path.join(
+                '/usr/share/zoneinfo', self.zone), 'rb') as tz_file:
+                self.md5sum = hashlib.md5(tz_file.read()).digest()
         except IOError:
             self.md5sum = None
 
         try:
             today = datetime.datetime.today()
-        except ValueError:
+        except (ValueError, OverflowError):
             # Some versions of Python have problems with clocks set before
             # the epoch (http://python.org/sf/1646728). Assuming that the
             # time is set to the epoch will at least let us avoid crashing,
@@ -202,12 +206,11 @@ class _Database(object):
     def __init__(self):
         self.locations = []
         iso3166 = Iso3166()
-        tzdata = open(TZ_DATA_FILE)
-        for line in tzdata:
-            if line.startswith('#'):
-                continue
-            self.locations.append(Location(line, iso3166))
-        tzdata.close()
+        with open(TZ_DATA_FILE) as tzdata:
+            for line in tzdata:
+                if line.startswith('#'):
+                    continue
+                self.locations.append(Location(line, iso3166))
 
         # Build mappings from timezone->location and country->locations
         self.cc_to_locs = {}
@@ -228,9 +231,9 @@ class _Database(object):
             return self.tz_to_loc[tz]
         except:
             try:
-                tz_file = file(os.path.join('/usr/share/zoneinfo', tz), 'rb')
-                md5sum = hashlib.md5(tz_file.read()).digest()
-                tz_file.close()
+                with open(os.path.join(
+                    '/usr/share/zoneinfo', tz), 'rb') as tz_file:
+                    md5sum = hashlib.md5(tz_file.read()).digest()
 
                 for loc in self.locations:
                     if md5sum == loc.md5sum:
@@ -240,12 +243,13 @@ class _Database(object):
                 pass
 
             # If not found, oh well, just warn and move on.
-            print >> sys.stderr, 'Could not understand timezone', tz
-            self.tz_to_loc[tz] = None # save it for the future
+            print('Could not understand timezone', tz, file=sys.stderr)
+            self.tz_to_loc[tz] = None  # save it for the future
             return None
 
 
 _database = None
+
 
 def Database():
     global _database

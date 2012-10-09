@@ -19,6 +19,7 @@
 
 from ubiquity.filteredcommand import FilteredCommand
 
+
 class HwDetect(FilteredCommand):
     def prepare(self):
         self.preseed('hw-detect/start_pcmcia', 'false')

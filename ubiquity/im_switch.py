@@ -34,6 +34,7 @@ import shlex
 
 from ubiquity import misc
 
+
 def get_language():
     if 'LC_ALL' in os.environ:
         lang = os.environ['LC_ALL']
@@ -49,6 +50,7 @@ def get_language():
         lang = 'all_ALL'
     return lang
 
+
 def read_config_file(f):
     if not os.path.isfile(f) or not os.access(f, os.R_OK):
         return None
@@ -60,7 +62,8 @@ echo "XIM_ARGS: $XIM_ARGS"
 echo "XIM_PROGRAM_XTRA: $XIM_PROGRAM_XTRA"
 echo "XMODIFIERS: $XMODIFIERS"
 echo "GTK_IM_MODULE: $GTK_IM_MODULE"
-echo "QT_IM_MODULE: $QT_IM_MODULE"''' % f, stdout=subprocess.PIPE, shell=True)
+echo "QT_IM_MODULE: $QT_IM_MODULE"''' % f,
+        stdout=subprocess.PIPE, shell=True, universal_newlines=True)
     cfg_lines = cfg.communicate()[0].splitlines()
     cfg_dict = {}
     for line in cfg_lines:
@@ -69,6 +72,7 @@ echo "QT_IM_MODULE: $QT_IM_MODULE"''' % f, stdout=subprocess.PIPE, shell=True)
             continue
         cfg_dict[bits[0]] = bits[1]
     return cfg_dict
+
 
 def read_config():
     lang = get_language()
@@ -89,13 +93,16 @@ def read_config():
             return cfg_dict
     return {}
 
+
 def subprocess_setup():
     misc.drop_all_privileges()
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)
     os.setsid()
 
+
 _im_subps = []
+
 
 # Entry point
 def start_im():
@@ -128,7 +135,8 @@ def start_im():
         from gi.repository import Gtk
         settings = Gtk.Settings.get_default()
         try:
-            settings.set_string_property('gtk-im-module', cfg['GTK_IM_MODULE'], '')
+            settings.set_string_property(
+                'gtk-im-module', cfg['GTK_IM_MODULE'], '')
         except TypeError:
             pass
 
@@ -149,6 +157,7 @@ def start_im():
     if cfg_has('XIM_PROGRAM_XTRA'):
         _im_subps.append(subprocess.Popen([cfg['XIM_PROGRAM_XTRA']],
                                           preexec_fn=subprocess_setup))
+
 
 def kill_im():
     global _im_subps

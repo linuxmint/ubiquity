@@ -29,6 +29,8 @@ from ubiquity import misc
 __pychecker__ = 'no-shadowbuiltin'
 
 _cached_gsettings_exists = None
+
+
 def _gsettings_exists():
     global _cached_gsettings_exists
     if _cached_gsettings_exists is not None:
@@ -37,16 +39,18 @@ def _gsettings_exists():
     _cached_gsettings_exists = osextras.find_on_path('gsettings')
     return _cached_gsettings_exists
 
-def get(schema, key, user = None):
+
+def get(schema, key, user=None):
     if not _gsettings_exists():
         return
 
     if not user:
         user = os.getenv("SUDO_USER", os.getenv("USER", "root"))
 
-    subp = subprocess.Popen(['sudo', '-u', user, 'dbus-launch', 'gsettings', 'get', schema, key],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                            preexec_fn=misc.drop_all_privileges)
+    subp = subprocess.Popen(
+        ['sudo', '-u', user, 'gsettings', 'get', schema, key],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        preexec_fn=misc.drop_all_privileges, universal_newlines=True)
     value = subp.communicate()[0].rstrip('\n')
 
     if not value:
@@ -70,7 +74,8 @@ def get(schema, key, user = None):
     if value == 'true':
         return True
 
-def get_list(schema, key, user = None):
+
+def get_list(schema, key, user=None):
     if not _gsettings_exists():
         return
 
@@ -79,13 +84,14 @@ def get_list(schema, key, user = None):
         return
 
     try:
-        # This is only works reliably with int and strings
-        elements=eval(value, None, None)
+        # This only works reliably with int and strings
+        elements = eval(value, None, None)
         return elements
     except:
         return
 
-def set(schema, key, value, user = None):
+
+def set(schema, key, value, user=None):
     if not _gsettings_exists():
         return
 
@@ -93,27 +99,29 @@ def set(schema, key, value, user = None):
         user = os.getenv("SUDO_USER", os.getenv("USER", "root"))
 
     # Convert booleans
-    if value == False:
-        value = "false"
-    if value == True:
-        value = "true"
+    if isinstance(value, bool):
+        value = "true" if value else "false"
 
-    subprocess.call(['sudo', '-u', user, 'dbus-launch', 'gsettings', 'set', schema, key, str(value)],
-                     preexec_fn=misc.drop_all_privileges)
+    subprocess.call(
+        ['sudo', '-u', user, 'gsettings', 'set', schema, key, str(value)],
+        preexec_fn=misc.drop_all_privileges)
 
-def set_list(schema, key, values, user = None):
+
+def set_list(schema, key, values, user=None):
     if not _gsettings_exists():
         return
 
     value = str(values)
     set(schema, key, value, user)
 
-def unset(schema, key, user = None):
+
+def unset(schema, key, user=None):
     if not _gsettings_exists():
         return
 
     if not user:
         user = os.getenv("SUDO_USER", os.getenv("USER", "root"))
 
-    subprocess.call(['sudo', '-u', user, 'dbus-launch', 'gsettings', 'reset', schema, key],
-                     preexec_fn=misc.drop_all_privileges)
+    subprocess.call(
+        ['sudo', '-u', user, 'gsettings', 'reset', schema, key],
+        preexec_fn=misc.drop_all_privileges)

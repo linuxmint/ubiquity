@@ -1,0 +1,7 @@
+echo Starting Ubuntu...
+setenv bootargs console=ttyAMA0 nosplash
+mw.l 800000 0 10000
+scsi scan
+ext2load scsi 0 0x800000 vmlinuz
+ext2load scsi 0 0x1000000 initrd.img
+bootz 0x800000 0x1000000:${filesize} 0x1000

@@ -17,14 +17,18 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+from __future__ import print_function
+
 import re
 import subprocess
 import codecs
 import os
 import locale
 import sys
+from functools import reduce
 
 from ubiquity import misc, im_switch
+
 
 # if 'just_country' is True, only the country is changing
 def reset_locale(frontend, just_country=False):
@@ -40,16 +44,18 @@ def reset_locale(frontend, just_country=False):
         os.environ['LANGUAGE'] = di_locale
         try:
             locale.setlocale(locale.LC_ALL, '')
-        except locale.Error, e:
-            print >>sys.stderr, 'locale.setlocale failed: %s (LANG=%s)' % \
-                                (e, di_locale)
+        except locale.Error as e:
+            print('locale.setlocale failed: %s (LANG=%s)' % (e, di_locale),
+                  file=sys.stderr)
         if not just_country:
             misc.execute_root('fontconfig-voodoo',
                                 '--auto', '--force', '--quiet')
         im_switch.start_im()
     return di_locale
 
+
 _strip_context_re = None
+
 
 def strip_context(unused_question, string):
     # po-debconf context
@@ -63,6 +69,7 @@ def strip_context(unused_question, string):
 
 _translations = None
 
+
 def get_translations(languages=None, core_names=[], extra_prefixes=[]):
     """Returns a dictionary {name: {language: description}} of translatable
     strings.
@@ -74,7 +81,8 @@ def get_translations(languages=None, core_names=[], extra_prefixes=[]):
     cached version will be returned."""
 
     global _translations
-    if _translations is None or languages is not None or core_names or extra_prefixes:
+    if (_translations is None or languages is not None or core_names or
+        extra_prefixes):
         if languages is None:
             use_langs = None
         else:
@@ -85,8 +93,22 @@ def get_translations(languages=None, core_names=[], extra_prefixes=[]):
                 use_langs.add(ll_cc)
                 use_langs.add(ll)
 
-        prefixes = 'ubiquity|partman/text/undo_everything|partman/text/unusable|partman-basicfilesystems/bad_mountpoint|partman-basicfilesystems/text/specify_mountpoint|partman-basicmethods/text/format|partman-newworld/no_newworld|partman-partitioning|partman-target/no_root|partman-target/text/method|grub-installer/bootdev|popularity-contest/participate'
-        prefixes = reduce(lambda x, y: x+'|'+y, extra_prefixes, prefixes)
+        prefixes = '|'.join((
+            'ubiquity',
+            'partman/text/undo_everything',
+            'partman/text/unusable',
+            'partman-basicfilesystems/bad_mountpoint',
+            'partman-basicfilesystems/text/specify_mountpoint',
+            'partman-basicmethods/text/format',
+            'partman-newworld/no_newworld',
+            'partman-partitioning',
+            'partman-crypto',
+            'partman-target/no_root',
+            'partman-target/text/method',
+            'grub-installer/bootdev',
+            'popularity-contest/participate',
+            ))
+        prefixes = reduce(lambda x, y: x + '|' + y, extra_prefixes, prefixes)
 
         _translations = {}
         devnull = open('/dev/null', 'w')
@@ -95,16 +117,16 @@ def get_translations(languages=None, core_names=[], extra_prefixes=[]):
              '--config=Name:pipe', '--config=Driver:Pipe',
              '--config=InFd:none',
              '--pattern=^(%s)' % prefixes],
-            stdout=subprocess.PIPE, stderr=devnull,
+            bufsize=8192, stdout=subprocess.PIPE, stderr=devnull,
             # necessary?
             preexec_fn=misc.regain_privileges)
         question = None
         descriptions = {}
-        fieldsplitter = re.compile(r':\s*')
+        fieldsplitter = re.compile(br':\s*')
 
         for line in db.stdout:
-            line = line.rstrip('\n')
-            if ':' not in line:
+            line = line.rstrip(b'\n')
+            if b':' not in line:
                 if question is not None:
                     _translations[question] = descriptions
                     descriptions = {}
@@ -112,61 +134,67 @@ def get_translations(languages=None, core_names=[], extra_prefixes=[]):
                 continue
 
             (name, value) = fieldsplitter.split(line, 1)
-            if value == '':
+            if value == b'':
                 continue
             name = name.lower()
-            if name == 'name':
-                question = value
-            elif name.startswith('description'):
-                namebits = name.split('-', 1)
+            if name == b'name':
+                question = value.decode()
+            elif name.startswith(b'description'):
+                namebits = name.split(b'-', 1)
                 if len(namebits) == 1:
                     lang = 'c'
+                    decoded_value = value.decode('ASCII', 'replace')
                 else:
-                    lang = namebits[1].lower()
-                    # TODO: recode from specified encoding
-                    lang = lang.split('.')[0]
+                    lang = namebits[1].lower().decode()
+                    lang, encoding = lang.split('.', 1)
+                    decoded_value = value.decode(encoding, 'replace')
                 if (use_langs is None or lang in use_langs or
                     question in core_names):
-                    value = strip_context(question, value)
-                    descriptions[lang] = value.replace('\\n', '\n')
-            elif name.startswith('extended_description'):
-                namebits = name.split('-', 1)
+                    decoded_value = strip_context(question, decoded_value)
+                    descriptions[lang] = decoded_value.replace('\\n', '\n')
+            elif name.startswith(b'extended_description'):
+                namebits = name.split(b'-', 1)
                 if len(namebits) == 1:
                     lang = 'c'
+                    decoded_value = value.decode('ASCII', 'replace')
                 else:
-                    lang = namebits[1].lower()
-                    # TODO: recode from specified encoding
-                    lang = lang.split('.')[0]
+                    lang = namebits[1].lower().decode()
+                    lang, encoding = lang.split('.', 1)
+                    decoded_value = value.decode(encoding, 'replace')
                 if (use_langs is None or lang in use_langs or
                     question in core_names):
-                    value = strip_context(question, value)
+                    decoded_value = strip_context(question, decoded_value)
                     if lang not in descriptions:
-                        descriptions[lang] = value.replace('\\n', '\n')
+                        descriptions[lang] = decoded_value.replace('\\n', '\n')
                     # TODO cjwatson 2006-09-04: a bit of a hack to get the
                     # description and extended description separately ...
                     if question in ('grub-installer/bootdev',
                                     'partman-newworld/no_newworld',
                                     'ubiquity/text/error_updating_installer'):
                         descriptions["extended:%s" % lang] = \
-                            value.replace('\\n', '\n')
+                            decoded_value.replace('\\n', '\n')
 
+        db.stdout.close()
         db.wait()
         devnull.close()
 
     return _translations
 
+
 string_questions = {
     'new_size_label': 'partman-partitioning/new_size',
     'partition_create_heading_label': 'partman-partitioning/text/new',
     'partition_create_type_label': 'partman-partitioning/new_partition_type',
-    'partition_create_mount_label': 'partman-basicfilesystems/text/specify_mountpoint',
-    'partition_create_use_label': 'partman-target/text/method',
+    'partition_mount_label':
+        'partman-basicfilesystems/text/specify_mountpoint',
+    'partition_use_label': 'partman-target/text/method',
     'partition_create_place_label': 'partman-partitioning/new_partition_place',
-    'partition_edit_use_label': 'partman-target/text/method',
-    'partition_edit_format_label': 'partman-basicmethods/text/format',
-    'partition_edit_mount_label': 'partman-basicfilesystems/text/specify_mountpoint',
+    'partition_edit_format_checkbutton': 'partman-basicmethods/text/format',
     'grub_device_dialog': 'grub-installer/bootdev',
     'grub_device_label': 'grub-installer/bootdev',
+    'encryption_algorithm': 'partman-crypto/text/specify_cipher',
+    'partition_encryption_key_size': 'partman-crypto/text/specify_keysize',
+    'crypto_iv_algorithm': 'partman-crypto/text/specify_ivalgorithm',
     # TODO: it would be nice to have a neater way to handle stock buttons
     'quit': 'ubiquity/imported/quit',
     'back': 'ubiquity/imported/go-back',
@@ -179,17 +207,19 @@ string_questions = {
 
 string_extended = set()
 
+
 def map_widget_name(prefix, name):
     """Map a widget name to its translatable template."""
     if prefix is None:
         prefix = 'ubiquity/text'
-    if '/' in name:
+    if '/' in name and not name.startswith('password/'):
         question = name
     elif name in string_questions:
         question = string_questions[name]
     else:
         question = '%s/%s' % (prefix, name)
     return question
+
 
 def get_string(name, lang, prefix=None):
     """Get the translation of a single string."""
@@ -219,7 +249,7 @@ def get_string(name, lang, prefix=None):
         else:
             text = translations[question]['c']
 
-    return misc.utf8(text, errors='replace')
+    return text
 
 
 # Based on code by Walter Dörwald:
@@ -232,7 +262,7 @@ def ascii_transliterate(exc):
     if ord(s) in range(128):
         return s, exc.start + 1
     else:
-        return u'', exc.start + 1
+        return '', exc.start + 1
 
 codecs.register_error('ascii_transliterate', ascii_transliterate)
 
@@ -252,17 +282,24 @@ def get_languages(current_language_index=-1, only_installable=False):
         with misc.raised_privileges():
             cache = Cache()
 
-    languagelist = gzip.open('/usr/lib/ubiquity/localechooser/languagelist.data.gz')
+    languagelist = gzip.open(
+        '/usr/lib/ubiquity/localechooser/languagelist.data.gz')
     language_display_map = {}
     i = 0
     for line in languagelist:
         line = misc.utf8(line)
         if line == '' or line == '\n':
             continue
-        code, name, trans = line.strip(u'\n').split(u':')[1:]
+        code, name, trans = line.strip('\n').split(':')[1:]
         if code in ('C', 'dz', 'km'):
             i += 1
             continue
+        # KDE fails to round-trip strings containing U+FEFF ZERO WIDTH
+        # NO-BREAK SPACE, and we don't care about the NBSP anyway, so strip
+        # it.
+        #   https://bugs.launchpad.net/bugs/1001542
+        #   (comment #5 and on)
+        trans = trans.strip(" \ufeff")
 
         if only_installable:
             pkg_name = 'language-pack-%s' % code
@@ -305,7 +342,7 @@ def get_languages(current_language_index=-1, only_installable=False):
 
     def compare_choice(x):
         if language_display_map[x][1] == 'C':
-            return None # place C first
+            return None  # place C first
         if collator:
             try:
                 return collator.getCollationKey(x).getByteArray()
@@ -319,18 +356,18 @@ def get_languages(current_language_index=-1, only_installable=False):
 
     return current_language, sorted_choices, language_display_map
 
+
 def default_locales():
-    languagelist = open('/usr/lib/ubiquity/localechooser/languagelist')
-    defaults = {}
-    for line in languagelist:
-        line = misc.utf8(line)
-        if line == '' or line == '\n':
-            continue
-        bits = line.strip(u'\n').split(u';')
-        code = bits[0]
-        locale = bits[4]
-        defaults[code] = locale
-    languagelist.close()
+    with open('/usr/lib/ubiquity/localechooser/languagelist') as languagelist:
+        defaults = {}
+        for line in languagelist:
+            line = misc.utf8(line)
+            if line == '' or line == '\n':
+                continue
+            bits = line.strip('\n').split(';')
+            code = bits[0]
+            locale = bits[4]
+            defaults[code] = locale
     return defaults
 
 # vim:ai:et:sts=4:tw=80:sw=4:

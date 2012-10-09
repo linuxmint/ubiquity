@@ -17,15 +17,16 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+from __future__ import print_function
+
 from IN import INT_MAX
 import os
 import subprocess
 import sys
 
-import dbus
-
 from ubiquity import plugin
 from ubiquity import misc, osextras, i18n, upower
+
 
 NAME = 'prepare'
 AFTER = 'language'
@@ -42,6 +43,7 @@ JOCKEY_PATH = '/DeviceDriver'
 # }
 # timeout_ms = (int)(timeout_s * 1000.0);
 MAX_DBUS_TIMEOUT = INT_MAX / 1000.0
+
 
 # TODO: This cannot be a non-debconf plugin after all as OEMs may want to
 # preseed the 'install updates' and 'install non-free software' options.  So?
@@ -73,8 +75,10 @@ class PreparePageBase(plugin.PluginUI):
         self.prepare_power_source.set_property('label', power)
         self.prepare_network_connection.set_property('label', ether)
 
+
 class PageGtk(PreparePageBase):
     restricted_package_name = 'ubuntu-restricted-addons'
+
     def __init__(self, controller, *args, **kwargs):
         if 'UBIQUITY_AUTOMATIC' in os.environ:
             self.page = None
@@ -83,20 +87,27 @@ class PageGtk(PreparePageBase):
         from gi.repository import Gtk
         builder = Gtk.Builder()
         self.controller.add_builder(builder)
-        builder.add_from_file(os.path.join(os.environ['UBIQUITY_GLADE'], 'stepPrepare.ui'))
+        builder.add_from_file(os.path.join(
+            os.environ['UBIQUITY_GLADE'], 'stepPrepare.ui'))
         builder.connect_signals(self)
         self.page = builder.get_object('stepPrepare')
-        self.prepare_download_updates = builder.get_object('prepare_download_updates')
-        self.prepare_nonfree_software = builder.get_object('prepare_nonfree_software')
-        self.prepare_sufficient_space = builder.get_object('prepare_sufficient_space')
-        self.prepare_foss_disclaimer = builder.get_object('prepare_foss_disclaimer')
-        self.prepare_foss_disclaimer_extra = builder.get_object('prepare_foss_disclaimer_extra_label')
+        self.prepare_download_updates = builder.get_object(
+            'prepare_download_updates')
+        self.prepare_nonfree_software = builder.get_object(
+            'prepare_nonfree_software')
+        self.prepare_sufficient_space = builder.get_object(
+            'prepare_sufficient_space')
+        self.prepare_foss_disclaimer = builder.get_object(
+            'prepare_foss_disclaimer')
+        self.prepare_foss_disclaimer_extra = builder.get_object(
+            'prepare_foss_disclaimer_extra_label')
         self.prepare_power_source = builder.get_object('prepare_power_source')
         if upower.has_battery():
             upower.setup_power_watch(self.prepare_power_source)
         else:
             self.prepare_power_source.hide()
-        self.prepare_network_connection = builder.get_object('prepare_network_connection')
+        self.prepare_network_connection = builder.get_object(
+            'prepare_network_connection')
         self.plugin_widgets = self.page
 
     def enable_download_updates(self, val):
@@ -116,10 +127,10 @@ class PageGtk(PreparePageBase):
             self.prepare_foss_disclaimer_extra.set_property('visible', False)
 
     def set_use_nonfree(self, val):
-        if osextras.find_on_path('jockey-text'):
+        if osextras.find_on_path('ubuntu-drivers'):
             self.prepare_nonfree_software.set_active(val)
         else:
-            self.debug('Could not find jockey-text on the executable path.')
+            self.debug('Could not find ubuntu-drivers on the executable path.')
             self.set_allow_nonfree(False)
 
     def get_use_nonfree(self):
@@ -133,6 +144,7 @@ class PageGtk(PreparePageBase):
             text = i18n.get_string(Gtk.Buildable.get_name(widget), lang)
             text = text.replace('${RELEASE}', release.name)
             widget.set_label(text)
+
 
 class PageKde(PreparePageBase):
     plugin_breadcrumb = 'ubiquity/text/breadcrumb_prepare'
@@ -152,7 +164,8 @@ class PageKde(PreparePageBase):
             self.prepare_foss_disclaimer = self.page.prepare_foss_disclaimer
             self.prepare_sufficient_space = StateBox(self.page)
             self.page.vbox1.addWidget(self.prepare_sufficient_space)
-            # TODO we should set these up and tear them down while on this page.
+            # TODO we should set these up and tear them down while on this
+            # page.
             try:
                 self.prepare_power_source = StateBox(self.page)
                 if upower.has_battery():
@@ -160,16 +173,16 @@ class PageKde(PreparePageBase):
                     self.page.vbox1.addWidget(self.prepare_power_source)
                 else:
                     self.prepare_power_source.hide()
-            except Exception, e:
+            except Exception as e:
                 # TODO use an inconsistent state?
-                print 'unable to set up power source watch:', e
+                print('unable to set up power source watch:', e)
             try:
                 self.prepare_network_connection = StateBox(self.page)
                 self.page.vbox1.addWidget(self.prepare_network_connection)
-            except Exception, e:
-                print 'unable to set up network connection watch:', e
-        except Exception, e:
-            print >>sys.stderr,"Could not create prepare page:", str(e)
+            except Exception as e:
+                print('unable to set up network connection watch:', e)
+        except Exception as e:
+            print("Could not create prepare page:", str(e), file=sys.stderr)
             self.debug('Could not create prepare page: %s', e)
             self.page = None
         self.plugin_widgets = self.page
@@ -191,10 +204,10 @@ class PageKde(PreparePageBase):
             self.prepare_foss_disclaimer.setVisible(False)
 
     def set_use_nonfree(self, val):
-        if osextras.find_on_path('jockey-text'):
+        if osextras.find_on_path('ubuntu-drivers'):
             self.prepare_nonfree_software.setChecked(val)
         else:
-            self.debug('Could not find jockey-text on the executable path.')
+            self.debug('Could not find ubuntu-drivers on the executable path.')
             self.set_allow_nonfree(False)
 
     def get_use_nonfree(self):
@@ -203,15 +216,21 @@ class PageKde(PreparePageBase):
 
     def plugin_translate(self, lang):
         PreparePageBase.plugin_translate(self, lang)
-        #gtk does the ${RELEASE} replace for the title in gtk_ui but we do it per plugin because our title widget is per plugin
-        #also add Bold here (not sure how the gtk side keeps that formatting)
+        # gtk does the ${RELEASE} replace for the title in gtk_ui but we do
+        # it per plugin because our title widget is per plugin.  Also add
+        # Bold here (not sure how the gtk side keeps that formatting).
         release = misc.get_release()
-        for widget in (self.page.prepare_heading_label, self.page.prepare_best_results, self.page.prepare_foss_disclaimer):
+        for widget in (
+            self.page.prepare_heading_label,
+            self.page.prepare_best_results,
+            self.page.prepare_foss_disclaimer,
+            ):
             text = widget.text()
             text = text.replace('${RELEASE}', release.name)
             text = text.replace('Ubuntu', 'Kubuntu')
             text = "<b>" + text + "</b>"
             widget.setText(text)
+
 
 class Page(plugin.Plugin):
     def prepare(self):
@@ -225,19 +244,25 @@ class Page(plugin.Plugin):
         download_updates = self.db.get('ubiquity/download_updates') == 'true'
         self.ui.set_download_updates(download_updates)
         self.setup_sufficient_space()
-        return (['/usr/share/ubiquity/simple-plugins', 'prepare'], ['ubiquity/use_nonfree'])
+        command = ['/usr/share/ubiquity/simple-plugins', 'prepare']
+        questions = ['ubiquity/use_nonfree']
+        return command, questions
 
     def setup_sufficient_space(self):
         # TODO move into prepare.
         size = misc.install_size()
-        self.db.subst('ubiquity/text/prepare_sufficient_space', 'SIZE', misc.format_size(size))
+        self.db.subst(
+            'ubiquity/text/prepare_sufficient_space', 'SIZE',
+            misc.format_size(size))
         space = self.description('ubiquity/text/prepare_sufficient_space')
         self.ui.set_sufficient_space(self.big_enough(size))
         self.ui.set_sufficient_space_text(space)
 
     def big_enough(self, size):
         with misc.raised_privileges():
-            proc = subprocess.Popen(['parted_devices'], stdout=subprocess.PIPE)
+            proc = subprocess.Popen(
+                ['parted_devices'],
+                stdout=subprocess.PIPE, universal_newlines=True)
             devices = proc.communicate()[0].rstrip('\n').split('\n')
             ret = False
             for device in devices:
@@ -259,12 +284,4 @@ class Page(plugin.Plugin):
                 if self.db.fget('ubiquity/nonfree_package', 'seen') != 'true':
                     self.preseed('ubiquity/nonfree_package',
                         self.ui.restricted_package_name)
-                bus = dbus.SystemBus()
-                obj = bus.get_object(JOCKEY, JOCKEY_PATH)
-                i = dbus.Interface(obj, JOCKEY)
-                i.shutdown(timeout=MAX_DBUS_TIMEOUT)
-                env = os.environ.copy()
-                env['DEBCONF_DB_REPLACE'] = 'configdb'
-                env['DEBCONF_DB_OVERRIDE'] = 'Pipe{infd:none outfd:none}'
-                subprocess.Popen(['/usr/share/jockey/jockey-backend', '--timeout=120'], env=env)
         plugin.Plugin.ok_handler(self)

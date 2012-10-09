@@ -12,19 +12,23 @@ else
 	roots='/ /target'
 fi
 
-rcsfile=/etc/default/rcS
+if [ -f /etc/default/hwclock ]; then
+	utcfile=/etc/default/hwclock
+else
+	utcfile=/etc/default/rcS
+fi
 adjtimefile=/etc/adjtime
 
 db_get clock-setup/utc
 for root in $roots; do
 	if [ "$RET" = true ]; then
-		sed -i -e 's:^UTC="no":UTC="yes":' -e 's:^UTC=no:UTC=yes:' $root$rcsfile
+		sed -i -e 's:^UTC="no":UTC="yes":' -e 's:^UTC=no:UTC=yes:' $root$utcfile
 		if [ -e "$root$adjtimefile" ]; then
 			sed -i -e 's:^LOCAL:UTC:' $root$adjtimefile
 		fi
 		UTC='--utc'
 	else
-		sed -i -e 's:^UTC="yes":UTC="no":' -e 's:^UTC=yes:UTC=no:' $root$rcsfile
+		sed -i -e 's:^UTC="yes":UTC="no":' -e 's:^UTC=yes:UTC=no:' $root$utcfile
 		if [ -e "$root$adjtimefile" ]; then
 			sed -i -e 's:^UTC:LOCAL:' $root$adjtimefile
 		fi

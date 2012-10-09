@@ -1,0 +1,10 @@
+#!/bin/sh
+
+. /lib/partman/lib/crypto-base.sh
+
+# Only show menu option if there is at least one partition that can be used
+# as a physical volume for encryption
+[ $(crypto_list_allowed | wc -l) -gt 0 ] || exit 0
+
+db_metaget partman-crypto/text/configure_crypto description
+printf "crypto\t%s\n" "$RET"

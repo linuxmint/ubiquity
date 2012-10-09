@@ -1,0 +1,20 @@
+#!/bin/sh
+
+. /lib/partman/lib/crypto-base.sh
+
+dev=$1
+id=$2
+part=$dev/$id
+
+[ -f $part/method ] || exit 0
+[ -f $part/crypto_type ] || exit 0
+[ -f $part/cipher ] || exit 0
+
+method=$(cat $part/method)
+type=$(cat $part/crypto_type)
+cipher=$(cat $part/cipher)
+
+if [ $method = crypto ]; then
+	crypto_dochoice $part $type $cipher keysize
+fi
+

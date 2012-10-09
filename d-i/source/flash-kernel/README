@@ -7,35 +7,34 @@ initramfs directly from /boot.  flash-kernel supports devices that
 boot from flash memory (hence the name) as well as some devices that
 require a special boot image on the disk.
 
-You will generally want to use this script as a post installation
-hook of the kernel image.  This way, the newly installed kernel and
-newly created initramfs will automatically be used after you restart
-your machine (either by writing it to flash memory or by constructing
-a specific boot image on disk).  In order for this to work, you have
-to edit the file /etc/kernel-img.conf and add the following line:
-
-  postinst_hook = flash-kernel
-
 Supported systems
 - - - - - - - - -
 
-At the moment, the following systems are supported:
+The following systems are supported:
 
- - ARM-Versatile Express CA9x4
  - Buffalo Linkstation Live
+ - Buffalo Linkstation Live, version 3 (LS-CHL)
+ - Buffalo Linkstation Mini
  - Buffalo Linkstation Pro
  - Buffalo/Revogear Kurobox Pro
  - D-Link DNS-323
- - Freescale i.mx51 Babbage Board (Ubuntu)
+ - Genesi Efika Nettop
+ - Genesi Efika Smartbook
  - GLAN Tank
+ - GuruPlug
+ - Calxeda Highbank Server architecture
+ - HP t5325 Thin Client
  - HP Media Vault mv2120
  - Intel SS4000-E
  - Linksys NSLU2
+ - Marvell Armada XP Development Board (Ubuntu)
+ - Marvell DB-78x00-BP Development Board
  - Marvell OpenRD-Base
  - Marvell OpenRD-Client
- - Marvell DB-MV88F6781-BP Development Board (dove board, Ubuntu)
- - Marvell Armada XP Development Board (Ubuntu)
- - OMAP3 Beagle Board (Ubuntu)
+ - Marvell OpenRD-Ultimate
+ - Neo FreeRunner (GTA02)
+ - OMAP3 Beagle Board
+ - OMAP4 Panda board
  - QNAP TS-109
  - QNAP TS-110 Turbo NAS
  - QNAP TS-119 Turbo NAS
@@ -45,12 +44,87 @@ At the moment, the following systems are supported:
  - QNAP TS-409
  - QNAP TS-410 and TS-410U Turbo NAS
  - QNAP TS-419P and TS-419U Turbo NAS
+ - Seagate FreeAgent DockStar
  - SheevaPlug
  - SheevaPlug eSATA
  - Thecus N2100
+ - Toshiba AC100
 
 If you would like to see support for another device, please file a bug
 report in the Debian Bug Tracking System and include all information
 related to the boot process of your device.  Instructions can be found
 at http://bugs.debian.org/
+
+
+Testsuite
+- - - - -
+
+Run the testsuite with:
+    FK_CHECKOUT=. ./test_flash-kernel
+    FK_CHECKOUT=. ./test_functions
+
+You need the devscripts package for the checkbashisms test.
+
+
+Database format
+- - - - - - - -
+
+To accomodate the differences between machines, db/*.db files contain
+information on supported machines.  The files look somewhat like
+RFC 2822 data or Debian control data, i.e. header: value pairs,
+with definitions separated by an empty line.  Comments starting with a
+pound are ignored.
+
+The supported fields are:
+
+* Machine: (required) value of the "Hardware:" line in /proc/cpuinfo and
+  is used as an unique identifier
+
+* Kernel-Flavors: (optional) allowed flavors (suffixes) for the to be
+  installed kernel; if the vmlinuz file doesn't end with a listed
+  suffix, installation is aborted
+
+* Machine-Id: (optional) linux mach-type to set before starting vmlinuz;
+  will be set by a small piece of ARM code prepended to the kernel image
+
+* U-Boot-Kernel-Address, U-Boot-Initrd-Address: (optional) address where
+  to load in (physical) RAM the kernel and initrd, respectively; this
+  also indicates that U-Boot images should be generated with mkimage
+
+* U-Boot-Script-Address: (optional) like U-Boot-Kernel-Address and
+  U-Boot-Initrd-Address but for an U-Boot boot script; see also
+  U-Boot-Script-Name
+
+* U-Boot-Script-Name: (optional) name of U-Boot boot script to install
+  from the flash-kernel files
+
+* Boot-Kernel-Path, Boot-Initrd-Path: (optional) where to put the
+  generated kernel and initrd files on the filesystem; see also
+  Boot-Device
+
+* Boot-Script-Path: (optional) like Boot-Kernel-Path and
+  Boot-Initrd-Path but for an U-Boot boot script; see also
+  U-Boot-Script-Name and Boot-Device
+
+* Required-packages: (optional) list of packages which must be added
+  during installer phase for flash-kernel to work properly; failure to
+  add these packages aborts the installation
+
+* Optional-Packages: (optional) list of packages which should be
+  added during installer pharse for flash-kernel to offer full
+  functionality; failure to add these packages just triggers a warning
+
+* Bootloader-sets-root: (required) when "yes" indicates that the
+  bootloader passes a root= value to the kernel and that this should be
+  overriden in the initrd; when "no", flash-kernel only sets a default
+  value for the root device, which allows end-users to pass root= to
+  the kernel
+
+* Method: (optional) indicates how to support this particular machine;
+  the default is "generic"; other available methods are: android, multi,
+  redboot, slug, symlink
+
+* Boot-Device: (optional) block device to mount before installing
+  kernel,  initrd and U-Boot script; Boot-Kernel-Path, Boot-Initrd-Path and
+  Boot-Script-Path are then taken relative to this boot device
 

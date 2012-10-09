@@ -21,15 +21,22 @@ import os
 
 from ubiquity import plugin
 
+
 NAME = 'wireless'
 #after prepare for default install, but language for oem install
 AFTER = ['prepare', 'language']
 WEIGHT = 12
 
+
 class PageGtk(plugin.PluginUI):
     plugin_title = 'ubiquity/text/wireless_heading_label'
+
     def __init__(self, controller, *args, **kwargs):
         import dbus
+
+        # NOTE: Import 'nm' even though it's not used in this function as
+        # importing it as the side effect of registering NetworkManagerWidget
+        # which we DO use in the Wireless step UI.
         from ubiquity import misc, nm
         from gi.repository import Gtk
         if 'UBIQUITY_AUTOMATIC' in os.environ:
@@ -45,7 +52,8 @@ class PageGtk(plugin.PluginUI):
         self.controller = controller
         builder = Gtk.Builder()
         self.controller.add_builder(builder)
-        builder.add_from_file(os.path.join(os.environ['UBIQUITY_GLADE'], 'stepWireless.ui'))
+        builder.add_from_file(os.path.join(
+            os.environ['UBIQUITY_GLADE'], 'stepWireless.ui'))
         builder.connect_signals(self)
         self.page = builder.get_object('stepWireless')
         self.nmwidget = builder.get_object('nmwidget')
@@ -87,7 +95,8 @@ class PageGtk(plugin.PluginUI):
             frontend.translate_widget(frontend.next)
             self.next_normal = True
         else:
-            if (not self.nmwidget.is_row_an_ap()) or self.nmwidget.is_row_connected():
+            if (not self.nmwidget.is_row_an_ap() or
+                self.nmwidget.is_row_connected()):
                 frontend.translate_widget(frontend.next)
                 self.next_normal = True
             else:

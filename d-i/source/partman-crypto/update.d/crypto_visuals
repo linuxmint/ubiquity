@@ -1,0 +1,58 @@
+#!/bin/sh
+
+# Shows "crypto" in the method column for partitions with method "crypto" and
+# the humandev name of the crypt disk as mountpoint, so the user can see which
+# loop/dm device is which after they've been setup.
+
+. /lib/partman/lib/base.sh
+
+dev=$1
+num=$2
+id=$3
+size=$4
+type=$5
+fs=$6
+path=$7
+name=$8
+
+cd $dev
+
+[ -f $id/method ] || exit 0
+method=$(cat $id/method)
+
+cryptdev_shortname ()
+{
+	case "$1" in
+	/dev/loop*)
+		n=${1#/dev/loop}
+		n=${n#/}
+		echo "loop${n}"
+		;;
+	/dev/mapper/*)
+		echo "${1#/dev/mapper/}"
+		;;
+	*)
+		echo "$1"
+		;;
+	esac
+}
+
+case $method in
+    crypto|crypto_keep)
+	db_metaget partman/method_short/crypto description || RET=''
+	echo ${RET:-crypto} >$id/visual_filesystem
+
+	if [ -f $id/crypt_active ]; then
+		RET=$(cryptdev_shortname $(cat $id/crypt_active))
+		RET="($RET)"
+	else
+		db_metaget partman-crypto/text/not_active description || RET=''
+	fi
+
+	echo ${RET:-not active} >$id/visual_mountpoint
+
+	# open_dialog CHANGE_FILE_SYSTEM $id linux-swap
+	# close_dialog
+	;;
+esac
+

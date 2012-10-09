@@ -1,0 +1,649 @@
+# Copyright (C) 2006  Joey Hess  <joeyh@debian.org>
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011  Martin Michlmayr <tbm@cyrius.com>
+# Copyright (C) 2011  Loïc Minier <lool@dooz.org>
+# Copyright (C) 2011  Julian Andres Klode <jak@debian.org>
+
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301,
+# USA.
+
+BOOTSCRIPTS_DIR="${FK_CHECKOUT:-$FK_DIR}/bootscript"
+MACHINE_DB="$(cat "${FK_CHECKOUT:-$FK_DIR}/db/"*.db)"
+PROC_CPUINFO="/proc/cpuinfo"
+PROC_MTD="/proc/mtd"
+
+
+error() {
+	echo "$@" >&2
+	exit 1
+}
+
+mtdblock() {
+	local mtdname="$1"
+
+	sed -rn "s,^mtd([^:]*).*\"$mtdname\"\$,/dev/mtdblock\\1,p" "$PROC_MTD"
+}
+
+check_block_dev() {
+	local dev="$1"
+
+	if [ ! -b "$dev" ]; then
+		error "$dev is not a block device"
+	fi
+}
+
+mtdsize() {
+	local mtdname="$1"
+
+	size=$(grep "\"$mtdname\"$" "$PROC_MTD" | cut -d " " -f 2)
+	printf "%d" "0x$size"
+}
+
+check_kflavors() {
+	local kfile_suffix="$1"
+	shift
+
+	if [ -z "$kfile_suffix" ]; then
+		return 0
+	fi
+	for kflavor; do
+		if [ "$kfile_suffix" = "$kflavor" ]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
+check_mtd_size() {
+	local mtd_name="$1"
+	local required_size="$2"
+	local actual_size="$3"
+
+	if [ $required_size -gt $actual_size ]; then
+		error "Not enough space in MTD $mtd_name (need $required_size but is actually $actual_size)."
+	fi
+}
+
+check_supported() {
+	local machine="$1"
+	local field
+	local value
+
+	echo "$MACHINE_DB" | {
+		while read field value; do
+			if [ "$field" = "Machine:" ] &&
+				[ "$value" = "$machine" ]; then
+				return 0
+			fi
+		done
+		return 1
+	}
+}
+
+get_root_uuid() {
+	echo $(blkid -o value $(mount | grep "on /${1%/} " | tail -n1 | cut -d' ' -f1) | head -1)
+}
+
+get_cpuinfo_hardware() {
+	grep "^Hardware" "$PROC_CPUINFO" | sed 's/Hardware\s*:\s*//'
+}
+
+get_kfile_suffix() {
+	local kfile="$1"
+
+	echo "$kfile" | sed -e 's/.*-//'
+}
+
+# this is case-sensitive and doesn't support fields spanning multiple lines
+get_machine_field() {
+	local machine="$1"
+	local field_name="$2"
+	local state="machine"
+	local field
+	local value
+
+	echo "$MACHINE_DB" | {
+		while read field value; do
+			if [ "$state" = "machine" ] &&
+				[ "$field" = "Machine:" ] &&
+				[ "$value" = "$machine" ]; then
+				state="fields"
+			fi
+			if [ "$state" = "fields" ]; then
+				case "$field" in
+					"${field_name}:")
+						echo "$value"
+						return 0
+					;;
+					"")
+						state="machine"
+					;;
+				esac
+			fi
+		done
+		return 1
+	}
+}
+
+machine_uses_flash() {
+	local machine="$1"
+
+	if ! check_supported "$machine"; then
+		# assume devices not explicitly listed are using flash
+		return 0
+	fi
+
+	if [ -n "$(get_machine_field "$machine" "Mtd-Kernel")" ] ||
+		[ -n "$(get_machine_field "$machine" "Mtd-Initrd")" ]; then
+		return 0
+	fi
+	return 1
+}
+
+# output ARM instructions to set machine number; argument is the decimal
+# machine number as found in linux/arch/arm/tools/mach-types
+set_machine_id() {
+	local machine_id="$1"
+	local high
+	local low
+
+	if [ -z "$machine_id" ]; then
+		return
+	fi
+
+	high="$(printf "%02x" $(($machine_id / 256)))"
+	low="$(printf "%02x" $(($machine_id % 256)))"
+
+	devio "wl 0xe3a01c$high,4" "wl 0xe38110$low,4"
+}
+
+gen_kernel() {
+	local input="$1"
+	local output="$2"
+	local machine_id="$3"
+
+	{
+		set_machine_id "$machine_id"
+		cat "$input"
+	} >"$output"
+}
+
+flash_kernel() {
+	local input_file="$1"
+	local output_mtd="$2"
+	local machine_id="$3"
+
+	printf "Flashing kernel... " >&2
+	gen_kernel "$input_file" "$output_mtd" "$machine_id" || error "failed."
+	echo "done." >&2
+}
+
+flash_initrd() {
+	local input_file="$1"
+	local output_mtd="$2"
+	local pad="$3"
+
+	printf "Flashing initramfs... " >&2
+	{
+		cat "$input_file"
+		if [ "$pad" -gt 0 ]; then
+			dd if=/dev/zero bs="$pad" count=1 2>/dev/null
+		fi
+	} >"$output_mtd" || error "failed."
+	echo "done." >&2
+}
+
+mkimage_kernel() {
+	local kaddr="$1"
+	local kdesc="$2"
+	local kdata="$3"
+	local uimage="$4"
+
+	printf "Generating kernel u-boot image... " >&2
+	mkimage -A arm -O linux -T kernel -C none -a "$kaddr" -e "$kaddr" \
+		-n "$kdesc" -d "$kdata" "$uimage" >&2 1>/dev/null
+	echo "done." >&2
+}
+
+mkimage_initrd() {
+	local iaddr="$1"
+	local idesc="$2"
+	local idata="$3"
+	local uinitrd="$4"
+
+	printf "Generating initramfs u-boot image... " >&2
+	mkimage -A arm -O linux -T ramdisk -C gzip -a "$iaddr" -e "$iaddr" \
+		-n "$idesc" -d "$idata" "$uinitrd" >&2 1>/dev/null
+	echo "done." >&2
+}
+
+mkimage_script() {
+	local saddr="$1"
+	local sdesc="$2"
+	local sdata="$3"
+	local script="$4"
+
+	printf "Generating boot script u-boot image... " >&2
+	mkimage -A arm -O linux -T script -C none -a "$saddr" -e "$saddr" \
+		-n "$sdesc" -d "$sdata" "$script" >&2 1>/dev/null
+	echo "done." >&2
+}
+
+mkimage_multi() {
+	local maddr="$1"
+	local mdesc="$2"
+	local kdata="$3"
+	local idata="$4"
+	local umulti="$5"
+
+	printf "Generating u-boot image..." >&2
+	mkimage -A arm -O linux -T multi -C none -a "$maddr" -e "$maddr" \
+		-n "$mdesc" -d "$kdata:$idata" "$umulti" >&2 1>/dev/null
+	echo "done." >&2
+}
+
+backup_and_install() {
+	local source="$1"
+	local dest="$2"
+
+	if [ -e "$dest" ]; then
+		echo "Taking backup of $(basename "$dest")." >&2
+		mv "$dest" "$dest.bak"
+	fi
+	echo "Installing new $(basename "$dest")." >&2
+	mv "$source" "$dest"
+}
+
+# See http://www.nslu2-linux.org/wiki/Info/BootFlash -- the NSLU2 uses a
+# 16 byte MTD header, the first four bytes (big endian) give the length of
+# the remainder of the image, and the remaining bytes are zero.  Generate
+# this header.
+sercomm_header() {
+	perl -e 'print pack("N4", shift)' "$1"
+}
+
+nslu2_swap() {
+	if [ "$little_endian" ]; then
+		devio "<<$1" "xp $,4"
+	else
+		cat "$1"
+	fi
+}
+
+# XXX needs testsuite coverage
+abootimg_get_image_size() {
+	local abootimg="$1"
+
+	echo "$abootimg" | sed -rn 's/^\* image size = ([0-9]+) bytes.*/\1/p'
+}
+
+# XXX needs testsuite coverage
+android_flash() {
+	local device="$1"
+
+	printf "Flashing kernel and initramfs to $device... " >&2
+	abootimg -u "$device" -k "$kfile" -r "$ifile" >/dev/null ||
+		error "failed."
+	echo "done." >&2
+}
+
+main() {
+if [ "x$1" = "x--machine" ]; then
+	machine="$2"
+	shift 2
+else
+	machine="$(get_cpuinfo_hardware)"
+fi
+
+if [ "x$1" = "x--supported" ]; then
+	if check_supported "$machine"; then
+		exit 0
+	fi
+	exit 1
+fi
+
+# kernel + initrd installation/upgrade mode, with optional version
+
+kvers="$1"
+latest_version=$(linux-version list | linux-version sort | tail -1)
+if [ -n "$kvers" ] && [ "$kvers" != "$latest_version" ]; then
+	echo "Ignoring old or unknown version $kvers (latest is $latest_version)" >&2
+	exit 0
+fi
+kvers="$latest_version"
+
+# accumulate multiple calls in a trigger to only run flash-kernel once; the
+# trigger will just call flash-kernel again with FLASH_KERNEL_NOTRIGGER set to
+# force a real run
+if [ -z "$FLASH_KERNEL_NOTRIGGER" ] && [ -n "$DPKG_MAINTSCRIPT_PACKAGE" ] && dpkg-trigger --check-supported 2>/dev/null; then
+	# flash-kernel trigger isn't disabled, and we're called from
+	# some package maintainer script (e.g. some postinst calls
+	# flash-kernel), and dpkg-trigger is installed and confirms
+	# that the running dpkg support triggers: we can use the
+	# flash-kernel trigger (asynchronously)
+	if dpkg-trigger --no-await flash-kernel; then
+		echo "flash-kernel: deferring update (trigger activated)" >&2
+		exit 0
+	fi
+	# dpkg-trigger failed for some reason, proceed to a normal run
+fi
+
+kfile="/boot/vmlinuz-$kvers"
+ifile="/boot/initrd.img-$kvers"
+desc="kernel $kvers"
+idesc="ramdisk $kvers"
+
+if [ ! -e $kfile ] || [ ! -e $ifile ]; then
+	error "Can't find $kfile or $ifile"
+fi
+kfilesize=$(stat -c '%s' "$kfile")
+ifilesize=$(stat -c '%s' "$ifile")
+
+if [ -L "$kfile" ]; then
+	kfile=$(readlink -e "$kfile")
+fi
+kfile_suffix=$(get_kfile_suffix "$kfile")
+
+if ! check_supported "$machine"; then
+	error "Unsupported platform."
+fi
+
+if kflavors="$(get_machine_field "$machine" "Kernel-Flavors")"; then
+	if ! check_kflavors "$kfile_suffix" $kflavors; then
+		echo "Kernel suffix $kfile_suffix does not match any of the expected flavors ($kflavors), therefore not writing it to flash." >&2
+		exit 0
+	fi
+fi
+
+echo "flash-kernel: installing version $kvers" >&2
+
+machine_id="$(get_machine_field "$machine" "Machine-Id")" || :
+method="$(get_machine_field "$machine" "Method")" || method="generic"
+mtd_kernel="$(get_machine_field "$machine" "Mtd-Kernel")" || :
+mtd_initrd="$(get_machine_field "$machine" "Mtd-Initrd")" || :
+ukaddr="$(get_machine_field "$machine" "U-Boot-Kernel-Address")" || :
+uiaddr="$(get_machine_field "$machine" "U-Boot-Initrd-Address")" || :
+umaddr="$(get_machine_field "$machine" "U-Boot-Multi-Address")" || :
+usaddr="$(get_machine_field "$machine" "U-Boot-Script-Address")" || :
+usname="$(get_machine_field "$machine" "U-Boot-Script-Name")" || :
+boot_device="$(get_machine_field "$machine" "Boot-Device")" || :
+boot_kernel_path="$(get_machine_field "$machine" "Boot-Kernel-Path")" || :
+boot_initrd_path="$(get_machine_field "$machine" "Boot-Initrd-Path")" || :
+boot_script_path="$(get_machine_field "$machine" "Boot-Script-Path")" || :
+boot_multi_path="$(get_machine_field "$machine" "Boot-Multi-Path")" || :
+android_boot_device="$(get_machine_field "$machine" "Android-Boot-Device")" || :
+
+if [ -n "$mtd_kernel" ] || [ -n "$mtd_initrd" ]; then
+	if [ ! -e "$PROC_MTD" ]; then
+		error "$PROC_MTD doesn't exist"
+	fi
+fi
+if [ -n "$mtd_kernel" ]; then
+	kmtd=$(mtdblock "$mtd_kernel")
+	if [ -z "$kmtd" ]; then
+		error "Cannot find mtd partition '$mtd_kernel'"
+	fi
+	check_block_dev "$kmtd"
+	kmtdsize=$(mtdsize "$mtd_kernel")
+	kreqsize=$kfilesize
+	# setting the machine id prepends 8 bytes in front of the kernel
+	if [ -n "$machine_id" ]; then
+		kreqsize=$(($kreqsize + 8))
+	fi
+	# encapsulating in an U-Boot image grows the size by 64 bytes
+	if [ -n "$ukaddr" ]; then
+		kreqsize=$(($kreqsize + 64))
+	fi
+	check_mtd_size "$mtd_kernel" $kreqsize $kmtdsize
+fi
+if [ -n "$mtd_initrd" ]; then
+	imtd=$(mtdblock "$mtd_initrd")
+	if [ -z "$imtd" ]; then
+		error "Cannot find mtd partition '$mtd_initrd'"
+	fi
+	check_block_dev "$imtd"
+	imtdsize=$(mtdsize "$mtd_initrd")
+	ireqsize=$ifilesize
+	# encapsulating in an U-Boot image grows the size by 64 bytes
+	if [ -n "$uiaddr" ]; then
+		ireqsize=$(($ireqsize + 64))
+	fi
+	check_mtd_size "$mtd_initrd" $ireqsize $imtdsize
+fi
+
+tmpdir=""
+boot_mnt_dir=""
+cleanups() {
+	rm -rf "$tmpdir"
+	if [ -d "$boot_mnt_dir" ]; then
+		umount -l "$boot_mnt_dir"
+		rmdir "$boot_mnt_dir"
+	fi
+}
+trap cleanups EXIT HUP INT QUIT ILL KILL SEGV PIPE TERM
+self="$(basename "$0")"
+tmpdir="$(mktemp -dt "$self.XXXXXXXX")"
+
+
+case "$method" in
+	"android")
+		part=""
+		largest_size="-1"
+		for p in "$android_boot_device"*[0-9]; do
+			abootimg="$(LC_ALL=C abootimg -i "$p" 2>/dev/null || true)"
+			image_size="$(abootimg_get_image_size "$abootimg")"
+			if [ -n "$image_size" ] &&
+				[ "$image_size" -gt "$largest_size" ]; then
+				part="$p"
+			fi
+		done
+		if [ -z "$part" ]; then
+			error "Couldn't find Android boot partition on $android_boot_device"
+		fi
+		android_flash "$part"
+	;;
+	"generic")
+		kernel="$kfile"
+		initrd="$ifile"
+		if [ -n "$machine_id" ]; then
+			gen_kernel "$kernel" "$tmpdir/kernel" "$machine_id"
+			kernel="$tmpdir/kernel"
+		fi
+		if [ -n "$ukaddr" ]; then
+			mkimage_kernel "$ukaddr" "$desc" "$kernel" \
+				"$tmpdir/uImage"
+			kernel="$tmpdir/uImage"
+			rm -f "$tmpdir/kernel"
+		fi
+		if [ -n "$umaddr" ]; then
+			mkimage_multi "$umaddr" "$desc" "$kernel" "$initrd" \
+				"$tmpdir/uImage"
+			rm -f "$tmpdir/kernel"
+		fi
+		if [ -n "$boot_device" ]; then
+			check_block_dev "$boot_device"
+			# don't use $tmpdir/boot as to not nuke it accidentally
+			# if umount fails
+			boot_mnt_dir="$(mktemp -dt "$self.XXXXXXXX")"
+			mount "$boot_device" "$boot_mnt_dir"
+		fi
+		if [ -n "$boot_kernel_path" ]; then
+			boot_kernel_path="$boot_mnt_dir/$boot_kernel_path"
+			# don't mv the original kernel
+			if [ "$kernel" != "$kfile" ]; then
+				backup_and_install "$kernel" \
+					"$boot_kernel_path"
+			else
+				# TODO add support for kernel symlink
+				:
+			fi
+		elif [ -n "$kmtd" ]; then
+			flash_kernel "$tmpdir/uImage" "$kmtd" ""
+			rm -f "$tmpdir/uImage"
+		fi
+		if [ -n "$boot_multi_path" ]; then
+			backup_and_install "$tmpdir/uImage" "$boot_multi_path"
+		fi
+		if [ -n "$uiaddr" ]; then
+			mkimage_initrd "$uiaddr" "$idesc" "$initrd" \
+				"$tmpdir/uInitrd"
+			initrd="$tmpdir/uInitrd"
+		fi
+		if [ -n "$boot_initrd_path" ]; then
+			boot_initrd_path="$boot_mnt_dir/$boot_initrd_path"
+			# don't mv the original initrd
+			if [ "$initrd" != "$ifile" ]; then
+				backup_and_install "$initrd" \
+					"$boot_initrd_path"
+			else
+				# TODO add support for initrd symlink
+				:
+			fi
+		elif [ -n "$imtd" ]; then
+			ipad=0
+			# padding isn't needed for U-Boot images
+			if [ -z "$uiaddr" ]; then
+				ipad=$(($imtdsize - $ireqsize))
+			fi
+			flash_initrd "$initrd" "$imtd" $ipad
+			rm -f "$tmpdir/uInitrd"
+		fi
+		if [ -n "$boot_script_path" ]; then
+			case $usname in
+				bootscr*)
+					boot_script_path="$boot_mnt_dir/$boot_script_path"
+					boot_script="$BOOTSCRIPTS_DIR/$usname"
+					mkimage_script "$usaddr" "boot script" "$boot_script" \
+						"$tmpdir/boot.scr"
+					boot_script="$tmpdir/boot.scr"
+					backup_and_install "$boot_script" "$boot_script_path"
+				;;
+				uEnvtxt*)
+					VOLID=${VOLID:-"$(get_root_uuid)"}
+					boot_script_in="$BOOTSCRIPTS_DIR/$usname"
+					boot_script="$boot_mnt_dir/$usname"
+					cp $boot_script_in $boot_script
+
+					boot_script_path="$boot_mnt_dir/uEnv.txt"
+					boot_script_env="$boot_mnt_dir/preEnv.txt"
+					env_script="$tmpdir/preEnv.txt"
+
+					[ -e /etc/default/flash-kernel ] && . /etc/default/flash-kernel
+					echo "bootargs=$UBOOT_DEFAULTS root=UUID=$VOLID" > $env_script
+
+					backup_and_install "$env_script" "$boot_script_env"
+					backup_and_install "$boot_script" "$boot_script_path"
+				;;
+			esac
+		fi
+	;;
+	"symlink")
+		rm -f /boot/initrd /boot/zImage
+		ln -s "$(basename "$ifile")" /boot/initrd
+		gen_kernel "$kfile" "/boot/zImage" "$machine_id"
+	;;
+	"multi")
+		gen_kernel "$kfile" "$tmpdir/kernel" ""
+		# Hack to work around a bug in some U-Boot versions:
+		if [ $(($(stat -c '%s' "$tmpdir/kernel") % 4)) -eq 0 ]; then
+			echo >> "$tmpdir/kernel"
+		fi
+		mkimage_multi "$umaddr" "$desc" "$tmpdir/kernel" "$ifile" \
+			"$tmpdir/uImage"
+		rm -f "$tmpdir/kernel"
+		backup_and_install "$tmpdir/uImage" "$boot_multi_path"
+	;;
+	"redboot")
+		flash_kernel "$kfile" "$kmtd" "$machine_id"
+		pad=$(($imtdsize - $ifilesize))
+		flash_initrd "$ifile" "$imtd" $pad
+	;;
+	"slug")
+		case "$(dpkg --print-architecture)" in
+			arm|armel)
+				little_endian=1
+			;;
+			armeb)
+				little_endian=0
+			;;
+		esac
+		mtd_fis="FIS directory"
+		fismtd=$(mtdblock "$mtd_fis")
+		if [ -z "$fismtd" ]; then
+			error "Cannot find mtd partition '$mtd_fis'"
+		fi
+		check_mtd_size "$mtd_kernel" $(($kfilesize + 16 + 16)) \
+			$kmtdsize
+		check_mtd_size "$mtd_initrd" $(($ifilesize + 16)) \
+			$imtdsize
+		# The following devio magic parses the FIS directory to
+		# obtain the size, offset and name of each partition.  This
+		# used used to obtain the offset of the Kernel partition.
+		offset=$(echo "$(devio "<<$fismtd" '
+			<= $ 0x20000 -
+			L= 0x1000
+			$( 1
+				# 0xff byte in name[0] ends the partition table
+				$? @ 255 =
+				# output size base name
+				<= f15+
+				.= b 0xfffffff &
+				<= f4+
+				.= b
+				pf "%lu %lu "
+				<= f28-
+				cp 16
+				pn
+				<= f240+
+				L= L256-
+			$) L255>')" |
+			while read a b c; do
+				if [ "$c" = "Kernel" ]; then
+					echo $b
+				fi
+			done)
+		# The Kernel partition, starting at $offset, is divided into
+		# two areas at $boundary.  We therefore need to split the
+		# kernel into two and write them to flash with two Sercomm
+		# headers.
+		boundary=1441792 # 0x00160000
+		ksize1=$(($boundary - $offset - 16))
+		printf "Flashing kernel: " >&2
+		{
+			sercomm_header $(($kfilesize + 16))
+			dd if="$kfile" of="$tmpdir/kpart1" bs=$ksize1 \
+				count=1 2>/dev/null
+			nslu2_swap "$tmpdir/kpart1"
+			rm -f "$tmpdir/kpart1"
+			sercomm_header 131072
+			dd if="$kfile" of="$tmpdir/kpart2" ibs=$ksize1 \
+				skip=1 2>/dev/null
+			nslu2_swap "$tmpdir/kpart2"
+			rm -f "$tmpdir/kpart2"
+		} > "$kmtd" || error "failed."
+		echo "done." >&2
+		printf "Flashing initramfs: " >&2
+		dd if="$ifile" of="$tmpdir/initrd" ibs=$(($imtdsize - 16)) \
+			conv=sync 2>/dev/null
+		{
+			sercomm_header $ifilesize
+			nslu2_swap "$tmpdir/initrd"
+			rm -f "$tmpdir/initrd"
+		} > "$imtd" || error "failed."
+		echo "done." >&2
+	;;
+esac
+}
+
+# vim:noexpandtab shiftwidth=8 syntax=sh

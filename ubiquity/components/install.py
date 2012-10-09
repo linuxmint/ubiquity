@@ -21,6 +21,7 @@
 
 from ubiquity.filteredcommand import FilteredCommand
 
+
 class Install(FilteredCommand):
     def prepare(self, unfiltered=False):
         reboot = self.db.get('ubiquity/reboot')

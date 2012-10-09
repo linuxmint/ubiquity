@@ -1,0 +1,113 @@
+Template: partman-auto-lvm/text/choice
+Type: text
+# :sl1:
+# TRANSLATORS: This is a menu entry. Keep in under 55 columns/characters
+_Description: Guided - use entire disk and set up LVM
+
+Template: partman-auto-lvm/new_vg_name
+Type: string
+# :sl3:
+_Description: Name of the volume group for the new system:
+
+Template: partman-auto-lvm/new_vg_name_exists
+Type: string
+# :sl3:
+_Description: Name of the volume group for the new system:
+ The selected volume group name is already in use. Please choose
+ another name.
+
+Template: partman-auto-lvm/unusable_recipe
+Type: error
+# :sl3:
+_Description: Failed to partition the selected disk
+ This happened because the selected recipe does not contain any partition
+ that can be created on LVM volumes.
+
+Template: partman-auto-lvm/no_boot
+Type: boolean
+# :sl3:
+_Description: Continue installation without /boot partition?
+ The recipe you selected does not contain a separate partition for /boot.
+ This is normally needed to allow you to boot the system when using LVM.
+ .
+ You can choose to ignore this warning, but that may result in a failure to
+ reboot the system after the installation is completed.
+
+Template: partman-auto-lvm/vg_exists
+Type: error
+# :sl3:
+_Description: Volume group name already in use
+ The volume group name used to automatically partition using LVM is already
+ in use. Lowering the priority for configuration questions will allow you
+ to specify an alternative name.
+
+Template: partman-auto-lvm/vg_create_error
+Type: error
+# :sl3:
+_Description: Unexpected error while creating volume group
+ Autopartitioning using LVM failed because an error occurred while creating
+ the volume group.
+ .
+ Check /var/log/syslog or see virtual console 4 for the details.
+
+Template: partman-auto-lvm/text/multiple_disks
+Type: text
+# :sl3:
+_Description: Multiple disks (%s)
+
+Template: partman-auto-lvm/no_such_pv
+Type: error
+# :sl3:
+_Description: Non-existing physical volume
+ A volume group definition contains a reference to a non-existing
+ physical volume.
+ .
+ Please check that all devices are properly connected.
+ Alternatively, please check the automatic partitioning recipe.
+
+Template: partman-auto-lvm/no_pv_in_vg
+Type: error
+# :sl3:
+_Description: No physical volume defined in volume group
+ The automatic partitioning recipe contains the definition of a
+ volume group that does not contain any physical volume.
+ .
+ Please check the automatic partitioning recipe.
+
+Template: partman-auto-lvm/guided_size
+Type: string
+Default: some number
+# :sl3:
+_Description: Amount of volume group to use for guided partitioning:
+ You may use the whole volume group for guided partitioning, or part of it.
+ If you use only part of it, or if you add more disks later, then you will
+ be able to grow logical volumes later using the LVM tools, so using a
+ smaller part of the volume group at installation time may offer more
+ flexibility.
+ .
+ The minimum size of the selected partitioning recipe is ${MINSIZE} (or
+ ${PERCENT}); please note that the packages you choose to install may
+ require more space than this. The maximum available size is ${MAXSIZE}.
+ .
+ Hint: "max" can be used as a shortcut to specify the maximum size, or
+ enter a percentage (e.g. "20%") to use that percentage of the maximum size.
+
+Template: partman-auto-lvm/bad_guided_size
+Type: error
+# :sl3:
+_Description: Invalid input
+ You entered "${INPUT}", which was not recognized as a valid size.
+
+Template: partman-auto-lvm/big_guided_size
+Type: error
+# :sl3:
+_Description: ${SIZE} is too big
+ You asked for ${SIZE} to be used for guided partitioning, but the available
+ space is only ${MAXSIZE}.
+
+Template: partman-auto-lvm/small_guided_size
+Type: error
+# :sl3:
+_Description: ${SIZE} is too small
+ You asked for ${SIZE} to be used for guided partitioning, but the selected
+ partitioning recipe requires at least ${MINSIZE}.

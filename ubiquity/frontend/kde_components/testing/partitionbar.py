@@ -18,7 +18,8 @@ if __name__ == "__main__":
 
     pb1.addPartition('/dev/sdb1', 57511125504, 'ext4')
     pb1.addPartition('/dev/sdb5', 2500452864, 'linux-swap')
-    pb1.setResizePartition('/dev/sdb1', 230989824, 55143440896, 52143440896, 'distro')
+    pb1.setResizePartition(
+        '/dev/sdb1', 230989824, 55143440896, 52143440896, 'distro')
 
     pb2 = PartitionsBar(wid)
     layout.addWidget(pb2)

@@ -28,27 +28,20 @@ def get_casper(key, default=None):
     global _casper_config
     if _casper_config is None:
         _casper_config = {}
-        fp = None
         try:
-            fp = open('/etc/casper.conf', 'r')
-            for line in fp:
-                if line.startswith('#'):
-                    continue
-                if line.startswith('export '):
-                    line = line[6:]
-                line = line.strip()
-                bits = line.split('=', 1)
-                if len(bits) > 1:
-                    _casper_config[bits[0]] = bits[1].strip('"')
-        except IOError, e:
+            with open('/etc/casper.conf', 'r') as fp:
+                for line in fp:
+                    if line.startswith('#'):
+                        continue
+                    if line.startswith('export '):
+                        line = line[6:]
+                    line = line.strip()
+                    bits = line.split('=', 1)
+                    if len(bits) > 1:
+                        _casper_config[bits[0]] = bits[1].strip('"')
+        except IOError as e:
             if e.errno != errno.ENOENT:
                 import syslog
                 syslog.syslog('Unable to read /etc/casper.conf.')
-        finally:
-            if fp is not None:
-                fp.close()
 
-    if key in _casper_config:
-        return _casper_config[key]
-    else:
-        return default
+    return _casper_config.get(key, default)

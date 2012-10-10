@@ -1,0 +1,18 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+. /lib/partman/lib/crypto-base.sh
+
+dev=$1
+id=$2
+
+cd $dev
+
+# don't show crypto for already encrypted partitions
+if [ -f crypt_realdev ]; then
+	exit 0
+fi
+
+db_metaget partman/method_long/crypto description
+printf "%s\t%s\n" crypto "$RET"
+

@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import os
 
 import cairo
@@ -8,35 +6,43 @@ from gi.repository import UbiquityWebcam, GdkPixbuf
 
 from ubiquity import misc
 
+
 def refresh():
     while Gtk.events_pending():
         Gtk.main_iteration()
 
+
 def draw_round_rect(c, r, x, y, w, h):
-    c.move_to(x+r,y)
-    c.line_to(x+w-r,y);   c.curve_to(x+w,y,x+w,y,x+w,y+r)
-    c.line_to(x+w,y+h-r); c.curve_to(x+w,y+h,x+w,y+h,x+w-r,y+h)
-    c.line_to(x+r,y+h);   c.curve_to(x,y+h,x,y+h,x,y+h-r)
-    c.line_to(x,y+r);     c.curve_to(x,y,x,y,x+r,y)
+    c.move_to(x + r, y)
+    c.line_to(x + w - r, y)
+    c.curve_to(x + w, y, x + w, y, x + w, y + r)
+    c.line_to(x + w, y + h - r)
+    c.curve_to(x + w, y + h, x + w, y + h, x + w - r, y + h)
+    c.line_to(x + r, y + h)
+    c.curve_to(x, y + h, x, y + h, x, y + h - r)
+    c.line_to(x, y + r)
+    c.curve_to(x, y, x, y, x + r, y)
     c.close_path()
+
 
 def gtk_to_cairo_color(c):
     color = Gdk.color_parse(c)
-    s = 1.0/65535.0
+    s = 1.0 / 65535.0
     r = color.red * s
     g = color.green * s
     b = color.blue * s
     return r, g, b
 
+
 class StylizedFrame(Gtk.Alignment):
     __gtype_name__ = 'StylizedFrame'
     __gproperties__ = {
-        'radius': (GObject.TYPE_INT, 'Radius',
-                   'The radius of the rounded corners.', 0,
-                   GObject.constants.G_MAXINT, 10, GObject.PARAM_READWRITE),
-        'width' : (GObject.TYPE_INT, 'Width', 'The width of the outline.',
-                   0, GObject.constants.G_MAXINT, 1,
-                   GObject.PARAM_READWRITE),
+        'radius': (
+            GObject.TYPE_INT, 'Radius', 'The radius of the rounded corners.',
+            0, GObject.constants.G_MAXINT, 10, GObject.PARAM_READWRITE),
+        'width': (
+            GObject.TYPE_INT, 'Width', 'The width of the outline.',
+            0, GObject.constants.G_MAXINT, 1, GObject.PARAM_READWRITE),
     }
 
     def __init__(self):
@@ -80,21 +86,22 @@ class StylizedFrame(Gtk.Alignment):
 
 GObject.type_register(StylizedFrame)
 
+
 class ResizeWidget(Gtk.HPaned):
     __gtype_name__ = 'ResizeWidget'
     __gproperties__ = {
-        'part_size' : (GObject.TYPE_UINT64, 'Partition size',
-                       'The size of the partition being resized', 1,
-                       GObject.constants.G_MAXUINT64, 100,
-                       GObject.PARAM_READWRITE),
-        'min_size'  : (GObject.TYPE_UINT64, 'Minimum size',
-                       'The minimum size that the existing partition can ' \
-                       'be resized to', 0, GObject.constants.G_MAXUINT64, 0,
-                       GObject.PARAM_READWRITE),
-        'max_size'  : (GObject.TYPE_UINT64, 'Maximum size',
-                       'The maximum size that the existing partition can ' \
-                       'be resized to', 1, GObject.constants.G_MAXUINT64,
-                       100, GObject.PARAM_READWRITE)
+        'part_size': (
+            GObject.TYPE_UINT64, 'Partition size',
+            'The size of the partition being resized',
+            1, GObject.constants.G_MAXUINT64, 100, GObject.PARAM_READWRITE),
+        'min_size': (
+            GObject.TYPE_UINT64, 'Minimum size',
+            'The minimum size that the existing partition can be resized to',
+            0, GObject.constants.G_MAXUINT64, 0, GObject.PARAM_READWRITE),
+        'max_size': (
+            GObject.TYPE_UINT64, 'Maximum size',
+            'The maximum size that the existing partition can be resized to',
+            1, GObject.constants.G_MAXUINT64, 100, GObject.PARAM_READWRITE)
     }
 
     def do_get_property(self, prop):
@@ -176,8 +183,8 @@ class ResizeWidget(Gtk.HPaned):
         else:
             return size
 
-
 GObject.type_register(ResizeWidget)
+
 
 class DiskBox(Gtk.Box):
     __gtype_name__ = 'DiskBox'
@@ -191,15 +198,19 @@ class DiskBox(Gtk.Box):
 
 GObject.type_register(DiskBox)
 
+
 class PartitionBox(StylizedFrame):
     __gtype_name__ = 'PartitionBox'
     __gproperties__ = {
-        'title'     : (GObject.TYPE_STRING, 'Title', None, 'Title',
-                       GObject.PARAM_READWRITE),
-        'icon-name' : (GObject.TYPE_STRING, 'Icon Name', None,
-                       'distributor-logo', GObject.PARAM_READWRITE),
-        'extra'     : (GObject.TYPE_STRING, 'Extra Text', None, '',
-                       GObject.PARAM_READWRITE),
+        'title': (
+            GObject.TYPE_STRING, 'Title', None, 'Title',
+            GObject.PARAM_READWRITE),
+        'icon-name': (
+            GObject.TYPE_STRING, 'Icon Name', None, 'distributor-logo',
+            GObject.PARAM_READWRITE),
+        'extra': (
+            GObject.TYPE_STRING, 'Extra Text', None, '',
+            GObject.PARAM_READWRITE),
     }
 
     def do_get_property(self, prop):
@@ -300,11 +311,13 @@ class PartitionBox(StylizedFrame):
 
 GObject.type_register(PartitionBox)
 
+
 class StateBox(StylizedFrame):
     __gtype_name__ = 'StateBox'
     __gproperties__ = {
-        'label'  : (GObject.TYPE_STRING, 'Label', None, 'label',
-                    GObject.PARAM_READWRITE),
+        'label': (
+            GObject.TYPE_STRING, 'Label', None, 'label',
+            GObject.PARAM_READWRITE),
     }
 
     def do_get_property(self, prop):
@@ -351,10 +364,13 @@ class StateBox(StylizedFrame):
 
 GObject.type_register(StateBox)
 
+
 FACES_PATH = '/usr/share/pixmaps/faces'
+
 
 class FaceSelector(Gtk.Box):
     __gtype_name__ = 'FaceSelector'
+
     def __init__(self, controller):
         Gtk.Box.__init__(self)
         self.set_orientation(Gtk.Orientation.VERTICAL)
@@ -433,7 +449,7 @@ class FaceSelector(Gtk.Box):
             pb.savev(path, 'png', [], [])
 
     def image_captured(self, unused, path):
-        pb = GdkPixbuf.Pixbuf.new_from_file_at_size(path, 96, 96);
+        pb = GdkPixbuf.Pixbuf.new_from_file_at_size(path, 96, 96)
         self.selected_image.set_from_pixbuf(pb)
 
     def selection_changed(self, iv):
@@ -446,3 +462,20 @@ class FaceSelector(Gtk.Box):
 
 GObject.type_register(FaceSelector)
 
+
+# GtkBuilder should have .get_object_ids() method
+class Builder(Gtk.Builder):
+    def __init__(self):
+        self._widget_ids = set()
+        super(Builder, self).__init__()
+
+    def add_from_file(self, filename):
+        import xml.etree.cElementTree as ET
+        tree = ET.parse(filename)
+        root = tree.getroot()
+        for widgets in root.iter('object'):
+            self._widget_ids.add(widgets.attrib['id'])
+        return super(Builder, self).add_from_file(filename)
+
+    def get_object_ids(self):
+        return self._widget_ids

@@ -6,8 +6,10 @@ if [ "$1" = "prepare" ]; then
     db_input high ubiquity/use_nonfree || true
     db_get ubiquity/use_nonfree
     if [ "$RET" = "true" ]; then
-        jockey-text -a || \
-		logger -t ubiquity "Jockey auto-install failed with code: $?"
+        env -u DEBIAN_HAS_FRONTEND -u DEBCONF_REDIR \
+            DEBCONF_DB_REPLACE=configdb DEBCONF_DB_OVERRIDE="Pipe{infd:none outfd:none}" \
+            ubuntu-drivers autoinstall --package-list /run/ubuntu-drivers.autoinstall || \
+		logger -t ubiquity "ubuntu-drivers autoinstall failed with code: $?"
     fi
 elif [ "$1" = "wireless" ]; then
     db_get ubiquity/online

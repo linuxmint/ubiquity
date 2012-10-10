@@ -1,0 +1,78 @@
+#!/bin/sh
+
+. /lib/partman/lib/auto-lvm.sh
+. /lib/partman/lib/crypto-base.sh
+
+dev="$1"
+method=crypto
+
+# Ensure we have no (pre-existing) partitions marked as swap as they'd
+# trigger the unsafe_swap test.
+clean_method
+
+auto_lvm_prepare $dev $method || exit $?
+
+found=no
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		if [ "$fs" != free ]; then
+			partitions="$partitions $id"
+		fi
+	done
+        close_dialog
+
+	for id in $partitions; do
+		[ -f $id/method ] || continue
+		method=$(cat $id/method)
+		[ $method = crypto ] || continue
+
+		echo dm-crypt > $id/crypto_type
+		crypto_prepare_method "$dev/$id" dm-crypt || exit 1
+		found=yes
+		break
+	done
+	[ $found = yes ] && break
+done
+
+crypto_check_setup || exit 1
+crypto_setup no || exit 1
+
+# Fix method on PVs now that the crypto devices have been created
+# ($pv_devices has been properly set by auto_lvm_prepare)
+for pv in $pv_devices; do
+	dev="$(dev_to_partman $pv)"
+	[ -d "$dev" ] || continue
+	[ -f "$dev/crypt_realdev" ] || continue
+	[ -f "$dev/device" ] || continue
+
+	# We should have only one partition, but lets be thorough
+	cd $dev
+        partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ "$fs" != free ] || continue
+		partitions="$partitions $id"
+	done
+	close_dialog
+
+	for id in $partitions; do
+		for file in acting_filesystem filesystem format formatable use_filesystem; do
+			rm -f $id/$file
+		done
+		echo lvm > $id/method
+	done
+done
+
+auto_lvm_perform || exit 1
+
+# partman likes to believe that the virtual devices have a changed
+# partition table
+for dev in $DEVICES/*; do
+	cd $dev
+	open_dialog DISK_UNCHANGED
+	close_dialog
+done

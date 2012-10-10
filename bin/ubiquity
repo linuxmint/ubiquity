@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 '''
 Installer
@@ -14,6 +14,8 @@ Once it has the info, partitioning, format, copy the distro to the disk
 and configure everything.
 '''
 
+from __future__ import print_function
+
 import sys
 import os
 import errno
@@ -23,6 +25,8 @@ import syslog
 import atexit
 import optparse
 import subprocess
+import locale
+import importlib
 
 sys.path.insert(0, '/usr/lib/ubiquity')
 
@@ -30,16 +34,33 @@ from ubiquity import misc
 from ubiquity import im_switch
 from ubiquity import osextras
 
+
 VERSION = '@VERSION@'
 TARGET = '/target'
 LOCKFILE = '/var/lock/ubiquity'
 lock = None
 
+
+def force_utf8_locale():
+    """We must have a UTF-8 locale.  Try to get one."""
+    if locale.getpreferredencoding() != "UTF-8":
+        try:
+            os.environ["LC_ALL"] = "C.UTF-8"
+            locale.setlocale(locale.LC_ALL, "")
+        except locale.Error:
+            # Abandon hope.
+            print("Ubiquity requires a UTF-8 locale and cannot proceed "
+                  "without one.", file=sys.stderr)
+            sys.exit(1)
+
+
 def distribution():
     """Returns the name of the running distribution."""
-
-    proc = subprocess.Popen(['lsb_release', '-is'], stdout=subprocess.PIPE)
+    proc = subprocess.Popen(
+        ['lsb_release', '-is'], stdout=subprocess.PIPE,
+        universal_newlines=True)
     return proc.communicate()[0].strip()
+
 
 def disable_autologin():
     import traceback
@@ -54,12 +75,12 @@ def disable_autologin():
             except OSError:
                 traceback.print_exc()
 
+
 def open_terminal():
     """Set up the terminal to run ubiquity's debconf frontend."""
-
     # Set up a framebuffer and start bterm if debian-installer/framebuffer
-    # says to do so. See
-    # rootskel/src/lib/debian-installer-startup.d/S40framebuffer-module-linux-x86.
+    # says to do so. See, in rootskel:
+    #   src/lib/debian-installer-startup.d/S40framebuffer-module-linux-x86
     # TODO: more careful architecture handling
 
     import debconf
@@ -101,7 +122,8 @@ def open_terminal():
         dccomm = subprocess.Popen(['debconf-communicate',
                                    '-fnoninteractive', 'ubiquity'],
                                   stdin=subprocess.PIPE,
-                                  stdout=subprocess.PIPE, close_fds=True)
+                                  stdout=subprocess.PIPE, close_fds=True,
+                                  universal_newlines=True)
         try:
             dc = debconf.Debconf(read=dccomm.stdout, write=dccomm.stdin)
             try:
@@ -116,15 +138,12 @@ def open_terminal():
         if framebuffer:
             def fb_has(substring):
                 try:
-                    fb = open('/proc/fb')
+                    with open('/proc/fb') as fb:
+                        for line in fb:
+                            if substring in line:
+                                return True
                 except IOError:
-                    return False
-                try:
-                    for line in fb:
-                        if substring in line:
-                            return True
-                finally:
-                    fb.close()
+                    pass
                 return False
 
             got_fb = False
@@ -161,9 +180,9 @@ def open_terminal():
                 bterm_args.extend(sys.argv)
                 os.execvp('bterm', bterm_args)
 
+
 def start_debconf():
     """debconf_ui needs to run within a debconf frontend."""
-
     if 'DEBIAN_HAS_FRONTEND' in os.environ:
         # debconf already started, so just clean up the configuration file
         # if any (debconf has already read it by now).
@@ -171,7 +190,7 @@ def start_debconf():
             osextras.unlink_force(os.environ['DEBCONF_SYSTEMRC'])
         return
 
-    print >>sys.stderr, "debconf_ui selected; starting debconf frontend"
+    print("debconf_ui selected; starting debconf frontend", file=sys.stderr)
 
     if 'UBIQUITY_AUTOMATIC' in os.environ:
         # In automatic mode, we don't want debconf to reshow seen questions,
@@ -182,7 +201,7 @@ def start_debconf():
         # have a custom debconf program, a bit like dpkg-reconfigure.
         import tempfile
         debconfrc_fd, debconfrc = tempfile.mkstemp()
-        os.chmod(debconfrc, 0644)
+        os.chmod(debconfrc, 0o644)
         debconfrc_file = os.fdopen(debconfrc_fd, 'w')
         orig_debconfrc = open('/etc/debconf.conf')
         state = 0
@@ -191,9 +210,9 @@ def start_debconf():
                 line.rstrip('\n') and not line.startswith('#')):
                 state = 1
             elif state == 1 and not line.rstrip('\n'):
-                print >>debconfrc_file, 'Reshow: true'
+                print('Reshow: true', file=debconfrc_file)
                 state = 2
-            print >>debconfrc_file, line,
+            print(line, end="", file=debconfrc_file)
         orig_debconfrc.close()
         debconfrc_file.close()
         os.environ['DEBCONF_SYSTEMRC'] = debconfrc
@@ -205,39 +224,36 @@ def start_debconf():
     # TODO: need to set owner somehow for the cdebconf case
 
     import debconf
-    debconf.runFrontEnd() # re-execs this program
+    debconf.runFrontEnd()  # re-execs this program
+
 
 def install(frontend=None, query=False):
-    '''install(frontend=None) -> none
+    """Get the type of frontend to use and load the module for that.
 
-    Get the type of frontend to use and load the module for that.
-    If frontend is None, defaults to the first of
-    gtk_ui, kde_ui, and debconf_ui that exists.
-    '''
+    If frontend is None, defaults to the first of gtk_ui, kde_ui, and
+    debconf_ui that exists.
+    """
     if frontend is None:
         frontends = ['gtk_ui', 'kde_ui', 'debconf_ui']
     else:
         frontends = [frontend]
     chosen = None
-    mod = __import__('ubiquity.frontend', globals(), locals(), frontends)
     for f in frontends:
-        if hasattr(mod, f):
-            chosen = f
-            ui = getattr(mod, f)
-            # Noninteractive implies automatic mode.
-            if f == 'noninteractive':
-                os.environ['UBIQUITY_AUTOMATIC'] = '1'
-            # Migration Assistant does not support KDE.
-            if f == 'kde_ui':
-                if 'UBIQUITY_MIGRATION_ASSISTANT' in os.environ:
-                    del os.environ['UBIQUITY_MIGRATION_ASSISTANT']
-            break
+        try:
+            ui = importlib.import_module('ubiquity.frontend.%s' % f)
+        except ImportError:
+            continue
+        chosen = f
+        # Noninteractive implies automatic mode.
+        if f == 'noninteractive':
+            os.environ['UBIQUITY_AUTOMATIC'] = '1'
+        break
     else:
         raise AttributeError('No frontend available; tried %s' %
                              ', '.join(frontends))
     os.environ['UBIQUITY_FRONTEND'] = chosen
     if query:
-        print >> sys.__stdout__, os.environ['UBIQUITY_FRONTEND']
+        print(os.environ['UBIQUITY_FRONTEND'], file=sys.__stdout__)
         sys.exit(0)
 
     unmount_target()
@@ -264,9 +280,11 @@ def install(frontend=None, query=False):
 
 @misc.raise_privileges
 def apply_keyboard():
-    '''Set the keyboard layout to the default layout for the language selected.
+    """Set the keyboard layout to the default layout for the language selected.
+
     If a user wants a different layout, they can be reasonably expected to
-    change it in System -> Preferences -> Keyboard.'''
+    change it in System -> Preferences -> Keyboard.
+    """
 
     # Mostly taken from ubi-console-setup.
 
@@ -284,7 +302,8 @@ def apply_keyboard():
     dccomm = subprocess.Popen(['debconf-communicate',
                                '-fnoninteractive', 'ubiquity'],
                               stdin=subprocess.PIPE,
-                              stdout=subprocess.PIPE, close_fds=True)
+                              stdout=subprocess.PIPE, close_fds=True,
+                              universal_newlines=True)
     try:
         dc = debconf.Debconf(read=dccomm.stdout, write=dccomm.stdin)
         try:
@@ -313,6 +332,7 @@ def apply_keyboard():
                  '--action=change')
     misc.execute('udevadm', 'settle')
 
+
 def copy_debconf():
     """Copy a few important questions into the installed system."""
     if not TARGET:
@@ -325,7 +345,8 @@ def copy_debconf():
     dccomm = subprocess.Popen(['debconf-communicate',
                                '-fnoninteractive', 'ubiquity'],
                               stdin=subprocess.PIPE,
-                              stdout=subprocess.PIPE, close_fds=True)
+                              stdout=subprocess.PIPE, close_fds=True,
+                              universal_newlines=True)
     try:
         dc = debconf.Debconf(read=dccomm.stdout, write=dccomm.stdin)
         try:
@@ -346,26 +367,28 @@ def copy_debconf():
                      '--config=Name:targetdb', '--config=Driver:File',
                      '--config=Mode:0644', '--config=Filename:%s' % targetdb)
 
+
 def unmount_target():
     if not TARGET:
         return
     paths = []
-    mounts = open('/proc/mounts')
-    for line in mounts:
-        path = line.split(' ')[1]
-        if path == TARGET or path.startswith(TARGET + '/'):
-            paths.append(path)
-    mounts.close()
+    with open('/proc/mounts') as mounts:
+        for line in mounts:
+            path = line.split(' ')[1]
+            if path == TARGET or path.startswith(TARGET + '/'):
+                paths.append(path)
     paths.sort()
     paths.reverse()
     for path in paths:
         misc.execute_root('umount', path)
+
 
 def prepend_path(directory):
     if 'PATH' in os.environ and os.environ['PATH'] != '':
         os.environ['PATH'] = '%s:%s' % (directory, os.environ['PATH'])
     else:
         os.environ['PATH'] = directory
+
 
 def release_lock():
     global lock
@@ -374,19 +397,20 @@ def release_lock():
         lock.close()
         lock = None
 
+
 def acquire_lock():
     global lock
     lock = open(LOCKFILE, 'w')
     try:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except IOError, e:
+    except IOError as e:
         if e.errno in (errno.EACCES, errno.EAGAIN, errno.EWOULDBLOCK):
-            print "Ubiquity is already running!"
+            print("Ubiquity is already running!")
             sys.exit(1)
         raise
     atexit.register(release_lock)
     fcntl.fcntl(lock, fcntl.F_SETFD, fcntl.FD_CLOEXEC)
-    print >>lock, os.getpid()
+    print(os.getpid(), file=lock)
     lock.flush()
     os.fsync(lock.fileno())
 
@@ -395,26 +419,29 @@ def acquire_lock():
         # something else.
         test_debconf = subprocess.Popen(
             ['debconf-communicate', '-fnoninteractive', 'ubiquity'],
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE, close_fds=True)
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, close_fds=True,
+            universal_newlines=True)
         try:
-            print >>test_debconf.stdin, 'VERSION 2.0'
+            print('VERSION 2.0', file=test_debconf.stdin)
             test_debconf.stdout.readline()
         except IOError:
             pass
         test_debconf.stdin.close()
+        test_debconf.stdout.close()
         if test_debconf.wait() != 0:
-            print "Debconf database is locked!"
-            print "This may be because a package management program is running."
+            print("Debconf database is locked!")
+            print("This may be because a package management program is "
+                  "running.")
             sys.exit(1)
+
 
 def run_oem_hooks():
     """Run hook scripts from /usr/lib/oem-config/post-install."""
-
     hookdir = '/usr/lib/oem-config/post-install'
 
     if os.path.isdir(hookdir):
         # Exclude hooks containing '.', so that *.dpkg-* et al are avoided.
-        hooks = filter(lambda entry: '.' not in entry, os.listdir(hookdir))
+        hooks = [entry for entry in os.listdir(hookdir) if '.' not in entry]
         child_env = dict(os.environ)
         child_env['DEBIAN_FRONTEND'] = 'noninteractive'
         if 'DEBIAN_HAS_FRONTEND' in child_env:
@@ -425,7 +452,10 @@ def run_oem_hooks():
                 # Errors are ignored at present, although this may change.
                 subprocess.call([hook], env=child_env)
 
+
 def main(oem_config):
+    force_utf8_locale()
+
     usage = '%prog [options] [frontend]'
     parser = optparse.OptionParser(usage=usage, version=VERSION)
     parser.set_defaults(
@@ -433,37 +463,36 @@ def main(oem_config):
         debug_pdb=False,
         cdebconf=False,
         automatic=False,
-        query=False,
-        migration_assistant=(not oem_config))
+        query=False)
     parser.add_option('-d', '--debug', dest='debug', action='store_true',
                       help='debug mode (warning: passwords will be logged!)')
     parser.add_option('--pdb', dest='debug_pdb', action='store_true',
                       help='drop into Python debugger on a crash')
     parser.add_option('--cdebconf', dest='cdebconf', action='store_true',
                       help='use cdebconf instead of debconf (experimental)')
-    if not oem_config:
-        parser.add_option('--no-migration-assistant', dest='migration_assistant',
-                          action='store_false',
-                          help='disable Migration Assistant')
     parser.add_option('--automatic', dest='automatic', action='store_true',
-                      help='do not ignore the "seen" flag (useful for ' \
-                      'unattended installations).')
+                      help='do not ignore the "seen" flag (useful for '
+                           'unattended installations).')
     parser.add_option('--only', dest='only', action='store_true',
-                      help='tell the application that it is the only desktop ' \
-                      'program running so that it can customize its UI to ' \
-                      'better suit a minimal environment.')
+                      help='tell the application that it is the only desktop '
+                           'program running so that it can customize its UI '
+                           'to better suit a minimal environment.')
     parser.add_option('-q', '--query', dest='query', action='store_true',
                       help='find out which frontend will be used by default')
     parser.add_option('-g', '--greeter', dest='greeter', action='store_true',
-                      help='allow the user to leave the installer and enter ' \
-                      'a live desktop (for the initial boot).')
+                      help='allow the user to leave the installer and enter '
+                           'a live desktop (for the initial boot).')
     parser.add_option('-b', '--no-bootloader', dest='bootloader',
-                      action='store_true',
+                      default=True, action='store_false',
                       help='Do not install a bootloader.')
     parser.add_option('--ldtp', dest='ldtp',
                       action='store_true',
-                      help='Name widgets in ATK by their GtkBuilder names,' \
+                      help='Name widgets in ATK by their GtkBuilder names, '
                            'to support LDTP testing.')
+    parser.add_option('--no-webcam', dest='webcam',
+                      default=True, action='store_false',
+                      help='Disable the webcam page.')
+
     (options, args) = parser.parse_args()
 
     if options.debug:
@@ -482,16 +511,13 @@ def main(oem_config):
     if options.automatic:
         os.environ['UBIQUITY_AUTOMATIC'] = '1'
 
-    if options.migration_assistant:
-        os.environ['UBIQUITY_MIGRATION_ASSISTANT'] = '1'
-
     if options.greeter:
         os.environ['UBIQUITY_GREETER'] = '1'
 
     if options.only:
         os.environ['UBIQUITY_ONLY'] = '1'
 
-    if options.bootloader:
+    if not options.bootloader:
         os.environ['UBIQUITY_NO_BOOTLOADER'] = '1'
 
     if oem_config:
@@ -502,11 +528,14 @@ def main(oem_config):
     if options.ldtp:
         os.environ['UBIQUITY_LDTP'] = '1'
 
+    if not options.webcam:
+        os.environ['UBIQUITY_NO_WEBCAM'] = '1'
+
     acquire_lock()
 
     try:
         os.makedirs('/var/log/installer')
-    except OSError, e:
+    except OSError as e:
         # be happy if someone already created the path
         if e.errno != errno.EEXIST:
             raise
@@ -516,9 +545,8 @@ def main(oem_config):
         syslog.syslog("Ubiquity %s (oem-config)" % VERSION)
     else:
         syslog.syslog("Ubiquity %s" % VERSION)
-    version_file = open('/var/log/installer/version', 'w')
-    print >>version_file, 'ubiquity %s' % VERSION
-    version_file.close()
+    with open('/var/log/installer/version', 'w') as version_file:
+        print('ubiquity %s' % VERSION, file=version_file)
 
     if 'UBIQUITY_DEBUG' in os.environ:
         if 'UBIQUITY_DEBUG_CORE' not in os.environ:
@@ -534,15 +562,15 @@ def main(oem_config):
             else:
                 logfile = '/var/log/installer/debug'
             log = os.open(logfile, os.O_WRONLY | os.O_CREAT | os.O_APPEND,
-                          0644)
+                          0o644)
             os.dup2(log, 2)
             os.close(log)
             sys.stderr = os.fdopen(2, 'a', 1)
             if oem_config:
-                print >>sys.stderr, "Ubiquity %s (oem-config)" % VERSION
+                print("Ubiquity %s (oem-config)" % VERSION, file=sys.stderr)
             else:
-                print >>sys.stderr, "Ubiquity %s" % VERSION
-        except (IOError, OSError), err:
+                print("Ubiquity %s" % VERSION, file=sys.stderr)
+        except (IOError, OSError) as err:
             if err.errno != errno.EACCES:
                 raise
 
@@ -560,7 +588,8 @@ def main(oem_config):
                              '/var/lib/dpkg/info/%s.templates' % package])
 
     # Clean up old state.
-    for name in ('apt-installed', 'apt-install-direct', 'remove-kernels', 'apt-removed', 'encrypted-swap'):
+    for name in ('apt-installed', 'apt-install-direct', 'remove-kernels',
+                 'apt-removed', 'encrypted-swap', 'started-installing'):
         osextras.unlink_force(os.path.join('/var/lib/ubiquity', name))
     shutil.rmtree("/var/lib/partman", ignore_errors=True)
     misc.remove_os_prober_cache()
@@ -576,6 +605,7 @@ def main(oem_config):
     if oem_config:
         run_oem_hooks()
     im_switch.kill_im()
+
 
 if __name__ == '__main__':
     # Are we running as ubiquity or oem-config?

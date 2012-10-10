@@ -5,8 +5,9 @@ set -e
 # 
 # This duplicates some code from user-setup-apply, but this is necessary;
 # this operation involves disabling swap, can't be done until after the user
-# page (well after partitioning), and must be done before the slideshow
-# starts to avoid out-of-memory problems.
+# page (normally well after partitioning, but may be before partitioning in
+# noninteractive installs), and must be done before the slideshow starts to
+# avoid out-of-memory problems.
 # 
 # Fortunately, in some ways it's simpler to use tools in the live filesystem
 # to do this!
@@ -15,6 +16,24 @@ set -e
 
 db_get user-setup/encrypt-home
 [ "$RET" = true ] || exit 0
+
+if [ "$(grep -c "^/" /proc/swaps)" -eq 0 ]; then
+	# No swap partitions, so we can't and don't need to set up encrypted
+	# swap.
+	exit 0
+fi
+
+# We must allow partitioning to finish before we continue.  Unfortunately
+# there is currently no hook that will reliably run after both the user page
+# and partitioning, and the parallel questions arrangement makes it hard to
+# construct one, so for now we have to poll.
+while pidof -x ubiquity >/dev/null && \
+      [ ! -e /var/lib/ubiquity/started-installing ]; do
+	sleep 2
+done
+if ! pidof -x ubiquity; then
+	exit 0
+fi
 
 for module in aes cbc ecb; do
 	modprobe -q "$module" || true

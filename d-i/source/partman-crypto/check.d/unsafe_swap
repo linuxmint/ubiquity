@@ -1,0 +1,56 @@
+#!/bin/sh
+
+. /lib/partman/lib/crypto-base.sh
+
+# 1. Check if active encrypted devices exist
+crypto=no
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	if [ -f crypt_realdev ]; then
+		crypto=yes
+		break
+	fi
+done
+
+if [ $crypto = no ]; then
+	exit 0
+fi
+
+# 2. Check if unencrypted swap has been configured
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+
+	# Accept swap on crypto
+	[ -f crypt_realdev ] && continue
+
+	device=$(cat $dev/device)
+
+	# Accept e.g. swap on lvm on crypto
+	if echo $device | grep -q "^/dev/mapper/"; then
+		if dm_is_safe "$device"; then
+			continue
+		fi
+	fi
+
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ "$fs" != free ] || continue
+		partitions="$partitions $id"
+	done
+	close_dialog
+
+	for id in $partitions; do
+		[ -f $id/method ] || continue
+		method=$(cat $id/method)
+		if [ "$method" = swap ]; then
+			# Unsafe swap! Abort commit
+			db_fset partman-crypto/unsafe_swap seen false
+			db_input critical partman-crypto/unsafe_swap
+			db_go || true
+			exit 1
+		fi
+	done
+done

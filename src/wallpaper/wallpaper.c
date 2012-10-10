@@ -16,10 +16,12 @@
 #include <cairo-xlib.h>
 #include <sys/stat.h>
 #include <gtk/gtk.h>
+#include <X11/Xatom.h>
 
 static cairo_surface_t *
 create_root_surface (GdkScreen *screen)
 {
+    Atom prop_root, prop_esetroot;
     gint number, width, height;
     Display *display;
     Pixmap pixmap;
@@ -53,6 +55,16 @@ create_root_surface (GdkScreen *screen)
                                 cairo_xlib_surface_get_drawable (surface));
 
 
+
+    /* Fix to make the code work when a compositor is running */
+    Pixmap xpm = cairo_xlib_surface_get_drawable (surface);
+    prop_root = XInternAtom(GDK_SCREEN_XDISPLAY (screen), "_XROOTPMAP_ID", False);
+    prop_esetroot = XInternAtom(GDK_SCREEN_XDISPLAY (screen), "ESETROOT_PMAP_ID", False);
+
+    XChangeProperty(GDK_SCREEN_XDISPLAY (screen), RootWindow (GDK_SCREEN_XDISPLAY (screen), number), prop_root, XA_PIXMAP, 32, PropModeReplace, (unsigned char *) &xpm, 1);
+    XChangeProperty(GDK_SCREEN_XDISPLAY (screen), RootWindow (GDK_SCREEN_XDISPLAY (screen), number), prop_esetroot, XA_PIXMAP, 32, PropModeReplace, (unsigned char *) &xpm, 1);
+
+
     return surface;
 }
 
@@ -71,6 +83,7 @@ int main (int argc, char** argv) {
 
 	if (argc != 2 || stat(argv[1], &st) != 0) {
 		g_error ("First parameter must be an existing background");
+		return 1;
 	}
 	background_pixbuf = gdk_pixbuf_new_from_file (argv[1], &error);
 

@@ -15,10 +15,18 @@ else
 	>$ROOT/etc/apt/apt.conf.new
 fi
 
+chroot=
+if [ "$ROOT" ]; then
+	chroot=chroot
+fi
+
 db_get apt-setup/multiarch
 if [ "$RET" ]; then
-	mkdir -p $ROOT/etc/dpkg/dpkg.cfg.d
-	echo "foreign-architecture $RET" >$ROOT/etc/dpkg/dpkg.cfg.d/multiarch
+	for arch in $RET; do
+		$chroot $ROOT dpkg --add-architecture "$arch"
+	done
 else
-	rm -f $ROOT/etc/dpkg/dpkg.cfg.d/multiarch
+	for arch in $($chroot $ROOT dpkg --print-foreign-architectures); do
+		$chroot $ROOT dpkg --remove-architecture "$arch"
+	done
 fi

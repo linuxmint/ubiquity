@@ -32,11 +32,13 @@ from ubiquity.misc import drop_privileges, execute_root
 from ubiquity import i18n
 from ubiquity import plugin_manager
 
+
 # Lots of intentionally unused arguments here (abstract methods).
 __pychecker__ = 'no-argsused'
 
 WGET_URL = 'http://start.ubuntu.com/connectivity-check.html'
 WGET_HASH = '4589f42e1546aa47ca181e5d949d310b'
+
 
 class Controller:
     def __init__(self, wizard):
@@ -50,20 +52,28 @@ class Controller:
 
     def translate(self, lang=None, just_me=True, not_me=False, reget=False):
         pass
+
     def allow_go_forward(self, allowed):
         pass
+
     def allow_go_backward(self, allowed):
         pass
+
     def allow_change_step(self, allowed):
         pass
+
     def allowed_change_step(self):
         pass
+
     def go_forward(self):
         pass
+
     def go_backward(self):
         pass
+
     def toggle_top_level(self):
         pass
+
 
 class Component:
     def __init__(self):
@@ -72,6 +82,7 @@ class Component:
         self.filter_class = None
         self.ui_class = None
         self.ui = None
+
 
 class BaseFrontend:
     """Abstract ubiquity frontend.
@@ -115,12 +126,6 @@ class BaseFrontend:
             try:
                 if self.db.get('oem-config/enable') == 'true':
                     self.oem_config = True
-                    # It seems unlikely that anyone will need
-                    # migration-assistant in the OEM installation process. If it
-                    # turns out that they do, just delete the following two
-                    # lines.
-                    if 'UBIQUITY_MIGRATION_ASSISTANT' in os.environ:
-                        del os.environ['UBIQUITY_MIGRATION_ASSISTANT']
             except debconf.DebconfError:
                 pass
 
@@ -163,9 +168,6 @@ class BaseFrontend:
         modules = plugin_manager.order_plugins(plugins)
         self.modules = []
         for mod in modules:
-            if mod.NAME == 'migrationassistant' and \
-                'UBIQUITY_MIGRATION_ASSISTANT' not in os.environ:
-                    continue
             comp = Component()
             comp.module = mod
             if hasattr(mod, 'Page'):
@@ -206,8 +208,8 @@ class BaseFrontend:
             if history_entry in self.history:
                 idx = self.history.index(history_entry)
                 if idx + 1 < len(self.history):
-                    self.history = self.history[:idx+1]
-                    return # The page is now effectively a dup
+                    self.history = self.history[:idx + 1]
+                    return  # The page is now effectively a dup
             # We may have either jumped backward or forward over pages.
             # Correct history in that case
             new_index = self.pages.index(page)
@@ -219,12 +221,13 @@ class BaseFrontend:
             # Now push fake history if needed
             i = old_index + 1
             while i < new_index:
-                for _ in self.pages[i].widgets: # add 1 for each always-on widgets
+                # Add 1 for each always-on widget.
+                for _ in self.pages[i].widgets:
                     self.history.append((self.pages[i], None))
                 i += 1
 
             if history_entry == self.history[-1]:
-                return # Don't add the page if it's a dup
+                return  # Don't add the page if it's a dup
         self.history.append(history_entry)
 
     def pop_history(self):
@@ -434,29 +437,28 @@ class BaseFrontend:
 
     def slideshow_get_available_locale(self, slideshow_dir, locale):
         # Returns the ideal locale for the given slideshow, based on the
-        # given locale, or 'c' if an ideal one is not available.
+        # given locale, or 'C' if an ideal one is not available.
         # For example, with locale=en_CA, this returns en if en_CA is not
         # available. If en is not available this would return c.
 
-        slides_dir = '%s/slides' % slideshow_dir
-        locale_choice = 'c'
+        base_slides_dir = os.path.join(slideshow_dir, 'slides', 'l10n')
+        extra_slides_dir = os.path.join(slideshow_dir, 'slides', 'extra')
 
-        if os.path.exists('%s/loc.%s' % (slides_dir, locale)):
-            locale_choice = locale
-        else:
-            ll_cc = locale.split('.')[0]
-            ll = ll_cc.split('_')[0]
-            if os.path.exists('%s/loc.%s' % (slides_dir, ll_cc)):
-                locale_choice = ll_cc
-            elif os.path.exists('%s/loc.%s' % (slides_dir, ll)):
-                locale_choice = ll
+        ll_cc = locale.split('.')[0]
+        ll = ll_cc.split('_')[0]
 
-        return locale_choice
+        for slides_dir in [extra_slides_dir, base_slides_dir]:
+            for test_locale in [locale, ll_cc, ll]:
+                locale_dir = os.path.join(slides_dir, test_locale)
+                if os.path.exists(locale_dir):
+                    return test_locale
+        return 'C'
 
     def check_returncode(self, *args):
         if self.wget_retcode is not None or self.wget_proc is None:
             self.wget_proc = subprocess.Popen(
-                ['wget', '-q', WGET_URL, '--timeout=15', '--tries=1', '-O', '-'],
+                ['wget', '-q', WGET_URL, '--timeout=15', '--tries=1',
+                 '-O', '-'],
                 stdout=subprocess.PIPE)
         self.wget_retcode = self.wget_proc.poll()
         if self.wget_retcode is None:
@@ -468,9 +470,9 @@ class BaseFrontend:
                 h.update(self.wget_proc.stdout.read())
                 if WGET_HASH == h.hexdigest():
                     state = True
+            self.wget_proc.stdout.close()
             self.set_online_state(state)
             return False
 
     def set_online_state(self, state):
         pass
-

@@ -4,7 +4,10 @@ set -e
 . /usr/share/debconf/confmodule
 
 db_get oem-config-udeb/frontend
-apt-install "oem-config${RET:+-$RET ubiquity-frontend-$RET}" "oem-config-slideshow-ubuntu"
+apt-install "oem-config${RET:+-$RET ubiquity-frontend-$RET}"
+if [ "$RET" = gtk ]; then
+	apt-install "oem-config-slideshow-ubuntu" || true
+fi
 # Restore title, since packages with debconf templates may have changed it.
 db_settitle debian-installer/finish-install/title
 

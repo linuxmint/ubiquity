@@ -1,5 +1,6 @@
 # -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
-# -*- kate: indent-mode python; space-indent true; indent-width 4; backspace-indents true
+# -*- kate: indent-mode python; space-indent true; indent-width 4;
+# -*- kate: backspace-indents true;
 #
 # Copyright (C) 2006, 2007, 2008, 2009 Canonical Ltd.
 #
@@ -24,17 +25,21 @@
 # with Ubiquity; if not, write to the Free Software Foundation, Inc., 51
 # Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-import sys
-import os
-import traceback
-import syslog
+from __future__ import print_function
+
 import atexit
-import signal
 import dbus
+from functools import reduce
+import os
+import signal
+import sys
+import syslog
+import traceback
 
 # kde gui specifics
+import sip
+sip.setapi("QVariant", 1)
 from PyQt4 import QtCore, QtGui, uic
-from PyKDE4 import kdeui, kdecore
 
 #import all our custom kde components
 from ubiquity.frontend.kde_components import ProgressDialog, SqueezeLabel
@@ -47,6 +52,7 @@ import ubiquity.progressposition
 import ubiquity.frontend.base
 from ubiquity.frontend.base import BaseFrontend
 
+
 # Define global path
 PATH = '/usr/share/ubiquity'
 
@@ -56,8 +62,8 @@ LOCALEDIR = "/usr/share/locale"
 #currently using for testing, will remove
 UIDIR = os.path.join(PATH, 'qt')
 
-class UbiquityUI(kdeui.KMainWindow):
 
+class UbiquityUI(QtGui.QMainWindow):
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
         uic.loadUi(os.path.join(UIDIR, "app.ui"), self)
@@ -72,17 +78,14 @@ class UbiquityUI(kdeui.KMainWindow):
         distro_release = ""
 
         ## setup the release and codename
-        fp = open("/etc/lsb-release", 'r')
-
-        for line in fp:
-            if "DISTRIB_ID=" in line:
-                name = str.strip(line.split("=")[1], '\n')
-                if name != "Ubuntu":
-                    distro_name = name
-            elif "DISTRIB_RELEASE=" in line:
-                distro_release = str.strip(line.split("=")[1], '\n')
-
-        fp.close()
+        with open("/etc/lsb-release", 'r') as fp:
+            for line in fp:
+                if "DISTRIB_ID=" in line:
+                    name = str.strip(line.split("=")[1], '\n')
+                    if name != "Ubuntu":
+                        distro_name = name
+                elif "DISTRIB_RELEASE=" in line:
+                    distro_release = str.strip(line.split("=")[1], '\n')
 
         self.distro_name_label.setText(distro_name)
         self.distro_release_label.setText(distro_release)
@@ -111,6 +114,7 @@ class UbiquityUI(kdeui.KMainWindow):
     def closeEvent(self, event):
         if not self.wizard.on_quit_clicked():
             event.ignore()
+
 
 class Controller(ubiquity.frontend.base.Controller):
     def translate(self, lang=None, just_me=True, not_me=False, reget=False):
@@ -150,50 +154,29 @@ class Controller(ubiquity.frontend.base.Controller):
         return self._wizard.get_string(name, lang, prefix)
 
     def setNextButtonTextInstallNow(self, checked):
-        self._wizard.ui.next.setText(self.get_string('install_button').replace('_', '&', 1))
+        self._wizard.ui.next.setText(
+            self.get_string('install_button').replace('_', '&', 1))
         self._wizard.ui.next.setIcon(self._wizard.applyIcon)
 
     def setNextButtonTextNext(self, checked):
-        self._wizard.ui.next.setText(self.get_string('next').replace('_', '&', 1))
+        self._wizard.ui.next.setText(
+            self.get_string('next').replace('_', '&', 1))
         self._wizard.ui.next.setIcon(self._wizard.forwardIcon)
 
-class Wizard(BaseFrontend):
 
+class Wizard(BaseFrontend):
     def __init__(self, distro):
         BaseFrontend.__init__(self, distro)
 
         self.previous_excepthook = sys.excepthook
         sys.excepthook = self.excepthook
 
-        appName     = "kubuntu-ubiquity"
-        catalog     = ""
-        programName = kdecore.ki18n ("Installer")
-        ver         = "1.0"
-        description = kdecore.ki18n ("Live CD Installer for Kubuntu")
-        rights      = kdecore.KAboutData.License_GPL
-        copy        = kdecore.ki18n ("(c) 2006 Canonical Ltd")
-        text        = kdecore.ki18n ("none")
-        homePage    = "http://wiki.kubuntu.org/KubuntuUbiquity"
-        bugEmail    = "jriddell@ubuntu.com"
+        self.app = QtGui.QApplication([])
+        with open(os.path.join(UIDIR, "style.qss")) as style:
+            self.app.setStyleSheet(style.read())
 
-        about = kdecore.KAboutData (appName, catalog, programName, ver, description,
-                            rights, copy, text, homePage, bugEmail)
-        about.addAuthor(kdecore.ki18n("Jonathan Riddell"), kdecore.KLocalizedString() ,"jriddell@ubuntu.com")
-        about.addAuthor(kdecore.ki18n("Roman Shtylman"), kdecore.KLocalizedString() ,"shtylman@gmail.com")
-        kdecore.KCmdLineArgs.init([""],about)
-
-        # KApplication won't initialise if real UID != effective UID.  On
-        # the other hand, we can't talk to D-Bus unless the effective user
-        # is the live CD user.  Oh dear.  The solution is to use saved IDs:
-        # if we hide our rootliness in the saved IDs, then neither
-        # KApplication nor D-Bus will spot it.
-        misc.drop_privileges_save()
-        try:
-            self.app = kdeui.KApplication()
-            self.app.setStyleSheet(file(os.path.join(UIDIR, "style.qss")).read())
-        finally:
-            misc.regain_privileges_save()
-
+        self.app.setWindowIcon(QtGui.QIcon(
+         "/usr/share/icons/hicolor/128x128/apps/ubiquity.png"))
         import dbus.mainloop.qt
         dbus.mainloop.qt.DBusQtMainLoop(set_as_default=True)
 
@@ -202,7 +185,8 @@ class Wizard(BaseFrontend):
         # handle smaller screens (old school eee pc
         if (QtGui.QApplication.desktop().screenGeometry().height() < 560):
             self.ui.main_frame.setFixedHeight(470)
-            self.ui.main_frame.setStyleSheet(file(os.path.join(UIDIR, "style_small.qss")).read())
+            with open(os.path.join(UIDIR, "style_small.qss")) as style:
+                self.ui.main_frame.setStyleSheet(style.read())
 
         # initially the steps widget is not visible
         # it becomes visible once the first step becomes active
@@ -212,7 +196,8 @@ class Wizard(BaseFrontend):
         if 'UBIQUITY_GREETER' in os.environ:
             self.ui.minimize_button.hide()
 
-        self.ui.setWindowState(self.ui.windowState() ^ QtCore.Qt.WindowFullScreen)
+        self.ui.setWindowState(
+            self.ui.windowState() ^ QtCore.Qt.WindowFullScreen)
 
         self.ui.setWizard(self)
         # self.ui.setWindowFlags(QtCore.Qt.Window |
@@ -242,7 +227,8 @@ class Wizard(BaseFrontend):
                         if not isinstance(widget_list, list):
                             widget_list = [widget_list]
                         for w in widget_list:
-                            if not w: continue
+                            if not w:
+                                continue
                             if not isinstance(w, str):
                                 # Until we ship with no pre-built pages, insert
                                 # at 'beginning'
@@ -254,16 +240,19 @@ class Wizard(BaseFrontend):
                     mod.widgets = fill_out(widgets)
                     mod.optional_widgets = fill_out(optional_widgets)
                     if not hasattr(mod.ui, 'plugin_breadcrumb'):
-                        breadcrumb = '------' # just a placeholder
+                        breadcrumb = '------'  # just a placeholder
                     if breadcrumb:
                         mod.breadcrumb_question = breadcrumb
                         mod.breadcrumb = SqueezeLabel.SqueezeLabel()
                         mod.breadcrumb.setObjectName(mod.breadcrumb_question)
-                        label_index = self.ui.steps_widget.layout().count() - 2 # Room for install crumb
-                        self.ui.steps_widget.layout().insertWidget(label_index, mod.breadcrumb)
+                        # Room for install crumb.
+                        label_index = self.ui.steps_widget.layout().count() - 2
+                        self.ui.steps_widget.layout().insertWidget(
+                            label_index, mod.breadcrumb)
                     else:
                         mod.breadcrumb_question = None
-                        mod.breadcrumb = None # page intentionally didn't want a label (intro)
+                        # Page intentionally didn't want a label (intro).
+                        mod.breadcrumb = None
                     self.pageslen += 1
                     self.pages.append(mod)
         self.user_pageslen = self.pageslen
@@ -309,9 +298,11 @@ class Wizard(BaseFrontend):
         self.socketNotifierRead = {}
         self.socketNotifierWrite = {}
         self.socketNotifierException = {}
-        self.debconf_callbacks = {}    # array to keep callback functions needed by debconf file descriptors
+        # Array to keep callback functions needed by debconf file descriptors.
+        self.debconf_callbacks = {}
 
-        self.ui.setWindowIcon(kdeui.KIcon("ubiquity"))
+        self.ui.setWindowIcon(QtGui.QIcon(
+         "/usr/share/icons/hicolor/128x128/apps/ubiquity.png"))
         self.allow_go_backward(False)
 
         if not 'UBIQUITY_AUTOMATIC' in os.environ:
@@ -326,7 +317,8 @@ class Wizard(BaseFrontend):
             self.ui.setWindowTitle(self.get_string('oem_config_title'))
         elif self.oem_user_config:
             self.ui.setWindowTitle(self.get_string('oem_user_config_title'))
-            self.ui.setWindowIcon(kdeui.KIcon("preferences-system"))
+            self.ui.setWindowIcon(QtGui.QIcon(
+          "/usr/share/icons/oxygen/128x128/categories/preferences-system.png"))
             flags = self.ui.windowFlags() ^ QtCore.Qt.WindowMinMaxButtonsHint
             if hasattr(QtCore.Qt, 'WindowCloseButtonHint'):
                 flags = flags ^ QtCore.Qt.WindowCloseButtonHint
@@ -336,16 +328,20 @@ class Wizard(BaseFrontend):
             self.ui.install_process_label.hide()
             self.ui.breadcrumb_install.hide()
 
-        self.forwardIcon = kdeui.KIcon("go-next")
+        self.forwardIcon = QtGui.QIcon(
+         "/usr/share/icons/oxygen/128x128/actions/go-next.png")
         self.ui.next.setIcon(self.forwardIcon)
 
         #Used for the last step
-        self.applyIcon = kdeui.KIcon("dialog-ok-apply")
+        self.applyIcon = QtGui.QIcon(
+         "/usr/share/icons/oxygen/128x128/actions/dialog-ok-apply.png")
 
-        backIcon = kdeui.KIcon("go-previous")
+        backIcon = QtGui.QIcon(
+         "/usr/share/icons/oxygen/128x128/actions/go-previous.png")
         self.ui.back.setIcon(backIcon)
 
-        quitIcon = kdeui.KIcon("dialog-close")
+        quitIcon = QtGui.QIcon(
+         "/usr/share/icons/oxygen/48x48/actions/dialog-close.png")
         self.ui.quit.setIcon(quitIcon)
 
         self.ui.progressBar.hide()
@@ -365,9 +361,9 @@ class Wizard(BaseFrontend):
                       "Exception in KDE frontend (invoking crash handler):")
         for line in tbtext.split('\n'):
             syslog.syslog(syslog.LOG_ERR, line)
-        print >>sys.stderr, ("Exception in KDE frontend"
-                             " (invoking crash handler):")
-        print >>sys.stderr, tbtext
+        print("Exception in KDE frontend (invoking crash handler):",
+              file=sys.stderr)
+        print(tbtext, file=sys.stderr)
 
         self.post_mortem(exctype, excvalue, exctb)
 
@@ -387,7 +383,8 @@ class Wizard(BaseFrontend):
             return
         QTimer.singleShot(300, self.check_returncode)
         self.timer = QTimer(self.ui)
-        self.timer.connect(self.timer, SIGNAL("timeout()"), self.check_returncode)
+        self.timer.connect(
+            self.timer, SIGNAL("timeout()"), self.check_returncode)
         self.timer.start(300)
 
     def check_returncode(self, *args):
@@ -441,35 +438,37 @@ class Wizard(BaseFrontend):
         self.set_current_page(0)
 
         while(self.pagesindex < self.pageslen):
-            if self.current_page == None:
+            if self.current_page is None:
                 break
 
             self.backup = False
-            if not self.pages[self.pagesindex].filter_class:
+            page = self.pages[self.pagesindex]
+            if not page.filter_class:
                 # This page is just a UI page
                 self.dbfilter = None
                 self.dbfilter_status = None
-                if self.set_page(self.pages[self.pagesindex].module.NAME):
+                if self.set_page(page.module.NAME):
                     self.allow_change_step(True)
                     self.app.exec_()
             else:
                 old_dbfilter = self.dbfilter
-                if issubclass(self.pages[self.pagesindex].filter_class, Plugin):
-                    ui = self.pages[self.pagesindex].ui
+                if issubclass(page.filter_class, Plugin):
+                    ui = page.ui
                 else:
                     ui = None
                 self.start_debconf()
-                self.dbfilter = self.pages[self.pagesindex].filter_class(self, ui=ui)
+                self.dbfilter = page.filter_class(self, ui=ui)
 
-                # Non-debconf steps are no longer possible as the interface is now
-                # driven by whether there is a question to ask.
+                # Non-debconf steps are no longer possible as the interface
+                # is now driven by whether there is a question to ask.
                 if self.dbfilter is not None and self.dbfilter != old_dbfilter:
                     self.allow_change_step(False)
-                    QtCore.QTimer.singleShot(0, lambda: self.dbfilter.start(auto_process=True))
+                    QtCore.QTimer.singleShot(
+                        0, lambda: self.dbfilter.start(auto_process=True))
 
-                self.pages[self.pagesindex].controller.dbfilter = self.dbfilter
+                page.controller.dbfilter = self.dbfilter
                 self.app.exec_()
-                self.pages[self.pagesindex].controller.dbfilter = None
+                page.controller.dbfilter = None
 
             if self.backup or self.dbfilter_handle_status():
                 if self.current_page is not None and not self.backup:
@@ -477,7 +476,8 @@ class Wizard(BaseFrontend):
                     if not self.stay_on_page:
                         self.pagesindex = self.pagesindex + 1
                     if 'UBIQUITY_AUTOMATIC' in os.environ:
-                        # if no debconf_progress, create another one, set start to pageindex
+                        # if no debconf_progress, create another one, set
+                        # start to pageindex
                         self.debconf_progress_step(1)
                         self.refresh()
                 if self.backup:
@@ -486,9 +486,9 @@ class Wizard(BaseFrontend):
             self.app.processEvents()
 
         if self.current_page is not None:
-            borderCSS = "border-width: 6px; border-image: " \
-                        "url(/usr/share/ubiquity/qt/images/label_border.png) " \
-                        "6px;"
+            borderCSS = (
+                "border-width: 6px; border-image: "
+                "url(/usr/share/ubiquity/qt/images/label_border.png) 6px;")
             currentSS = "%s color: %s; " % (borderCSS, "#0088aa")
             inactiveSS = "color: %s; " % "#b3b3b3"
             for page in self.pages:
@@ -511,18 +511,22 @@ class Wizard(BaseFrontend):
             elif not (self.get_reboot_seen() or self.get_shutdown_seen()):
                 if ('UBIQUITY_ONLY' in os.environ or
                     'UBIQUITY_GREETER' in os.environ):
-                    quitText = self.get_string('ubiquity/finished_restart_only')
-                quitText = quitText.replace('${RELEASE}', misc.get_release().name)
-                messageBox = QtGui.QMessageBox(QtGui.QMessageBox.Question, titleText,
-                                         quitText, QtGui.QMessageBox.NoButton,
-                                         self.ui)
-                messageBox.addButton(rebootButtonText, QtGui.QMessageBox.AcceptRole)
+                    quitText = self.get_string(
+                        'ubiquity/finished_restart_only')
+                quitText = quitText.replace(
+                    '${RELEASE}', misc.get_release().name)
+                messageBox = QtGui.QMessageBox(
+                    QtGui.QMessageBox.Question, titleText,
+                    quitText, QtGui.QMessageBox.NoButton, self.ui)
+                messageBox.addButton(
+                    rebootButtonText, QtGui.QMessageBox.AcceptRole)
                 if self.show_shutdown_button:
                     messageBox.addButton(shutdownButtonText,
                                          QtGui.QMessageBox.AcceptRole)
                 if ('UBIQUITY_ONLY' not in os.environ and
                     'UBIQUITY_GREETER' not in os.environ):
-                    messageBox.addButton(quitButtonText, QtGui.QMessageBox.RejectRole)
+                    messageBox.addButton(
+                        quitButtonText, QtGui.QMessageBox.RejectRole)
                 messageBox.setWindowFlags(messageBox.windowFlags() |
                                           QtCore.Qt.WindowStaysOnTopHint)
                 quitAnswer = messageBox.exec_()
@@ -540,21 +544,24 @@ class Wizard(BaseFrontend):
         slideshow_dir = '/usr/share/ubiquity-slideshow'
         slideshow_locale = self.slideshow_get_available_locale(slideshow_dir,
                                                                self.locale)
-        slideshow_main = slideshow_dir + '/slides/index.html'
+        slideshow_main = os.path.join(slideshow_dir, 'slides', 'index.html')
         if not os.path.exists(slideshow_main) or self.hide_slideshow:
             self.ui.pageMode.hide()
             return
 
-        slides = 'file://' + slideshow_main
-        if slideshow_locale != 'c': #slideshow will use default automatically
-            slides += '#?locale=' + slideshow_locale
-            ltr = i18n.get_string('default-ltr', slideshow_locale,
-                                  'ubiquity/imported')
-            if ltr == 'default:RTL':
-                slides += '?rtl'
+        parameters = []
+        parameters.append('locale=%s' % slideshow_locale)
+        ltr = i18n.get_string(
+            'default-ltr', slideshow_locale, 'ubiquity/imported')
+        if ltr == 'default:RTL':
+            parameters.append('rtl')
+        parameters_encoded = '&'.join(parameters)
+
+        slides = 'file://%s#%s' % (slideshow_main, parameters_encoded)
 
         from PyQt4.QtWebKit import QWebView
         from PyQt4.QtWebKit import QWebPage
+
         def openLink(qUrl):
             QtGui.QDesktopServices.openUrl(qUrl)
 
@@ -562,11 +569,11 @@ class Wizard(BaseFrontend):
         webView.linkClicked.connect(openLink)
         webView.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
         webView.page().setLinkDelegationPolicy(QWebPage.DelegateExternalLinks)
-        webView.page().mainFrame().setScrollBarPolicy(QtCore.Qt.Horizontal,
-                                                      QtCore.Qt.ScrollBarAlwaysOff)
-        webView.page().mainFrame().setScrollBarPolicy(QtCore.Qt.Vertical,
-                                                      QtCore.Qt.ScrollBarAlwaysOff)
-        webView.setFixedSize(700,420)
+        webView.page().mainFrame().setScrollBarPolicy(
+            QtCore.Qt.Horizontal, QtCore.Qt.ScrollBarAlwaysOff)
+        webView.page().mainFrame().setScrollBarPolicy(
+            QtCore.Qt.Vertical, QtCore.Qt.ScrollBarAlwaysOff)
+        webView.setFixedSize(700, 420)
         webView.load(QtCore.QUrl(slides))
 
         self.ui.pageMode.setCurrentIndex(1)
@@ -594,7 +601,8 @@ class Wizard(BaseFrontend):
         rv = reduce(recurse, parentWidget.children(), [parentWidget])
         return rv
 
-    def translate_pages(self, lang=None, just_current=True, not_current=False, reget=False):
+    def translate_pages(self, lang=None, just_current=True, not_current=False,
+                        reget=False):
         current_page = self.pages[self.pagesindex]
         if just_current:
             pages = [self.pages[self.pagesindex]]
@@ -624,9 +632,9 @@ class Wizard(BaseFrontend):
             if hasattr(p.ui, 'plugin_translate'):
                 try:
                     p.ui.plugin_translate(lang or self.locale)
-                except Exception, e:
-                    print >>sys.stderr, 'Could not translate page (%s): %s' \
-                                        % (p.module.NAME, str(e))
+                except Exception as e:
+                    print('Could not translate page (%s): %s' %
+                          (p.module.NAME, str(e)), file=sys.stderr)
 
     # translates widget text based on the object names
     # widgets is a list of (widget, prefix) pairs
@@ -641,7 +649,8 @@ class Wizard(BaseFrontend):
             widgets = [(x, None) for x in self.all_children()]
 
         if reget:
-            core_names = ['ubiquity/text/%s' % q for q in self.language_questions]
+            core_names = [
+                'ubiquity/text/%s' % q for q in self.language_questions]
             core_names.append('ubiquity/text/oem_config_title')
             core_names.append('ubiquity/text/oem_user_config_title')
             core_names.append('ubiquity/text/breadcrumb_install')
@@ -658,12 +667,16 @@ class Wizard(BaseFrontend):
                 if not prefix:
                     prefix = 'ubiquity/text'
                 if p.ui.get('plugin_is_language'):
-                    children = reduce(lambda x,y: x + self.all_children(y), p.widgets, [])
-                    core_names.extend([prefix+'/'+c.objectName() for c in children])
+                    children = reduce(
+                        lambda x, y: x + self.all_children(y), p.widgets, [])
+                    core_names.extend(
+                        [prefix + '/' + c.objectName() for c in children])
                 if p.breadcrumb_question:
                     core_names.append(p.breadcrumb_question)
                 prefixes.append(prefix)
-            i18n.get_translations(languages=languages, core_names=core_names, extra_prefixes=prefixes)
+            i18n.get_translations(
+                languages=languages, core_names=core_names,
+                extra_prefixes=prefixes)
 
         # We always translate always-visible widgets
         for q in self.language_questions:
@@ -671,7 +684,8 @@ class Wizard(BaseFrontend):
                 widgets.append((getattr(self.ui, q), None))
             elif q == 'live_installer':
                 widgets.append((self.ui, None))
-        widgets.extend([(x, None) for x in self.all_children(self.ui.steps_widget)])
+        widgets.extend(
+            [(x, None) for x in self.all_children(self.ui.steps_widget)])
 
         for w in widgets:
             self.translate_widget(w[0], lang=lang, prefix=w[1])
@@ -701,7 +715,8 @@ class Wizard(BaseFrontend):
 
         if isinstance(widget, QtGui.QLabel):
             if name == 'select_language_label' and self.oem_user_config:
-                text = self.get_string('select_language_oem_user_label', lang, prefix)
+                text = self.get_string(
+                    'select_language_oem_user_label', lang, prefix)
 
             if 'heading_label' in name:
                 widget.setText("<h2>" + text + "</h2>")
@@ -716,7 +731,8 @@ class Wizard(BaseFrontend):
         elif isinstance(widget, QtGui.QAbstractButton):
             widget.setText(text.replace('_', '&', 1))
 
-        elif isinstance(widget, QtGui.QWidget) and str(name) == "UbiquityUIBase":
+        elif (isinstance(widget, QtGui.QWidget) and
+              str(name) == "UbiquityUIBase"):
             if self.custom_title:
                 text = self.custom_title
             elif self.oem_config:
@@ -726,8 +742,8 @@ class Wizard(BaseFrontend):
             widget.setWindowTitle(text)
 
         else:
-            print "WARNING: unknown widget: " + name
-            print "Type: ", type(widget)
+            print("WARNING: unknown widget: " + name)
+            print("Type: ", type(widget))
 
     def allow_change_step(self, allowed):
         if allowed:
@@ -763,8 +779,9 @@ class Wizard(BaseFrontend):
                 'step again before continuing? If you do not, your '
                 'installation may fail entirely or may be broken.' %
                 (self.dbfilter_status[0], self.dbfilter_status[1]))
-        #FIXME QMessageBox seems to have lost the ability to set custom labels
-        # so for now we have to get by with these not-entirely meaningful stock labels
+        # FIXME QMessageBox seems to have lost the ability to set custom
+        # labels so for now we have to get by with these not-entirely
+        # meaningful stock labels
         answer = QtGui.QMessageBox.warning(self.ui,
                                      '%s crashed' % self.dbfilter_status[0],
                                      text, QtGui.QMessageBox.Retry,
@@ -798,7 +815,9 @@ class Wizard(BaseFrontend):
         self.run_automation_error_cmd()
         self.ui.show()
 
-        borderCSS = "border-width: 6px; border-image: url(/usr/share/ubiquity/qt/images/label_border.png) 6px;"
+        borderCSS = (
+            "border-width: 6px; border-image: "
+            "url(/usr/share/ubiquity/qt/images/label_border.png) 6px;")
         activeSS = "color: %s; " % "#666666"
         inactiveSS = "color: %s; " % "#b3b3b3"
         currentSS = "%s color: %s; " % (borderCSS, "#0088aa")
@@ -815,7 +834,7 @@ class Wizard(BaseFrontend):
                 if hasattr(page.ui, 'plugin_get_current_page'):
                     cur = page.ui.call('plugin_get_current_page')
                     if isinstance(cur, str) and hasattr(self.ui, cur):
-                        cur = getattr(self.ui, cur) # for not-yet-plugins
+                        cur = getattr(self.ui, cur)  # for not-yet-plugins
                 elif page.widgets:
                     cur = page.widgets[0]
                 if not cur:
@@ -871,14 +890,15 @@ class Wizard(BaseFrontend):
             self.on_steps_switch_page(current)
 
     def reboot(self, *args):
-        """reboot the system after installing process."""
+        """Reboot the system after installing."""
         self.returncode = 10
         self.quit()
-    def shutdown(self, *args):
-        """Shutdown the system after installing process."""
 
+    def shutdown(self, *args):
+        """Shutdown the system after installing."""
         self.returncode = 11
         self.quit()
+
     def do_reboot(self):
         """Callback for main program to actually reboot the machine."""
         try:
@@ -909,9 +929,8 @@ class Wizard(BaseFrontend):
         else:
             misc.execute_root('poweroff')
 
-
     def quit(self):
-        """quit installer cleanly."""
+        """Quit installer cleanly."""
         self.current_page = None
         if self.dbfilter is not None:
             self.dbfilter.cancel_handler()
@@ -919,8 +938,7 @@ class Wizard(BaseFrontend):
         self.app.exit()
 
     def quit_installer(self):
-        """quit installer cleanly."""
-
+        """Quit installer cleanly."""
         # exiting from application
         self.current_page = None
         if self.dbfilter is not None:
@@ -932,14 +950,18 @@ class Wizard(BaseFrontend):
         abortTitle = self.get_string("warning_dialog")
         yes = self.get_string('yes', prefix='ubiquity/imported')
         no = self.get_string('no', prefix='ubiquity/imported')
-        if yes and no:
-            yes = kdeui.KGuiItem(yes.replace('_', '&', 1))
-            no = kdeui.KGuiItem(no.replace('_', '&', 1))
-            args = (self.ui, abortTitle, warning_dialog_label, yes, no)
-        else:
-            args = (self.ui, abortTitle, warning_dialog_label)
-        response = kdeui.KMessageBox.questionYesNo(*args)
-        if response == kdeui.KMessageBox.Yes:
+        messageBox = QtGui.QMessageBox()
+        messageBox.setWindowTitle(abortTitle)
+        messageBox.setText(warning_dialog_label)
+        messageBox.setStandardButtons(QtGui.QMessageBox.Yes |
+                                                          QtGui.QMessageBox.No)
+        messageBox.setDefaultButton(QtGui.QMessageBox.Yes)
+        messageBox.button(QtGui.QMessageBox.Yes).setText(
+                                                      yes.replace('_', '&', 1))
+        messageBox.button(QtGui.QMessageBox.No).setText(
+                                                       no.replace('_', '&', 1))
+        response = messageBox.exec_()
+        if response == QtGui.QMessageBox.Yes:
             self.current_page = None
             self.quit()
             return True
@@ -1024,30 +1046,39 @@ class Wizard(BaseFrontend):
             self.ui.steps_widget.show()
             self.ui.navigation.show()
 
-    def watch_debconf_fd (self, from_debconf, process_input):
+    def watch_debconf_fd(self, from_debconf, process_input):
         if from_debconf in self.debconf_callbacks:
             self.watch_debconf_fd_helper_disconnect(from_debconf)
-        self.socketNotifierRead[from_debconf] = QtCore.QSocketNotifier(from_debconf, QtCore.QSocketNotifier.Read, self.app)
-        self.socketNotifierRead[from_debconf].activated[int].connect(self.watch_debconf_fd_helper_read)
+        self.socketNotifierRead[from_debconf] = QtCore.QSocketNotifier(
+            from_debconf, QtCore.QSocketNotifier.Read, self.app)
+        self.socketNotifierRead[from_debconf].activated[int].connect(
+            self.watch_debconf_fd_helper_read)
 
-        self.socketNotifierWrite[from_debconf] = QtCore.QSocketNotifier(from_debconf, QtCore.QSocketNotifier.Write, self.app)
-        self.socketNotifierWrite[from_debconf].activated[int].connect(self.watch_debconf_fd_helper_write)
+        self.socketNotifierWrite[from_debconf] = QtCore.QSocketNotifier(
+            from_debconf, QtCore.QSocketNotifier.Write, self.app)
+        self.socketNotifierWrite[from_debconf].activated[int].connect(
+            self.watch_debconf_fd_helper_write)
 
-        self.socketNotifierException[from_debconf] = QtCore.QSocketNotifier(from_debconf, QtCore.QSocketNotifier.Exception, self.app)
-        self.socketNotifierException[from_debconf].activated[int].connect(self.watch_debconf_fd_helper_exception)
+        self.socketNotifierException[from_debconf] = QtCore.QSocketNotifier(
+            from_debconf, QtCore.QSocketNotifier.Exception, self.app)
+        self.socketNotifierException[from_debconf].activated[int].connect(
+            self.watch_debconf_fd_helper_exception)
 
         self.debconf_callbacks[from_debconf] = process_input
 
-    def watch_debconf_fd_helper_disconnect (self, source):
+    def watch_debconf_fd_helper_disconnect(self, source):
         del self.debconf_callbacks[source]
-        self.socketNotifierRead[source].activated[int].disconnect(self.watch_debconf_fd_helper_read)
-        self.socketNotifierWrite[source].activated[int].disconnect(self.watch_debconf_fd_helper_write)
-        self.socketNotifierException[source].activated[int].disconnect(self.watch_debconf_fd_helper_exception)
+        self.socketNotifierRead[source].activated[int].disconnect(
+            self.watch_debconf_fd_helper_read)
+        self.socketNotifierWrite[source].activated[int].disconnect(
+            self.watch_debconf_fd_helper_write)
+        self.socketNotifierException[source].activated[int].disconnect(
+            self.watch_debconf_fd_helper_exception)
         del self.socketNotifierRead[source]
         del self.socketNotifierWrite[source]
         del self.socketNotifierException[source]
 
-    def watch_debconf_fd_helper_read (self, source):
+    def watch_debconf_fd_helper_read(self, source):
         debconf_condition = 0
         debconf_condition |= filteredcommand.DEBCONF_IO_IN
         callback = self.debconf_callbacks[source]
@@ -1073,7 +1104,8 @@ class Wizard(BaseFrontend):
             if callback == self.debconf_callbacks[source]:
                 self.watch_debconf_fd_helper_disconnect(source)
 
-    def debconf_progress_start (self, progress_min, progress_max, progress_title):
+    def debconf_progress_start(self, progress_min, progress_max,
+                               progress_title):
         self.progress_position.start(progress_min, progress_max,
                                      progress_title)
         self.debconf_progress_set(0)
@@ -1082,29 +1114,31 @@ class Wizard(BaseFrontend):
         self.ui.progressBar.setMaximum(total_steps)
         self.ui.progressBar.setFormat(progress_title + " %p%")
 
-    def debconf_progress_set (self, progress_val):
+    def debconf_progress_set(self, progress_val):
         self.progress_cancelled = self.progressDialog.wasCanceled()
         if self.progress_cancelled:
             return False
         self.progress_position.set(progress_val)
         fraction = self.progress_position.fraction()
 
-        self.ui.progressBar.setValue(int(fraction * self.ui.progressBar.maximum()))
+        self.ui.progressBar.setValue(
+            int(fraction * self.ui.progressBar.maximum()))
 
         return True
 
-    def debconf_progress_step (self, progress_inc):
+    def debconf_progress_step(self, progress_inc):
         self.progress_cancelled = self.progressDialog.wasCanceled()
         if self.progress_cancelled:
             return False
         self.progress_position.step(progress_inc)
         fraction = self.progress_position.fraction()
 
-        self.ui.progressBar.setValue(int(fraction * self.ui.progressBar.maximum()))
+        self.ui.progressBar.setValue(
+            int(fraction * self.ui.progressBar.maximum()))
 
         return True
 
-    def debconf_progress_info (self, progress_info):
+    def debconf_progress_info(self, progress_info):
         self.progress_cancelled = self.progressDialog.wasCanceled()
         if self.progress_cancelled:
             return False
@@ -1113,14 +1147,14 @@ class Wizard(BaseFrontend):
 
         return True
 
-    def debconf_progress_stop (self):
+    def debconf_progress_stop(self):
         self.progress_cancelled = False
         self.progress_position.stop()
 
-    def debconf_progress_region (self, region_start, region_end):
+    def debconf_progress_region(self, region_start, region_end):
         self.progress_position.set_region(region_start, region_end)
 
-    def debconf_progress_cancellable (self, cancellable):
+    def debconf_progress_cancellable(self, cancellable):
         if cancellable:
             self.progressDialog.setCancellable(True)
             self.ui.progressCancel.show()
@@ -1129,10 +1163,10 @@ class Wizard(BaseFrontend):
             self.progressDialog.setCancellable(False)
             self.progress_cancelled = False
 
-    #def on_progress_cancel_button_clicked (self, button):
+    #def on_progress_cancel_button_clicked(self, button):
     #    self.progress_cancelled = True
 
-    def debconffilter_done (self, dbfilter):
+    def debconffilter_done(self, dbfilter):
         # processing events here prevents GUI from hanging until mouse moves
         # (LP #556376)
         self.app.processEvents()
@@ -1204,11 +1238,11 @@ class Wizard(BaseFrontend):
             self.installing = False
             self.quit_main_loop()
 
-    def installation_medium_mounted (self, message):
+    def installation_medium_mounted(self, message):
         self.ui.part_advanced_warning_message.setText(message)
         self.ui.part_advanced_warning_hbox.show()
 
-    def return_to_partitioning (self):
+    def return_to_partitioning(self):
         """If the install progress bar is up but still at the partitioning
         stage, then errors can safely return us to partitioning.
         """
@@ -1222,10 +1256,12 @@ class Wizard(BaseFrontend):
                 if page.module.NAME == 'partman':
                     self.pagesindex = self.pages.index(page)
                     break
-            if self.pagesindex == -1: return
+            if self.pagesindex == -1:
+                return
             self.start_debconf()
             ui = self.pages[self.pagesindex].ui
-            self.dbfilter = self.pages[self.pagesindex].filter_class(self, ui=ui)
+            self.dbfilter = self.pages[self.pagesindex].filter_class(
+                self, ui=ui)
             self.allow_change_step(False)
             self.dbfilter.start(auto_process=True)
             self.ui.next.setText(self.get_string("next").replace('_', '&', 1))
@@ -1235,7 +1271,7 @@ class Wizard(BaseFrontend):
             self.ui.progressBar.hide()
             self.ui.quit.show()
 
-    def error_dialog (self, title, msg, fatal=True):
+    def error_dialog(self, title, msg, fatal=True):
         self.run_automation_error_cmd()
         # TODO cjwatson 2009-04-16: We need to call allow_change_step here
         # to get a normal cursor, but that also enables the Back/Forward
@@ -1248,7 +1284,7 @@ class Wizard(BaseFrontend):
         if fatal:
             self.return_to_partitioning()
 
-    def question_dialog (self, title, msg, options, use_templates=True):
+    def question_dialog(self, title, msg, options, use_templates=True):
         self.run_automation_error_cmd()
         # I doubt we'll ever need more than three buttons.
         assert len(options) <= 3, options
@@ -1269,12 +1305,14 @@ class Wizard(BaseFrontend):
             if text is None:
                 text = option
             text = text.replace("_", "&")
-            # Convention for options is to have the affirmative action last; KDE
-            # convention is to have it first.
+            # Convention for options is to have the affirmative action last;
+            # KDE convention is to have it first.
             if option == options[-1]:
-                button = messageBox.addButton(text, QtGui.QMessageBox.AcceptRole)
+                button = messageBox.addButton(
+                    text, QtGui.QMessageBox.AcceptRole)
             else:
-                button = messageBox.addButton(text, QtGui.QMessageBox.RejectRole)
+                button = messageBox.addButton(
+                    text, QtGui.QMessageBox.RejectRole)
             buttons[button] = option
 
         response = messageBox.exec_()
@@ -1285,18 +1323,18 @@ class Wizard(BaseFrontend):
         else:
             return buttons[messageBox.clickedButton()]
 
-    def refresh (self):
+    def refresh(self):
         self.app.processEvents()
 
     # Run the UI's main loop until it returns control to us.
-    def run_main_loop (self):
+    def run_main_loop(self):
         self.allow_change_step(True)
         self.mainLoopRunning = True
         while self.mainLoopRunning:  # nasty, but works OK
             self.app.processEvents(QtCore.QEventLoop.WaitForMoreEvents)
 
     # Return control to the next level up.
-    def quit_main_loop (self):
+    def quit_main_loop(self):
         self.mainLoopRunning = False
 
     # returns the current wizard page

@@ -4,6 +4,9 @@
 if [ "$1" = --print-os ]; then
     # TODO: hardcoded for now
     echo linux
+elif [ "$1" = -c ]; then
+    # udpkg -c has simpler output than dpkg -c.
+    dpkg --fsys-tarfile "$2" | tar t
 else
     exec dpkg "$@"
 fi

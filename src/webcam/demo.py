@@ -1,5 +1,8 @@
-#!/usr/bin/python
-import sys, os
+#!/usr/bin/python3
+
+import os
+import sys
+
 os.environ['GI_TYPELIB_PATH'] = './'
 from gi.repository import UbiquityWebcam, Gst, Gtk
 

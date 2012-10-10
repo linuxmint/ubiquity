@@ -1,307 +1,405 @@
-flash-kernel (2.28ubuntu42) precise; urgency=low
+flash-kernel (3.0~rc.4ubuntu26) quantal-proposed; urgency=low
 
-  * Add Calxeda highbank support to flash-kernel and flash-kernel-installer.
+  * make sure that /dev is bind mounted in /target when running
+    update-initramfs from flash-kernel-installer, else we do not find the boot
+    media (this is only a workaround for LP: #1056482 actual fixing of the
+    netinst environment is needed to fix this properly)
 
- -- dann frazier <dann.frazier@canonical.com>  Mon, 12 Mar 2012 22:18:47 -0600
+ -- Oliver Grawert <ogra@ubuntu.com>  Wed, 26 Sep 2012 15:27:06 +0200
 
-flash-kernel (2.28ubuntu41) precise; urgency=low
+flash-kernel (3.0~rc.4ubuntu25) quantal; urgency=low
 
-  * Fix for a potential no-mtd and no /etc/flash-kernel.conf issue on mx5.
-    Thanks to Tobin Davis for that fix.
+  * make sure we only rename the bootrom partition so udisks hides it,
+    when using mkdosfs for setting the label like we did in jasper (where
+    we cached the contents before doing this) MLO and u-boot.bin are gone
+    (LP: #1055938).
 
- -- Oliver Grawert <ogra@ubuntu.com>  Mon, 05 Mar 2012 17:41:22 +0100
+ -- Oliver Grawert <ogra@ubuntu.com>  Tue, 25 Sep 2012 10:31:32 +0200
 
-flash-kernel (2.28ubuntu40) precise; urgency=low
+flash-kernel (3.0~rc.4ubuntu24) quantal; urgency=low
 
-  * set defaults for UBOOT_PART on various OMAP4 platforms if it is not set,
-    thanks to Tobin Davis for that fix (LP: 626749)
+  * hide the boot device from udisk's automounting after installation
+    on all systems using uEnv.txt to configure u-boot
 
- -- Oliver Grawert <ogra@ubuntu.com>  Mon, 05 Mar 2012 14:41:03 +0100
+ -- Oliver Grawert <ogra@ubuntu.com>  Mon, 17 Sep 2012 14:25:37 +0200
 
-flash-kernel (2.28ubuntu39) precise; urgency=low
+flash-kernel (3.0~rc.4ubuntu23) quantal; urgency=low
 
-  * Change from Tobin Davis to define ArmadaXP as a non-flash device.
+  * initramfs-tools/hooks/flash_kernel_set_root:
+    - make sure that if we dont want to override the bootloader root= option by
+      setting "Bootloader-sets-root: yes", we actually dont do it
+    - Also check for FLASH_KERNEL_SKIP to avoid setting up the root parameter
+      in case flash-kernel will not be used
+    - this is a slightly different approach to fix bug (LP: #1034734) than the
+      patch attached to the bug.
 
- -- Adam Conrad <adconrad@ubuntu.com>  Tue, 31 Jan 2012 16:28:26 -0700
+ -- Oliver Grawert <ogra@ubuntu.com>  Thu, 13 Sep 2012 14:02:48 +0200
 
-flash-kernel (2.28ubuntu38) precise; urgency=low
+flash-kernel (3.0~rc.4ubuntu22) quantal; urgency=low
 
-  * Incorporate changes from Tobin Davis to enable support for the
-    armadaxp subarch used by the Marvell Armada XP Development Board
+  * do not move the original uEnvtxt.omap to the target, use a copy instead
+  * make /etc/default/flash-kernel a proper conffile
 
- -- Adam Conrad <adconrad@ubuntu.com>  Mon, 30 Jan 2012 11:56:25 -0700
+ -- Oliver Grawert <ogra@ubuntu.com>  Thu, 23 Aug 2012 11:49:01 +0200
 
-flash-kernel (2.28ubuntu37) precise; urgency=low
+flash-kernel (3.0~rc.4ubuntu21) quantal; urgency=low
 
-  * Add Freescale i.MX6 support.
-  * Add update dtb file (DeviceTree support) for i.MX*.
+  * switch omap3 and omap4 to uEnv.txt/preEnv.txt (the former holds all active
+    boot commands, the latter holds the kernel commandline only)
+  * enable generation of a /etc/default/flash-kernel file from
+    flash-kernel-installer holding a UBOOT_DEFAULTS variable with distro
+    default settings (ro quiet splash)
+  * enable UUID detection of the currently used root device
+  * if uEnv.txt is defined in the db for an arch, generate preEnv.txt from
+    UBOOT_DEFAULTS and UUID detection data
+  * switch omap3 and omap4 from Bootloader-sets-root: no to yes, we now
+    generate a root=UUID= line on the fly for arches using uEnv.txt/preEnv.txt
+  * introduce bootscript/uEnvtxt.omap
 
- -- Ying-Chun Liu <paul.liu@canonical.com>  Fri, 27 Jan 2012 13:17:13 +0000
+ -- Oliver Grawert <ogra@ubuntu.com>  Wed, 22 Aug 2012 21:56:09 +0200
 
-flash-kernel (2.28ubuntu36) precise; urgency=low
+flash-kernel (3.0~rc.4ubuntu20) quantal; urgency=low
 
-  * Transition OMAP3 to using the MLO provided from the u-boot package.
+  * seemingly -k all doesnt want to work with -c, use -k $(uname -r) for now
 
- -- Adam Conrad <adconrad@ubuntu.com>  Wed, 25 Jan 2012 22:22:38 -0700
+ -- Oliver Grawert <ogra@ubuntu.com>  Fri, 10 Aug 2012 18:29:34 +0200
 
-flash-kernel (2.28ubuntu35) precise; urgency=low
+flash-kernel (3.0~rc.4ubuntu19) quantal; urgency=low
 
-  * Build for armhf.
+  * flash-kernel-installer.postinst: now that we have a diversion in place
+    there isnt a pre-existing initrd, instead of calling update-initramfs -u
+    we better call update-initramfs -c -k all to create one from scratch,
+    fixes (LP: #1035269)
 
- -- Matthias Klose <doko@ubuntu.com>  Mon, 05 Dec 2011 15:33:56 +0100
+ -- Oliver Grawert <ogra@ubuntu.com>  Fri, 10 Aug 2012 17:49:00 +0200
 
-flash-kernel (2.28ubuntu34) oneiric; urgency=low
+flash-kernel (3.0~rc.4ubuntu18) quantal; urgency=low
 
-  * Avoid races between umount and rm of the mountpoint with umount -l
+  * make post-base-installer.d/01flash-kernel-diversion executable
 
- -- Adam Conrad <adconrad@ubuntu.com>  Wed, 28 Sep 2011 15:32:57 -0600
+ -- Oliver Grawert <ogra@ubuntu.com>  Thu, 09 Aug 2012 13:59:15 +0200
 
-flash-kernel (2.28ubuntu33) oneiric; urgency=low
+flash-kernel (3.0~rc.4ubuntu17) quantal; urgency=low
 
-  * Fix syntax error.
+  * sigh, not only drop the creation of /var/lib/flash-kernel/configured but
+    also the check for its existance, else we will always exit 0
 
- -- Evan Dandrea <ev@ubuntu.com>  Mon, 19 Sep 2011 19:29:19 +0100
+ -- Oliver Grawert <ogra@ubuntu.com>  Tue, 07 Aug 2012 20:03:20 +0200
 
-flash-kernel (2.28ubuntu32) oneiric; urgency=low
+flash-kernel (3.0~rc.4ubuntu16) quantal; urgency=low
 
-  * Install the actual OMAP3 x-loader package
+  * re-add a diversion for update-initramfs to live-installers
+    post-base-installer.d to avoid update-initramfs runs before
+    flash-kernel is configured
+  * re-add a check for the diverted update-initramfs to
+    flash-kernel-installer, so it gets reverted before we try to call
+    update-initramfs
+  * drop teh super ugly hack that added a /var/lib/flash-kernel/configured
+    file to actually check if flash-kernel is configured
 
- -- Michael Casadevall <mcasadevall@ubuntu.com>  Thu, 15 Sep 2011 23:19:04 -0700
+ -- Oliver Grawert <ogra@ubuntu.com>  Tue, 07 Aug 2012 19:52:51 +0200
 
-flash-kernel (2.28ubuntu31) oneiric; urgency=low
+flash-kernel (3.0~rc.4ubuntu15) quantal; urgency=low
 
-  * Make flash-kernel-installer properly install uboot on OMAP3 (LP: #820621)
+  * Fix armadaxp kernel load address (LP: #1026835).
 
- -- Michael Casadevall <mcasadevall@ubuntu.com>  Mon, 12 Sep 2011 14:59:31 -0700
+ -- Robie Basak <robie.basak@ubuntu.com>  Tue, 31 Jul 2012 16:31:30 +0100
 
-flash-kernel (2.28ubuntu30) oneiric; urgency=low
+flash-kernel (3.0~rc.4ubuntu14) quantal-proposed; urgency=low
 
-  * remove spurious development shellscript
-  * add /etc/initramfs/post-update.d/ script to move the flash-kernel call
-    out of update-initramfs
+  * better do the "configured" check in /var/lib
 
- -- Oliver Grawert <ogra@ubuntu.com>  Fri, 09 Sep 2011 12:07:06 +0200
+ -- Oliver Grawert <ogra@ubuntu.com>  Wed, 25 Jul 2012 18:03:18 +0200
 
-flash-kernel (2.28ubuntu29) oneiric; urgency=low
+flash-kernel (3.0~rc.4ubuntu13) quantal-proposed; urgency=low
 
-  * make sure flash-kernel-installer uses the right MLO when installing
+  * add very very ugly temporary workaround to make quantal A3 arm server
+    installs possible (yes, i suck)
 
- -- Oliver Grawert <ogra@ubuntu.com>  Tue, 30 Aug 2011 18:59:48 +0200
+ -- Oliver Grawert <ogra@ubuntu.com>  Wed, 25 Jul 2012 17:16:16 +0200
 
-flash-kernel (2.28ubuntu28) oneiric; urgency=low
+flash-kernel (3.0~rc.4ubuntu12) quantal; urgency=low
 
-  * add an /etc/kernel/postinst.d script to work around (LP: #701698)
-    and finally make upgrades to newer kernel versions work.
+  * remove the diversion code again, it doesnt help since
+    flash-kernel-installer.udeb only comes into play to late so the
+    post-base-installer.d file isnt available at live-installer time
 
- -- Oliver Grawert <ogra@ubuntu.com>  Fri, 15 Jul 2011 18:59:09 +0200
+ -- Oliver Grawert <ogra@ubuntu.com>  Wed, 25 Jul 2012 14:38:24 +0200
 
-flash-kernel (2.28ubuntu27) oneiric; urgency=low
+flash-kernel (3.0~rc.4ubuntu11) quantal; urgency=low
 
-  *  add Toshiba AC100 / Dynabook AZ support (requires abootimg)
+  * make post-base-installer.d/01flash-kernel-diversion actually an executable
+    shell script
 
- -- Oliver Grawert <ogra@ubuntu.com>  Thu, 14 Jul 2011 14:14:13 +0200
+ -- Oliver Grawert <ogra@ubuntu.com>  Tue, 24 Jul 2012 15:33:46 +0200
 
-flash-kernel (2.28ubuntu26) oneiric; urgency=low
+flash-kernel (3.0~rc.4ubuntu10) quantal; urgency=low
 
-  * Dropping appending the root to /etc/flash-kernel.conf as its not needed
+  * add a diversion for update-initramfs to live-installers
+    post-base-installer.d to avoid update-initramfs runs before
+    flash-kernel is configured
+  * add a check for the diverted update-initramfs to flash-kernel-installer,
+    so it gets reverted before we try to call update-initramfs
 
- -- Michael Casadevall <mcasadevall@ubuntu.com>  Thu, 30 Jun 2011 08:27:19 -0700
+ -- Oliver Grawert <ogra@ubuntu.com>  Tue, 24 Jul 2012 15:28:37 +0200
 
-flash-kernel (2.28ubuntu25) oneiric; urgency=low
+flash-kernel (3.0~rc.4ubuntu9) quantal; urgency=low
 
-  * Set the root partition for Panda
+  * Also add omap and omap4 to flash-kernel-installer.isinstallable.
 
- -- Michael Casadevall <mcasadevall@ubuntu.com>  Thu, 30 Jun 2011 06:15:22 -0700
+ -- Luke Yelavich <themuso@ubuntu.com>  Fri, 20 Jul 2012 11:42:33 +1000
 
-flash-kernel (2.28ubuntu24) oneiric; urgency=low
+flash-kernel (3.0~rc.4ubuntu8) quantal; urgency=low
 
-  * Build a *working* boot.scr for Panda
+  * debian/control: Re-add omap and omap4 to the flash-kernel-installer
+    XB-Subarchitecture field. These appear to have been lost somewhere along
+    the way.
 
- -- Michael Casadevall <mcasadevall@ubuntu.com>  Thu, 30 Jun 2011 06:08:39 -0700
+ -- Luke Yelavich <themuso@ubuntu.com>  Fri, 20 Jul 2012 11:39:08 +1000
 
-flash-kernel (2.28ubuntu23) oneiric; urgency=low
+flash-kernel (3.0~rc.4ubuntu7) quantal; urgency=low
 
-  * Extend f-k-i to properly write out the create the boot script
-  * Make flash-kernel --update-bootloader on OMAP also install a kernel+ramdisk
-  * Correctly handle a lack of boot.scr on the boot partition
-  * Properly unmount the FAT partition after bootloader update
+  * make sure the call to abootimg -i does not make the script fail (checking
+    non bootimg devices makes it return 1 even though there is no error, this
+    in turn makes teh whole script fail since we run with "set -e")
 
- -- Michael Casadevall <mcasadevall@ubuntu.com>  Wed, 29 Jun 2011 04:31:41 -0700
+ -- Oliver Grawert <ogra@ubuntu.com>  Tue, 17 Jul 2012 13:20:43 +0200
 
-flash-kernel (2.28ubuntu22) oneiric; urgency=low
+flash-kernel (3.0~rc.4ubuntu6) quantal; urgency=low
 
-  * Add omap4 to the subarchitecture list for the udeb
+  * add DB entry for "OMAP3 Beagle Board" (funnily thats missing)
+  * add Panda to the list of supported board in the README file
 
- -- Michael Casadevall <mcasadevall@ubuntu.com>  Mon, 27 Jun 2011 08:28:58 -0700
+ -- Oliver Grawert <ogra@ubuntu.com>  Fri, 06 Jul 2012 15:59:48 +0200
 
-flash-kernel (2.28ubuntu21) oneiric; urgency=low
+flash-kernel (3.0~rc.4ubuntu5) quantal; urgency=low
 
-  * Add flash-kernel-installer support for OMAP4
-  * Revert last upload due to brokeness
+  * use umount -l in the cleanup function, else we fail while finishing up
+    with the script (LP: #1014139)
 
- -- Michael Casadevall <mcasadevall@ubuntu.com>  Mon, 27 Jun 2011 10:39:24 +0000
+ -- Oliver Grawert <ogra@ubuntu.com>  Thu, 05 Jul 2012 19:43:02 +0200
 
-flash-kernel (2.28ubuntu20) natty-proposed; urgency=low
+flash-kernel (3.0~rc.4ubuntu4) quantal; urgency=low
 
-  * Omit the check_subarch check for OMAP boards if linaro kernels are in use
-    (LP: #721147)
+  * also add FLASH_KERNEL_SKIP to the initramfs post update script, this
+    should finally fix ac100 image building
 
- -- Oliver Grawert <ogra@ubuntu.com>  Fri, 20 May 2011 15:53:30 +0200
+ -- Oliver Grawert <ogra@ubuntu.com>  Fri, 22 Jun 2012 11:20:39 +0200
 
-flash-kernel (2.28ubuntu19) natty; urgency=low
+flash-kernel (3.0~rc.4ubuntu3) quantal; urgency=low
 
-  * IMX: Replace imx5 subarch with mx5; matches upstream kernel more closely
-    and seems to be what Debian will be using.  It's easier to do the change
-    now, before there is any in archive kernel with the "imx5" subarch name.
-  * IMX: Use proper location for boot.script ($TMPMOUNT rather than /boot);
-    it wasn't possible to use this functionality with the incorrect directory.
+  * re-add support for the FLASH_KERNEL_SKIP env variable, so the image build
+    infrastructure has a chance to skip the automated flash-kernel run during
+    image builds.
 
- -- Ying-Chun Liu (PaulLiu) <paul.liu@linaro.org>  Fri, 15 Apr 2011 15:11:40 +0800
+ -- Oliver Grawert <ogra@ubuntu.com>  Wed, 20 Jun 2012 16:41:28 +0200
 
-flash-kernel (2.28ubuntu18) natty; urgency=low
+flash-kernel (3.0~rc.4ubuntu2) quantal; urgency=low
 
-  * match omap4 hardware on "OMAP4 Panda board" as well (LP: #744862)
+  * add "quiet splash" as default options to omap bootscr
 
- -- Oliver Grawert <ogra@ubuntu.com>  Wed, 30 Mar 2011 11:55:56 +0200
+ -- Oliver Grawert <ogra@ubuntu.com>  Wed, 20 Jun 2012 16:25:31 +0200
 
-flash-kernel (2.28ubuntu17) natty; urgency=low
+flash-kernel (3.0~rc.4ubuntu1) quantal; urgency=low
 
-  * IMX51: transition from redboot -> uboot
-  * IMX53: Add imx53 loco board support
+  [ dann frazier ]
+  * Re-add support for Marvell ArmadaXP
 
- -- Ying-Chun Liu (PaulLiu) <paul.liu@linaro.org>  Tue, 08 Mar 2011 02:53:43 +0800
+  [ Robie Basak ]
+  * Add support for Calxeda Highbank
 
-flash-kernel (2.28ubuntu16) natty; urgency=low
+ -- Robie Basak <robie.basak@ubuntu.com>  Thu, 31 May 2012 10:09:53 +0100
 
-  * Don't check any subarch for the EfikaMX case, install whatever kernel is
-    apt-get install-ed; we can't get to a consensus on how to solve this
-    cleanly, so at least this will allow installation for people who know what
-    they are doing; LP: #671027.
+flash-kernel (3.0~rc.4) unstable; urgency=low
 
- -- Loïc Minier <loic.minier@ubuntu.com>  Mon, 07 Mar 2011 12:15:26 +0100
+  * Upload to unstable 
 
-flash-kernel (2.28ubuntu15) natty; urgency=low
+ -- Hector Oron <zumbi@debian.org>  Sun, 11 Mar 2012 14:51:15 +0000
 
-  * Fix tabs vs. spaces.
-  * Uncomment check_subarch call for EfikaMX and replace "$running_subarch"
-    with "mx51" which seems more consistent and is similar to other boards;
-    see LP #671027.
-  * efikamx_flash_kernel(): remove $tmp.
+flash-kernel (3.0~rc.3) experimental; urgency=low
 
- -- Loïc Minier <loic.minier@linaro.org>  Mon, 28 Feb 2011 16:10:02 +0100
+  [ Hector Oron ]
+  * Replace uboot-mkimage by u-boot-tools.
 
-flash-kernel (2.28ubuntu14) natty; urgency=low
- 
-  [ Marcin Juszkiewicz ]
-  * Add Efika MX Smartbook/Smarttop support based on work done by Genesi.
-    (LP: #671027)
+  [ Loïc Minier ]
+  * Remove executable on database file.
+  * Following changes thanks to Steve McIntyre:
+    - Fix breakage when Boot-Device isn't set.
+    - db: Fix kernel load address for DB-78x00-BP.
+    - db: Add support for MX53 LOCO Board.
+  * Also replace uboot-mkimage with u-boot-tools in db; closes: #607614.
 
- -- Oliver Grawert <ogra@ubuntu.com>  Thu, 17 Feb 2011 16:01:42 +0100
+ -- Loïc Minier <lool@debian.org>  Sat, 10 Mar 2012 01:17:09 +0100
 
-flash-kernel (2.28ubuntu13) natty; urgency=low
+flash-kernel (3.0~rc.2) experimental; urgency=low
 
-  * Add --update-bootloader argument which triggers updating x-loader
-    and u-boot files. The only supported boards for now are IGEPv2,
-    Beagle and Panda.
+  * New kernel and initramfs hooks, new logic: flash-kernel always installs
+    the latest version according to linux-version and ignores other calls.
+    - Fixes installation of new kernel ABIs; closes: #550584.
+    - NEWS, man page: document new behavior.
+    - flash-kernel depends on linux-base >= 3.2 for linux-version.
+  * Add support for triggers; see #550584 for discussion.
+  * Misc syntax fixes / cleanups / refactoring; tweak output.
+    - Fix some bogus messages in error conditions.
+    - Refactor flash-kernel-installer and initramfs-tools hook to use shared
+      function and database.
+    - Split code and testsuite out.
+  * Toshiba AC100 / Android handling; thanks to Julian Andres Klode for his
+    input (and patience :-)
+    - abootimg would now be installed via flash-kernel-installer.
+    - set default root= in initrd.
+    - drop Android-Boot-Config hurts more than it helps
+    - don't try checking for a specific size; instead let abootimg handle size
+      checks for us; size checks were meant to identify the largest partition,
+      instead just scan all partitions from MMC and chose the largest one.
+  * Add OMAP4 Pandaboard support.
+  * Split out database in its own file under /usr/share/flash-kernel/db/;
+    document format in README.
+  * Drop Extra-Cmdline used in EfikaMX boot scripts; instead rely on initrd to
+    set root= (as for other boards).
+  * Drop accidental support for Thecus N4100 in f-k-i.
 
- -- Jani Monoses <jani@ubuntu.com>  Wed, 26 Jan 2011 14:10:17 +0200
+ -- Loïc Minier <lool@debian.org>  Thu, 10 Nov 2011 23:59:24 +0100
 
-flash-kernel (2.28ubuntu12) natty; urgency=low
+flash-kernel (3.0~rc.1) experimental; urgency=low
 
-  * Update to final package name for mkimage: u-boot-tools.
+  [ Loïc Minier ]
+  * Bump Standards-Version to 3.9.2.
+  * Add a testsuite and run it during build; change code a bit to be more
+    easily tested.
+  * Start reworking flash-kernel to be more data-driven.
+    - Keep some machine data in a small embedded RFC 2822 style database; such
+      as allowed kernel flavors, machine id to set before booting Linux,
+      MTD names, U-Boot load addresses, /boot filenames etc.
+    - Simplify code in the main "case" statement as much as possible by using
+      functions for common code and splitting error handling, initialization,
+      and sanity checks out.
+    - Various syntax tweaks.
+  * Only allow iop32x kernels on GLAN Tank.
+  * Fix Lintian warnings.
+    - Quote minus signs in man page.
+    - Depend on ${misc:Depends}.
+  * Add myself to Uploaders at tbm's proposal.
+  * Add myself to flash-kernel's Copyright and to debian/copyright; thanks
+    Martin Michlmayr.
 
- -- Loïc Minier <loic.minier@linaro.org>  Sat, 08 Jan 2011 12:33:59 +0100
+  [ Hector Oron ]
+  * Add armhf to architecture list (Closes: #620888)
+    - add mx5 as armhf subarchitecture
+  * Add myself to Uploaders field.
+  * Add preliminary mv78xx0 support. (Closes: #594878)
+  * Add build dependency on devio, needed to run test-suite.
+  * Upgrade major version to 3.0~rc.1
+  * Add support for Genesi Efika MX nettops and smarttops. (Closes: #612376)
+  * Add preliminary U-Boot script support (Closes: #626434)
 
-flash-kernel (2.28ubuntu11) natty; urgency=low
+  [ Julian Andres Klode ]
+  * Support for Toshiba AC100 (Closes: #631396)
 
-  * mkimage moved from the uboot-mkimage to the u-boot package:
-    - update control to suggest u-boot | uboot-mkimage.
-    - update flash-kernel-installer.postinst to use a common function to
-      install mkimage and try installing u-boot in-target first.
+  [ Martin Michlmayr ]
+  * Remove myself from the Uploaders field.
 
- -- Loïc Minier <loic.minier@linaro.org>  Mon, 20 Dec 2010 10:47:49 +0100
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * German (de.po) by Holger Wansing
+  * Esperanto (eo.po) by Felipe Castro
+  * Basque (eu.po)
+  * Hebrew (he.po) by Lior Kaplan
+  * Italian (it.po) by Milo Casagrande
+  * Korean (ko.po) by Changwoo Ryu
+  * Macedonian (mk.po) by Arangel Angov
+  * Romanian (ro.po) by Eddy Petrișor
+  * Sinhala (si.po) by Danishka Navin
+  * Slovak (sk.po) by Ivan Masár
+  * Swedish (sv.po) by Daniel Nylander
+  * Uyghur (ug.po) by Sahran
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
 
-flash-kernel (2.28ubuntu10) maverick; urgency=low
+ -- Hector Oron <zumbi@debian.org>  Wed, 24 Aug 2011 12:47:34 +0100
 
-  * merge versatile espress support from Matt Waddel <matt.waddel@linaro.org>
-    to close (LP: #646141)
+flash-kernel (2.39) unstable; urgency=low
 
- -- Oliver Grawert <ogra@ubuntu.com>  Fri, 24 Sep 2010 13:44:19 +0200
+  * Add support for Buffalo Linkstation LiveV3 (LS-CHL).  Closes: #612167
+  * Add support for Buffalo Linkstation Mini (LS-WSGL).
 
-flash-kernel (2.28ubuntu9) maverick; urgency=low
+ -- Martin Michlmayr <tbm@cyrius.com>  Wed, 02 Mar 2011 17:56:22 +0000
 
-  * merge Loïcs patch from bug 645659 to add IGEP2 support (not autoclosing
-    that yet since jasper-initramfs fix is also pending)
+flash-kernel (2.38) unstable; urgency=low
 
- -- Oliver Grawert <ogra@ubuntu.com>  Thu, 23 Sep 2010 10:49:08 +0200
+  [ Updated translations ]
+  * Lao (lo.po) by Anousak Souphavanh
 
-flash-kernel (2.28ubuntu8) maverick; urgency=low
+ -- Otavio Salvador <otavio@ossystems.com.br>  Fri, 24 Dec 2010 21:19:58 -0200
 
-  * Drop Vcs-Bzr; I've moved this to the package-import branch.
+flash-kernel (2.37) unstable; urgency=low
 
- -- Loïc Minier <loic.minier@ubuntu.com>  Thu, 26 Aug 2010 16:43:26 +0200
+  * Don't set a default root device when the specified root device
+    does not exist.
 
-flash-kernel (2.28ubuntu7) maverick; urgency=low
+  [ Updated translations ]
+  * si (si.po) by Danishka Navin
 
-  * chmod +x flash-kernel in the source package, as in Debian.
-  * Don't try to make backup of uImage or uInitrd if they don't exist (i.e.
-    flash-kernel gets installed into the chroot, but the udeb logic never
-    ran).
+ -- Martin Michlmayr <tbm@cyrius.com>  Thu, 18 Nov 2010 17:03:33 +0000
 
- -- Loïc Minier <loic.minier@linaro.org>  Thu, 26 Aug 2010 16:02:44 +0200
+flash-kernel (2.36) unstable; urgency=low
 
-flash-kernel (2.28ubuntu6) maverick; urgency=low
+  [ Updated translations ]
+  * Bengali (bn.po) by Israt Jahan
 
-  * skip flash-kernel with exit 0 if FLASH_KERNEL_SKIP env is set; in turn
-    make --supported fail with exit 1 if FLASH_KERNEL_SKIP is set (LP: #623276)
+ -- Otavio Salvador <otavio@debian.org>  Fri, 12 Nov 2010 15:41:17 -0200
 
- -- Alexander Sack <asac@linaro.org>  Tue, 24 Aug 2010 12:58:10 +0200
+flash-kernel (2.35) unstable; urgency=low
 
-flash-kernel (2.28ubuntu5) maverick; urgency=low
+  * Add support for "GTA02" (Neo FreeRunner).  Patch from Thibaut Girka.
+    Closes: #593235
 
-  * changes to omap_flash_kernel()
-    - add quotes around ${UBOOT_PART} -n test 
-    - use $kfile and $ifile instead of hardcoded /boot/vmlinuz and /boot/initrd.img 
+ -- Martin Michlmayr <tbm@cyrius.com>  Fri, 05 Nov 2010 13:28:03 +0000
 
- -- John Rigby <john.rigby@linaro.org>  Wed, 04 Aug 2010 19:58:39 -0600
+flash-kernel (2.34) unstable; urgency=low
 
-flash-kernel (2.28ubuntu4) maverick; urgency=medium
+  * Rebuild without .svn directories.  Closes: #601318
 
-  * Implement generic subarchitecture support (LP: #607723)
-  * Implement initial OMAP4 installation support
-  * Add OMAP4 Blaze Board to whitelists
+ -- Martin Michlmayr <tbm@cyrius.com>  Mon, 25 Oct 2010 14:56:55 +0100
 
- -- Michael Casadevall <mcasadevall@ubuntu.com>  Tue, 20 Jul 2010 09:48:01 +0000
+flash-kernel (2.33) unstable; urgency=medium
 
-flash-kernel (2.28ubuntu3) maverick; urgency=low
+  * Add support for Seagate FreeAgent DockStar.
+  * Remove obsolete information about the kernel postinst hook from the
+    README file.
+  * Fix insecure usage of temporary files.  Discovered and patched by
+    Loïc Minier, thanks!
 
-  * use /boot/boot.script if it exists as input for boot.scr on OMAP
+ -- Martin Michlmayr <tbm@cyrius.com>  Tue, 19 Oct 2010 19:33:26 +0100
 
- -- Oliver Grawert <ogra@ubuntu.com>  Fri, 09 Jul 2010 14:08:17 +0200
+flash-kernel (2.32) unstable; urgency=low
 
-flash-kernel (2.28ubuntu2) maverick; urgency=low
+  [ Updated translations ]
+  * Belarusian (be.po) by Viktar Siarheichyk
+  * Persian (fa.po) by acathur
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Central Khmer (km.po) by Khoem Sokhem
+  * Kurdish (ku.po) by Erdal Ronahi
+  * Macedonian (mk.po) by Arangel Angov
 
-  * add support for OMAP4 pandaboard
+ -- Otavio Salvador <otavio@debian.org>  Sun, 11 Jul 2010 17:47:41 -0300
 
- -- Oliver Grawert <ogra@ubuntu.com>  Thu, 08 Jul 2010 18:33:06 +0200
+flash-kernel (2.31) unstable; urgency=low
 
-flash-kernel (2.28ubuntu1) maverick; urgency=low
+  * Add support for the HP t5325 Thin Client.
 
-  * Merge from debian unstable.  Remaining changes:
-    - Use XS-Debian-Vcs-Svn instead of commenting Vcs-Svn out
-    - Add Suggests: on redboot-tools for the fis command.
-    - Add Suggests: on uboot-envtools for fw_setenv command
-    - Implement support for OMAP3 Beagle Board
-    - Implement support for Marvell dove board
-    - Implement support for Freescale MX51 Babbage Board
-    - Add above architectures to README file
-    - Change descriptions from Debian kernel/initramfs to Ubuntu kernel/initramfs
-    - Create /target/etc/flash-kernel.conf from flash-kernel-installer.postinst
-    - Source /etc/flash-kernel.conf if present.
-    - Detect UUID of /target and set proper cmdline upon install
-    - Adjust versioned initramfs-tools dependency to ubuntu version
+ -- Martin Michlmayr <tbm@cyrius.com>  Sat, 19 Jun 2010 13:12:44 +0100
 
- -- Oliver Grawert <ogra@ubuntu.com>  Wed, 06 May 2010 14:34:14 +0200
+flash-kernel (2.30) unstable; urgency=low
+
+  * Add support for OpenRD-Ultimate.
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Sat, 19 Jun 2010 11:02:44 +0100
+
+flash-kernel (2.29) unstable; urgency=low
+
+  * Add support for the GuruPlug.
+
+ -- Martin Michlmayr <tbm@cyrius.com>  Mon, 24 May 2010 13:56:57 +0100
 
 flash-kernel (2.28) unstable; urgency=low
 
@@ -447,168 +545,6 @@ flash-kernel (2.14) unstable; urgency=low
   * Malayalam (ml.po) by Praveen Arimbrathodiyil
 
  -- Martin Michlmayr <tbm@cyrius.com>  Sun, 08 Mar 2009 22:03:02 +0100
-
-flash-kernel (2.13ubuntu17) lucid; urgency=low
-
-  * add "fixrtc" option to default cmdline for OMAP3 Beagle, this fixes the
-    fsck issues on this board which has no rtc battery by setting the clock to
-    the last mount time of the disk during boot.
-
- -- Oliver Grawert <ogra@ubuntu.com>  Sat, 24 Apr 2010 09:46:10 +0200
-
-flash-kernel (2.13ubuntu16) lucid; urgency=low
-
-  * move uboot-envtools to a suggests, having it on the images will be handled
-    via seeding
-
- -- Oliver Grawert <ogra@ubuntu.com>  Fri, 16 Apr 2010 11:37:35 +0200
-
-flash-kernel (2.13ubuntu15) lucid; urgency=low
-
-  * add support for OMAP3 Beagle Board NAND flashing to flash-kernel
-  * add default setup for beagle uboot NAND booting to flash-kernel-installer
-  * add dependency on uboot-envtools for fw_setenv command
-  * add omap to supported subarch in flash-kernel-installer.isinstallable and
-    debian/control
-
- -- Oliver Grawert <ogra@ubuntu.com>  Thu, 15 Apr 2010 14:03:27 +0200
-
-flash-kernel (2.13ubuntu14) lucid; urgency=low
-
-  * rebuild rest of main for armel armv7/thumb2 optimization;
-    UbuntuSpec:mobile-lucid-arm-gcc-v7-thumb2
-
- -- Alexander Sack <asac@ubuntu.com>  Fri, 05 Mar 2010 04:15:09 +0100
-
-flash-kernel (2.13ubuntu13) karmic; urgency=low
-
-  * Drop hardcoded mem= arg on Dove; LP: #435151.
-
- -- Loïc Minier <loic.minier@ubuntu.com>  Mon, 19 Oct 2009 14:42:52 +0200
-
-flash-kernel (2.13ubuntu12) karmic; urgency=low
-
-  [ Michael Casadevall ]
-  * Misc updates and bug fixes to Dove implementation (LP: #430344)
-    - Update kernel cmdline to include splash, quiet, and ro, and to drop
-      console=tty0 since it is the default.
-    - Update boot script to remove partition scanning in boot script in order
-      to increase boot speed; try to obtain fs/interface/deveice/prefix from
-      caller and limit scan to the first two usb and ide partitions.
-    - Add a test to prevent booting of old images in memory.
-
- -- Loïc Minier <loic.minier@ubuntu.com>  Tue, 06 Oct 2009 00:16:15 +0200
-
-flash-kernel (2.13ubuntu11) karmic; urgency=low
-
-  [ Loïc Minier ]
-  * Use XS-Debian-Vcs-Svn instead of commenting Vcs-Svn out; thanks
-    Colin Watson.
-
-  [ Oliver Grawert ]
-  * drop video= option from cmdline in flash-kernel-installer.postinst,
-    we should not need it anymore
-
- -- Oliver Grawert <ogra@ubuntu.com>  Wed, 21 Sep 2009 08:48:26 +0200
-
-flash-kernel (2.13ubuntu10) karmic; urgency=low
-
-  [ Loïc Minier ]
-  * Replace Vcs-Svn with Vcs-Bzr in control.
-
-  [ Michael Casadevall ]
-  * Change descriptions from Debian kernel/initramfs to Ubuntu kernel/initramfs
-  * Added support for dove (LP: #409238)
-  * Added imx51 to subarchitecture line in control file
-
-  [ Loïc Minier ]
-  * Misc fixes to dove support.
-
- -- Loïc Minier <loic.minier@ubuntu.com>  Wed, 16 Sep 2009 00:14:54 +0200
-
-flash-kernel (2.13ubuntu9) karmic; urgency=low
-
-  * add video=mxcfb:1024x768@60 to default cmdline options for babbage boards
-    in flash-kernel-installer.postinst else the mxcfb driver will not display
-    anything.
-  * default to use splash on imx51 babbage systems
-
- -- Oliver Grawert <ogra@ubuntu.com>  Sat, 29 Aug 2009 11:42:10 +0200
-
-flash-kernel (2.13ubuntu8) karmic; urgency=low
-
-  * Use block-attr from di-utils 1.68.
-
- -- Colin Watson <cjwatson@ubuntu.com>  Tue, 12 May 2009 17:33:02 +0100
-
-flash-kernel (2.13ubuntu7) jaunty; urgency=low
-
-  * anna-install redboot-tools-udeb in flash-kernel-installer.postinst to
-    ensure the udeb is installed.
-  * flash-kernel-installer.postinst: for MX51 Babbage call update-initramfs at
-    the end of the install.
-
- -- Loic Minier <lool@dooz.org>  Tue, 14 Apr 2009 11:24:22 +0200
-
-flash-kernel (2.13ubuntu6) jaunty; urgency=low
-
-  * add checks for kernel and initramfs fis partitions
-  * allow more flexibility in naming kernel and initramfs fis partitions
-  * add final newline to exec redboot command, so we dont produce garbage in
-    serial terminal output
-  * quieten down teh fconfig write of the script
-
- -- Oliver Grawert <ogra@ubuntu.com>  Wed, 08 Apr 2009 14:40:28 +0200
-
-flash-kernel (2.13ubuntu5) jaunty; urgency=low
-
-  * add support for Freescale MX51 Babbage Board to
-    flash-kernel-installer.postinst (LP: #345534)
-  * create /target/etc/flash-kernel.conf from flash-kernel-installer.postinst
-    (LP: #352260)
-  * detect UUID  of /target and set proper cmdline upon install with
-    flash-kernel-installer.postinst
-
- -- Oliver Grawert <ogra@ubuntu.com>  Tue, 31 Mar 2009 20:47:01 +0200
-
-flash-kernel (2.13ubuntu4) jaunty; urgency=low
-
-  * Used named signals for "trap".
-  * Source /etc/flash-kernel.conf if present.
-  * Babbage: rename $dev to $fis_dev.
-  * Babbage: don't hardcode $fis_dev, $fis_offset_hex, and $fis_size_hex but
-    read them from /etc/flash-kernel.conf instead.
-
- -- Loic Minier <lool@dooz.org>  Tue, 31 Mar 2009 17:45:02 +0200
-
-flash-kernel (2.13ubuntu3) jaunty; urgency=low
-
-  * flash-kernel: fix generation of padded initramfs for imx51.
-    - Generate a padded initramfs file; this is needed as just doing the
-      padding on the initrd data will let the "fis" command write a datalength
-      equal to the real initramfs length instead of using the length of the
-      initramfs partition (which is the length we want to pass to RedBoot in
-      exec -s).
-    - Add a cleanup mechanism via "trap"; cleanup the padded initramfs file.
-    - Remove previous hacks.
-
- -- Loic Minier <lool@dooz.org>  Tue, 31 Mar 2009 17:07:07 +0200
-
-flash-kernel (2.13ubuntu2) jaunty; urgency=low
-
-  * flash-kernel: Move Freescale MX51 Babbage Board around to be in its
-    alphabetical place.
-  * flash-kernel-installer.isinstallable, .postinst: mark imx51 as installable
-    and just run "update-initramfs -u" to install for now.
-
- -- Loic Minier <lool@dooz.org>  Tue, 31 Mar 2009 11:19:22 +0200
-
-flash-kernel (2.13ubuntu1) jaunty; urgency=low
-
-  * flash-kernel: add support for Freescale MX51 Babbage Board; depend on
-    redboot-tools for the fis command.
-
- -- Loic Minier <lool@dooz.org>  Tue, 31 Mar 2009 11:09:10 +0200
 
 flash-kernel (2.13) unstable; urgency=high
 

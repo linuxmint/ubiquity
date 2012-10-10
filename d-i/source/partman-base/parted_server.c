@@ -609,10 +609,16 @@ set_disk_named(const char *name, PedDisk *disk)
                         ped_disk_set_flag(disk, PED_DISK_CYLINDER_ALIGNMENT,
                                           devices[index].alignment ==
                                                 ALIGNMENT_CYLINDER);
-                else
+                else if (0 != strcmp(disk->type->name, "gpt"))
                         /* If the PED_DISK_CYLINDER_ALIGNMENT flag isn't
-                           available, then (confusingly) we should assume
-                           that *only* cylinder alignment is available. */
+                           available, then there are two alternatives:
+                           either the disk label format is too old to know
+                           about modern alignment (#579948), or it's too new
+                           to care about cylinder alignment (#674894).  The
+                           only format currently known to fall into the
+                           latter category is GPT; for the others, we should
+                           assume that *only* cylinder alignment is
+                           available. */
                         devices[index].alignment = ALIGNMENT_CYLINDER;
         }
 }

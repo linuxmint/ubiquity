@@ -22,6 +22,7 @@ import os
 
 from ubiquity.filteredcommand import FilteredCommand
 
+
 class Install(FilteredCommand):
     def prepare(self, unfiltered=False):
         automatic_mode = 'UBIQUITY_AUTOMATIC' in os.environ
@@ -47,7 +48,6 @@ class Install(FilteredCommand):
         self.preseed('netcfg/dhcp_ntp_servers', '', seen=False)
 
         questions = ['^.*/apt-install-failed$',
-                     'migration-assistant/failed-unmount',
                      'ubiquity/install/copying_error/md5',
                      'ubiquity/install/new-bootdev',
                      'CAPB',
@@ -77,17 +77,6 @@ class Install(FilteredCommand):
     def run(self, priority, question):
         if question.endswith('/apt-install-failed'):
             return self.error(priority, question)
-
-        elif question == 'migration-assistant/failed-unmount':
-            response = self.frontend.question_dialog(
-                self.description(question),
-                self.extended_description(question),
-                ('ubiquity/text/go_back', 'ubiquity/text/continue'))
-            if response is None or response == 'ubiquity/text/continue':
-                self.preseed(question, 'true')
-            else:
-                self.preseed(question, 'false')
-            return True
 
         elif question == 'ubiquity/install/new-bootdev':
             current_device = self.db.get(question)

@@ -1,12 +1,15 @@
+from __future__ import print_function
+
 import sys
 
 from PyQt4.QtCore import Qt
 from PyQt4.QtGui import QLabel, QHBoxLayout, QPixmap, QFrame, QPalette
 
+
 class StateBox(QFrame):
     def __init__(self, parent, text=''):
         QFrame.__init__(self, parent)
-        self.setFrameStyle(QFrame.StyledPanel|QFrame.Sunken)
+        self.setFrameStyle(QFrame.StyledPanel | QFrame.Sunken)
         self.setAutoFillBackground(True)
         palette = self.palette()
         palette.setColor(QPalette.Window, Qt.white)
@@ -14,7 +17,8 @@ class StateBox(QFrame):
         layout = QHBoxLayout(self)
         self.setLayout(layout)
         self.image = QLabel(self)
-        self.image.setPixmap(QPixmap("/usr/share/icons/oxygen/32x32/actions/dialog-ok.png"))
+        self.image.setPixmap(QPixmap(
+            "/usr/share/icons/oxygen/32x32/actions/dialog-ok.png"))
         layout.addWidget(self.image)
         self.label = QLabel(text, self)
         layout.addWidget(self.label)
@@ -24,9 +28,11 @@ class StateBox(QFrame):
     def set_state(self, state):
         self.status = state
         if state:
-            self.image.setPixmap(QPixmap("/usr/share/icons/oxygen/32x32/actions/dialog-ok.png"))
+            self.image.setPixmap(QPixmap(
+                "/usr/share/icons/oxygen/32x32/actions/dialog-ok.png"))
         else:
-            self.image.setPixmap(QPixmap("/usr/share/icons/oxygen/32x32/actions/dialog-cancel.png"))
+            self.image.setPixmap(QPixmap(
+                "/usr/share/icons/oxygen/32x32/actions/dialog-cancel.png"))
 
     def get_state(self):
         return self.status
@@ -35,4 +41,5 @@ class StateBox(QFrame):
         if prop == "label":
             self.label.setText(value)
         else:
-            print >>sys.stderr, "qtwidgets.StateBox set_property() only implemented for label"
+            print("qtwidgets.StateBox set_property() only implemented for "
+                  "label", file=sys.stderr)

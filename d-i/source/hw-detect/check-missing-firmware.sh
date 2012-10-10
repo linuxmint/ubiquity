@@ -23,9 +23,9 @@ get_module () {
 	local devpath=$1
 
 	if [ -d $devpath/driver ]; then
-		# The realpath of the destination of the driver/module
+		# The real path of the destination of the driver/module
 		# symlink should be something like "/sys/module/e100"
-		basename $(realpath $devpath/driver/module) || true
+		basename $(readlink -f $devpath/driver/module) || true
 	elif [ -e $devpath/modalias ]; then
 		modalias="$(cat $devpath/modalias)"
 		# Take the last module returned by modprobe
@@ -184,14 +184,14 @@ ask_load_firmware () {
 }
 
 list_deb_firmware () {
-	ar p "$1" data.tar.gz | tar zt \
+	udpkg -c "$1" \
 		| grep '^\./lib/firmware/' \
 		| sed -e 's!^\./lib/firmware/!!' \
 		| grep -v '^$'
 }
 
 check_deb_arch () {
-	arch=$(ar p "$1" control.tar.gz | tar zxO ./control | grep '^Architecture:' | sed -e 's/Architecture: *//')
+	arch=$(udpkg -f "$1" | grep '^Architecture:' | sed -e 's/Architecture: *//')
 	[ "$arch" = all ] || [ "$arch" = "$(udpkg --print-architecture)" ]
 }
 

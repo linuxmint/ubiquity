@@ -1,11 +1,13 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8; -*-
 
+from __future__ import print_function
+
 import os
-from test import test_support
 import unittest
 
 import mock
+
 
 class TestFrontend(unittest.TestCase):
     def setUp(self):
@@ -40,13 +42,13 @@ class TestFrontend(unittest.TestCase):
         ui = gtk_ui.Wizard('test-ubiquity')
         with mock.patch('gi.repository.Gtk.Dialog.run') as run:
             run.return_value = 0
-            ret = ui.question_dialog(title=u'♥', msg=u'♥',
-                                     options=(u'♥', u'£'))
-            self.assertEqual(ret, u'£')
+            ret = ui.question_dialog(title='♥', msg='♥',
+                                     options=('♥', '£'))
+            self.assertEqual(ret, '£')
             run.return_value = 1
-            ret = ui.question_dialog(title=u'♥', msg=u'♥',
-                                     options=(u'♥', u'£'))
-            self.assertEqual(ret, u'♥')
+            ret = ui.question_dialog(title='♥', msg='♥',
+                                     options=('♥', '£'))
+            self.assertEqual(ret, '♥')
 
     # TODO: I'm not entirely sure this makes sense, but the numbers are
     # currently rather unstable and seem to depend quite a lot on the theme.
@@ -56,23 +58,25 @@ class TestFrontend(unittest.TestCase):
                      'only testable against a build tree')
     def test_pages_fit_on_a_netbook(self):
         from ubiquity.frontend import gtk_ui
-        with test_support.EnvironmentVarGuard() as env:
-            env['UBIQUITY_MIGRATION_ASSISTANT'] = '1'
-            ui = gtk_ui.Wizard('test-ubiquity')
-            ui.translate_pages()
-            for page in ui.pages:
-                ui.set_page(page.module.NAME)
-                ui.refresh()
-                ui.refresh()
-                if 'UBIQUITY_TEST_SHOW_ALL_PAGES' in os.environ:
-                    print(page.module.NAME)
-                    import time
-                    time.sleep(3)
-                alloc = ui.live_installer.get_allocation()
-                self.assertLessEqual(alloc.width, 640)
-                self.assertLessEqual(alloc.height, 500)
-                if page.module.NAME == 'partman':
-                    ui.allow_change_step(False)
+        ui = gtk_ui.Wizard('test-ubiquity')
+        ui.translate_pages()
+        for page in ui.pages:
+            ui.set_page(page.module.NAME)
+            ui.refresh()
+            ui.refresh()
+            if 'UBIQUITY_TEST_SHOW_ALL_PAGES' in os.environ:
+                print(page.module.NAME)
+                import time
+                time.sleep(3)
+            alloc = ui.live_installer.get_allocation()
+            # width 640, because it is a common small 4:3 width
+            # height 556, because e.g. HP Mini has 580 - 24px (indicators)
+            # Anything smaller will need to use Alt+Ctrl+Pgd/Right
+            # Scrollbars anyone?
+            self.assertLessEqual(alloc.width, 640, page.module.NAME)
+            self.assertLessEqual(alloc.height, 556, page.module.NAME)
+            if page.module.NAME == 'partman':
+                ui.allow_change_step(False)
 
     def test_interface_translated(self):
         import subprocess
@@ -82,7 +86,7 @@ class TestFrontend(unittest.TestCase):
         missing_translations = []
         with mock.patch.object(ui, 'translate_widget') as translate_widget:
             def side_effect(widget, lang=None, prefix=None):
-                label  = isinstance(widget, Gtk.Label)
+                label = isinstance(widget, Gtk.Label)
                 button = isinstance(widget, Gtk.Button)
                 # We have some checkbuttons without labels.
                 button = button and widget.get_label()
@@ -99,10 +103,11 @@ class TestFrontend(unittest.TestCase):
             whitelist = [
                 # These are calculated and set as the partitioning options are
                 # being calculated.
-                'reuse_partition_desc', 'reuse_partition_title',
-                'replace_partition_desc', 'replace_partition_title',
-                'resize_use_free_desc', 'resize_use_free_title',
-                'use_device_desc', 'use_device_title', 'part_ask_heading',
+                'reuse_partition_desc', 'reuse_partition',
+                'replace_partition_desc', 'replace_partition',
+                'resize_use_free_desc', 'resize_use_free',
+                'use_device_desc', 'use_device', 'part_ask_heading',
+                'custom_partitioning_desc', 'custom_partitioning',
                 # Pulled straight from debconf when the installation medium is
                 # already mounted.
                 'part_advanced_warning_message',
@@ -117,10 +122,13 @@ class TestFrontend(unittest.TestCase):
                 # Pages define a debconf template to look up and use as the
                 # title. If it is not set or not found, the title is hidden.
                 'page_title',
+                # To be calculated and set
+                'partition_lvm_status',
                 ]
             deb_host_arch = subprocess.Popen(
                 ['dpkg-architecture', '-qDEB_HOST_ARCH'],
-                stdout=subprocess.PIPE).communicate()[0].strip()
+                stdout=subprocess.PIPE,
+                universal_newlines=True).communicate()[0].strip()
             if deb_host_arch not in ('amd64', 'i386'):
                 # grub-installer not available, but this template won't be
                 # displayed anyway.

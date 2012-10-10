@@ -2,13 +2,15 @@
 
 from PyQt4 import QtGui
 
+
 class ProgressDialog(QtGui.QDialog):
-    def __init__(self, min, max, parent = None):
+    def __init__(self, min, max, parent=None):
         QtGui.QDialog.__init__(self, parent)
 
-        #self.setWindowFlags(Qt.SplashScreen | Qt.FramelessWindowHint)
-        #self.setWindowFlags(Qt.SplashScreen | Qt.WindowStaysOnTopHint | Qt.WindowTitleHint)
-        #self.setWindowFlags(Qt.WindowTitleHint | Qt.WindowCloseButtonHint)
+        # self.setWindowFlags(Qt.SplashScreen | Qt.FramelessWindowHint)
+        # self.setWindowFlags(
+        #     Qt.SplashScreen | Qt.WindowStaysOnTopHint | Qt.WindowTitleHint)
+        # self.setWindowFlags(Qt.WindowTitleHint | Qt.WindowCloseButtonHint)
 
         self.progressLabel = QtGui.QLabel()
 
@@ -21,7 +23,7 @@ class ProgressDialog(QtGui.QDialog):
 
         progressWidget = QtGui.QWidget()
         progressWidget.setLayout(QtGui.QHBoxLayout())
-        progressWidget.layout().setContentsMargins(0,0,0,0)
+        progressWidget.layout().setContentsMargins(0, 0, 0, 0)
         progressWidget.layout().addWidget(self.progressBar)
         progressWidget.layout().addWidget(self.cancelButton)
 
@@ -29,7 +31,7 @@ class ProgressDialog(QtGui.QDialog):
         self.extraFrame.setFrameStyle(QtGui.QFrame.StyledPanel)
         self.extraFrame.setFrameShadow(QtGui.QFrame.Sunken)
         self.extraFrame.setLayout(QtGui.QVBoxLayout())
-        self.extraFrame.layout().setContentsMargins(0,0,0,0)
+        self.extraFrame.layout().setContentsMargins(0, 0, 0, 0)
         self.extraFrame.setVisible(False)
 
         self.setLayout(QtGui.QVBoxLayout())

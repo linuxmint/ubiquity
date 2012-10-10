@@ -69,3 +69,122 @@ Default: true
 Description: for internal use; can be preseeded
  Will configure APT in the target system not to install recommened
  packages by default. For experienced users only.
+
+Template: base-installer/initramfs/generator
+Type: select
+# :sl3:
+Choices: ${GENERATORS}
+_Description: Tool to use to generate boot initrd:
+ The list shows the available tools. If you are unsure which to select,
+ you should select the default. If your system fails to boot, you can
+ retry the installation using the other options.
+
+Template: base-installer/initramfs/unsupported
+Type: error
+# :sl3:
+_Description: Unsupported initrd generator
+ The package ${GENERATOR} that was selected to generate the
+ initrd is not supported.
+
+Template: base-installer/initramfs-tools/driver-policy
+Type: select
+Choices-C: most, dep
+# :sl3:
+__Choices: generic: include all available drivers, targeted: only include drivers needed for this system
+# :sl3:
+_Description: Drivers to include in the initrd:
+ The primary function of an initrd is to allow the kernel to mount the
+ root file system. It therefore needs to contain all drivers and supporting
+ programs required to do that.
+ .
+ A generic initrd is much larger than a targeted one and may even be so
+ large that some boot loaders are unable to load it but has the advantage that
+ it can be used to boot the target system on almost any hardware. With the
+ smaller targeted initrd there is a very small chance that not all needed
+ drivers are included.
+
+Template: base-installer/kernel/failed-install
+Type: error
+# :sl2:
+_Description: Unable to install the selected kernel
+ An error was returned while trying to install the kernel into the
+ target system.
+ .
+ Kernel package: '${KERNEL}'.
+ .
+ Check /var/log/syslog or see virtual console 4 for the details.
+
+Template: base-installer/kernel/image
+Type: select
+# :sl2:
+#flag:translate!:1
+# For base-installer, "none" is an additional choice to a list of kernels.
+# It means "no kernel"
+__Choices: ${KERNELS}, none[ Do not translate what's inside the brackets and just put the translation for the word "none" in your language without any brackets. This "none" means "no kernel" ]
+# :sl2:
+_Description: Kernel to install:
+ The list shows the available kernels. Please choose one of them in order
+ to make the system bootable from the hard drive.
+
+Template: base-installer/kernel/altmeta
+Type: text
+Description: for internal use; can be preseeded
+ Optional postfix for kernel meta packages; can be used for example to
+ support installation of an updated kernel for stable.
+ Don't include the leading hyphen: it will be prepended in the code.
+
+Template: base-installer/kernel/skip-install
+Type: boolean
+Default: false
+# :sl2:
+_Description: Continue without installing a kernel?
+ No installable kernel was found in the defined APT sources.
+ .
+ You may try to continue without a kernel, and manually install your own
+ kernel later. This is only recommended for experts, otherwise you will
+ likely end up with a machine that doesn't boot.
+
+Template: base-installer/kernel/no-kernels-found
+Type: error
+# :sl2:
+_Description: Cannot install kernel
+ The installer cannot find a suitable kernel package to install. 
+
+Template: base-installer/kernel/failed-package-install
+Type: error
+# :sl2:
+_Description: Unable to install ${PACKAGE}
+ An error was returned while trying to install the ${PACKAGE} package
+ onto the target system.
+ .
+ Check /var/log/syslog or see virtual console 4 for the details.
+
+Template: base-installer/section/pick_kernel
+Type: text
+# :sl1:
+_Description: Selecting the kernel to install...
+
+Template: base-installer/section/install_linux
+Type: text
+# :sl1:
+_Description: Installing the kernel...
+
+Template: base-installer/section/install_kernel_package
+Type: text
+# :sl1:
+# SUBST0 is a package name
+_Description: Installing the kernel - retrieving and installing ${SUBST0}...
+
+Template: base-installer/kernel/headers
+Type: boolean
+Default: true
+Description: for internal use; can be preseeded
+ Install kernel headers along with the kernel.
+
+Template: base-installer/kernel/backports-modules
+Type: string
+Description: for internal use; can be preseeded
+ Install kernel backports modules along with the kernel.  For example,
+ setting this to "nouveau wireless" will install
+ linux-backports-modules-nouveau-$DISTRIBUTION-$FLAVOUR and
+ linux-backports-modules-wireless-$DISTRIBUTION-$FLAVOUR.

@@ -1,0 +1,31 @@
+#!/bin/sh
+
+. /usr/share/debconf/confmodule
+
+set -e
+
+dev=$1
+id=$2
+part=$dev/$id
+
+cd $dev
+
+choice_crypto_type () {
+	desc="none"
+	if [ -f $part/crypto_type ]; then
+		type=$(cat $part/crypto_type)
+		db_metaget partman-crypto/crypto_type/$type description || RET=$type
+		desc="$RET"
+	fi
+
+	db_metaget partman-crypto/text/specify_crypto_type description
+	printf "crypto_type\t%s\${!TAB}%s\n" "$RET" "$desc"
+}
+
+[ -f $part/method ] || exit 0
+
+method=$(cat $part/method)
+if [ $method = crypto ]; then
+	choice_crypto_type
+fi
+

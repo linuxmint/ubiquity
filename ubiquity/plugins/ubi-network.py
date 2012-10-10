@@ -23,11 +23,14 @@ NAME = 'network'
 AFTER = 'usersetup'
 WEIGHT = 12
 
+
 class NetworkUnfilteredOnly(Exception):
     pass
 
+
 class PageDebconf(plugin.PluginUI):
     plugin_title = 'ubiquity/text/network_heading_label'
+
 
 # Only supports unfiltered mode.
 class Page(plugin.Plugin):

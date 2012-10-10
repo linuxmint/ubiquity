@@ -52,7 +52,18 @@ for part in $partitions; do
 		done
 		for x in "$tmp/usr/"* "$tmp/var/"*; do
 			case "$x" in
-				$tmp/usr/local|$tmp/usr/src|$tmp/var/local)
+				$tmp/usr/local|$tmp/usr/src|$tmp/var/lib|$tmp/var/local)
+				continue
+				;;
+			esac
+			[ -e "$x" ] && (rm -rf "$x" &&
+			logger -t clear_partitions "Removing ${x#$tmp/} from / ($path)." ||
+			failed)
+		done
+		for x in "$tmp/var/lib/"*; do
+			case "$x" in
+			    $tmp/var/lib/mysql|$tmp/var/lib/mythtv)
+				# Databases
 				continue
 				;;
 			esac

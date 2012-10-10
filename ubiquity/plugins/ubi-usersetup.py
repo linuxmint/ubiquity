@@ -24,6 +24,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+from __future__ import print_function
+
 import os
 import re
 
@@ -33,9 +35,11 @@ from ubiquity import validation
 from ubiquity import misc
 from ubiquity import plugin
 
+
 NAME = 'usersetup'
 AFTER = 'console_setup'
 WEIGHT = 10
+
 
 def check_hostname(hostname):
     """Returns a list of reasons why the hostname is invalid."""
@@ -51,6 +55,7 @@ def check_hostname(hostname):
             errors.append('hostname_error_baddots')
     return errors
 
+
 def check_username(username):
     """Returns a list of reasons why the username is invalid."""
     if username:
@@ -64,9 +69,11 @@ def check_username(username):
             return ['username_error_badchar']
     return []
 
+
 def make_error_string(controller, errors):
     """Returns a newline-separated string of translated error reasons."""
     return "\n".join([controller.get_string(error) for error in errors])
+
 
 class PageBase(plugin.PluginUI):
     def __init__(self):
@@ -153,8 +160,10 @@ class PageBase(plugin.PluginUI):
     def set_allow_password_empty(self, empty):
         self.allow_password_empty = empty
 
+
 class PageGtk(PageBase):
     plugin_title = 'ubiquity/text/userinfo_heading_label'
+
     def __init__(self, controller, *args, **kwargs):
         from gi.repository import Gio, Gtk
 
@@ -169,7 +178,8 @@ class PageGtk(PageBase):
 
         builder = Gtk.Builder()
         self.controller.add_builder(builder)
-        builder.add_from_file(os.path.join(os.environ['UBIQUITY_GLADE'], 'stepUserInfo.ui'))
+        builder.add_from_file(os.path.join(
+            os.environ['UBIQUITY_GLADE'], 'stepUserInfo.ui'))
         builder.connect_signals(self)
         self.page = builder.get_object('stepUserInfo')
         self.username = builder.get_object('username')
@@ -195,9 +205,11 @@ class PageGtk(PageBase):
         # moving as elements appear and disappear, specifically the full name
         # okay check icon and the hostname error messages.
         paddingbox = builder.get_object('paddingbox')
+
         def func(box):
             box.get_parent().child_set_property(box, 'expand', False)
             box.set_size_request(box.get_allocation().width / 2, -1)
+
         paddingbox.connect('realize', func)
 
         # Some signals need to be connected by hand so that we have the
@@ -292,10 +304,10 @@ class PageGtk(PageBase):
         self.password_error_label.set_markup(m)
         self.password_error_label.show()
 
-    def get_hostname (self):
+    def get_hostname(self):
         return self.hostname.get_text()
 
-    def set_hostname (self, value):
+    def set_hostname(self, value):
         self.hostname.set_text(value)
 
     def clear_errors(self):
@@ -318,7 +330,7 @@ class PageGtk(PageBase):
             self.username.handler_block(self.username_changed_id)
             new_username = misc.utf8(widget.get_text().split(' ')[0])
             new_username = new_username.encode('ascii', 'ascii_transliterate')
-            new_username = new_username.lower()
+            new_username = new_username.decode().lower()
             new_username = re.sub('^[^a-z]+', '', new_username)
             new_username = re.sub('[^-a-z0-9_]', '', new_username)
             self.username.set_text(new_username)
@@ -355,36 +367,17 @@ class PageGtk(PageBase):
             self.username_error_label.hide()
             complete = False
 
-        passw = self.password.get_text()
-        vpassw = self.verified_password.get_text()
-        allow_empty = self.allow_password_empty
-        if passw != vpassw:
-            complete = False
-            self.password_ok.hide()
-            if passw and (len(vpassw) / float(len(passw)) > 0.8):
-                # TODO Cache, use a custom string.
-                txt = self.controller.get_string('ubiquity/text/password_mismatch')
-                txt = '<small><span foreground="darkred"><b>%s</b></span></small>' % txt
-                self.password_error_label.set_markup(txt)
-                self.password_error_label.show()
-        else:
-            self.password_error_label.hide()
+        password_ok = validation.gtk_password_validate(
+            self.controller,
+            self.password,
+            self.verified_password,
+            self.password_ok,
+            self.password_error_label,
+            self.password_strength,
+            self.allow_password_empty,
+            )
 
-        if allow_empty:
-            self.password_strength.hide()
-        elif not passw:
-            self.password_strength.hide()
-            complete = False
-        else:
-            (txt, color) = validation.human_password_strength(passw)
-            # TODO Cache
-            txt = self.controller.get_string('ubiquity/text/password/' + txt)
-            txt = '<small><span foreground="%s"><b>%s</b></span></small>' \
-                  % (color, txt)
-            self.password_strength.set_markup(txt)
-            self.password_strength.show()
-            if passw == vpassw:
-                self.password_ok.show()
+        complete = complete and password_ok
 
         txt = self.hostname.get_text()
         self.hostname_ok.show()
@@ -430,13 +423,13 @@ class PageGtk(PageBase):
             self.hostname_ok.hide()
 
     def hostname_timeout(self, widget):
-        if self.hostname_ok.get_property('visible') and self.resolver_ok :
+        if self.hostname_ok.get_property('visible') and self.resolver_ok:
             hostname = widget.get_text()
             for host in (hostname, '%s.local' % hostname):
                 self.resolver.lookup_by_name_async(
                     host, None, self.lookup_result, None)
 
-    def detect_bogus_result(self, hostname = 'xyzzy_does_not_exist'):
+    def detect_bogus_result(self, hostname='xyzzy_does_not_exist'):
         # bug 760884
         # On networks where DNS fakes a response for unknown hosts,
         # don't display a warning for hostnames that already exist.
@@ -460,6 +453,7 @@ class PageGtk(PageBase):
             # when checking encrypted home?
             self.login_pass.set_active(True)
 
+
 class PageKde(PageBase):
     plugin_breadcrumb = 'ubiquity/text/breadcrumb_user'
 
@@ -468,9 +462,10 @@ class PageKde(PageBase):
         self.controller = controller
 
         from PyQt4 import uic
-        from PyKDE4.kdeui import KIconLoader
+        from PyQt4.QtGui import QPixmap
 
-        self.plugin_widgets = uic.loadUi('/usr/share/ubiquity/qt/stepUserSetup.ui')
+        self.plugin_widgets = uic.loadUi(
+            '/usr/share/ubiquity/qt/stepUserSetup.ui')
         self.page = self.plugin_widgets
 
         self.username_edited = False
@@ -494,8 +489,8 @@ class PageKde(PageBase):
             # The UserSetup component takes care of preseeding passwd/user-uid.
             misc.execute_root('apt-install', 'oem-config-kde')
 
-        iconLoader = KIconLoader()
-        warningIcon = iconLoader.loadIcon("dialog-warning", KIconLoader.Desktop)
+        warningIcon = QPixmap(
+                     "/usr/share/icons/oxygen/48x48/status/dialog-warning.png")
         self.page.fullname_error_image.setPixmap(warningIcon)
         self.page.username_error_image.setPixmap(warningIcon)
         self.page.password_error_image.setPixmap(warningIcon)
@@ -507,16 +502,19 @@ class PageKde(PageBase):
         self.page.username.textChanged[str].connect(self.on_username_changed)
         self.page.hostname.textChanged[str].connect(self.on_hostname_changed)
         #self.page.password.textChanged[str].connect(self.on_password_changed)
-        #self.page.verified_password.textChanged[str].connect(self.on_verified_password_changed)
+        #self.page.verified_password.textChanged[str].connect(
+        #    self.on_verified_password_changed)
 
-        self.page.password_debug_warning_label.setVisible('UBIQUITY_DEBUG' in os.environ)
+        self.page.password_debug_warning_label.setVisible(
+            'UBIQUITY_DEBUG' in os.environ)
 
     def on_fullname_changed(self):
         # If the user did not manually enter a username create one for him.
         if not self.username_edited:
             self.page.username.blockSignals(True)
-            new_username = unicode(self.page.fullname.text()).split(' ')[0]
-            new_username = new_username.encode('ascii', 'ascii_transliterate').lower()
+            new_username = str(self.page.fullname.text()).split(' ')[0]
+            new_username = new_username.encode('ascii', 'ascii_transliterate')
+            new_username = new_username.decode().lower()
             self.page.username.setText(new_username)
             self.on_username_changed()
             self.username_edited = False
@@ -525,7 +523,8 @@ class PageKde(PageBase):
     def on_username_changed(self):
         if not self.hostname_edited:
             self.page.hostname.blockSignals(True)
-            self.page.hostname.setText(unicode(self.page.username.text()).strip() + self.suffix)
+            self.page.hostname.setText(
+                str(self.page.username.text()).strip() + self.suffix)
             self.page.hostname.blockSignals(False)
 
         self.username_edited = (self.page.username.text() != '')
@@ -540,22 +539,22 @@ class PageKde(PageBase):
         self.hostname_edited = (self.page.hostname.text() != '')
 
     def set_fullname(self, value):
-        self.page.fullname.setText(unicode(value, "UTF-8"))
+        self.page.fullname.setText(misc.utf8(value))
 
     def get_fullname(self):
-        return unicode(self.page.fullname.text())
+        return str(self.page.fullname.text())
 
     def set_username(self, value):
-        self.page.username.setText(unicode(value, "UTF-8"))
+        self.page.username.setText(misc.utf8(value))
 
     def get_username(self):
-        return unicode(self.page.username.text())
+        return str(self.page.username.text())
 
     def get_password(self):
-        return unicode(self.page.password.text())
+        return str(self.page.password.text())
 
     def get_verified_password(self):
-        return unicode(self.page.verified_password.text())
+        return str(self.page.verified_password.text())
 
     def set_auto_login(self, value):
         return self.page.login_auto.setChecked(value)
@@ -589,10 +588,10 @@ class PageKde(PageBase):
         self.page.hostname_error_image.show()
         self.page.hostname_error_reason.show()
 
-    def get_hostname (self):
-        return unicode(self.page.hostname.text())
+    def get_hostname(self):
+        return str(self.page.hostname.text())
 
-    def set_hostname (self, value):
+    def set_hostname(self, value):
         self.page.hostname.setText(value)
 
     def clear_errors(self):
@@ -605,11 +604,13 @@ class PageKde(PageBase):
         self.page.password_error_reason.hide()
         self.page.hostname_error_reason.hide()
 
+
 class PageDebconf(PageBase):
     plugin_title = 'ubiquity/text/userinfo_heading_label'
 
     def __init__(self, controller, *args, **kwargs):
         self.controller = controller
+
 
 class PageNoninteractive(PageBase):
     def __init__(self, controller, *args, **kwargs):
@@ -668,12 +669,12 @@ class PageNoninteractive(PageBase):
 
     def username_error(self, msg):
         """The selected username was bad."""
-        print >>self.console, '\nusername error: %s' % msg
-        self.username = raw_input('Username: ')
+        print('\nusername error: %s' % msg, file=self.console)
+        self.username = input('Username: ')
 
     def password_error(self, msg):
         """The selected password was bad."""
-        print >>self.console, '\nBad password: %s' % msg
+        print('\nBad password: %s' % msg, file=self.console)
         import getpass
         self.password = getpass.getpass('Password: ')
         self.verifiedpassword = getpass.getpass('Password again: ')
@@ -690,6 +691,7 @@ class PageNoninteractive(PageBase):
     def clear_errors(self):
         pass
 
+
 class Page(plugin.Plugin):
     def prepare(self, unfiltered=False):
         if ('UBIQUITY_FRONTEND' not in os.environ or
@@ -697,7 +699,8 @@ class Page(plugin.Plugin):
             self.preseed_bool('user-setup/allow-password-weak', True)
             if self.ui.get_hostname() == '':
                 try:
-                    seen = self.db.fget('netcfg/get_hostname', 'seen') == 'true'
+                    seen = self.db.fget(
+                        'netcfg/get_hostname', 'seen') == 'true'
                     if seen:
                         hostname = self.db.get('netcfg/get_hostname')
                         domain = self.db.get('netcfg/get_domain')
@@ -746,7 +749,8 @@ class Page(plugin.Plugin):
         self.ui.info_loop(None)
 
         # Trigger the bogus DNS server detection
-        if not 'UBIQUITY_AUTOMATIC' in os.environ and hasattr(self.ui, 'detect_bogus_result'):
+        if (not 'UBIQUITY_AUTOMATIC' in os.environ and
+            hasattr(self.ui, 'detect_bogus_result')):
             self.ui.detect_bogus_result()
 
         # We intentionally don't listen to passwd/auto-login or
@@ -756,15 +760,17 @@ class Page(plugin.Plugin):
                      '^passwd/user-password$', '^passwd/user-password-again$',
                      'ERROR']
         if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
+            command = ['/usr/lib/ubiquity/user-setup/user-setup-ask-oem']
             environ = {'OVERRIDE_SYSTEM_USER': '1'}
-            return (['/usr/lib/ubiquity/user-setup/user-setup-ask-oem'],
-                    questions, environ)
+            return command, questions, environ
         else:
             # TODO: It would be neater to use a wrapper script.
-            return (['sh', '-c',
-                     '/usr/lib/ubiquity/user-setup/user-setup-ask /target && '
-                     '/usr/share/ubiquity/user-setup-encrypted-swap'],
-                    questions)
+            command = [
+                'sh', '-c',
+                '/usr/lib/ubiquity/user-setup/user-setup-ask /target && '
+                '/usr/share/ubiquity/user-setup-encrypted-swap',
+                ]
+            return command, questions
 
     def set(self, question, value):
         if question == 'passwd/username':
@@ -803,7 +809,8 @@ class Page(plugin.Plugin):
 
         # showing warning message is error is set
         if errors:
-            self.ui.hostname_error(make_error_string(self.controller, errors))
+            self.ui.hostname_error(
+                make_error_string(self.ui.controller, errors))
             self.done = False
             self.enter_ui_loop()
             return
@@ -828,17 +835,19 @@ class Page(plugin.Plugin):
                                        self.extended_description(question))
         return plugin.Plugin.error(self, priority, question)
 
+
 class Install(plugin.InstallPlugin):
     def prepare(self, unfiltered=False):
         if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
+            command = ['/usr/lib/ubiquity/user-setup/user-setup-apply']
             environ = {'OVERRIDE_SYSTEM_USER': '1'}
-            return (['/usr/lib/ubiquity/user-setup/user-setup-apply'], [], environ)
         else:
+            command = [
+                '/usr/lib/ubiquity/user-setup/user-setup-apply', '/target']
             environ = {}
             if os.path.exists('/var/lib/ubiquity/encrypted-swap'):
                 environ['OVERRIDE_ALREADY_ENCRYPTED_SWAP'] = '1'
-            return (['/usr/lib/ubiquity/user-setup/user-setup-apply', '/target'],
-                    [], environ)
+        return command, [], environ
 
     def error(self, priority, question):
         self.ui.error_dialog(self.description(question),
@@ -847,4 +856,5 @@ class Install(plugin.InstallPlugin):
 
     def install(self, target, progress, *args, **kwargs):
         progress.info('ubiquity/install/user')
-        return plugin.InstallPlugin.install(self, target, progress, *args, **kwargs)
+        return plugin.InstallPlugin.install(
+            self, target, progress, *args, **kwargs)

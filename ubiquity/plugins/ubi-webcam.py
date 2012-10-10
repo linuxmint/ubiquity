@@ -22,18 +22,22 @@ import sys
 
 from ubiquity import plugin
 
+
 NAME = 'webcam'
 AFTER = 'usersetup'
 WEIGHT = 10
 
+
 class PageGtk(plugin.PluginUI):
     plugin_title = 'ubiquity/text/webcam_heading_label'
+
     def __init__(self, controller, *args, **kwargs):
         from gi.repository import Gtk, Gst
         Gst.init(sys.argv)
         from gi.repository import UbiquityWebcam
         from ubiquity import gtkwidgets
-        if (not UbiquityWebcam.Webcam.available()
+        if ('UBIQUITY_NO_WEBCAM' in os.environ
+            or not UbiquityWebcam.Webcam.available()
             or 'UBIQUITY_AUTOMATIC' in os.environ
             or controller.oem_config):
             self.page = None

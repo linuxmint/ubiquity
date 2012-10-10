@@ -19,6 +19,7 @@
 
 from ubiquity.filteredcommand import FilteredCommand
 
+
 class PartmanCommit(FilteredCommand):
     def __init__(self, frontend=None, db=None):
         FilteredCommand.__init__(self, frontend, db)

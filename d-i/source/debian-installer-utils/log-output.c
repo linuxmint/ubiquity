@@ -65,6 +65,7 @@ int main(int argc, char **argv)
 		{ "pass-stdout", no_argument, &pass_stdout, 1 },
 		{ NULL, 0, NULL, 0 }
 	};
+	struct sigaction sa;
 	di_io_handler *stdout_handler = NULL, *stderr_handler = NULL;
 	di_process_handler *parent_prepare_handler = NULL;
 	di_process_handler *child_prepare_handler = NULL;
@@ -94,21 +95,21 @@ int main(int argc, char **argv)
 	if (!argv[optind])
 		return 0;
 
-	if (pass_stdout) {
-		/* di_exec is a bit odd, and won't always notice that the
-		 * subsidiary process has gone away if a stdout_handler
-		 * isn't installed. We install a no-op SIGCHLD handler to
-		 * make sure that its poll() gets EINTR and gives up.
-		 *
-		 * Technically, this is exploiting a bug in di_exec, and a
-		 * better solution would be nice ...
-		 */
-		struct sigaction sa;
-		sa.sa_handler = &sigchld_handler;
-		sigemptyset(&sa.sa_mask);
-		sa.sa_flags = SA_NOCLDSTOP;
-		sigaction(SIGCHLD, &sa, NULL);
+	/* It's possible for subsidiary processes to start daemons which
+	 * forget to clean up their file descriptors properly, which means
+	 * that polling the other ends of those file descriptors will never
+	 * complete.  We install a no-op SIGCHLD handler to make sure that
+	 * its poll() gets EINTR and gives up.
+	 *
+	 * Technically, this is exploiting a bug in di_exec, and a better
+	 * solution would be nice ...
+	 */
+	sa.sa_handler = &sigchld_handler;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = SA_NOCLDSTOP;
+	sigaction(SIGCHLD, &sa, NULL);
 
+	if (pass_stdout) {
 		orig_stdout = dup(1);
 		parent_prepare_handler = &close_orig_stdout;
 		child_prepare_handler = &restore_orig_stdout;

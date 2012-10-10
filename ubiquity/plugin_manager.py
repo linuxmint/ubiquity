@@ -18,30 +18,38 @@
 # You should have received a copy of the GNU General Public License
 # along with Ubiquity.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys
-import os
+from __future__ import print_function
+
 import fnmatch
+import importlib
+import os
+import sys
 
 PLUGIN_PATH = (os.environ.get('UBIQUITY_PLUGIN_PATH', False)
                or '/usr/lib/ubiquity/plugins')
 
+
 def load_plugin(modname):
     sys.path.insert(0, PLUGIN_PATH)
     try:
-        return __import__(modname)
+        return importlib.import_module(modname)
     finally:
         del sys.path[0]
 
+
 def load_plugins():
     modules = []
-    modfiles = filter(lambda x: fnmatch.fnmatch(x,'*.py'), os.listdir(PLUGIN_PATH))
+    modfiles = [x for x in os.listdir(PLUGIN_PATH)
+                if fnmatch.fnmatch(x, '*.py')]
     for modfile in modfiles:
         modname = os.path.splitext(modfile)[0]
         try:
             modules.append(load_plugin(modname))
-        except Exception, e:
-            print >> sys.stderr, 'Could not import plugin %s: %s' % (modname, e)
+        except Exception as e:
+            print('Could not import plugin %s: %s' % (modname, e),
+                  file=sys.stderr)
     return modules
+
 
 def get_mod_list(mod, name):
     if hasattr(mod, name):
@@ -52,12 +60,14 @@ def get_mod_list(mod, name):
     else:
         return []
 
+
 def get_mod_string(mod, name):
     if hasattr(mod, name):
         mod_string = getattr(mod, name)
         return mod_string
     else:
         return ''
+
 
 def get_mod_int(mod, name):
     if hasattr(mod, name):
@@ -66,12 +76,14 @@ def get_mod_int(mod, name):
     else:
         return 0
 
+
 def get_mod_bool(mod, name):
     if hasattr(mod, name):
         mod_bool = getattr(mod, name)
         return mod_bool
     else:
         return True
+
 
 def get_mod_index(modlist, name):
     index = 0
@@ -82,8 +94,10 @@ def get_mod_index(modlist, name):
         index += 1
     return None
 
+
 def get_mod_weight(mod):
     return get_mod_int(mod, 'WEIGHT')
+
 
 def determine_mod_index(after, before, order):
     index = None
@@ -93,7 +107,7 @@ def determine_mod_index(after, before, order):
         else:
             index = get_mod_index(order, modname)
             if index is not None:
-                return index+1
+                return index + 1
     if index is None:
         for modname in before:
             if not modname:
@@ -103,6 +117,7 @@ def determine_mod_index(after, before, order):
                 if index is not None:
                     return index
     return None
+
 
 # Strips one module from the 'mods' list and inserts it into 'order'
 def one_pass(mods, order, hidden_list):
@@ -131,6 +146,7 @@ def one_pass(mods, order, hidden_list):
             hidden_list.extend(hidden)
             return True
     return False
+
 
 def order_plugins(mods, order=None):
     if order is None:

@@ -52,8 +52,19 @@ umount_on_exit () {
 	fi
 }
 
-if [ ! -e "$ROOT/proc/cmdline" ]; then
-	mount -t proc proc $ROOT/proc && umount_on_exit /proc
+# Ensure proc is mounted in all the $chroot calls;
+# needed for RAID+LVM for example
+initial_proc_contents="$(ls $ROOT/proc)"
+if [ -z "$initial_proc_contents" ]; then
+	info "Mounting /proc into $ROOT"
+	if [ "$(udpkg --print-os)" = "kfreebsd" ]; then
+		mount -t linprocfs proc $ROOT/proc && umount_on_exit /proc
+	else
+		mount -t proc proc $ROOT/proc && umount_on_exit /proc
+	fi
+fi
+
+if [ "$(udpkg --print-os)" = linux ] && [ -z "$(ls $ROOT/sys)" ]; then
 	mount -t sysfs sysfs $ROOT/sys && umount_on_exit /sys
 fi
 
@@ -404,73 +415,49 @@ fi
 
 info "Identified partition label for $bootfs: $bootfslabel"
 
-case $ARCH in
-    i386/mac|amd64/mac)
-	# Note: depends on partman-efi to load the efivars module!
-	if [ -d /sys/firmware/efi ]; then
-		# This point can't be reached (yet).  See debian/isinstallable.
-		grub_package="grub-efi"
-	else
-		# On PC/BIOS, default to GRUB Legacy
-		grub_package="grub"
-	fi
-	;;
-    i386/efi|amd64/efi)
-	grub_package="grub-efi"
-	;;
-    i386/*|amd64/*)
-	# On PC/BIOS, default to GRUB Legacy
-	grub_package="grub"
-	;;
-    kfreebsd-i386/*|kfreebsd-amd64/*)
-	grub_package="grub-pc"
-	;;
-    hurd-i386/*)
-	grub_package="grub-pc"
-	;;
-    powerpc/*)
-	grub_package="grub-ieee1275"
-	;;
-    mipsel/loongson-2f)
-	grub_package="grub-yeeloong"
-	;;
-    *)
-	info "Unknown architecture $ARCH, defaulting to grub-legacy"
-	grub_package="grub"
-esac
-
-case "$frtype:$bootfstype:$bootfslabel:$grub_package" in
-    lvm:*:*:*)
-	# Booting from LVM requires grub2
-	grub_package="grub-pc"
-	;;
-    *:*:*:grub)
-	db_get grub-installer/grub2_instead_of_grub_legacy
-	if [ "$RET" = true ]; then
-		grub_package="grub-pc"
-	fi
-	;;
-    *:ufs:*:*)
-	# Booting from UFS requires grub2
-	grub_package="grub-pc"
-	;;
-    *:zfs:*:*)
-	# Booting from ZFS requires grub2
-	grub_package="grub-pc"
-	;;
-    *:ext2fs:*:grub-pc | *:xfs:*:grub-pc)
-    	# Booting ext2fs or xfs using grub2 works
-        ;;
-    *:*:*:grub-efi* | *:*:*:grub-yeeloong)
-	# No reasonable alternative to GRUB here
-	;;
-    *:*:*:*)
+experimental_arch () {
 	db_subst grub-installer/grub_not_mature_on_this_platform ARCH $ARCH
 	db_input low grub-installer/grub_not_mature_on_this_platform || [ $? -eq 30 ]
 	db_go || exit 10
 	db_get grub-installer/grub_not_mature_on_this_platform
 	if [ "$RET" != true ]; then
 		exit 10
+	fi
+}
+
+case $ARCH in
+    i386/mac|amd64/mac)
+	# Note: depends on partman-efi to load the efivars module!
+	if [ -d /sys/firmware/efi ]; then
+		# This point can't be reached (yet).  See debian/isinstallable.
+		grub_package="grub-efi"
+		experimental_arch
+	else
+		grub_package="grub-pc"
+	fi
+	;;
+    i386/efi|amd64/efi)
+	grub_package="grub-efi"
+	;;
+    powerpc/*)
+	grub_package="grub-ieee1275"
+	experimental_arch
+	;;
+    mipsel/loongson-2f)
+	grub_package="grub-yeeloong"
+	;;
+    *)
+	grub_package="grub-pc"
+esac
+
+case "$frtype:$bootfstype:$bootfslabel:$grub_package" in
+    *:*:*:grub-yeeloong | lvm:*:*:* | *:*:gpt:* | *:ufs:*:* | *:zfs:*:* | *:btrfs:*:* )
+	# grub-legacy is not an option in these configurations
+	;;
+    *:*:*:grub-pc)
+	db_get grub-installer/grub2_instead_of_grub_legacy
+	if [ "$RET" = false ]; then
+		grub_package="grub"
 	fi
 	;;
 esac
@@ -608,7 +595,6 @@ os-prober > /tmp/os-probed || true
 db_settitle debian-installer/grub-installer/title
 
 # Work out what probed OSes can be booted from grub
-tmpfile=/tmp/menu.lst.extras
 if [ -s /tmp/os-probed ]; then
 	supported_os_list=""
 	unsupported_os_list=""
@@ -826,12 +812,6 @@ while : ; do
 		break
 	fi
 done
-
-if [ "$grub_version" = grub ] && [ ! -f "$device_map" ] && \
-   db_get grub-installer/bootdev_directory && [ "$RET" ]; then
-	bootdev=
-	echo quit | $chroot $ROOT /usr/sbin/grub --batch --device-map="${device_map#$ROOT}" >/dev/null 2>&1
-fi
 
 db_progress STEP 1
 db_subst grub-installer/progress/step_install_loader BOOTDEV "$bootdev"
@@ -1073,9 +1053,9 @@ db_progress STEP 1
 db_progress INFO grub-installer/progress/step_config_loader
 
 if [ "$bootfstype" = "zfs" ]; then
-  # Required by update-grub on ZFS
-  mkdir -p $ROOT/boot/zfs
-  cp /boot/zfs/zpool.cache $ROOT/boot/zfs/
+	# Required by update-grub on ZFS
+	mkdir -p $ROOT/boot/zfs
+	cp /boot/zfs/zpool.cache $ROOT/boot/zfs/
 fi
 
 # Delete for idempotency
@@ -1165,15 +1145,6 @@ if [ "$grub_version" = "grub" ] ; then
 	fi 
 fi
 
-bootdev_directory=""
-hide_menu=""
-if db_get grub-installer/bootdev_directory && [ "$RET" ]; then
-	bootdev_directory="$RET"
-	# Be careful to deal with either UUID-style or non-UUID-style groot.
-	# grub4dos doesn't recognise UUIDs yet.
-	sed -i "s:^\(# groot=\)[^(].*:\1():; s:^\(# groot=([^)]*)\).*:\1$bootdev_directory:" $ROOT/boot/grub/$menu_file
-	hide_menu=1
-fi
 if [ "$grub_version" = grub ]; then
 	# Add user parameters to menu.lst; some options are only added to
 	# the default entry for a kernel instead of all entries. We can't do
@@ -1189,7 +1160,7 @@ if [ "$grub_version" = grub ]; then
 		sed -i "s!^\(# kopt=.*\)!\1 $kopt_params!" $ROOT/boot/grub/$menu_file
 	fi
 	# In either case, update the Debian kernel entries
-	if [ "$user_params" ] || [ "$bootdev_directory" ]; then
+	if [ "$user_params" ]; then
 		update_grub
 	fi
 fi
@@ -1203,7 +1174,7 @@ then
 	fi
 fi
 
-if [ -z "$hide_menu" ] && [ -s /tmp/os-probed ]; then
+if [ -s /tmp/os-probed ]; then
 	# Other operating systems are installed, so show the menu by default
 	# and raise the timeout.
 	if [ "$grub_version" = grub ]; then

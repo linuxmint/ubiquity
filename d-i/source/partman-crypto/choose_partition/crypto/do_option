@@ -1,0 +1,219 @@
+#!/bin/sh
+
+# "Setup encrypted volumes" in the main menu.
+#  1. Checks required tools
+#  2. Checks for valid cipher options
+#  3. Commits partman changes
+#  4. Checks for safe swap
+#  5. Creates keyfiles
+#  6. Erases to-be-encrypted partitions
+#  7. Does losetup/dmsetup
+#  8. Restarts partman
+
+. /lib/partman/lib/crypto-base.sh
+
+get_passphrase () {
+	db_set partman-crypto/activate/passphrase-existing ""
+	db_fset partman-crypto/activate/passphrase-existing seen false
+	db_subst partman-crypto/activate/passphrase-existing DEVICE "$1"
+	db_input critical partman-crypto/activate/passphrase-existing
+
+	db_go || return 1
+
+	db_get partman-crypto/activate/passphrase-existing || RET=''
+	echo -n "$RET"
+}
+
+do_cryptsetup () {
+	local dev num id size path
+	local dump cipher keysize ivalgorithm keytype keyhash
+	local cryptdev pass
+
+	dev=$1
+	num=$2
+	id=$3
+	size=$4
+	path=$5
+
+	dump="$(cryptsetup luksDump "$path")"
+	cipher="$(echo "$dump" | sed -n '/^Cipher name:/s/.*[[:space:]]//p')"
+	if [ "$cipher" ]; then
+		crypto_load_udebs "cdebconf-$DEBIAN_FRONTEND-entropy" \
+				  partman-crypto-dm
+		crypto_check_required_tools dm-crypt
+		crypto_load_modules dm-crypt "$cipher"
+	fi
+	keysize="$(echo "$dump" | sed -n '/^MK bits:/s/.*[[:space:]]//p')"
+	ivalgorithm="$(echo "$dump" | sed -n '/^Cipher mode:/s/.*[[:space:]]//p')"
+	keytype=passphrase
+	keyhash="$(echo "$dump" | sed -n '/^Hash spec:/s/.*[[:space:]]//p')"
+
+	cryptdev="${path##*/}_crypt"
+	if ! cryptsetup status "$cryptdev" >/dev/null 2>&1; then
+		while :; do
+			pass="$(get_passphrase "$path")" || return 1
+			if [ -z "$pass" ]; then
+				return 1
+			fi
+			echo -n "$pass" | log-output -t partman-crypto \
+				cryptsetup -d - luksOpen "$path" "$cryptdev" \
+				&& break
+		done
+
+		cryptdev="/dev/mapper/$cryptdev"
+		echo dm-crypt > $id/crypto_type
+		echo "$keysize" > $id/keysize
+		echo "$ivalgorithm" > $id/ivalgorithm
+		echo "$keytype" > $id/keytype
+		echo "$keyhash" > $id/keyhash
+		echo cipher > $id/cipher
+		echo crypto_keep > $id/method
+		echo "$cryptdev" > $id/crypt_active
+
+		db_subst partman-crypto/text/in_use DEV "${cryptdev##*/}"
+		db_metaget partman-crypto/text/in_use description
+		partman_lock_unit "$(mapdevfs "$path")" "$RET"
+	fi
+}
+
+do_activate () {
+	local found_luks dev partitions num id size type fs path name part
+
+	found_luks=0
+	for dev in $DEVICES/*; do
+		[ -d "$dev" ] || continue
+		cd "$dev"
+
+		partitions=
+		open_dialog PARTITIONS
+		while { read_line num id size type fs path name; [ "$id" ]; }; do
+			[ "$fs" != free ] || continue
+			partitions="$partitions $id,$path"
+		done
+		close_dialog
+
+		for part in $partitions; do
+			id="${part%%,*}"
+			path="${part#*,}"
+
+			if cryptsetup isLuks "$path" 2>/dev/null; then
+				found_luks=1
+				do_cryptsetup "$dev" "$num" "$id" "$size" \
+					"$path" || continue
+			fi
+		done
+	done
+
+	if [ "$found_luks" = 0 ]; then
+		db_input critical partman-crypto/activate/no_luks
+		db_go || true
+		return
+	fi
+
+	# Encrypted devices as configured by d-i usually contain LVM PVs
+	export LVM_SUPPRESS_FD_WARNINGS=1
+	log-output -t partman-crypto pvscan
+	log-output -t partman-crypto vgscan
+	log-output -t partman-crypto vgchange -a y
+
+	# Tell partman to detect filesystems again.
+	rm -f /var/lib/partman/filesystems_detected
+
+	stop_parted_server
+	restart_partman
+	exit 0
+}
+
+do_create () {
+	local parts line pv output vg pathmap
+	parts=""
+	pathmap=""
+
+	# Look for free partitions
+	IFS="$NL"
+	for line in $(crypto_list_allowed_free); do
+		restore_ifs
+		local dev="${line%%$TAB*}"
+		line="${line#*$TAB}"
+		local id="${line%%$TAB*}"
+		line="${line#*$TAB}"
+		local size="${line%%$TAB*}"
+		local path="${line#*$TAB}"
+		cd $dev
+		if [ -s "$id/visual_filesystem" ]; then
+			local visual="$(cat "$id/visual_filesystem")"
+			output=$(printf "%-30s (%sMB; %s)" "$path" "$(convert_to_megabytes $size)" "$visual")
+		else
+			output=$(printf "%-30s (%sMB)" "$path" "$(convert_to_megabytes $size)")
+		fi
+		parts="${parts:+$parts, }$output"
+		pathmap="${pathmap:+$pathmap$NL}$path$TAB$dev//$id"
+		IFS="$NL"
+	done
+	restore_ifs
+	if [ -z "$parts" ]; then
+		db_input critical partman-crypto/nothing_to_setup
+		db_go || true
+		return
+	fi
+
+	db_subst partman-crypto/create/partitions PARTITIONS "$parts"
+	db_reset partman-crypto/create/partitions
+	db_input critical partman-crypto/create/partitions
+	db_go || return
+	db_get partman-crypto/create/partitions
+	if [ -z "$RET" ]; then
+		db_input critical partman-crypto/create/nosel
+		db_go || true
+		return
+	fi
+	parts=$(echo "$RET" | sed -e "s/ *([^)]*) *//g; s/ *, */\\$NL/g")
+
+	local newparts=
+	local need_commit=
+	IFS="$NL"
+	for part in $parts; do
+		for line in $pathmap; do
+			restore_ifs
+			if [ "${line%%$TAB*}" = "$part" ]; then
+				local devid="${line#*$TAB}"
+				local path
+				if path="$(crypto_prepare "${devid%//*}" "${devid#*//}")"; then
+					need_commit=true
+				fi
+				newparts="${newparts:+$newparts }$path"
+				break
+			fi
+			IFS="$NL"
+		done
+		IFS="$NL"
+	done
+	restore_ifs
+	parts="$newparts"
+
+	if [ "$need_commit" ]; then
+		confirm_changes partman-crypto || exit 0
+		commit_changes partman-crypto/commit_failed || exit $?
+	fi
+}
+
+confirm_changes partman-crypto || exit 0
+commit_changes partman-crypto/commit_failed || exit $?
+
+while :; do
+	db_input critical partman-crypto/mainmenu
+	db_go || exit 10
+	db_get partman-crypto/mainmenu
+	case $RET in
+	    activate)	do_activate ;; # exits if any volumes were activated
+	    create)	do_create ;;
+	    finish)	break ;;
+	    *)
+		logger -t partman-crypto "Unknown selection '$RET'"
+		break ;;
+	esac
+done
+
+crypto_check_setup || exit 1
+
+crypto_setup yes || exit 1

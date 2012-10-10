@@ -1,27 +1,736 @@
-ubiquity (2.10.16-1linuxmint4) maya; urgency=low
+ubiquity (2.12.8) quantal; urgency=low
 
-  * Added ability to perform MDM autologin
+  [ Colin Watson ]
+  * Before starting to do anything with apt, generate the locale in the
+    target system, copy it out, and start using it (LP: #644736).
+  * Update translations from Launchpad.
 
- -- Clement Lefebvre <root@linuxmint.com>  Thu, 10 May 2012 00:07:26 +0100
+  [ Stéphane Graber ]
+  * Replace use of assert in install_misc by a check, revert and exception
+    so that errors can be ignored by the caller, useful for langpacks.
+    (LP: #898787)
 
-ubiquity (2.10.16-1linuxmint3) maya; urgency=low
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 03 Oct 2012 09:11:16 +0100
 
-  * Fixed awkward translation in French
+ubiquity (2.12.7) quantal; urgency=low
 
- -- Clement Lefebvre <root@linuxmint.com>  Mon, 07 May 2012 17:07:38 +0100
+  [ Dmitrijs Ledkovs ]
+  * Change calculate_reuse_option logic to allow upgrading development
+    releases to final/newer. (LP: #1050562)
+  * Automatic update of included source packages: partman-auto
+    103ubuntu2 (LP: #1050562), partman-crypto 54ubuntu2. (LP: #1056707)
 
-ubiquity (2.10.16-1linuxmint2) maya; urgency=low
+  [ Colin Watson ]
+  * Use xz compression for binary packages.
 
-  * Don't use the ubuntu slideshow in OEM mode
-  * Don't upgrade the kernel during the installation
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Fri, 28 Sep 2012 14:21:13 +0100
 
- -- Clement Lefebvre <root@linuxmint.com>  Mon, 07 May 2012 15:25:10 +0100
+ubiquity (2.12.6) quantal; urgency=low
 
-ubiquity (2.10.16-1linuxmint) maya; urgency=low
+  * Make the accessibility indicator menu items translatable (LP: #1040438).
+    Note that this just adds the necessary infrastructure; we still need
+    actual translations for this to be useful.
+  * Drop dependency on realpath, not needed since hw-detect 1.89 (ubiquity
+    2.11.14).
+  * Bind-mount /run while installing packages in the target chroot, so that
+    name resolution works (LP: #1055326).
+  * Update translations from Launchpad (LP: #1056029).
+  * Upgrade to Automake 1.11.6.
+  * Automatic update of included source packages: debian-installer-utils
+    1.91ubuntu5, flash-kernel 3.0~rc.4ubuntu26.
 
-  * Linux Mint release based on 2.10.16 from Ubuntu.
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 28 Sep 2012 00:41:00 +0100
 
- -- Clement Lefebvre <root@linuxmint.com>  Mon, 07 May 2012 12:27:26 +0100
+ubiquity (2.12.5) quantal; urgency=low
+
+  [ Jonathan Riddell ]
+  * Change from a KApplication to a QApplication to avoid using DBus, DBus
+    as needed by KApplication no longer works with our multiple user changes 
+    LP: #1055967
+
+  [ Colin Watson ]
+  * Partially revert r5662 (removal of more Python 2 support, from ubiquity
+    2.11.33).  'from __future__ import print_function' is needed to make
+    pyflakes do its job properly.
+  * Remove some dead code from bin/ubiquity.
+  * Improve tests/run-pyflakes to check relevant files in bin/ and tests/.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 25 Sep 2012 23:38:59 +0100
+
+ubiquity (2.12.4) quantal; urgency=low
+
+  * Do not offer to remove partitions nor create partition table on the
+    loop mounted devices. (LP: #1055640)
+  * Skip locked partitions when rebuilding cache, in a similar way as
+    skipping free disk space, by sniffing locked file in the partman
+    device tree. Remove locked flag, otherwise. (LP: #1055819) 
+  * Hide mount combo, instead of making it insensitive to reduce clutter
+    in the add/edit partition dialog. (LP: #1055815)
+  * Automatic update of included source packages: flash-kernel
+    3.0~rc.4ubuntu25, grub-installer 1.78ubuntu3.
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Tue, 25 Sep 2012 13:10:32 +0100
+
+ubiquity (2.12.3) quantal; urgency=low
+
+  * Do not preseed grub-install, if we are not proceeding to install. This
+    should fix ValueError, I/O operation on closed file (LP: #1027648)
+    (LP: #792652)
+  * Automatic update of included source packages: yaboot-installer
+    1.1.22ubuntu2.
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Mon, 24 Sep 2012 11:23:57 +0100
+
+ubiquity (2.12.2) quantal; urgency=low
+
+  * Add manual crypto partitioning (LP: #1042649)
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Thu, 20 Sep 2012 18:09:10 +0100
+
+ubiquity (2.12.1) quantal; urgency=low
+
+  * Automatic update of included source packages: grub-installer
+    1.78ubuntu2.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 20 Sep 2012 17:25:12 +0100
+
+ubiquity (2.12.0) quantal; urgency=low
+
+  [ Dmitrijs Ledkovs ]
+  * bin/ubiquity-dm: Drop atk-bridge GTK_MODULE as this is now part of
+    GTK+ 3.5.
+  * bin/ubiquity-dm: Add overlay-scrollbar GTK_MODULE as this is now a
+    module. (LP: #1052040)
+  * Set create/edit title on the partitioning dialogs (LP: #1048464)
+
+  [ Colin Watson ]
+  * Drop reconfiguration of usplash and splashy; they were removed from the
+    Ubuntu archive in natty and precise respectively.
+  * Bind-mount /run while running grub-installer, so that the resolver works
+    (LP: #1047550).
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: choose-mirror 2.40ubuntu1,
+    flash-kernel 3.0~rc.4ubuntu24, grub-installer 1.78ubuntu1, partman-auto
+    103ubuntu1, partman-efi 25ubuntu2, user-setup 1.46ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 19 Sep 2012 16:42:24 +0100
+
+ubiquity (2.11.33) quantal; urgency=low
+
+  [ Dmitrijs Ledkovs ]
+  * Make Add/Remove/Change toolbar not have a background. Thanks to
+    askubuntu and andrewsomething.
+  * Fix TypeError in a debug statement when resize is not possible due to
+    small total disk space.
+  * Remove more of Python 2 support.  We are not going back to the __future__.
+  * Use py3compile, instead of pycompile.
+
+  [ Stéphane Graber ]
+  * Fix drop_all_privileges to also set LOGNAME which is required by firefox
+    to contact an existing instance. (LP: #446679)
+
+  [ Colin Watson ]
+  * Automatic update of included source packages: debian-installer-utils
+    1.91ubuntu4 (LP: #1049535), flash-kernel 3.0~rc.4ubuntu23.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 14 Sep 2012 12:40:52 +0100
+
+ubiquity (2.11.32) quantal; urgency=low
+
+  [ Jeremy Bicha ]
+  * Allow specifying a manual mount point in advanced partitioner
+    (LP: #1047275).
+
+  [ Dmitrijs Ledkovs ]
+  * Revert test string, to a user friendly one as it is visible in the UI.
+  * Automatic update of included source packages: base-installer
+    1.122ubuntu11, partman-auto-lvm 45ubuntu3, tzsetup 1:0.26ubuntu12.
+  * pep8 fixes in Riddell's code
+
+  [ Colin Watson ]
+  * Remove a couple of vestiges of migration-assistant.
+  * Catch OverflowError as well as ValueError from datetime functions, for
+    forward-compatibility with Python 3.3.
+  * Use importlib rather than __import__.
+  * Install fetch-url for apt-setup's local generator (LP: #1049535).
+
+  [ Jonathan Riddell ]
+  * ubiquity/plugins/ubi-partman.py and
+    ubiquity/frontend/kde_components/PartAuto.py
+   - add options for LUKS and LVM automatic partitioning to KDE frontend
+     (LP: #1048712)
+
+  [ Simon Steinbeiß ]
+  * Disable xfwm4's compositor in ubiquity-dm to prevent screen-corruption
+    (LP: #924909)
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Wed, 12 Sep 2012 22:45:51 +0100
+
+ubiquity (2.11.31) quantal; urgency=low
+
+  [ Colin Watson ]
+  * Buffer reads from debconf-copydb.  Python 3 defaults to unbuffered reads
+    from byte streams, which is much slower.
+  * Port oem-config-remove-gtk to Python 3, now that
+    python3-aptdaemon.gtk3widgets exists; the final piece!
+  * Remove Python 2 support.  We aren't going back now.
+  * Remove the rest of the long-dead PS3 port.
+
+  [ Dmitrijs Ledkovs ]
+  * Allow going from the encryption key setup page, to the disk space
+    allocation page. (LP: #1046323)
+  * Correctly apply styles to the title & progress sections and not the
+    centre piece. This means themes are no longer required to provide non
+    standard @dark_[fb]g_color colors, instead 'menubar' Gtk CSS style is
+    used. This also fixes long standing a11y issues in HighContrast themes
+    & requirements for non-standard color definitions. (LP: #744283)
+  * Make lables in the segmented bar use the same colours as normal labels.
+  * Changing the "Add/Remove/Change Partiontion" buttons to mixed
+    symbolic/text buttons should make the screen comply with Ubiquity
+    Design spec ( http://goo.gl/Kokw5 ) and address confusion about the
+    updated screen. (LP: #1045799)
+  * Fix the disappearance of crypto password field (LP: #1045716)
+  * Fix misallignment of crypto password fields (LP: #1045712)
+  * Make setup security key page go back to ask page (LP: #1045698)
+  * Remove powerpc/ps3 low-memory profile, as it doesn't do anything any
+    more. gnome-session-remove command is no longer present, and the init
+    processes it tried to stop no longer exist under those names. We do
+    want a low memory profile, which ubiquity-only mode now.
+  * ubiquity-wrapper: Add support for udisks2 inhibit, drop devkit-disks
+    inhibit. (LP: #719338)
+  * Prevent progress label to expand & shrink the window (LP: #1046241)
+  * Automatic update of included source packages: base-installer
+    1.122ubuntu9.
+
+  [ Dylan McCall ]
+  * Fixed slideshow_get_available_locale missing new locales in
+    extra_slides_dir. (LP: #1046511)
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Sat, 08 Sep 2012 00:47:54 +0100
+
+ubiquity (2.11.30) quantal; urgency=low
+
+  * Allow to select primary/logical partitions, instead of always hiding
+    it (LP: #1046175).
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Wed, 05 Sep 2012 12:08:34 +0100
+
+ubiquity (2.11.29) quantal; urgency=low
+
+  [ Colin Watson ]
+  * Fix missing parentheses that caused removable installation media
+    sometimes to be selected as the default GRUB device (LP: #987418).
+  * Update translations from Launchpad (LP: #1045695).
+
+  [ Dmitrijs Ledkovs ]
+  * Automatic update of included source packages: partman-auto-lvm
+    45ubuntu2. (LP: #1045812)
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Tue, 04 Sep 2012 18:48:04 +0100
+
+ubiquity (2.11.28) quantal; urgency=low
+
+  * Fix display of installation medium mounted grid. (LP: #1044717)
+    Also used pylint to find check for undefined/missing attributes in the
+    ubi-partman.py. Needs integration into build system.
+ 
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Mon, 03 Sep 2012 12:51:16 +0100
+
+ubiquity (2.11.27) quantal; urgency=low
+
+  [ Omer Akram ]
+  * Fix manual partinioning edit dialog (LP: #1044545)
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Sat, 01 Sep 2012 03:09:22 +0100
+
+ubiquity (2.11.26) quantal; urgency=low
+
+  [ Evan Dandrea ]
+  * Disable alpha warning for Beta 1.
+
+  [ Dmitrijs Ledkovs ]
+  * Fix renamed translation strings (LP: #1044299)
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Fri, 31 Aug 2012 16:28:18 +0100
+
+ubiquity (2.11.25) quantal; urgency=low
+
+  * partAsk.ui, partCrypto.ui: Normalise widget names
+  * Sub-class Gtk.Builder to add get_object_ids method
+  * partAdvanced.ui: Refactor advanced partitioning UI (LP: #1042642)
+  * partAdvanced.ui: Add LVM & Crypto UI but hide by default
+  * Activate the first option by default on the ask page (LP: #1043822)
+  * Make the "Use LVM" checkbox visible by default (LP: #1042639)
+  * Remove the experimental --enable-partauto-lvm, not needed anymore
+  * Create gui/pixmaps -> ../pixmaps symlink, for unit-tests
+    to find images (LP: #1003890)
+  * Adjust translations & unit-tests for the UI widget renames
+  * Add new strings for future advanced LVM & Crypto UI
+  * Update translation templates
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Thu, 30 Aug 2012 18:45:25 +0100
+
+ubiquity (2.11.24) quantal; urgency=low
+
+  [ Dylan McCall ]
+  * Tweaks to support ubiquity-slideshow's new file structure and parameter
+    format (LP: #1035806)
+
+  [ Dmitrijs Ledkovs ]
+  * Automatic update of included source packages: netcfg 1.68ubuntu16.
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Tue, 28 Aug 2012 18:07:08 +0100
+
+ubiquity (2.11.23) quantal; urgency=low
+
+  [ Luke Yelavich ]
+  * Show the accessibility indicator in only-ubiquity as well.
+  * Tweak the error message displayed when the accessibility indicator
+    cannot be shown, to satisfy PEP tests.
+
+  [ Colin Watson ]
+  * Make ubiquity-frontend-gtk depend on the specific window managers
+    supported by ubiquity-dm (LP: #1037515).
+  * Automatic update of included source packages: flash-kernel
+    3.0~rc.4ubuntu22, partman-auto-lvm 45ubuntu1, yaboot-installer
+    1.1.22ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 23 Aug 2012 17:23:42 +0100
+
+ubiquity (2.11.22) quantal; urgency=low
+
+  [ Stéphane Graber ]
+  * Fix ubiquity upstart job to use /etc/default/locale as the source of
+    LANG and LANGUAGE instead of /etc/environment (LP: #1037001)
+
+  [ Dmitrijs Ledkovs ]
+  * Remove pictograms from the partAsk page
+  * Make full disk encryption tickbox visible by default
+  * Make the security key page layout centered and fixed
+  * Automatic update of included source packages: partman-crypto
+    54ubuntu1.
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Fri, 17 Aug 2012 10:37:21 +0100
+
+ubiquity (2.11.21) quantal; urgency=low
+
+  * Fix a typpo when checking if crypto option was selected (LP: #1035167).
+  * Correct a mistake in refactoring: Do not clear drive selection, just
+    before switching to install interface, instead guard by checking for
+    correct current page. (LP: #1034954).
+  * Mark optional options as invisible by default (LP: #1035514).
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Mon, 13 Aug 2012 18:08:43 +0100
+
+ubiquity (2.11.20) quantal; urgency=low
+
+  * Fix incomplete simplification of KeyboardNames._load_file
+    (LP: #1034960).
+  * Automatic update of included source packages: flash-kernel
+    3.0~rc.4ubuntu20, partman-partitioning 87ubuntu1, preseed 1.54ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 13 Aug 2012 10:39:35 +0100
+
+ubiquity (2.11.19) quantal; urgency=low
+
+  [ Colin Watson ]
+  * Simplify DebconfFilter.process_line slightly.
+  * Simplify KeyboardNames._load_file using collections.defaultdict.
+  * Call installprogress.finish_update() when a download fails or is
+    cancelled, not installprogress.finishUpdate() (LP: #1024043).
+
+  [ Dmitrijs Ledkovs ]
+  * Make the UI layout test print the failed page/step name.
+  * Add crypt security key setup page and move crypt/lvm checkboxes to the
+    ask page.
+  * Refactor password validation from ubi-usersetup into a reusable
+    component (for ubi-partman).
+  * Refactor set_autopartition_options method in ubi-partman.py.
+  * Add crypto option to ubi-partman.
+  * Add command line flag to enable crypt checkbox on the ask page.
+  * Add partman-crypto to the dependencies.
+  * Add translation strings for crypto.
+  * Add graphviz diagram of available ask page options.
+  * Automatic update of included source packages: flash-kernel
+    3.0~rc.4ubuntu17, yaboot-installer 1.1.21ubuntu1.
+  * Update translations.
+  * Mark test_pages_fit_on_a_netbook as expected failure. See comment.
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Wed, 08 Aug 2012 14:34:07 +0100
+
+ubiquity (2.11.18) quantal; urgency=low
+
+  * Don't bother keeping track of keyboard model names and identifiers, as
+    nothing in ubiquity uses them right now.
+  * Fix reversed uses of methods mapping between keyboard layout/variant IDs
+    and human-readable names, and improve method naming and documentation to
+    make this mistake less likely in future (LP: #1027207, #1027620).
+  * Automatic update of included source packages: debian-installer-utils
+    1.91ubuntu3, flash-kernel 3.0~rc.4ubuntu9, netcfg 1.68ubuntu15.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 23 Jul 2012 11:02:13 +0100
+
+ubiquity (2.11.17) quantal; urgency=low
+
+  * ubiquity/plugins/ubi-partman.py: Remove a stray comma, which broke this
+    plugin.
+  * Parse a compact representation of keyboard layouts and variants on the
+    fly, rather than building them all into a giant static Python module.
+    This is much more memory-efficient.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 19 Jul 2012 11:09:16 +0100
+
+ubiquity (2.11.16) quantal; urgency=low
+
+  [ Dmitrijs Ledkovs ]
+  * Add experimental auto-lvm recipe
+  * Automatic update of included source packages: partman-auto-lvm
+    44ubuntu1.
+  * Update translation templates.
+
+  [ Colin Watson ]
+  * Add a --no-webcam option to disable the webcam page.
+  * Make all Python code pass pep8(1), and add a test to enforce this.
+  * Automatic update of included source packages: flash-kernel
+    3.0~rc.4ubuntu7, partman-lvm 79ubuntu2.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 18 Jul 2012 15:47:16 +0100
+
+ubiquity (2.11.15) quantal; urgency=low
+
+  * Drop hw-detect debugging attempts.
+  * Terminate status-to-debconf subprocess in DebconfInstallProgress more
+    gracefully to avoid desynchronising the debconf protocol if the
+    subprocess is killed between sending a command and receiving the
+    response (LP: #1023036).
+  * Make user-setup-encrypted-swap wait until partitioning has finished
+    before attempting to adjust /target/etc/fstab (LP: #1024343).
+  * Don't try and fail to set up encrypted swap if no swap partitions are
+    configured (LP: #989279).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 14 Jul 2012 00:17:31 +0100
+
+ubiquity (2.11.14) quantal; urgency=low
+
+  * compat/udpkg: Handle 'udpkg -c' from udpkg 1.14, required by hw-detect
+    1.89.
+  * Automatic update of included source packages: hw-detect 1.89ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 13 Jul 2012 10:27:33 +0100
+
+ubiquity (2.11.13) quantal; urgency=low
+
+  * Add some more debugging around hw-detect.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 12 Jul 2012 14:49:30 +0100
+
+ubiquity (2.11.12) quantal; urgency=low
+
+  * Rebuild with fixed dh_python3 (LP: #1023474).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 11 Jul 2012 17:56:31 +0100
+
+ubiquity (2.11.11) quantal-proposed; urgency=low
+
+  [ Kent Baxley ]
+  * Add the ability to run simple, custom scripts in ubiquity-dm
+    (LP: #1017580).
+
+  [ Colin Watson ]
+  * Fix excision of code in hw-detect that creates
+    /usr/lib/finish-install.d/30hw-detect (not necessary or useful in
+    ubiquity, but accidentally broken way back in ubiquity 1.1.0).
+  * Temporarily add shell tracing through part of hw-detect in the hope of
+    diagnosing LP #1023036.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 11 Jul 2012 11:36:20 +0100
+
+ubiquity (2.11.10) quantal-proposed; urgency=low
+
+  * ubiquity-dm: Use "-background none" rather than no-longer-supported
+    "-nr" when doing a smooth transition from Plymouth (LP: #1019377).
+  * Automatic update of included source packages: flash-kernel
+    3.0~rc.4ubuntu6.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 09 Jul 2012 18:54:41 +0100
+
+ubiquity (2.11.9) quantal-proposed; urgency=low
+
+  [ Colin Watson ]
+  * Update DebconfInstallProgress method names for the python-apt 0.8 API.
+  * Automatic update of included source packages: flash-kernel
+    3.0~rc.4ubuntu5, partman-base 158ubuntu1, partman-target 78ubuntu1,
+    preseed 1.53ubuntu1.
+
+  [ Colin Watson, Dmitrijs Ledkovs ]
+  * Rearrange DebconfInstallProgress to not assume that update_interface
+    returns a value (LP: #1020574).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 06 Jul 2012 11:51:17 +0100
+
+ubiquity (2.11.8) quantal; urgency=low
+
+  [ James M. Leddy ]
+  * Only allow a user to proceed on the networking screen if he entered a valid
+    password. This prevents a nm dbus exception. (LP: #929092)
+
+  [ Mario Limonciello ]
+  * Don't let oem-config crash from an invalid server return on the timezone
+    page.
+
+  [ Colin Watson ]
+  * Simplify get_casper slightly.
+  * Depend on humanity-icon-theme for the DEP-8 tests so that the
+    gtk-missing-image icon is available.
+  * Fix auto-update OpProgress instance to handle the python-apt 0.8 API,
+    which doesn't pass a percent argument to update (LP: #1018759).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 29 Jun 2012 18:02:16 +0100
+
+ubiquity (2.11.7) quantal-proposed; urgency=low
+
+  [ Colin Watson ]
+  * Remove hardcoded paths to xfsettingsd and various accessibility tools.
+  * Automatic update of included source packages: clock-setup 0.112ubuntu1,
+    debian-installer-utils 1.91ubuntu1, flash-kernel 3.0~rc.4ubuntu4,
+    partman-base 156ubuntu1, partman-basicfilesystems 74ubuntu1,
+    partman-btrfs 9ubuntu1, partman-ext3 70ubuntu1, preseed 1.51ubuntu1.
+
+  [ Harald Sitter ]
+  * Fix bogus attribute access in usersetup plugin leading to crashes with
+    the KDE frontend (LP: #1008255)
+
+  [ Oliver Grawert ]
+  * adjust arm bootloader installation, we have not used this part of ubiquity
+    in some years and everything was outdated
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 26 Jun 2012 11:12:34 +0100
+
+ubiquity (2.11.6) quantal; urgency=low
+
+  [ Dmitrijs Ledkovs ]
+  * Run debconf-updatepo to remove migration-assistant translations.
+
+  [ Alan Bell ]
+  * Adjust the default use_device_title label to make more sense when read
+    by screen readers (LP: #1010179).
+
+  [ Stéphane Graber ]
+  * Port ubiquity-bluetooth-agent from the old python-gobject to the
+    gi version of gobject as required with python3. (LP: #1013172)
+
+  [ Matthew Paul Thomas ]
+  * Improvements to the third-party software text:
+    - Changes "display" to "play" (since MP3 is about audio, not video).
+    - Adds mention of graphics drivers (because the installer may install a
+      Nvidia proprietary driver).
+    - Changes "wireless" to "wi-fi".
+    - Changes "closed-source" to "proprietary", matching Ubuntu Software
+      Center.
+    - Removes repetition of "the software", by changing "the software's
+      documentation" to "its documentation".
+
+  [ Colin Watson ]
+  * Add XS-Testsuite header, as per current DEP-8.
+  * debian/tests/control: Depend on python3-mock rather than python-mock
+    (LP: #1015400).
+  * Automatic update of included source packages: apt-setup 1:0.56ubuntu2,
+    partconf 1.38, partman-basicmethods 50, partman-jfs 36, partman-newworld
+    27, partman-reiserfs 53, partman-xfs 50.
+
+  [ Luke Yelavich ]
+  * Show the a11y profile indicator in oem-config as well as in
+    maybe-ubiquity mode.
+  * bin/ubiquity-dm: Load at-spi for both OEM config and ubiquity.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 20 Jun 2012 09:37:32 +0100
+
+ubiquity (2.11.5) quantal-proposed; urgency=low
+
+  * Force the DBUS signature of AddAndActivateConnection (LP: #1008898)
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Tue, 05 Jun 2012 11:10:52 -0400
+
+ubiquity (2.11.4) quantal; urgency=low
+
+  [ Colin Watson ]
+  * Force the locale to en_US.UTF-8 for the timezone tests.
+  * Fix seddery of clock-setup/finish-install.d/10clock-setup to handle
+    changes in clock-setup 0.110 (LP: #1003443).
+  * Automatic update of included source packages: flash-kernel
+    3.0~rc.4ubuntu1.
+  * In the shell script syntax check, filter out *.po and *.pot files
+    straight away before doing the slower check using file(1).  There are
+    lots of these and it takes quite a long time otherwise.
+  * Add several Lintian overrides.
+
+  [ Dmitrijs Ledkovs ]
+  * Remove migration-assistant's UI definitions.
+
+  [ Martin Pitt ]
+  * scripts/simple-plugins, ubiquity/plugins/ubi-prepare.py: Move from Jockey
+    to "ubuntu-drivers autoinstall". Add ubuntu-drivers-common Recommends: for
+    this.
+  * scripts/plugininstall.py: Drop jockey --check-composite call. It is
+    obsolete as the free drivers now provide 3D support. Automatic
+    installation of graphics drivers is controlled and covered by
+    ubuntu-drivers autoinstall now.
+
+  [ Mario Limonciello ]
+  * Don't encode callbacks in UTF8 in the timezone plugin anymore.  The strings
+    are already unicode.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 01 Jun 2012 14:49:41 +0100
+
+ubiquity (2.11.3) quantal; urgency=low
+
+  * Automatic update of included source packages: flash-kernel 2.28ubuntu45.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 28 May 2012 09:44:35 +0100
+
+ubiquity (2.11.2) quantal; urgency=low
+
+  [ Colin Watson ]
+  * If ubiquity is started up in a non-UTF-8 locale, force it into C.UTF-8
+    and fail immediately if that's unavailable (LP: #1003851).
+  * KDE fails to round-trip strings containing U+FEFF ZERO WIDTH NO-BREAK
+    SPACE, such as the translations of a few language names.  Strip these
+    from language name translations.
+  * Install debconf-set from debian-installer-utils, useful for preseeding.
+
+  [ Evan Dandrea ]
+  * Remove migration-assistant following foundations-q-testing-
+    migration-assistant. Thanks Dmitrijs Ledkovs!
+  * Automatic update of included source packages: base-installer
+    1.122ubuntu8, flash-kernel 2.28ubuntu43.
+
+ -- Evan Dandrea <ev@ubuntu.com>  Fri, 25 May 2012 15:47:47 +0100
+
+ubiquity (2.11.1) quantal; urgency=low
+
+  * Fix handling of pipes to update-apt-cache.
+  * Sync up scripts/clock-setup-apply with changes in clock-setup 0.110.
+  * Only decode bytes read from debconf once we have a complete line
+    (LP: #1001542).
+  * Remove a couple of unused attributes.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 21 May 2012 17:16:32 +0100
+
+ubiquity (2.11.0) quantal; urgency=low
+
+  [ Colin Watson ]
+  * Install oem-config-slideshow-ubuntu in a separate pass from
+    oem-config-$frontend and ubiquity-frontend-$frontend, since it may be
+    missing from images; and only do this for the GTK frontend in any case,
+    since other frontends don't currently use the slideshow (LP: #987050).
+  * Re-enable alpha warning for quantal.
+  * Upgrade to debhelper 9 for improved handling of compiler flags.  Make
+    sure that /usr/lib/girepository-1.0/ stays where it's supposed to be
+    despite changes in the default libdir for multiarch.
+  * Port to Python 3:
+    - Use Python 3-style print functions.
+    - Use "except Exception as e" syntax rather than the old-style "except
+      Exception, e".
+    - Use reduce from functools rather than relying on the builtin.
+    - Use list comprehensions rather than filter or map.
+    - Use open() rather than file().
+    - Import configparser rather than ConfigParser if available.
+    - Use input() rather than raw_input() when running under Python 3.
+    - Use set comprehensions.
+    - Import quote from urllib.parse rather than urllib if available.
+    - Use new-style octal literals.
+    - Use test.support rather than test.test_support if available.
+    - Add --python2 and --python3 options to tests/run to force running the
+      tests under Python 2 or 3 respectively.
+    - Handle renaming of __builtin__ to builtins in Python 3.
+    - Only pass unicode=1 to gettext.install in Python 2.
+    - Port ubiquity.auto_update to python-apt 0.8 progress classes.
+    - Use Python 3 names for itertools.izip and itertools.izip_longest if
+      available.
+    - Use helpers from the six module to deal with some bytes/unicode
+      differences.
+    - As a general rule, open subprocesses with universal_newlines=True when
+      expecting to read text from them.  This has no effect on Python 2
+      (aside from \r\n conversion and the like, which is mostly a no-op for
+      us), but causes Python 3 to read str rather than bytes.  The
+      exceptions at the moment are: debconf-copydb subprocesses, which
+      return mixed-encoding data that needs to be handled specially; and
+      when feeding the output of a subprocess to hashlib.
+    - Use six.reraise rather than the three-argument form of raise.
+    - Adjust test_filteredcommand for Python 3 text handling.
+    - Fix test_ubi_partman.question_has_variables to handle templates files
+      as binary data, since they're mixed-encoding.
+    - Cope with assertItemsEqual/assertCountEqual naming difference between
+      Python 2.7 and 3.2.
+    - Rearrange ubiquity.i18n.get_translations to treat debconf-copydb
+      output as binary data and do field-dependent decoding.
+    - Adjust test_misc and test_upower to cope with file type changes in
+      Python 3.
+    - Use xml.etree.cElementTree instead of libxml2; it's faster, has a
+      smaller footprint by virtue of being built into the standard library,
+      arguably easier to read, and works with Python 3.
+    - Fix a slew of file handle leaks, including making much more liberal
+      use of context managers.
+    - When creating a default username based on the user's full name, decode
+      it back to a Unicode type after running it through the
+      ascii_transliterate encoder.
+    - Remove __pycache__ directories on clean.
+    - Use 'from __future__ import unicode_literals' in tests requiring
+      Unicode literals.
+    - Cope with various builtins and dict methods returning iterators rather
+      than lists in Python 3.
+    - Use chr rather than unichr in Python 3.
+    - Use six.string_types rather than types.StringTypes.
+    - Pass a byte string to Gtk.CssProvider.load_from_data.
+    - Replace all calls to unicode() with calls to six.text_type() or
+      misc.utf8() as appropriate.
+    - Use unicode_literals in ubiquity.keyboard_names.
+    - Fix up ubiquity.filteredcommand.debug and its tests for Python 3.  In
+      Python 3, we can write Unicode strings (i.e. str) directly to
+      sys.stderr, and its defaults are such that the worst case is that they
+      get backslash-encoded.  Arrange the tests to simulate this.
+    - Simplify ubiquity.nm.decode_ssid using bytearray(), allowing it to
+      work with Python 3 too.
+    - Open .debs in binary mode when verifying their contents.
+    - Decode text read from debconffilter subprocesses in Python 3.
+    - Only encode preseeded values in Python 2.  Python 3's debconf module
+      accepts Unicode strings directly.
+    - Encode the second argument to struct.pack.
+    - Fix byte array handling when generating /etc/iftab.
+    - Fix a missing bit of python-apt 0.8 porting in ubiquity.install_misc.
+    - Open /var/lib/dpkg/status in binary mode when compressing it.
+    - Pass bytes rather than text to kdecore.ki18n.
+    - Call sip.setapi("QVariant", 1) on KDE frontend startup, pending a more
+      complete port to the new API.
+    - Use boolean tests rather than isNull, to cope with getting ordinary
+      Python strings rather than QStrings.
+    - In Python 3, pass strings directly to Qt rather than creating
+      QStrings.
+    - (Build-)depend on python3-gi, since python3-gi-cairo doesn't depend on
+      that and in any case we use it directly.
+  * Add Burmese translations.
+  * Remove obsolete uxlaunch handling, since it's no longer used and has
+    been removed from the archive.
+  * Avoid locking failures when clicking on the "update this installer" link
+    more than once.
+  * Move a bit more code into ubiquity.install_misc, including a new
+    target_file helper method.
+  * Remove unnecessary #! lines from non-executable files.
+  * Improve download verification to handle systems not configured for
+    multiarch, i.e. anything other than amd64 by default (LP: #998492).
+  * Automatic update of included source packages: choose-mirror 2.39ubuntu5,
+    clock-setup 0.110ubuntu1, debian-installer-utils 1.89ubuntu1,
+    localechooser 2.40ubuntu1.
+
+  [ Stéphane Graber ]
+  * Spawn dconf-service from ubiquity-dm and drop all the dbus-launch calls.
+    This should ensure we have a single dconf-service running and that gets
+    killed on ubiquity's exit.
+  * ubiquity-dm: Turn on the compositor in metacity. (LP: #987168)
+  * wallpaper: Update code to properly set the wallpaper when compositing
+    is enabled.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 17 May 2012 03:09:54 +0100
 
 ubiquity (2.10.16) precise-proposed; urgency=low
 

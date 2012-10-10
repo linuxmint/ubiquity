@@ -1,5 +1,5 @@
 AC_PREREQ(2.52)
-AC_INIT([ubiquity], [2.10], [https://launchpad.net/ubuntu/+source/ubiquity/+filebug])
+AC_INIT([ubiquity], [2.12], [https://launchpad.net/ubuntu/+source/ubiquity/+filebug])
 AC_CONFIG_SRCDIR([src/panel/panel.c])
 AC_CONFIG_AUX_DIR([build])
 AC_CONFIG_MACRO_DIR([m4])

@@ -1,9 +1,10 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import unittest
 import sys
 # Make sure we're working in the source tree.
 sys.path.insert(0, '.')
+
 
 #class BaseFrontendTests(unittest.TestCase):
 #    def setUp(self):
@@ -13,63 +14,69 @@ sys.path.insert(0, '.')
 #    def tearDown(self):
 #        self.frontend.stop_debconf()
 
-class CoreFrontendTests:
+
+class CoreFrontendTests(unittest.TestCase):
     def testPluginsLoadProperly(self):
         should_load = ['ubi-language', 'ubi-timezone', 'ubi-console-setup',
                        'ubi-partman', 'ubi-usersetup']
         plugins = [x.filter_class.__module__ for x in self.frontend.pages]
         for x in should_load:
-            assert x in plugins, '%s not in %s' % (x, str(plugins))
+            self.assertIn(x, plugins)
 
     def testReturnToPartitioner(self):
         # bzr r3904, r3895
         self.frontend.installing = True
         self.frontend.next.set_label('Install')
+
         def nop(*args, **kwargs):
             pass
+
         self.frontend.switch_progress_windows = nop
         self.frontend.return_to_partitioning()
-        assert self.frontend.dbfilter.__module__ == 'ubi-partman'
-        assert self.frontend.dbfilter.ui.__module__ == 'ubi-partman'
-        assert self.frontend.next.get_label() == '_Forward'
+        self.assertEqual('ubi-partman', self.frontend.dbfilter.__module__)
+        self.assertEqual('ubi-partman', self.frontend.dbfilter.ui.__module__)
+        self.assertEqual('_Forward', self.frontend.next.get_label())
 
     def testPageNavigation(self):
         # bzr r4041, LP #556180
         c = self.ui.Controller(self.frontend)
         c.allow_change_step(False)
-        assert self.frontend.next.get_property('sensitive') == False
-        assert self.frontend.back.get_property('sensitive') == False
+        self.assertFalse(self.frontend.next.get_property('sensitive'))
+        self.assertFalse(self.frontend.back.get_property('sensitive'))
 
         c.allow_change_step(True)
         c.allow_go_forward(True)
         c.allow_go_backward(True)
-        assert self.frontend.next.get_property('sensitive') == True
-        assert self.frontend.back.get_property('sensitive') == True
+        self.assertTrue(self.frontend.next.get_property('sensitive'))
+        self.assertTrue(self.frontend.back.get_property('sensitive'))
 
     def tearDown(self):
         # Needed?
         self.frontend.quit_main_loop()
         self.frontend.stop_debconf()
 
+
 # KDE applications run klauncher (kdelibs/kinit/klauncher_main.cpp), which
 # tries to connect to the D-Bus session bus.  This wont work here as the system
 # policy prevents one user from connecting to another's session bus.
 
-#class KdeFrontendTests(CoreFrontendTests, unittest.TestCase):
+#class KdeFrontendTests(CoreFrontendTests):
 #    def setUp(self):
 #        from ubiquity.frontend import kde_ui
 #        self.ui = kde_ui
 #        self.frontend = kde_ui.Wizard('ubuntu')
 
+
 # The noninteractive frontend needs access to /dev/console.
 
-#class NoninteractiveFrontendTests(CoreFrontendTests, unittest.TestCase):
+#class NoninteractiveFrontendTests(CoreFrontendTests):
 #    def setUp(self):
 #        from ubiquity.frontend import noninteractive
 #        self.ui = noninteractive
 #        self.frontend = noninteractive.Wizard('ubuntu')
 
-class GtkFrontendTests(CoreFrontendTests, unittest.TestCase):
+
+class GtkFrontendTests(CoreFrontendTests):
     def setUp(self):
         from ubiquity.frontend import gtk_ui
         self.ui = gtk_ui
@@ -86,11 +93,11 @@ class GtkFrontendTests(CoreFrontendTests, unittest.TestCase):
             if p.filter_class.__module__ == 'ubi-partman':
                 part_auto = (p, p.widgets[0])
                 self.frontend.add_history(p, p.optional_widgets[0])
-        assert part_auto is not None
+        self.assertIsNotNone(part_auto)
         seen = []
         while True:
             h = self.frontend.history[-1]
-            assert h not in seen, 'already been to %s' % str(h[1].name)
+            self.assertNotIn(h, seen, 'already been to %s' % h[1].name)
             seen.append(h)
             self.frontend.pop_history()
             if h[0].filter_class.__module__ == 'ubi-usersetup':
@@ -108,7 +115,7 @@ class GtkFrontendTests(CoreFrontendTests, unittest.TestCase):
             if page.module.NAME == 'timezone':
                 idx = self.frontend.pages.index(page)
                 break
-        assert idx != -1
+        self.assertNotEqual(-1, idx)
         ui = self.frontend.pages[idx].ui
         dbfilter = self.frontend.dbfilter
         dbfilter = self.frontend.pages[idx].filter_class(self, ui=ui)
@@ -125,7 +132,7 @@ class GtkFrontendTests(CoreFrontendTests, unittest.TestCase):
             if page.module.NAME == 'usersetup':
                 idx = self.frontend.pages.index(page)
                 break
-        assert idx != -1
+        self.assertNotEqual(-1, idx)
         self.frontend.pagesindex = idx
         ui = self.frontend.pages[idx].ui
         dbfilter = self.frontend.dbfilter
@@ -141,7 +148,9 @@ class GtkFrontendTests(CoreFrontendTests, unittest.TestCase):
         self.frontend.translate_pages(reget=True)
         esstrs = [x.inactive_message for x in widgets]
         common = set(cstrs) & set(esstrs)
-        assert not common, 'Untranslated strings: %s' % ', '.join(common)
+        self.assertEqual(
+            set(), common, 'Untranslated strings: %s' % ', '.join(common))
+
 
 if __name__ == '__main__':
     unittest.main(testRunner=unittest.TextTestRunner(verbosity=2))

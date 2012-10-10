@@ -1,0 +1,73 @@
+#!/bin/sh
+
+# Installs userspace tools and helper packages in the target system.
+#
+# Things to install
+# * loop-AES: loop-aes-utils, loop-aes-rootfs (TODO) and loop keys
+# * cryptsetup: relies on base-installer instead
+
+. /lib/partman/lib/base.sh
+
+loop_AES=no
+dm_crypt=no
+
+install_loopkeys () {
+	dir=/target/etc/loopkeys
+	if [ ! -d $dir ]; then
+		mkdir -p $dir
+		chmod 0700 $dir
+	fi
+
+	for key in $*; do
+		name=${key##*/}
+		if [ -f $dir/$name ]; then
+			: TODO show error
+		else
+			mv $key $dir/$name
+			chmod 0600 $dir/$name
+		fi
+	done
+}
+
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ "$fs" != free ] || continue
+		[ -f $id/method ] || continue
+		[ -f $id/crypto_type ] || continue
+
+		method=$(cat $id/method)
+		[ $method = crypto ] || [ $method = crypto_keep ] || continue
+
+		type=$(cat $id/crypto_type)
+		case $type in
+			loop-AES)
+				loop_AES=yes
+				if [ -f $id/keyfile ]; then
+					key=$(cat $id/keyfile)
+					install_loopkeys "$key"
+				fi
+				;;
+			dm-crypt)
+				dm_crypt=yes
+				;;
+		esac
+	done
+	close_dialog
+done
+
+if [ $loop_AES = yes ]; then
+	# TODO loop-aes-rootfs
+	apt-install loop-aes-utils || true
+fi
+
+if grep -q " device-mapper$" /proc/misc; then
+	# We can't check the root node directly because root could be
+	# on an LVM LV on top of an encrypted device
+	if type dmsetup >/dev/null 2>&1 && \
+	   dmsetup table | cut -d' ' -f4 | grep -q "crypt" 2>/dev/null; then
+		apt-install cryptsetup || true
+	fi
+fi

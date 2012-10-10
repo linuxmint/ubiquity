@@ -1,3 +1,212 @@
+grub-installer (1.78ubuntu3) quantal; urgency=low
+
+  * Fix incorrect test for whether to bind-mount /sys (LP: #1054323).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 24 Sep 2012 21:37:10 +0100
+
+grub-installer (1.78ubuntu2) quantal; urgency=low
+
+  * Don't try to use local outside a function (LP: #1053317).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 20 Sep 2012 13:33:04 +0100
+
+grub-installer (1.78ubuntu1) quantal; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Show the grub menu and raise the menu timeout if other operating
+      systems are installed (only for GRUB Legacy right now).
+    - Remove splash boot parameter unless debian-installer/framebuffer=true
+      and debian-installer/splash=true.
+    - If / or /boot are on a removable device, install GRUB there by
+      default.
+    - Support setting OVERRIDE_UNSUPPORTED_OS in the environment to force
+      grub-installer to use its default MBR selection method despite there
+      being unsupported operating systems on the disk.
+    - Handle cases where /boot is bind-mounted.
+    - Add support for writing an GRUB Legacy MBR on each disk in an
+      mdadm-managed RAID providing /boot.  (GRUB 2 can handle this already.)
+    - Properly make use of output from os-prober to configure the booting of
+      other operating systems on dmraid arrays.  Attempt to guess where in
+      the device map the array belongs, by substituting the first drive in
+      the dmraid array for the dmraid array device node itself, and removing
+      any reference to other member disks of the array.
+    - Go back to using update-grub -y for GRUB Legacy for now; our grub
+      package is a bit old and still requires this.
+    - Allow grub/grub2 choice for ext4, though still default to grub2.
+    - If /boot is on an MD device and we're using GRUB 2, install GRUB there
+      rather than (hd0); GRUB 2 will interpret that as meaning that it needs
+      to install to each of the RAID members.
+    - If using GRUB 2 and installing to a RAID device any of whose
+      components are partitions, then default to installing to the MBRs of
+      each of the containing disks, since GRUB 2 will refuse to install to
+      the partition devices.
+    - On i386/efi and amd64/efi subarchitectures, install grub-efi and purge
+      grub, grub-legacy, and grub-pc; elsewhere, purge grub-efi*.
+    - Add a preseedable grub-installer/timeout template to adjust the
+      initial GRUB timeout.
+    - Install GRUB to the SATA RAID or multipath device when /boot is on
+      such a device, rather than installing to the first hard disk.
+    - Remove grub-gfxpayload-lists in situations where we need to remove
+      grub-pc.
+    - Remove 'quiet' from target system command line if
+      debian-installer/quiet is set to false.
+    - When /boot is on a loopback device (i.e. Wubi), install GRUB there.
+    - Simplify /proc and /sys mounting; make sure they're consistently
+      mounted for the entire life of grub-installer, and consistently
+      unmounted on exit.
+    - Only process the output of os-prober into boot menu entries if we're
+      actually going to use them; if we're using GRUB 2 and os-prober is
+      installed, then it will deal with this itself and do a better job of
+      it.
+  * Drop grub-installer/bootdev_directory preseeding.  Wubi no longer uses
+    this, and we no longer care about grub4dos.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 19 Sep 2012 10:17:29 +0100
+
+grub-installer (1.78) unstable; urgency=low
+
+  [ Updated translations ]
+  * Croatian (hr.po) by Tomislav Krznar
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 25 Aug 2012 08:33:09 +0200
+
+grub-installer (1.77) unstable; urgency=low
+
+  [ Cyril Brulebois ]
+  * Apply patch from Mike Miller to fix the syntax error in the
+    linprocfs/kFreeBSD code (Closes: #683867). Many thanks for the
+    tested patch!
+
+  [ Christian Perrier ]
+  * Add myself to Uploaders
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 05 Aug 2012 10:59:40 +0200
+
+grub-installer (1.76) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Fix /proc mounting code to use linprocfs on kFreeBSD. Closes: #613430
+  * Remove code that relies on target fstab containing /proc, which it no
+    longer does. Closes: #637684
+
+  [ Updated translations ]
+  * Irish (ga.po) by Kevin Patrick Scannell
+
+ -- Julien Cristau <jcristau@debian.org>  Fri, 03 Aug 2012 09:43:34 +0200
+
+grub-installer (1.75) unstable; urgency=high
+
+  * Team upload.
+  * Make sure /proc is mounted in $ROOT (usually: /target) so that grub
+    can find all needed bits, like RAID and LVM stuff through /proc/devices
+    (Closes: #662086).
+
+ -- Cyril Brulebois <kibi@debian.org>  Wed, 11 Jul 2012 15:28:45 +0200
+
+grub-installer (1.74) unstable; urgency=low
+
+  * Team upload
+
+  [ Updated translations ]
+  * Croatian (hr.po) by Tomislav Krznar
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 20 Jun 2012 00:41:26 +0200
+
+grub-installer (1.73) unstable; urgency=low
+
+  * Team upload
+
+  [ Updated translations ]
+  * Amharic (am.po) by Tegegne Tefera
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 18 Jun 2012 18:45:34 +0200
+
+grub-installer (1.72) unstable; urgency=low
+
+  * Team upload
+
+  [ Updated translations ]
+  * Galician (gl.po) by Jorge Barreiro
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 17 Jun 2012 11:25:29 +0200
+
+grub-installer (1.71) unstable; urgency=low
+
+  * Team upload
+  * Replace XC-package-Type by Package-Type
+
+  [ Jeremie Koenig ]
+  * Work around the unavailability of /proc/mounts on Hurd.
+
+  [ Updated translations ]
+  * Tibetan (bo.po) by Tennom
+  * Welsh (cy.po) by Dafydd Tomos
+  * Danish (da.po) by Joe Hansen
+  * Basque (eu.po) by Piarres Beobide
+  * Finnish (fi.po) by Timo Jyrinki
+  * Galician (gl.po) by Jorge Barreiro
+  * Hungarian (hu.po) by SZERVÁC Attila
+  * Icelandic (is.po) by Sveinn í Felli
+  * Lao (lo.po) by Anousak Souphavanh
+  * Lithuanian (lt.po) by Rimas Kudelis
+  * Latvian (lv.po) by Rūdolfs Mazurs
+  * Macedonian (mk.po) by Arangel Angov
+  * Malayalam (ml.po) by Praveen Arimbrathodiyil
+  * Panjabi (pa.po) by A S Alam
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Vietnamese (vi.po) by Hai-Nam Nguyen
+  * Traditional Chinese (zh_TW.po) by Yao Wei (魏銘廷)
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 15 Jun 2012 19:04:26 +0200
+
+grub-installer (1.70) unstable; urgency=low
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama Khayat
+  * Asturian (ast.po) by Mikel González
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bengali (bn.po) by Ayesha Akhtar
+  * Catalan (ca.po) by Jordi Mallach
+  * Danish (da.po) by Joe Hansen
+  * Greek (el.po) by galaxico
+  * Estonian (et.po) by Mattias Põldaru
+  * Indonesian (id.po) by Mahyuddin Susanto
+  * Icelandic (is.po) by Sveinn í Felli
+  * Italian (it.po) by Milo Casagrande
+  * Khmer (km.po) by Khoem Sokhem
+  * Kannada (kn.po) by Prabodh C P
+  * Norwegian Bokmal (nb.po) by Hans Fredrik Nordhaug
+  * Polish (pl.po) by Marcin Owsiany
+  * Romanian (ro.po) by Ioan Eugen Stan
+  * Serbian (sr.po) by Karolina Kalic
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Otavio Salvador <otavio@debian.org>  Thu, 15 Mar 2012 14:44:37 -0300
+
+grub-installer (1.69) unstable; urgency=low
+
+  [ Joey Hess ]
+  * Simplify grub package selection code.
+  * Don't allow using GRUB legacy when booting from btrfs.
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama Khayat
+  * Bosnian (bs.po) by Armin Besirovic
+  * Dzongkha (dz.po) by Jurmey Rabgay
+  * Persian (fa.po) by Behrad Eslamifar
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Kumar Appaiah
+  * Khmer (km.po) by Chan Sambathratanak
+  * Kannada (kn.po) by vignesh prabhu
+  * Marathi (mr.po) by sampada
+  * Polish (pl.po) by Marcin Owsiany
+  * Slovak (sk.po) by Ivan Masár
+  * Swedish (sv.po) by Martin Bagge / brother
+  * Telugu (te.po) by Arjuna Rao Chavala
+
+ -- Otavio Salvador <otavio@debian.org>  Sat, 19 Nov 2011 16:33:12 -0200
+
 grub-installer (1.68ubuntu5) precise; urgency=low
 
   * Update Ubuntu-specific translations from Launchpad.

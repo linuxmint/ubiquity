@@ -1,0 +1,229 @@
+#!/bin/sh
+
+# This script creates partman cryptdisks for the encrypted devices
+# setup in choose_partition/crypto/do_option.
+
+. /lib/partman/lib/base.sh
+. /lib/partman/lib/lvm-base.sh
+
+# Avoid warnings from lvm2 tools about open file descriptors
+export LVM_SUPPRESS_FD_WARNINGS=1
+
+if [ -x /sbin/vgdisplay ]; then
+	vgroups=$(/sbin/vgdisplay 2>/dev/null | grep '^[ ]*VG Name' | \
+		sed -e 's/.*[[:space:]]\(.*\)$/\1/' | sort)
+else
+	vgroups=''
+fi
+
+dev_to_devdir () {
+	echo $DEVICES/$(echo $1 | tr / =)
+}
+
+create_disk () {
+	device=$1
+	model=$2
+	size=$3
+
+	devdir=$(dev_to_devdir $device)
+	mkdir $devdir || return 1
+	cd $devdir
+
+	echo $device > $devdir/device
+	echo $model > $devdir/model
+	echo $size > $devdir/size
+
+	open_dialog OPEN $device
+	read_line response
+	close_dialog
+	if [ "$response" = failed ]; then
+		rm -rf $devdir
+		return 1
+	fi
+
+	return 0
+}
+
+create_partition () {
+	local id num size type fs path name free_space free_size filesystem
+	filesystem=$2
+
+	cd $(dev_to_devdir $1)
+
+	open_dialog NEW_LABEL loop
+	close_dialog
+
+	# find the free space
+	open_dialog PARTITIONS
+	free_space=''
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		if [ "$fs" = free ]; then
+			free_space=$id
+			free_size=$size
+			# we can't break here
+		fi
+	done
+	close_dialog
+
+	# create partition in the free space
+	if [ "$free_space" ]; then
+		open_dialog NEW_PARTITION primary $filesystem $free_space full $free_size
+		read_line num id size type fs path name
+		close_dialog
+		if [ -z "$id" ]; then
+			log "error: NEW_PARTITION returned no id"
+			return
+		fi
+	fi
+	open_dialog DISK_UNCHANGED
+	close_dialog
+
+	mkdir -p $id
+	echo $id
+}
+
+create_cryptdisk () {
+	local dev id num size path cryptdev cipher file vg vgs
+	dev=$1
+	id=$2
+	num=$3
+	size=$4
+	path=$5
+
+	cipher=$(cat $id/cipher)
+	keytype=$(cat $id/keytype)
+	method=$(cat $id/method)
+
+	templ="partman-crypto/text/cryptdev_description"
+	db_subst $templ CIPHER $cipher
+	db_subst $templ KEYTYPE $keytype
+	db_metaget $templ description || RET=''
+	model="$RET"
+	if [ -z "$model" ]; then
+		model="${cipher} ${keytype}"
+	fi
+
+	# Tell partman about the crypt disk
+	cryptdev=$(cat $id/crypt_active)
+	cryptdir=$(dev_to_devdir $cryptdev)
+	if [ ! -d $cryptdir ]; then
+		if ! create_disk $cryptdev "$model" $size; then
+			return 2
+		fi
+	fi
+
+	db_get partman/default_filesystem
+	default_fs="$RET"
+
+	case $keytype in
+		random)
+			filesystem=linux-swap
+			;;
+		keyfile|*)
+			filesystem="$default_fs"
+			;;
+	esac
+
+	# Create a new partition in there
+	cryptid=$(create_partition $cryptdev $filesystem)
+	if [ -z $cryptid ]; then
+		return 3
+	fi
+	cryptpart=$cryptdir/$cryptid
+
+	# Make sure partition hasn't been processed already
+	if [ -e $cryptpart/method ]; then
+		return 0
+	fi
+
+	# Select defaults
+	case $filesystem in
+		linux-swap)
+			echo swap > $cryptpart/method
+			if [ "$method" = crypto ]; then
+				>$cryptpart/format
+			else
+				rm -f $cryptpart/format
+			fi
+			;;
+
+		$default_fs)
+			if [ "$method" = crypto ]; then
+				echo format > $cryptpart/method
+				>$cryptpart/format
+				>$cryptpart/use_filesystem
+				echo $filesystem > $cryptpart/filesystem
+			else
+				echo keep > $cryptpart/method
+				rm -f $cryptpart/format
+			fi
+			;;
+	esac
+
+	# To avoid ordering problems between init.d/crypto and init.d/lvm,
+	# we need to duplicate a bit of the latter here, in case an existing
+	# crypto device contains an LVM PV.
+	if [ "$method" = crypto_keep ]; then
+		if pvdisplay "$cryptdev" >/dev/null 2>&1; then
+			for file in acting_filesystem filesystem format \
+				    formatable use_filesystem; do
+				rm -f $cryptpart/$file
+			done
+			echo lvm > $cryptpart/method
+			if [ ! -e $cryptpart/locked ]; then
+				vg="$(pv_get_vg "$cryptdev")"
+				for vgs in $vgroups; do
+					if [ "$vg" = "$vgs" ]; then
+						vg_lock_pvs "$vg" "$cryptdev"
+					fi
+				done
+			fi
+		fi
+	fi
+
+	update_partition $cryptdir $cryptid
+
+	echo $path:$num:$dev/$id > $cryptdir/crypt_realdev
+	return 0
+}
+
+db_register partman-crypto/confirm partman-crypto/confirm_nooverwrite
+
+for dev in /var/lib/partman/devices/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		if [ "$fs" != free ]; then
+			partitions="$partitions $id:$num:$size:$path"
+		fi
+	done
+	close_dialog
+
+	for p in $partitions; do
+		set -- $(IFS=: && echo $p)
+		id=$1
+		num=$2
+		size=$3
+		path=$4
+
+		cd $dev
+
+		[ -f $id/method ] || continue
+		[ -f $id/crypto_type ] || continue
+		[ -f $id/cipher ] || continue
+		[ -f $id/crypt_active ] || continue
+
+		method=$(cat $id/method)
+		[ $method = crypto ] || [ $method = crypto_keep ] || continue
+
+		if ! create_cryptdisk $dev $id $num $size $path; then
+			db_fset partman-crypto/init_failed seen false
+			db_input critical partman-crypto/init_failed
+			db_go || true
+			continue
+		fi
+	done
+done
+

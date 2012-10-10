@@ -18,8 +18,9 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 
-import debconf
 import os
+
+import debconf
 
 from ubiquity import plugin
 
@@ -27,11 +28,14 @@ NAME = 'tasks'
 AFTER = 'network'
 WEIGHT = 12
 
+
 class TasksUnfilteredOnly(Exception):
     pass
 
+
 class PageDebconf(plugin.PluginUI):
     plugin_title = 'ubiquity/text/tasks_heading_label'
+
 
 # Only supports unfiltered mode.
 class Page(plugin.Plugin):

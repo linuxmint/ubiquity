@@ -1,0 +1,103 @@
+#!/bin/sh
+# Check that the crypto setup is sensible
+
+. /lib/partman/lib/base.sh
+
+have_boot=no
+crypto_root=no
+
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	partitions=
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ "$fs" != free ] || continue
+		partitions="$partitions $id,$path"
+	done
+	close_dialog
+
+	for part in $partitions; do
+		id=${part%,*}
+		path=${part#*,}
+
+		[ -f $id/method ] || continue
+		# mountpoint could be none i.e. swap
+		mnt=
+		if [ -f $id/mountpoint ]; then
+			mnt=$(cat $id/mountpoint)
+			if [ "$mnt" = /boot ]; then
+				have_boot=yes
+			fi
+		fi
+
+		# "is crypto?"
+		[ -f crypt_realdev ] || continue
+
+		r=$(cat crypt_realdev)
+		set -- $(IFS=: && echo $r)
+		realdev=$1
+		realdevnum=$2
+		realdevdir=$3
+
+		[ -f $realdevdir/method ] || continue
+		method=$(cat $realdevdir/method)
+		type=$(cat $realdevdir/crypto_type)
+		[ $method = crypto ] || [ $method = crypto_keep ] || continue
+
+		# Check 1 - Is cryptoroot possible?
+		if [ "$mnt" = / ]; then
+			crypto_root=yes
+		fi
+
+		# Check 2 - Is /boot encrypted?
+		if [ "$mnt" = /boot ]; then
+			templ="partman-crypto/crypto_boot_not_possible"
+			db_set $templ false
+			db_fset $templ seen false
+			db_input critical $templ
+			db_go || true
+			exit 1
+		fi
+
+		# Check 3 - Has the partition been encrypted with a random key?
+		[ -f $realdevdir/keytype ] || continue
+		keytype=$(cat $realdevdir/keytype)
+		[ $keytype = random ] || continue
+
+		# Check 4 - If so, does a random key make sense?
+		if [ -z "$mnt" ]; then
+			# Presumably swap, which is ok
+			continue
+		elif [ "$mnt" = /tmp ]; then
+			# Random /tmp is also ok
+			continue
+		else
+			# Neither swap, nor tmp, which is a problem
+			# But if the user insists...
+			templ="partman-crypto/use_random_for_nonswap"
+			db_set $templ false
+			db_fset $templ seen false
+			db_subst $templ DEVICE $(humandev $realdev)
+			db_input critical $templ
+			db_go || abort=1
+			db_get $templ || RET=''
+
+			if [ "$RET" != true ]; then
+				# User doesn't want to force random keytype
+				exit 1
+			fi
+		fi
+	done
+done
+
+# Check - Is there a /boot partition for encrypted root?
+if [ $crypto_root = yes ] && [ $have_boot = no ]; then
+	templ="partman-crypto/crypto_root_needs_boot"
+	db_set $templ false
+	db_fset $templ seen false
+	db_input critical $templ
+	db_go || true
+	exit 1
+fi
+

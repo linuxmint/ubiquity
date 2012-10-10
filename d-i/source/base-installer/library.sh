@@ -39,6 +39,8 @@ IFS_ORIG="$IFS"
 NL="
 "
 
+TITLE_TEMPLATE=debian-installer/bootstrap-base/title
+
 log() {
 	logger -t base-installer "$@"
 }
@@ -374,7 +376,7 @@ kernel_present () {
 pick_kernel () {
 	kernel_update_list
 	
-	db_settitle debian-installer/bootstrap-base/title
+	db_settitle "$TITLE_TEMPLATE"
 
 	# Check for overrides
 	if db_get base-installer/kernel/override-image && [ "$RET" ]; then
@@ -587,7 +589,7 @@ EOF
 			db_get base-installer/kernel/linux/initramfs-tools/driver-policy
 			db_set base-installer/initramfs-tools/driver-policy "$RET"
 		fi
-		db_settitle debian-installer/bootstrap-base/title
+		db_settitle "$TITLE_TEMPLATE"
 		db_input medium base-installer/initramfs-tools/driver-policy || true
 		if ! db_go; then
 			db_progress stop

@@ -1,0 +1,277 @@
+#!/bin/sh
+#
+# usage: $0 description keytype keyfile [keybits]
+#
+# This handles sensitive data that must not be swapped out
+# or written out to disk unencrypted.
+#
+# Important: before running this script the caller has
+# to check for unsafe swap partitions. This is done in
+# choose_method/encrypt/do_options.
+#
+# Assumption: This runs as part of d-i. Therefore, temp
+# files outside of /target reside in a ramdisk. Process
+# information (think [ "$pass" ]) is not exposed to anyone
+# but the installing user.
+#
+# Released under the GNU GPL.
+# Copyright 2005, Max Vozeler <xam@debian.org>
+#
+
+. /usr/share/debconf/confmodule
+
+umask 077
+
+# When changing minlen care must be taken about the
+# consequences for translations, see #326482
+minlen=8
+
+passphrase_is_weak () {
+	test $(printf %s "$1" | wc -c) -lt $minlen
+}
+
+get_passphrase () {
+	local pass_ok
+
+	pass_ok=0
+	while [ $pass_ok -eq 0 ]; do
+		templ="partman-crypto/passphrase"
+		db_subst $templ DEVICE "$description"
+		db_input critical $templ
+
+		templ="partman-crypto/passphrase-again"
+		db_input critical $templ
+
+		db_go || return 1
+
+		db_get partman-crypto/passphrase || RET=''
+		pass=$RET
+		if [ -z "$pass" ]; then
+			db_set partman-crypto/passphrase ""
+			db_set partman-crypto/passphrase-again ""
+			templ="partman-crypto/passphrase-empty"
+			db_fset $templ seen false
+			db_input critical $templ
+			db_fset partman-crypto/passphrase seen false
+			db_fset partman-crypto/passphrase-again seen false
+			continue
+		fi
+
+		db_get partman-crypto/passphrase-again || RET=''
+		if [ "$pass" != "$RET" ]; then
+			db_set partman-crypto/passphrase ""
+			db_set partman-crypto/passphrase-again ""
+			templ="partman-crypto/passphrase-mismatch"
+			db_fset $templ seen false
+			db_input critical $templ
+			db_fset partman-crypto/passphrase seen false
+			db_fset partman-crypto/passphrase-again seen false
+			continue
+		fi
+
+		if passphrase_is_weak "$pass"; then
+			templ="partman-crypto/weak_passphrase"
+			db_subst $templ MINIMUM $minlen
+			db_input critical $templ || true
+			db_go || true
+			db_get $templ || RET=''
+
+			if [ "$RET" != true ]; then
+				# user doesn't want to force weak passphrase
+				db_set partman-crypto/passphrase ""
+				db_set partman-crypto/passphrase-again ""
+				db_fset partman-crypto/passphrase seen false
+				db_fset partman-crypto/passphrase-again seen false
+				continue
+			fi
+
+			db_set $templ false
+			db_fset $templ seen false
+		fi
+
+		pass_ok=1
+	done
+
+	db_set partman-crypto/passphrase ""
+	db_set partman-crypto/passphrase-again ""
+
+	if [ $pass_ok -eq 1 ]; then
+		echo "$pass"
+	fi
+}
+
+have_entropy_plugin () {
+	db_capb
+	set -- $RET
+	for cap; do
+		if [ "$cap" = plugin-entropy ]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
+# Fifo provided by cdebconf-entropy plugins
+randfifo=/var/run/random.fifo
+
+call_entropy_plugin () {
+	local keybytes
+	keybytes=$1
+
+	db_capb backup align
+
+	templ=partman-crypto/entropy
+	db_fset $templ seen false
+	db_subst $templ DEVICE "$description"
+	db_subst $templ FIFO $randfifo
+	db_subst $templ KEYSIZE "$keybytes"
+	db_subst $templ SUCCESS partman-crypto/entropy-success
+	db_input critical $templ
+	db_go || return 1
+
+	return 0
+}
+
+gnupg_encrypt () {
+	local keyfile passfifo gpgopts
+	keyfile=$1
+	passfifo=$2
+	gpgopts="--batch --no-options --no-random-seed-file --no-default-keyring --keyring /dev/null --passphrase-fd 3 --symmetric -a"
+
+	while [ ! -p $randfifo ]; do
+		sleep 1
+	done
+
+	base64 < $randfifo | gpg $gpgopts 3< $passfifo > $keyfile
+}
+
+# Create a GnuPG keyfile for use by loop-AES.
+# (v3 key format: 2925 bytes in base64)
+create_gnupg_keyfile () {
+	local keyfile pass passfifo pid
+	keyfile=$1
+	pass=$2
+
+	passfifo=$keyfile.pass
+	if [ ! -p $passfifo ]; then
+		mknod $passfifo p
+		chmod 0600 $passfifo
+	fi
+
+	# Fork off gnupg encrypting pipe
+	printf %s "$pass" > $passfifo &
+	gnupg_encrypt $keyfile $passfifo &
+	gpg_pid=$!
+
+	# Call plugin to feed randfifo
+	call_entropy_plugin 2925
+	if [ $? -ne 0 ] || ! wait $gpg_pid; then
+		rm $keyfile
+		kill $gpg_pid
+		return 1
+	fi
+
+	# for use by init.d/crypto
+	printf %s "$pass" > $passfifo &
+	return 0
+}
+
+# Create a one-time random keyfile for use during install
+create_random_keyfile() {
+	local keyfile keybytes
+	keyfile=$1
+	keybytes=$2
+
+	# Fork off file writer
+	(while [ ! -p $randfifo ]; do
+		 sleep 1
+	 done
+	 cat $randfifo > $keyfile
+	) &
+	writer_pid=$!
+
+	# Call plugin to feed randfifo
+	call_entropy_plugin $keybytes
+	if [ $? -ne 0 ] || ! wait $writer_pid; then
+		rm $keyfile
+		kill $writer_pid
+		return 1
+	fi
+
+	return 0
+}
+
+problem_dialog () {
+	db_fset partman-crypto/keyfile-problem seen false
+	db_input critical partman-crypto/keyfile-problem
+	db_go || true
+}
+
+description=$1
+keytype=$2
+keyfile=$3
+keybits=$4
+
+if ! ([ "$description" ] && [ "$keytype" ] && [ "$keyfile" ]); then
+	# bad options
+	problem_dialog
+	exit 1
+fi
+
+# Log available entropy
+logger -t partman-crypto "kernel entropy_avail: $(cat /proc/sys/kernel/random/entropy_avail) bits"
+
+if [ "$keytype" = random ] || [ "$keytype" = keyfile ]; then
+	if ! have_entropy_plugin; then
+		db_fset partman-crypto/tools_missing seen false
+		db_input critical partman-crypto/tools_missing
+		db_go || true
+		exit 1
+	fi
+fi
+
+case $keytype in
+	keyfile)
+		pass=$(get_passphrase)
+		if [ -z "$pass" ]; then
+			problem_dialog
+			exit 1
+		fi
+		if ! create_gnupg_keyfile $keyfile "$pass"; then
+			problem_dialog
+			exit 1
+		fi
+		;;
+
+	passphrase)
+		pass=$(get_passphrase)
+		if [ -z "$pass" ]; then
+			problem_dialog
+			exit 1
+		fi
+		printf %s "$pass" > $keyfile
+		;;
+
+	random)
+		if [ -z "$keybits" ]; then
+			problem_dialog
+			exit 1
+		fi
+		# Round keybits up to closest byte
+		keybytes=$(( (keybits + 7)/8 ))
+		if [ $keybytes -lt 1 ]; then
+			# key size invalid
+			problem_dialog
+			exit 1
+		fi
+		if ! create_random_keyfile $keyfile $keybytes; then
+			problem_dialog
+			exit 1
+		fi
+		;;
+
+	*)
+		problem_dialog
+		exit 1
+		;;
+esac

@@ -21,6 +21,7 @@
 
 from ubiquity.filteredcommand import FilteredCommand
 
+
 class Install(FilteredCommand):
     def prepare(self, unfiltered=False):
         reboot = self.db.get('ubiquity/reboot')
@@ -39,7 +40,6 @@ class Install(FilteredCommand):
             self.preseed('oem-config/enable', 'true')
 
         questions = ['^.*/apt-install-failed$',
-                     'migration-assistant/failed-unmount',
                      'ubiquity/install/copying_error/md5',
                      'ubiquity/install/new-bootdev',
                      'CAPB',

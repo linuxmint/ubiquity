@@ -96,6 +96,10 @@ class PageBase(plugin.PluginUI):
         """Update the manual partitioner display."""
         pass
 
+    def show_bootloader_options(self):
+        """Show the boot loader options."""
+        pass
+
     def get_grub_choice(self):
         return misc.grub_default()
 
@@ -155,7 +159,7 @@ class PageGtk(PageBase):
         self.resize_max_size = None
         self.resize_pref_size = None
         self.resize_path = ''
-        self.auto_colors = ['8b94ef', 'eeef2f', 'ef8b8b']
+        self.auto_colors = ['3465a4', '73d216', 'f57900']
         self.extra_options = {}
 
         self.partition_mount_combo.get_child().set_activates_default(True)
@@ -544,6 +548,9 @@ class PageGtk(PageBase):
         self.controller.go_forward()
         return True
 
+    def show_bootloader_options(self):
+        self.bootloader_grid.show()
+
     def set_grub_options(self, default, grub_installable):
         from gi.repository import Gtk, GObject
         options = misc.grub_options()
@@ -567,6 +574,12 @@ class PageGtk(PageBase):
             return self.grub_device_entry.get_model().get_value(i, 0)
         else:
             self.debug('No active iterator for grub device entry.')
+            disk = self.get_current_disk_partman_id()
+            if isinstance(disk, str) and disk:
+                disk_path = disk.replace("=", "/")
+                if os.path.exists(disk_path):
+                    return misc.grub_default(boot=disk_path)
+
             return misc.grub_default()
 
     def set_autopartition_heading(self, heading):
@@ -1196,6 +1209,8 @@ class PageGtk(PageBase):
         elif partition['parted']['fs'] == 'free':
             if 'can_new' in partition and partition['can_new']:
                 self.partman_dialog(devpart, partition)
+        elif partition.get('locked', False):
+            return
         else:
             self.partman_dialog(devpart, partition, create=False)
 
@@ -1430,11 +1445,27 @@ class PageKde(PageBase):
         options = misc.grub_options()
         self.partMan.setGrubOptions(options, default, grub_installable)
 
+    def get_current_disk_partman_id(self):
+        comboText = str(self.partAuto.part_auto_disk_box.currentText())
+        if not comboText or comboText not in \
+            self.partAuto.extra_options['use_device'][1]:
+            return None
+
+        partman_id = self.partAuto.extra_options['use_device'][1][comboText][0]
+        disk_id = partman_id.rsplit('/', 1)[1]
+        return disk_id
+
     def get_grub_choice(self):
         choice = self.partMan.getGrubChoice()
         if choice:
             return choice
         else:
+            disk = self.get_current_disk_partman_id()
+            if isinstance(disk, str) and disk:
+                disk_path = disk.replace("=", "/")
+                if os.path.exists(disk_path):
+                    return misc.grub_default(boot=disk_path)
+
             return misc.grub_default()
 
     def set_autopartition_heading(self, heading):
@@ -1536,6 +1567,7 @@ class Page(plugin.Plugin):
             arch, subarch = archdetect()
             if arch in ('amd64', 'i386'):
                 self.install_bootloader = True
+                self.ui.show_bootloader_options()
 
         self.installation_size = misc.install_size()
 

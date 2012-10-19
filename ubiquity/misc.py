@@ -302,8 +302,11 @@ def partition_to_disk(partition):
     return udevadm_disk.get('DEVNAME', partition)
 
 
-def is_boot_device_removable():
-    return is_removable(boot_device())
+def is_boot_device_removable(boot=None):
+    if boot:
+        return is_removable(boot)
+    else:
+        return is_removable(boot_device())
 
 
 def cdrom_mount_info():
@@ -326,7 +329,7 @@ def grub_device_map():
     return subp.communicate()[0].splitlines()
 
 
-def grub_default():
+def grub_default(boot=None):
     """Return the default GRUB installation target."""
 
     # Much of this is intentionally duplicated from grub-installer, so that
@@ -334,7 +337,7 @@ def grub_default():
     # grub-installer is run.  Pursuant to that, we intentionally run this in
     # the installer root as /target might not yet be available.
 
-    bootremovable = is_boot_device_removable()
+    bootremovable = is_boot_device_removable(boot=boot)
     if bootremovable is not None:
         return bootremovable
 
@@ -466,20 +469,20 @@ ReleaseInfo = namedtuple('ReleaseInfo', 'name, version')
 
 def get_release():
     if get_release.release_info is None:
-        #try:
-        #    with open('/cdrom/.disk/info') as fp:
-        #        line = fp.readline()
-        #        if line:
-        #            line = line.split()
-        #            if line[2] == 'LTS':
-        #                line[1] += ' LTS'
-        #            get_release.release_info = ReleaseInfo(
-        #                name=line[0], version=line[1])
-        #except:
-        #    syslog.syslog(syslog.LOG_ERR, 'Unable to determine the release.')
-        #
-        #if not get_release.release_info:
-        get_release.release_info = ReleaseInfo(name='Linux Mint', version='14')
+        try:
+            with open('/cdrom/.disk/info') as fp:
+                line = fp.readline()
+                if line:
+                    line = line.split()
+                    if line[2] == 'LTS':
+                        line[1] += ' LTS'
+                    get_release.release_info = ReleaseInfo(
+                        name=line[0], version=line[1])
+        except:
+            syslog.syslog(syslog.LOG_ERR, 'Unable to determine the release.')
+
+        if not get_release.release_info:
+            get_release.release_info = ReleaseInfo(name='Ubuntu', version='')
     return get_release.release_info
 
 get_release.release_info = None

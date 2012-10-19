@@ -202,11 +202,7 @@ class Install(install_misc.InstallBase):
 
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/apt')
-        #self.configure_apt()
-        try:
-            shutil.rmtree(os.path.join(self.target, 'var/lib/apt-xapian-index'), ignore_errors=True)
-        except OSError:
-            pass
+        self.configure_apt()
 
         self.configure_plugins()
         self.configure_face()
@@ -226,7 +222,7 @@ class Install(install_misc.InstallBase):
             pass
 
         self.next_region()
-        #self.remove_unusable_kernels()
+        self.remove_unusable_kernels()
 
         self.next_region(size=4)
         self.db.progress('INFO', 'ubiquity/install/hardware')
@@ -239,10 +235,10 @@ class Install(install_misc.InstallBase):
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/installing')
 
-        #if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
-        #    self.install_oem_extras()
-        #else:
-        #    self.install_extras()
+        if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
+            self.install_oem_extras()
+        else:
+            self.install_extras()
 
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/bootloader')
@@ -471,7 +467,7 @@ class Install(install_misc.InstallBase):
         except debconf.DebconfError:
             domain = ''
         if hostname == '':
-            hostname = 'mint'
+            hostname = 'ubuntu'
 
         with open(self.target_file('etc/hosts'), 'w') as hosts:
             print("127.0.0.1\tlocalhost", file=hosts)
@@ -806,6 +802,7 @@ class Install(install_misc.InstallBase):
         self.progress_region(1, 2)
         if install_kernels:
             self.do_install(install_kernels)
+            install_misc.record_installed(install_kernels)
             if new_kernel_pkg:
                 cache = Cache()
                 cached_pkg = install_misc.get_cache_pkg(cache, new_kernel_pkg)
@@ -1451,6 +1448,7 @@ class Install(install_misc.InstallBase):
 
         if arch in ('amd64', 'i386'):
             for pkg in ('grub', 'grub-pc', 'grub-efi', 'grub-efi-amd64',
+                        'grub-efi-amd64-signed', 'shim-signed',
                         'lilo'):
                 if pkg not in keep:
                     difference.add(pkg)
@@ -1603,8 +1601,13 @@ class Install(install_misc.InstallBase):
 
         # We don't use the copy_network_config casper user trick as it's not
         # ubuntu in install mode.
-        
-        casper_user = 'mint'
+        try:
+            casper_user = pwd.getpwuid(999).pw_name
+        except KeyError:
+            # We're on a weird system where the casper user isn't uid 999
+            # just stop there
+            return
+
         casper_user_home = os.path.expanduser('~%s' % casper_user)
         casper_user_wallpaper_cache_dir = os.path.join(casper_user_home,
                                                        '.cache', 'wallpaper')

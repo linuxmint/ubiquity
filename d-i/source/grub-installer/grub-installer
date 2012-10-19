@@ -437,7 +437,13 @@ case $ARCH in
 	fi
 	;;
     i386/efi|amd64/efi)
-	grub_package="grub-efi"
+	sb_var=/sys/firmware/efi/vars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c/data
+	if [ "$ARCH" = amd64/efi ] && [ -e "$sb_var" ] && \
+	   [ "$(printf %x \'"$(cat "$sb_var")")" = 1 ]; then
+		grub_package="grub-efi-amd64-signed"
+	else
+		grub_package="grub-efi"
+	fi
 	;;
     powerpc/*)
 	grub_package="grub-ieee1275"
@@ -549,12 +555,15 @@ db_progress INFO grub-installer/progress/step_install
 # to grub legacy, or vice-versa
 case "$grub_package" in
     grub)
-	log-output -t grub-installer $chroot $ROOT dpkg -P grub-pc-bin grub-pc grub-efi grub-efi-amd64-bin grub-efi-amd64 grub-efi-ia32-bin grub-efi-ia32 grub-gfxpayload-lists
+	log-output -t grub-installer $chroot $ROOT dpkg -P grub-pc-bin grub-pc grub-efi grub-efi-amd64-bin grub-efi-amd64 grub-efi-amd64-signed grub-efi-ia32-bin grub-efi-ia32 grub-gfxpayload-lists
 	;;
     grub-pc)
-	log-output -t grub-installer $chroot $ROOT dpkg -P grub grub-legacy grub-efi grub-efi-amd64-bin grub-efi-amd64 grub-efi-ia32-bin grub-efi-ia32
+	log-output -t grub-installer $chroot $ROOT dpkg -P grub grub-legacy grub-efi grub-efi-amd64-bin grub-efi-amd64 grub-efi-amd64-signed grub-efi-ia32-bin grub-efi-ia32
 	;;
     grub-efi)
+	log-output -t grub-installer $chroot $ROOT dpkg -P grub grub-legacy grub-pc-bin grub-pc grub-gfxpayload-lists grub-efi-amd64-signed
+	;;
+    grub-efi-amd64-signed)
 	log-output -t grub-installer $chroot $ROOT dpkg -P grub grub-legacy grub-pc-bin grub-pc grub-gfxpayload-lists
 	;;
 esac
@@ -572,6 +581,11 @@ case "$grub_package" in
    *)
 	# Will pull in os-prober based on global setting for Recommends
 	apt-install $grub_package || exit_code=$? 
+	case $grub_package in
+	    *-signed)
+		apt-install shim-signed || true
+		;;
+	esac
 	;;
 esac
 

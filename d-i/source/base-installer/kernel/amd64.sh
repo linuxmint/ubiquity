@@ -17,7 +17,24 @@ arch_check_usable_kernel () {
 	return 1
 }
 
+secure_boot_enabled () {
+	local efi_vars sb_var
+	efi_vars=/sys/firmware/efi/vars
+	sb_var="$efi_vars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c/data"
+	if [ "$SUBARCH" = efi ] && [ -e "$sb_var" ] && \
+	   [ "$(printf %x \'"$(cat "$sb_var")")" = 1 ]; then
+		return 0
+	else
+		return 1
+	fi
+}
+
 arch_get_kernel () {
+	if secure_boot_enabled; then
+		echo "linux-signed-generic"
+		echo "linux-signed-image-generic"
+	fi
+
 	echo "linux-generic"
 	echo "linux-image-generic"
 

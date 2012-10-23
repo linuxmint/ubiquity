@@ -7,8 +7,16 @@ from PyQt4 import QtGui
 
 from ubiquity.frontend.kde_components.PartitionBar import PartitionsBar
 from ubiquity import misc
+from ubiquity import i18n
 
 _uidir = "/usr/share/ubiquity/qt/"
+
+
+def get_string(name, lang=None, prefix=None):
+    """Get the string name in the given lang or a default."""
+    if lang is None and 'LANG' in os.environ:
+        lang = os.environ['LANG']
+    return i18n.get_string(name, lang, prefix)
 
 
 def addBars(parent, before_bar, after_bar):
@@ -16,14 +24,11 @@ def addBars(parent, before_bar, after_bar):
     frame.setLayout(QtGui.QVBoxLayout())
     frame.layout().setSpacing(0)
 
-    # TODO
-    #frame.layout().addWidget(QtGui.QLabel(
-    #    get_string('ubiquity/text/partition_layout_before')))
-    frame.layout().addWidget(QtGui.QLabel("Before:"))
+    frame.layout().addWidget(QtGui.QLabel(
+            get_string('ubiquity/text/partition_layout_before')))
     frame.layout().addWidget(before_bar)
-    #frame.layout().addWidget(QtGui.QLabel(
-    #    get_string('ubiquity/text/partition_layout_after')))
-    frame.layout().addWidget(QtGui.QLabel("After:"))
+    frame.layout().addWidget(QtGui.QLabel(
+            get_string('ubiquity/text/partition_layout_after')))
     frame.layout().addWidget(after_bar)
 
     parent.layout().addWidget(frame)

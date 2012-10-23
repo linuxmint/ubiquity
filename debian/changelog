@@ -1,3 +1,101 @@
+ubiquity (2.12.16) quantal-proposed; urgency=low
+
+  * Change get_grub_choice implementation to use get_current_disk_partman_id
+    instead of get_autopartition_choice so it doesn't need to parse strings.
+    Implement get_current_disk_partman_id in Kde frontend to use the same code.
+    (LP: #1067691)
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Wed, 17 Oct 2012 14:34:35 +0200
+
+ubiquity (2.12.15) quantal-proposed; urgency=low
+
+  * Make sure not to remove the signed kernel if we need it (LP: #1067659).
+  * Copy the signed kernel from /cdrom/casper/vmlinuz.efi.signed.
+    /cdrom/casper/vmlinuz needs to remain unsigned to avoid breaking
+    checksums.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 17 Oct 2012 11:38:04 +0100
+
+ubiquity (2.12.14) quantal-proposed; urgency=low
+
+  * Add extra checks when determining boot parameter for grub_default,
+    which prevents crashing the installer upton entering manual
+    partitioning (LP: #1067566)
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Wed, 17 Oct 2012 05:29:04 +0100
+
+ubiquity (2.12.13) quantal-proposed; urgency=low
+
+  [ Dmitrijs Ledkovs ]
+  * Do not allow to edit locked partitions via double click in the Gtk
+    Treeview. (LP: #1057690)
+
+  [ Colin Watson ]
+  * Fix "Mangement" typo (thanks, Yuri Chornoivan; LP: #1067228).
+  * Update translations from Launchpad.
+
+  [ Stéphane Graber ]
+  * Add an extra parameter to grub_default so that the UI can force it to use a
+    specific device rather than scan for / and /boot.
+    Update Gtk and Kde code to pass that parameter when in auto mode.
+    (LP: #1066173)
+  * Automatic update of included source packages: base-installer
+    1.122ubuntu13, partman-auto 103ubuntu4.
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Tue, 16 Oct 2012 19:12:03 +0200
+
+ubiquity (2.12.12) quantal-proposed; urgency=low
+
+  * Automatic update of included source packages: user-setup 1.46ubuntu2.
+  * Update translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 15 Oct 2012 12:34:53 +0100
+
+ubiquity (2.12.11) quantal; urgency=low
+
+  [ Dmitrijs Ledkovs ]
+  * Reveal grub combo box, only when setting grub options. (LP: #1064391)
+    And use a frontend callback to do so. Thanks Colin for idea & patch.
+  * Automatic update of included source packages: partman-auto
+    103ubuntu3. (LP: #1065034)
+
+  [ Colin Watson ]
+  * Update translations from Launchpad.
+
+  [ Jonathan Riddell ]
+  * Remove formatting from recently added strings to ubiquity.template
+    LP: #1065989
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Fri, 12 Oct 2012 20:39:26 +0100
+
+ubiquity (2.12.10) quantal; urgency=low
+
+  * Don't leave signed kernels installed if base-installer doesn't ask for
+    one, to avoid unnecessarily increasing the cost of upgrades.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 10 Oct 2012 23:40:27 +0100
+
+ubiquity (2.12.9) quantal; urgency=low
+
+  [ Jonathan Riddell ]
+  * KDE PartAuto.py Translate strings which previously were not translated.
+    Thanks to Pantelis Koukousoulas
+
+  [ Oliver Grawert ]
+  * drop recommends of redboot-tools so the package can go to universe
+    (LP: #1064271)
+
+  [ Colin Watson ]
+  * Try to install a signed kernel if base-installer asks for one.
+  * If the SecureBoot EFI variable is set, then ensure that
+    grub-efi-amd64-signed and shim-signed remain installed.
+  * Update translations from Launchpad.
+  * Automatic update of included source packages: base-installer
+    1.122ubuntu12, console-setup 1.70ubuntu6, flash-kernel 3.0~rc.4ubuntu27,
+    grub-installer 1.78ubuntu5.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 09 Oct 2012 16:21:17 +0100
+
 ubiquity (2.12.8) quantal; urgency=low
 
   [ Colin Watson ]

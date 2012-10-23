@@ -21,10 +21,15 @@ setup_reuse_partition () {
 }
 
 path=
+cleanup_ro_partitions=
+mountpoint="$(mktemp -d)"
 cleanup () {
-	umount -l $mountpoint && rmdir $mountpoint || true
-	blockdev --setrw $path || true
+	[ -e $mountpoint ] && umount -l $mountpoint && rmdir $mountpoint || true
+	for p in $cleanup_ro_partitions; do
+		blockdev --setrw $p || true
+	done
 }
+trap cleanup EXIT HUP INT QUIT TERM
 
 setup_reuse_partition $id
 echo / > $id/mountpoint
@@ -33,12 +38,20 @@ update_partition $dev $id
 open_dialog PARTITION_INFO $id
 read_line num i size type fs path name
 close_dialog
-mountpoint="$(mktemp -d)"
-blockdev --setro $path
-mount $path $mountpoint 3>&-
-trap cleanup EXIT HUP INT QUIT TERM
 
-if [ ! -f "$mountpoint/etc/fstab" ]; then
+mounted=
+if type grub-mount >/dev/null 2>&1 && \
+    grub-mount "$path" "$mountpoint" 2>/dev/null; then
+    mounted=1
+else
+    blockdev --setro "$path" || continue
+    cleanup_ro_partitions="$cleanup_ro_partitions $path"
+    if mount -o ro "$path" "$mountpoint" 3>&- 6>&- 7<&-; then
+	mounted=1
+    fi
+fi
+
+if [ ! "$mounted" ] || [ ! -f "$mountpoint/etc/fstab" ]; then
 	exit 100
 fi
 

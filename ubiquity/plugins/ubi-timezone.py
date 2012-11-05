@@ -182,7 +182,7 @@ class PageGtk(plugin.PluginUI):
                 # Only cache positive results.
                 self.geoname_cache[text] = model
                 
-             except ValueError:
+            except ValueError:
                 syslog.syslog('Server return does not appear to be valid JSON.')
 
         self.city_entry.get_completion().set_model(model)

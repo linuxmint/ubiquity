@@ -346,7 +346,7 @@ def grub_default():
     except OSError:
         same = False
     if ((same or target == '(hd0)') and
-        (cdfs and cdfs != 'iso9660') or is_removable(cdsrc)):
+        ((cdfs and cdfs != 'iso9660') or is_removable(cdsrc)):
         # Installing from removable media other than a CD.  Make sure that
         # we don't accidentally install GRUB to it.
         boot = boot_device()

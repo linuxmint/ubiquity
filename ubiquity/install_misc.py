@@ -900,7 +900,7 @@ class InstallBase:
                 if not self.commit_with_verify(cache,
                                                fetchprogress, installprogress):
                     fetchprogress.stop()
-                    installprogress.finishUpdate()
+                    installprogress.finish_update()
                     self.db.progress('STOP')
                     self.nested_progress_end()
                     return
@@ -908,7 +908,7 @@ class InstallBase:
                 for line in traceback.format_exc().split('\n'):
                     syslog.syslog(syslog.LOG_ERR, line)
                 fetchprogress.stop()
-                installprogress.finishUpdate()
+                installprogress.finish_update()
                 self.db.progress('STOP')
                 self.nested_progress_end()
                 return

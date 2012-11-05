@@ -88,14 +88,14 @@ class InstallProgressDebconfProgressAdapter(apt.progress.InstallProgress):
         apt.progress.InstallProgress.__init__(self)
         self.frontend = frontend
 
-    def statusChange(self, unused_pkg, percent, unused_status):
+    def status_change(self, unused_pkg, percent, unused_status):
         self.frontend.debconf_progress_set(percent)
 
-    def startUpdate(self):
+    def start_update(self):
         self.frontend.debconf_progress_start(
             0, 100, self.frontend.get_string('installing_update'))
 
-    def finishUpdate(self):
+    def finish_update(self):
         self.frontend.debconf_progress_stop()
 
     def updateInterface(self):

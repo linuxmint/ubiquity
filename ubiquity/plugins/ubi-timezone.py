@@ -170,15 +170,20 @@ class PageGtk(plugin.PluginUI):
                            (text, message.status_code,
                             message.reason_phrase)).encode('UTF-8'))
         else:
-            for result in json.loads(message.response_body.data):
-                model.append([result['name'],
-                              result['admin1'],
-                              result['country'],
-                              result['latitude'],
-                              result['longitude']])
+            try:
+                for result in json.loads(message.response_body.data):
+                    model.append([result['name'],
+                                result['admin1'],
+                                result['country'],
+                                result['latitude'],
+                                result['longitude']])
+                
 
-            # Only cache positive results.
-            self.geoname_cache[text] = model
+                # Only cache positive results.
+                self.geoname_cache[text] = model
+                
+             except ValueError:
+                syslog.syslog('Server return does not appear to be valid JSON.')
 
         self.city_entry.get_completion().set_model(model)
 

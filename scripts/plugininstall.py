@@ -429,7 +429,7 @@ class Install(install_misc.InstallBase):
         except debconf.DebconfError:
             domain = ''
         if hostname == '':
-            hostname = 'netrunner'
+            hostname = 'mint'
 
         hosts = open(os.path.join(self.target, 'etc/hosts'), 'w')
         print >>hosts, "127.0.0.1\tlocalhost"

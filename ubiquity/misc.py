@@ -450,7 +450,7 @@ def get_release():
             #syslog.syslog(syslog.LOG_ERR, 'Unable to determine the release.')
 
         #if not get_release.release_info:
-        get_release.release_info = ReleaseInfo(name='Netrunner', version='4.2.1')
+        get_release.release_info = ReleaseInfo(name='Linuxmint', version='4.2.1')
     return get_release.release_info
 get_release.release_info = None
 

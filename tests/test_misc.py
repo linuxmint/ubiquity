@@ -96,7 +96,7 @@ class MiscTests(unittest.TestCase):
         mock_open.return_value = magic
         magic.readline.return_value = _disk_info
         release = misc.get_release()
-        self.assertEqual(release.name, 'Netrunner')
+        self.assertEqual(release.name, 'Linuxmint')
         self.assertEqual(release.version, '4.2.1 LTS')
 
     @mock.patch('__builtin__.open')

@@ -212,7 +212,7 @@ class PageKde(PreparePageBase):
         for widget in (self.page.prepare_heading_label, self.page.prepare_best_results, self.page.prepare_foss_disclaimer):
             text = widget.text()
             text = text.replace('${RELEASE}', release.name)
-            text = text.replace('Ubuntu', 'Netrunner')
+            text = text.replace('Ubuntu', 'Linuxmint')
             text = "<b>" + text + "</b>"
             widget.setText(text)
 

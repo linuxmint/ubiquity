@@ -254,7 +254,7 @@ class PartitionsBar(QtGui.QWidget):
 
         if part.next == None or part.next.index != -1:
             #if our resize partition is at the end or the next one is not free space
-            p = Partition('Netrunner', new_size, 'auto')
+            p = Partition('Linuxmint', new_size, 'auto')
             p.next = part.next
             part.next = p
 

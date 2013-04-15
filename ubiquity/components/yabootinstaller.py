@@ -19,6 +19,7 @@
 
 from ubiquity.filteredcommand import FilteredCommand
 
+
 class YabootInstaller(FilteredCommand):
     def prepare(self):
         return (['/usr/lib/ubiquity/yaboot-installer/yaboot-installer',

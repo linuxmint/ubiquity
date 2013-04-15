@@ -1,0 +1,31 @@
+#!/bin/sh
+
+. /usr/share/debconf/confmodule
+
+set -e
+
+dev=$1
+id=$2
+part=$dev/$id
+
+cd $dev
+
+choice_erase () {
+	if [ -f $part/skip_erase ]; then
+		db_metaget partman-crypto/text/no_erase_data description || RET=''
+		erase=${RET:-no}
+	else
+		db_metaget partman-crypto/text/yes_erase_data description || RET=''
+		erase=${RET:-yes}
+	fi
+
+	db_metaget partman-crypto/text/erase_data description
+	printf "erase\t%s\${!TAB}%s\n" "$RET" $erase
+}
+
+[ -f $part/method ] || exit 0
+method=$(cat $part/method)
+
+if [ $method = crypto ]; then
+	choice_erase
+fi

@@ -17,6 +17,7 @@ endif
 
 DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
 DEB_HOST_ARCH_OS ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
+DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 
 console-setup-depends := console-setup (>= $(shell cd d-i/source/console-setup && dpkg-parsechangelog | awk '/Version:/ {print $$2}'))
 
@@ -33,6 +34,7 @@ build-indep: build-stamp
 build-stamp:
 	dh_testdir
 
+	dh_autoreconf -- ./autogen.sh
 	dh_auto_configure -- --libexecdir=\$${prefix}/lib
 	dh_auto_build
 	$(MAKE) -C d-i build
@@ -41,14 +43,16 @@ build-stamp:
 
 check:
 	# Sanity-check before upload.
-	find -name debian -prune -o -name \*.py -print | xargs pycompile
+	find -name debian -prune -o -name \*.py -print | xargs py3compile
 	find -type f \( -name \*.pyc -o -name \*.pyo \) -print0 | xargs -0r rm -f
+	find -name __pycache__ -print0 | xargs -0r rm -rf
 	# Check the syntax of any shell scripts.
-	set -e; for x in $$(find -type f -print0 | xargs -0 file -i | grep "text/x-shellscript" | cut -d':' -f1); do \
+	set -e; for x in $$(find -type f \! -name \*.po \! -name \*.pot -print0 | xargs -0 file -i | grep "text/x-shellscript" | cut -d':' -f1); do \
 		sh -n $$x; \
 	done
 	# Check the syntax of any Python scripts.
 	./tests/run-pyflakes
+	./tests/run-pep8
 
 pychecker:
 	./run-pychecker
@@ -59,6 +63,7 @@ clean: check
 
 	$(MAKE) -C d-i clean
 	dh_auto_clean
+	dh_autoreconf_clean
 	dh_clean
 	rm -rf build-locale tests/partman-tree
 
@@ -68,13 +73,13 @@ d-i/source/console-setup/Keyboard/MyKeyboardNames.pl:
 	$(MAKE) -C d-i/source/console-setup/Keyboard MyKeyboardNames.pl \
 		xkbdir=/usr/share/X11/xkb
 
-ubiquity/keyboard_names.py: d-i/source/console-setup/Keyboard/MyKeyboardNames.pl
-	d-i/make-keyboard-names $< > $@
+debian/kbdnames.gz: d-i/source/console-setup/Keyboard/MyKeyboardNames.pl
+	d-i/source/console-setup/Keyboard/kbdnames-maker $< | gzip -9c > $@
 
 install: install-stamp
 
 install-stamp: DH_OPTIONS=
-install-stamp: build-stamp ubiquity/keyboard_names.py
+install-stamp: build-stamp debian/kbdnames.gz
 	dh_testdir
 	dh_testroot
 	dh_prep
@@ -90,7 +95,11 @@ ifndef UBIQUITY_NO_GTK
 	$(MAKE) install DESTDIR=$(CURDIR)/debian/ubiquity-frontend-gtk
 	rm -rf debian/ubiquity-frontend-gtk/usr/share/applications \
 		debian/ubiquity-frontend-gtk/usr/share/ubiquity/pixmaps
-	rm -f debian/ubiquity-frontend-gtk/usr/lib/libubi*.la
+	rm -f debian/ubiquity-frontend-gtk/usr/lib/$(DEB_HOST_MULTIARCH)/libubi*.la
+ifneq (,$(DEB_HOST_MULTIARCH))
+	mv debian/ubiquity-frontend-gtk/usr/lib/$(DEB_HOST_MULTIARCH)/girepository-1.0 \
+	   debian/ubiquity-frontend-gtk/usr/lib/
+endif
 endif
 	$(MAKE) -C d-i install
 
@@ -110,7 +119,7 @@ endif
 	dh_di_numbers
 
 	# Bits of manual installation that can't be done by dh_install
-	
+
 	install bin/ubiquity-wrapper debian/ubiquity/usr/bin/ubiquity
 	sed 's/@VERSION@/$(VERSION)/g' bin/ubiquity \
 		> debian/ubiquity/usr/lib/ubiquity/bin/ubiquity
@@ -128,7 +137,7 @@ endif
 	fi
 	install d-i/source/clock-setup/debian/clock-setup.postinst \
 		debian/ubiquity/usr/lib/ubiquity/clock-setup/clock-setup
-	sed -e '/^rcsfile=/ { s/.*/exit 0/; q }' \
+	sed -e '/^# Update target system configuration/ { s/.*/exit 0/; q }' \
 		d-i/source/clock-setup/finish-install.d/10clock-setup \
 		> debian/ubiquity/usr/lib/ubiquity/clock-setup/finish-install
 	chmod +x debian/ubiquity/usr/lib/ubiquity/clock-setup/finish-install
@@ -140,7 +149,7 @@ endif
 	 debian/preprocessor $(CURDIR)/debian/ubiquity/usr/lib/ubiquity/console-setup/keyboard-configuration.postinst && \
 	 debian/preprocessor $(CURDIR)/debian/ubiquity/usr/share/ubiquity/console-setup-apply)
 	chmod +x debian/ubiquity/usr/lib/ubiquity/console-setup/keyboard-configuration.postinst
-	sed 's,\(finish-install=\).*,\1/dev/null,' \
+	sed 's,\(finish_install=\).*,\1/dev/null,' \
 		d-i/source/hw-detect/debian/hw-detect/bin/hw-detect \
 		> debian/ubiquity/bin/hw-detect
 	chmod +x debian/ubiquity/bin/hw-detect
@@ -150,9 +159,10 @@ endif
 			> debian/ubiquity/usr/lib/ubiquity/localechooser/$$x; \
 		chmod +x debian/ubiquity/usr/lib/ubiquity/localechooser/$$x; \
 	done
-	sed 's,/usr/share/localechooser,/usr/lib/ubiquity/localechooser,g' \
-		d-i/source/localechooser/post-base-installer.d/05localechooser \
-		> debian/ubiquity/usr/lib/ubiquity/localechooser/post-base-installer
+	cp -a d-i/source/localechooser/post-base-installer.d/05localechooser \
+		debian/ubiquity/usr/lib/ubiquity/localechooser/post-base-installer
+	patch debian/ubiquity/usr/lib/ubiquity/localechooser/post-base-installer \
+		< d-i/patches/localechooser-post-base-installer.patch
 	chmod +x debian/ubiquity/usr/lib/ubiquity/localechooser/post-base-installer
 	sed 's/\\\$${!TAB}/ /g' \
 		debian/ubiquity/usr/lib/ubiquity/localechooser/localechooser \
@@ -198,8 +208,6 @@ ifneq (,$(filter armel armhf,$(DEB_HOST_ARCH)))
 		debian/ubiquity/usr/lib/ubiquity/flash-kernel/flash-kernel-installer
 endif
 ifeq ($(DEB_HOST_ARCH),powerpc)
-	install d-i/source/kboot-installer/debian/postinst \
-		debian/ubiquity/usr/lib/ubiquity/kboot-installer/kboot-installer
 	install d-i/source/yaboot-installer/debian/postinst \
 		debian/ubiquity/usr/lib/ubiquity/yaboot-installer/yaboot-installer
 endif
@@ -247,12 +255,12 @@ binary-indep: install-stamp
 	dh_strip
 	dh_compress
 	dh_fixperms
-	dh_python2 /usr/lib/ubiquity
+	dh_python3 /usr/lib/ubiquity
 	dh_installdeb
 	dh_shlibdeps
 	dh_gencontrol -- -Vmangled-version='$(MANGLED_VERSION)'
 	dh_md5sums
-	dh_builddeb
+	NO_PNG_PKG_MANGLE=1 dh_builddeb -- -Zxz
 
 BINARY_ARCH_OPTIONS := -a
 ifdef UBIQUITY_NO_GTK
@@ -283,17 +291,18 @@ binary-arch: install-stamp
 	# ubiquity
 	dh_installinit --no-start --name=ubiquity
 	dh_installman
+	dh_lintian
 	dh_link
 	dh_scour
 	dh_strip
 	dh_compress
 	dh_fixperms
-	dh_python2 /usr/lib/ubiquity
+	dh_python3 /usr/lib/ubiquity
 	dh_installdeb
 	dh_shlibdeps
 	dh_gencontrol -- -V'console-setup-depends=$(console-setup-depends)' -Vmangled-version='$(MANGLED_VERSION)'
 	dh_md5sums
-	dh_builddeb
+	NO_PNG_PKG_MANGLE=1 dh_builddeb -- -Zxz
 
 binary: binary-indep binary-arch
 .PHONY: build clean binary-indep binary-arch binary install

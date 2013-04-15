@@ -22,6 +22,7 @@
 
 import os
 
+
 def _resolve_link_root(root, path):
     """Helper for realpath_root. See posixpath._resolve_link."""
     paths_seen = set()
@@ -40,6 +41,7 @@ def _resolve_link_root(root, path):
             path = os.path.normpath(resolved)
         fullpath = os.path.join(root, path[1:])
     return path
+
 
 def _realpath_root_recurse(root, filename):
     """Helper for realpath_root."""
@@ -60,6 +62,7 @@ def _realpath_root_recurse(root, filename):
                 return _realpath_root_recurse(root, newpath)
 
     return os.path.abspath(filename)
+
 
 def realpath_root(root, filename):
     """Like os.path.realpath, but resolved relative to root.

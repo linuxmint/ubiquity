@@ -19,19 +19,22 @@
 
 
 import debconf
-import os
 
 from ubiquity import plugin
+
 
 NAME = 'tasks'
 AFTER = 'network'
 WEIGHT = 12
 
+
 class TasksUnfilteredOnly(Exception):
     pass
 
+
 class PageDebconf(plugin.PluginUI):
     plugin_title = 'ubiquity/text/tasks_heading_label'
+
 
 # Only supports unfiltered mode.
 class Page(plugin.Plugin):
@@ -40,7 +43,7 @@ class Page(plugin.Plugin):
             raise TasksUnfilteredOnly(
                 "tasks component only usable with debconf frontend")
         command = ['tasksel']
-        if 'UBIQUITY_AUTOMATIC' in os.environ:
+        if self.is_automatic:
             # In automatic mode, we have a quandary.  tasksel without
             # --new-install is not preseedable, but with --new-install it
             # was designed to run on top of a simple base system and it's

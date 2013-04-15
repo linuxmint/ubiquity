@@ -1,0 +1,39 @@
+#!/bin/sh
+# Veto filesystems unsuitable for certain crypto setups
+
+dev=$1
+id=$2
+filesystems="$3"
+
+veto_filesystems ()
+{
+	[ -f $dev/crypt_realdev ] || return 1
+
+	# Get to the underlying crypto device directory
+	r=$(cat $dev/crypt_realdev)
+	cryptodev=${r##*:}
+
+	[ -f $cryptodev/method ] || return 1
+	method=$(cat $cryptodev/method)
+
+	if [ $method = crypto ]; then
+		[ -f $cryptodev/keytype ] || return 1
+		keytype=$(cat $cryptodev/keytype)
+
+		if [ $keytype = random ]; then
+			# Veto anything but ext2
+			for fs in $filesystems; do
+				case $fs in
+				    ext2) echo $fs ;;
+				esac
+			done
+			return 0
+		fi
+	fi
+
+	return 1
+}
+
+veto_filesystems || echo $filesystems
+
+exit 0

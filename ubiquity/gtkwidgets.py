@@ -1,42 +1,50 @@
-#!/usr/bin/python
-
-import os
-
 import cairo
-from gi.repository import Gtk, Gdk, GObject, Pango
-from gi.repository import UbiquityWebcam, GdkPixbuf
+from gi.repository import (
+    GObject,
+    Gdk,
+    Gtk,
+    Pango,
+)
 
 from ubiquity import misc
+
 
 def refresh():
     while Gtk.events_pending():
         Gtk.main_iteration()
 
+
 def draw_round_rect(c, r, x, y, w, h):
-    c.move_to(x+r,y)
-    c.line_to(x+w-r,y);   c.curve_to(x+w,y,x+w,y,x+w,y+r)
-    c.line_to(x+w,y+h-r); c.curve_to(x+w,y+h,x+w,y+h,x+w-r,y+h)
-    c.line_to(x+r,y+h);   c.curve_to(x,y+h,x,y+h,x,y+h-r)
-    c.line_to(x,y+r);     c.curve_to(x,y,x,y,x+r,y)
+    c.move_to(x + r, y)
+    c.line_to(x + w - r, y)
+    c.curve_to(x + w, y, x + w, y, x + w, y + r)
+    c.line_to(x + w, y + h - r)
+    c.curve_to(x + w, y + h, x + w, y + h, x + w - r, y + h)
+    c.line_to(x + r, y + h)
+    c.curve_to(x, y + h, x, y + h, x, y + h - r)
+    c.line_to(x, y + r)
+    c.curve_to(x, y, x, y, x + r, y)
     c.close_path()
+
 
 def gtk_to_cairo_color(c):
     color = Gdk.color_parse(c)
-    s = 1.0/65535.0
+    s = 1.0 / 65535.0
     r = color.red * s
     g = color.green * s
     b = color.blue * s
     return r, g, b
 
+
 class StylizedFrame(Gtk.Alignment):
     __gtype_name__ = 'StylizedFrame'
     __gproperties__ = {
-        'radius': (GObject.TYPE_INT, 'Radius',
-                   'The radius of the rounded corners.', 0,
-                   GObject.constants.G_MAXINT, 10, GObject.PARAM_READWRITE),
-        'width' : (GObject.TYPE_INT, 'Width', 'The width of the outline.',
-                   0, GObject.constants.G_MAXINT, 1,
-                   GObject.PARAM_READWRITE),
+        'radius': (
+            GObject.TYPE_INT, 'Radius', 'The radius of the rounded corners.',
+            0, GObject.G_MAXINT, 10, GObject.PARAM_READWRITE),
+        'width': (
+            GObject.TYPE_INT, 'Width', 'The width of the outline.',
+            0, GObject.G_MAXINT, 1, GObject.PARAM_READWRITE),
     }
 
     def __init__(self):
@@ -80,21 +88,22 @@ class StylizedFrame(Gtk.Alignment):
 
 GObject.type_register(StylizedFrame)
 
+
 class ResizeWidget(Gtk.HPaned):
     __gtype_name__ = 'ResizeWidget'
     __gproperties__ = {
-        'part_size' : (GObject.TYPE_UINT64, 'Partition size',
-                       'The size of the partition being resized', 1,
-                       GObject.constants.G_MAXUINT64, 100,
-                       GObject.PARAM_READWRITE),
-        'min_size'  : (GObject.TYPE_UINT64, 'Minimum size',
-                       'The minimum size that the existing partition can ' \
-                       'be resized to', 0, GObject.constants.G_MAXUINT64, 0,
-                       GObject.PARAM_READWRITE),
-        'max_size'  : (GObject.TYPE_UINT64, 'Maximum size',
-                       'The maximum size that the existing partition can ' \
-                       'be resized to', 1, GObject.constants.G_MAXUINT64,
-                       100, GObject.PARAM_READWRITE)
+        'part_size': (
+            GObject.TYPE_UINT64, 'Partition size',
+            'The size of the partition being resized',
+            1, GObject.G_MAXUINT64, 100, GObject.PARAM_READWRITE),
+        'min_size': (
+            GObject.TYPE_UINT64, 'Minimum size',
+            'The minimum size that the existing partition can be resized to',
+            0, GObject.G_MAXUINT64, 0, GObject.PARAM_READWRITE),
+        'max_size': (
+            GObject.TYPE_UINT64, 'Maximum size',
+            'The maximum size that the existing partition can be resized to',
+            1, GObject.G_MAXUINT64, 100, GObject.PARAM_READWRITE)
     }
 
     def do_get_property(self, prop):
@@ -176,8 +185,8 @@ class ResizeWidget(Gtk.HPaned):
         else:
             return size
 
-
 GObject.type_register(ResizeWidget)
+
 
 class DiskBox(Gtk.Box):
     __gtype_name__ = 'DiskBox'
@@ -191,15 +200,19 @@ class DiskBox(Gtk.Box):
 
 GObject.type_register(DiskBox)
 
+
 class PartitionBox(StylizedFrame):
     __gtype_name__ = 'PartitionBox'
     __gproperties__ = {
-        'title'     : (GObject.TYPE_STRING, 'Title', None, 'Title',
-                       GObject.PARAM_READWRITE),
-        'icon-name' : (GObject.TYPE_STRING, 'Icon Name', None,
-                       'distributor-logo', GObject.PARAM_READWRITE),
-        'extra'     : (GObject.TYPE_STRING, 'Extra Text', None, '',
-                       GObject.PARAM_READWRITE),
+        'title': (
+            GObject.TYPE_STRING, 'Title', None, 'Title',
+            GObject.PARAM_READWRITE),
+        'icon-name': (
+            GObject.TYPE_STRING, 'Icon Name', None, 'distributor-logo',
+            GObject.PARAM_READWRITE),
+        'extra': (
+            GObject.TYPE_STRING, 'Extra Text', None, '',
+            GObject.PARAM_READWRITE),
     }
 
     def do_get_property(self, prop):
@@ -300,11 +313,13 @@ class PartitionBox(StylizedFrame):
 
 GObject.type_register(PartitionBox)
 
+
 class StateBox(StylizedFrame):
     __gtype_name__ = 'StateBox'
     __gproperties__ = {
-        'label'  : (GObject.TYPE_STRING, 'Label', None, 'label',
-                    GObject.PARAM_READWRITE),
+        'label': (
+            GObject.TYPE_STRING, 'Label', None, 'label',
+            GObject.PARAM_READWRITE),
     }
 
     def do_get_property(self, prop):
@@ -351,98 +366,20 @@ class StateBox(StylizedFrame):
 
 GObject.type_register(StateBox)
 
-FACES_PATH = '/usr/share/pixmaps/faces'
 
-class FaceSelector(Gtk.Box):
-    __gtype_name__ = 'FaceSelector'
-    def __init__(self, controller):
-        Gtk.Box.__init__(self)
-        self.set_orientation(Gtk.Orientation.VERTICAL)
-        self.set_homogeneous(False)
-        self.set_spacing(12)
-        self.controller = controller
+# GtkBuilder should have .get_object_ids() method
+class Builder(Gtk.Builder):
+    def __init__(self):
+        self._widget_ids = set()
+        super().__init__()
 
-        vb_left = Gtk.Box(False, 3)
-        vb_left.set_orientation(Gtk.Orientation.VERTICAL)
-        self.photo_label = Gtk.Label('Take a photo:')
-        vb_left.pack_start(self.photo_label, False, False, 0)
-        f = Gtk.Frame()
-        self.webcam = UbiquityWebcam.Webcam()
-        self.webcam.connect('image-captured', self.image_captured)
-        f.add(self.webcam)
-        vb_left.pack_start(f, True, True, 0)
+    def add_from_file(self, filename):
+        import xml.etree.cElementTree as ET
+        tree = ET.parse(filename)
+        root = tree.getroot()
+        for widgets in root.iter('object'):
+            self._widget_ids.add(widgets.attrib['id'])
+        return super().add_from_file(filename)
 
-        vb_right = Gtk.Box(False, 3)
-        vb_right.set_orientation(Gtk.Orientation.VERTICAL)
-        self.existing_label = Gtk.Label('Or choose an existing picture:')
-        vb_right.pack_start(self.existing_label, False, False, 0)
-        iv = Gtk.IconView()
-        iv.connect('selection-changed', self.selection_changed)
-        # TODO cjwatson 2012-03-21: Gtk.IconView should work this out
-        # itself, but I think that depends on having correct
-        # height-for-width geometry management everywhere, and we don't yet.
-        # See LP #961025.
-        iv.set_columns(2)
-        sw = Gtk.ScrolledWindow()
-        sw.set_shadow_type(Gtk.ShadowType.IN)
-        sw.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        sw.add(iv)
-        vb_right.pack_start(sw, True, True, 0)
-
-        hb = Gtk.Box(True, 30)
-        hb.pack_start(vb_left, True, True, 0)
-        hb.pack_start(vb_right, True, True, 0)
-        self.pack_start(hb, True, True, 0)
-
-        self.selected_image = Gtk.Image()
-        self.selected_image.set_size_request(96, 96)
-        self.pack_start(self.selected_image, True, True, 0)
-
-        m = Gtk.ListStore(GObject.type_from_name('GdkPixbuf'))
-        iv.set_model(m)
-        iv.set_pixbuf_column(0)
-        if os.path.exists(FACES_PATH):
-            for path in sorted(os.listdir(FACES_PATH)):
-                pb = GdkPixbuf.Pixbuf.new_from_file(
-                                    os.path.join(FACES_PATH, path))
-                m.append([pb])
-
-    def translate(self, lang):
-        self.photo_label.set_text(
-            self.controller.get_string('webcam_photo_label', lang))
-        self.existing_label.set_text(
-            self.controller.get_string('webcam_existing_label', lang))
-        self.webcam.get_property('take-button').set_label(
-            self.controller.get_string('webcam_take_button', lang))
-
-    def webcam_play(self):
-        self.webcam.play()
-
-    def webcam_stop(self):
-        self.webcam.stop()
-
-    def save_to(self, path):
-        pb = self.selected_image.get_pixbuf()
-        if not pb:
-            return False
-
-        d = os.path.dirname(path)
-        with misc.raised_privileges():
-            if not os.path.exists(d):
-                os.makedirs(d)
-            pb.savev(path, 'png', [], [])
-
-    def image_captured(self, unused, path):
-        pb = GdkPixbuf.Pixbuf.new_from_file_at_size(path, 96, 96);
-        self.selected_image.set_from_pixbuf(pb)
-
-    def selection_changed(self, iv):
-        selection = iv.get_selected_items()
-        if not selection:
-            return
-        selection = selection[0]
-        m = iv.get_model()
-        self.selected_image.set_from_pixbuf(m[selection][0])
-
-GObject.type_register(FaceSelector)
-
+    def get_object_ids(self):
+        return self._widget_ids

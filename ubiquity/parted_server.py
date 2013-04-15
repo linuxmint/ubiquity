@@ -20,15 +20,19 @@
 # Simple bindings to allow Python programs to talk to parted_server.
 # I don't recommend attempting to use these outside Ubiquity.
 
+from __future__ import print_function
+
 import fcntl
 import os
 import shutil
+
 
 devices = '/var/lib/partman/devices'
 infifo = '/var/lib/partman/infifo'
 outfifo = '/var/lib/partman/outfifo'
 stopfifo = '/var/lib/partman/stopfifo'
 logfile = '/var/log/partman'
+
 
 class PartedServerError(Exception):
     """Raised when parted_server throws an exception.
@@ -46,6 +50,7 @@ class PartedServerError(Exception):
         self.parted_error = parted_error
         self.options = list(options)
 
+
 class PartedServer(object):
     def __init__(self):
         self.inf = None
@@ -57,9 +62,8 @@ class PartedServer(object):
             self.close_dialog()
 
     def log(self, *args):
-        f = open(logfile, 'a')
-        print >>f, 'ubiquity:', ' '.join(args)
-        f.close()
+        with open(logfile, 'a') as f:
+            print('ubiquity:', ' '.join(args), file=f)
 
     def write_line(self, *args):
         self.log('IN:', *args)
@@ -119,14 +123,14 @@ class PartedServer(object):
                 message = self.read_paragraph()
                 self.log('error_handler: reading options')
                 options = self.read_list()
-                if (exception_type == 'Information' or
-                    exception_type == 'Warning'):
+                if exception_type in ('Information', 'Warning'):
                     pass
                 else:
                     raise PartedServerError(exception_type, message, options)
 
     def sync_server(self):
-        open(stopfifo, 'w').close()
+        with open(stopfifo, 'w'):
+            pass
 
     def open_dialog(self, command, *args):
         self.inf = open(infifo, 'w')
@@ -142,7 +146,8 @@ class PartedServer(object):
         if self.inf is not None:
             self.inf.close()
         self.sync_server()
-        open(outfifo, 'w').close()
+        with open(outfifo, 'w'):
+            pass
         self.sync_server()
         self.inf = open(infifo, 'r')
         self.inf.readlines()
@@ -164,10 +169,8 @@ class PartedServer(object):
         return os.path.join(devices, self.current_disk, name)
 
     def readline_device_entry(self, name):
-        entryfile = open(self.device_entry(name))
-        line = entryfile.readline().rstrip('\n')
-        entryfile.close()
-        return line
+        with open(self.device_entry(name)) as entryfile:
+            return entryfile.readline().rstrip('\n')
 
     def part_entry(self, partition, name):
         return os.path.join(devices, self.current_disk, partition, name)
@@ -176,15 +179,12 @@ class PartedServer(object):
         return os.path.isfile(self.part_entry(partition, name))
 
     def readline_part_entry(self, partition, name):
-        entryfile = open(self.part_entry(partition, name))
-        line = entryfile.readline().rstrip('\n')
-        entryfile.close()
-        return line
+        with open(self.part_entry(partition, name)) as entryfile:
+            return entryfile.readline().rstrip('\n')
 
     def write_part_entry(self, partition, name, text):
-        entryfile = open(self.part_entry(partition, name), 'w')
-        entryfile.write(text)
-        entryfile.close()
+        with open(self.part_entry(partition, name), 'w') as entryfile:
+            entryfile.write(text)
 
     def remove_part_entry(self, partition, name):
         entry = self.part_entry(partition, name)

@@ -1,0 +1,14 @@
+#!/bin/sh
+
+[ -f /var/lib/partman/lvm ] || exit 0
+
+. /lib/partman/lib/lvm-base.sh
+
+dev=$1
+id=$2
+
+pv_allowed "$dev" "$id" || exit 0
+
+db_metaget partman/method_long/lvm description
+
+printf "lvm\t${RET}\n"

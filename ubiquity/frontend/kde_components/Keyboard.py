@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 import subprocess
 import sys
 
@@ -8,14 +10,16 @@ from PyQt4.QtGui import QWidget, QFont, QPainter, QPen, QPainterPath, QColor
 
 IMG_DIR = "/usr/share/ubiquity/qt/images"
 
+
 #U+ , or +U+ ... to string
 def fromUnicodeString(raw):
     if raw[0:2] == "U+":
-        return unichr(int(raw[2:], 16))
+        return chr(int(raw[2:], 16))
     elif raw[0:2] == "+U":
-        return unichr(int(raw[3:], 16))
+        return chr(int(raw[3:], 16))
 
     return ""
+
 
 class Keyboard(QWidget):
 
@@ -23,7 +27,8 @@ class Keyboard(QWidget):
         "extended_return": False,
         "keys": [
         (0x29, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd),
-        (0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x2b),
+        (0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a,
+         0x1b, 0x2b),
         (0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28),
         (0x2c, 0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35),
         ()]
@@ -33,8 +38,10 @@ class Keyboard(QWidget):
         "extended_return": True,
         "keys": [
         (0x29, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd),
-        (0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b),
-        (0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x2b),
+        (0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a,
+         0x1b),
+        (0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28,
+         0x2b),
         (0x54, 0x2c, 0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35),
         ()]
     }
@@ -42,9 +49,12 @@ class Keyboard(QWidget):
     kb_106 = {
         "extended_return": True,
         "keys": [
-        (0x29, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe),
-        (0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b),
-        (0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29),
+        (0x29, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd,
+         0xe),
+        (0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a,
+         0x1b),
+        (0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28,
+         0x29),
         (0x2c, 0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36),
         ()]
     }
@@ -84,10 +94,10 @@ class Keyboard(QWidget):
 
     def resizeEvent(self, re):
         self.space = 6
-        self.usable_width = self.width()-2
-        self.key_w = (self.usable_width - 14 * self.space)/15
+        self.usable_width = self.width() - 2
+        self.key_w = (self.usable_width - 14 * self.space) / 15
 
-        self.setMinimumHeight(self.key_w*4 + self.space*5)
+        self.setMinimumHeight(self.key_w * 4 + self.space * 5)
 
     def paintEvent(self, pe):
         p = QPainter(self)
@@ -107,37 +117,39 @@ class Keyboard(QWidget):
         kw = self.key_w
 
         def drawRow(row, sx, sy, last_end=False):
-            x=sx
-            y=sy
+            x = sx
+            y = sy
             keys = row
-            rw=w-sx
-            i=0
+            rw = w - sx
+            i = 0
             for k in keys:
                 rect = QRectF(x, y, kw, kw)
 
-                if i == len(keys)-1 and last_end:
+                if i == len(keys) - 1 and last_end:
                     rect.setWidth(rw)
 
                 p.drawRoundedRect(rect, rx, rx)
                 p.setPen(Qt.black)
 
-                rect.adjust(5,1, 0, 0)
+                rect.adjust(5, 1, 0, 0)
 
                 p.setFont(self.lowerFont)
-                p.drawText(rect, Qt.AlignLeft | Qt.AlignBottom, self.regular_text(k))
+                p.drawText(
+                    rect, Qt.AlignLeft | Qt.AlignBottom, self.regular_text(k))
 
                 p.setFont(self.upperFont)
-                p.drawText(rect, Qt.AlignLeft | Qt.AlignTop, self.shift_text(k))
+                p.drawText(
+                    rect, Qt.AlignLeft | Qt.AlignTop, self.shift_text(k))
 
                 rw = rw - space - kw
                 x = x + space + kw
-                i = i+1
+                i = i + 1
 
                 p.setPen(pen)
-            return (x,rw)
+            return (x, rw)
 
-        x=.5
-        y=.5
+        x = .5
+        y = .5
 
         keys = self.kb["keys"]
         ext_return = self.kb["extended_return"]
@@ -145,14 +157,14 @@ class Keyboard(QWidget):
         first_key_w = 0
 
         rows = 4
-        remaining_x = [0,0,0,0]
-        remaining_widths = [0,0,0,0]
+        remaining_x = [0, 0, 0, 0]
+        remaining_widths = [0, 0, 0, 0]
 
         for i in range(0, rows):
             if first_key_w > 0:
-                first_key_w = first_key_w*1.375
+                first_key_w = first_key_w * 1.375
 
-                if self.kb == self.kb_105 and i==3:
+                if self.kb == self.kb_105 and i == 3:
                     first_key_w = kw * 1.275
 
                 rect = QRectF(x, y, first_key_w, kw)
@@ -161,47 +173,47 @@ class Keyboard(QWidget):
             else:
                 first_key_w = kw
 
-            x,rw = drawRow(keys[i], x, y, i==1 and not ext_return)
+            x, rw = drawRow(keys[i], x, y, i == 1 and not ext_return)
 
             remaining_x[i] = x
             remaining_widths[i] = rw
 
-            if i!=1 and i!=2:
+            if i != 1 and i != 2:
                 rect = QRectF(x, y, rw, kw)
                 p.drawRoundedRect(rect, rx, rx)
 
-            x=.5
+            x = .5
             y = y + space + kw
 
         if ext_return:
-            rx=rx*2
+            rx = rx * 2
             x1 = remaining_x[1]
-            y1 = .5 + kw*1 + space*1
+            y1 = .5 + kw * 1 + space * 1
             w1 = remaining_widths[1]
             x2 = remaining_x[2]
-            y2 = .5 + kw*2 + space*2
+            y2 = .5 + kw * 2 + space * 2
 
             # this is some serious crap... but it has to be so
             # maybe one day keyboards won't look like this...
             # one can only hope
             pp = QPainterPath()
-            pp.moveTo(x1, y1+rx)
+            pp.moveTo(x1, y1 + rx)
             pp.arcTo(x1, y1, rx, rx, 180, -90)
-            pp.lineTo(x1+w1-rx, y1)
-            pp.arcTo(x1+w1-rx, y1, rx, rx, 90, -90)
-            pp.lineTo(x1+w1, y2+kw-rx)
-            pp.arcTo(x1+w1-rx, y2+kw-rx, rx, rx, 0, -90)
-            pp.lineTo(x2+rx, y2+kw)
-            pp.arcTo(x2, y2+kw-rx, rx, rx, -90, -90)
-            pp.lineTo(x2, y1+kw)
-            pp.lineTo(x1+rx, y1+kw)
-            pp.arcTo(x1, y1+kw-rx, rx, rx, -90, -90)
+            pp.lineTo(x1 + w1 - rx, y1)
+            pp.arcTo(x1 + w1 - rx, y1, rx, rx, 90, -90)
+            pp.lineTo(x1 + w1, y2 + kw - rx)
+            pp.arcTo(x1 + w1 - rx, y2 + kw - rx, rx, rx, 0, -90)
+            pp.lineTo(x2 + rx, y2 + kw)
+            pp.arcTo(x2, y2 + kw - rx, rx, rx, -90, -90)
+            pp.lineTo(x2, y1 + kw)
+            pp.lineTo(x1 + rx, y1 + kw)
+            pp.arcTo(x1, y1 + kw - rx, rx, rx, -90, -90)
             pp.closeSubpath()
 
             p.drawPath(pp)
         else:
-            x= remaining_x[2]
-            y = .5 + kw*2 + space*2
+            x = remaining_x[2]
+            y = .5 + kw * 2 + space * 2
             rect = QRectF(x, y, remaining_widths[2], kw)
             p.drawRoundedRect(rect, rx, rx)
 
@@ -227,13 +239,16 @@ class Keyboard(QWidget):
         if self.variant:
             variantParam = "-variant %s" % self.variant
 
-        cmd="ckbcomp -model pc106 -layout %s %s -compact" % (self.layout, variantParam)
-        #print cmd
+        cmd = "ckbcomp -model pc106 -layout %s %s -compact" % (
+            self.layout, variantParam)
+        # print(cmd)
 
-        pipe = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=None)
+        pipe = subprocess.Popen(
+            cmd, shell=True, stdout=subprocess.PIPE, stderr=None,
+            universal_newlines=True)
         cfile = pipe.communicate()[0]
 
-        #clear the current codes
+        # clear the current codes
         del self.codes[:]
 
         for l in cfile.split('\n'):
@@ -254,6 +269,7 @@ class Keyboard(QWidget):
                 alt = ""
 
             self.codes.append((plain, shift, ctrl, alt))
+
 
 ## testing
 if __name__ == "__main__":

@@ -250,6 +250,7 @@ static int get_release(struct release_t *release, const char *name) {
 	FILE *f = NULL;
 	char *hostname, *directory;
 	char line[80];
+	char *p;
 	char buf[SUITE_LENGTH];
 
 	if (base_on_cd && ! manual_entry) {
@@ -282,6 +283,13 @@ static int get_release(struct release_t *release, const char *name) {
 	debconf_get(debconf, directory);
 	free(directory);
 	directory = strdup(debconf->value);
+
+	/* remove trailing slashes */
+	for (p = directory + strlen(directory) - 1;
+	     p >= directory && p[0] == '/';
+	     p--) {
+		p[0] = '\0';
+	}
 
 	asprintf(&command, "wget -q %s://%s%s/dists/%s/Release -O - | grep -E '^(Suite|Codename):'",
 		 protocol, hostname, directory, name);

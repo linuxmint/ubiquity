@@ -6,11 +6,13 @@ from PyQt4 import QtCore
 
 from ubiquity import i18n
 
+
 def get_string(name, lang=None, prefix=None):
     """Get the string name in the given lang or a default."""
     if lang is None and 'LANG' in os.environ:
         lang = os.environ['LANG']
     return i18n.get_string(name, lang, prefix)
+
 
 # describes the display for the manual partition view widget
 class PartitionModel(QtCore.QAbstractItemModel):
@@ -24,7 +26,8 @@ class PartitionModel(QtCore.QAbstractItemModel):
         rootData = []
         rootData.append(QtCore.QVariant(get_string('partition_column_device')))
         rootData.append(QtCore.QVariant(get_string('partition_column_type')))
-        rootData.append(QtCore.QVariant(get_string('partition_column_mountpoint')))
+        rootData.append(QtCore.QVariant(
+            get_string('partition_column_mountpoint')))
         rootData.append(QtCore.QVariant(get_string('partition_column_format')))
         rootData.append(QtCore.QVariant(get_string('partition_column_size')))
         rootData.append(QtCore.QVariant(get_string('partition_column_used')))
@@ -56,31 +59,39 @@ class PartitionModel(QtCore.QAbstractItemModel):
         item = index.internalPointer()
         if role == QtCore.Qt.CheckStateRole and index.column() == 3:
             item.partman_column_format_toggled(value.toBool())
-        self.emit(QtCore.SIGNAL("dataChanged(const QModelIndex&, const QModelIndex&)"), index, index)
+        self.emit(
+            QtCore.SIGNAL(
+                "dataChanged(const QModelIndex&, const QModelIndex&)"),
+            index, index)
         return True
 
     def flags(self, index):
         if not index.isValid():
             return QtCore.Qt.ItemIsEnabled
 
-        #self.setData(index, QtCore.QVariant(QtCore.Qt.Checked), QtCore.Qt.CheckStateRole)
-        #return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
+        # self.setData(
+        #     index, QtCore.QVariant(QtCore.Qt.Checked),
+        #     QtCore.Qt.CheckStateRole)
+        # return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
         if index.column() == 3:
             item = index.internalPointer()
             if item.formatEnabled():
-                return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsUserCheckable
+                return (QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable |
+                        QtCore.Qt.ItemIsUserCheckable)
             else:
-                return QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsUserCheckable
+                return (QtCore.Qt.ItemIsSelectable |
+                        QtCore.Qt.ItemIsUserCheckable)
         else:
             return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
     def headerData(self, section, orientation, role):
-        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
+        if (orientation == QtCore.Qt.Horizontal and
+                role == QtCore.Qt.DisplayRole):
             return self.rootItem.data(section)
 
         return QtCore.QVariant()
 
-    def index(self, row, column, parent = QtCore.QModelIndex()):
+    def index(self, row, column, parent=QtCore.QModelIndex()):
         if not parent.isValid():
             parentItem = self.rootItem
         else:
@@ -114,6 +125,7 @@ class PartitionModel(QtCore.QAbstractItemModel):
 
     def children(self):
         return self.rootItem.children()
+
 
 class TreeItem:
     def __init__(self, data, controller=None, parent=None):
@@ -189,8 +201,8 @@ class TreeItem:
         partition = self.itemData[1]
         if 'id' not in partition or 'method' not in partition:
             if ('parted' in partition and
-                partition['parted']['fs'] != 'free' and
-                'detected_filesystem' in partition):
+                    partition['parted']['fs'] != 'free' and
+                    'detected_filesystem' in partition):
                 return partition['detected_filesystem']
             else:
                 return ''
@@ -220,10 +232,10 @@ class TreeItem:
             else:
                 return QtCore.Qt.Unchecked
         else:
-            return QtCore.Qt.Unchecked # FIXME should be enabled(False)
+            return QtCore.Qt.Unchecked  # FIXME should be enabled(False)
 
     def formatEnabled(self):
-        """is the format tickbox enabled"""
+        """Is the format tickbox enabled?"""
         partition = self.itemData[1]
         return 'method' in partition and 'can_activate_format' in partition
 

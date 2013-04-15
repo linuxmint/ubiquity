@@ -4,17 +4,22 @@ import dbus
 
 from ubiquity import misc
 
+
 UPOWER = 'org.freedesktop.UPower'
 UPOWER_PATH = '/org/freedesktop/UPower'
+
 
 def setup_power_watch(prepare_power_source):
     bus = dbus.SystemBus()
     upower = bus.get_object(UPOWER, UPOWER_PATH)
+
     def power_state_changed():
         prepare_power_source.set_state(
-            misc.get_prop(upower, UPOWER_PATH, 'OnBattery') == False)
+            not misc.get_prop(upower, UPOWER_PATH, 'OnBattery'))
+
     bus.add_signal_receiver(power_state_changed, 'Changed', UPOWER, UPOWER)
     power_state_changed()
+
 
 def has_battery():
     # UPower doesn't seem to have an interface for this.

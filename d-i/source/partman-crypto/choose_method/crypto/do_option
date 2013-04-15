@@ -1,0 +1,17 @@
+#!/bin/sh
+
+. /lib/partman/lib/crypto-base.sh
+
+type=$1
+dev=$2
+id=$3
+part=$dev/$id
+
+mkdir -p $part
+rm -f $part/use_filesystem
+rm -f $part/format
+
+# Set defaults (this also downloads additional components)
+crypto_prepare_method $part dm-crypt || exit 1
+echo dm-crypt > $part/crypto_type
+echo crypto > $part/method

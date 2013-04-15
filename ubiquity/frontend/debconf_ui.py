@@ -24,21 +24,25 @@
 # Note that this frontend relies on being run under the control of a debconf
 # frontend; the main ubiquity program takes care of this.
 
-import sys
+from __future__ import print_function
+
 import os
-import textwrap
 import signal
+import sys
+import textwrap
 
 import debconf
 
-from ubiquity.frontend.base import BaseFrontend, Controller
-from ubiquity.plugin import Plugin
 from ubiquity import i18n
 from ubiquity.components import install, plugininstall
+from ubiquity.frontend.base import BaseFrontend, Controller
+from ubiquity.plugin import Plugin
+
 
 class PersistentDebconfCommunicator(debconf.Debconf):
     def shutdown(self):
         pass
+
 
 class Wizard(BaseFrontend):
     def __init__(self, distro):
@@ -61,7 +65,7 @@ class Wizard(BaseFrontend):
         """Crash handler."""
 
         if (issubclass(exctype, KeyboardInterrupt) or
-            issubclass(exctype, SystemExit)):
+                issubclass(exctype, SystemExit)):
             return
 
         self.post_mortem(exctype, excvalue, exctb)
@@ -85,9 +89,9 @@ class Wizard(BaseFrontend):
 
     def run(self):
         if os.getuid() != 0:
-            print >>sys.stderr, textwrap.fill(
+            print(textwrap.fill(
                 'This program must be run with administrative privileges, and '
-                'cannot continue without them.')
+                'cannot continue without them.'), file=sys.stderr)
             sys.exit(1)
 
         self.pagesindex = 0
@@ -138,9 +142,8 @@ class Wizard(BaseFrontend):
                                                signal.SIGTERM)):
                         sys.exit(ret)
                     elif os.path.exists('/var/lib/ubiquity/install.trace'):
-                        tbfile = open('/var/lib/ubiquity/install.trace')
-                        realtb = tbfile.read()
-                        tbfile.close()
+                        with open('/var/lib/ubiquity/install.trace') as tbfile:
+                            realtb = tbfile.read()
                         raise RuntimeError(
                             "Install failed with exit code %s\n%s" %
                             (ret, realtb))

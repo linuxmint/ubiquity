@@ -12,7 +12,18 @@ for file in /etc/network/interfaces /etc/networks /etc/hostname /etc/hosts; do
 	fi
 done
 
-if [ ! -e /target/sbin/resolvconf ] && [ -f /etc/resolv.conf ]; then
-	mkdir -p /target/etc
-	cp /etc/resolv.conf /target/etc/resolv.conf
+if [ -f /etc/resolv.conf ]; then
+	if [ -e /target/sbin/resolvconf ]; then
+		if [ -d /target/run/resolvconf ]; then
+			# resolvconf won't be running during installation,
+			# so make sure that we at least have basic
+			# configuration in place.  If there's anything
+			# complicated that needs to persist, netcfg will
+			# have written that to /etc/network/interfaces.
+			cp /etc/resolv.conf /target/run/resolvconf/resolv.conf
+		fi
+	else
+		mkdir -p /target/etc
+		cp /etc/resolv.conf /target/etc/resolv.conf
+	fi
 fi

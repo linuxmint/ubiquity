@@ -216,12 +216,18 @@ on_realize(GtkWidget *win, gpointer data) {
 	width = gdk_screen_width();
 	gtk_window_set_decorated (GTK_WINDOW (win), FALSE);
 	set_strut(GTK_WINDOW(win), width, 0, allocation.height, allocation.height, 0, width);
+	gtk_widget_set_size_request(GTK_WIDGET (win), width, -1);
 	// We don't care about showing the panel on all desktops just yet.
 	gtk_window_stick (GTK_WINDOW (win));
 	gtk_window_set_type_hint(GTK_WINDOW(win), GDK_WINDOW_TYPE_HINT_DOCK);
 	gdk_window_set_geometry_hints (gtk_widget_get_window(win), NULL, GDK_HINT_POS);
 	gdk_window_move_resize(gtk_widget_get_window(win), 0, 0, width, allocation.height);
 	gtk_window_set_has_resize_grip(GTK_WINDOW(win), FALSE);
+}
+
+static void
+on_screen_change (GdkScreen *screen, GtkWidget *win) {
+	on_realize(win, NULL);
 }
 
 static const char* indicators[] = {
@@ -273,12 +279,16 @@ int
 main(int argc, char* argv[]) {
 	GtkWidget *win;
 	GtkCssProvider *cssprovider;
+	GdkScreen *screen;
 
 	/* Disable global menus */
 	g_unsetenv ("UBUNTU_MENUPROXY");
 	gtk_init(&argc, &argv);
+	screen = gdk_screen_get_default();
 	win = gtk_window_new (GTK_WINDOW_TOPLEVEL);
 	g_signal_connect(win, "realize", G_CALLBACK(on_realize), NULL);
+	g_signal_connect(screen, "monitors-changed", G_CALLBACK(on_screen_change), win);
+	g_signal_connect(screen, "size-changed", G_CALLBACK(on_screen_change), win);
 
 	cssprovider = gtk_css_provider_new ();
 	gtk_css_provider_load_from_data(cssprovider,
@@ -294,7 +304,7 @@ main(int argc, char* argv[]) {
 			"    padding: 0px 0px 0px 0px;\n"
 			"}\n", -1, NULL);
 
-	gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
+	gtk_style_context_add_provider_for_screen(screen,
 		GTK_STYLE_PROVIDER (cssprovider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 
 	GtkWidget* menubar = gtk_menu_bar_new();

@@ -10,10 +10,10 @@ STRIP = $(STRIPTOOL) --remove-section=.note --remove-section=.comment
 all: $(TARGETS)
 
 mapdevfs: mapdevfs.c
-	$(CC) $(CFLAGS) $^ -o $@ -ldebian-installer
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@ -ldebian-installer
 
 log-output: log-output.c
-	$(CC) $(CFLAGS) $^ -o $@ -ldebian-installer
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@ -ldebian-installer
 
 strip: $(TARGETS)
 	$(STRIP) $^

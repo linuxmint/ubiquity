@@ -1,0 +1,31 @@
+#!/bin/sh
+
+. /usr/share/debconf/confmodule
+
+set -e
+
+dev=$1
+id=$2
+part=$dev/$id
+
+cd $dev
+
+choice_cipher () {
+	if [ -f $part/cipher ]; then
+		cipher=$(cat $part/cipher)
+	else
+		db_metaget partman-basicfilesystems/text/no_mountpoint description
+		cipher="$RET" # "none"
+	fi
+
+	db_metaget partman-crypto/text/specify_cipher description
+	printf "encryption\t%s\${!TAB}%s\n" "$RET" "$cipher"
+}
+
+[ -f $part/method ] || exit 0
+
+method=$(cat $part/method)
+if [ $method = crypto ]; then
+	choice_cipher
+fi
+

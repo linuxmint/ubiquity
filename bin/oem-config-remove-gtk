@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 ## -*- coding: utf-8 -*-
 #
 # «oem-config-remove-gtk» - remove-oem-config after completing
@@ -18,19 +18,20 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along
-# with this application; if not, write to the Free Software Foundation, Inc., 51
-# Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-################################################################################
+# with this application; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+import glob
 import os
 import sys
-import glob
 
-from aptdaemon.gtk3widgets import AptProgressDialog
-from gi.repository import GObject, Gtk
 from aptdaemon import client, enums
+from aptdaemon.gtk3widgets import AptProgressDialog
+from gi.repository import GLib, Gtk
 
-loop = GObject.MainLoop()
+
+loop = GLib.MainLoop()
+
 
 def _on_failure(error):
     dia = Gtk.MessageDialog(type=Gtk.MessageType.ERROR,
@@ -41,12 +42,14 @@ def _on_failure(error):
     loop.quit()
     sys.exit(1)
 
+
 def _on_finished(dia):
     loop.quit()
     if dia._transaction.exit == enums.EXIT_SUCCESS:
         sys.exit(0)
     else:
         sys.exit(1)
+
 
 def _on_transaction(trans):
     apt_dialog = AptProgressDialog(trans)
@@ -55,6 +58,7 @@ def _on_transaction(trans):
     apt_dialog.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
     apt_dialog.run()
     apt_dialog.connect("finished", _on_finished)
+
 
 def using_cryptsetup():
     if os.path.exists("/home/.ecryptfs"):
@@ -70,11 +74,12 @@ def using_cryptsetup():
 
     return False
 
+
 def main():
     purge = []
     for pkg in ('ubiquity', 'ubiquity-casper',
                 'ubiquity-ubuntu-artwork', 'ubiquity-slideshow-ubuntu',
-                'oem-config-slideshow-ubuntu'):
+                'oem-config-slideshow-ubuntu', 'ubiquity-frontend-gtk'):
         if glob.glob('/var/lib/dpkg/info/%s.list' % pkg):
             purge.append(pkg)
 
@@ -82,11 +87,11 @@ def main():
         purge.append("cryptsetup")
 
     ac = client.AptClient()
-    ac.commit_packages(install=[], reinstall=[], remove=[], purge=purge, upgrade=[],
-                       downgrade=[],
-                       error_handler=_on_failure,
-                       reply_handler=_on_transaction)
+    ac.commit_packages(
+        install=[], reinstall=[], remove=[], purge=purge, upgrade=[],
+        downgrade=[], error_handler=_on_failure, reply_handler=_on_transaction)
     loop.run()
+
 
 if __name__ == "__main__":
     main()

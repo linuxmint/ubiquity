@@ -39,6 +39,8 @@ IFS_ORIG="$IFS"
 NL="
 "
 
+TITLE_TEMPLATE=debian-installer/bootstrap-base/title
+
 log() {
 	logger -t base-installer "$@"
 }
@@ -345,8 +347,11 @@ kernel_update_list () {
 	(set +e;
 	# Hack to get the metapackages in the right order; should be
 	# replaced by something better at some point.
-	chroot /target apt-cache search ^linux- | grep '^linux-\(amd64\|686\|k7\|generic\|server\|virtual\|preempt\|rt\|xen\|power\|cell\|ia64\|sparc\|hppa\|imx51\|dove\|omap\|omap4\|armadaxp\|highbank\)';
+	chroot /target apt-cache search ^linux-signed- | grep '^linux-signed-\(generic\|server\|virtual\|preempt\|rt\|xen\)';
+	chroot /target apt-cache search ^linux- | grep '^linux-\(amd64\|686\|k7\|generic\|server\|virtual\|preempt\|rt\|xen\|power\|cell\|ia64\|sparc\|hppa\|imx51\|dove\|omap\|omap4\|armadaxp\)';
+	chroot /target apt-cache search ^linux-signed-image- | grep -v '^linux-signed-image-[2-9]\.';
 	chroot /target apt-cache search ^linux-image- | grep -v '^linux-image-[2-9]\.';
+	chroot /target apt-cache search '^linux-signed-image-[2-9]\.' | sort -r;
 	chroot /target apt-cache search '^linux-image-[2-9]\.' | sort -r;
 	chroot /target apt-cache search ^kfreebsd-image;
 	chroot /target apt-cache search ^gnumach-image) | \
@@ -374,7 +379,7 @@ kernel_present () {
 pick_kernel () {
 	kernel_update_list
 	
-	db_settitle debian-installer/bootstrap-base/title
+	db_settitle "$TITLE_TEMPLATE"
 
 	# Check for overrides
 	if db_get base-installer/kernel/override-image && [ "$RET" ]; then
@@ -488,7 +493,7 @@ install_kernel_linux () {
 		return
 	fi
 
-	target_kernel_major="$(echo "$KERNEL" | sed 's/^kernel-image-//; s/^linux-image-//; s/-.*//' | cut -d . -f 1,2)"
+	target_kernel_major="$(echo "$KERNEL" | sed 's/^kernel-image-//; s/^linux-\(\|signed-\)image-//; s/-.*//' | cut -d . -f 1,2)"
 	case $target_kernel_major in
 		2.?)	;;
 		[3-9].*)
@@ -587,7 +592,7 @@ EOF
 			db_get base-installer/kernel/linux/initramfs-tools/driver-policy
 			db_set base-installer/initramfs-tools/driver-policy "$RET"
 		fi
-		db_settitle debian-installer/bootstrap-base/title
+		db_settitle "$TITLE_TEMPLATE"
 		db_input medium base-installer/initramfs-tools/driver-policy || true
 		if ! db_go; then
 			db_progress stop

@@ -1,0 +1,61 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+. /lib/partman/lib/crypto-base.sh
+
+dev=$2
+id=$3
+part=$dev/$id
+
+cd $dev
+
+select_crypto_type () {
+	choices=$(
+		for dir in /lib/partman/ciphers/*; do
+			[ -d $dir ] || continue
+			type=${dir##*/}
+
+			db_metaget partman-crypto/crypto_type/$type description
+			if [ -z "$RET" ]; then
+				desc=$type
+			else
+				desc="$RET"
+			fi
+			printf "%s\t%s\n" $type "$desc"
+		done
+	)
+
+	if [ -z "$choices" ]; then
+		return 1
+	fi
+
+	template="partman-crypto/crypto_type"
+	if ! debconf_select critical $template "$choices" ""; then
+		return 1
+	fi
+	type=$RET
+
+	if [ -f $part/crypto_type ]; then
+		if [ "$(cat $part/crypto_type)" = $type ]; then
+			# Same type selected, skip prepare_method
+			return 0
+		fi
+	fi
+
+	echo $type > $part/crypto_type
+	crypto_prepare_method $part $type || return 1
+
+	return 0
+}
+
+[ -f $part/method ] || exit 0
+method=$(cat $part/method)
+
+if [ $method = crypto ]; then
+	# Load all known crypto types
+	crypto_load_udebs partman-crypto-dm
+	#crypto_load_udebs partman-crypto-loop
+
+	select_crypto_type || return 1
+fi
+

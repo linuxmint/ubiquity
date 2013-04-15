@@ -18,14 +18,17 @@
 
 # Update the installer from the network.
 
-import sys
+from __future__ import print_function
+
 import os
+import sys
 import syslog
 
 import apt
 import apt_pkg
 
 from ubiquity import misc
+
 
 MAGIC_MARKER = "/var/run/ubiquity.updated"
 # Make sure that ubiquity is last, otherwise apt may try to install another
@@ -38,14 +41,14 @@ UBIQUITY_PKGS = ["ubiquity-casper",
                  "ubiquity"]
 
 
-class CacheProgressDebconfProgressAdapter(apt.progress.OpProgress):
+class CacheProgressDebconfProgressAdapter(apt.progress.base.OpProgress):
     def __init__(self, frontend):
         self.frontend = frontend
         self.frontend.debconf_progress_start(
             0, 100, self.frontend.get_string('reading_package_information'))
 
     def update(self, percent=None):
-        super(CacheProgressDebconfProgressAdapter, self).update(percent)
+        super().update(percent)
         self.frontend.debconf_progress_set(self.percent)
         self.frontend.refresh()
 
@@ -55,23 +58,27 @@ class CacheProgressDebconfProgressAdapter(apt.progress.OpProgress):
         self.frontend.debconf_progress_stop()
 
 
-class FetchProgressDebconfProgressAdapter(apt.progress.FetchProgress):
+class AcquireProgressDebconfProgressAdapter(apt.progress.base.AcquireProgress):
     def __init__(self, frontend):
-        apt.progress.FetchProgress.__init__(self)
+        apt.progress.base.AcquireProgress.__init__(self)
         self.frontend = frontend
 
-    def pulse(self):
-        apt.progress.FetchProgress.pulse(self)
-        if self.currentCPS > 0:
+    def pulse(self, owner):
+        apt.progress.base.AcquireProgress.pulse(self, owner)
+        if self.current_cps > 0:
             info = self.frontend.get_string('apt_progress_cps')
-            info = info.replace(
-                '${SPEED}', apt_pkg.size_to_str(self.currentCPS))
+            current_cps = apt_pkg.size_to_str(self.current_cps)
+            if isinstance(current_cps, bytes):
+                current_cps = current_cps.decode()
+            info = info.replace('${SPEED}', current_cps)
         else:
             info = self.frontend.get_string('apt_progress')
-        info = info.replace('${INDEX}', str(self.currentItems))
-        info = info.replace('${TOTAL}', str(self.totalItems))
+        info = info.replace('${INDEX}', str(self.current_items))
+        info = info.replace('${TOTAL}', str(self.total_items))
         self.frontend.debconf_progress_info(info)
-        self.frontend.debconf_progress_set(self.percent)
+        self.frontend.debconf_progress_set(
+            ((self.current_bytes + self.current_items) * 100.0) /
+            float(self.total_bytes + self.total_items))
         self.frontend.refresh()
         return True
 
@@ -83,9 +90,9 @@ class FetchProgressDebconfProgressAdapter(apt.progress.FetchProgress):
             0, 100, self.frontend.get_string('updating_package_information'))
 
 
-class InstallProgressDebconfProgressAdapter(apt.progress.InstallProgress):
+class InstallProgressDebconfProgressAdapter(apt.progress.base.InstallProgress):
     def __init__(self, frontend):
-        apt.progress.InstallProgress.__init__(self)
+        apt.progress.base.InstallProgress.__init__(self)
         self.frontend = frontend
 
     def status_change(self, unused_pkg, percent, unused_status):
@@ -98,8 +105,8 @@ class InstallProgressDebconfProgressAdapter(apt.progress.InstallProgress):
     def finish_update(self):
         self.frontend.debconf_progress_stop()
 
-    def updateInterface(self):
-        apt.progress.InstallProgress.updateInterface(self)
+    def update_interface(self):
+        apt.progress.base.InstallProgress.update_interface(self)
         self.frontend.refresh()
 
 
@@ -112,17 +119,16 @@ def update(frontend):
     cache = apt.Cache(cache_progress)
     cache_progress.really_done()
 
-    fetchprogress = FetchProgressDebconfProgressAdapter(frontend)
+    acquire_progress = AcquireProgressDebconfProgressAdapter(frontend)
     try:
-        cache.update(fetchprogress)
+        cache.update(acquire_progress)
         cache_progress = CacheProgressDebconfProgressAdapter(frontend)
         cache = apt.Cache(cache_progress)
         cache_progress.really_done()
-        updates = filter(
-            lambda pkg: pkg in cache and cache[pkg].is_upgradable,
-            UBIQUITY_PKGS)
-    except IOError, e:
-        print "ERROR: cache.update() returned: '%s'" % e
+        updates = [pkg for pkg in UBIQUITY_PKGS
+                   if pkg in cache and cache[pkg].is_upgradable]
+    except IOError as e:
+        print("ERROR: cache.update() returned: '%s'" % e)
         updates = []
 
     if not updates:
@@ -151,9 +157,9 @@ def update(frontend):
             # log file.
             old_stdout = os.dup(1)
             os.dup2(2, 1)
-            cache.commit(FetchProgressDebconfProgressAdapter(frontend),
+            cache.commit(AcquireProgressDebconfProgressAdapter(frontend),
                          InstallProgressDebconfProgressAdapter(frontend))
-        except (SystemError, IOError), e:
+        except (SystemError, IOError) as e:
             syslog.syslog(syslog.LOG_ERR,
                           "Error installing the update: '%s'" % e)
             title = frontend.get_string('error_updating_installer')
@@ -174,7 +180,8 @@ def update(frontend):
         # all went well, write marker and restart self
         # FIXME: we probably want some sort of in-between-restart-splash
         #        or at least a dialog here
-        open(MAGIC_MARKER, "w").write("1")
+        with open(MAGIC_MARKER, "w") as magic_marker:
+            magic_marker.write("1")
         os.execv(sys.argv[0], sys.argv)
         return False
     finally:

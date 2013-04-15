@@ -14,6 +14,7 @@ if [ -e /var/run/preseed_unspecified_at_boot ]; then
 	fi
 fi
 
+# BEGIN: testable
 db_get preseed/url && url="$RET"
 [ "$url" ] || exit 0
 
@@ -26,19 +27,28 @@ else
 fi
 
 if ! expr "$base" : [^/]*$ >/dev/null; then
-	host="${base%%/*}"
+	host_port="${base%%/*}"
 	dir="${base#*/}"
 else
-	host="$base"
+	host_port="$base"
 	db_get auto-install/defaultroot && dir="$RET"
 fi
 
-if expr $host : [^.]*$ >/dev/null; then
+if expr $host_port : [^.]*$ >/dev/null; then
 	db_get netcfg/get_domain && domain="$RET"
 
-	if [ -n "$domain" ] && [ "$domain" != "unnassigned-domain" ]; then
-		host="$host.$domain"
+	if [ -n "$domain" ] && [ "$domain" != "unassigned-domain" ] && [ "$domain" != "unnassigned-domain" ]; then
+		host=${host_port%%:*}
+		if [ "$host" = "$host_port" ]; then
+			port=""
+		else
+			port=":${host_port#*:}"
+		fi
+
+		host_port="$host.$domain$port"
+
 	fi
 fi
 
-db_set preseed/url $proto://$host/$dir
+db_set preseed/url $proto://$host_port/$dir
+# END: testable

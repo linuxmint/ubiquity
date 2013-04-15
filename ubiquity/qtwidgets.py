@@ -1,32 +1,35 @@
+from __future__ import print_function
+
 import sys
 
-from PyQt4.QtCore import Qt
-from PyQt4.QtGui import QLabel, QHBoxLayout, QPixmap, QFrame, QPalette
+from PyQt4.QtGui import QWidget, QHBoxLayout, QLabel, QPixmap
 
-class StateBox(QFrame):
+
+class StateBox(QWidget):
     def __init__(self, parent, text=''):
-        QFrame.__init__(self, parent)
-        self.setFrameStyle(QFrame.StyledPanel|QFrame.Sunken)
-        self.setAutoFillBackground(True)
-        palette = self.palette()
-        palette.setColor(QPalette.Window, Qt.white)
-        self.setPalette(palette)
-        layout = QHBoxLayout(self)
-        self.setLayout(layout)
-        self.image = QLabel(self)
-        self.image.setPixmap(QPixmap("/usr/share/icons/oxygen/32x32/actions/dialog-ok.png"))
-        layout.addWidget(self.image)
+        QWidget.__init__(self, parent)
+
         self.label = QLabel(text, self)
+        self.image = QLabel(self)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.image)
         layout.addWidget(self.label)
         layout.addStretch()
-        self.status = True
+
+        self.set_state(True)
 
     def set_state(self, state):
         self.status = state
         if state:
-            self.image.setPixmap(QPixmap("/usr/share/icons/oxygen/32x32/actions/dialog-ok.png"))
+            # A tickmark
+            name = "dialog-ok-apply.png"
         else:
-            self.image.setPixmap(QPixmap("/usr/share/icons/oxygen/32x32/actions/dialog-cancel.png"))
+            # A cross
+            name = "edit-delete.png"
+        name = "/usr/share/icons/oxygen/22x22/actions/" + name
+        self.image.setPixmap(QPixmap(name))
 
     def get_state(self):
         return self.status
@@ -35,4 +38,5 @@ class StateBox(QFrame):
         if prop == "label":
             self.label.setText(value)
         else:
-            print >>sys.stderr, "qtwidgets.StateBox set_property() only implemented for label"
+            print("qtwidgets.StateBox set_property() only implemented for "
+                  "label", file=sys.stderr)

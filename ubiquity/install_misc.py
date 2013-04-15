@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
 # Copyright (C) 2005, 2006, 2007, 2008, 2009 Canonical Ltd.
@@ -21,6 +20,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+from __future__ import print_function
+
 import errno
 import fcntl
 import hashlib
@@ -40,8 +41,9 @@ from apt.progress.text import AcquireProgress
 import apt_pkg
 import debconf
 
-from ubiquity import misc
-from ubiquity import osextras
+from ubiquity import misc, osextras
+from ubiquity.casper import get_casper
+
 
 def debconf_disconnect():
     """Disconnect from debconf. This is only to be used as a subprocess
@@ -53,9 +55,11 @@ def debconf_disconnect():
         # Probably not a good idea to use this in /target too ...
         del os.environ['DEBCONF_USE_CDEBCONF']
 
+
 def reconfigure_preexec():
     debconf_disconnect()
     os.environ['XAUTHORITY'] = '/root/.Xauthority'
+
 
 def reconfigure(target, package):
     """executes a dpkg-reconfigure into installed system to each
@@ -64,9 +68,11 @@ def reconfigure(target, package):
                      'dpkg-reconfigure', '-fnoninteractive', package],
                     preexec_fn=reconfigure_preexec, close_fds=True)
 
+
 def chrex(target, *args):
     """executes commands on chroot system (provided by *args)."""
     return misc.execute('chroot', target, *args)
+
 
 def set_debconf(target, question, value, db=None):
     try:
@@ -80,7 +86,8 @@ def set_debconf(target, question, value, db=None):
                                        'debconf-communicate',
                                        '-fnoninteractive', 'ubiquity'],
                                       stdin=subprocess.PIPE,
-                                      stdout=subprocess.PIPE, close_fds=True)
+                                      stdout=subprocess.PIPE, close_fds=True,
+                                      universal_newlines=True)
             dc = debconf.Debconf(read=dccomm.stdout, write=dccomm.stdin)
         dc.set(question, value)
         dc.fset(question, 'seen', 'true')
@@ -89,22 +96,23 @@ def set_debconf(target, question, value, db=None):
             dccomm.stdin.close()
             dccomm.wait()
 
+
 def get_all_interfaces():
     """Get all non-local network interfaces."""
     ifs = []
-    ifs_file = open('/proc/net/dev')
-    # eat header
-    ifs_file.readline()
-    ifs_file.readline()
+    with open('/proc/net/dev') as ifs_file:
+        # eat header
+        ifs_file.readline()
+        ifs_file.readline()
 
-    for line in ifs_file:
-        name = re.match('(.*?(?::\d+)?):', line.strip()).group(1)
-        if name == 'lo':
-            continue
-        ifs.append(name)
+        for line in ifs_file:
+            name = re.match('(.*?(?::\d+)?):', line.strip()).group(1)
+            if name == 'lo':
+                continue
+            ifs.append(name)
 
-    ifs_file.close()
     return ifs
+
 
 def chroot_setup(target, x11=False):
     """Set up /target for safe package management operations."""
@@ -112,42 +120,40 @@ def chroot_setup(target, x11=False):
         return
 
     policy_rc_d = os.path.join(target, 'usr/sbin/policy-rc.d')
-    f = open(policy_rc_d, 'w')
-    print >>f, """\
+    with open(policy_rc_d, 'w') as f:
+        print("""\
 #!/bin/sh
-exit 101"""
-    f.close()
-    os.chmod(policy_rc_d, 0755)
+exit 101""", file=f)
+    os.chmod(policy_rc_d, 0o755)
 
     start_stop_daemon = os.path.join(target, 'sbin/start-stop-daemon')
     if os.path.exists(start_stop_daemon):
         os.rename(start_stop_daemon, '%s.REAL' % start_stop_daemon)
-    f = open(start_stop_daemon, 'w')
-    print >>f, """\
+    with open(start_stop_daemon, 'w') as f:
+        print("""\
 #!/bin/sh
 echo 1>&2
 echo 'Warning: Fake start-stop-daemon called, doing nothing.' 1>&2
-exit 0"""
-    f.close()
-    os.chmod(start_stop_daemon, 0755)
+exit 0""", file=f)
+    os.chmod(start_stop_daemon, 0o755)
 
     initctl = os.path.join(target, 'sbin/initctl')
     if os.path.exists(initctl):
         os.rename(initctl, '%s.REAL' % initctl)
-        f = open(initctl, 'w')
-        print >>f, """\
+        with open(initctl, 'w') as f:
+            print("""\
 #!/bin/sh
 echo 1>&2
 echo 'Warning: Fake initctl called, doing nothing.' 1>&2
-exit 0"""
-        f.close()
-        os.chmod(initctl, 0755)
+exit 0""", file=f)
+        os.chmod(initctl, 0o755)
 
     if not os.path.exists(os.path.join(target, 'proc/cmdline')):
         chrex(target, 'mount', '-t', 'proc', 'proc', '/proc')
     if not os.path.exists(os.path.join(target, 'sys/devices')):
         chrex(target, 'mount', '-t', 'sysfs', 'sysfs', '/sys')
     misc.execute('mount', '--bind', '/dev', os.path.join(target, 'dev'))
+    misc.execute('mount', '--bind', '/run', os.path.join(target, 'run'))
 
     if x11 and 'DISPLAY' in os.environ:
         if 'SUDO_USER' in os.environ:
@@ -163,6 +169,7 @@ exit 0"""
             os.mkdir(os.path.join(target, 'tmp/.X11-unix'))
         misc.execute('mount', '--bind', '/tmp/.X11-unix',
                      os.path.join(target, 'tmp/.X11-unix'))
+
 
 def chroot_cleanup(target, x11=False):
     """Undo the work done by chroot_setup."""
@@ -180,6 +187,7 @@ def chroot_cleanup(target, x11=False):
 
     chrex(target, 'umount', '/sys')
     chrex(target, 'umount', '/proc')
+    misc.execute('umount', os.path.join(target, 'run'))
     misc.execute('umount', os.path.join(target, 'dev'))
 
     initctl = os.path.join(target, 'sbin/initctl')
@@ -195,6 +203,7 @@ def chroot_cleanup(target, x11=False):
     policy_rc_d = os.path.join(target, 'usr/sbin/policy-rc.d')
     osextras.unlink_force(policy_rc_d)
 
+
 def record_installed(pkgs):
     """Record which packages we've explicitly installed so that we don't
     try to remove them later."""
@@ -202,21 +211,19 @@ def record_installed(pkgs):
     record_file = "/var/lib/ubiquity/apt-installed"
     if not os.path.exists(os.path.dirname(record_file)):
         os.makedirs(os.path.dirname(record_file))
-    record = open(record_file, "a")
+    with open(record_file, "a") as record:
+        for pkg in pkgs:
+            print(pkg, file=record)
 
-    for pkg in pkgs:
-        print >>record, pkg
-
-    record.close()
 
 def query_recorded_installed():
     apt_installed = set()
     if os.path.exists("/var/lib/ubiquity/apt-installed"):
-        record_file = open("/var/lib/ubiquity/apt-installed")
-        for line in record_file:
-            apt_installed.add(line.strip())
-        record_file.close()
+        with open("/var/lib/ubiquity/apt-installed") as record_file:
+            for line in record_file:
+                apt_installed.add(line.strip())
     return apt_installed
+
 
 def record_removed(pkgs, recursive=False):
     """Record which packages we've like removed later"""
@@ -224,25 +231,23 @@ def record_removed(pkgs, recursive=False):
     record_file = "/var/lib/ubiquity/apt-removed"
     if not os.path.exists(os.path.dirname(record_file)):
         os.makedirs(os.path.dirname(record_file))
-    record = open(record_file, "a")
+    with open(record_file, "a") as record:
+        for pkg in pkgs:
+            print(pkg, str(recursive).lower(), file=record)
 
-    for pkg in pkgs:
-        print >>record, pkg, str(recursive).lower()
-
-    record.close()
 
 def query_recorded_removed():
     apt_removed = set()
     apt_removed_recursive = set()
     if os.path.exists("/var/lib/ubiquity/apt-removed"):
-        record_file = open("/var/lib/ubiquity/apt-removed")
-        for line in record_file:
-            if misc.create_bool(line.split()[1]):
-                apt_removed_recursive.add(line.split()[0])
-            else:
-                apt_removed.add(line.split()[0])
-        record_file.close()
+        with open("/var/lib/ubiquity/apt-removed") as record_file:
+            for line in record_file:
+                if misc.create_bool(line.split()[1]):
+                    apt_removed_recursive.add(line.split()[0])
+                else:
+                    apt_removed.add(line.split()[0])
     return (apt_removed, apt_removed_recursive)
+
 
 class DebconfAcquireProgress(AcquireProgress):
     """An object that reports apt's fetching progress using debconf."""
@@ -268,8 +273,8 @@ class DebconfAcquireProgress(AcquireProgress):
 
     # TODO cjwatson 2006-02-27: implement updateStatus
 
-    def pulse(self,owner=None):
-        AcquireProgress.pulse(self,owner)
+    def pulse(self, owner=None):
+        AcquireProgress.pulse(self, owner)
         self.percent = (((self.current_bytes + self.current_items) * 100.0) /
                         float(self.total_bytes + self.total_items))
         if self.current_cps > 0:
@@ -296,6 +301,7 @@ class DebconfAcquireProgress(AcquireProgress):
             self.old_capb = None
             if os.environ['UBIQUITY_FRONTEND'] != 'debconf_ui':
                 self.db.progress('STOP')
+
 
 class DebconfInstallProgress(InstallProgress):
     """An object that reports apt's installation progress using debconf."""
@@ -347,16 +353,16 @@ class DebconfInstallProgress(InstallProgress):
                 while True:
                     try:
                         rlist, _, _ = select.select(
-                              [self.status_stream, control_read], [], [])
+                            [self.status_stream, control_read], [], [])
                     except select.error as error:
                         if error[0] != errno.EINTR:
                             raise
                     if self.status_stream in rlist:
-                          self.update_interface()
+                        self.update_interface()
                     if control_read in rlist:
-                          os._exit(0)
+                        os._exit(0)
             except (KeyboardInterrupt, SystemExit):
-                pass # we're going to exit anyway
+                pass  # we're going to exit anyway
             except:
                 for line in traceback.format_exc().split('\n'):
                     syslog.syslog(syslog.LOG_WARNING, line)
@@ -393,7 +399,7 @@ class DebconfInstallProgress(InstallProgress):
             # Probably not a good idea to use this in /target too ...
             del os.environ['DEBCONF_USE_CDEBCONF']
 
-        res = pm.ResultFailed
+        res = pm.RESULT_FAILED
         try:
             res = pm.do_install(self.write_stream.fileno())
         finally:
@@ -432,37 +438,41 @@ class DebconfInstallProgress(InstallProgress):
                 self.db.progress('STOP')
             self.started = False
 
+
 class InstallStepError(Exception):
     """Raised when an install step fails."""
 
     def __init__(self, message):
         Exception.__init__(self, message)
 
+
 def excepthook(exctype, excvalue, exctb):
     """Crash handler. Dump the traceback to a file so that it can be
     read by the caller."""
 
     if (issubclass(exctype, KeyboardInterrupt) or
-        issubclass(exctype, SystemExit)):
+            issubclass(exctype, SystemExit)):
         return
 
     tbtext = ''.join(traceback.format_exception(exctype, excvalue, exctb))
     syslog.syslog(syslog.LOG_ERR, "Exception during installation:")
     for line in tbtext.split('\n'):
         syslog.syslog(syslog.LOG_ERR, line)
-    tbfile = open('/var/lib/ubiquity/install.trace', 'w')
-    print >>tbfile, tbtext
-    tbfile.close()
+    with open('/var/lib/ubiquity/install.trace', 'w') as tbfile:
+        print(tbtext, file=tbfile)
 
     sys.exit(1)
 
+
 def archdetect():
-    archdetect = subprocess.Popen(['archdetect'], stdout=subprocess.PIPE)
+    archdetect = subprocess.Popen(
+        ['archdetect'], stdout=subprocess.PIPE, universal_newlines=True)
     answer = archdetect.communicate()[0].strip()
     try:
         return answer.split('/', 1)
     except ValueError:
         return answer, ''
+
 
 # TODO this can probably go away now.
 def get_cache_pkg(cache, pkg):
@@ -471,6 +481,7 @@ def get_cache_pkg(cache, pkg):
         return cache[pkg]
     except KeyError:
         return None
+
 
 def broken_packages(cache):
     expect_count = cache._depcache.broken_count
@@ -488,9 +499,11 @@ def broken_packages(cache):
             break
     return brokenpkgs
 
+
 def mark_install(cache, pkg):
     cachedpkg = get_cache_pkg(cache, pkg)
-    if cachedpkg is not None and (not cachedpkg.is_installed or cachedpkg.is_upgradable):
+    if (cachedpkg is not None and
+            (not cachedpkg.is_installed or cachedpkg.is_upgradable)):
         apt_error = False
         try:
             cachedpkg.mark_install()
@@ -503,17 +516,25 @@ def mark_install(cache, pkg):
                     get_cache_pkg(cache, brokenpkg).mark_keep()
                 new_brokenpkgs = broken_packages(cache)
                 if brokenpkgs == new_brokenpkgs:
-                    break # we can do nothing more
+                    break  # we can do nothing more
                 brokenpkgs = new_brokenpkgs
-            assert cache._depcache.broken_count == 0
+
+            if cache._depcache.broken_count > 0:
+                # We have a conflict we couldn't solve
+                cache.clear()
+                raise InstallStepError(
+                    "Unable to install '%s' due to conflicts." % pkg)
+
 
 def expand_dependencies_simple(cache, keep, to_remove, recommends=True):
-    """Return the list of packages in to_remove that clearly cannot be removed
+    """Calculate non-removable packages.
+
+    Return the list of packages in to_remove that clearly cannot be removed
     if we want to keep the set of packages in keep. Except in the case of
     Recommends, this is not required for correctness (we could just let apt
-    figure it out), but it allows us to ask apt fewer separate questions, and
-    so is faster."""
-
+    figure it out), but it allows us to ask apt fewer separate questions,
+    and so is faster.
+    """
     keys = ['Pre-Depends', 'Depends']
     if recommends:
         keys.append('Recommends')
@@ -557,6 +578,7 @@ def expand_dependencies_simple(cache, keep, to_remove, recommends=True):
 
     return expanded
 
+
 def locale_to_language_pack(locale):
     lang = locale.split('.')[0]
     if lang == 'zh_CN':
@@ -566,6 +588,7 @@ def locale_to_language_pack(locale):
     else:
         lang = locale.split('_')[0]
         return lang
+
 
 def get_remove_list(cache, to_remove, recursive=False):
     to_remove = set(to_remove)
@@ -617,12 +640,18 @@ def get_remove_list(cache, to_remove, recursive=False):
                         removed |= broken_removed
                 else:
                     removed.add(pkg)
-                assert cache._depcache.broken_count == 0
+                if cache._depcache.broken_count > 0:
+                    # We have a conflict we couldn't solve
+                    cache.clear()
+                    raise InstallStepError(
+                        "Unable to remove packages due to conflicts.")
+
         if not removed:
             break
         to_remove -= removed
         all_removed |= removed
     return all_removed
+
 
 def remove_target(source_root, target_root, relpath, st_source):
     """Remove a target file if necessary and if we can.
@@ -656,7 +685,7 @@ def remove_target(source_root, target_root, relpath, st_source):
         # Is it an empty directory?  That's easy too.
         os.rmdir(targetpath)
         return
-    except OSError, e:
+    except OSError as e:
         if e.errno not in (errno.ENOTEMPTY, errno.EEXIST):
             raise
 
@@ -679,7 +708,7 @@ def remove_target(source_root, target_root, relpath, st_source):
         if not os.path.exists(linktarget):
             try:
                 os.makedirs(os.path.dirname(linktarget))
-            except OSError, e:
+            except OSError as e:
                 if e.errno != errno.EEXIST:
                     raise
             shutil.move(targetpath, linktarget)
@@ -696,61 +725,60 @@ def remove_target(source_root, target_root, relpath, st_source):
         else:
             backuppath = backuppath + '.bak'
 
-def copy_file(db, sourcepath, targetpath, md5_check):
-    sourcefh = None
-    targetfh = None
-    try:
-        while 1:
-            sourcefh = open(sourcepath, 'rb')
-            targetfh = open(targetpath, 'wb')
-            if md5_check:
-                sourcehash = hashlib.md5()
-            while 1:
-                buf = sourcefh.read(16 * 1024)
-                if not buf:
-                    break
-                targetfh.write(buf)
-                if md5_check:
-                    sourcehash.update(buf)
 
-            if not md5_check:
-                break
-            targetfh.close()
-            targetfh = open(targetpath, 'rb')
+def copy_file(db, sourcepath, targetpath, md5_check):
+    while 1:
+        if md5_check:
+            sourcehash = hashlib.md5()
+
+        with open(sourcepath, 'rb') as sourcefh:
+            with open(targetpath, 'wb') as targetfh:
+                while True:
+                    buf = sourcefh.read(16 * 1024)
+                    if not buf:
+                        break
+                    targetfh.write(buf)
+                    if md5_check:
+                        sourcehash.update(buf)
+
+        if not md5_check:
+            break
+
+        with open(targetpath, 'rb') as targetfh:
             if md5_check:
                 targethash = hashlib.md5()
-            while 1:
+            while True:
                 buf = targetfh.read(16 * 1024)
                 if not buf:
                     break
                 targethash.update(buf)
-            if targethash.digest() != sourcehash.digest():
-                if targetfh:
-                    targetfh.close()
-                if sourcefh:
-                    sourcefh.close()
-                error_template = 'ubiquity/install/copying_error/md5'
-                db.subst(error_template, 'FILE', targetpath)
-                db.input('critical', error_template)
-                db.go()
-                response = db.get(error_template)
-                if response == 'skip':
-                    break
-                elif response == 'abort':
-                    syslog.syslog(syslog.LOG_ERR,
-                        'MD5 failure on %s' % targetpath)
-                    sys.exit(3)
-                elif response == 'retry':
-                    pass
-            else:
+
+        if targethash.digest() != sourcehash.digest():
+            error_template = 'ubiquity/install/copying_error/md5'
+            db.subst(error_template, 'FILE', targetpath)
+            db.input('critical', error_template)
+            db.go()
+            response = db.get(error_template)
+            if response == 'skip':
                 break
-    finally:
-        if targetfh:
-            targetfh.close()
-        if sourcefh:
-            sourcefh.close()
+            elif response == 'abort':
+                syslog.syslog(syslog.LOG_ERR, 'MD5 failure on %s' % targetpath)
+                sys.exit(3)
+            elif response == 'retry':
+                pass
+        else:
+            break
+
 
 class InstallBase:
+    def __init__(self):
+        self.target = '/target'
+        self.casper_path = os.path.join(
+            '/cdrom', get_casper('LIVE_MEDIA_PATH', 'casper').lstrip('/'))
+
+    def target_file(self, *args):
+        return os.path.join(self.target, *args)
+
     def warn_broken_packages(self, pkgs, err):
         pkgs = ', '.join(pkgs)
         syslog.syslog('broken packages after installation: %s' % pkgs)
@@ -793,7 +821,7 @@ class InstallBase:
             # manually verify all the downloads
             syslog.syslog('Verifying downloads ...')
             for item in fetcher.items:
-                with open(item.destfile) as destfile:
+                with open(item.destfile, 'rb') as destfile:
                     st = os.fstat(destfile.fileno())
                     if st.st_size != item.filesize:
                         osextras.unlink_force(item.destfile)
@@ -820,7 +848,7 @@ class InstallBase:
                             if fullname not in cache:
                                 fullname = name
                         candidate = cache[fullname].versions[version]
-                    except (KeyError, ValueError), e:
+                    except (KeyError, ValueError) as e:
                         syslog.syslog(
                             'Failed to find package object for %s: %s' %
                             (item.destfile, e))
@@ -877,8 +905,9 @@ class InstallBase:
             self.nested_progress_end()
             return
 
-        for pkg in to_install:
-            mark_install(cache, pkg)
+        with cache.actiongroup():
+            for pkg in to_install:
+                mark_install(cache, pkg)
 
         self.db.progress('SET', 1)
         self.progress_region(1, 10)
@@ -916,7 +945,7 @@ class InstallBase:
                 self.db.progress('STOP')
                 self.nested_progress_end()
                 return
-            except SystemError, e:
+            except SystemError as e:
                 for line in traceback.format_exc().split('\n'):
                     syslog.syslog(syslog.LOG_ERR, line)
                 commit_error = str(e)
@@ -950,10 +979,11 @@ class InstallBase:
         try:
             langpack_db = self.db.get('pkgsel/language-packs')
             if langpack_db == 'ALL':
-                apt_out = subprocess.Popen(
+                apt_subp = subprocess.Popen(
                     ['apt-cache', '-n', 'search', '^language-pack-[^-][^-]*$'],
-                    stdout=subprocess.PIPE).communicate()[0].rstrip().split('\n')
-                langpacks = map(lambda x: x.split('-')[2].strip(), apt_out)
+                    stdout=subprocess.PIPE, universal_newlines=True)
+                apt_out = apt_subp.communicate()[0].rstrip().split('\n')
+                langpacks = [x.split('-')[2].strip() for x in apt_out]
                 all_langpacks = True
             else:
                 langpacks = langpack_db.replace(',', '').split()
@@ -1007,7 +1037,7 @@ class InstallBase:
                 check_lang = subprocess.Popen(
                     ['check-language-support', '-l', lp_locale.split('.')[0],
                      '--show-installed'],
-                    stdout=subprocess.PIPE)
+                    stdout=subprocess.PIPE, universal_newlines=True)
                 to_install.extend(check_lang.communicate()[0].strip().split())
             else:
                 to_install.append('language-support-%s' % lp)
@@ -1023,15 +1053,15 @@ class InstallBase:
         if all_langpacks and checker:
             check_lang = subprocess.Popen(
                 ['check-language-support', '-a', '--show-installed'],
-                stdout=subprocess.PIPE)
+                stdout=subprocess.PIPE, universal_newlines=True)
             to_install.extend(check_lang.communicate()[0].strip().split())
 
         # Filter the list of language packs to include only language packs
         # that exist in the live filesystem's apt cache, so that we can tell
         # the difference between "no such language pack" and "language pack
         # not retrievable given apt configuration in /target" later on.
-        to_install = [lp for lp in to_install
-                         if get_cache_pkg(cache, lp) is not None]
+        to_install = [
+            lp for lp in to_install if get_cache_pkg(cache, lp) is not None]
 
         install_new = True
         try:
@@ -1045,11 +1075,12 @@ class InstallBase:
         if not install_new:
             # Keep packages that are on the live filesystem, but don't install
             # new ones.
-            # TODO cjwatson 2010-03-18: To match pkgsel's semantics, we ought to
-            # be willing to install packages from the package pool on the CD as
-            # well.
-            to_install = [lp for lp in to_install
-                             if get_cache_pkg(cache, lp).is_installed]
+            # TODO cjwatson 2010-03-18: To match pkgsel's semantics, we
+            # ought to be willing to install packages from the package pool
+            # on the CD as well.
+            to_install = [
+                lp for lp in to_install
+                if get_cache_pkg(cache, lp).is_installed]
 
         del cache
         record_installed(to_install)
@@ -1063,7 +1094,7 @@ class InstallBase:
                     os.makedirs(os.path.dirname(langpacks_file))
                 with open(langpacks_file, 'w') as langpacks:
                     for pkg in to_install:
-                        print >>langpacks, pkg
+                        print(pkg, file=langpacks)
                 return []
             else:
                 return to_install

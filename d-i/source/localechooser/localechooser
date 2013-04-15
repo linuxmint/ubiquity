@@ -67,11 +67,20 @@ language_display_level() {
 	    gtk)
 		level=4 ;;
 	    *)
-		# Keep only Latin1 languages if we don't have a framebuffer
-		if [ "$TERM_FRAMEBUFFER" ]; then
+		# We can not know what the ssh client supports, let it have
+		# everything.
+		if [ "$SSH_CLIENT" ]; then
+			level=4
+		elif [ "$TERM_FRAMEBUFFER" ]; then
 			level=3
 		else
-			level=1
+			# Keep only Latin1 languages if we don't have a framebuffer
+			if [ -x /usr/share/console-setup/font-switch ]
+			then
+				level=2
+			else
+				level=1
+			fi
 		fi
 		# The hurd text-mode console has decent charset support
 		if [ "$TERM" = "hurd" ]; then
@@ -528,6 +537,11 @@ while :; do
 	   10)	# Display language list
 		db_settitle localechooser/title/language
 
+		if [ -x /usr/share/console-setup/font-switch ]
+		then
+			/usr/share/console-setup/font-switch "$INITIAL_LANGUAGE"
+		fi
+
 		if [ -x /usr/lib/espeakup/espeakup.restart ]
 		then
 			/usr/lib/espeakup/espeakup.restart "$INITIAL_LANGUAGE"
@@ -564,6 +578,12 @@ while :; do
 	   11)	# We have a language
 		db_get $tpl_languagelist
 		LANGUAGE="$RET"
+
+		if [ -x /usr/share/console-setup/font-switch ]
+		then
+			/usr/share/console-setup/font-switch "$LANGUAGE"
+		fi
+
 		if [ -x /usr/lib/espeakup/espeakup.restart ]
 		then
 			/usr/lib/espeakup/espeakup.restart "$LANGUAGE"

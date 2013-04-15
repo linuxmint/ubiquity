@@ -17,15 +17,16 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+from __future__ import print_function
+
+import locale
 import os
+import re
 
 import debconf
 
-from ubiquity import plugin
-from ubiquity import i18n
-from ubiquity import misc
-from ubiquity import auto_update
-from ubiquity import osextras
+from ubiquity import auto_update, i18n, misc, osextras, plugin
+
 
 NAME = 'language'
 AFTER = None
@@ -39,6 +40,7 @@ except:
 _wget_url = 'http://changelogs.ubuntu.com/ubiquity/%s-update-available' % _ver
 
 _release_notes_url_path = '/cdrom/.disk/release_notes_url'
+
 
 class PageBase(plugin.PluginUI):
     def set_language_choices(self, unused_choices, choice_map):
@@ -62,6 +64,7 @@ class PageBase(plugin.PluginUI):
     def set_alpha_warning(self, show):
         self.show_alpha_warning = show
 
+
 class PageGtk(PageBase):
     plugin_is_language = True
     plugin_title = 'ubiquity/text/language_heading_label'
@@ -79,7 +82,8 @@ class PageGtk(PageBase):
             self.only = False
         from gi.repository import Gtk
         builder = Gtk.Builder()
-        builder.add_from_file(os.path.join(os.environ['UBIQUITY_GLADE'], ui_file))
+        builder.add_from_file(os.path.join(
+            os.environ['UBIQUITY_GLADE'], ui_file))
         builder.connect_signals(self)
         self.controller.add_builder(builder)
         self.page = builder.get_object('stepLanguage')
@@ -91,16 +95,17 @@ class PageGtk(PageBase):
 
         self.release_notes_url = ''
         self.update_installer = True
+        self.updating_installer = False
         self.release_notes_label = builder.get_object('release_notes_label')
         self.release_notes_found = False
         if self.release_notes_label:
-            self.release_notes_label.connect('activate-link', self.on_link_clicked)
+            self.release_notes_label.connect(
+                'activate-link', self.on_link_clicked)
             if self.controller.oem_config or auto_update.already_updated():
                 self.update_installer = False
             try:
-                release_notes = open(_release_notes_url_path)
-                self.release_notes_url = release_notes.read().rstrip('\n')
-                release_notes.close()
+                with open(_release_notes_url_path) as release_notes:
+                    self.release_notes_url = release_notes.read().rstrip('\n')
                 self.release_notes_found = True
             except (KeyboardInterrupt, SystemExit):
                 raise
@@ -117,9 +122,9 @@ class PageGtk(PageBase):
                     self.try_ubuntu.set_sensitive(False)
                     self.controller.go_forward()
                 self.install_ubuntu.connect('clicked', inst)
-                self.try_ubuntu.connect('clicked',
-                    self.on_try_ubuntu_clicked)
-            self.try_install_text_label = builder.get_object('try_install_text_label')
+                self.try_ubuntu.connect('clicked', self.on_try_ubuntu_clicked)
+            self.try_install_text_label = builder.get_object(
+                'try_install_text_label')
             # We do not want to show the yet to be substituted strings
             # (${MEDIUM}, etc), so don't show the core of the page until
             # it's ready.
@@ -165,12 +170,13 @@ class PageGtk(PageBase):
             self.iconview.set_item_width(layout.get_pixel_size()[0] + pad * 2)
         else:
             if len(self.treeview.get_columns()) < 1:
-                column = Gtk.TreeViewColumn(None, Gtk.CellRendererText(), text=0)
+                column = Gtk.TreeViewColumn(
+                    None, Gtk.CellRendererText(), text=0)
                 column.set_sizing(Gtk.TreeViewColumnSizing.GROW_ONLY)
                 self.treeview.append_column(column)
                 selection = self.treeview.get_selection()
-                selection.connect('changed',
-                                    self.on_language_selection_changed)
+                selection.connect(
+                    'changed', self.on_language_selection_changed)
             self.treeview.set_model(list_store)
 
     def set_language(self, language):
@@ -294,13 +300,14 @@ class PageGtk(PageBase):
             w.show()
 
     def plugin_set_online_state(self, state):
-        from gi.repository import GObject
+        from gi.repository import GLib
         if self.release_notes_label:
             if self.timeout_id:
-                GObject.source_remove(self.timeout_id)
+                GLib.source_remove(self.timeout_id)
             if state:
                 self.release_notes_label.show()
-                self.timeout_id = GObject.timeout_add(300, self.check_returncode)
+                self.timeout_id = GLib.timeout_add(
+                    300, self.check_returncode)
             else:
                 self.release_notes_label.hide()
 
@@ -308,7 +315,8 @@ class PageGtk(PageBase):
         import subprocess
         if self.wget_retcode is not None or self.wget_proc is None:
             self.wget_proc = subprocess.Popen(
-                ['wget', '-q', _wget_url, '--timeout=15', '--tries=1', '-O', '/dev/null'])
+                ['wget', '-q', _wget_url, '--timeout=15', '--tries=1',
+                 '-O', '/dev/null'])
         self.wget_retcode = self.wget_proc.poll()
         if self.wget_retcode is None:
             return True
@@ -321,7 +329,7 @@ class PageGtk(PageBase):
             return False
 
     def update_release_notes_label(self):
-        print "update_release_notes_label()"
+        print("update_release_notes_label()")
         lang = self.get_language()
         if not lang:
             return
@@ -340,6 +348,8 @@ class PageGtk(PageBase):
             elif self.update_installer:
                 text = i18n.get_string('update_installer_only', lang)
                 self.release_notes_label.set_markup(text)
+            else:
+                self.release_notes_label.set_markup('')
 
     def set_oem_id(self, text):
         return self.oem_id_entry.set_text(text)
@@ -352,8 +362,11 @@ class PageGtk(PageBase):
         lang = self.get_language()
         if not lang:
             lang = 'C'
-        lang = lang.split('.')[0] # strip encoding
+        lang = lang.split('.')[0]  # strip encoding
         if uri == 'update':
+            if self.updating_installer:
+                return True
+            self.updating_installer = True
             if not auto_update.update(self.controller._wizard):
                 # no updates, so don't check again
                 if self.release_notes_url:
@@ -361,12 +374,14 @@ class PageGtk(PageBase):
                     self.release_notes_label.set_markup(text)
                 else:
                     self.release_notes_label.hide()
+            self.updating_installer = False
         elif uri == 'release-notes':
             import subprocess
             uri = self.release_notes_url.replace('${LANG}', lang)
             subprocess.Popen(['sensible-browser', uri], close_fds=True,
                              preexec_fn=misc.drop_all_privileges)
         return True
+
 
 class PageKde(PageBase):
     plugin_breadcrumb = 'ubiquity/text/breadcrumb_language'
@@ -386,7 +401,8 @@ class PageKde(PageBase):
             from PyQt4.QtGui import QWidget, QPixmap
             self.page = uic.loadUi('/usr/share/ubiquity/qt/stepLanguage.ui')
             self.combobox = self.page.language_combobox
-            self.combobox.currentIndexChanged[str].connect(self.on_language_selection_changed)
+            self.combobox.currentIndexChanged[str].connect(
+                self.on_language_selection_changed)
             if not self.controller.oem_config:
                 self.page.oem_id_label.hide()
                 self.page.oem_id_entry.hide()
@@ -396,22 +412,24 @@ class PageKde(PageBase):
                 self.controller.go_forward()
             self.page.install_ubuntu.clicked.connect(inst)
             self.page.try_ubuntu.clicked.connect(self.on_try_ubuntu_clicked)
-            picture1 = QPixmap("/usr/share/ubiquity/pixmaps/kubuntu-live-session.png")
+            picture1 = QPixmap(
+                "/usr/share/ubiquity/pixmaps/kubuntu-live-session.png")
             self.page.image1.setPixmap(picture1)
             self.page.image1.resize(picture1.size())
-            picture2 = QPixmap("/usr/share/ubiquity/pixmaps/kubuntu-install.png")
+            picture2 = QPixmap(
+                "/usr/share/ubiquity/pixmaps/kubuntu-install.png")
             self.page.image2.setPixmap(picture2)
             self.page.image2.resize(picture2.size())
 
             self.release_notes_url = ''
             self.update_installer = True
+            self.updating_installer = False
             if self.controller.oem_config or auto_update.already_updated():
                 self.update_installer = False
             self.release_notes_found = False
             try:
-                release_notes = open(_release_notes_url_path)
-                self.release_notes_url = release_notes.read().rstrip('\n')
-                release_notes.close()
+                with open(_release_notes_url_path) as release_notes:
+                    self.release_notes_url = release_notes.read().rstrip('\n')
                 self.release_notes_found = True
             except (KeyboardInterrupt, SystemExit):
                 raise
@@ -442,7 +460,7 @@ class PageKde(PageBase):
                     self.widgetHidden.append(w)
                     w.hide()
 
-        except Exception, e:
+        except Exception as e:
             self.debug('Could not create language page: %s', e)
             self.page = None
 
@@ -475,10 +493,14 @@ class PageKde(PageBase):
                 url = self.release_notes_url.replace('${LANG}', lang)
                 self.openURL(url)
         elif link == "update":
+            if self.updating_installer:
+                return
+            self.updating_installer = True
             if not auto_update.update(self.controller._wizard):
                 # no updates, so don't check again
                 text = i18n.get_string('release_notes_only', lang)
                 self.page.release_notes_label.setText(text)
+            self.updating_installer = False
 
     def openURL(self, url):
         from PyQt4.QtGui import QDesktopServices
@@ -491,15 +513,13 @@ class PageKde(PageBase):
         regain_privileges_save()
 
     def set_language_choices(self, choices, choice_map):
-        from PyQt4.QtCore import QString
         PageBase.set_language_choices(self, choices, choice_map)
         self.combobox.clear()
         for choice in choices:
-            self.combobox.addItem(QString(unicode(choice)))
+            self.combobox.addItem(str(choice))
 
     def set_language(self, language):
-        from PyQt4.QtCore import QString
-        index = self.combobox.findText(QString(unicode(language)))
+        index = self.combobox.findText(str(language))
         if index < 0:
             self.combobox.addItem("C")
         else:
@@ -515,10 +535,10 @@ class PageKde(PageBase):
 
     def selected_language(self):
         lang = self.combobox.currentText()
-        if lang.isNull() or not hasattr(self, 'language_choice_map'):
+        if not lang or not hasattr(self, 'language_choice_map'):
             return None
         else:
-            return self.language_choice_map[unicode(lang)][1]
+            return self.language_choice_map[str(lang)][1]
 
     def on_language_selection_changed(self):
         lang = self.selected_language()
@@ -553,8 +573,8 @@ class PageKde(PageBase):
                 self.page.release_notes_label.show()
                 QTimer.singleShot(300, self.check_returncode)
                 self.timer = QTimer(self.page)
-                self.timer.connect(self.timer, SIGNAL("timeout()"),
-                    self.check_returncode)
+                self.timer.connect(
+                    self.timer, SIGNAL("timeout()"), self.check_returncode)
                 self.timer.start(300)
             else:
                 self.page.release_notes_label.hide()
@@ -564,7 +584,8 @@ class PageKde(PageBase):
         from PyQt4.QtCore import SIGNAL
         if self.wget_retcode is not None or self.wget_proc is None:
             self.wget_proc = subprocess.Popen(
-                ['wget', '-q', _wget_url, '--timeout=15', '--tries=1', '-O', '/dev/null'])
+                ['wget', '-q', _wget_url, '--timeout=15', '--tries=1',
+                 '-O', '/dev/null'])
         self.wget_retcode = self.wget_proc.poll()
         if self.wget_retcode is None:
             return True
@@ -574,9 +595,8 @@ class PageKde(PageBase):
             else:
                 self.update_installer = False
             self.update_release_notes_label()
-            self.timer.disconnect(self.timer, SIGNAL("timeout()"),
-                self.check_returncode)
-
+            self.timer.disconnect(
+                self.timer, SIGNAL("timeout()"), self.check_returncode)
 
     def update_release_notes_label(self):
         lang = self.selected_language()
@@ -602,13 +622,15 @@ class PageKde(PageBase):
         return self.page.oem_id_entry.setText(text)
 
     def get_oem_id(self):
-        return unicode(self.page.oem_id_entry.text())
+        return str(self.page.oem_id_entry.text())
+
 
 class PageDebconf(PageBase):
     plugin_title = 'ubiquity/text/language_heading_label'
 
     def __init__(self, controller, *args, **kwargs):
         self.controller = controller
+
 
 class PageNoninteractive(PageBase):
     def __init__(self, controller, *args, **kwargs):
@@ -622,6 +644,7 @@ class PageNoninteractive(PageBase):
     def get_language(self):
         """Get the current selected language."""
         return self.language
+
 
 class Page(plugin.Plugin):
     def prepare(self, unfiltered=False):
@@ -642,16 +665,19 @@ class Page(plugin.Plugin):
 
         localechooser_script = '/usr/lib/ubiquity/localechooser/localechooser'
         if ('UBIQUITY_FRONTEND' in os.environ and
-            os.environ['UBIQUITY_FRONTEND'] == 'debconf_ui'):
+                os.environ['UBIQUITY_FRONTEND'] == 'debconf_ui'):
             localechooser_script += '-debconf'
 
         questions = ['localechooser/languagelist']
-        environ = {'PATH': '/usr/lib/ubiquity/localechooser:' + os.environ['PATH']}
-        if 'UBIQUITY_FRONTEND' in os.environ and os.environ['UBIQUITY_FRONTEND'] == "debconf_ui":
+        environ = {
+            'PATH': '/usr/lib/ubiquity/localechooser:' + os.environ['PATH'],
+        }
+        if ('UBIQUITY_FRONTEND' in os.environ and
+                os.environ['UBIQUITY_FRONTEND'] == "debconf_ui"):
             environ['TERM_FRAMEBUFFER'] = '1'
         else:
             environ['OVERRIDE_SHOW_ALL_LANGUAGES'] = '1'
-        return (localechooser_script, questions, environ)
+        return localechooser_script, questions, environ
 
     def run(self, priority, question):
         if question == 'localechooser/languagelist':
@@ -659,7 +685,8 @@ class Page(plugin.Plugin):
             if self.initial_language is None:
                 self.initial_language = self.db.get(question)
             current_language_index = self.value_index(question)
-            only_installable = misc.create_bool(self.db.get('ubiquity/only-show-installable-languages'))
+            only_installable = misc.create_bool(
+                self.db.get('ubiquity/only-show-installable-languages'))
 
             current_language, sorted_choices, language_display_map = \
                 i18n.get_languages(current_language_index, only_installable)
@@ -673,7 +700,8 @@ class Page(plugin.Plugin):
         return plugin.Plugin.run(self, priority, question)
 
     def cancel_handler(self):
-        self.ui.controller.translate(just_me=False, not_me=True) # undo effects of UI translation
+        # Undo effects of UI translation.
+        self.ui.controller.translate(just_me=False, not_me=True)
         plugin.Plugin.cancel_handler(self)
 
     def ok_handler(self):
@@ -681,7 +709,7 @@ class Page(plugin.Plugin):
             new_language = self.ui.get_language()
             self.preseed(self.language_question, new_language)
             if (self.initial_language is None or
-                self.initial_language != new_language):
+                    self.initial_language != new_language):
                 self.db.reset('debian-installer/country')
         if self.ui.controller.oem_config:
             self.preseed('oem-config/id', self.ui.get_oem_id())
@@ -693,21 +721,79 @@ class Page(plugin.Plugin):
         self.frontend.stop_debconf()
         self.ui.controller.translate(just_me=False, not_me=True, reget=True)
 
+
 class Install(plugin.InstallPlugin):
     def prepare(self, unfiltered=False):
         if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
-            return (['/usr/share/ubiquity/localechooser-apply'], [])
+            command = ['/usr/share/ubiquity/localechooser-apply']
         else:
-            return (['sh', '-c',
-                     '/usr/lib/ubiquity/localechooser/post-base-installer ' +
-                     '&& /usr/lib/ubiquity/localechooser/finish-install'], [])
+            command = [
+                'sh', '-c',
+                '/usr/lib/ubiquity/localechooser/post-base-installer ' +
+                '&& /usr/lib/ubiquity/localechooser/finish-install',
+            ]
+        return command, []
+
+    def _pam_env_lines(self, fd):
+        """Yield a sequence of logical lines from a PAM environment file."""
+        buf = ""
+        for line in fd:
+            line = line.lstrip()
+            if line and line[0] != "#":
+                if "#" in line:
+                    line = line[:line.index("#")]
+                for i in range(len(line) - 1, -1, -1):
+                    if line[i].isspace():
+                        break
+                if line[i] == "\\":
+                    # Continuation line.
+                    buf = line[:i]
+                else:
+                    buf += line
+                    yield buf
+                    buf = ""
+        if buf:
+            yield buf
+
+    def _pam_env_parse_file(self, path):
+        """Parse a PAM environment file just as pam_env does.
+
+        We use this for reading /etc/default/locale after configuring it.
+        """
+        try:
+            with open(path) as fd:
+                for line in self._pam_env_lines(fd):
+                    line = line.lstrip()
+                    if not line or line[0] == "#":
+                        continue
+                    if line.startswith("export "):
+                        line = line[7:]
+                    line = re.sub(r"[#\n].*", "", line)
+                    if not re.match(r"^[A-Z_]+=", line):
+                        continue
+                    # pam_env's handling of quoting is crazy, but in this
+                    # case it's better to imitate it than to fix it.
+                    key, value = line.split("=", 1)
+                    if value.startswith('"') or value.startswith("'"):
+                        value = re.sub(r"[\"'](.|$)", r"\1", value[1:])
+                    yield key, value
+        except IOError:
+            pass
 
     def install(self, target, progress, *args, **kwargs):
         progress.info('ubiquity/install/locales')
-        rv = plugin.InstallPlugin.install(self, target, progress, *args, **kwargs)
+        rv = plugin.InstallPlugin.install(
+            self, target, progress, *args, **kwargs)
         if not rv:
-            # fontconfig configuration needs to be adjusted based on the
-            # selected locale (from language-selector-common.postinst). Ignore
-            # errors.
-            misc.execute('chroot', target, 'fontconfig-voodoo', '--auto', '--force', '--quiet')
+            locale_file = "/etc/default/locale"
+            if 'UBIQUITY_OEM_USER_CONFIG' not in os.environ:
+                locale_file = "/target%s" % locale_file
+            for key, value in self._pam_env_parse_file(locale_file):
+                if key in ("LANG", "LANGUAGE") or key.startswith("LC_"):
+                    os.environ[key] = value
+            # Start using the newly-generated locale, if possible.
+            try:
+                locale.setlocale(locale.LC_ALL, '')
+            except locale.Error:
+                pass
         return rv

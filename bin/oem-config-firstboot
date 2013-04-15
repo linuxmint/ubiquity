@@ -35,14 +35,6 @@ fi
 # Remove the oem-config-prepare menu item.
 rm -f /usr/share/applications/oem-config-prepare-gtk.desktop \
       /usr/share/applications/kde4/oem-config-prepare-kde.desktop
-# Adjust fontconfig configuration, if possible.
-if type fontconfig-voodoo >/dev/null 2>&1; then
-	RET="$(echo GET debian-installer/locale | debconf-communicate)"
-	if [ "${RET%% *}" = 0 ]; then
-		LC_ALL="${RET#* }" fontconfig-voodoo --auto --force --quiet \
-			|| true
-	fi
-fi
 # Run a command just before starting oem-config.
 RET="$(echo GET oem-config/early_command | debconf-communicate)" || true
 if [ "${RET%% *}" = 0 ]; then

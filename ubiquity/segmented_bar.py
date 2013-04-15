@@ -1,4 +1,3 @@
-#
 # segmented_bar.py
 #
 # Original author:
@@ -28,14 +27,14 @@
 # LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
 
 import math
 
 import cairo
-from gi.repository import Gtk, GObject, PangoCairo, Gdk
+from gi.repository import GObject, Gdk, Gtk, PangoCairo
 
 from ubiquity.misc import find_in_os_prober, format_size
+
 
 class Color:
     def __init__(self, r, g, b, a=1.0):
@@ -44,6 +43,7 @@ class Color:
         self.b = b
         self.a = a
 
+
 class CairoCorners:
     no_corners = 0
     top_left = 1
@@ -51,6 +51,7 @@ class CairoCorners:
     bottom_left = 4
     bottom_right = 8
     all = 15
+
 
 class CairoExtensions:
     @staticmethod
@@ -165,7 +166,8 @@ class CairoExtensions:
         #return CairoExtensions.rgba_to_color((color << 8) | 0x000000ff)
 
     @staticmethod
-    def rounded_rectangle(cr, x, y, w, h, r, corners=CairoCorners.all, top_bottom_falls_through=False):
+    def rounded_rectangle(cr, x, y, w, h, r, corners=CairoCorners.all,
+                          top_bottom_falls_through=False):
         if top_bottom_falls_through and corners == CairoCorners.no_corners:
             cr.move_to(x, y - r)
             cr.line_to(x, y + h + r)
@@ -174,7 +176,8 @@ class CairoExtensions:
         elif r < 0.0001 or corners == CairoCorners.no_corners:
             cr.rectangle(x, y, w, h)
 
-        if (corners & (CairoCorners.top_left | CairoCorners.top_right)) == 0 and top_bottom_falls_through:
+        corners_top = CairoCorners.top_left | CairoCorners.top_right
+        if (corners & corners_top) == 0 and top_bottom_falls_through:
             y = y - r
             h = h + r
             cr.move_to(x + w, y)
@@ -189,7 +192,8 @@ class CairoExtensions:
             else:
                 cr.line_to(x + w, y)
 
-        if (corners & (CairoCorners.bottom_left | CairoCorners.bottom_right)) == 0 and top_bottom_falls_through:
+        corners_bottom = CairoCorners.bottom_left | CairoCorners.bottom_right
+        if (corners & corners_bottom) == 0 and top_bottom_falls_through:
             h = h + r
             cr.line_to(x + w, y + h)
             cr.move_to(x, y + h)
@@ -211,8 +215,10 @@ class CairoExtensions:
             else:
                 cr.line_to(x, y)
 
+
 class SegmentedBar(Gtk.DrawingArea):
     __gtype_name__ = 'SegmentedBar'
+
     def __init__(self):
         GObject.GObject.__init__(self)
 
@@ -239,6 +245,13 @@ class SegmentedBar(Gtk.DrawingArea):
         self.disk_size = 0
         self.context = None
         self.fd = None
+
+        test_window = Gtk.Window()
+        test_label = Gtk.Label()
+        test_window.add(test_label)
+        style = test_label.get_style_context()
+        self.text_color = style.get_color(Gtk.StateFlags.NORMAL)
+        self.subtext_color = style.get_color(Gtk.StateFlags.INSENSITIVE)
 
     def add_segment(self, title, size, color, show_in_bar=True):
         self.do_size_allocate(self.get_allocation())
@@ -268,7 +281,8 @@ class SegmentedBar(Gtk.DrawingArea):
             layout.set_markup('<b>%s</b>' % title, -1)
             aw, ah = layout.get_pixel_size()
 
-            layout.set_markup('<small>%s</small>' % self.segments[i].subtitle, -1)
+            layout.set_markup(
+                '<small>%s</small>' % self.segments[i].subtitle, -1)
             bw, bh = layout.get_pixel_size()
 
             w = max(aw, bw)
@@ -285,7 +299,8 @@ class SegmentedBar(Gtk.DrawingArea):
                 self.layout_width = self.layout_width + \
                     self.segments[i].layout_width + self.segment_box_size + \
                     self.segment_box_spacing + 0
-            self.layout_height = max(self.layout_height, self.segments[i].layout_height)
+            self.layout_height = max(
+                self.layout_height, self.segments[i].layout_height)
 
     def do_size_allocate(self, allocation):
         if self.reflect:
@@ -295,11 +310,14 @@ class SegmentedBar(Gtk.DrawingArea):
 
         if self.show_labels:
             self.compute_layout_size()
-            h = max(self.bar_height + self.bar_label_spacing + self.layout_height, bar_height)
+            h = max(
+                self.bar_height + self.bar_label_spacing + self.layout_height,
+                bar_height)
             w = self.layout_width + (2 * self.h_padding)
             self.set_size_request(w, h)
         else:
-            self.set_size_request(bar_height, self.bar_height + (2 * self.h_padding))
+            self.set_size_request(
+                bar_height, self.bar_height + (2 * self.h_padding))
         Gtk.DrawingArea.do_size_allocate(self, allocation)
 
     def render_bar_segments(self, cr, w, h, r):
@@ -309,11 +327,14 @@ class SegmentedBar(Gtk.DrawingArea):
         for segment in self.segments:
             percent = segment.size / float(self.disk_size)
             if percent > 0:
-                grad.add_color_stop_rgb(last, segment.color.r, segment.color.g, segment.color.b)
+                grad.add_color_stop_rgb(
+                    last, segment.color.r, segment.color.g, segment.color.b)
                 last = last + percent
-                grad.add_color_stop_rgb(last, segment.color.r, segment.color.g, segment.color.b)
+                grad.add_color_stop_rgb(
+                    last, segment.color.r, segment.color.g, segment.color.b)
 
-        CairoExtensions.rounded_rectangle(cr, 0, 0, w, h, r, corners=CairoCorners.no_corners)
+        CairoExtensions.rounded_rectangle(
+            cr, 0, 0, w, h, r, corners=CairoCorners.no_corners)
         cr.set_source(grad)
         cr.fill_preserve()
 
@@ -336,9 +357,12 @@ class SegmentedBar(Gtk.DrawingArea):
         return grad
 
     def render_bar_strokes(self, cr, w, h, r):
-        stroke = self.make_segment_gradient(h, CairoExtensions.rgba_to_color(0x00000040))
-        seg_sep_light = self.make_segment_gradient(h, CairoExtensions.rgba_to_color(0xffffff20))
-        seg_sep_dark = self.make_segment_gradient(h, CairoExtensions.rgba_to_color(0x00000020))
+        stroke = self.make_segment_gradient(
+            h, CairoExtensions.rgba_to_color(0x00000040))
+        seg_sep_light = self.make_segment_gradient(
+            h, CairoExtensions.rgba_to_color(0xffffff20))
+        seg_sep_dark = self.make_segment_gradient(
+            h, CairoExtensions.rgba_to_color(0x00000020))
 
         cr.set_line_width(1)
         seg_w = 20
@@ -359,22 +383,25 @@ class SegmentedBar(Gtk.DrawingArea):
             cr.stroke()
             x = x + seg_w
 
-        CairoExtensions.rounded_rectangle(cr, 0.5, 0.5, w - 1, h - 1, r, corners=CairoCorners.no_corners)
+        CairoExtensions.rounded_rectangle(
+            cr, 0.5, 0.5, w - 1, h - 1, r, corners=CairoCorners.no_corners)
         cr.set_source(stroke)
         cr.stroke()
 
     def render_labels(self, cr):
         if len(self.segments) == 0:
             return
-        text_color = self.get_style_context().get_color(Gtk.StateFlags.ACTIVE)
         box_stroke_color = Gdk.RGBA(0, 0, 0, 0.6)
         x = 0
         layout = self.create_pango_layout('')
 
         for segment in self.segments:
             cr.set_line_width(1)
-            cr.rectangle(x + 0.5, 2 + 0.5, self.segment_box_size - 1, self.segment_box_size - 1)
-            grad = self.make_segment_gradient(self.segment_box_size, segment.color)
+            cr.rectangle(
+                x + 0.5, 2 + 0.5, self.segment_box_size - 1,
+                self.segment_box_size - 1)
+            grad = self.make_segment_gradient(
+                self.segment_box_size, segment.color)
             cr.set_source(grad)
             cr.fill_preserve()
             Gdk.cairo_set_source_rgba(cr, box_stroke_color)
@@ -386,16 +413,14 @@ class SegmentedBar(Gtk.DrawingArea):
             (lw, lh) = layout.get_pixel_size()
 
             cr.move_to(x, 0)
-            text_color.a = 0.9
-            Gdk.cairo_set_source_rgba(cr, text_color)
+            Gdk.cairo_set_source_rgba(cr, self.text_color)
             PangoCairo.show_layout(cr, layout)
             cr.fill()
 
             layout.set_markup('<small>%s</small>' % segment.subtitle, -1)
 
             cr.move_to(x, lh)
-            text_color.a = 0.75
-            Gdk.cairo_set_source_rgba(cr, text_color)
+            Gdk.cairo_set_source_rgba(cr, self.subtext_color)
             PangoCairo.show_layout(cr, layout)
             cr.fill()
             x = x + segment.layout_width + self.segment_label_spacing
@@ -412,14 +437,17 @@ class SegmentedBar(Gtk.DrawingArea):
         if self.reflect:
             cr.push_group()
         cr.set_operator(cairo.OPERATOR_OVER)
-        cr.translate(self.get_allocation().x + self.h_padding, self.get_allocation().y)
-        cr.rectangle(0, 0, self.get_allocation().width - self.h_padding,
-            max(2 * self.bar_height,
-            self.bar_height + self.bar_label_spacing + self.layout_height))
+        cr.translate(
+            self.get_allocation().x + self.h_padding, self.get_allocation().y)
+        cr.rectangle(
+            0, 0, self.get_allocation().width - self.h_padding,
+            max(
+                2 * self.bar_height,
+                self.bar_height + self.bar_label_spacing + self.layout_height))
         cr.clip()
 
-        bar = self.render_bar(self.get_allocation().width - 2 * self.h_padding,
-            self.bar_height)
+        bar = self.render_bar(
+            self.get_allocation().width - 2 * self.h_padding, self.bar_height)
 
         cr.save()
         cr.set_source(bar)
@@ -428,7 +456,9 @@ class SegmentedBar(Gtk.DrawingArea):
 
         if self.reflect:
             cr.save()
-            cr.rectangle(0, self.bar_height, self.get_allocation().width - self.h_padding, self.bar_height)
+            cr.rectangle(
+                0, self.bar_height,
+                self.get_allocation().width - self.h_padding, self.bar_height)
             cr.clip()
             matrix = cairo.Matrix(xx=1, yy=-1)
             matrix.translate(0, -(2 * self.bar_height) + 1)
@@ -450,19 +480,21 @@ class SegmentedBar(Gtk.DrawingArea):
             cr.pop_group_to_source()
             cr.paint()
         if self.show_labels:
+            allocation = self.get_allocation()
             if self.reflect:
                 if self.center_labels:
-                    cr.translate(self.get_allocation().x + (self.get_allocation().width -
-                                 self.layout_width) / 2, self.get_allocation().y +
-                                 self.bar_height + self.bar_label_spacing)
+                    width = (allocation.width - self.layout_width) / 2
+                    height = self.bar_height + self.bar_label_spacing
+                    cr.translate(allocation.x + width, allocation.y + height)
                 else:
-                    cr.translate(self.get_allocation().x + self.h_padding,
-                                 self.get_allocation().y + self.bar_height +
-                                 self.bar_label_spacing)
+                    height = self.bar_height + self.bar_label_spacing
+                    cr.translate(
+                        allocation.x + self.h_padding, allocation.y + height)
             else:
-                cr.translate(-self.h_padding + (self.get_allocation().width - \
-                    self.layout_width) / 2, self.bar_height + \
-                    self.bar_label_spacing)
+                width = (allocation.width - self.layout_width) / 2
+                cr.translate(
+                    -self.h_padding + width,
+                    self.bar_height + self.bar_label_spacing)
             self.render_labels(cr)
 
         return True
@@ -498,4 +530,3 @@ class SegmentedBar(Gtk.DrawingArea):
                 self.subtitle = ''
 
 GObject.type_register(SegmentedBar)
-

@@ -1,0 +1,238 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+. /lib/partman/lib/recipes.sh
+. /lib/partman/lib/lvm-base.sh
+
+VG_name=$1
+recipe=$2
+
+decode_recipe $recipe lvm
+
+lvmscheme=$(echo "$scheme" | grep lvmok)
+
+# Filter partitions for the current VG
+scheme=$(echo "$lvmscheme" | grep "in_vg{ *$VG_name *}")
+
+# Add partitions without an explicit VG if we are working on the default VG
+db_get partman-auto-lvm/new_vg_name
+if [ "$VG_name" = "$RET" ]; then
+	scheme="${scheme:+$scheme$NL}$(echo "$lvmscheme" | grep -v 'in_vg{')"
+fi
+
+partstep=$(echo "$scheme" | wc -l)
+partstep=$(expr $partstep + 3)
+
+db_progress START 0 $partstep partman-auto/text/automatically_partition
+db_progress INFO partman-auto/progress/info
+
+db_progress STEP 1
+
+# expand_scheme can't cope with decimal and lvm overhead.
+# lvm overhead gets calculated properly only using kbytes.
+# Switch to that. The worst scenario is that the last partition will
+# be one PE smaller, but in the big numbers it's nothing (4MB).
+free_size=$(LC_ALL=C vgs -o vg_free --units K --noheading --nosuffix $VG_name | sed -e 's/^[[:space:]]*//; s/\..*//g')
+
+newscheme=''
+foreach_partition '
+	newmin="${1}000"
+	newmed="${2}000"
+	# Second test is for backwards compatibility
+	if [ "$3" != "-1" ] && [ "$3" != "1000000000" ]; then
+		newmax="${3}000"
+	else
+		newmax="$3"
+	fi
+	shift; shift; shift
+	newscheme="$newscheme${NL}$newmin $newmed $newmax $*"
+'
+
+scheme="$newscheme"
+
+db_progress STEP 1
+
+# free_size and everything in the scheme are now in (decimal) kilobytes. For
+# conversion to human numbers, we need another multiple of 1000.
+minsize="$(min_size)"
+hminsize="$(longint2human "$minsize"000)"
+hmaxsize="$(longint2human "$free_size"000)"
+minsize_rounded="$(human2longint "$hminsize")"
+maxsize_rounded="$(human2longint "$hmaxsize")"
+minpercent="$(expr 100 \* "$minsize" / "$free_size")"
+
+guided_size=
+while [ -z "$guided_size" ]; do
+	db_fget partman-auto-lvm/guided_size seen
+	if [ "$RET" = false ]; then
+		db_set partman-auto-lvm/guided_size "$hmaxsize"
+	fi
+	db_subst partman-auto-lvm/guided_size MINSIZE "$hminsize"
+	db_subst partman-auto-lvm/guided_size MAXSIZE "$hmaxsize"
+	db_subst partman-auto-lvm/guided_size PERCENT "$minpercent%"
+	db_input high partman-auto-lvm/guided_size || true
+	db_go || return 255
+
+	db_get partman-auto-lvm/guided_size
+	case $RET in
+	    max)
+		guided_size="$free_size"000
+		;;
+	    *%)
+		digits="$(expr "$RET" : '\([1-9][0-9]*\) *%$')"
+		if [ "$digits" ]; then
+			maxmb="$(convert_to_megabytes "$free_size"000)"
+			guided_size="$(($digits * $maxmb / 100))000000"
+		fi
+		;;
+	    *)
+		if valid_human "$RET"; then
+			guided_size="$(human2longint "$RET")"
+		fi
+		;;
+	esac
+
+	if [ -z "$guided_size" ]; then
+		db_subst partman-auto-lvm/bad_guided_size INPUT "$RET"
+		db_input high partman-auto-lvm/bad_guided_size || true
+		db_go || true
+	elif ! longint_le "$guided_size" "$free_size"000; then
+		if longint_le "$guided_size" "$maxsize_rounded"; then
+			guided_size="$free_size"000
+		else
+			db_subst partman-auto-lvm/big_guided_size SIZE \
+				"$(longint2human "$guided_size")"
+			db_subst partman-auto-lvm/big_guided_size MAXSIZE \
+				"$hmaxsize"
+			db_input high partman-auto-lvm/big_guided_size || true
+			db_go || true
+			guided_size=
+		fi
+	elif ! longint_le "$minsize"000 "$guided_size"; then
+		if longint_le "$minsize_rounded" "$guided_size"; then
+			guided_size="$minsize"000
+		else
+			db_subst partman-auto-lvm/small_guided_size SIZE \
+				"$(longint2human "$guided_size")"
+			db_subst partman-auto-lvm/small_guided_size MINSIZE \
+				"$hminsize"
+			db_input high partman-auto-lvm/small_guided_size || true
+			db_go || true
+			guided_size=
+		fi
+	fi
+
+	if [ "$guided_size" ]; then
+		# We have a figure in (decimal) megabytes. Convert back to
+		# (decimal) kilobytes, which is what the rest of this is
+		# expecting.
+		guided_size="$(expr 0000"$guided_size" : '0*\(..*\)...$')"
+	else
+		db_fset partman-auto-lvm/guided_size seen false
+	fi
+done
+
+use_all=
+if [ "$guided_size" -ge "$free_size" ]; then
+	use_all=1
+fi
+free_size="$guided_size"
+
+expand_scheme
+
+db_progress STEP 1
+
+name_number=1
+foreach_partition '
+	if echo $* | grep -q "lv_name{"; then
+		lvname=$(echo $* | sed \
+			-e "s/.*lv_name{  *\([^ }]*\) *}.*/\1/g"
+		)
+	elif echo $* | grep -q "mountpoint{"; then
+		lvname=$(echo $* | sed \
+			-e "s/.*mountpoint{  *\([^ }]*\) *}.*/\1/g" \
+			-e "s!//!/!g" \
+			-e '\''s!/$!!g'\'' \
+			-e "s/_/__/g" \
+			-e "s/+/_+/g" \
+			-e "s/-/_dash/g" \
+			-e "s/ /_space/g" \
+			-e '\''s!^/root$!_root!g'\'' \
+			-e '\''s!^$!/root!g'\'' \
+			-e "s!^/!!" \
+			-e "s!/!+!g"
+		)
+	elif echo $* | grep -q "method{"; then
+		lvname=$(echo $* | sed \
+			-e "s/.*method{  *\([^ }]*\) *}.*/\1/g")
+		lvname="${lvname}_$name_number"
+		name_number=$(($name_number + 1))
+	else
+		lvname=_$name_number
+		name_number=$(($name_number + 1))
+	fi
+
+	if [ "$last" = yes ] && [ "$use_all" ]; then
+		vg_get_info "$VG_name"
+		lv_create $VG_name "$lvname" $FREEPE || autopartitioning_failed
+	else
+		extents=$(lvm_extents_from_human $VG_name "${1}K")
+		lv_create $VG_name "$lvname" $extents || autopartitioning_failed
+	fi
+
+	# Hyphens in VG or LV names are doubled under /dev/mapper
+	VG_dev="$(echo "$VG_name" | sed 's/-/--/g')"
+	LV_dev="$(echo "$lvname" | sed 's/-/--/g')"
+	device=/dev/mapper/"$VG_dev"-"$LV_dev"
+
+	dirname=$(echo "$device" | sed "s:/:=:g")
+	dev=$DEVICES/$dirname
+
+	rm -rf $dev
+	mkdir $dev || autopartitioning_failed
+	printf "%s" "$device" >$dev/device
+	printf "%s" "$4" >$dev/size
+	printf "%s" "$VG_name - $lvname" >$dev/model
+
+	update-dev --settle
+
+	cd $dev
+	open_dialog OPEN "$(cat $dev/device)"
+	read_line response
+	close_dialog
+	if [ "$response" = failed ]; then
+		cd /
+		rm -rf $dev
+		autopartitioning_failed
+	fi
+
+	open_dialog NEW_LABEL loop
+	close_dialog
+
+	# find the free space
+	open_dialog PARTITIONS
+	free_space=""
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		if [ "$fs" = free ]; then
+			free_space=$id
+			free_size=$size
+		fi
+	done
+	close_dialog
+
+	# create partition in the free space
+	[ "$free_space" ] || autopartitioning_failed
+	open_dialog NEW_PARTITION primary ext2 $free_space full $free_size
+	read_line num id size type fs path name
+	close_dialog
+
+	shift; shift; shift; shift
+	setup_partition $id $*
+	db_progress STEP 1
+'
+
+db_progress STOP
+
+stop_parted_server
+
+restart_partman

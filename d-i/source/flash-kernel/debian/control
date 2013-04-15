@@ -1,17 +1,23 @@
 Source: flash-kernel
 Section: utils
 Priority: optional
-Maintainer: Ubuntu Installer Team <ubuntu-installer@lists.ubuntu.com>
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 XSBC-Original-Maintainer: Debian Install System Team <debian-boot@lists.debian.org>
-Uploaders: Martin Michlmayr <tbm@cyrius.com>, Joey Hess <joeyh@debian.org>
-Build-Depends: debhelper (>= 7.3.10)
-Standards-Version: 3.7.2
-XS-Debian-Vcs-Svn: svn://svn.debian.org/d-i/trunk/packages/flash-kernel
+Uploaders: Loïc Minier <lool@debian.org>,
+           Hector Oron <zumbi@debian.org>,
+           Wouter Verhelst <wouter@debian.org>
+Build-Depends: debhelper (>= 7.3.10), devio
+Standards-Version: 3.9.2
+Vcs-Browser: http://git.debian.org/?p=d-i/flash-kernel.git
+Vcs-Git: git://git.debian.org/d-i/flash-kernel.git
 
 Package: flash-kernel
 Architecture: arm armel armeb armhf
-Depends: devio, initramfs-tools (>= 0.92bubuntu28)
-Suggests: u-boot-tools | uboot-mkimage, uboot-envtools, redboot-tools, abootimg
+Depends: ${misc:Depends},
+         devio,
+         initramfs-tools (>= 0.92f),
+         linux-base (>= 3.2)
+Suggests: u-boot-tools
 Description: utility to make certain embedded devices bootable
  flash-kernel is a script which will put the kernel and initramfs in
  the boot location of embedded devices that don't load the kernel and
@@ -24,8 +30,8 @@ Section: debian-installer
 Priority: standard
 XC-Package-Type: udeb
 Architecture: arm armel armeb armhf
-XB-Subarchitecture: armadaxp dove imx51 iop32x ixp4xx kirkwood orion5x omap omap4 highbank
+XB-Subarchitecture: armadaxp highbank iop32x ixp4xx kirkwood orion5x s3c24xx mx5 omap omap4
 Provides: bootable-system
-Depends: cdebconf-udeb, installed-base, di-utils (>= 1.68)
+Depends: cdebconf-udeb, installed-base
 XB-Installer-Menu-Item: 7300
 Description: Make the system bootable

@@ -2,6 +2,7 @@ from gi.repository import Gtk, GObject, Gdk
 
 from ubiquity import keyboard_detector
 
+
 class Keyrow(Gtk.Box):
     def __init__(self):
         GObject.GObject.__init__(self, spacing=24)
@@ -16,10 +17,14 @@ class Keyrow(Gtk.Box):
         for ch in self.get_children():
             self.remove(ch)
 
+
 class KeyboardQuery(Gtk.Window):
     __gtype_name__ = 'KeyboardQuery'
-    __gsignals__ = { 'layout_result' : (GObject.SignalFlags.RUN_FIRST,
-                    None, (GObject.TYPE_STRING,)) }
+    __gsignals__ = {
+        'layout_result': (
+            GObject.SignalFlags.RUN_FIRST, None, (GObject.TYPE_STRING,)),
+    }
+
     def __init__(self, frontend):
         Gtk.Window.__init__(self)
 
@@ -97,14 +102,15 @@ class KeyboardQuery(Gtk.Window):
 
     def no_have_key(self, *args):
         try:
-            r = self.keyboard_detect.read_step(self.keyboard_detect.not_present)
+            r = self.keyboard_detect.read_step(
+                self.keyboard_detect.not_present)
             self.process(r)
         except:
             self.hide()
 
     def key_press_event(self, widget, event):
-        # FIXME need to account for possible remapping.  Find the API to translate
-        # kernel keycodes to X keycodes (xkb).
+        # FIXME need to account for possible remapping.  Find the API to
+        # translate kernel keycodes to X keycodes (xkb).
         # MIN_KEYCODE = 8
 
         # FIXME escape should close the window.

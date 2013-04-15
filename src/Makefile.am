@@ -1,1 +1,1 @@
-SUBDIRS = mockresolver panel webcam wallpaper
+SUBDIRS = mockresolver panel wallpaper

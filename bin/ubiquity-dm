@@ -1,33 +1,36 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
-import os
-import sys
-import subprocess
-import time
-import signal
+from __future__ import print_function
+
 import errno
-import imp
 import grp
+import imp
+import os
 import pwd
+import signal
+import subprocess
+import sys
+import time
 
 import debconf
 
 sys.path.insert(0, '/usr/lib/ubiquity')
 
-import ubiquity.frontend
-from ubiquity import osextras
-from ubiquity import gsettings
-from ubiquity.misc import create_bool
+from ubiquity import gsettings, osextras
 from ubiquity.casper import get_casper
 from ubiquity.debconfcommunicator import DebconfCommunicator
+import ubiquity.frontend
+from ubiquity.misc import create_bool, utf8
+
 
 def ck_open_session(uid):
     import dbus
-    bus = dbus.SystemBus ()
-    manager_obj = bus.get_object ('org.freedesktop.ConsoleKit',
-            '/org/freedesktop/ConsoleKit/Manager')
-    manager = dbus.Interface (manager_obj, 'org.freedesktop.ConsoleKit.Manager')
-    params = dbus.Array ([], signature = "(sv)")
+
+    bus = dbus.SystemBus()
+    manager_obj = bus.get_object(
+        'org.freedesktop.ConsoleKit', '/org/freedesktop/ConsoleKit/Manager')
+    manager = dbus.Interface(manager_obj, 'org.freedesktop.ConsoleKit.Manager')
+    params = dbus.Array([], signature="(sv)")
     params.append(("unix-user", dbus.Int32(uid)))
     params.append(("session-type", dbus.String("")))
     params.append(("x11-display", dbus.String(os.environ['DISPLAY'])))
@@ -35,6 +38,7 @@ def ck_open_session(uid):
     params.append(("is-local", dbus.Boolean(True)))
     cookie = manager.OpenSessionWithParameters(params)
     os.environ['XDG_SESSION_COOKIE'] = cookie
+
 
 def set_locale():
     db = DebconfCommunicator('ubiquity', cloexec=True)
@@ -48,39 +52,37 @@ def set_locale():
     if not locale:
         return
 
-    default_locale = open('/etc/default/locale', 'w')
-    print >>default_locale, 'LANG="%s"' % locale
-    default_locale.close()
+    with open('/etc/default/locale', 'w') as default_locale:
+        print('LANG="%s"' % locale, file=default_locale)
 
-    environment = open('/etc/environment')
-    environment_lines = environment.readlines()
-    environment.close()
-    environment = open('/etc/environment', 'w')
-    seen_lang = False
-    for line in environment_lines:
-        if line.startswith('LANG='):
-            print >>environment, 'LANG="%s"' % locale
-            seen_lang = True
-        else:
-            print >>environment, line.rstrip('\n')
-    if not seen_lang:
-        print >>environment, 'LANG="%s"' % locale
-    environment.close()
+    with open('/etc/environment') as environment:
+        environment_lines = environment.readlines()
+    with open('/etc/environment', 'w') as environment:
+        seen_lang = False
+        for line in environment_lines:
+            if line.startswith('LANG='):
+                print('LANG="%s"' % locale, file=environment)
+                seen_lang = True
+            else:
+                print(line.rstrip('\n'), file=environment)
+        if not seen_lang:
+            print('LANG="%s"' % locale, file=environment)
 
-    locale_gen = open('/etc/locale.gen', 'w')
-    print >>locale_gen, '%s UTF-8' % locale
-    locale_gen.close()
+    with open('/etc/locale.gen', 'w') as locale_gen:
+        print('%s UTF-8' % locale, file=locale_gen)
 
-    logfile = open('/var/log/installer/dm', 'a')
-    subprocess.call(['/usr/sbin/locale-gen', locale],
-                    stdout=logfile, stderr=logfile)
-    logfile.close()
+    with open('/var/log/installer/dm', 'a') as logfile:
+        subprocess.call(['/usr/sbin/locale-gen', locale],
+                        stdout=logfile, stderr=logfile)
+
 
 class XStartupError(EnvironmentError):
     pass
 
+
 class MissingProgramError(EnvironmentError):
     pass
+
 
 class DM:
     def __init__(self, vt, display, default_username):
@@ -125,7 +127,8 @@ class DM:
 
         db = DebconfCommunicator('ubiquity', cloexec=True)
         try:
-            self.force_failsafe = create_bool(db.get('ubiquity/force_failsafe_graphics'))
+            self.force_failsafe = create_bool(
+                db.get('ubiquity/force_failsafe_graphics'))
         except debconf.DebconfError:
             self.force_failsafe = False
         db.shutdown()
@@ -156,7 +159,7 @@ class DM:
 
     def run_hooks(self, hookdir):
         if os.path.isdir(hookdir):
-            # Exclude hooks containing '.', so that *.dpkg-* et al are avoided. 
+            # Exclude hooks containing '.', so that *.dpkg-* et al are avoided.
             hooks = [entry for entry in os.listdir(hookdir)
                      if '.' not in entry]
             for hookentry in hooks:
@@ -167,13 +170,15 @@ class DM:
                         preexec_fn=self.drop_privileges)
 
     def run(self, *program):
-        # extract the program basename to see if we are in oem-config or ubiquity
+        # Extract the program basename to see if we are in oem-config or
+        # ubiquity.
         program_basename = os.path.basename(program[0])
 
+        extras = []
         null = open('/dev/null', 'w')
         try:
             os.makedirs('/var/log/installer')
-        except OSError, e:
+        except OSError as e:
             # be happy if someone already created the path
             if e.errno != errno.EEXIST:
                 raise
@@ -193,7 +198,7 @@ class DM:
             subprocess.call(['plymouth', 'deactivate'])
             if subprocess.call(['plymouth', '--has-active-vt']) == 0:
                 self.vt = 'vt%d' % self.active_vt()
-                servercommand.append('-nr')
+                servercommand.extend(['-background', 'none'])
             else:
                 subprocess.call(['plymouth', 'quit'])
                 plymouth_running = False
@@ -220,24 +225,23 @@ class DM:
                 command.extend(['-config', xorg_conf_failsafe])
                 command.extend(['-logfile', '/var/log/Xorg.%s.log' % attempt])
 
-                xorg_conf_failsafe_file = open(xorg_conf_failsafe, 'w')
-                print >>xorg_conf_failsafe_file, '''\
+                with open(xorg_conf_failsafe, 'w') as xorg_conf_failsafe_file:
+                    print('''\
 Section "Device"
-	Identifier	"Configured Video Device"
-	Driver		"%s"
+\tIdentifier	"Configured Video Device"
+\tDriver		"%s"
 EndSection
 
 Section "Monitor"
-	Identifier	"Configured Monitor"
+\tIdentifier	"Configured Monitor"
 EndSection
 
 Section "Screen"
-	Identifier	"Default Screen"
-	Monitor		"Configured Monitor"
-	Device		"Configured Video Device"
+\tIdentifier	"Default Screen"
+\tMonitor		"Configured Monitor"
+\tDevice		"Configured Video Device"
 EndSection
-''' % attempt
-                xorg_conf_failsafe_file.close()
+''' % attempt, file=xorg_conf_failsafe_file)
 
             server = subprocess.Popen(
                 command, stdin=null, stdout=logfile, stderr=logfile,
@@ -275,7 +279,9 @@ EndSection
         # Give ubiquity a UID and GID that it can drop privileges to.
         os.environ['SUDO_UID'] = str(self.uid)
         os.environ['SUDO_GID'] = str(self.gid)
-        os.environ['GVFS_DISABLE_FUSE' ] = '1'
+        os.environ['GVFS_DISABLE_FUSE'] = '1'
+        # Overlay scrollbars are now a gtk module
+        os.environ['GTK_MODULES'] = 'overlay-scrollbar'
 
         ck_open_session(self.uid)
 
@@ -289,11 +295,11 @@ EndSection
 
         # Session bus, apparently needed by most interfaces now
         if ('DBUS_SESSION_BUS_ADDRESS' not in os.environ and
-            osextras.find_on_path('dbus-launch')):
+                osextras.find_on_path('dbus-launch')):
             dbus_subp = subprocess.Popen(
                 ['dbus-launch', '--exit-with-session'],
                 stdin=null, stdout=subprocess.PIPE, stderr=logfile,
-                preexec_fn=self.drop_privileges)
+                preexec_fn=self.drop_privileges, universal_newlines=True)
             for line in dbus_subp.stdout:
                 try:
                     name, value = line.rstrip('\n').split('=', 1)
@@ -303,109 +309,144 @@ EndSection
             dbus_subp.stdout.close()
             dbus_subp.wait()
 
-        gconfd_running = False
-        if (self.frontend == 'gtk_ui' and
-            osextras.find_on_path('gconftool-2')):
-            subprocess.call(['gconftool-2', '--spawn'],
-                            stdin=null, stdout=logfile, stderr=logfile,
-                            preexec_fn=self.drop_privileges)
-            gconfd_running = True
+        # dconf writer
+        if os.path.exists("/usr/lib/dconf/dconf-service"):
+            extras.append(subprocess.Popen(
+                ['/usr/lib/dconf/dconf-service'],
+                stdin=null, stdout=logfile, stderr=logfile,
+                preexec_fn=self.drop_privileges))
 
-        extras = []
         if self.frontend == 'gtk_ui':
-            gconf_dir = ('xml:readwrite:%s' %
-                os.path.expanduser('~%s/.gconf' %
-                self.username))
+            # Set a desktop wallpaper.
+            with open('/proc/cmdline', 'r') as fp:
+                visual_a11y = 'access=v' in fp.readline()
+
+            background_image = None
+            for background in (
+                    '/usr/share/backgrounds/edubuntu_default.png',
+                    '/usr/share/xfce4/backdrops/macinnis_wallpaper.png',
+                    '/usr/share/xfce4/backdrops/xubuntu-precise-right.png',
+                    '/usr/share/lubuntu/wallpapers/'
+                    'lubuntu-default-wallpaper.png',
+                    '/usr/share/backgrounds/ubuntukylin-default-settings.jpg',
+                    '/usr/share/backgrounds/warty-final-ubuntu.png'):
+                exists = os.access(background, os.R_OK)
+                if exists:
+                    background_image = background
+                    break
+
+            # Setting a wallpaper image, or solid color.
+            if visual_a11y or background_image is None:
+                picture_option = 'none'
+                background_image = False
+            else:
+                picture_option = 'zoom'
+
+            if background_image:
+                background_url = 'file://' + background_image
+            else:
+                background_url = "''"
+
             accessibility = False
-            if (osextras.find_on_path('gconftool-2') and
-               gsettings._gsettings_exists()):
-                # Set number of workspaces to 1 in metacity
-                # (still using gconf, GNOME: #621204)
-                subprocess.call(
-                    ['gconftool-2', '--config-source', gconf_dir,
-                     '--type', 'int', '--set',
-                     '/apps/metacity/general/num_workspaces', '1',],
-                    stdin=null, stdout=logfile, stderr=logfile,
-                    preexec_fn=self.drop_privileges)
+            if gsettings._gsettings_exists():
+                accessibility = gsettings.get(
+                    'org.gnome.desktop.interface', 'toolkit-accessibility',
+                    self.username)
 
                 # Set gsettings keys
                 gsettings_keys = [
-                    ('org.gnome.desktop.lockdown', 'disable-lock-screen', 'true'),
-                    ('org.gnome.desktop.lockdown', 'disable-user-switching', 'true'),
+                    ('org.gnome.desktop.lockdown', 'disable-lock-screen',
+                     'true'),
+                    ('org.gnome.desktop.lockdown', 'disable-user-switching',
+                     'true'),
+                    ('org.gnome.settings-daemon.plugins.background', 'active',
+                     'true'),
+                    ('org.gnome.desktop.background', 'draw-background',
+                     'true'),
+                    ('org.gnome.desktop.background', 'show-desktop-icons',
+                     'false'),
+                    ('org.gnome.metacity', 'compositing-manager',
+                     'true'),
+                    ('org.gnome.desktop.background', 'picture-options',
+                     picture_option),
+                    ('org.gnome.desktop.background', 'picture-uri',
+                     background_url),
+                    ('org.gnome.desktop.wm.preferences', 'num-workspaces',
+                     '1'),
                 ]
-                for gs_schema, gs_key, gs_value in gsettings_keys:
-                    gsettings.set(gs_schema, gs_key, gs_value, self.username)
 
-                accessibility = gsettings.get('org.gnome.desktop.interface',
-                    'toolkit-accessibility', self.username)
+                gsd = '/usr/lib/gnome-settings-daemon/gnome-settings-daemon'
+                if osextras.find_on_path(gsd):
+                    extras.append(subprocess.Popen(
+                        [gsd], stdin=null, stdout=logfile, stderr=logfile,
+                        preexec_fn=self.drop_privileges))
+
+                elif background_image and osextras.find_on_path('feh'):
+                    subprocess.call(
+                        ['feh', '--bg-fill', background_image],
+                        stdin=null, stdout=logfile, stderr=logfile,
+                        preexec_fn=self.drop_privileges)
+
+                for gs_schema, gs_key, gs_value in gsettings_keys:
+                    subprocess.call(
+                        ['gsettings', 'set', gs_schema, gs_key, gs_value],
+                        stdin=null, stdout=logfile, stderr=logfile,
+                        preexec_fn=self.drop_privileges)
+
             # Accessibility infrastructure
             with open('/proc/cmdline', 'r') as fp:
-                if (accessibility == True or 'maybe-ubiquity' in fp.readline()):
-                    if os.path.exists('/usr/lib/at-spi2-core/at-spi-bus-launcher'):
+                if (accessibility or 'maybe-ubiquity' in fp.readline() or
+                        'only-ubiquity' in fp.readline() or
+                        program_basename == 'oem-config-wrapper'):
+                    launcher = '/usr/lib/at-spi2-core/at-spi-bus-launcher'
+                    if os.path.exists(launcher):
                         extras.append(subprocess.Popen(
-                            ['/usr/lib/at-spi2-core/at-spi-bus-launcher',
-                            '--launch-immediately'],
+                            [launcher, '--launch-immediately'],
                             stdin=null, stdout=logfile, stderr=logfile,
                             preexec_fn=self.drop_privileges))
-                        os.environ['GTK_MODULES'] = 'gail:atk-bridge'
+                        os.environ['GTK_MODULES'] += os.pathsep + 'gail'
 
-            # Set a desktop wallpaper.
-            with open('/proc/cmdline', 'r') as fp:
-                for background in ('/usr/share/backgrounds/edubuntu_default.png',
-                    '/usr/share/xfce4/backdrops/macinnis_wallpaper.png',
-                    '/usr/share/xfce4/backdrops/xubuntu-precise-right.png',
-                    '/usr/share/linuxmint/ubiquity/background.jpg'):
-                    exists = os.access(background, os.R_OK)
-                    if (exists and not 'access=v1' in fp.readline()):
-                        extras.append(subprocess.Popen(['/usr/lib/ubiquity/wallpaper', background],
-                                stdin=null, stdout=logfile, stderr=logfile,
-                                preexec_fn=self.drop_privileges))
-                        break
-
-        if self.frontend == 'gtk_ui':
-            if gconfd_running and osextras.find_on_path('metacity'):
+            if osextras.find_on_path('metacity'):
                 wm_cmd = ['metacity', '--sm-disable']
             elif osextras.find_on_path('xfwm4'):
-                wm_cmd = ['xfwm4']
+                wm_cmd = ['xfwm4', '--compositor=off']
             elif osextras.find_on_path('matchbox-window-manager'):
                 wm_cmd = ['matchbox-window-manager']
             elif osextras.find_on_path('openbox-lubuntu'):
                 wm_cmd = ['openbox-lubuntu']
             elif osextras.find_on_path('openbox'):
                 wm_cmd = ['openbox']
+            elif osextras.find_on_path('compiz'):
+                wm_cmd = ['compiz', '--sm-disable', 'decor', 'resize', 'place',
+                          'move']
             else:
-                raise MissingProgramError('No window manager found (tried '
+                raise MissingProgramError(
+                    'No window manager found (tried '
                     'metacity, xfwm4, matchbox-window-manager, '
-                    'openbox-lubuntu, openbox)')
-            wm = subprocess.Popen(wm_cmd,
-                stdin=null, stdout=logfile, stderr=logfile,
+                    'openbox-lubuntu, openbox, compiz)')
+
+            wm = subprocess.Popen(
+                wm_cmd, stdin=null, stdout=logfile, stderr=logfile,
                 preexec_fn=self.drop_privileges)
 
-            if os.path.exists('/usr/lib/gnome-settings-daemon/gnome-settings-daemon'):
-                proc = subprocess.Popen(
-                    ['/usr/lib/gnome-settings-daemon/gnome-settings-daemon'],
-                    stdin=null, stdout=logfile, stderr=logfile,
-                    preexec_fn=self.drop_privileges)
-                extras.append(proc)
-
-            if os.path.exists('/usr/bin/xfsettingsd'):
+            if osextras.find_on_path('xfsettingsd'):
                 extras.append(subprocess.Popen(
                     ['xsetroot', '-solid', 'black'],
                     stdin=null, stdout=logfile, stderr=logfile,
                     preexec_fn=self.drop_privileges))
                 extras.append(subprocess.Popen(
-                    ['/usr/bin/xfsettingsd'],
+                    ['xfsettingsd'],
                     stdin=null, stdout=logfile, stderr=logfile,
                     preexec_fn=self.drop_privileges))
 
             if osextras.find_on_path('lxsession'):
-                proc = subprocess.Popen(
-                    ['lxsession','-s','Lubuntu', '-e', 'LXDE', '-a'],
+                extras.append(subprocess.Popen(
+                    ['lxsession', '-s', 'Lubuntu', '-e', 'LXDE', '-a'],
                     stdin=null, stdout=logfile, stderr=logfile,
-                    preexec_fn=self.drop_privileges)
-                extras.append(proc)
+                    preexec_fn=self.drop_privileges))
 
-            if os.path.exists('/usr/lib/ubiquity/panel') and "xfwm4" not in wm_cmd:
+            if (os.path.exists('/usr/lib/ubiquity/panel') and
+                    "xfwm4" not in wm_cmd):
                 if "openbox-lubuntu" not in wm_cmd and "openbox" not in wm_cmd:
                     extras.append(subprocess.Popen(
                         ['/usr/lib/ubiquity/panel'],
@@ -434,17 +475,19 @@ EndSection
                     preexec_fn=self.drop_privileges))
 
             # Accessibility tools
-            if accessibility == True:
+            if accessibility:
                 with open('/proc/cmdline', 'r') as fp:
                     if 'access=m2' in fp.readline():
                         if osextras.find_on_path('onboard'):
-                            extras.append(subprocess.Popen(['onboard'],
+                            extras.append(subprocess.Popen(
+                                ['onboard'],
                                 stdin=null, stdout=logfile, stderr=logfile,
                                 preexec_fn=self.drop_privileges))
                     else:
                         if osextras.find_on_path('orca'):
                             time.sleep(15)
-                            extras.append(subprocess.Popen(['orca', '-n'],
+                            extras.append(subprocess.Popen(
+                                ['orca'],
                                 stdin=null, stdout=logfile, stderr=logfile,
                                 preexec_fn=self.drop_privileges))
         elif self.frontend == 'kde_ui':
@@ -453,17 +496,17 @@ EndSection
             os.seteuid(self.uid)
             path = '/usr/share/wallpapers/kde-default.png'
             with open('/proc/cmdline', 'r') as fp:
-                if (os.access(path, os.R_OK)
-                    and not 'access=v1' in fp.readline()):
+                if (os.access(path, os.R_OK) and
+                        not 'access=v1' in fp.readline()):
                     # Draw a background image for the install progress window.
                     from PyQt4.QtCore import Qt
                     from PyQt4 import QtGui
                     a = QtGui.QApplication(sys.argv)
                     root_win = a.desktop()
                     wallpaper = QtGui.QPixmap(path)
-                    wallpaper = wallpaper.scaled(root_win.width(),
-                        root_win.height(), Qt.KeepAspectRatioByExpanding,
-                        Qt.SmoothTransformation)
+                    wallpaper = wallpaper.scaled(
+                        root_win.width(), root_win.height(),
+                        Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
                     palette = QtGui.QPalette()
                     palette.setBrush(root_win.backgroundRole(),
                                      QtGui.QBrush(wallpaper))
@@ -476,16 +519,12 @@ EndSection
             os.seteuid(0)
             os.setegid(0)
 
-            subprocess.call(
-                ['kwriteconfig', '--file', 'kwinrc', '--group', 'Compositing',
-                                 '--key', 'Enabled', 'false'],
-                stdin=null, stdout=logfile, stderr=logfile,
-                preexec_fn=self.drop_privileges)
-            wm = subprocess.Popen('kwin',
-                stdin=null, stdout=logfile, stderr=logfile,
+            wm = subprocess.Popen(
+                'kwin', stdin=null, stdout=logfile, stderr=logfile,
                 preexec_fn=self.drop_privileges)
 
-        greeter = subprocess.Popen(program, stdin=null, stdout=logfile, stderr=logfile)
+        greeter = subprocess.Popen(
+            program, stdin=null, stdout=logfile, stderr=logfile)
         ret = greeter.wait()
 
         reboot = False
@@ -512,10 +551,10 @@ EndSection
             title = ''
             message = ''
             try:
-                title = unicode(db.metaget(question, 'description'),
-                                'utf-8', 'replace')
-                message = unicode(db.metaget(question, 'extended_description'),
-                                  'utf-8', 'replace')
+                title = utf8(db.metaget(question, 'description'),
+                             errors='replace')
+                message = utf8(db.metaget(question, 'extended_description'),
+                               errors='replace')
             except debconf.DebconfError:
                 pass
             db.shutdown()
@@ -538,7 +577,7 @@ EndSection
         def kill_if_exists(pid, signum):
             try:
                 os.kill(pid, signum)
-            except OSError, e:
+            except OSError as e:
                 if e.errno != errno.ESRCH:
                     raise
 
@@ -550,12 +589,8 @@ EndSection
         kill_if_exists(wm.pid, signal.SIGTERM)
         for extra in extras:
             kill_if_exists(extra.pid, signal.SIGTERM)
-        if gconfd_running:
-            subprocess.call(['gconftool-2', '--shutdown'],
-                            stdin=null, stdout=logfile, stderr=logfile,
-                            preexec_fn=self.drop_privileges)
         signal.signal(signal.SIGALRM, sigalrm_handler)
-        signal.alarm(1) # low patience with WMs failing to exit on demand
+        signal.alarm(1)  # low patience with WMs failing to exit on demand
         processes = set(extras)
         processes.add(wm)
         while processes:
@@ -564,7 +599,7 @@ EndSection
                 try:
                     process.wait()
                     done.add(process)
-                except OSError, e:
+                except OSError as e:
                     if e.errno == errno.EINTR:
                         continue
                     raise
@@ -573,13 +608,16 @@ EndSection
 
         # Clear the console so we don't see boot-time messages on switch
         try:
-            vthandle = open('/dev/tty' + self.vt[2:], 'r+')
-            subprocess.call(['clear'], stdin=vthandle, stdout=vthandle)
+            with open('/dev/tty' + self.vt[2:], 'r+') as vthandle:
+                subprocess.call(['clear'], stdin=vthandle, stdout=vthandle)
         except IOError:
             pass
 
         kill_if_exists(server.pid, signal.SIGTERM)
         server.wait()
+
+        logfile.close()
+        null.close()
 
         if reboot:
             subprocess.Popen(['reboot'])
@@ -587,6 +625,7 @@ EndSection
             return ret
         else:
             return 1
+
 
 if len(sys.argv) < 4:
     sys.stderr.write('Usage: %s <vt[1-N]> <:[0-N]> <username> <program> '

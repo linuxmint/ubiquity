@@ -107,7 +107,7 @@ else
 		# Sanity check: check test file for incorrect line continuations
 		if ! awk 'BEGIN {lc=0}
 			  /\\[[:space:]]*$/ {if (lc==1 && substr($0,1,1)!=" ") {exit 1}; lc=1}
-			  /[^\\][:space:]*$/ {lc=0}
+			  /[^\\][[:space:]]*$/ {lc=0}
 			  END {if (lc==1) {exit 1}}' $test
 		then
 			echo "Incorrect line continuation in test file '$test'"

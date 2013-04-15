@@ -1,3 +1,151 @@
+partman-basicfilesystems (76ubuntu4) raring; urgency=low
+
+  * Fix dangerous reuse of $device in format_basicfilesystems, introduced in
+    76ubuntu3.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 18 Jan 2013 18:41:39 +0000
+
+partman-basicfilesystems (76ubuntu3) raring; urgency=low
+
+  * Explicitly pass logical sector size to mkdosfs.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 18 Jan 2013 18:32:40 +0000
+
+partman-basicfilesystems (76ubuntu2) raring; urgency=low
+
+  * Use mkdosfs to create FAT filesystems, since libparted cannot handle
+    doing that on non-512-sector disks (LP: #1065281).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 17 Jan 2013 23:05:24 +0000
+
+partman-basicfilesystems (76ubuntu1) raring; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - If partman/automount is preseeded to true, automatically mount
+      partitions with usefully-mountable filesystems on subdirectories of
+      /media.
+    - Add minimal support for NTFS partitions using ntfs-3g.
+    - Mount FAT filesystems at boot (fstab pass 1).
+    - Mount FAT (other than EFI System Partitions) and NTFS with
+      umask=007,gid=46 (static group plugdev).
+    - When formatting over the top of an existing swap partition, preserve
+      its UUID to avoid leaving systems that use UUIDs in /etc/fstab without
+      swap.
+    - mount.d/basic: Close mount's fd 3 so that it doesn't inherit a debconf
+      file descriptor, to prevent log-output hanging when ntfs-3g is in use.
+    - Special case loopmounted filesystems as it's safer to format the
+      underlying file, not the device.
+    - Allow armel/omap to use FAT for /boot, since the problems with it can
+      be worked around while it's difficult to use anything else given uboot
+      limitations.
+    - Stop using libparted to format swap partitions.
+    - Disable existing swap partitions before formatting them.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 30 Oct 2012 16:27:31 +0000
+
+partman-basicfilesystems (76) unstable; urgency=low
+
+  [ Updated translations ]
+  * Asturian (ast.po) by ivarela
+  * Galician (gl.po) by Jorge Barreiro
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 16 Oct 2012 09:09:59 +0200
+
+partman-basicfilesystems (75) unstable; urgency=low
+
+  * Add myself to Uploaders.
+
+  [ Updated translations ]
+  * Lithuanian (lt.po) by Rimas Kudelis
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 23 Sep 2012 11:36:45 +0200
+
+partman-basicfilesystems (74ubuntu1) quantal; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - If partman/automount is preseeded to true, automatically mount
+      partitions with usefully-mountable filesystems on subdirectories of
+      /media.
+    - Add minimal support for NTFS partitions using ntfs-3g.
+    - Mount FAT filesystems at boot (fstab pass 1).
+    - Mount FAT (other than EFI System Partitions) and NTFS with
+      umask=007,gid=46 (static group plugdev).
+    - When formatting over the top of an existing swap partition, preserve
+      its UUID to avoid leaving systems that use UUIDs in /etc/fstab without
+      swap.
+    - mount.d/basic: Close mount's fd 3 so that it doesn't inherit a debconf
+      file descriptor, to prevent log-output hanging when ntfs-3g is in use.
+    - Special case loopmounted filesystems as it's safer to format the
+      underlying file, not the device.
+    - Allow armel/omap to use FAT for /boot, since the problems with it can
+      be worked around while it's difficult to use anything else given uboot
+      limitations.
+    - Stop using libparted to format swap partitions.
+    - Disable existing swap partitions before formatting them.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 21 Jun 2012 11:04:54 +0100
+
+partman-basicfilesystems (74) unstable; urgency=low
+
+  * Team upload
+
+  [ Updated translations ]
+  * Amharic (am.po) by Tegegne Tefera
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 18 Jun 2012 13:29:33 +0200
+
+partman-basicfilesystems (73) unstable; urgency=low
+
+  * Team upload
+  * Replace XC-Package-Type by Package-Type
+
+  [ Updated translations ]
+  * Galician (gl.po) by Jorge Barreiro
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 17 Jun 2012 12:47:00 +0200
+
+partman-basicfilesystems (72) unstable; urgency=low
+
+  * Team upload
+
+  [ Otavio Salvador ]
+  * Set swap flag for ZVOL swap instead of adding it to fstab. Thanks to
+    Robert Millan <rmh@debian.org> for the patch. Closes: #635991.
+
+  [ Updated translations ]
+  * Asturian (ast.po) by Mikel González
+  * Belarusian (be.po) by Viktar Siarheichyk
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Tibetan (bo.po) by Tennom
+  * Bosnian (bs.po) by Armin Besirovic
+  * Welsh (cy.po) by Dafydd Tomos
+  * German (de.po) by Holger Wansing
+  * Estonian (et.po) by Mattias Põldaru
+  * Basque (eu.po) by Piarres Beobide
+  * Galician (gl.po) by Jorge Barreiro
+  * Hebrew (he.po) by Lior Kaplan
+  * Hindi (hi.po) by Kumar Appaiah
+  * Indonesian (id.po) by Mahyuddin Susanto
+  * Icelandic (is.po) by Sveinn í Felli
+  * Italian (it.po) by Milo Casagrande
+  * Central Khmer (km.po) by Chan Sambathratanak
+  * Kannada (kn.po) by Prabodh C P
+  * Lao (lo.po) by Anousak Souphavanh
+  * Lithuanian (lt.po) by Rimas Kudelis
+  * Latvian (lv.po) by Rūdolfs Mazurs
+  * Macedonian (mk.po) by Arangel Angov
+  * Dutch (nl.po) by Jeroen Schot
+  * Panjabi (pa.po) by A S Alam
+  * Polish (pl.po) by Marcin Owsiany
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Romanian (ro.po) by Ioan Eugen Stan
+  * Sinhala (si.po)
+  * Ukrainian (uk.po) by Borys Yanovych
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+  * Traditional Chinese (zh_TW.po) by Yao Wei (魏銘廷)
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 15 Jun 2012 13:01:30 +0200
+
 partman-basicfilesystems (71ubuntu3) precise; urgency=low
 
   * Disable existing swap partitions before formatting them (LP: #905628).

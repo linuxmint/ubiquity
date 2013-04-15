@@ -94,11 +94,26 @@ for dev in $DEVICES/*; do
 				fi
 				;;
 			    fat16|fat32)
-				name_progress_bar $template
-				open_dialog CREATE_FILE_SYSTEM $id $filesystem
-				read_line status
-				close_dialog
-				sync
+				db_progress START 0 3 partman/text/formatting
+				db_progress INFO $template
+				db_progress SET 1
+				label=''
+				if [ -f "$id/label" ]; then
+					label="$(cat "$id/label" | \
+						 sed 's/\(...........\).*/\1/')"
+				fi
+				log_sector_size="$(blockdev --getss \
+					"$(cat device)")"
+				if log-output -t partman --pass-stdout \
+				   mkdosfs -F "${filesystem#fat}" -n "$label" \
+					   -S "$log_sector_size" \
+					   "$device" >/dev/null; then
+					sync
+					status=OK
+				else
+					status=failed
+				fi
+				db_progress STOP
 				;;
 			esac
 

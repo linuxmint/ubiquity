@@ -1,0 +1,14 @@
+#!/bin/sh
+
+[ -f /var/lib/partman/lvm ] || exit 0
+
+. /usr/share/debconf/confmodule
+. /lib/partman/lib/lvm-base.sh
+
+# Only show menu option if there is at least one partition that can be used
+# as an LVM PV
+[ $(pv_list_allowed | wc -l) -gt 0 ] || exit 0
+
+db_metaget partman-lvm/text/configure_lvm description
+
+printf "lvm\t%s\n" "$RET"

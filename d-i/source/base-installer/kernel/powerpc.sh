@@ -5,6 +5,12 @@ arch_get_kernel_flavour () {
 		family=powerpc64 ;;
 	    cell|i-star|s-star|pa6t|rs64-*)
 		family=powerpc64 ;;
+	    e500mc)
+		echo powerpc-e500mc
+		return 0 ;;
+	    e500*)
+		echo powerpc-e500
+		return 0 ;;
     	    *)
 		family=powerpc ;;
 	esac

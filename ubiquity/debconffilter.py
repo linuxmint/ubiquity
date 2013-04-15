@@ -17,17 +17,20 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-import sys
-import os
-import fcntl
-import signal
+from __future__ import print_function
+
 import errno
-import subprocess
+import fcntl
+import os
 import re
+import signal
+import subprocess
+import sys
 
 import debconf
 
 from ubiquity import misc
+
 
 # Each widget should have a run(self, priority, question) method; this
 # should ask the question in whatever way is appropriate, and may then
@@ -83,10 +86,12 @@ valid_commands = {
     'X_LOADTEMPLATEFILE': 2
 }
 
+
 class DebconfFilter:
-    def __init__(self, db, widgets={}):
+    def __init__(self, db, widgets={}, automatic=False):
         self.db = db
         self.widgets = widgets
+        self.automatic = automatic
         if 'DEBCONF_DEBUG' in os.environ:
             self.debug_re = re.compile(os.environ['DEBCONF_DEBUG'])
         else:
@@ -94,10 +99,8 @@ class DebconfFilter:
         self.escaping = False
         self.progress_cancel = False
         self.progress_bars = []
-        self.toread = ''
+        self.toread = b''
         self.toreadpos = 0
-        self.towrite = ''
-        self.towritepos = 0
         self.question_type_cache = {}
 
     def debug_enabled(self, key):
@@ -112,35 +115,38 @@ class DebconfFilter:
             import time
             # bizarre time formatting code per syslogd
             time_str = time.ctime()[4:19]
-            print >>sys.stderr, "%s debconf (%s): %s" % (time_str, key,
-                                                         ' '.join(args))
+            print("%s debconf (%s): %s" % (time_str, key, ' '.join(args)),
+                  file=sys.stderr)
 
     # Returns None if non-blocking and can't read a full line right now;
     # returns '' at end of file; otherwise as fileobj.readline().
     def tryreadline(self):
+        ret = b''
         while True:
-            newlinepos = self.toread.find('\n', self.toreadpos)
+            newlinepos = self.toread.find(b'\n', self.toreadpos)
             if newlinepos != -1:
                 ret = self.toread[self.toreadpos:newlinepos + 1]
                 self.toreadpos = newlinepos + 1
                 if self.toreadpos >= len(self.toread):
-                    self.toread = ''
+                    self.toread = b''
                     self.toreadpos = 0
-                return ret
+                break
 
             try:
                 text = os.read(self.subout_fd, 512)
-                if text == '':
+                if text == b'':
                     ret = self.toread
-                    self.toread = ''
+                    self.toread = b''
                     self.toreadpos = 0
-                    return ret
+                    break
                 self.toread += text
-            except OSError, (err, _):
-                if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
+            except OSError as e:
+                if e.errno in (errno.EAGAIN, errno.EWOULDBLOCK):
                     return None
                 else:
                     raise
+
+        return ret.decode()
 
     def reply(self, code, text='', log=False):
         if self.escaping and code == 0:
@@ -196,7 +202,7 @@ class DebconfFilter:
                 os.environ['PERL_DL_NONLAZY'] = '1'
             os.environ['HOME'] = '/root'
             os.environ['LC_COLLATE'] = 'C'
-            for key, value in extra_env.iteritems():
+            for key, value in extra_env.items():
                 os.environ[key] = value
             # Python installs a SIGPIPE handler by default. This is bad for
             # non-Python subprocesses, which need SIGPIPE set to the default
@@ -207,7 +213,7 @@ class DebconfFilter:
 
         self.subp = subprocess.Popen(
             command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            preexec_fn=subprocess_setup)
+            preexec_fn=subprocess_setup, universal_newlines=True)
         self.subin = self.subp.stdin
         self.subout = self.subp.stdout
         self.subout_fd = self.subout.fileno()
@@ -242,7 +248,7 @@ class DebconfFilter:
             rest = ''
 
         # Split parameters according to the command name.
-        if command not in valid_commands or valid_commands[command] == 0:
+        if valid_commands.get(command, 0) == 0:
             params = [rest]
         elif valid_commands[command] is None:
             params = rest.split()
@@ -272,7 +278,7 @@ class DebconfFilter:
             input_widgets = self.find_widgets([question])
 
             if len(input_widgets) > 0:
-                if 'UBIQUITY_AUTOMATIC' in os.environ:
+                if self.automatic:
                     if self.db.fget(question, 'seen') == 'true':
                         self.reply(30, 'question skipped', log=True)
                         self.next_go_backup = False
@@ -341,7 +347,7 @@ class DebconfFilter:
                     progress_val = int(params[1])
                     for widget in self.find_widgets(
                             [self.progress_bars[0], 'PROGRESS'],
-                             'progress_set'):
+                            'progress_set'):
                         self.debug('filter', 'widget found for',
                                    self.progress_bars[0])
                         if not widget.progress_set(self.progress_bars[0],
@@ -351,7 +357,7 @@ class DebconfFilter:
                     progress_inc = int(params[1])
                     for widget in self.find_widgets(
                             [self.progress_bars[0], 'PROGRESS'],
-                             'progress_step'):
+                            'progress_step'):
                         self.debug('filter', 'widget found for',
                                    self.progress_bars[0])
                         if not widget.progress_step(self.progress_bars[0],
@@ -361,7 +367,7 @@ class DebconfFilter:
                     progress_info = params[1]
                     for widget in self.find_widgets(
                             [self.progress_bars[0], 'PROGRESS'],
-                             'progress_info'):
+                            'progress_info'):
                         self.debug('filter', 'widget found for',
                                    self.progress_bars[0])
                         if not widget.progress_info(self.progress_bars[0],
@@ -370,7 +376,7 @@ class DebconfFilter:
                 elif subcommand == 'STOP' and len(params) == 1:
                     for widget in self.find_widgets(
                             [self.progress_bars[0], 'PROGRESS'],
-                             'progress_stop'):
+                            'progress_stop'):
                         self.debug('filter', 'widget found for',
                                    self.progress_bars[0])
                         widget.progress_stop()
@@ -420,7 +426,7 @@ class DebconfFilter:
 
         try:
             if not self.escaping:
-                params = map(misc.debconf_escape, params)
+                params = [misc.debconf_escape(param) for param in params]
             data = self.db.command(command, *params)
             self.reply(0, data)
 
@@ -429,7 +435,7 @@ class DebconfFilter:
             # properly skipped over in multi-stage backups.
             if command == 'INPUT':
                 self.next_go_backup = False
-        except debconf.DebconfError, e:
+        except debconf.DebconfError as e:
             self.reply(*e.args)
 
         return True

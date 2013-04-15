@@ -1,0 +1,93 @@
+# Copyright (C) 2011  Loïc Minier <lool@dooz.org>
+
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301,
+# USA.
+
+set -e
+
+self="$(basename "$0")"
+
+# space separated list of tests
+all_tests=""
+add_test() {
+    all_tests="${all_tests:+$all_tests }$*"
+}
+
+run_tests() {
+    local passed_count=0
+    local skipped_count=0
+    local failed_count=0
+    # space separated lists of skipped and failed tests
+    local skipped_tests=""
+    local failed_tests=""
+
+    for t; do
+        count=$(($count + 1))
+        # look for skip_test_foo which tells us whether dependencies for this
+        # test are satisfied
+        if type skip_$t 2>&1 >/dev/null && skip_$t; then
+            skipped="$skipped_tests $t"
+            skipped_count="$(($skipped_count + 1))"
+            continue
+        fi
+        if ($t); then
+            passed_count=$(($passed_count + 1))
+        else
+            failed_tests="$failed_tests $t"
+            failed_count=$(($failed_count + 1))
+        fi
+    done
+    echo "passed: $passed_count; skipped: $skipped_count; failed: $failed_count" >&2
+    if [ -n "$skipped_tests" ]; then
+        for t in $skipped_tests; do
+            echo "skipped: $t" >&2
+        done
+    fi
+    if [ -n "$failed_tests" ]; then
+        for t in $failed_tests; do
+            echo "failed: $t" >&2
+        done
+        return 1
+    fi
+    return 0
+}
+
+# space separated list of tempfiles; XXX doesn't support spaces in pathnames
+tempfiles=""
+last_tempfile=""
+cleanup_tempfiles(){
+    for t in $tempfiles "$last_tempfile"; do
+        if [ -n "$t" ]; then
+            rm -f "$t"
+        fi
+    done
+}
+trap cleanup_tempfiles EXIT HUP INT QUIT ILL KILL SEGV PIPE TERM
+
+get_tempfile() {
+    last_tempfile="$(mktemp -t "$self.XXXXXXXX")"
+    tempfiles="$tempfiles $last_tempfile"
+}
+
+
+test_main() {
+    if [ $# = 0 ]; then
+        run_tests $all_tests
+    else
+        run_tests "$@"
+    fi
+}
+
+# vim:syntax=sh

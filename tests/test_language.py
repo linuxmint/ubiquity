@@ -1,29 +1,32 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8; -*-
 
 import os
+from test.support import EnvironmentVarGuard
 import unittest
-from test.test_support import EnvironmentVarGuard
 
 from gi.repository import Gtk
 import mock
 
 from ubiquity import i18n, plugin_manager
 
+
 def side_effect_factory(real_method):
     new_path = 'd-i/source/localechooser/debian/localechooser' \
                '/usr/share/localechooser/languagelist.data.gz'
+
     def side_effect(path, *args, **kw):
         if path.endswith('languagelist.data.gz'):
             return real_method(new_path, *args, **kw)
         else:
             return real_method(path, *args, **kw)
+
     return side_effect
+
 
 class OEMUserLanguageTests(unittest.TestCase):
     def setUp(self):
-        for obj in ('ubiquity.misc.execute',
-                'ubiquity.misc.execute_root'):
+        for obj in ('ubiquity.misc.execute', 'ubiquity.misc.execute_root'):
             patcher = mock.patch(obj)
             patcher.start()
             self.addCleanup(patcher.stop)
@@ -42,7 +45,7 @@ class OEMUserLanguageTests(unittest.TestCase):
         # GtkIconViewItem GList.
         if 'UBIQUITY_TEST_INSTALLED' not in os.environ:
             real_method = open
-            method = mock.patch('__builtin__.open')
+            method = mock.patch('builtins.open')
             mocked_method = method.start()
             mocked_method.side_effect = side_effect_factory(real_method)
             self.addCleanup(method.stop)
@@ -70,9 +73,7 @@ class OEMUserLanguageTests(unittest.TestCase):
 
 class LanguageTests(unittest.TestCase):
     def setUp(self):
-        
-        for obj in ('ubiquity.misc.execute',
-                'ubiquity.misc.execute_root'):
+        for obj in ('ubiquity.misc.execute', 'ubiquity.misc.execute_root'):
             patcher = mock.patch(obj)
             patcher.start()
             self.addCleanup(patcher.stop)
@@ -91,11 +92,14 @@ class LanguageTests(unittest.TestCase):
 
     def test_try_ubuntu_clicks(self):
         from ubiquity import gtkwidgets
+
         # Ensure that the mock changes state correctly.
         self.controller.allowed_change_step.return_value = True
+
         def side_effect(*args):
             assert len(args) == 1 and type(args[0]) is bool
             self.controller.allowed_change_step.return_value = args[0]
+
         self.controller.allow_change_step.side_effect = side_effect
         # Multiple clicks on Try Ubuntu crash the installer.  LP: #911907
         self.gtk.try_ubuntu.clicked()

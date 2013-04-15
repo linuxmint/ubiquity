@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
 # Copyright (C) 2005 Javier Carranza and others for Guadalinex
@@ -19,31 +19,36 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-import sys
-import os
+from __future__ import print_function
+
 import errno
+import os
+import signal
 import stat
 import subprocess
-import time
+import sys
 import syslog
-import signal
+import time
 
-import debconf
 import apt_pkg
 from apt.cache import Cache
+import debconf
 
 sys.path.insert(0, '/usr/lib/ubiquity')
 
-from ubiquity import misc
-from ubiquity import install_misc
-from ubiquity import osextras
-from ubiquity.casper import get_casper
+from ubiquity import install_misc, misc, osextras
 
 
 class Install(install_misc.InstallBase):
 
     def __init__(self):
         """Initial attributes."""
+        install_misc.InstallBase.__init__(self)
+
+        if not os.path.exists('/var/lib/ubiquity'):
+            os.makedirs('/var/lib/ubiquity')
+        with open('/var/lib/ubiquity/started-installing', 'a'):
+            pass
         
         if not os.path.exists('/var/lib/ubiquity'):
               os.makedirs('/var/lib/ubiquity')
@@ -60,9 +65,6 @@ class Install(install_misc.InstallBase):
             self.source = '/UNIONFS'
         else:
             self.source = '/var/lib/ubiquity/source'
-        self.target = '/target'
-        self.casper_path = os.path.join(
-            '/cdrom', get_casper('LIVE_MEDIA_PATH', 'casper').lstrip('/'))
         self.db = debconf.Debconf()
         self.blacklist = {}
 
@@ -84,9 +86,9 @@ class Install(install_misc.InstallBase):
         apt_pkg.init_config()
         apt_pkg.config.set("Dir", self.target)
         apt_pkg.config.set("Dir::State::status",
-                           os.path.join(self.target, 'var/lib/dpkg/status'))
+                           self.target_file('var/lib/dpkg/status'))
         apt_pkg.config.set("APT::GPGV::TrustedKeyring",
-                           os.path.join(self.target, 'etc/apt/trusted.gpg'))
+                           self.target_file('etc/apt/trusted.gpg'))
         apt_pkg.config.set("Acquire::gpgv::Options::",
                            "--ignore-time-conflict")
         apt_pkg.config.set("DPkg::Options::", "--root=%s" % self.target)
@@ -104,7 +106,8 @@ class Install(install_misc.InstallBase):
         self.prev_count = 0
         self.count = 1
 
-        self.db.progress('START', self.start, self.end, 'ubiquity/install/title')
+        self.db.progress(
+            'START', self.start, self.end, 'ubiquity/install/title')
         self.db.progress('INFO', 'ubiquity/install/mounting_source')
 
         if self.source == '/var/lib/ubiquity/source':
@@ -125,14 +128,17 @@ class Install(install_misc.InstallBase):
             # imagine.  Have those spin until the lock is released.
             if self.db.get('ubiquity/download_updates') == 'true':
                 cmd = ['/usr/share/ubiquity/update-apt-cache']
+
                 def subprocess_setup():
                     signal.signal(signal.SIGPIPE, signal.SIG_DFL)
                     os.setpgid(0, 0)
-                self.update_proc = subprocess.Popen(cmd, stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE, preexec_fn=subprocess_setup).pid
+
+                self.update_proc = subprocess.Popen(
+                    cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                    preexec_fn=subprocess_setup)
             try:
                 self.copy_all()
-            except EnvironmentError, e:
+            except EnvironmentError as e:
                 if e.errno in (errno.ENOENT, errno.EIO, errno.EFAULT,
                                errno.ENOTDIR, errno.EROFS):
                     if e.filename is None:
@@ -164,8 +170,8 @@ class Install(install_misc.InstallBase):
         if self.update_proc:
             for i in range(10):
                 try:
-                    os.killpg(self.update_proc, signal.SIGTERM)
-                except OSError, e:
+                    os.killpg(self.update_proc.pid, signal.SIGTERM)
+                except OSError as e:
                     if e.errno == errno.ESRCH:
                         break
                     else:
@@ -173,10 +179,12 @@ class Install(install_misc.InstallBase):
                 time.sleep(1)
             else:
                 try:
-                    os.killpg(self.update_proc, signal.SIGKILL)
-                except OSError, e:
+                    os.killpg(self.update_proc.pid, signal.SIGKILL)
+                except OSError as e:
                     if e.errno != errno.ESRCH:
                         raise
+            self.update_proc.stdin.close()
+            self.update_proc.stdout.close()
             syslog.syslog('Terminated ubiquity update process.')
 
     def find_cd_kernel(self):
@@ -189,19 +197,20 @@ class Install(install_misc.InstallBase):
             subarch = None
 
         for prefix in ('vmlinux', 'vmlinuz'):
-            kernel = os.path.join(self.casper_path, prefix)
-            if os.path.exists(kernel):
-                return kernel
-
-            if subarch:
-                kernel = os.path.join(self.casper_path, subarch, prefix)
-                if os.path.exists(kernel):
+            for suffix in ('', '.efi', '.efi.signed'):
+                kernel = os.path.join(self.casper_path, prefix)
+                if os.path.exists(kernel + suffix):
                     return kernel
 
-                kernel = os.path.join(self.casper_path,
-                                      '%s-%s' % (prefix, subarch))
-                if os.path.exists(kernel):
-                    return kernel
+                if subarch:
+                    kernel = os.path.join(self.casper_path, subarch, prefix)
+                    if os.path.exists(kernel + suffix):
+                        return kernel
+
+                    kernel = os.path.join(self.casper_path,
+                                          '%s-%s' % (prefix, subarch))
+                    if os.path.exists(kernel + suffix):
+                        return kernel
 
         return None
 
@@ -213,31 +222,27 @@ class Install(install_misc.InstallBase):
         manifest = os.path.join(self.casper_path, 'filesystem.manifest')
         if os.path.exists(manifest_remove) and os.path.exists(manifest):
             difference = set()
-            manifest_file = open(manifest_remove)
-            for line in manifest_file:
-                if line.strip() != '' and not line.startswith('#'):
-                    difference.add(line.split()[0])
-            manifest_file.close()
+            with open(manifest_remove) as manifest_file:
+                for line in manifest_file:
+                    if line.strip() != '' and not line.startswith('#'):
+                        difference.add(line.split()[0])
             live_packages = set()
-            manifest_file = open(manifest)
-            for line in manifest_file:
-                if line.strip() != '' and not line.startswith('#'):
-                    live_packages.add(line.split()[0])
-            manifest_file.close()
+            with open(manifest) as manifest_file:
+                for line in manifest_file:
+                    if line.strip() != '' and not line.startswith('#'):
+                        live_packages.add(line.split()[0])
             desktop_packages = live_packages - difference
         elif os.path.exists(manifest_desktop) and os.path.exists(manifest):
             desktop_packages = set()
-            manifest_file = open(manifest_desktop)
-            for line in manifest_file:
-                if line.strip() != '' and not line.startswith('#'):
-                    desktop_packages.add(line.split()[0])
-            manifest_file.close()
+            with open(manifest_desktop) as manifest_file:
+                for line in manifest_file:
+                    if line.strip() != '' and not line.startswith('#'):
+                        desktop_packages.add(line.split()[0])
             live_packages = set()
-            manifest_file = open(manifest)
-            for line in manifest_file:
-                if line.strip() != '' and not line.startswith('#'):
-                    live_packages.add(line.split()[0])
-            manifest_file.close()
+            with open(manifest) as manifest_file:
+                for line in manifest_file:
+                    if line.strip() != '' and not line.startswith('#'):
+                        live_packages.add(line.split()[0])
             difference = live_packages - desktop_packages
         else:
             difference = set()
@@ -253,7 +258,7 @@ class Install(install_misc.InstallBase):
         if not use_restricted:
             for pkg in cache.keys():
                 if (cache[pkg].is_installed and
-                    cache[pkg].section.startswith('restricted/')):
+                        cache[pkg].section.startswith('restricted/')):
                     difference.add(pkg)
 
         # Keep packages we explicitly installed.
@@ -268,20 +273,32 @@ class Install(install_misc.InstallBase):
             if subarch == 'efi':
                 keep.add('grub-efi')
                 keep.add('grub-efi-amd64')
+                efi_vars = "/sys/firmware/efi/vars"
+                sb_var = os.path.join(
+                    efi_vars,
+                    "SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c",
+                    "data")
+                if os.path.exists(sb_var):
+                    with open(sb_var, "rb") as sb_var_file:
+                        if sb_var_file.read(1) == b"\x01":
+                            keep.add('grub-efi-amd64-signed')
+                            keep.add('shim-signed')
+                            try:
+                                altmeta = self.db.get(
+                                    'base-installer/kernel/altmeta')
+                                if altmeta:
+                                    altmeta = '-%s' % altmeta
+                            except debconf.DebconfError:
+                                altmeta = ''
+                            keep.add('linux-signed-generic%s' % altmeta)
             else:
                 keep.add('grub')
                 keep.add('grub-pc')
         elif (arch in ('armel', 'armhf') and
-              subarch in ('dove', 'imx51', 'iop32x', 'ixp4xx', 'orion5x', 'omap')):
+              subarch in ('omap', 'omap4', 'mx5')):
             keep.add('flash-kernel')
-            if subarch == 'dove':
-                keep.add('uboot-mkimage')
-            elif subarch == 'imx51':
-                keep.add('redboot-tools')
-            elif subarch == 'omap':
-                keep.add('uboot-envtools')
-                keep.add('uboot-mkimage')
-        elif arch == 'powerpc' and subarch != 'ps3':
+            keep.add('u-boot-tools')
+        elif arch == 'powerpc':
             keep.add('yaboot')
             keep.add('hfsutils')
 
@@ -294,27 +311,31 @@ class Install(install_misc.InstallBase):
         except (debconf.DebconfError, IOError):
             pass
 
-        difference -= install_misc.expand_dependencies_simple(cache, keep, difference)
+        difference -= install_misc.expand_dependencies_simple(
+            cache, keep, difference)
 
         # Consider only packages that don't have a prerm, and which can
         # therefore have their files removed without any preliminary work.
-        difference = set(filter(
-            lambda x: not os.path.exists('/var/lib/dpkg/info/%s.prerm' % x),
-            difference))
+        difference = {
+            x for x in difference
+            if not os.path.exists('/var/lib/dpkg/info/%s.prerm' % x)}
 
         confirmed_remove = set()
-        for pkg in sorted(difference):
-            if pkg in confirmed_remove:
-                continue
-            would_remove = install_misc.get_remove_list(cache, [pkg], recursive=True)
-            if would_remove <= difference:
-                confirmed_remove |= would_remove
-                # Leave these marked for removal in the apt cache to speed
-                # up further calculations.
-            else:
-                for removedpkg in would_remove:
-                    cachedpkg = install_misc.get_cache_pkg(cache, removedpkg)
-                    cachedpkg.mark_keep()
+        with cache.actiongroup():
+            for pkg in sorted(difference):
+                if pkg in confirmed_remove:
+                    continue
+                would_remove = install_misc.get_remove_list(
+                    cache, [pkg], recursive=True)
+                if would_remove <= difference:
+                    confirmed_remove |= would_remove
+                    # Leave these marked for removal in the apt cache to
+                    # speed up further calculations.
+                else:
+                    for removedpkg in would_remove:
+                        cachedpkg = install_misc.get_cache_pkg(
+                            cache, removedpkg)
+                        cachedpkg.mark_keep()
         difference = confirmed_remove
 
         if len(difference) == 0:
@@ -324,7 +345,9 @@ class Install(install_misc.InstallBase):
 
         cmd = ['dpkg', '-L']
         cmd.extend(difference)
-        subp = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subp = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            universal_newlines=True)
         res = subp.communicate()[0].splitlines()
         u = {}
         for x in res:
@@ -390,12 +413,12 @@ class Install(install_misc.InstallBase):
             with open('/proc/sys/vm/dirty_writeback_centisecs') as dwc:
                 dirty_writeback_centisecs = int(dwc.readline())
             with open('/proc/sys/vm/dirty_writeback_centisecs', 'w') as dwc:
-                print >>dwc, '3000\n'
+                print('3000\n', file=dwc)
         if os.path.exists('/proc/sys/vm/dirty_expire_centisecs'):
             with open('/proc/sys/vm/dirty_expire_centisecs') as dec:
                 dirty_expire_centisecs = int(dec.readline())
             with open('/proc/sys/vm/dirty_expire_centisecs', 'w') as dec:
-                print >>dec, '6000\n'
+                print('6000\n', file=dec)
 
         old_umask = os.umask(0)
         for dirpath, dirnames, filenames in os.walk(self.source):
@@ -413,7 +436,7 @@ class Install(install_misc.InstallBase):
 
                 # Is the path blacklisted?
                 if (not stat.S_ISDIR(st.st_mode) and
-                    '/%s' % relpath in self.blacklist):
+                        '/%s' % relpath in self.blacklist):
                     if debug:
                         syslog.syslog('Not copying %s' % relpath)
                     continue
@@ -431,7 +454,7 @@ class Install(install_misc.InstallBase):
                     if not os.path.isdir(targetpath):
                         try:
                             os.mkdir(targetpath, mode)
-                        except OSError, e:
+                        except OSError as e:
                             # there is a small window where update-apt-cache
                             # can race with us since it creates
                             # "/target/var/cache/apt/...". Hence, ignore
@@ -448,7 +471,8 @@ class Install(install_misc.InstallBase):
                 elif stat.S_ISSOCK(st.st_mode):
                     os.mknod(targetpath, stat.S_IFSOCK | mode)
                 elif stat.S_ISREG(st.st_mode):
-                    install_misc.copy_file(self.db, sourcepath, targetpath, md5_check)
+                    install_misc.copy_file(
+                        self.db, sourcepath, targetpath, md5_check)
 
                 # Copy metadata.
                 copied_size += st.st_size
@@ -456,7 +480,8 @@ class Install(install_misc.InstallBase):
                 if not stat.S_ISLNK(st.st_mode):
                     os.chmod(targetpath, mode)
                 if stat.S_ISDIR(st.st_mode):
-                    directory_times.append((targetpath, st.st_atime, st.st_mtime))
+                    directory_times.append(
+                        (targetpath, st.st_atime, st.st_mtime))
                 # os.utime() sets timestamp of target, not link
                 elif not stat.S_ISLNK(st.st_mode):
                     try:
@@ -482,7 +507,8 @@ class Install(install_misc.InstallBase):
                         speed = ((times[-1][1] - times[0][1]) /
                                  (times[-1][0] - times[0][0]))
                         if speed != 0:
-                            time_remaining = int((total_size - copied_size) / speed)
+                            time_remaining = (
+                                int((total_size - copied_size) / speed))
                             if time_remaining < 60:
                                 self.db.progress(
                                     'INFO', 'ubiquity/install/copying_minute')
@@ -501,29 +527,55 @@ class Install(install_misc.InstallBase):
         # Revert to previous kernel flush times.
         if dirty_writeback_centisecs is not None:
             with open('/proc/sys/vm/dirty_writeback_centisecs', 'w') as dwc:
-                print >>dwc, dirty_writeback_centisecs
+                print(dirty_writeback_centisecs, file=dwc)
         if dirty_expire_centisecs is not None:
             with open('/proc/sys/vm/dirty_expire_centisecs', 'w') as dec:
-                print >>dec, dirty_expire_centisecs
+                print(dirty_expire_centisecs, file=dec)
 
         # Try some possible locations for the kernel we used to boot. This
         # lets us save a couple of megabytes of CD space.
-        bootdir = os.path.join(self.target, 'boot')
+        bootdir = self.target_file('boot')
         kernel = self.find_cd_kernel()
         if kernel:
             prefix = os.path.basename(kernel).split('-', 1)[0]
             release = os.uname()[2]
             target_kernel = os.path.join(bootdir, '%s-%s' % (prefix, release))
-            osextras.unlink_force(target_kernel)
-            install_misc.copy_file(self.db, kernel, target_kernel, md5_check)
-            os.lchown(target_kernel, 0, 0)
-            os.chmod(target_kernel, 0644)
-            st = os.lstat(kernel)
-            try:
-                os.utime(target_kernel, (st.st_atime, st.st_mtime))
-            except Exception:
-                # We can live with timestamps being wrong.
-                pass
+            copies = []
+
+            # ISO9660 images may have to use .efi rather than .efi.signed in
+            # order to support being booted using isolinux, which must abide
+            # by archaic 8.3 restrictions.
+            for suffix in (".efi", ".efi.signed"):
+                if os.path.exists(kernel + suffix):
+                    signed_kernel = kernel + suffix
+                    break
+            else:
+                signed_kernel = None
+
+            if os.path.exists(kernel):
+                copies.append((kernel, target_kernel))
+            elif signed_kernel is not None:
+                # No unsigned kernel.  We'll construct it using sbsigntool.
+                copies.append((signed_kernel, target_kernel))
+
+            if signed_kernel is not None:
+                copies.append((signed_kernel, "%s.efi.signed" % target_kernel))
+
+            for source, target in copies:
+                osextras.unlink_force(target)
+                install_misc.copy_file(self.db, source, target, md5_check)
+                os.lchown(target, 0, 0)
+                os.chmod(target, 0o644)
+                st = os.lstat(source)
+                try:
+                    os.utime(target, (st.st_atime, st.st_mtime))
+                except Exception:
+                    # We can live with timestamps being wrong.
+                    pass
+
+            if not os.path.exists(kernel) and signed_kernel is not None:
+                # Construct the unsigned kernel.
+                subprocess.check_call(["sbattach", "--remove", target_kernel])
 
         os.umask(old_umask)
 
@@ -537,29 +589,29 @@ class Install(install_misc.InstallBase):
             blockdev_prefix = 'loop'
 
         if blockdev_prefix == '':
-            raise install_misc.InstallStepError("No source device found for %s" % fsfile)
+            raise install_misc.InstallStepError(
+                "No source device found for %s" % fsfile)
 
         dev = ''
-        sysloops = filter(lambda x: x.startswith(blockdev_prefix),
-                          os.listdir('/sys/block'))
-        sysloops.sort()
+        sysloops = sorted([x for x in os.listdir('/sys/block')
+                           if x.startswith(blockdev_prefix)])
         for sysloop in sysloops:
             try:
-                sysloopf = open(os.path.join('/sys/block', sysloop, 'size'))
-                sysloopsize = sysloopf.readline().strip()
-                sysloopf.close()
+                with open(os.path.join('/sys/block', sysloop,
+                                       'size')) as sysloopf:
+                    sysloopsize = sysloopf.readline().strip()
                 if sysloopsize == '0':
-                    devnull = open('/dev/null')
                     if osextras.find_on_path('udevadm'):
                         udevinfo_cmd = ['udevadm', 'info']
                     else:
                         udevinfo_cmd = ['udevinfo']
                     udevinfo_cmd.extend(
                         ['-q', 'name', '-p', os.path.join('/block', sysloop)])
-                    udevinfo = subprocess.Popen(
-                        udevinfo_cmd, stdout=subprocess.PIPE, stderr=devnull)
+                    with open('/dev/null') as devnull:
+                        udevinfo = subprocess.Popen(
+                            udevinfo_cmd, stdout=subprocess.PIPE,
+                            stderr=devnull, universal_newlines=True)
                     devbase = udevinfo.communicate()[0]
-                    devnull.close()
                     if udevinfo.returncode != 0:
                         devbase = sysloop
                     dev = '/dev/%s' % devbase
@@ -568,7 +620,8 @@ class Install(install_misc.InstallBase):
                 continue
 
         if dev == '':
-            raise install_misc.InstallStepError("No loop device available for %s" % fsfile)
+            raise install_misc.InstallStepError(
+                "No loop device available for %s" % fsfile)
 
         misc.execute('losetup', dev, fsfile)
         if mountpoint is None:
@@ -596,15 +649,13 @@ class Install(install_misc.InstallBase):
 
         if fs_preseed == '':
             # Simple autodetection on unionfs systems
-            mounts = open('/proc/mounts')
-            for line in mounts:
-                (device, fstype) = line.split()[1:3]
-                if fstype == 'squashfs' and os.path.exists(device):
-                    misc.execute('mount', '--bind', device, self.source)
-                    self.mountpoints.append(self.source)
-                    mounts.close()
-                    return
-            mounts.close()
+            with open('/proc/mounts') as mounts:
+                for line in mounts:
+                    (device, fstype) = line.split()[1:3]
+                    if fstype == 'squashfs' and os.path.exists(device):
+                        misc.execute('mount', '--bind', device, self.source)
+                        self.mountpoints.append(self.source)
+                        return
 
             # Manual detection on non-unionfs systems
             fsfiles = [os.path.join(self.casper_path, 'filesystem.cloop'),
@@ -643,8 +694,8 @@ class Install(install_misc.InstallBase):
             assert self.mountpoints
 
             misc.execute('mount', '-t', 'unionfs', '-o',
-                         'dirs=' + ':'.join(map(lambda x: '%s=ro' % x,
-                                                self.mountpoints)),
+                         'dirs=' + ':'.join(['%s=ro' % x
+                                             for x in self.mountpoints]),
                          'unionfs', self.source)
             self.mountpoints.append(self.source)
 
@@ -659,10 +710,11 @@ class Install(install_misc.InstallBase):
 
         for mountpoint in mountpoints:
             if not misc.execute('umount', mountpoint):
-                raise install_misc.InstallStepError("Failed to unmount %s" % mountpoint)
+                raise install_misc.InstallStepError(
+                    "Failed to unmount %s" % mountpoint)
         for dev in devs:
             if (dev != '' and dev != 'unused' and
-                not misc.execute('losetup', '-d', dev)):
+                    not misc.execute('losetup', '-d', dev)):
                 raise install_misc.InstallStepError(
                     "Failed to detach loopback device %s" % dev)
 
@@ -674,7 +726,7 @@ class Install(install_misc.InstallBase):
         need to make this decision before generating the file copy blacklist
         so user-setup-apply would be too late."""
 
-        home = os.path.join(self.target, 'home')
+        home = self.target_file('home')
         if os.path.isdir(home):
             for homedir in os.listdir(home):
                 if os.path.isdir(os.path.join(home, homedir, '.ecryptfs')):

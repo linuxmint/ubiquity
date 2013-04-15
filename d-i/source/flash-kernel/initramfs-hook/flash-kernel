@@ -1,0 +1,27 @@
+#!/bin/sh
+
+set -e
+
+# conffile still present, but flash-kernel removed
+if ! which flash-kernel >/dev/null 2>&1; then
+    exit 0
+fi
+
+# we dont want to run if FLASH_KERNEL_SKIP is set, the ubuntu
+# image build system uses this
+if [ -n "$FLASH_KERNEL_SKIP" ]; then
+        exit 0
+fi
+
+# Do not run inside an LXC container
+if type running-in-container >/dev/null 2>&1 && \
+        running-in-container >/dev/null; then
+    exit 0
+fi
+
+abi="$1"
+# ignored
+_initrd="$2"
+
+exec flash-kernel "$abi"
+

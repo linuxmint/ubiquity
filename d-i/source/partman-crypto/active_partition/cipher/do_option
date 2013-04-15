@@ -1,0 +1,54 @@
+#!/bin/sh
+
+. /lib/partman/lib/crypto-base.sh
+
+dev=$2
+id=$3
+part=$dev/$id
+
+cd $dev
+
+select_cipher () {
+	type=$1
+	ciphers=""
+	for cipher_dir in /lib/partman/ciphers/$type/*; do
+		name=${cipher_dir##*/}
+		if [ ! -d $cipher_dir ]; then
+			continue
+		fi
+		# Load required kernel modules
+		if ! crypto_load_modules "$type" "$name"; then
+			continue
+		fi
+		desc=$(cat $cipher_dir/desc)
+		if [ "$ciphers" ]; then
+			ciphers="$ciphers, $name"
+		else
+			ciphers="$name"
+		fi
+	done
+
+	template="partman-crypto/cipher"
+	db_subst $template CHOICES $ciphers
+	db_input critical $template || true
+	db_go || return
+	db_get $template
+
+	if [ "$RET" = none ]; then
+		rm -f $part/cipher
+		return
+	fi
+
+	echo ${RET%% *} > $part/cipher
+}
+
+[ -f $part/method ] || exit 0
+[ -f $part/crypto_type ] || exit 0
+
+method=$(cat $part/method)
+type=$(cat $part/crypto_type)
+
+if [ $method = crypto ]; then
+	select_cipher $type
+fi
+

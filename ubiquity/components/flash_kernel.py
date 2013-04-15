@@ -19,6 +19,7 @@
 
 from ubiquity.filteredcommand import FilteredCommand
 
+
 class FlashKernel(FilteredCommand):
     def prepare(self):
         return (['/usr/lib/ubiquity/flash-kernel/flash-kernel-installer'],

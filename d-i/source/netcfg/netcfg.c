@@ -103,10 +103,7 @@ int main(int argc, char *argv[])
     /* Check to see if netcfg should be run at all */
     debconf_get(client, "netcfg/enable");
     if (!strcmp(client->value, "false")) {
-        char *hostname = NULL;
-
         netcfg_get_hostname(client, "netcfg/get_hostname", hostname, 0);
-
         netcfg_write_common("", hostname, NULL);
         return 0;
     }

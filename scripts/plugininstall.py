@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
 # Copyright (C) 2005 Javier Carranza and others for Guadalinex
@@ -19,34 +19,57 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-import sys
+from __future__ import print_function
+
+import fcntl
+import gzip
 import os
 import platform
-import stat
-import re
-import textwrap
-import shutil
-import subprocess
-import struct
-import socket
-import fcntl
-import traceback
-import syslog
-import gzip
 import pwd
+import re
+import shutil
+import socket
+import stat
+import struct
+import subprocess
+import sys
+import syslog
+import textwrap
+import traceback
 
-import debconf
 import apt_pkg
 from apt.cache import Cache
+import debconf
 
 sys.path.insert(0, '/usr/lib/ubiquity')
 
-from ubiquity import misc
-from ubiquity import install_misc
-from ubiquity import osextras
-from ubiquity import plugin_manager
-from ubiquity.casper import get_casper
-from ubiquity.components import apt_setup, hw_detect, check_kernels
+from ubiquity import install_misc, misc, osextras, plugin_manager
+from ubiquity.components import apt_setup, check_kernels, hw_detect
+
+
+INTERFACES_TEXT = """\
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+
+# The loopback network interface
+auto lo
+iface lo inet loopback"""
+
+
+HOSTS_TEXT = """\
+
+# The following lines are desirable for IPv6 capable hosts
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters"""
+
+
+IFTAB_TEXT = """\
+# This file assigns persistent names to network interfaces.
+# See iftab(5) for syntax.
+"""
 
 
 def cleanup_after(func):
@@ -64,13 +87,26 @@ def cleanup_after(func):
     return wrapper
 
 
+class PluginProgress:
+    def __init__(self, db):
+        self._db = db
+
+    def info(self, title):
+        self._db.progress('INFO', title)
+
+    def get(self, question):
+        return self._db.get(question)
+
+    def substitute(self, template, substr, data):
+        self._db.subst(template, substr, data)
+
+
 class Install(install_misc.InstallBase):
     def __init__(self):
+        install_misc.InstallBase.__init__(self)
+
         self.db = debconf.Debconf()
         self.kernel_version = platform.release()
-        self.target = '/target'
-        self.casper_path = os.path.join(
-            '/cdrom', get_casper('LIVE_MEDIA_PATH', 'casper').lstrip('/'))
 
         # Get langpacks from install
         self.langpacks = []
@@ -91,9 +127,9 @@ class Install(install_misc.InstallBase):
         apt_pkg.init_config()
         apt_pkg.config.set("Dir", self.target)
         apt_pkg.config.set("Dir::State::status",
-                           os.path.join(self.target, 'var/lib/dpkg/status'))
+                           self.target_file('var/lib/dpkg/status'))
         apt_pkg.config.set("APT::GPGV::TrustedKeyring",
-                           os.path.join(self.target, 'etc/apt/trusted.gpg'))
+                           self.target_file('etc/apt/trusted.gpg'))
 
         # Keep this in sync with configure_apt.
         # TODO cjwatson 2011-03-03: consolidate this.
@@ -140,7 +176,7 @@ class Install(install_misc.InstallBase):
     # Ask Colin.
     @cleanup_after
     def run(self):
-        '''Main entry point.'''
+        """Main entry point."""
         # We pick up where install.py left off.
         if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
             self.prev_count = 0
@@ -150,13 +186,16 @@ class Install(install_misc.InstallBase):
         self.start = self.prev_count
         self.end = self.start + 22 + len(self.plugins)
 
-        self.db.progress('START', self.start, self.end, 'ubiquity/install/title')
+        self.db.progress(
+            'START', self.start, self.end, 'ubiquity/install/title')
 
         self.configure_python()
 
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/network')
         self.configure_network()
+
+        self.configure_locale()
 
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/apt')
@@ -187,9 +226,8 @@ class Install(install_misc.InstallBase):
         self.configure_hardware()
 
         # Tell apt-install to install packages directly from now on.
-        apt_install_direct = open('/var/lib/ubiquity/apt-install-direct',
-                                  'w')
-        apt_install_direct.close()
+        with open('/var/lib/ubiquity/apt-install-direct', 'w'):
+            pass
 
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/installing')
@@ -222,7 +260,8 @@ class Install(install_misc.InstallBase):
         try:
             self.apt_clone_restore()
         except:
-            syslog.syslog(syslog.LOG_WARNING,
+            syslog.syslog(
+                syslog.LOG_WARNING,
                 'Could not restore packages from the previous install:')
             for line in traceback.format_exc().split('\n'):
                 syslog.syslog(syslog.LOG_WARNING, line)
@@ -231,7 +270,8 @@ class Install(install_misc.InstallBase):
         try:
             self.copy_network_config()
         except:
-            syslog.syslog(syslog.LOG_WARNING,
+            syslog.syslog(
+                syslog.LOG_WARNING,
                 'Could not copy the network configuration:')
             for line in traceback.format_exc().split('\n'):
                 syslog.syslog(syslog.LOG_WARNING, line)
@@ -240,7 +280,8 @@ class Install(install_misc.InstallBase):
         try:
             self.copy_bluetooth_config()
         except:
-            syslog.syslog(syslog.LOG_WARNING,
+            syslog.syslog(
+                syslog.LOG_WARNING,
                 'Could not copy the bluetooth configuration:')
             for line in traceback.format_exc().split('\n'):
                 syslog.syslog(syslog.LOG_WARNING, line)
@@ -249,15 +290,15 @@ class Install(install_misc.InstallBase):
         try:
             self.recache_apparmor()
         except:
-            syslog.syslog(syslog.LOG_WARNING,
-                'Could not create an Apparmor cache:')
+            syslog.syslog(
+                syslog.LOG_WARNING, 'Could not create an Apparmor cache:')
             for line in traceback.format_exc().split('\n'):
                 syslog.syslog(syslog.LOG_WARNING, line)
         try:
             self.copy_wallpaper_cache()
         except:
-            syslog.syslog(syslog.LOG_WARNING,
-                'Could not copy wallpaper cache:')
+            syslog.syslog(
+                syslog.LOG_WARNING, 'Could not copy wallpaper cache:')
             for line in traceback.format_exc().split('\n'):
                 syslog.syslog(syslog.LOG_WARNING, line)
         self.copy_dcd()
@@ -265,17 +306,20 @@ class Install(install_misc.InstallBase):
         self.db.progress('SET', self.count)
         self.db.progress('INFO', 'ubiquity/install/log_files')
         self.copy_logs()
+        self.save_random_seed()
 
         self.db.progress('SET', self.end)
 
     def configure_face(self):
         PHOTO_PATH = '/var/lib/ubiquity/webcam_photo.png'
         target_user = self.db.get('passwd/username')
-        uid = subprocess.Popen(['chroot', self.target, 'sudo', '-u',
-            target_user, '--', 'id', '-u'], stdout=subprocess.PIPE)
+        uid = subprocess.Popen(
+            ['chroot', self.target, 'sudo', '-u', target_user, '--',
+             'id', '-u'], stdout=subprocess.PIPE, universal_newlines=True)
         uid = uid.communicate()[0].strip('\n')
-        gid = subprocess.Popen(['chroot', self.target, 'sudo', '-u',
-            target_user, '--', 'id', '-g'], stdout=subprocess.PIPE)
+        gid = subprocess.Popen(
+            ['chroot', self.target, 'sudo', '-u', target_user, '--',
+             'id', '-g'], stdout=subprocess.PIPE, universal_newlines=True)
         gid = gid.communicate()[0].strip('\n')
         try:
             uid = int(uid)
@@ -283,7 +327,7 @@ class Install(install_misc.InstallBase):
         except ValueError:
             return
         if os.path.exists(PHOTO_PATH):
-            targetpath = os.path.join(self.target, 'home', target_user, '.face')
+            targetpath = self.target_file('home', target_user, '.face')
             shutil.copy2(PHOTO_PATH, targetpath)
             os.lchown(targetpath, uid, gid)
 
@@ -292,34 +336,35 @@ class Install(install_misc.InstallBase):
 
         To save space, Ubuntu excludes .pyc files from the live filesystem.
         Recreate them now to restore the appearance of a system installed
-        from .debs."""
-
+        from .debs.
+        """
         cache = Cache()
 
         # Python standard library.
         re_minimal = re.compile('^python\d+\.\d+-minimal$')
-        python_installed = sorted(
-            [pkg[:-8] for pkg in cache.keys()
-                      if re_minimal.match(pkg) and cache[pkg].is_installed])
+        python_installed = sorted([
+            pkg[:-8] for pkg in cache.keys()
+            if re_minimal.match(pkg) and cache[pkg].is_installed])
         for python in python_installed:
             re_file = re.compile('^/usr/lib/%s/.*\.py$' % python)
-            files = [f for f in cache['%s-minimal' % python].installed_files
-                       if re_file.match(f) and
-                          not os.path.exists(os.path.join(self.target,
-                                                          '%sc' % f[1:]))]
+            files = [
+                f for f in cache['%s-minimal' % python].installed_files
+                if (re_file.match(f) and
+                    not os.path.exists(self.target_file('%sc' % f[1:])))]
             install_misc.chrex(self.target, python,
                                '/usr/lib/%s/py_compile.py' % python, *files)
-            files = [f for f in cache[python].installed_files
-                       if re_file.match(f) and
-                          not os.path.exists(os.path.join(self.target,
-                                                          '%sc' % f[1:]))]
+            files = [
+                f for f in cache[python].installed_files
+                if (re_file.match(f) and
+                    not os.path.exists(self.target_file('%sc' % f[1:])))]
             install_misc.chrex(self.target, python,
                                '/usr/lib/%s/py_compile.py' % python, *files)
 
         # Modules provided by the core Debian Python packages.
         default = subprocess.Popen(
             ['chroot', self.target, 'pyversions', '-d'],
-            stdout=subprocess.PIPE).communicate()[0].rstrip('\n')
+            stdout=subprocess.PIPE,
+            universal_newlines=True).communicate()[0].rstrip('\n')
         if default:
             install_misc.chrex(self.target, default, '-m', 'compileall',
                                '/usr/share/python/')
@@ -329,7 +374,7 @@ class Install(install_misc.InstallBase):
 
         def run_hooks(path, *args):
             for hook in osextras.glob_root(self.target, path):
-                if not os.access(os.path.join(self.target, hook[1:]), os.X_OK):
+                if not os.access(self.target_file(hook[1:]), os.X_OK):
                     continue
                 install_misc.chrex(self.target, hook, *args)
 
@@ -339,7 +384,8 @@ class Install(install_misc.InstallBase):
             if osextras.find_on_path_root(self.target, 'pyversions'):
                 supported = subprocess.Popen(
                     ['chroot', self.target, 'pyversions', '-s'],
-                    stdout=subprocess.PIPE).communicate()[0].rstrip('\n')
+                    stdout=subprocess.PIPE,
+                    universal_newlines=True).communicate()[0].rstrip('\n')
                 for python in supported.split():
                     try:
                         cachedpython = cache['%s-minimal' % python]
@@ -360,7 +406,8 @@ class Install(install_misc.InstallBase):
             if osextras.find_on_path_root(self.target, 'py3versions'):
                 supported = subprocess.Popen(
                     ['chroot', self.target, 'py3versions', '-s'],
-                    stdout=subprocess.PIPE).communicate()[0].rstrip('\n')
+                    stdout=subprocess.PIPE,
+                    universal_newlines=True).communicate()[0].rstrip('\n')
                 for python in supported.split():
                     try:
                         cachedpython = cache['%s-minimal' % python]
@@ -389,8 +436,8 @@ class Install(install_misc.InstallBase):
 
         Unfortunately, at present we have to duplicate a fair bit of netcfg
         here, because it's hard to drive netcfg in a way that won't try to
-        bring interfaces up and down."""
-
+        bring interfaces up and down.
+        """
         # TODO cjwatson 2006-03-30: just call netcfg instead of doing all
         # this; requires a netcfg binary that doesn't bring interfaces up
         # and down
@@ -398,7 +445,7 @@ class Install(install_misc.InstallBase):
         if self.target != '/':
             for path in ('/etc/network/interfaces', '/etc/resolv.conf'):
                 if os.path.exists(path):
-                    targetpath = os.path.join(self.target, path[1:])
+                    targetpath = self.target_file(path[1:])
                     st = os.lstat(path)
                     if stat.S_ISLNK(st.st_mode):
                         if os.path.lexists(targetpath):
@@ -406,19 +453,13 @@ class Install(install_misc.InstallBase):
                         linkto = os.readlink(path)
                         os.symlink(linkto, targetpath)
                     else:
-                        shutil.copy2(path, os.path.join(self.target, path[1:]))
+                        shutil.copy2(path, targetpath)
         else:
             if not os.path.exists('/etc/network/interfaces'):
                 # Make sure there's at least something here so that ifupdown
                 # doesn't get upset at boot.
                 with open('/etc/network/interfaces', 'w') as interfaces:
-                    print >>interfaces, textwrap.dedent("""\
-                        # This file describes the network interfaces available on your system
-                        # and how to activate them. For more information, see interfaces(5).
-
-                        # The loopback network interface
-                        auto lo
-                        iface lo inet loopback""")
+                    print(INTERFACES_TEXT, file=interfaces)
 
         try:
             hostname = self.db.get('netcfg/get_hostname')
@@ -431,29 +472,20 @@ class Install(install_misc.InstallBase):
         if hostname == '':
             hostname = 'mint'
 
-        hosts = open(os.path.join(self.target, 'etc/hosts'), 'w')
-        print >>hosts, "127.0.0.1\tlocalhost"
-        if domain:
-            print >>hosts, "127.0.1.1\t%s.%s\t%s" % (hostname, domain,
-                                                     hostname)
-        else:
-            print >>hosts, "127.0.1.1\t%s" % hostname
-        print >>hosts, textwrap.dedent("""\
-
-            # The following lines are desirable for IPv6 capable hosts
-            ::1     ip6-localhost ip6-loopback
-            fe00::0 ip6-localnet
-            ff00::0 ip6-mcastprefix
-            ff02::1 ip6-allnodes
-            ff02::2 ip6-allrouters""")
-        hosts.close()
+        with open(self.target_file('etc/hosts'), 'w') as hosts:
+            print("127.0.0.1\tlocalhost", file=hosts)
+            if domain:
+                print("127.0.1.1\t%s.%s\t%s" % (hostname, domain, hostname),
+                      file=hosts)
+            else:
+                print("127.0.1.1\t%s" % hostname, file=hosts)
+            print(HOSTS_TEXT, file=hosts)
 
         # Network Manager's ifupdown plugin has an inotify watch on
         # /etc/hostname, which can trigger a race condition if /etc/hostname is
         # written and immediately followed with /etc/hosts.
-        fp = open(os.path.join(self.target, 'etc/hostname'), 'w')
-        print >>fp, hostname
-        fp.close()
+        with open(self.target_file('etc/hostname'), 'w') as fp:
+            print(hostname, file=fp)
 
         if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
             os.system("hostname %s" % hostname)
@@ -461,8 +493,8 @@ class Install(install_misc.InstallBase):
         persistent_net = '/etc/udev/rules.d/70-persistent-net.rules'
         if os.path.exists(persistent_net):
             if self.target != '/':
-                shutil.copy2(persistent_net,
-                             os.path.join(self.target, persistent_net[1:]))
+                shutil.copy2(
+                    persistent_net, self.target_file(persistent_net[1:]))
         else:
             # TODO cjwatson 2006-03-30: from <bits/ioctls.h>; ugh, but no
             # binding available
@@ -474,74 +506,78 @@ class Install(install_misc.InstallBase):
             sock = socket.socket(socket.SOCK_DGRAM)
             interfaces = install_misc.get_all_interfaces()
             for i in range(len(interfaces)):
-                if_names[interfaces[i]] = struct.unpack('H6s',
-                    fcntl.ioctl(sock.fileno(), SIOCGIFHWADDR,
-                                struct.pack('256s', interfaces[i]))[16:24])
+                if_names[interfaces[i]] = struct.unpack(
+                    'H6s', fcntl.ioctl(
+                        sock.fileno(), SIOCGIFHWADDR,
+                        struct.pack('256s', interfaces[i].encode()))[16:24])
             sock.close()
 
-            iftab = open(os.path.join(self.target, 'etc/iftab'), 'w')
+            with open(self.target_file('etc/iftab'), 'w') as iftab:
+                print(IFTAB_TEXT, file=iftab)
 
-            print >>iftab, textwrap.dedent("""\
-                # This file assigns persistent names to network interfaces.
-                # See iftab(5) for syntax.
-                """)
+                for i in range(len(interfaces)):
+                    dup = False
 
-            for i in range(len(interfaces)):
-                dup = False
-
-                if_name = if_names[interfaces[i]]
-                if if_name is None or if_name[0] != ARPHRD_ETHER:
-                    continue
-
-                for j in range(len(interfaces)):
-                    if i == j or if_names[interfaces[j]] is None:
-                        continue
-                    if if_name[1] != if_names[interfaces[j]][1]:
+                    if_name = if_names[interfaces[i]]
+                    if if_name is None or if_name[0] != ARPHRD_ETHER:
                         continue
 
-                    if if_names[interfaces[j]][0] == ARPHRD_ETHER:
-                        dup = True
+                    for j in range(len(interfaces)):
+                        if i == j or if_names[interfaces[j]] is None:
+                            continue
+                        if if_name[1] != if_names[interfaces[j]][1]:
+                            continue
 
-                if dup:
-                    continue
+                        if if_names[interfaces[j]][0] == ARPHRD_ETHER:
+                            dup = True
 
-                line = (interfaces[i] + " mac " +
-                        ':'.join(['%02x' % ord(if_name[1][c])
-                                  for c in range(6)]))
-                line += " arp %d" % if_name[0]
-                print >>iftab, line
+                    if dup:
+                        continue
 
-            iftab.close()
+                    line = (interfaces[i] + " mac " +
+                            ':'.join(['%02x' % if_name[1][c]
+                                      for c in range(6)]))
+                    line += " arp %d" % if_name[0]
+                    print(line, file=iftab)
+
+    def run_plugin(self, plugin):
+        """Run a single install plugin."""
+        self.next_region()
+        # set a generic info message in case plugin doesn't provide one
+        self.db.progress('INFO', 'ubiquity/install/title')
+        inst = plugin.Install(None, db=self.db)
+        ret = inst.install(self.target, PluginProgress(self.db))
+        if ret:
+            raise install_misc.InstallStepError(
+                "Plugin %s failed with code %s" % (plugin.NAME, ret))
+
+    def configure_locale(self):
+        """Configure the locale by running the language plugin.
+
+        We need to do this as early as possible so that apt can emit
+        properly-localised messages when running in the target system.
+        """
+        try:
+            language_plugin = [
+                plugin for plugin in self.plugins
+                if (plugin_manager.get_mod_string(plugin, "NAME") ==
+                    "language")][0]
+        except IndexError:
+            return
+        self.run_plugin(language_plugin)
+        # Don't run this plugin again.
+        self.plugins = [
+            plugin for plugin in self.plugins if plugin != language_plugin]
 
     def configure_plugins(self):
         """Apply plugin settings to installed system."""
-        class Progress:
-            def __init__(self, db):
-                self._db = db
-
-            def info(self, title):
-                self._db.progress('INFO', title)
-
-            def get(self, question):
-                return self._db.get(question)
-
-            def substitute(self, template, substr, data):
-                self._db.subst(template, substr, data)
-
         for plugin in self.plugins:
-            self.next_region()
-            # set a generic info message in case plugin doesn't provide one
-            self.db.progress('INFO', 'ubiquity/install/title')
-            inst = plugin.Install(None, db=self.db)
-            ret = inst.install(self.target, Progress(self.db))
-            if ret:
-                raise install_misc.InstallStepError("Plugin %s failed with code %s" % (plugin.NAME, ret))
+            self.run_plugin(plugin)
 
     def configure_apt(self):
         """Configure /etc/apt/sources.list."""
-
         if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
-            return # apt will already be setup as the OEM wants
+            return  # apt will already be setup as the OEM wants
 
         # TODO cjwatson 2007-07-06: Much of the following is
         # cloned-and-hacked from base-installer/debian/postinst. Perhaps we
@@ -551,46 +587,40 @@ class Install(install_misc.InstallBase):
 
         try:
             if self.db.get('base-installer/install-recommends') == 'false':
-                apt_conf_ir = open(
-                    os.path.join(self.target,
-                                 'etc/apt/apt.conf.d/00InstallRecommends'),
-                    'w')
-                print >>apt_conf_ir, 'APT::Install-Recommends "false";'
-                apt_conf_ir.close()
+                tf = self.target_file('etc/apt/apt.conf.d/00InstallRecommends')
+                with open(tf, 'w') as apt_conf_ir:
+                    print('APT::Install-Recommends "false";', file=apt_conf_ir)
         except debconf.DebconfError:
             pass
 
         # Make apt trust CDs. This is not on by default (we think).
         # This will be left in place on the installed system.
-        apt_conf_tc = open(os.path.join(
-            self.target, 'etc/apt/apt.conf.d/00trustcdrom'), 'w')
-        print >>apt_conf_tc, 'APT::Authentication::TrustCDROM "true";'
-        apt_conf_tc.close()
+        tf = self.target_file('etc/apt/apt.conf.d/00trustcdrom')
+        with open(tf, 'w') as apt_conf_tc:
+            print('APT::Authentication::TrustCDROM "true";', file=apt_conf_tc)
 
         # Avoid clock skew causing gpg verification issues.
         # This file will be left in place until the end of the install.
-        apt_conf_itc = open(os.path.join(
-            self.target, 'etc/apt/apt.conf.d/00IgnoreTimeConflict'), 'w')
-        print >>apt_conf_itc, \
-            'Acquire::gpgv::Options { "--ignore-time-conflict"; };'
-        apt_conf_itc.close()
+        tf = self.target_file('etc/apt/apt.conf.d/00IgnoreTimeConflict')
+        with open(tf, 'w') as apt_conf_itc:
+            print('Acquire::gpgv::Options { "--ignore-time-conflict"; };',
+                  file=apt_conf_itc)
 
         try:
             if self.db.get('debian-installer/allow_unauthenticated') == 'true':
-                apt_conf_au = open(
-                    os.path.join(self.target,
-                                 'etc/apt/apt.conf.d/00AllowUnauthenticated'),
-                    'w')
-                print >>apt_conf_au, 'APT::Get::AllowUnauthenticated "true";'
-                print >>apt_conf_au, \
-                    'Aptitude::CmdLine::Ignore-Trust-Violations "true";'
-                apt_conf_au.close()
+                tf = self.target_file(
+                    'etc/apt/apt.conf.d/00AllowUnauthenticated')
+                with open(tf, 'w') as apt_conf_au:
+                    print('APT::Get::AllowUnauthenticated "true";',
+                          file=apt_conf_au)
+                    print('Aptitude::CmdLine::Ignore-Trust-Violations "true";',
+                          file=apt_conf_au)
         except debconf.DebconfError:
             pass
 
         # let apt inside the chroot see the cdrom
         if self.target != "/":
-            target_cdrom = os.path.join(self.target, 'cdrom')
+            target_cdrom = self.target_file('cdrom')
             misc.execute('umount', target_cdrom)
             if not os.path.exists(target_cdrom):
                 if os.path.lexists(target_cdrom):
@@ -600,26 +630,25 @@ class Install(install_misc.InstallBase):
 
         # Make apt-cdrom and apt not unmount/mount CD-ROMs.
         # This file will be left in place until the end of the install.
-        apt_conf_nmc = open(os.path.join(
-            self.target, 'etc/apt/apt.conf.d/00NoMountCDROM'), 'w')
-        print >>apt_conf_nmc, textwrap.dedent("""\
-            APT::CDROM::NoMount "true";
-            Acquire::cdrom {
-              mount "/cdrom";
-              "/cdrom/" {
-                Mount  "true";
-                UMount "true";
-              };
-              AutoDetect "false";
-            };
-            Dir::Media::MountPath "/cdrom";""")
-        apt_conf_nmc.close()
+        tf = self.target_file('etc/apt/apt.conf.d/00NoMountCDROM')
+        with open(tf, 'w') as apt_conf_nmc:
+            print(textwrap.dedent("""\
+                APT::CDROM::NoMount "true";
+                Acquire::cdrom {
+                  mount "/cdrom";
+                  "/cdrom/" {
+                    Mount  "true";
+                    UMount "true";
+                  };
+                  AutoDetect "false";
+                };
+                Dir::Media::MountPath "/cdrom";"""), file=apt_conf_nmc)
 
         # This will be reindexed after installation based on the full
         # installed sources.list.
         try:
             shutil.rmtree(
-                os.path.join(self.target, 'var/lib/apt-xapian-index'),
+                self.target_file('var/lib/apt-xapian-index'),
                 ignore_errors=True)
         except OSError:
             pass
@@ -627,21 +656,24 @@ class Install(install_misc.InstallBase):
         dbfilter = apt_setup.AptSetup(None, self.db)
         ret = dbfilter.run_command(auto_process=True)
         if ret != 0:
-            raise install_misc.InstallStepError("AptSetup failed with code %d" % ret)
+            raise install_misc.InstallStepError(
+                "AptSetup failed with code %d" % ret)
 
     def run_target_config_hooks(self):
-        """Run hook scripts from /usr/lib/ubiquity/target-config. This allows
-        casper to hook into us and repeat bits of its configuration in the
-        target system."""
+        """Run hook scripts from /usr/lib/ubiquity/target-config.
 
+        This allows casper to hook into us and repeat bits of its
+        configuration in the target system.
+        """
         if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
-            return # These were already run once during install
+            return  # These were already run once during install
 
         hookdir = '/usr/lib/ubiquity/target-config'
 
         if os.path.isdir(hookdir):
             # Exclude hooks containing '.', so that *.dpkg-* et al are avoided.
-            hooks = filter(lambda entry: '.' not in entry, os.listdir(hookdir))
+            hooks = [entry for entry in os.listdir(hookdir)
+                     if '.' not in entry]
             self.db.progress('START', 0, len(hooks), 'ubiquity/install/title')
             self.db.progress('INFO', 'ubiquity/install/target_hooks')
             for hookentry in hooks:
@@ -657,7 +689,6 @@ class Install(install_misc.InstallBase):
             self.db.progress('STOP')
 
     def install_language_packs(self):
-
         if not self.langpacks:
             return
 
@@ -665,9 +696,8 @@ class Install(install_misc.InstallBase):
         self.verify_language_packs()
 
     def verify_language_packs(self):
-
         if os.path.exists('/var/lib/ubiquity/no-install-langpacks'):
-            return # always complete enough
+            return  # always complete enough
 
         if self.db.get('pkgsel/ignore-incomplete-language-support') == 'true':
             return
@@ -686,9 +716,9 @@ class Install(install_misc.InstallBase):
                 break
         if incomplete:
             language_support_dir = \
-                os.path.join(self.target, 'usr/share/language-support')
+                self.target_file('usr/share/language-support')
             update_notifier_dir = \
-                os.path.join(self.target, 'var/lib/update-notifier/user.d')
+                self.target_file('var/lib/update-notifier/user.d')
             for note in ('incomplete-language-support-gnome.note',
                          'incomplete-language-support-qt.note'):
                 notepath = os.path.join(language_support_dir, note)
@@ -717,9 +747,10 @@ class Install(install_misc.InstallBase):
                 return self.traverse_for_kernel(cache, name)
 
     def remove_unusable_kernels(self):
-        """Remove unusable kernels; keeping them may cause us to be unable
-        to boot."""
+        """Remove unusable kernels.
 
+        Keeping these may cause us to be unable to boot.
+        """
         if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
             return
 
@@ -734,32 +765,34 @@ class Install(install_misc.InstallBase):
         install_kernels = set()
         new_kernel_pkg = None
         new_kernel_version = None
-        if os.path.exists("/var/lib/ubiquity/install-kernels"):
-            install_kernels_file = open("/var/lib/ubiquity/install-kernels")
-            for line in install_kernels_file:
-                kernel = line.strip()
-                install_kernels.add(kernel)
-                # If we decided to actively install a particular kernel like
-                # this, it's probably because we prefer it to the default
-                # one, so we'd better update kernel_version to match.
-                if kernel.startswith('linux-image-2.'):
-                    new_kernel_pkg = kernel
-                    new_kernel_version = kernel[12:]
-                elif kernel.startswith('linux-generic-'):
-                    # Traverse dependencies to find the real kernel image.
-                    cache = Cache()
-                    kernel = self.traverse_for_kernel(cache, kernel)
-                    if kernel:
+        install_kernels_path = "/var/lib/ubiquity/install-kernels"
+        if os.path.exists(install_kernels_path):
+            with open(install_kernels_path) as install_kernels_file:
+                for line in install_kernels_file:
+                    kernel = line.strip()
+                    install_kernels.add(kernel)
+                    # If we decided to actively install a particular kernel
+                    # like this, it's probably because we prefer it to the
+                    # default one, so we'd better update kernel_version to
+                    # match.
+                    if kernel.startswith('linux-image-2.'):
                         new_kernel_pkg = kernel
                         new_kernel_version = kernel[12:]
+                    elif kernel.startswith('linux-generic-'):
+                        # Traverse dependencies to find the real kernel image.
+                        cache = Cache()
+                        kernel = self.traverse_for_kernel(cache, kernel)
+                        if kernel:
+                            new_kernel_pkg = kernel
+                            new_kernel_version = kernel[12:]
             install_kernels_file.close()
 
         remove_kernels = set()
-        if os.path.exists("/var/lib/ubiquity/remove-kernels"):
-            remove_kernels_file = open("/var/lib/ubiquity/remove-kernels")
-            for line in remove_kernels_file:
-                remove_kernels.add(line.strip())
-            remove_kernels_file.close()
+        remove_kernels_path = "/var/lib/ubiquity/remove-kernels"
+        if os.path.exists(remove_kernels_path):
+            with open(remove_kernels_path) as remove_kernels_file:
+                for line in remove_kernels_file:
+                    remove_kernels.add(line.strip())
 
         if len(install_kernels) == 0 and len(remove_kernels) == 0:
             self.db.progress('STOP')
@@ -771,6 +804,7 @@ class Install(install_misc.InstallBase):
         self.progress_region(1, 2)
         if install_kernels:
             self.do_install(install_kernels)
+            install_misc.record_installed(install_kernels)
             if new_kernel_pkg:
                 cache = Cache()
                 cached_pkg = install_misc.get_cache_pkg(cache, new_kernel_pkg)
@@ -797,36 +831,38 @@ class Install(install_misc.InstallBase):
         biggest_size = 0
         biggest_partition = None
         try:
-            swaps = open('/proc/swaps')
-        except:
+            with open('/proc/swaps') as swaps:
+                for line in swaps:
+                    words = line.split()
+                    if words[1] != 'partition':
+                        continue
+                    if not os.path.exists(words[0]):
+                        continue
+                    if words[0].startswith('/dev/ramzswap'):
+                        continue
+                    size = int(words[2])
+                    if size > biggest_size:
+                        biggest_size = size
+                        biggest_partition = words[0]
+        except Exception:
             return None
-        for line in swaps:
-            words = line.split()
-            if words[1] != 'partition':
-                continue
-            if not os.path.exists(words[0]):
-                continue
-            if words[0].startswith('/dev/ramzswap'):
-                continue
-            size = int(words[2])
-            if size > biggest_size:
-                biggest_size = size
-                biggest_partition = words[0]
-        swaps.close()
         return biggest_partition
 
     def configure_hardware(self):
-        """reconfiguring several packages which depends on the
-        hardware system in which has been installed on and need some
-        automatic configurations to get work."""
+        """Reconfigure several hardware-specific packages.
 
+        These packages depend on the hardware of the system where the live
+        filesystem was built, and must be reconfigured to work properly on
+        the installed system.
+        """
         self.nested_progress_start()
         install_misc.chroot_setup(self.target)
         try:
             dbfilter = hw_detect.HwDetect(None, self.db)
             ret = dbfilter.run_command(auto_process=True)
             if ret != 0:
-                raise install_misc.InstallStepError("HwDetect failed with code %d" % ret)
+                raise install_misc.InstallStepError(
+                    "HwDetect failed with code %d" % ret)
         finally:
             install_misc.chroot_cleanup(self.target)
         self.nested_progress_end()
@@ -845,61 +881,59 @@ class Install(install_misc.InstallBase):
             try:
                 resume_uuid = subprocess.Popen(
                     ['block-attr', '--uuid', resume],
-                    stdout=subprocess.PIPE).communicate()[0].rstrip('\n')
+                    stdout=subprocess.PIPE,
+                    universal_newlines=True).communicate()[0].rstrip('\n')
             except OSError:
                 pass
             if resume_uuid:
                 resume = "UUID=%s" % resume_uuid
-            if os.path.exists(os.path.join(self.target,
-                                           'etc/initramfs-tools/conf.d')):
-                configdir = os.path.join(self.target,
-                                         'etc/initramfs-tools/conf.d')
-            elif os.path.exists(os.path.join(self.target,
-                                             'etc/mkinitramfs/conf.d')):
-                configdir = os.path.join(self.target,
-                                         'etc/mkinitramfs/conf.d')
+            if os.path.exists(self.target_file('etc/initramfs-tools/conf.d')):
+                configdir = self.target_file('etc/initramfs-tools/conf.d')
+            elif os.path.exists(self.target_file('etc/mkinitramfs/conf.d')):
+                configdir = self.target_file('etc/mkinitramfs/conf.d')
             else:
                 configdir = None
             if configdir is not None:
-                configfile = open(os.path.join(configdir, 'resume'), 'w')
-                print >>configfile, "RESUME=%s" % resume
-                configfile.close()
+                resume_path = os.path.join(configdir, 'resume')
+                with open(resume_path, 'w') as configfile:
+                    print("RESUME=%s" % resume, file=configfile)
 
-        osextras.unlink_force(os.path.join(self.target, 'etc/usplash.conf'))
-        osextras.unlink_force(os.path.join(self.target,
-                                           'etc/popularity-contest.conf'))
+        osextras.unlink_force(self.target_file('etc/popularity-contest.conf'))
         try:
             participate = self.db.get('popularity-contest/participate')
-            install_misc.set_debconf(self.target, 'popularity-contest/participate', participate, self.db)
+            install_misc.set_debconf(
+                self.target, 'popularity-contest/participate', participate,
+                self.db)
         except debconf.DebconfError:
             pass
 
-        osextras.unlink_force(os.path.join(self.target, 'etc/papersize'))
+        osextras.unlink_force(self.target_file('etc/papersize'))
         subprocess.call(['log-output', '-t', 'ubiquity', 'chroot', self.target,
                          'ucf', '--purge', '/etc/papersize'],
-                        preexec_fn=install_misc.debconf_disconnect, close_fds=True)
+                        preexec_fn=install_misc.debconf_disconnect,
+                        close_fds=True)
         try:
-            install_misc.set_debconf(self.target, 'libpaper/defaultpaper', '', self.db)
+            install_misc.set_debconf(
+                self.target, 'libpaper/defaultpaper', '', self.db)
         except debconf.DebconfError:
             pass
 
-        osextras.unlink_force(os.path.join(
-            self.target, 'etc/ssl/certs/ssl-cert-snakeoil.pem'))
-        osextras.unlink_force(os.path.join(
-            self.target, 'etc/ssl/private/ssl-cert-snakeoil.key'))
+        osextras.unlink_force(
+            self.target_file('etc/ssl/certs/ssl-cert-snakeoil.pem'))
+        osextras.unlink_force(
+            self.target_file('etc/ssl/private/ssl-cert-snakeoil.key'))
 
         install_misc.chroot_setup(self.target, x11=True)
-        install_misc.chrex(self.target,'dpkg-divert', '--package', 'ubiquity', '--rename',
-                   '--quiet', '--add', '/usr/sbin/update-initramfs')
+        install_misc.chrex(
+            self.target, 'dpkg-divert', '--package', 'ubiquity', '--rename',
+            '--quiet', '--add', '/usr/sbin/update-initramfs')
         try:
-            os.symlink('/bin/true', os.path.join(self.target,
-                                                 'usr/sbin/update-initramfs'))
+            os.symlink(
+                '/bin/true', self.target_file('usr/sbin/update-initramfs'))
         except OSError:
             pass
 
         packages = ['linux-image-' + self.kernel_version,
-                    'usplash',
-                    'splashy',
                     'popularity-contest',
                     'libpaper1',
                     'ssl-cert']
@@ -908,16 +942,20 @@ class Install(install_misc.InstallBase):
             for package in packages:
                 install_misc.reconfigure(self.target, package)
         finally:
-            osextras.unlink_force(os.path.join(self.target,
-                                               'usr/sbin/update-initramfs'))
-            install_misc.chrex(self.target,'dpkg-divert', '--package', 'ubiquity', '--rename',
-                       '--quiet', '--remove', '/usr/sbin/update-initramfs')
-            install_misc.chrex(self.target,'update-initramfs', '-c', '-k', self.kernel_version)
+            osextras.unlink_force(
+                self.target_file('usr/sbin/update-initramfs'))
+            install_misc.chrex(
+                self.target, 'dpkg-divert', '--package', 'ubiquity',
+                '--rename', '--quiet', '--remove',
+                '/usr/sbin/update-initramfs')
+            install_misc.chrex(
+                self.target, 'update-initramfs', '-c',
+                '-k', self.kernel_version)
             install_misc.chroot_cleanup(self.target, x11=True)
 
         # Fix up kernel symlinks now that the initrd exists. Depending on
         # the architecture, these may be in / or in /boot.
-        bootdir = os.path.join(self.target, 'boot')
+        bootdir = self.target_file('boot')
         if self.db.get('base-installer/kernel/linux/link_in_boot') == 'true':
             linkdir = bootdir
             linkprefix = ''
@@ -938,7 +976,7 @@ class Install(install_misc.InstallBase):
             # avoid confusion.
             for entry in os.listdir(self.target):
                 if re_symlink.match(entry) is not None:
-                    filename = os.path.join(self.target, entry)
+                    filename = self.target_file(entry)
                     if os.path.islink(filename):
                         os.unlink(filename)
 
@@ -960,25 +998,25 @@ class Install(install_misc.InstallBase):
                 os.symlink(linksrc, linkdst)
 
     def configure_bootloader(self):
-        """configuring and installing boot loader into installed
-        hardware system."""
-
+        """Configure and install the boot loader."""
         if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
             #the language might be different than initial install.
             #recopy translations if we have them now
             full_lang = self.db.get('debian-installer/locale').split('.')[0]
             for lang in [full_lang.split('.')[0], full_lang.split('_')[0]]:
-                source = '/usr/share/locale-langpack/%s/LC_MESSAGES/grub.mo' % lang
-                if os.path.exists(source) and os.path.isdir('/boot/grub/locale'):
+                source = (
+                    '/usr/share/locale-langpack/%s/LC_MESSAGES/grub.mo' % lang)
+                if (os.path.exists(source) and
+                        os.path.isdir('/boot/grub/locale')):
                     shutil.copy(source, '/boot/grub/locale/%s.mo' % lang)
                     break
             return
 
         inst_boot = self.db.get('ubiquity/install_bootloader')
         if inst_boot == 'true' and 'UBIQUITY_NO_BOOTLOADER' not in os.environ:
-            misc.execute('mount', '--bind', '/proc', self.target + '/proc')
-            misc.execute('mount', '--bind', '/sys', self.target + '/sys')
-            misc.execute('mount', '--bind', '/dev', self.target + '/dev')
+            binds = ("/proc", "/sys", "/dev", "/run")
+            for bind in binds:
+                misc.execute('mount', '--bind', bind, self.target + bind)
 
             arch, subarch = install_misc.archdetect()
 
@@ -1009,20 +1047,13 @@ class Install(install_misc.InstallBase):
                         else:
                             break
                 elif (arch in ('armel', 'armhf') and
-                      subarch in ('dove', 'imx51', 'iop32x', 'ixp4xx', 'orion5x', 'omap')):
+                      subarch in ('omap', 'omap4', 'mx5')):
                     from ubiquity.components import flash_kernel
                     dbfilter = flash_kernel.FlashKernel(None, self.db)
                     ret = dbfilter.run_command(auto_process=True)
                     if ret != 0:
                         raise install_misc.InstallStepError(
                             "FlashKernel failed with code %d" % ret)
-                elif arch == 'powerpc' and subarch == 'ps3':
-                    from ubiquity.components import kbootinstaller
-                    dbfilter = kbootinstaller.KbootInstaller(None, self.db)
-                    ret = dbfilter.run_command(auto_process=True)
-                    if ret != 0:
-                        raise install_misc.InstallStepError(
-                            "KbootInstaller failed with code %d" % ret)
                 elif arch == 'powerpc':
                     from ubiquity.components import yabootinstaller
                     dbfilter = yabootinstaller.YabootInstaller(None, self.db)
@@ -1031,13 +1062,14 @@ class Install(install_misc.InstallBase):
                         raise install_misc.InstallStepError(
                             "YabootInstaller failed with code %d" % ret)
                 else:
-                    raise install_misc.InstallStepError("No bootloader installer found")
+                    raise install_misc.InstallStepError(
+                        "No bootloader installer found")
             except ImportError:
-                raise install_misc.InstallStepError("No bootloader installer found")
+                raise install_misc.InstallStepError(
+                    "No bootloader installer found")
 
-            misc.execute('umount', '-f', self.target + '/proc')
-            misc.execute('umount', '-f', self.target + '/sys')
-            misc.execute('umount', '-f', self.target + '/dev')
+            for bind in binds:
+                misc.execute('umount', '-f', self.target + bind)
 
     def do_remove(self, to_remove, recursive=False):
         self.nested_progress_start()
@@ -1059,7 +1091,8 @@ class Install(install_misc.InstallBase):
             self.nested_progress_end()
             return
 
-        install_misc.get_remove_list(cache, to_remove, recursive)
+        with cache.actiongroup():
+            install_misc.get_remove_list(cache, to_remove, recursive)
 
         self.db.progress('SET', 1)
         self.progress_region(1, 5)
@@ -1079,7 +1112,7 @@ class Install(install_misc.InstallBase):
                     self.db.progress('STOP')
                     self.nested_progress_end()
                     return
-            except SystemError, e:
+            except SystemError as e:
                 for line in traceback.format_exc().split('\n'):
                     syslog.syslog(syslog.LOG_ERR, line)
                 commit_error = str(e)
@@ -1106,8 +1139,7 @@ class Install(install_misc.InstallBase):
         self.nested_progress_end()
 
     def install_oem_extras(self):
-        """Try to install additional packages requested by the distributor"""
-
+        """Try to install additional packages requested by the distributor."""
         try:
             inst_langpacks = \
                 self.db.get('oem-config/install-language-support') == 'true'
@@ -1156,7 +1188,7 @@ class Install(install_misc.InstallBase):
 
             if extra_pool:
                 with open(custom, 'w') as f:
-                    print >>f, extra_pool
+                    print(extra_pool, file=f)
             if extra_key and os.path.exists(extra_key):
                 if os.path.exists(trusted_db):
                     shutil.copy(trusted_db, trusted_db + '.oem-config')
@@ -1174,7 +1206,7 @@ class Install(install_misc.InstallBase):
             cmd += extra_packages
             try:
                 subprocess.check_call(cmd)
-            except subprocess.CalledProcessError, e:
+            except subprocess.CalledProcessError as e:
                 if e.returncode != 30:
                     cache = Cache()
                     brokenpkgs = install_misc.broken_packages(cache)
@@ -1198,58 +1230,19 @@ class Install(install_misc.InstallBase):
             self.db.progress('INFO', 'ubiquity/install/nonfree')
             packages = self.db.get('ubiquity/nonfree_package').split()
             self.do_install(packages)
-            try:
-                install_misc.chrex(self.target,'dpkg-divert', '--package',
-                        'ubiquity', '--rename', '--quiet', '--add',
-                        '/usr/sbin/update-initramfs')
-                try:
-                    os.symlink('/bin/true', os.path.join(self.target,
-                        'usr/sbin/update-initramfs'))
-                except OSError:
-                    pass
-                env = os.environ.copy()
-                env['LC_ALL'] = 'C'
-                misc.execute('mount', '--bind', '/proc', self.target + '/proc')
-                misc.execute('mount', '--bind', '/sys', self.target + '/sys')
-                misc.execute('mount', '--bind', '/dev', self.target + '/dev')
-                inst_composite = ['chroot', self.target, 'jockey-text',
-                                  '-C', '--no-dbus', '-k', self.kernel_version]
-                p = subprocess.Popen(inst_composite, stdin=subprocess.PIPE,
-                                     stdout=sys.stderr, env=env)
-                p.communicate('y\n')
-            except OSError:
-                syslog.syslog(syslog.LOG_WARNING,
-                    'Could not install a composited driver:')
-                for line in traceback.format_exc().split('\n'):
-                    syslog.syslog(syslog.LOG_WARNING, line)
-            finally:
-                misc.execute('umount', '-f', self.target + '/proc')
-                misc.execute('umount', '-f', self.target + '/sys')
-                misc.execute('umount', '-f', self.target + '/dev')
-                osextras.unlink_force(os.path.join(self.target,
-                    'usr/sbin/update-initramfs'))
-                install_misc.chrex(self.target,'dpkg-divert', '--package',
-                        'ubiquity', '--rename', '--quiet', '--remove',
-                        '/usr/sbin/update-initramfs')
-                install_misc.chrex(self.target,'update-initramfs', '-c', '-k',
-                        self.kernel_version)
 
     def install_extras(self):
-        """Try to install additional packages requested by installer
-        components."""
-
+        """Try to install packages requested by installer components."""
         # We only ever install these packages from the CD.
-        sources_list = os.path.join(self.target, 'etc/apt/sources.list')
+        sources_list = self.target_file('etc/apt/sources.list')
         os.rename(sources_list, "%s.apt-setup" % sources_list)
-        old_sources = open("%s.apt-setup" % sources_list)
-        new_sources = open(sources_list, 'w')
-        found_cdrom = False
-        for line in old_sources:
-            if 'cdrom:' in line:
-                print >>new_sources, line,
-                found_cdrom = True
-        new_sources.close()
-        old_sources.close()
+        with open("%s.apt-setup" % sources_list) as old_sources:
+            with open(sources_list, 'w') as new_sources:
+                found_cdrom = False
+                for line in old_sources:
+                    if 'cdrom:' in line:
+                        print(line, end="", file=new_sources)
+                        found_cdrom = True
         if not found_cdrom:
             os.rename("%s.apt-setup" % sources_list, sources_list)
 
@@ -1264,50 +1257,59 @@ class Install(install_misc.InstallBase):
         # instead.
         try:
             if self.db.get('oem-config/enable') == 'true':
-                if os.path.isdir(os.path.join(self.target, 'home/oem')):
-                    open(os.path.join(self.target, 'home/oem/.hwdb'),
-                         'w').close()
+                if os.path.isdir(self.target_file('home/oem')):
+                    with open(self.target_file('home/oem/.hwdb'), 'w'):
+                        pass
 
+                    apps_dir = 'usr/share/applications'
                     for desktop_file in (
-                        'usr/share/applications/oem-config-prepare-gtk.desktop',
-                        'usr/share/applications/kde4/oem-config-prepare-kde.desktop'):
-                        if os.path.exists(os.path.join(self.target,
-                                                       desktop_file)):
+                            apps_dir + '/oem-config-prepare-gtk.desktop',
+                            apps_dir + '/kde4/oem-config-prepare-kde.desktop'):
+                        if os.path.exists(self.target_file(desktop_file)):
                             desktop_base = os.path.basename(desktop_file)
-                            install_misc.chrex(self.target,'install', '-d',
-                                       '-o', 'oem', '-g', 'oem',
-                                       '/home/oem/Desktop')
-                            install_misc.chrex(self.target,'install', '-o', 'oem', '-g', 'oem',
-                                       '/%s' % desktop_file,
-                                       '/home/oem/Desktop/%s' % desktop_base)
+                            install_misc.chrex(
+                                self.target, 'install', '-d',
+                                '-o', 'oem', '-g', 'oem',
+                                '/home/oem/Desktop')
+                            install_misc.chrex(
+                                self.target, 'install',
+                                '-o', 'oem', '-g', 'oem',
+                                '/%s' % desktop_file,
+                                '/home/oem/Desktop/%s' % desktop_base)
                             break
 
                 # Carry the locale setting over to the installed system.
                 # This mimics the behavior in 01oem-config-udeb.
                 di_locale = self.db.get('debian-installer/locale')
                 if di_locale:
-                    install_misc.set_debconf(self.target, 'debian-installer/locale', di_locale, self.db)
-                #in an automated install, this key needs to carry over
-                installable_lang = self.db.get('ubiquity/only-show-installable-languages')
+                    install_misc.set_debconf(
+                        self.target, 'debian-installer/locale', di_locale,
+                        self.db)
+                # in an automated install, this key needs to carry over
+                installable_lang = self.db.get(
+                    'ubiquity/only-show-installable-languages')
                 if installable_lang:
-                    install_misc.set_debconf(self.target,
+                    install_misc.set_debconf(
+                        self.target,
                         'ubiquity/only-show-installable-languages',
                         installable_lang, self.db)
         except debconf.DebconfError:
             pass
 
     def remove_oem_extras(self):
-        '''Try to remove packages that were not part of the base install and
-        are not needed by the final system.
-        
-        This is roughly the set of packages installed by ubiquity + packages we
-        explicitly installed in oem-config (langpacks, for example) -
-        everything else.'''
+        """Remove unnecessary packages in OEM mode.
 
+        Try to remove packages that were not part of the base install and
+        are not needed by the final system.
+
+        This is roughly the set of packages installed by ubiquity + packages
+        we explicitly installed in oem-config (langpacks, for example) -
+        everything else.
+        """
         manifest = '/var/lib/ubiquity/installed-packages'
         if not os.path.exists(manifest):
             return
-        
+
         keep = set()
         with open(manifest) as manifest_file:
             for line in manifest_file:
@@ -1318,12 +1320,16 @@ class Install(install_misc.InstallBase):
         keep.add('oem-config')
 
         cache = Cache()
+        # TODO cjwatson 2012-05-04: It would be nice to use a set
+        # comprehension here, but that causes:
+        #   SyntaxError: can not delete variable 'cache' referenced in nested
+        #   scope
         remove = set([pkg for pkg in cache.keys() if cache[pkg].is_installed])
         # Keep packages we explicitly installed.
         keep |= install_misc.query_recorded_installed()
         remove -= install_misc.expand_dependencies_simple(cache, keep, remove)
         del cache
-        
+
         install_misc.record_removed(remove)
         (regular, recursive) = install_misc.query_recorded_removed()
         self.do_remove(regular)
@@ -1366,13 +1372,15 @@ class Install(install_misc.InstallBase):
                 elif stat.S_ISSOCK(st.st_mode):
                     os.mknod(targetpath, stat.S_IFSOCK | mode)
                 elif stat.S_ISREG(st.st_mode):
-                    install_misc.copy_file(self.db, sourcepath, targetpath, True)
+                    install_misc.copy_file(
+                        self.db, sourcepath, targetpath, True)
 
                 os.lchown(targetpath, uid, gid)
                 if not stat.S_ISLNK(st.st_mode):
                     os.chmod(targetpath, mode)
                 if stat.S_ISDIR(st.st_mode):
-                    directory_times.append((targetpath, st.st_atime, st.st_mtime))
+                    directory_times.append(
+                        (targetpath, st.st_atime, st.st_mtime))
                 # os.utime() sets timestamp of target, not link
                 elif not stat.S_ISLNK(st.st_mode):
                     try:
@@ -1393,9 +1401,11 @@ class Install(install_misc.InstallBase):
                 pass
 
     def remove_extras(self):
-        """Try to remove packages that are needed on the live CD but not on
-        the installed system."""
+        """Remove unnecessary packages.
 
+        Try to remove packages that are needed on the live CD but not on the
+        installed system.
+        """
         # Looking through files for packages to remove is pretty quick, so
         # don't bother with a progress bar for that.
 
@@ -1410,31 +1420,27 @@ class Install(install_misc.InstallBase):
         manifest = os.path.join(self.casper_path, 'filesystem.manifest')
         if os.path.exists(manifest_remove) and os.path.exists(manifest):
             difference = set()
-            manifest_file = open(manifest_remove)
-            for line in manifest_file:
-                if line.strip() != '' and not line.startswith('#'):
-                    difference.add(line.split()[0])
-            manifest_file.close()
+            with open(manifest_remove) as manifest_file:
+                for line in manifest_file:
+                    if line.strip() != '' and not line.startswith('#'):
+                        difference.add(line.split()[0])
             live_packages = set()
-            manifest_file = open(manifest)
-            for line in manifest_file:
-                if line.strip() != '' and not line.startswith('#'):
-                    live_packages.add(line.split()[0])
-            manifest_file.close()
+            with open(manifest) as manifest_file:
+                for line in manifest_file:
+                    if line.strip() != '' and not line.startswith('#'):
+                        live_packages.add(line.split()[0])
             desktop_packages = live_packages - difference
         elif os.path.exists(manifest_desktop) and os.path.exists(manifest):
             desktop_packages = set()
-            manifest_file = open(manifest_desktop)
-            for line in manifest_file:
-                if line.strip() != '' and not line.startswith('#'):
-                    desktop_packages.add(line.split()[0])
-            manifest_file.close()
+            with open(manifest_desktop) as manifest_file:
+                for line in manifest_file:
+                    if line.strip() != '' and not line.startswith('#'):
+                        desktop_packages.add(line.split()[0])
             live_packages = set()
-            manifest_file = open(manifest)
-            for line in manifest_file:
-                if line.strip() != '' and not line.startswith('#'):
-                    live_packages.add(line.split()[0])
-            manifest_file.close()
+            with open(manifest) as manifest_file:
+                for line in manifest_file:
+                    if line.strip() != '' and not line.startswith('#'):
+                        live_packages.add(line.split()[0])
             difference = live_packages - desktop_packages
         else:
             difference = set()
@@ -1446,12 +1452,14 @@ class Install(install_misc.InstallBase):
 
         if arch in ('amd64', 'i386'):
             for pkg in ('grub', 'grub-pc', 'grub-efi', 'grub-efi-amd64',
+                        'grub-efi-amd64-signed', 'shim-signed',
                         'lilo'):
                 if pkg not in keep:
                     difference.add(pkg)
 
         cache = Cache()
-        difference -= install_misc.expand_dependencies_simple(cache, keep, difference)
+        difference -= install_misc.expand_dependencies_simple(
+            cache, keep, difference)
         del cache
 
         if len(difference) == 0:
@@ -1467,7 +1475,7 @@ class Install(install_misc.InstallBase):
             cache = self.restricted_cache
             for pkg in cache.keys():
                 if (cache[pkg].is_installed and
-                    cache[pkg].section.startswith('restricted/')):
+                        cache[pkg].section.startswith('restricted/')):
                     difference.add(pkg)
             del cache
 
@@ -1483,42 +1491,44 @@ class Install(install_misc.InstallBase):
 
         oem_remove_extras = False
         try:
-            oem_remove_extras = misc.create_bool(self.db.get('oem-config/remove_extras'))
+            oem_remove_extras = misc.create_bool(
+                self.db.get('oem-config/remove_extras'))
         except debconf.DebconfError:
             pass
 
         if oem_remove_extras:
             installed = (desktop_packages | keep - regular - recursive)
-            if not os.path.exists(os.path.join(self.target, 'var/lib/ubiquity')):
-                os.makedirs(os.path.join(self.target, 'var/lib/ubiquity'))
-            p = os.path.join(self.target, 'var/lib/ubiquity/installed-packages')
+            if not os.path.exists(self.target_file('var/lib/ubiquity')):
+                os.makedirs(self.target_file('var/lib/ubiquity'))
+            p = self.target_file('var/lib/ubiquity/installed-packages')
             with open(p, 'w') as fp:
                 for line in installed:
-                    print >>fp, line
+                    print(line, file=fp)
 
     def apt_clone_restore(self):
         if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
             return
         import lsb_release
-        working = os.path.join(self.target, 'ubiquity-apt-clone')
+        working = self.target_file('ubiquity-apt-clone')
         working = os.path.join(working,
                                'apt-clone-state-%s.tar.gz' % os.uname()[1])
         codename = lsb_release.get_distro_information()['CODENAME']
         if not os.path.exists(working):
             return
         install_misc.chroot_setup(self.target)
+        binds = ("/proc", "/sys", "/dev", "/run")
         try:
-            misc.execute('mount', '--bind', '/proc', self.target + '/proc')
-            misc.execute('mount', '--bind', '/sys', self.target + '/sys')
-            misc.execute('mount', '--bind', '/dev', self.target + '/dev')
-            subprocess.check_call(['apt-clone', 'restore-new-distro',
-                working, codename, '--destination', self.target],
-                preexec_fn=install_misc.debconf_disconnect)
+            for bind in binds:
+                misc.execute('mount', '--bind', bind, self.target + bind)
+            restore_cmd = [
+                'apt-clone', 'restore-new-distro',
+                working, codename, '--destination', self.target]
+            subprocess.check_call(
+                restore_cmd, preexec_fn=install_misc.debconf_disconnect)
         finally:
             install_misc.chroot_cleanup(self.target)
-            misc.execute('umount', '-f', self.target + '/proc')
-            misc.execute('umount', '-f', self.target + '/sys')
-            misc.execute('umount', '-f', self.target + '/dev')
+            for bind in binds:
+                misc.execute('umount', '-f', self.target + bind)
 
     def copy_network_config(self):
         if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
@@ -1569,32 +1579,34 @@ class Install(install_misc.InstallBase):
             shutil.copytree(source_bluetooth, target_bluetooth)
 
     def recache_apparmor(self):
-        """Generate an apparmor cache in /etc/apparmor.d/cache to speed up boot
-        time."""
-
+        """Generate an apparmor cache to speed up boot time."""
         if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
             return
-        if not os.path.exists(os.path.join(self.target, 'etc/init.d/apparmor')):
-            syslog.syslog('Apparmor is not installed, so not generating cache.')
+        if not os.path.exists(self.target_file('etc/init.d/apparmor')):
+            syslog.syslog(
+                'Apparmor is not installed, so not generating cache.')
             return
-        install_misc.chrex(self.target,'mount', '-t', 'proc', 'proc', '/proc')
-        install_misc.chrex(self.target,'mount', '-t', 'sysfs', 'sysfs', '/sys')
-        install_misc.chrex(self.target,'mount', '-t', 'securityfs',
-                   'securityfs', '/sys/kernel/security')
-        install_misc.chrex(self.target,'/etc/init.d/apparmor', 'recache')
-        install_misc.chrex(self.target,'umount', '/proc')
-        install_misc.chrex(self.target,'umount', '/sys/kernel/security')
-        install_misc.chrex(self.target,'umount', '/sys')
+        install_misc.chrex(self.target, 'mount', '-t', 'proc', 'proc', '/proc')
+        install_misc.chrex(
+            self.target, 'mount', '-t', 'sysfs', 'sysfs', '/sys')
+        install_misc.chrex(
+            self.target, 'mount', '-t', 'securityfs',
+            'securityfs', '/sys/kernel/security')
+        install_misc.chrex(self.target, '/etc/init.d/apparmor', 'recache')
+        install_misc.chrex(self.target, 'umount', '/proc')
+        install_misc.chrex(self.target, 'umount', '/sys/kernel/security')
+        install_misc.chrex(self.target, 'umount', '/sys')
 
     def copy_wallpaper_cache(self):
-        """Copy wallpaper cache for libgnome desktop so that it's taken into
-        account by ureadahead. Only install on system having g-s-d."""
+        """Copy GNOME wallpaper cache for the benefit of ureadahead.
 
+        Only do this on systems with gnome-settings-daemon.
+        """
         if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
             return
 
-        # we don't use copy_network_config casper user trick as it's not and not
-        # ubuntu in install mode
+        # We don't use the copy_network_config casper user trick as it's not
+        # ubuntu in install mode.
         try:
             casper_user = pwd.getpwuid(999).pw_name
         except KeyError:
@@ -1606,48 +1618,47 @@ class Install(install_misc.InstallBase):
         casper_user_wallpaper_cache_dir = os.path.join(casper_user_home,
                                                        '.cache', 'wallpaper')
         target_user = self.db.get('passwd/username')
-        target_user_cache_dir = os.path.join(self.target, 'home',
-                                                       target_user, '.cache')
+        target_user_cache_dir = self.target_file('home', target_user, '.cache')
         target_user_wallpaper_cache_dir = os.path.join(target_user_cache_dir,
                                                        'wallpaper')
-        if not os.path.isdir(target_user_wallpaper_cache_dir) and \
-               os.path.isfile('/usr/lib/gnome-settings-daemon/'
-                              'gnome-update-wallpaper-cache'):
+        if (not os.path.isdir(target_user_wallpaper_cache_dir) and
+            os.path.isfile('/usr/lib/gnome-settings-daemon/'
+                           'gnome-update-wallpaper-cache')):
             # installer mode (else, g-s-d created it)
             if not os.path.isdir(casper_user_wallpaper_cache_dir):
                 subprocess.call(['sudo', '-u', casper_user, '-i', 'DISPLAY=:0',
                                  '/usr/lib/gnome-settings-daemon/'
                                  'gnome-update-wallpaper-cache'])
             # copy to targeted user
-            uid = subprocess.Popen(['chroot', self.target, 'sudo', '-u',
-                target_user, '--', 'id', '-u'],
-                stdout=subprocess.PIPE).communicate()[0].strip('\n')
-            gid = subprocess.Popen(['chroot', self.target, 'sudo', '-u',
-                target_user, '--', 'id', '-g'],
-                stdout=subprocess.PIPE).communicate()[0].strip('\n')
+            uid = subprocess.Popen(
+                ['chroot', self.target, 'sudo', '-u', target_user, '--',
+                 'id', '-u'],
+                stdout=subprocess.PIPE,
+                universal_newlines=True).communicate()[0].strip('\n')
+            gid = subprocess.Popen(
+                ['chroot', self.target, 'sudo', '-u', target_user, '--',
+                 'id', '-g'],
+                stdout=subprocess.PIPE,
+                universal_newlines=True).communicate()[0].strip('\n')
             uid = int(uid)
             gid = int(gid)
             self.copy_tree(casper_user_wallpaper_cache_dir,
                            target_user_wallpaper_cache_dir, uid, gid)
-            os.chmod(target_user_cache_dir, 0700)
-            os.chmod(target_user_wallpaper_cache_dir, 0700)
+            os.chmod(target_user_cache_dir, 0o700)
+            os.chmod(target_user_wallpaper_cache_dir, 0o700)
 
     def copy_dcd(self):
-        """Copy the Distribution Channel Descriptor (DCD) file into the
-        installed system."""
-
+        """Install the Distribution Channel Descriptor (DCD) file."""
         dcd = '/cdrom/.disk/ubuntu_dist_channel'
         if os.path.exists(dcd):
-            shutil.copy(dcd,
-                os.path.join(self.target, 'var/lib/ubuntu_dist_channel'))
+            shutil.copy(dcd, self.target_file('var/lib/ubuntu_dist_channel'))
 
     def copy_logs(self):
-        """copy log files into installed system."""
-
+        """Copy log files to the installed system."""
         if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
             return
 
-        target_dir = os.path.join(self.target, 'var/log/installer')
+        target_dir = self.target_file('var/log/installer')
         if not os.path.exists(target_dir):
             os.makedirs(target_dir)
 
@@ -1665,7 +1676,7 @@ class Install(install_misc.InstallBase):
         if os.path.isfile(media_info):
             try:
                 target_media_info = \
-                    os.path.join(self.target, 'var/log/installer/media-info')
+                    self.target_file('var/log/installer/media-info')
                 shutil.copy(media_info, target_media_info)
                 os.chmod(target_media_info,
                          stat.S_IRUSR | stat.S_IWUSR |
@@ -1674,7 +1685,7 @@ class Install(install_misc.InstallBase):
                 pass
 
         try:
-            status = open(os.path.join(self.target, 'var/lib/dpkg/status'))
+            status = open(self.target_file('var/lib/dpkg/status'), 'rb')
             status_gz = gzip.open(os.path.join(target_dir,
                                                'initial-status.gz'), 'w')
             while True:
@@ -1689,24 +1700,59 @@ class Install(install_misc.InstallBase):
         try:
             if self.db.get('oem-config/enable') == 'true':
                 oem_id = self.db.get('oem-config/id')
-                oem_id_file = open(
-                    os.path.join(self.target, 'var/log/installer/oem-id'), 'w')
-                print >>oem_id_file, oem_id
-                oem_id_file.close()
+                tf = self.target_file('var/log/installer/oem-id')
+                with open(tf, 'w') as oem_id_file:
+                    print(oem_id, file=oem_id_file)
         except (debconf.DebconfError, IOError):
             pass
         try:
-            path = os.path.join(self.target, 'ubiquity-apt-clone')
+            path = self.target_file('ubiquity-apt-clone')
             if os.path.exists(path):
-                shutil.move(path,
-                            os.path.join(self.target, 'var/log/installer'))
+                shutil.move(path, self.target_file('var/log/installer'))
         except IOError:
             pass
 
+    def save_random_seed(self):
+        """Save random seed to the target system.
+
+        This arranges for the installed system to have better entropy on
+        first boot.
+        """
+        if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
+            return
+
+        try:
+            st = os.stat("/dev/urandom")
+        except OSError:
+            return
+        if not stat.S_ISCHR(st.st_mode):
+            return
+        if not os.path.isdir(self.target_file("var/lib/urandom")):
+            return
+
+        poolbytes = 512
+        try:
+            with open("/proc/sys/kernel/random/poolsize") as poolsize:
+                poolbits = int(poolsize.readline())
+                if poolbits:
+                    poolbytes = int((poolbits + 7) / 8)
+        except IOError:
+            pass
+
+        old_umask = os.umask(0o077)
+        try:
+            with open("/dev/urandom", "rb") as urandom:
+                with open(self.target_file("var/lib/urandom/random-seed"),
+                          "wb") as seed:
+                    seed.write(urandom.read(poolbytes))
+        except IOError:
+            pass
+        finally:
+            os.umask(old_umask)
+
     def cleanup(self):
         """Miscellaneous cleanup tasks."""
-
-        misc.execute('umount', os.path.join(self.target, 'cdrom'))
+        misc.execute('umount', self.target_file('cdrom'))
 
         env = dict(os.environ)
         env['OVERRIDE_BASE_INSTALLABLE'] = '1'
@@ -1715,8 +1761,9 @@ class Install(install_misc.InstallBase):
 
         for apt_conf in ('00NoMountCDROM', '00IgnoreTimeConflict',
                          '00AllowUnauthenticated'):
-            osextras.unlink_force(os.path.join(
-                self.target, 'etc/apt/apt.conf.d', apt_conf))
+            osextras.unlink_force(
+                self.target_file('etc/apt/apt.conf.d', apt_conf))
+
 
 if __name__ == '__main__':
     os.environ['DPKG_UNTRANSLATED_MESSAGES'] = '1'

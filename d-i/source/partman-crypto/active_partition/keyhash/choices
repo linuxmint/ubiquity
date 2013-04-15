@@ -1,0 +1,24 @@
+#!/bin/sh
+
+. /lib/partman/lib/crypto-base.sh
+
+dev=$1
+id=$2
+part=$dev/$id
+
+[ -f $part/method ] || exit 0
+[ -f $part/crypto_type ] || exit 0
+[ -f $part/cipher ] || exit 0
+[ -f $part/keytype ] || exit 0
+
+method=$(cat $part/method)
+type=$(cat $part/crypto_type)
+cipher=$(cat $part/cipher)
+keytype=$(cat $part/keytype)
+
+if [ $method = crypto ]; then
+	# Hashing only makes sense for passphrases
+	if [ "$keytype" = passphrase ]; then
+		crypto_dochoice $part $type $cipher keyhash
+	fi
+fi

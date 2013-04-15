@@ -1,5 +1,7 @@
 #! /bin/sh
 
+. /usr/share/debconf/confmodule
+
 ARCH="$(dpkg --print-architecture)"
 SUBARCH="$(archdetect)"
 SUBARCH="${SUBARCH#*/}"
@@ -17,11 +19,16 @@ else
 	exit 0
 fi
 
-kernels="$(dpkg-query -f '${status} ${package}\n' -W linux-image-\* | \
+kernels="$(dpkg-query -f '${status} ${package}\n' \
+		-W linux-image-\* linux-signed-image-\* 2>/dev/null | \
 		grep '^install ok installed ' | cut -d' ' -f4 | xargs)"
 
 flavour="$(arch_get_kernel_flavour || true)"
 preferred_kernels="$(arch_get_kernel "$flavour")"
+if db_get base-installer/kernel/altmeta && [ "$RET" ]; then
+	preferred_kernels="$(echo "$preferred_kernels" | sed "s/$/-$RET/"; \
+			     echo "$preferred_kernels")"
+fi
 install_new=
 compatible=
 incompatible=
@@ -46,8 +53,38 @@ case $preferred_kernels in
 	;;
 esac
 
+# If base-installer asks for a signed kernel, try hard to lay our hands on
+# one.
+for kernel in $preferred_kernels; do
+	case $kernel in
+	    linux-signed-*)
+		if [ "$(apt-cache search -n "^$kernel\$")" ]; then
+			install_new="${install_new:+$install_new }$kernel"
+		fi
+		;;
+	esac
+done
+
 if [ -z "$compatible" ] && [ -z "$install_new" ]; then
 	for kernel in $kernels; do
+		# If base-installer didn't ask for a signed kernel, then
+		# consider signed kernels incompatible.  This isn't
+		# technically true - they'll boot - but it saves leaving a
+		# kernel installed that users probably won't need but will
+		# have to upgrade.
+		case $preferred_kernels in
+		    *linux-signed-*)
+			;;
+		    *)
+			case $kernel in
+			    linux-signed-*)
+				incompatible="${incompatible:+$incompatible }$kernel"
+				continue
+				;;
+			esac
+			;;
+		esac
+
 		if arch_check_usable_kernel "$kernel" "$flavour"; then
 			compatible="${compatible:+$compatible }$kernel"
 		else
@@ -62,7 +99,7 @@ if [ -z "$compatible" ] && [ -z "$install_new" ]; then
 fi
 
 kernel_to_headers () {
-	echo "$1" | sed 's/linux\(-image\|\)/linux-headers/'
+	echo "$1" | sed 's/linux\(-signed\|\)\(-image\|\)/linux-headers/'
 }
 
 if [ -z "$compatible" ] && [ -z "$install_new" ]; then
@@ -79,7 +116,17 @@ else
 	done
 	for kernel in $incompatible; do
 		echo "$kernel" >> /var/lib/ubiquity/remove-kernels
-		kernel_to_headers "$kernel" >>/var/lib/ubiquity/remove-kernels
+		case $kernel in
+		    linux-signed-*)
+			# If the entire flavour is incompatible, then we'll
+			# find out about that separately.  Otherwise,
+			# removing the signed kernel doesn't merit removing
+			# headers too.
+			;;
+		    *)
+			kernel_to_headers "$kernel" >>/var/lib/ubiquity/remove-kernels
+			;;
+		esac
 	done
 fi
 

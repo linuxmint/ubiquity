@@ -17,18 +17,21 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-import subprocess
 import fcntl
+import subprocess
 
 import debconf
 
 from ubiquity import misc
 
+
 class DebconfCommunicator(debconf.Debconf):
     def __init__(self, owner, title=None, cloexec=False, env=None):
-        self.dccomm = subprocess.Popen(['debconf-communicate',
-            '-fnoninteractive', owner], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            close_fds=True, env=env, preexec_fn=misc.regain_privileges)
+        self.dccomm = subprocess.Popen(
+            ['debconf-communicate', '-fnoninteractive', owner],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            close_fds=True, env=env, preexec_fn=misc.regain_privileges,
+            universal_newlines=True)
         debconf.Debconf.__init__(self, title=title,
                                  read=self.dccomm.stdout,
                                  write=self.dccomm.stdin)

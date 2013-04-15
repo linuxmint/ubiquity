@@ -1,4 +1,3 @@
-#! /usr/bin/python
 # -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
 # Copyright (C) 2005, 2006, 2007, 2008 Canonical Ltd.
@@ -18,16 +17,19 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-import sys
+from __future__ import print_function
+
+import importlib
 import os
-import types
 import signal
 import subprocess
+import sys
 
 import debconf
 
-from ubiquity.debconffilter import DebconfFilter
 from ubiquity import misc
+from ubiquity.debconffilter import DebconfFilter
+
 
 # We identify as this to debconf.
 PACKAGE = 'ubiquity'
@@ -37,6 +39,7 @@ DEBCONF_IO_IN = 1
 DEBCONF_IO_OUT = 2
 DEBCONF_IO_ERR = 4
 DEBCONF_IO_HUP = 8
+
 
 class UntrustedBase(object):
     def get(self, attr):
@@ -65,13 +68,23 @@ class UntrustedBase(object):
             # bizarre time formatting code per syslogd
             time_str = time.ctime()[4:19]
             message = fmt % args
-            print >>sys.stderr, (u'%s %s: %s' %
-                (time_str, PACKAGE, message)).encode('utf-8')
+            print('%s %s: %s' % (time_str, PACKAGE, message), file=sys.stderr)
+
+    @property
+    def is_automatic(self):
+        """Is this command running in automatic mode?
+
+        In automatic mode, the UI will only be displayed if there are
+        questions to ask that have not been preseeded; otherwise the UI will
+        be skipped.  Some UIs may never display anything in automatic mode.
+        """
+        return "UBIQUITY_AUTOMATIC" in os.environ
+
 
 class FilteredCommand(UntrustedBase):
     def __init__(self, frontend, db=None, ui=None):
-        self.frontend = frontend # ubiquity-wide UI
-        self.ui = ui # page-specific UI
+        self.frontend = frontend  # ubiquity-wide UI
+        self.ui = ui  # page-specific UI
         # db does not normally need to be specified.
         self.db = db
         self.done = False
@@ -92,7 +105,7 @@ class FilteredCommand(UntrustedBase):
             self.run(None, None)
             return
         self.command = ['log-output', '-t', PACKAGE, '--pass-stdout']
-        if isinstance(prep[0], types.StringTypes):
+        if isinstance(prep[0], str):
             self.command.append(prep[0])
         else:
             self.command.extend(prep[0])
@@ -110,7 +123,7 @@ class FilteredCommand(UntrustedBase):
         widgets = {}
         for pattern in question_patterns:
             widgets[pattern] = self
-        self.dbfilter = DebconfFilter(self.db, widgets)
+        self.dbfilter = DebconfFilter(self.db, widgets, self.is_automatic)
 
         # TODO: Set as unseen all questions that we're going to ask.
 
@@ -132,7 +145,7 @@ class FilteredCommand(UntrustedBase):
             return self.dbfilter.process_line()
         except Exception:
             import traceback
-            print >>sys.stderr, 'Exception caught in process_line:'
+            print('Exception caught in process_line:', file=sys.stderr)
             traceback.print_exc(file=sys.stderr)
             return False
 
@@ -160,7 +173,7 @@ class FilteredCommand(UntrustedBase):
             if prep is None:
                 return
             self.command = ['log-output', '-t', PACKAGE, '--pass-stdout']
-            if isinstance(prep[0], types.StringTypes):
+            if isinstance(prep[0], str):
                 self.command.append(prep[0])
             else:
                 self.command.extend(prep[0])
@@ -172,7 +185,7 @@ class FilteredCommand(UntrustedBase):
                 env = {}
 
             def subprocess_setup():
-                for key, value in env.iteritems():
+                for key, value in env.items():
                     os.environ[key] = value
                 os.environ['LC_COLLATE'] = 'C'
                 # Python installs a SIGPIPE handler by default. This is bad
@@ -215,7 +228,7 @@ class FilteredCommand(UntrustedBase):
         def subprocess_setup():
             os.environ['HOME'] = '/root'
             os.environ['LC_COLLATE'] = 'C'
-            for key, value in env.iteritems():
+            for key, value in env.items():
                 os.environ[key] = value
             # Python installs a SIGPIPE handler by default. This is bad for
             # non-Python subprocesses, which need SIGPIPE set to the default
@@ -333,10 +346,6 @@ class FilteredCommand(UntrustedBase):
 
     def preseed(self, name, value, seen=True):
         value = misc.debconf_escape(value)
-        try:
-            value = value.encode("UTF-8", "ignore")
-        except UnicodeDecodeError:
-            pass
 
         try:
             self.db.set(name, value)
@@ -419,7 +428,7 @@ class FilteredCommand(UntrustedBase):
         self.current_question = question
         if not self.done:
             self.succeeded = False
-            mod = __import__(self.__module__, globals(), locals(), ['NAME'])
+            mod = importlib.import_module(self.__module__)
             self.frontend.set_page(mod.NAME)
             self.enter_ui_loop()
         return self.succeeded

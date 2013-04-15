@@ -1,15 +1,15 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8; -*-
 
-import os
 import sys
-from test import test_support
+from test.support import run_unittest
 import unittest
 
+import dbus
 from gi.repository import Gtk, TimezoneMap
 import mock
 
-from ubiquity import segmented_bar, gtkwidgets
+from ubiquity import gtkwidgets, nm, segmented_bar
 
 
 class MockController(object):
@@ -20,17 +20,23 @@ class MockController(object):
 class WidgetTests(unittest.TestCase):
     def setUp(self):
         self.err = None
+
         def excepthook(exctype, value, tb):
             # Workaround for http://bugzilla.gnome.org/show_bug.cgi?id=616279
             Gtk.main_quit()
-            self.err = exctype, tb
+            self.err = exctype, value, tb
+
         sys.excepthook = excepthook
         self.win = Gtk.Window()
 
     def tearDown(self):
         self.win.hide()
         if self.err:
-            raise self.err[0], None, self.err[1]
+            exctype, value, tb = self.err
+            if value.__traceback__ is not tb:
+                raise value.with_traceback(tb)
+            else:
+                raise value
 
     def test_segmented_bar(self):
         sb = segmented_bar.SegmentedBar()
@@ -54,33 +60,6 @@ class WidgetTests(unittest.TestCase):
         self.win.connect('destroy', Gtk.main_quit)
         gtkwidgets.refresh()
 
-    @mock.patch('ubiquity.misc.drop_privileges')
-    @mock.patch('ubiquity.misc.regain_privileges')
-    def test_face_selector_save_to(self, *args):
-        from gi.repository import GdkPixbuf, Gst
-        Gst.init(sys.argv)
-        WRITE_TO = '/tmp/nonexistent-directory/windows_square.png'
-        fs = gtkwidgets.FaceSelector(None)
-        fs.selected_image = Gtk.Image()
-        PATH = os.environ.get('UBIQUITY_PATH', False) or '/usr/share/ubiquity'
-        png = os.path.join(PATH, 'pixmaps', 'windows_square.png')
-        pb = GdkPixbuf.Pixbuf.new_from_file(png)
-        fs.selected_image.set_from_pixbuf(pb)
-        fs.save_to(WRITE_TO)
-        self.assertTrue(os.path.exists(WRITE_TO))
-        import shutil
-        shutil.rmtree(os.path.dirname(WRITE_TO))
-
-    def test_face_selector_translated(self):
-        fs = gtkwidgets.FaceSelector(MockController())
-        fs.translate('zz')
-        self.assertEqual('zz: webcam_photo_label', fs.photo_label.get_text())
-        self.assertEqual(
-            'zz: webcam_existing_label', fs.existing_label.get_text())
-        self.assertEqual(
-            'zz: webcam_take_button',
-            fs.webcam.get_property('take-button').get_label())
-
     def test_state_box(self):
         sb = gtkwidgets.StateBox('foobar')
         self.assertEqual(sb.get_property('label'), 'foobar')
@@ -99,7 +78,9 @@ class WidgetTests(unittest.TestCase):
         self.assertEqual(gtkwidgets.gtk_to_cairo_color('white'),
                          (1.0, 1.0, 1.0))
         self.assertEqual(gtkwidgets.gtk_to_cairo_color('black'), (0, 0, 0))
-        self.assertEqual(gtkwidgets.gtk_to_cairo_color('green'), (0, 1.0, 0))
+        # After all these years a discrepancy between X11 green and CSS
+        # green was noticed
+        self.assertEqual(gtkwidgets.gtk_to_cairo_color('#00ff00'), (0, 1.0, 0))
         self.assertEqual(gtkwidgets.gtk_to_cairo_color('red'), (1.0, 0, 0))
         self.assertEqual(gtkwidgets.gtk_to_cairo_color('blue'), (0, 0, 1.0))
 
@@ -119,8 +100,6 @@ ID_MM_CANDIDATE=1
 """
 
 
-from ubiquity import nm
-import dbus
 class NetworkManagerTests(unittest.TestCase):
     def setUp(self):
         patcher = mock.patch('ubiquity.nm.NetworkManager.start')
@@ -133,11 +112,12 @@ class NetworkManagerTests(unittest.TestCase):
     def test_get_vendor_and_model_null(self, mock_subprocess):
         mock_subprocess.return_value.communicate.return_value = (
             '', 'device path not found\n')
-        self.assertEqual(nm.get_vendor_and_model('bogus'), ('',''))
+        self.assertEqual(nm.get_vendor_and_model('bogus'), ('', ''))
 
     @mock.patch('subprocess.Popen')
     def test_get_vendor_and_model(self, mock_subprocess):
-        mock_subprocess.return_value.communicate.return_value = (udevinfo, None)
+        mock_subprocess.return_value.communicate.return_value = (
+            udevinfo, None)
         self.assertEqual(nm.get_vendor_and_model('foobar'),
                          ('Intel Corporation',
                           'PRO/Wireless 3945ABG [Golan] Network Connection'))
@@ -152,18 +132,19 @@ class NetworkManagerTests(unittest.TestCase):
     def test_decode_ssid_utf8(self):
         ssid = [dbus.Byte(82), dbus.Byte(195), dbus.Byte(169), dbus.Byte(115),
                 dbus.Byte(101), dbus.Byte(97), dbus.Byte(117)]
-        self.assertEqual(nm.decode_ssid(ssid), u'Réseau')
+        self.assertEqual(nm.decode_ssid(ssid), 'Réseau')
 
     def test_decode_ssid_latin1(self):
         ssid = [dbus.Byte(82), dbus.Byte(233), dbus.Byte(115), dbus.Byte(101),
                 dbus.Byte(97), dbus.Byte(117)]
-        self.assertEqual(nm.decode_ssid(ssid), u'R\ufffdseau')
+        self.assertEqual(nm.decode_ssid(ssid), 'R\ufffdseau')
 
     def test_ssid_in_model(self):
         iterator = self.model.append(None, ['/foo', 'Intel', 'Wireless'])
         for ssid in ('Orange', 'Apple', 'Grape'):
             self.model.append(iterator, [ssid, True, 0])
-        self.assertIsNotNone(self.manager.ssid_in_model(iterator, 'Apple', True))
+        self.assertIsNotNone(
+            self.manager.ssid_in_model(iterator, 'Apple', True))
         self.assertIsNone(self.manager.ssid_in_model(iterator, 'Grape', False))
 
     def test_prune(self):
@@ -220,4 +201,4 @@ class NetworkManagerTests(unittest.TestCase):
         mock_cell.set_property.assert_called_with('text', 'Orange')
 
 if __name__ == '__main__':
-    test_support.run_unittest(WidgetTests, NetworkManagerTests)
+    run_unittest(WidgetTests, NetworkManagerTests)

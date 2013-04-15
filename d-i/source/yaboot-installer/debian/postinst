@@ -237,7 +237,14 @@ writeimages() {
 # Get the Open Firmware path for a device. Requires non-devfs syntax.
 map_of_path() {
     # TODO: look for shorter name using OF aliases?
-    chroot /target ofpath "$1" || return 1
+    case $ARCH in
+	powerpc/chrp|powerpc/chrp_rs6k|powerpc/chrp_ibm|powerpc/cell)
+            chroot /target ofpathname "$1" || return 1
+	    ;;
+        *)
+            chroot /target ofpath "$1" || return 1
+	    ;;
+    esac
 }
 
 # Get a symlink which always points to the correct block device.
@@ -315,13 +322,13 @@ EOF
 	    IFS="$OLDIFS"
 	    ;;
 	macosx)
-	    if ! [ "$macosx" ]; then
+	    if [ -z "$macosx" ] && [ "$(map_of_path "$mappedpartition")" ]; then
 		macosx=1
 		echo "macosx=\"`devsymlink "$mappedpartition"`\"" | writeglobals
 	    fi
 	    ;;
 	macos)
-	    if ! [ "$macos" ]; then
+	    if [ -z "$macos" ] && [ "$(map_of_path "$mappedpartition")" ]; then
 		macos=1
 		echo "macos=\"`devsymlink "$mappedpartition"`\"" | writeglobals
 	    fi
@@ -453,6 +460,17 @@ if [ "$ARCH" = powerpc/powermac_newworld ]; then
     writeyabootconf <<EOF
 magicboot=/usr/lib/yaboot/ofboot
 EOF
+    # Check if ofpath can find the bootstrap partition. If it can't then don't set nvram and
+    # set a generic value for ofboot
+    if [ -z "$(map_of_path "$boot")" ]; then
+        writeyabootconf <<EOF
+# ofpath failed to find the openfirmware path of the bootstrap partition.
+# To enable automatic booting, remove the nonvram line and change the ofboot value to
+# the openfirmware path of the bootstrap partition. For example: ofboot=usb0/disk@1:2
+nonvram
+ofboot=&device;:&partition;
+EOF
+    fi
 fi
 writeyabootconf <<EOF
 enablecdboot

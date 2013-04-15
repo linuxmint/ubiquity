@@ -19,6 +19,7 @@
 
 from ubiquity.filteredcommand import FilteredCommand
 
+
 class CheckKernels(FilteredCommand):
     def prepare(self):
         return (['/usr/share/ubiquity/check-kernels'], [])

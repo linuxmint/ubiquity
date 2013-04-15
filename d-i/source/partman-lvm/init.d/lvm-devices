@@ -1,0 +1,32 @@
+#!/bin/sh
+
+. /usr/share/debconf/confmodule
+
+# Avoid warnings from lvm2 tools about open file descriptors
+export LVM_SUPPRESS_FD_WARNINGS=1
+
+db_register partman-lvm/confirm partman-lvm/confirm_nooverwrite
+
+# Load modules and scan volume groups if it was not done before
+if [ ! -f /var/lib/partman/lvm ] && [ "$(udpkg --print-os)" = linux ] ; then
+	# load required kernel modules
+	depmod -a >/dev/null 2>&1
+	modprobe dm-mod >/dev/null 2>&1
+	modprobe lvm-mod >/dev/null 2>&1
+
+	# make sure that lvm is available
+	if ! grep -q "[0-9] device-mapper$" /proc/misc ; then
+		db_input critical partman-lvm/nolvm
+		db_go
+		exit 0
+	fi
+
+	# scan for logical volumes
+	log-output -t partman pvscan
+	log-output -t partman vgscan
+
+	# activate volume groups
+	log-output -t partman-lvm vgchange -a y
+
+	touch /var/lib/partman/lvm
+fi

@@ -1,0 +1,496 @@
+Template: partman-lvm/text/configuration_freepvs
+Type: text
+# :sl3:
+_Description: Unallocated physical volumes:
+
+Template: partman-lvm/text/configuration_vgs
+Type: text
+# :sl3:
+_Description: Volume groups:
+
+Template: partman-lvm/text/configuration_pv
+Type: text
+# :sl3:
+_Description: Uses physical volume:
+
+Template: partman-lvm/text/configuration_lv
+Type: text
+# :sl3:
+_Description: Provides logical volume:
+
+Template: partman-lvm/text/configuration_none_pvs
+Type: text
+# :sl3:
+# "none" here == "No Physical Volumes"
+_Description: none[ Do not translate what's inside the brackets and just put the translation for the word "none" in your language without any brackets. This "none" relates to "Physical Volumes:" ]
+
+Template: partman-lvm/text/configuration_none_vgs
+Type: text
+# :sl3:
+# "none" here == "No Volume Groups"
+_Description: none[ Do not translate what's inside the brackets and just put the translation for the word "none" in your language without any brackets. This "none" relates to "Volume Groups:" ]
+
+Template: partman-lvm/text/configure_lvm
+# :sl3:
+Type: text
+_Description: Configure the Logical Volume Manager
+
+Template: partman-lvm/text/pvs
+Type: text
+# :sl3:
+# Translators: use the acronym for "Physical Volume" in your language here
+_Description: PV
+
+Template: partman-lvm/text/in_use
+Type: text
+# :sl3:
+# What is "in use" is a partition
+_Description: In use by LVM volume group ${VG}
+
+Template: partman-lvm/menu/display
+Type: text
+# :sl3:
+# Menu entry
+# Use infinitive form
+_Description: Display configuration details
+
+Template: partman-lvm/menu/createvg
+Type: text
+# :sl3:
+# Menu entry
+# Use infinitive form
+_Description: Create volume group
+
+Template: partman-lvm/menu/deletevg
+Type: text
+# :sl3:
+# Menu entry
+# Use infinitive form
+_Description: Delete volume group
+
+Template: partman-lvm/menu/extendvg
+Type: text
+# :sl3:
+# Menu entry
+# Use infinitive form
+_Description: Extend volume group
+
+Template: partman-lvm/menu/reducevg
+Type: text
+# :sl3:
+# Menu entry
+# Use infinitive form
+_Description: Reduce volume group
+
+Template: partman-lvm/menu/createlv
+Type: text
+# :sl3:
+# Menu entry
+# Use infinitive form
+_Description: Create logical volume
+
+Template: partman-lvm/menu/deletelv
+Type: text
+# :sl3:
+# Menu entry
+# Use infinitive form
+_Description: Delete logical volume
+
+Template: partman-lvm/menu/finish
+Type: text
+# :sl3:
+# Menu entry
+# Use infinitive form
+_Description: Finish
+
+Template: partman-lvm/confirm
+Type: boolean
+Default: false
+# :sl3:
+#flag:translate!:4
+_Description: Write the changes to disks and configure LVM?
+ Before the Logical Volume Manager can be configured, the current
+ partitioning scheme has to be written to disk. These changes cannot
+ be undone.
+ .
+ After the Logical Volume Manager is configured, no additional changes
+ to the partitioning scheme of disks containing physical volumes are
+ allowed during the installation. Please decide if you are satisfied
+ with the current partitioning scheme before continuing.
+ .
+ ${ITEMS}
+
+Template: partman-lvm/confirm_nochanges
+Type: boolean
+Default: false
+# :sl3:
+_Description: Keep current partition layout and configure LVM?
+ After the Logical Volume Manager is configured, no additional changes
+ to the partitions in the disks containing physical volumes are
+ allowed. Please decide if you are satisfied with the current
+ partitioning scheme in these disks before continuing.
+
+Template: partman-lvm/commit_failed
+Type: error
+# :sl3:
+_Description: LVM configuration failure
+ An error occurred while writing the changes to the disks.
+ .
+ Logical Volume Manager configuration has been aborted.
+
+Template: partman/method_long/lvm
+Type: text
+# :sl3:
+_Description: physical volume for LVM
+
+Template: partman/method_short/lvm
+Type: text
+# :sl3:
+# keep it short (ideally a 3-letter acronym)
+_Description: lvm
+
+Template: debian-installer/partman-lvm/title
+Type: text
+# :sl3:
+#  Main menu item
+# Use infinitive form
+_Description: Configure the Logical Volume Manager
+
+Template: partman-lvm/mainmenu
+Type: select
+Choices-C: ${CHOICES}
+Choices: ${CHOICES_L10N}
+# :sl3:
+_Description: LVM configuration action:
+ Summary of current LVM configuration:
+ .
+  Free Physical Volumes:  ${FREE_PVS}
+  Used Physical Volumes:  ${USED_PVS}
+  Volume Groups:          ${VGS}
+  Logical Volumes:        ${LVS}
+Help: partman-lvm/help
+
+Template: partman-lvm/displayall
+Type: note
+# :sl3:
+#flag:translate!:2
+_Description: Current LVM configuration:
+ ${CURRENT_CONFIG}
+
+Template: partman-lvm/vgcreate_parts
+Type: multiselect
+Choices: ${PARTITIONS}
+# :sl3:
+_Description: Devices for the new volume group:
+ Please select the devices for the new volume group.
+ .
+ You can select one or more devices.
+
+Template: partman-lvm/vgcreate_name
+Type: string
+# :sl3:
+_Description: Volume group name:
+ Please enter the name you would like to use for the new volume group.
+
+Template: partman-lvm/vgcreate_nosel
+Type: error
+# :sl3:
+_Description: No physical volumes selected
+ No physical volumes were selected. The creation of a new
+ volume group has been aborted.
+
+Template: partman-lvm/vgcreate_nonamegiven
+Type: error
+# :sl3:
+_Description: No volume group name entered
+ No name for the volume group has been entered. Please enter a name.
+
+Template: partman-lvm/vgcreate_nameused
+Type: error
+# :sl3:
+_Description: Volume group name already in use
+ The selected volume group name is already in use. Please choose
+ a different name.
+
+Template: partman-lvm/vgcreate_devnameused
+Type: error
+# :sl3:
+_Description: Volume group name overlaps with device name
+ The selected volume group name overlaps with an existing device name.
+ Please choose a different name.
+
+Template: partman-lvm/vgcreate_error
+Type: error
+# :sl3:
+_Description: Error while reducing volume group
+ The volume group ${VG} could not be created.
+ .
+ Check /var/log/syslog or see virtual console 4 for the details.
+
+Template: partman-lvm/vgdelete_names
+Type: select
+Choices: ${GROUPS}
+# :sl3:
+_Description: Volume group to delete:
+ Please select the volume group you wish to delete.
+
+Template: partman-lvm/vgdelete_novg
+Type: error
+# :sl3:
+_Description: No volume group found
+ No volume group has been found.
+ .
+ The volume group may have already been deleted.
+
+Template: partman-lvm/vgdelete_confirm
+Type: boolean
+Default: true
+# :sl3:
+_Description: Really delete the volume group?
+ Please confirm the ${VG} volume group removal.
+
+Template: partman-lvm/vgdelete_error
+Type: error
+# :sl3:
+_Description: Error while deleting volume group
+ The selected volume group could not be deleted. One or more logical
+ volumes may currently be in use.
+
+Template: partman-lvm/vgextend_novg
+Type: error
+# :sl3:
+_Description: No volume group found
+ No volume group has been found.
+ .
+ No volume group can be deleted.
+
+Template: partman-lvm/vgextend_names
+Type: select
+Choices: ${GROUPS}
+# :sl3:
+_Description: Volume group to extend:
+ Please select the volume group you wish to extend.
+
+Template: partman-lvm/vgextend_parts
+Type: multiselect
+Choices: ${PARTITIONS}
+# :sl3:
+_Description: Devices to add to the volume group:
+ Please select the devices you wish to add to the volume group.
+ .
+ You can select one or more devices.
+
+Template: partman-lvm/vgextend_nosel
+Type: error
+# :sl3:
+_Description: No physical volumes selected
+ No physical volumes were selected. Extension of the volume group
+ has been aborted.
+
+Template: partman-lvm/vgextend_error
+Type: error
+# :sl3:
+_Description: Error while extending volume group
+ The physical volume ${PARTITION} could not be added to the selected
+ volume group.
+
+Template: partman-lvm/vgreduce_novg
+Type: error
+# :sl3:
+_Description: No volume group found
+ No volume group has been found.
+ .
+ No volume group can be reduced.
+
+Template: partman-lvm/vgreduce_names
+Type: select
+Choices: ${GROUPS}
+# :sl3:
+_Description: Volume group to reduce:
+ Please select the volume group you wish to reduce.
+
+Template: partman-lvm/vgreduce_parts
+Type: multiselect
+Choices: ${PARTITIONS}
+# :sl3:
+_Description: Devices to remove from the volume group:
+ Please select the devices you wish to remove from the volume group.
+ .
+ You can select one or more devices.
+
+Template: partman-lvm/vgreduce_nosel
+Type: error
+# :sl3:
+_Description: No physical volumes selected
+ No physical volumes were selected. Reduction of the volume group was
+ aborted.
+
+Template: partman-lvm/vgreduce_error
+Type: error
+# :sl3:
+_Description: Error while reducing volume group
+ The physical volume ${PARTITION} could not be removed from the selected
+ volume group.
+ .
+ Check /var/log/syslog or see virtual console 4 for the details.
+
+Template: partman-lvm/lvcreate_nofreevg
+Type: error
+# :sl3:
+_Description: No volume group found
+ No free volume groups were found for creating a new logical volume.
+ Please create more physical volumes and volume groups, or reduce an
+ existing volume group.
+
+Template: partman-lvm/lvcreate_name
+Type: string
+# :sl3:
+_Description: Logical volume name:
+ Please enter the name you would like to use for the new logical volume.
+
+Template: partman-lvm/lvcreate_vgnames
+Type: select
+Choices: ${GROUPS}
+# :sl3:
+_Description: Volume group:
+ Please select the volume group where the new logical volume
+ should be created.
+
+Template: partman-lvm/lvcreate_nonamegiven
+Type: error
+# :sl3:
+_Description: No logical volume name entered
+ No name for the logical volume has been entered. Please enter a
+ name.
+
+Template: partman-lvm/lvcreate_exists
+Type: error
+# :sl3:
+_Description: Error while creating a new logical volume
+ The name ${LV} is already in use by another logical volume on the
+ same volume group (${VG}).
+
+Template: partman-lvm/lvcreate_size
+Type: string
+# :sl3:
+_Description: Logical volume size:
+ Please enter the size of the new logical volume. The size may be
+ entered in the following formats: 10K (Kilobytes), 10M (Megabytes),
+ 10G (Gigabytes), 10T (Terabytes). The default unit is Megabytes.
+
+Template: partman-lvm/lvcreate_error
+Type: error
+# :sl3:
+_Description: Error while creating a new logical volume
+ Unable to create a new logical volume (${LV}) on ${VG} with the new
+ size ${SIZE}.
+ .
+ Check /var/log/syslog or see virtual console 4 for the details.
+
+Template: partman-lvm/lvdelete_nolv
+Type: error
+# :sl3:
+_Description: No logical volume found
+ No logical volume has been found. Please create a logical volume first.
+
+Template: partman-lvm/lvdelete_lvnames
+Type: select
+Choices: ${LVS}
+# :sl3:
+_Description: Logical volume:
+ Please select the logical volume to delete.
+
+Template: partman-lvm/text/lvdelete_invg
+Type: text
+# :sl3:
+_Description: in VG ${VG}
+
+Template: partman-lvm/lvdelete_error
+Type: error
+# :sl3:
+_Description: Error while deleting the logical volume
+ The logical volume ${LV} on ${VG} could not be deleted.
+ .
+ Check /var/log/syslog or see virtual console 4 for the details.
+
+Template: partman-lvm/nopartitions
+Type: error
+# :sl3:
+_Description: No usable physical volumes found
+ No physical volumes (i.e. partitions) were found in your system. All
+ physical volumes may already be in use. You may also need to load
+ some required kernel modules or re-partition the hard drives.
+
+Template: partman-lvm/nolvm
+Type: error
+# :sl3:
+_Description: Logical Volume Manager not available
+ The current kernel doesn't support the Logical Volume Manager. You may
+ need to load the lvm-mod module.
+
+Template: partman-lvm/pvcreate_error
+Type: error
+# :sl3:
+_Description: Error while initializing physical volume
+ The physical volume ${PV} could not be initialized.
+ .
+ Check /var/log/syslog or see virtual console 4 for the details.
+
+Template: partman-lvm/badnamegiven
+Type: error
+# :sl3:
+_Description: Invalid logical volume or volume group name
+ Logical volume or volume group names may only contain alphanumeric
+ characters, hyphen, plus, period, and underscore. They must be 128
+ characters or less and may not begin with a hyphen. The names "." and
+ ".." are not allowed. In addition, logical volume names cannot begin
+ with "snapshot".
+ .
+ Please choose a different name.
+
+Template: partman-lvm/device_remove_lvm
+Type: boolean
+Default: false
+# :sl3:
+_Description: Remove existing logical volume data?
+ The selected device already contains the following LVM logical volumes,
+ volume groups and physical volumes which are about to be removed:
+ .
+ Logical volume(s) to be removed: ${LVTARGETS}
+ .
+ Volume group(s) to be removed: ${VGTARGETS}
+ .
+ Physical volume(s) to be removed: ${PVTARGETS}
+ .
+ Note that this will also permanently erase any data currently on the
+ logical volumes.
+
+Template: partman-lvm/device_remove_lvm_span
+Type: error
+# :sl3:
+_Description: Unable to automatically remove LVM data
+ Because the volume group(s) on the selected device also consist of
+ physical volumes on other devices, it is not considered safe to remove
+ its LVM data automatically. If you wish to use this device for
+ partitioning, please remove its LVM data first.
+
+Template: partman-lvm/help
+Type: note
+# :sl3:
+_Description: Logical Volume Management
+ A common situation for system administrators is to find that some disk
+ partition (usually the most important one) is short on space, while some
+ other partition is underused. The Logical Volume Manager (LVM) can help
+ with this.
+ .
+ LVM allows combining disk or partition devices ("physical volumes") to form
+ a virtual disk ("volume group"), which can then be divided into virtual
+ partitions ("logical volumes"). Volume groups and logical volumes may span
+ several physical disks. New physical volumes may be added to a volume group
+ at any time, and logical volumes can be resized up to the amount of
+ unallocated space in the volume group.
+ .
+ The items on the LVM configuration menu can be used to edit volume groups
+ and logical volumes. After you return to the main partition manager screen,
+ logical volumes will be displayed in the same way as ordinary partitions,
+ and should be treated as such.

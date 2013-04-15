@@ -22,9 +22,10 @@ import os
 
 from ubiquity.filteredcommand import FilteredCommand
 
+
 class Install(FilteredCommand):
     def prepare(self, unfiltered=False):
-        automatic_mode = 'UBIQUITY_AUTOMATIC' in os.environ
+        automatic_mode = self.is_automatic
 
         if os.access('/usr/share/grub-installer/grub-installer', os.X_OK):
             with_other_os = self.db.get('grub-installer/with_other_os')

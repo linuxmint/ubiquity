@@ -27,7 +27,10 @@ for dev in $DEVICES/*; do
 		[ -f "$id/method" ] || continue
 		method=$(cat $id/method)
 		if [ "$method" = swap ]; then
-			echo "$path" none swap sw 0 0
+			case "$path" in
+				/dev/zvol/*) zfs set org.freebsd:swap=on ${path#/dev/zvol/} ;;
+				*) echo "$path" none swap sw 0 0 ;;
+			esac
 		fi
 		[ -f "$id/acting_filesystem" ] || continue
 		filesystem=$(cat $id/acting_filesystem)

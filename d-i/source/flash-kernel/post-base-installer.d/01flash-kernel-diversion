@@ -1,0 +1,9 @@
+#!/bin/sh
+
+set -e
+
+# divert update-initramfs
+file=usr/sbin/update-initramfs
+
+in-target dpkg-divert --add --local --divert /${file}.flash-kernel-diverted --rename /${file}
+cp /target/bin/true /target/$file

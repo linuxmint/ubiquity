@@ -20,20 +20,24 @@
 
 from ubiquity.filteredcommand import FilteredCommand, UntrustedBase
 
+
 class PluginUI(UntrustedBase):
     # We define an init even if empty so that arguments that we give but are
     # not used don't cause an error.
     def __init__(self, *args, **kwargs):
         pass
 
+
 class Plugin(FilteredCommand):
     def prepare(self, unfiltered=False):
         # None causes dbfilter to just spin a main loop and wait for OK/Cancel
         return None
 
+
 class InstallPlugin(Plugin):
     def install(self, *args, **kwargs):
         return self.run_command(auto_process=True)
+
 
 # Use this as a decorator if you want to guard against a function being called
 # when on a different page.  For instance, when it is called as part of the

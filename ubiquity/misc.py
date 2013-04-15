@@ -476,12 +476,11 @@ def get_release():
                     #line = line.split()
                     #if line[2] == 'LTS':
                         #line[1] += ' LTS'
-                    get_release.release_info = ReleaseInfo(
-                        name=line[0], version=line[1])
+                    #get_release.release_info = ReleaseInfo(
+                        #name=line[0], version=line[1])
             #syslog.syslog(syslog.LOG_ERR, 'Unable to determine the release.')
-
         #if not get_release.release_info:
-        get_release.release_info = ReleaseInfo(name='Linuxmint', version='4.2.1')
+        get_release.release_info = ReleaseInfo(name='Linuxmint', version='14')
     return get_release.release_info
 
 get_release.release_info = None

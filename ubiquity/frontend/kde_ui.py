@@ -154,7 +154,7 @@ class Wizard(BaseFrontend):
         self._apply_stylesheet()
 
         self.app.setWindowIcon(QtGui.QIcon.fromTheme("ubiquity"))
-         "/usr/share/icons/hicolor/128x128/apps/ubiquity.png"))
+
         import dbus.mainloop.qt
         dbus.mainloop.qt.DBusQtMainLoop(set_as_default=True)
 
@@ -259,7 +259,6 @@ class Wizard(BaseFrontend):
         # Array to keep callback functions needed by debconf file descriptors.
         self.debconf_callbacks = {}
 
-         "/usr/share/icons/hicolor/128x128/apps/ubiquity.png"))
         self.allow_go_backward(False)
 
         self.stop_debconf()
@@ -272,7 +271,6 @@ class Wizard(BaseFrontend):
         elif self.oem_user_config:
             self.ui.setWindowTitle(self.get_string('oem_user_config_title'))
             self.ui.setWindowIcon(QtGui.QIcon.fromTheme("preferences-system"))
-          "/usr/share/icons/oxygen/128x128/categories/preferences-system.png"))
             flags = self.ui.windowFlags() ^ QtCore.Qt.WindowMinMaxButtonsHint
             if hasattr(QtCore.Qt, 'WindowCloseButtonHint'):
                 flags = flags ^ QtCore.Qt.WindowCloseButtonHint
@@ -289,10 +287,8 @@ class Wizard(BaseFrontend):
         self.ui.progressCancel.setIcon(QtGui.QIcon.fromTheme("dialog-close"))
 
         self._show_progress_bar(False)
-         "/usr/share/icons/oxygen/128x128/actions/dialog-ok-apply.png")
 
         misc.add_connection_watch(self.network_change)
-         "/usr/share/icons/oxygen/128x128/actions/go-previous.png")
 
     def _show_progress_bar(self, show):
         if show:

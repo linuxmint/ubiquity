@@ -19,30 +19,17 @@
 
 from __future__ import print_function
 
-from IN import INT_MAX
 import os
 import subprocess
 import sys
 
-from ubiquity import plugin
-from ubiquity import misc, osextras, i18n, upower
+from ubiquity import i18n, misc, osextras, plugin, upower
 
 
 NAME = 'prepare'
 AFTER = 'language'
 WEIGHT = 11
 OEM = False
-
-JOCKEY = 'com.ubuntu.DeviceDriver'
-JOCKEY_PATH = '/DeviceDriver'
-
-# From dbus-python:
-#  if (timeout_s > ((double)INT_MAX) / 1000.0) {
-#     PyErr_SetString(PyExc_ValueError, "Timeout too long");
-#     return NULL;
-# }
-# timeout_ms = (int)(timeout_s * 1000.0);
-MAX_DBUS_TIMEOUT = INT_MAX / 1000.0
 
 
 # TODO: This cannot be a non-debconf plugin after all as OEMs may want to
@@ -80,7 +67,7 @@ class PageGtk(PreparePageBase):
     restricted_package_name = 'ubuntu-restricted-addons'
 
     def __init__(self, controller, *args, **kwargs):
-        if 'UBIQUITY_AUTOMATIC' in os.environ:
+        if self.is_automatic:
             self.page = None
             return
         self.controller = controller
@@ -152,7 +139,7 @@ class PageKde(PreparePageBase):
 
     def __init__(self, controller, *args, **kwargs):
         from ubiquity.qtwidgets import StateBox
-        if 'UBIQUITY_AUTOMATIC' in os.environ:
+        if self.is_automatic:
             self.page = None
             return
         self.controller = controller
@@ -217,25 +204,24 @@ class PageKde(PreparePageBase):
     def plugin_translate(self, lang):
         PreparePageBase.plugin_translate(self, lang)
         # gtk does the ${RELEASE} replace for the title in gtk_ui but we do
-        # it per plugin because our title widget is per plugin.  Also add
-        # Bold here (not sure how the gtk side keeps that formatting).
+        # it per plugin because our title widget is per plugin
         release = misc.get_release()
-        for widget in (
+        widgets = (
             self.page.prepare_heading_label,
             self.page.prepare_best_results,
             self.page.prepare_foss_disclaimer,
-            ):
+        )
+        for widget in widgets:
             text = widget.text()
             text = text.replace('${RELEASE}', release.name)
             text = text.replace('Ubuntu', 'Kubuntu')
-            text = "<b>" + text + "</b>"
             widget.setText(text)
 
 
 class Page(plugin.Plugin):
     def prepare(self):
         if (self.db.get('apt-setup/restricted') == 'false' or
-            self.db.get('apt-setup/multiverse') == 'false'):
+                self.db.get('apt-setup/multiverse') == 'false'):
             self.ui.set_allow_nonfree(False)
         else:
             use_nonfree = self.db.get('ubiquity/use_nonfree') == 'true'
@@ -282,6 +268,7 @@ class Page(plugin.Plugin):
                 self.preseed_bool('apt-setup/universe', True)
                 self.preseed_bool('apt-setup/multiverse', True)
                 if self.db.fget('ubiquity/nonfree_package', 'seen') != 'true':
-                    self.preseed('ubiquity/nonfree_package',
+                    self.preseed(
+                        'ubiquity/nonfree_package',
                         self.ui.restricted_package_name)
         plugin.Plugin.ok_handler(self)

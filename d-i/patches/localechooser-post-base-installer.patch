@@ -2,9 +2,26 @@ Index: b/source/localechooser/post-base-installer.d/05localechooser
 ===================================================================
 --- a/source/localechooser/post-base-installer.d/05localechooser
 +++ b/source/localechooser/post-base-installer.d/05localechooser
-@@ -42,18 +42,18 @@
- 	db_get debian-installer/country
- 	COUNTRY="$RET"
+@@ -21,6 +21,9 @@
+ 	LANGLIST="$RET"
+ fi
+ 
++db_get debian-installer/country
++COUNTRY="$RET"
++
+ EXTRAS=""
+ if db_get localechooser/supported-locales; then
+ 	EXTRAS="$(echo "$RET" | sed 's/,//g')"
+@@ -36,29 +39,136 @@
+ 	# different location may imply a different dialect of the language.
+ 	# In such cases, make LANG reflect the selected language (for
+ 	# messages, character types, and collation) and make the other
+-	# locale categories reflect the selected language.
++	# locale categories reflect the selected location.
+ 	db_get localechooser/languagelist
+ 	ORIG_LANGUAGE="$RET"
+-	db_get debian-installer/country
+-	COUNTRY="$RET"
  
 -	if grep -q "^$ORIG_LANGUAGE;" /usr/share/localechooser/languagelist; then
 -		SUPPORTEDLOCALES=/usr/share/localechooser/SUPPORTED
@@ -25,7 +42,129 @@ Index: b/source/localechooser/post-base-installer.d/05localechooser
  		fi
  	fi
  	;;
-@@ -113,7 +113,7 @@
+ esac
+ 
++# It is relatively common for the combination of language and location (as
++# selected on the timezone page) not to identify a supported combined
++# locale.  For example, this happens when the user is a migrant, or when
++# they prefer to use a different language to interact with their computer
++# because that language is better-supported.
++#
++# In such cases, we would like to be able to use a locale reflecting the
++# selected language in LANG for messages, character types, and collation,
++# and to make the other locale categories reflect the selected location.
++# This means that we have to guess at a suitable locale for the selected
++# location, and we do not want to ask yet another locale-related question.
++# Nevertheless, some cases are ambiguous: a user who has asked for the
++# English language and identifies their location as Switzerland will get
++# different numeric representation depending on which Swiss locale we pick.
++#
++# The goal of identifying a reasonable default for migrants makes things
++# easier: it is reasonable to default to French for France despite the
++# existence of several minority languages there, because anyone who prefers
++# those languages will probably already have selected them and won't arrive
++# here.  However, in some cases we're unsure, and in some cases we actively
++# don't want to pick a "preferred" language: selecting either Greek or
++# Turkish as the default language for migrants to Cyprus would probably
++# offend somebody!  In such cases we simply punt to the old behaviour of not
++# setting up a locale reflecting the location, which is suboptimal but is at
++# least unlikely to give offence.
++#
++# Our best shot at general criteria for selecting a default language in
++# these circumstances are as follows:
++#
++#  * Exclude special-purpose (e.g. en_DK) and artificial (e.g. la_AU,
++#    tlh_GB) locales.
++#  * If there is a language specific to or very strongly associated with the
++#    country in question, prefer it unless it has rather few native
++#    speakers.
++#  * Exclude minority languages that are relatively unlikely to be spoken by
++#    migrants who have not already selected them as their preferred language
++#    earlier in the installer.
++#  * If there is an official national language likely to be seen in print
++#    media, road signs, etc., then prefer that.
++#  * In cases of doubt, selecting no default language is safe.
++#
++# This code is currently duplicated between here and
++# ubiquity/scripts/localechooser-apply.  Please keep them in sync until the
++# duplication can be removed.
++
++combined="$(echo "$LOCALE" | sed "s/_[A-Z][A-Z]*/_$COUNTRY/")"
++if [ "$LOCALE" = "$LOCALE_TRANSLATIONS" ] && \
++   ! grep -q "^${combined%%[.@]*}[.@ ]" /usr/share/i18n/SUPPORTED; then
++	available="$(grep ' UTF-8' /usr/share/i18n/SUPPORTED | \
++		grep "_$COUNTRY[.@ ]" | sed 's/[.@ ].*//' | sort -u)"
++	if [ "$(echo "$available" | wc -l)" = 1 ]; then
++		combined="$available"
++	else
++		case $COUNTRY in
++		    AU) deflang=en ;;
++		    CN) deflang=zh ;;
++		    DE) deflang=de ;;
++		    DK) deflang=da ;;
++		    DZ) deflang=ar ;;
++		    ES) deflang=es ;;
++		    # Somewhat unclear: Oromo has the greatest number of
++		    # native speakers; English is the most widely spoken
++		    # language and taught in secondary schools; Amharic is
++		    # the official language and was taught in primary
++		    # schools.
++		    ET) deflang=am ;;
++		    FI) deflang=fi ;;
++		    FR) deflang=fr ;;
++		    GB) deflang=en ;;
++		    # Irish (Gaelic) is strongly associated with Ireland,
++		    # but nearly all its native speakers also speak English,
++		    # and migrants are likely to use English.
++		    IE) deflang=en ;;
++		    IT) deflang=it ;;
++		    MA) deflang=ar ;;
++		    MK) deflang=mk ;;
++		    NG) deflang=en ;;
++		    NL) deflang=nl ;;
++		    NZ) deflang=en ;;
++		    IL) deflang=he ;;
++		    # Filipino is a de facto version of Tagalog, which is
++		    # also spoken; English is also an official language.
++		    PH) deflang=fil ;;
++		    PK) deflang=ur ;;
++		    PL) deflang=pl ;;
++		    RU) deflang=ru ;;
++		    # Chinese has more speakers, but English is the "common
++		    # language of the nation" (Wikipedia) and official
++		    # documents must be translated into English to be
++		    # accepted.
++		    SG) deflang=en ;;
++		    SN) deflang=wo ;;
++		    TR) deflang=tr ;;
++		    TW) deflang=zh ;;
++		    UA) deflang=uk ;;
++		    US) deflang=en ;;
++		    ZM) deflang=en ;;
++		    *) deflang= ;;
++		esac
++		combined="$(grep ' UTF-8' /usr/share/i18n/SUPPORTED | \
++			grep "${deflang}_$COUNTRY[.@ ]" | head -n1 | \
++			cut -d' ' -f1)"
++	fi
++
++	if [ "$combined" ]; then
++		LOCALE="$combined"
++	fi
++fi
++
+ # Enable translations
+ if [ "$LOCALE" != "C" ] || [ "$EXTRAS" ]; then
+ 	apt-install locales || true
+@@ -103,6 +213,7 @@
+ 		LC_TELEPHONE LC_MEASUREMENT LC_IDENTIFICATION; do
+ 		set_field /target/etc/default/locale "$category" "$LOCALE"
+ 	done
++	EXTRAS="$EXTRAS $LOCALE_TRANSLATIONS"
+ fi
+ 
+ # For languages that have no chance to be displayed at the Linux console
+@@ -113,7 +224,7 @@
  # For language with multiple entries such as pt/pt_BR or zh_CN/zh_TW
  # we don't really care about the entry we will match as the level will always
  # be the same
@@ -34,7 +173,7 @@ Index: b/source/localechooser/post-base-installer.d/05localechooser
  	cut -f 2-3 -d\; | \
  	grep "$LANGUAGECODE" | \
  	head -n 1 | \
-@@ -126,11 +126,33 @@
+@@ -126,11 +237,33 @@
  	echo "LANGUAGE=C" >>$ROOTPROFILE
  fi
  
@@ -43,7 +182,7 @@ Index: b/source/localechooser/post-base-installer.d/05localechooser
 +	# locale as well.
 +	local locale old_locales new_locales added_dirs
 +	old_locales="$(ls /target/usr/lib/locale 2>/dev/null | sort -u | xargs)"
-+	log-output -t localechooser chroot /target /usr/sbin/locale-gen --no-archive "$@" || return 0
++	log-output -t localechooser chroot /target /usr/sbin/locale-gen --no-archive --no-purge "$@" || return 0
 +	new_locales="$(ls /target/usr/lib/locale 2>/dev/null | sort -u | xargs)"
 +	added_dirs=
 +	for locale in $new_locales; do

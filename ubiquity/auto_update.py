@@ -20,14 +20,15 @@
 
 from __future__ import print_function
 
-import sys
 import os
+import sys
 import syslog
 
 import apt
 import apt_pkg
 
 from ubiquity import misc
+
 
 MAGIC_MARKER = "/var/run/ubiquity.updated"
 # Make sure that ubiquity is last, otherwise apt may try to install another
@@ -47,7 +48,7 @@ class CacheProgressDebconfProgressAdapter(apt.progress.base.OpProgress):
             0, 100, self.frontend.get_string('reading_package_information'))
 
     def update(self, percent=None):
-        super(CacheProgressDebconfProgressAdapter, self).update(percent)
+        super().update(percent)
         self.frontend.debconf_progress_set(self.percent)
         self.frontend.refresh()
 
@@ -66,8 +67,10 @@ class AcquireProgressDebconfProgressAdapter(apt.progress.base.AcquireProgress):
         apt.progress.base.AcquireProgress.pulse(self, owner)
         if self.current_cps > 0:
             info = self.frontend.get_string('apt_progress_cps')
-            info = info.replace(
-                '${SPEED}', apt_pkg.size_to_str(self.current_cps))
+            current_cps = apt_pkg.size_to_str(self.current_cps)
+            if isinstance(current_cps, bytes):
+                current_cps = current_cps.decode()
+            info = info.replace('${SPEED}', current_cps)
         else:
             info = self.frontend.get_string('apt_progress')
         info = info.replace('${INDEX}', str(self.current_items))

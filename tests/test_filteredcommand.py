@@ -34,10 +34,10 @@ class FilteredCommandTests(unittest.TestCase):
 
     def test_debug_unicode(self):
         variant = "Arménien"
-        filteredcommand.UntrustedBase.debug("Unknown keyboard variant %s",
-            variant)
+        filteredcommand.UntrustedBase.debug(
+            "Unknown keyboard variant %s", variant)
 
     def test_debug_bytes(self):
         variant = b"English"
-        filteredcommand.UntrustedBase.debug("Unknown keyboard variant %s",
-            variant)
+        filteredcommand.UntrustedBase.debug(
+            "Unknown keyboard variant %s", variant)

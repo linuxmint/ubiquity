@@ -82,7 +82,7 @@ process_device(PedDevice *dev)
 		return;
 	printf("%s\t%lli\t%s\n",
 	       dev->path,
-	       dev->length * PED_SECTOR_SIZE_DEFAULT,
+	       dev->length * dev->sector_size,
 	       dev->model);
 }
 

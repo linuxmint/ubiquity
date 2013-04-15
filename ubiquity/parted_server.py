@@ -26,6 +26,7 @@ import fcntl
 import os
 import shutil
 
+
 devices = '/var/lib/partman/devices'
 infifo = '/var/lib/partman/infifo'
 outfifo = '/var/lib/partman/outfifo'
@@ -122,8 +123,7 @@ class PartedServer(object):
                 message = self.read_paragraph()
                 self.log('error_handler: reading options')
                 options = self.read_list()
-                if (exception_type == 'Information' or
-                    exception_type == 'Warning'):
+                if exception_type in ('Information', 'Warning'):
                     pass
                 else:
                     raise PartedServerError(exception_type, message, options)

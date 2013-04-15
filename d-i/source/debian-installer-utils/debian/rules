@@ -3,6 +3,19 @@
 	dh $@
 
 DEB_HOST_ARCH_OS ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
+DEB_HOST_GNU_TYPE ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+DEB_BUILD_GNU_TYPE ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+
+ifeq ($(DEB_BUILD_GNU_TYPE),$(DEB_HOST_GNU_TYPE))
+CC := gcc
+else
+CC := $(DEB_HOST_GNU_TYPE)-gcc
+endif
+
+export DEB_CFLAGS_MAINT_APPEND := -Wall -W -Os -fomit-frame-pointer
+
+CFLAGS := $(shell dpkg-buildflags --get CPPFLAGS; dpkg-buildflags --get CFLAGS)
+LDFLAGS := $(shell dpkg-buildflags --get LDFLAGS)
 
 TERMNAMES = a/ansi d/dumb v/vt102
 
@@ -15,12 +28,15 @@ TERMNAMES += c/cons25 x/xterm
 endif
 
 ifeq ($(DEB_HOST_ARCH_OS),hurd)
-TERMNAMES += h/hurd g/gnu-mach-color
+TERMNAMES += h/hurd m/mach-gnu-color
 endif
 
 TERMS = $(foreach term,$(TERMNAMES),\
           $(firstword $(wildcard /lib/terminfo/$(term)) \
                       $(wildcard /usr/share/terminfo/$(term))))
+
+override_dh_auto_build:
+	$(MAKE) CC=$(CC) CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)"
 
 override_dh_auto_install:
 	for file in $(TERMS); do \
@@ -32,4 +48,3 @@ override_dh_auto_install:
 	mkdir -p debian/di-utils/bin
 	cp -pL list-devices-$(DEB_HOST_ARCH_OS) debian/di-utils/bin/list-devices
 	chmod 755 debian/di-utils/bin/list-devices
-	

@@ -1,3 +1,387 @@
+ubiquity (2.14.1) raring; urgency=low
+
+  * Pass --identifier-prefix=Ubiquity via
+    UbiquityMockResolver_1_0_gir_SCANNERFLAGS rather than
+    UbiquityMockResolver_1_0_gir_CFLAGS, fixing build failure with
+    gobject-introspection >= 1.35.9.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 30 Mar 2013 23:15:26 +0000
+
+ubiquity (2.14.0) raring; urgency=low
+
+  [ Dmitrijs Ledkovs ]
+  * ubiquity.ubiquity.upstart: exit with 1 if fails for unknown reasons
+    (LP: #1151224)
+
+  [ Jason Gerard DeRose ]
+  * Add 'ubiquity-frontend-gtk' to the tuple of packages to remove in
+    bin/oem-config-remove-gtk (LP: #1161943).
+
+  [ Colin Watson ]
+  * Automatic update of included source packages: flash-kernel
+    3.0~rc.4ubuntu30, partman-base 163ubuntu2.
+  * Update translations from Launchpad.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 30 Mar 2013 13:54:57 +0000
+
+ubiquity (2.13.18) raring; urgency=low
+
+  [ Aurélien Gâteau ]
+  * KDE: create web view manually to ensure it starts slideshow
+  * KDE: Fix the cancel button. It was missing its icon and not connected to
+    an action
+
+  [ Jonathan Riddell ]
+  * 01oem-config-udeb install kubuntu slideshow for oem-config in Kubuntu
+  * KDE: Untick encrypt tickbox when selecting login automatically LP: #1131459
+
+  [ Dmitrijs Ledkovs ]
+  * Drop compiz from alternative supported window managers for
+    ubiquity-dm. This reverts to using metacity. It has proven to be
+    unreliable.
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Fri, 22 Mar 2013 15:40:56 +0000
+
+ubiquity (2.13.17) raring; urgency=low
+
+  * Remove webcam step (LP: #1118589):
+    - User testing showed people are not expecting to be photographed and
+      raise privacy concerns as to where the picture will be uploaded to.
+    - Provides limited benefit, as avatar only ever shown on multi-login
+      systems in the switch user indicator / pkexec.
+    - Crashes the installer or doesn't work with certain webcams.
+    - Miss detects camera presence, when it's just a sensor.
+    - The recommendation is to move webcam test to checkbox / hw testing,
+      as video conferencing is very popular these days and should work
+      reliably out of the box.
+    - LP: #924419 , LP: #981644 , LP: #987392, LP: #1152254, LP: #843354,
+      LP: #1008204, LP: #1021449, LP: #1082458, LP: #1103780, LP: #1142751
+  * Do not count optional pages, when updating the progress dots. This
+    fixes "Porgress dots, well don't progress after partman step"
+    LP: #1152746
+  * Do not mark explanatory text on "Installation Type" screen
+    insensitive, as otherwise it's ineligible (LP: #1074386)
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Tue, 19 Mar 2013 15:17:51 +0000
+
+ubiquity (2.13.16) raring; urgency=low
+
+  * ubiquity-dm: Add UbuntuKylin background image.
+  * debian/tests/control: Depend only on the debs we generate, not on "@"
+    which is expanded to the udebs as well.
+  * Automatic update of included source packages: console-setup 1.70ubuntu7.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 15 Mar 2013 10:51:22 +0000
+
+ubiquity (2.13.15) raring; urgency=low
+
+  * Re-upload due to broken hint on previous upload
+
+ -- Jonathan Riddell <jriddell@ubuntu.com>  Wed, 13 Mar 2013 00:40:11 +0000
+
+ubiquity (2.13.14) raring; urgency=low
+
+  [ Harald Sitter ]
+  * KDE: Insert spacer in sidebar to ensure it scales correctly even when
+    no install steps are set (greeter mode) LP: #1153557
+
+  [ Aurélien Gâteau ]
+  * KDE: fixes the "next|install" button not changing its text back to
+    "next" when it has changed to "install" and users clicks on
+    "previous"
+  * KDE: ensure all text is the same color and fixes spacing issues on the
+    prepare step
+
+  [ Jonathan Riddell ]
+  * Automatic update of included source packages: localechooser
+    2.49ubuntu2.
+
+ -- Jonathan Riddell <jriddell@ubuntu.com>  Tue, 12 Mar 2013 16:53:17 +0000
+
+ubiquity (2.13.13.1) raring; urgency=low
+
+  * install, is already imported as a module, hence the update_next_button
+    karg got changed to install_now, which broke the rest of calls to
+    update_next_button. Instead, simply use a positional arg for all the
+    remaining calls. (LP: #1153035) This should unbreak kubuntu
+    images. Kde frontend maintainers should be free to fix this otherwise,
+    as long as it is pyflakes & pep8 clean.
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Sun, 10 Mar 2013 02:13:53 +0000
+
+ubiquity (2.13.13) raring; urgency=low
+
+  [ Dmitrijs Ledkovs ]
+  * Bump Standards version and override some lintian tags (ubiquity is
+    weird).
+  * Override expander style, which is hardcoded in light-themes to a
+    light color. (LP: #1100922)
+  * Consolidate CssProvider and add make minimal progress bar width 10px,
+    in preparation for dot-progress of all steps.
+  * Fix colour unit test, the green is no longer what it used to be...
+  * Switch to "NotShowIn=KDE" for ubiquity-gtk desktop files, as most !kde
+    desktop environments use gtk frontend.
+  * Show progress dots for plugin pages and show progress bar only during
+    slideshow.
+
+  [ Colin Watson ]
+  * Decode the output of apt_pkg.size_to_str() if necessary when
+    substituting it into Unicode strings (LP: #877756, #1132918).
+  * Update translations from Launchpad.
+
+  [ Aurélien Gâteau ]
+  * Turns the Ubiquity KDE window into a regular window and rework
+    the layout of widgets to provide more space to the main content.
+    The labels on the left now wrap to the next line if they are too long,
+    ensuring they are never truncated.
+  * KDE: Improve the layout of Prepare step
+  * KDE: fix integration of the webview responsible for showing the slideshow
+  * KDE: fix various issues with right-to-left languages
+
+  [ Julien Lavergne ]
+  * Use feh to draw the wallpaper on Lubuntu when using ubiquity-dm.
+
+  [ Ma Jun (Kylin Team) ]
+  * Fix referencing variable before assignment (LP: #945027)
+
+  [ Kobe Lee ]
+  * Show OS column in manual partitioning page. (LP: #1100694)
+
+  [ Stéphane Graber ]
+  * Fix crash in ubi-console-setup when quickly moving back and worth between
+    pages. (LP: #944614)
+
+  [ Jonathan Riddell ]
+  * Add back compositing to kwin on live CD (in ubiquity-dm), whatever was wrong
+    in 2008 should be fixed now and its making us look ugly
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Thu, 07 Mar 2013 19:53:52 +0000
+
+ubiquity (2.13.12) raring; urgency=low
+
+  [ Colin Watson ]
+  * While displaying question or error dialogs, only change the busy cursor
+    state rather than also allowing changing step (LP: #1095684).
+  * Use an action group when marking packages for install or delete in the
+    apt cache; this is much faster when many packages are involved, since it
+    avoids repeating autoremoval calculations over and over again.
+  * Sort and consolidate imports.
+  * Fix ordering of encryption password strength indications (LP: #1068391).
+  * At the end of the language install plugin, read all locale-related keys
+    from (/target)/etc/default/locale and set them in the installer's own
+    environment.
+  * If the combination of language and location does not identify a
+    supported combined locale, use a locale based on the language for
+    translation-like locale categories and pick one based on the location
+    for other locale categories (LP: #1094872).  There are still some
+    locations where we cannot pick a language element of a location-based
+    locale because this is unclear or contentious, and in those cases we
+    stick to the old behaviour of having the locale only reflect the
+    country.
+
+  [ Aurélien Gâteau ]
+  * KDE frontend: show name of installed OS as partition name if
+    available
+
+  [ Dmitrijs Ledkovs ]
+  * Make panel.c aware of screen & display changes, prevents visual
+    artefacts on nexus7 when screen is changing or external monitor is
+    plugged in and resolution is changes.
+  * Update disable/enable ctrl+alt+t terminal to use gsettings keys,
+    instead of gconf.
+  * Migrate remaining gconf settings to gsettings in ubiquity-dm.
+  * Make sure to correctly set picture-uri. (LP: #1128597)
+  * Refactor ubiquity-dm, now that there is less code.
+  * Remove gconftool.py.
+  * Automatic update of included source packages: grub-installer
+    1.78ubuntu6, hw-detect 1.92ubuntu1.
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Thu, 21 Feb 2013 02:53:43 +0000
+
+ubiquity (2.13.11) raring; urgency=low
+
+  * Remove remaining autofoo cruft from the source tree and ignore it. We
+    are using dh-autoreconf.
+  * If available, Use gnome-settings-daemon to set the wallpaper, instead
+    of the wallpaper app. Supports changing background and screen size
+    changes (e.g. like on nexus7). For derivatives that do not ship g-s-d,
+    the wallpaper should be draw by their respective native means or the
+    wallpaper app should be fixed or something like xloadimage could be
+    used.
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Sat, 16 Feb 2013 07:18:44 +0000
+
+ubiquity (2.13.10) raring; urgency=low
+
+  [ Colin Watson ]
+  * Only force mirror/country to the value of debian-installer/country if it
+    is empty or has not been preseeded (LP: #732221).
+  * For automatic installs, set debian-installer/country to a country
+    matching time/zone when starting up the timezone plugin, since its
+    ok_handler will typically never be called (LP: #1098577).
+  * Save a random seed to the installed system so that it has better entropy
+    on first boot (LP: #1098299).
+  * Update translations from Launchpad (LP: #1096923).
+  * Refactor handling of automatic mode to make it easier to override checks
+    for it in plugins.
+
+  [ Iain Lane ]
+  * Port the webcam support to GStreamer 1.0.
+
+  [ Jonathan Riddell ]
+  * Fix widget layout and logic (LP: #1066225)
+
+  [ Dmitrijs Ledkovs ]
+  * Automatic update of included source packages: partman-
+    basicfilesystems 76ubuntu4, partman-efi 25ubuntu4, partman-
+    partitioning 89ubuntu2, partman-target 81ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 06 Feb 2013 20:01:25 +0000
+
+ubiquity (2.13.9) raring; urgency=low
+
+  [ Luke Yelavich ]
+  * bin/ubiquity-dm, ubiquity/frontend/gtk_ui.py: Remove a non-existant
+    command-line flag from Orca calls.
+
+  [ Kent Baxley ]
+  * Hide the back button at the beginning of oem-config (LP: #1095692).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 10 Jan 2013 11:58:23 +0000
+
+ubiquity (2.13.8) raring; urgency=low
+
+  [ Colin Watson ]
+  * Honour base-installer/kernel/altmeta when deciding which kernels to
+    install or keep installed.
+
+  [ Dmitrijs Ledkovs ]
+  * Moving question dialog to use a glade ui file, made it non
+    "re-entrant" safe, i.e. it started to remember previous action area
+    buttons. The fix is to clear action area, all other parts of the
+    dialog are always reset with something fresh. (LP: #1087823)
+  * ubiquity-dm: compiz actually doesn't have bg-image.
+  * ubi-partman: Do not allow to select encryption without lvm
+    (LP: #1093957).
+  * Automatic update of included source packages: debian-installer-utils
+    1.94ubuntu1, flash-kernel 3.0~rc.4ubuntu29, localechooser
+    2.49ubuntu1, netcfg 1.68ubuntu17, partman-auto 105ubuntu2, partman-
+    auto-lvm 46ubuntu2, partman-base 163ubuntu1, partman-ext3 74ubuntu1,
+    partman-jfs 38, partman-partitioning 89ubuntu1, partman-target
+    80ubuntu1, preseed 1.57ubuntu2, user-setup 1.47ubuntu1.
+
+  [ Scott Kitterman ]
+  * Change encrypt home question to checkbox and indent it under the login
+    option to make it clear it is a sub question to the login option
+    (LP: #1066225)
+
+  [ Jesse Sung ]
+  * Fix multiple issues with Back/Stop and Continue/Connect buttons on
+    wireless page (LP: #883615).
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Wed, 09 Jan 2013 15:40:19 +0000
+
+ubiquity (2.13.7) raring; urgency=low
+
+  * Use dh-autoreconf to avoid huge diffs when the autotools are updated.
+  * Optimise all PNGs and tell pkgbinarymangler not to do so again, to save
+    build time.
+  * GTK frontend:
+    - Fix regression causing incorrect response IDs to be returned from
+      question dialogs (LP: #1085961).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 05 Dec 2012 13:56:33 +0000
+
+ubiquity (2.13.6) raring; urgency=low
+
+  * Don't remove kernel headers just because we're removing signed kernel
+    images of the same flavour (LP: #1070427).
+  * Automatic update of included source packages: yaboot-installer
+    1.1.25ubuntu2.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 29 Nov 2012 17:13:37 +0000
+
+ubiquity (2.13.5) raring; urgency=low
+
+  * Add basic support for compiz.
+  * Automatic update of included source packages: hw-detect 1.91ubuntu1,
+    partman-btrfs 10ubuntu1.
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Thu, 29 Nov 2012 09:37:42 +0000
+
+ubiquity (2.13.4) raring; urgency=low
+
+  [ Colin Watson ]
+  * Huge pile of minor changes to make ubiquity compatible with pep8 1.3.
+
+  [ Dmitrijs Ledkovs ]
+  * Clear "Read release notes or update the installer" if neither action
+    are possible. (LP: #1066302)
+  * If there is only one disk & use_device recipe is used, change next step
+    button to "Install Now". (LP: #1050044)
+  * When auto-partitioning is not possible, allow to manually partition
+    the same drive installation medium is on. (LP: #1053030)
+  * Fix the question_dialog height-for-width (LP: #862270)
+  * Fonconfig-voodoo is gone, not sure if some other "fontconfig"ury
+    should be called instead. (LP: #1043031)
+  * Fix partman test_windows_only: if resize option is available, use_disk
+    should be available as well.
+  * Fix test_translated, after moving question dialog into glade from
+    construction by hand.
+  * Automatic update of included source packages: base-installer
+    1.122ubuntu14, debian-installer-utils 1.91ubuntu6, flash-kernel
+    3.0~rc.4ubuntu28.
+
+  [ Martin Pitt ]
+  * ubiquity/gtkwidgets.py: Don't use GObject.constants, just use the
+    constants from GObject as intended. Fixes a crash with pygobject
+    3.7.2.
+  * Use glib API from the GLib GI module instead of GObject. The latter
+    has been deprecated for a long time and triggers warnings with pygobject
+    3.7.2.
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Tue, 27 Nov 2012 11:47:01 +0000
+
+ubiquity (2.13.3) raring; urgency=low
+
+  * Use simplified form of super(), available from Python 3.
+  * Fix target kernel file names when only a signed kernel is present on the
+    installation medium (LP: #1077388).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 13 Nov 2012 12:31:47 +0000
+
+ubiquity (2.13.2) raring; urgency=low
+
+  * Try to copy signed kernel from vmlinuz.efi in preference to
+    vmlinuz.efi.signed; vmlinuz.efi is friendlier to archaic 8.3 file name
+    restrictions which apply to isolinux.
+  * Automatic update of included source packages: partman-auto 105ubuntu1,
+    partman-auto-lvm 46ubuntu1, partman-crypto 55ubuntu1, partman-lvm
+    82ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 12 Nov 2012 15:11:08 +0000
+
+ubiquity (2.13.1) raring; urgency=low
+
+  * Remove dead code in ubi-prepare which breaks with Python 3.3
+    (LP: #1076305).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 08 Nov 2012 10:52:11 +0000
+
+ubiquity (2.13.0) raring; urgency=low
+
+  * Re-enable alpha warning for raring.
+  * If there is a signed kernel but no unsigned one on the installation
+    medium, then use sbattach to remove the signature and construct the
+    unsigned kernel on the fly.
+  * Automatic update of included source packages: choose-mirror 2.44ubuntu1,
+    clock-setup 0.113ubuntu1, partconf 1.40, partman-base 161ubuntu1,
+    partman-basicfilesystems 76ubuntu1, partman-basicmethods 51,
+    partman-ext3 72ubuntu1, partman-jfs 37, partman-newworld 28, preseed
+    1.55ubuntu1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 07 Nov 2012 15:27:43 +0000
+
 ubiquity (2.12.16) quantal-proposed; urgency=low
 
   * Change get_grub_choice implementation to use get_current_disk_partman_id

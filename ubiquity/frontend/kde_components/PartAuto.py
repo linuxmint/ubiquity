@@ -5,9 +5,9 @@ import os
 from PyQt4 import uic
 from PyQt4 import QtGui
 
+from ubiquity import i18n, misc
 from ubiquity.frontend.kde_components.PartitionBar import PartitionsBar
-from ubiquity import misc
-from ubiquity import i18n
+
 
 _uidir = "/usr/share/ubiquity/qt/"
 
@@ -25,10 +25,10 @@ def addBars(parent, before_bar, after_bar):
     frame.layout().setSpacing(0)
 
     frame.layout().addWidget(QtGui.QLabel(
-            get_string('ubiquity/text/partition_layout_before')))
+        get_string('ubiquity/text/partition_layout_before')))
     frame.layout().addWidget(before_bar)
     frame.layout().addWidget(QtGui.QLabel(
-            get_string('ubiquity/text/partition_layout_after')))
+        get_string('ubiquity/text/partition_layout_after')))
     frame.layout().addWidget(after_bar)
 
     parent.layout().addWidget(frame)
@@ -106,9 +106,8 @@ class PartAuto(QtGui.QWidget):
             disks = []
             for disk_id in extra_options['resize']:
                 # information about what can be resized
-                unused, min_size, max_size, pref_size, \
-                resize_path, unused, unused = \
-                    extra_options['resize'][disk_id]
+                _, min_size, max_size, pref_size, resize_path, _, _ = (
+                    extra_options['resize'][disk_id])
 
                 for text, path in extra_options['use_device'][1].items():
                     path = path[0]
@@ -169,9 +168,9 @@ class PartAuto(QtGui.QWidget):
                 before_bar.addPartition(p.device, int(p.size), p.filesystem)
             if before_bar.diskSize > 0:
                 after_bar.addPartition(
-                    release_name, before_bar.diskSize, 'auto')
+                    '', before_bar.diskSize, 'auto', name=release_name)
             else:
-                after_bar.addPartition(release_name, 1, 'auto')
+                after_bar.addPartition('', 1, 'auto', name=release_name)
 
             addBars(bar_frame, before_bar, after_bar)
         self.disks.append(disks)

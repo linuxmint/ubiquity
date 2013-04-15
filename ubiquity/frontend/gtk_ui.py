@@ -33,15 +33,15 @@
 
 from __future__ import print_function
 
-import sys
-import os
-import subprocess
-import traceback
-import syslog
 import atexit
-import gettext
 import configparser
 from functools import reduce
+import gettext
+import os
+import subprocess
+import sys
+import syslog
+import traceback
 
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
@@ -49,17 +49,17 @@ DBusGMainLoop(set_as_default=True)
 
 #in query mode we won't be in X, but import needs to pass
 if 'DISPLAY' in os.environ:
-    from gi.repository import Gtk, Gdk, GObject
+    from gi.repository import Gtk, Gdk, GObject, GLib
     GObject.threads_init()
     from ubiquity import gtkwidgets
 
 from ubiquity import (
-    filteredcommand, gconftool, gsettings, i18n, validation, misc, osextras)
-from ubiquity.plugin import Plugin
+    filteredcommand, gsettings, i18n, validation, misc, osextras)
 from ubiquity.components import install, plugininstall, partman_commit
-import ubiquity.progressposition
 import ubiquity.frontend.base
 from ubiquity.frontend.base import BaseFrontend
+from ubiquity.plugin import Plugin
+import ubiquity.progressposition
 
 # We create class attributes dynamically from UI files, and it's far too
 # tedious to list them all.
@@ -208,7 +208,6 @@ class Wizard(BaseFrontend):
 
         # declare attributes
         self.all_widgets = set()
-        self.gconf_previous = {}
         self.gsettings_previous = {}
         self.thunar_previous = {}
         self.language_questions = ('live_installer', 'quit', 'back', 'next',
@@ -239,7 +238,7 @@ class Wizard(BaseFrontend):
 
         # To get a "busy mouse":
         self.watch = Gdk.Cursor.new(Gdk.CursorType.WATCH)
-        set_root_cursor(self.watch)
+        self.set_busy_cursor(True)
         atexit.register(set_root_cursor)
 
         self.laptop = misc.execute("laptop-detect")
@@ -255,14 +254,24 @@ class Wizard(BaseFrontend):
         # set custom language
         self.set_locales()
 
-        # Thin progress bar
+        # Get the default window background color for the the current
+        # theme and set it as the background for the inline toolbar
+        # Make a thin Progress bar
         provider = Gtk.CssProvider()
         provider.load_from_data(b'''\
+            .inline-toolbar.toolbar {
+                background: @theme_bg_color;
+                border-color: transparent;
+                border-width: 0px;
+                padding: 0px;
+            }
             GtkProgressBar {
-              -GtkProgressBar-min-horizontal-bar-height : 10
-            }''')
-
-        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),
+              -GtkProgressBar-min-horizontal-bar-height : 10;
+              -GtkProgressBar-min-horizontal-bar-width : 10;
+            }
+            ''')
+        Gtk.StyleContext.add_provider_for_screen(
+            Gdk.Screen.get_default(),
             provider, Gtk.STYLE_PROVIDER_PRIORITY_USER)
 
         # load the main interface
@@ -317,20 +326,20 @@ class Wizard(BaseFrontend):
                     self.toplevels.add(widget)
         self.builder.connect_signals(self)
 
-        # Get the default window background color for the the current
-        # theme and set it as the background for the inline toolbar
-        window_style = self.live_installer.get_style_context()
-        bg = window_style.lookup_color('theme_bg_color')[1].to_string()
-        provider = Gtk.CssProvider()
-        provider.load_from_data(('''\
-            .inline-toolbar.toolbar {
-                background: %s;
-                border-color: transparent;
-                border-width: 0px;
-                padding: 0px;
-            }''' % bg).encode())
-        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),
-            provider, Gtk.STYLE_PROVIDER_PRIORITY_USER)
+        for mod in self.pages:
+            progress = Gtk.ProgressBar()
+            progress.set_size_request(10, 10)
+            progress.set_fraction(0)
+            self.dot_grid.add(progress)
+
+        next_style = self.next.get_style_context()
+        next_style.add_class('ubiquity-next')
+
+        self.progress_pages = {
+            'empty': 0,
+            'dot_grid': 1,
+            'progress_bar': 2,
+        }
 
         self.stop_debconf()
         self.translate_widgets(reget=True)
@@ -341,7 +350,7 @@ class Wizard(BaseFrontend):
         if osextras.find_on_path('casper-a11y-enable'):
             with open('/proc/cmdline') as fp:
                 if ('UBIQUITY_GREETER' in os.environ or self.oem_user_config or
-                   'only-ubiquity' in fp.read()):
+                        'only-ubiquity' in fp.read()):
                     try:
                         from gi.repository import AppIndicator3 as AppIndicator
                         self.indicator = AppIndicator.Indicator.new(
@@ -417,13 +426,13 @@ class Wizard(BaseFrontend):
         """Crash handler."""
 
         if (issubclass(exctype, KeyboardInterrupt) or
-            issubclass(exctype, SystemExit)):
+                issubclass(exctype, SystemExit)):
             return
 
         # Restore the default cursor if we were using a spinning cursor on the
         # root window.
         try:
-            set_root_cursor()
+            self.set_busy_cursor(False)
         except Exception:
             pass
 
@@ -466,13 +475,12 @@ class Wizard(BaseFrontend):
             sys.exit(1)
 
     def network_change(self, online=False):
-        from gi.repository import GObject
         if not online:
             self.set_online_state(False)
             return
         if self.timeout_id:
-            GObject.source_remove(self.timeout_id)
-        self.timeout_id = GObject.timeout_add(300, self.check_returncode)
+            GLib.source_remove(self.timeout_id)
+        self.timeout_id = GLib.timeout_add(300, self.check_returncode)
 
     def set_online_state(self, state):
         for p in self.pages:
@@ -511,18 +519,27 @@ class Wizard(BaseFrontend):
         return previous
 
     def disable_terminal(self):
-        terminal_key = '/apps/metacity/global_keybindings/run_command_terminal'
-        self.gconf_previous[terminal_key] = gconftool.get(terminal_key)
-        gconftool.set(terminal_key, 'string', 'disabled')
+        gs_schema = 'org.gnome.settings-daemon.plugins.media-keys'
+        gs_key = 'terminal'
+        gs_previous = '%s/%s' % (gs_schema, gs_key)
+        if gs_previous in self.gsettings_previous:
+            return
+
+        gs_value = gsettings.get(gs_schema, gs_key)
+        self.gsettings_previous[gs_previous] = gs_value
+
+        if gs_value:
+            gsettings.set(gs_schema, gs_key, '')
+
         atexit.register(self.enable_terminal)
 
     def enable_terminal(self):
-        terminal_key = '/apps/metacity/global_keybindings/run_command_terminal'
-        if self.gconf_previous[terminal_key] == '':
-            gconftool.unset(terminal_key)
-        else:
-            gconftool.set(terminal_key, 'string',
-                          self.gconf_previous[terminal_key])
+        gs_schema = 'org.gnome.settings-daemon.plugins.media-keys'
+        gs_key = 'terminal'
+        gs_previous = '%s/%s' % (gs_schema, gs_key)
+        gs_value = self.gsettings_previous[gs_previous]
+
+        gsettings.set(gs_schema, gs_key, gs_value)
 
     def disable_screensaver(self):
         gs_schema = 'org.gnome.desktop.screensaver'
@@ -645,10 +662,10 @@ class Wizard(BaseFrontend):
 
     def a11y_profile_keys(self, window, event):
         if (event.state & Gdk.ModifierType.CONTROL_MASK and
-            event.keyval == Gdk.keyval_from_name('h')):
+                event.keyval == Gdk.keyval_from_name('h')):
             self.a11y_profile_high_contrast_activate()
         elif (event.state & Gdk.ModifierType.CONTROL_MASK and
-              event.keyval == Gdk.keyval_from_name('s')):
+                event.keyval == Gdk.keyval_from_name('s')):
             self.a11y_profile_screen_reader_activate()
 
     def a11y_profile_high_contrast_activate(self, widget=None):
@@ -668,7 +685,7 @@ class Wizard(BaseFrontend):
         os.environ['UBIQUITY_A11Y_PROFILE'] = 'screen-reader'
         if osextras.find_on_path('orca'):
             self.orca_process = subprocess.Popen(
-                ['orca', '-n'], preexec_fn=misc.drop_all_privileges)
+                ['orca'], preexec_fn=misc.drop_all_privileges)
 
     def a11y_profile_keyboard_modifiers_activate(self, widget=None):
         subprocess.call(
@@ -711,12 +728,12 @@ class Wizard(BaseFrontend):
         self.allow_change_step(True)
 
         # Auto-connecting signals with additional parameters does not work.
-        self.grub_new_device_entry.connect('changed', self.grub_verify_loop,
-            self.grub_fail_okbutton)
+        self.grub_new_device_entry.connect(
+            'changed', self.grub_verify_loop, self.grub_fail_okbutton)
 
         if 'UBIQUITY_AUTOMATIC' in os.environ:
-            self.debconf_progress_start(0, self.pageslen,
-                self.get_string('ubiquity/install/checking'))
+            self.debconf_progress_start(
+                0, self.pageslen, self.get_string('ubiquity/install/checking'))
             self.debconf_progress_cancellable(False)
             self.refresh()
 
@@ -731,6 +748,9 @@ class Wizard(BaseFrontend):
             if hasattr(page.ui, 'plugin_skip_page'):
                 if page.ui.plugin_skip_page():
                     skip = True
+            automatic = False
+            if hasattr(page.ui, 'is_automatic'):
+                automatic = page.ui.is_automatic
 
             if not skip and not page.filter_class:
                 # This page is just a UI page
@@ -749,7 +769,7 @@ class Wizard(BaseFrontend):
 
                 if self.dbfilter is not None and self.dbfilter != old_dbfilter:
                     self.allow_change_step(False)
-                    GObject.idle_add(
+                    GLib.idle_add(
                         lambda: self.dbfilter.start(auto_process=True))
 
                 page.controller.dbfilter = self.dbfilter
@@ -762,7 +782,7 @@ class Wizard(BaseFrontend):
                     self.process_step()
                     if not self.stay_on_page:
                         self.pagesindex = self.pagesindex + 1
-                    if 'UBIQUITY_AUTOMATIC' in os.environ:
+                    if automatic:
                         # if no debconf_progress, create another one, set
                         # start to pageindex
                         self.debconf_progress_step(1)
@@ -786,7 +806,7 @@ class Wizard(BaseFrontend):
         elif not (self.get_reboot_seen() or self.get_shutdown_seen()):
             self.live_installer.hide()
             if ('UBIQUITY_ONLY' in os.environ or
-                'UBIQUITY_GREETER' in os.environ):
+                    'UBIQUITY_GREETER' in os.environ):
                 txt = self.get_string('ubiquity/finished_restart_only')
                 self.quit_button.hide()
             else:
@@ -797,7 +817,7 @@ class Wizard(BaseFrontend):
                 with open('/var/run/reboot-required', "w"):
                     pass
             self.finished_dialog.set_keep_above(True)
-            set_root_cursor()
+            self.set_busy_cursor(False)
             self.finished_dialog.run()
         elif self.get_reboot():
             self.reboot()
@@ -815,6 +835,9 @@ class Wizard(BaseFrontend):
         return True
 
     def start_slideshow(self):
+        self.progress_mode.set_current_page(
+            self.progress_pages['progress_bar'])
+
         if not self.slideshow:
             self.page_mode.hide()
             return
@@ -865,9 +888,10 @@ class Wizard(BaseFrontend):
     def customize_installer(self):
         """Initial UI setup."""
 
-        self.live_installer.set_default_icon_from_file(os.path.join(PIXMAPS,
-                                                        'ubiquity.png'))
-        for eventbox in ['title_eventbox', 'progress_eventbox']:
+        self.live_installer.set_default_icon_from_file(
+            os.path.join(PIXMAPS, 'ubiquity.png'))
+        for eventbox in ['title_eventbox', 'progress_eventbox',
+                         'install_details_expander']:
             box = self.builder.get_object(eventbox)
             style = box.get_style_context()
             style.add_class('menubar')
@@ -876,10 +900,11 @@ class Wizard(BaseFrontend):
         from gi.repository import Vte
         self.vte = Vte.Terminal()
         self.install_details_sw.add(self.vte)
-        self.vte.fork_command_full(0, None,
-            ['/bin/busybox', 'tail', '-f', '/var/log/installer/debug',
-                              '-f', '/var/log/syslog', '-q'],
-            None, 0, None, None)
+        tail_cmd = [
+            '/bin/busybox', 'tail', '-f', '/var/log/installer/debug',
+            '-f', '/var/log/syslog', '-q',
+        ]
+        self.vte.fork_command_full(0, None, tail_cmd, None, 0, None, None)
         self.vte.set_font_from_string("Ubuntu Mono 8")
         self.vte.show()
         # FIXME shrink the window horizontally instead of locking the window
@@ -903,12 +928,20 @@ class Wizard(BaseFrontend):
                 self.get_string('oem_user_config_title'))
             self.live_installer.set_icon_name("preferences-system")
             self.quit.hide()
+            self.back.hide()
+
+        self.progress_section.show()
 
         if 'UBIQUITY_AUTOMATIC' in os.environ:
             # Hide the notebook until the first page is ready.
             self.page_mode.hide()
-            self.progress_section.show()
+            self.progress_mode.set_current_page(
+                self.progress_pages['progress_bar'])
             self.live_installer.show()
+        else:
+            self.progress_mode.set_current_page(
+                self.progress_pages['dot_grid'])
+            self.progress_mode.show_all()
         self.allow_change_step(False)
 
         # The default instantiation of GtkComboBoxEntry creates a
@@ -925,7 +958,7 @@ class Wizard(BaseFrontend):
 
         # Parse the slideshow size early to prevent the window from growing
         if (self.oem_user_config and
-            os.path.exists('/usr/share/oem-config-slideshow')):
+                os.path.exists('/usr/share/oem-config-slideshow')):
             self.slideshow = '/usr/share/oem-config-slideshow'
         else:
             self.slideshow = '/usr/share/ubiquity-slideshow'
@@ -951,8 +984,8 @@ class Wizard(BaseFrontend):
 
     def set_window_hints(self, widget):
         if (self.oem_user_config or
-            'UBIQUITY_ONLY' in os.environ or
-            'UBIQUITY_GREETER' in os.environ):
+                'UBIQUITY_ONLY' in os.environ or
+                'UBIQUITY_GREETER' in os.environ):
             f = (Gdk.WMFunction.RESIZE | Gdk.WMFunction.MAXIMIZE |
                  Gdk.WMFunction.MOVE)
             if not self.oem_user_config:
@@ -961,14 +994,15 @@ class Wizard(BaseFrontend):
 
     def lockdown_environment(self):
         atexit.register(self.unlock_environment)
-        for key in (
+        keys = (
             ('com.canonical.indicator.session', 'suppress-logout-menuitem'),
             ('com.canonical.indicator.session',
              'suppress-logout-restart-shutdown'),
             ('com.canonical.indicator.session', 'suppress-restart-menuitem'),
             ('com.canonical.indicator.session', 'suppress-shutdown-menuitem'),
             ('org.gnome.desktop.lockdown', 'disable-user-switching'),
-            ):
+        )
+        for key in keys:
             gs_schema = key[0]
             gs_key = key[1]
             gs_previous = '%s/%s' % (gs_schema, gs_key)
@@ -991,14 +1025,15 @@ class Wizard(BaseFrontend):
 
     def unlock_environment(self):
         syslog.syslog('Reverting lockdown of the desktop environment.')
-        for key in (
+        keys = (
             ('com.canonical.indicator.session', 'suppress-logout-menuitem'),
             ('com.canonical.indicator.session',
              'suppress-logout-restart-shutdown'),
             ('com.canonical.indicator.session', 'suppress-restart-menuitem'),
             ('com.canonical.indicator.session', 'suppress-shutdown-menuitem'),
             ('org.gnome.desktop.lockdown', 'disable-user-switching'),
-            ):
+        )
+        for key in keys:
             gs_schema = key[0]
             gs_key = key[1]
             gs_previous = '%s/%s' % (gs_schema, gs_key)
@@ -1040,8 +1075,9 @@ class Wizard(BaseFrontend):
         core_names.append('ubiquity/text/update_installer_only')
         core_names.append('ubiquity/text/USB')
         core_names.append('ubiquity/text/CD')
-        for stock_item in ('cancel', 'close', 'go-back', 'go-forward',
-                            'ok', 'quit'):
+        stock_items = (
+            'cancel', 'close', 'go-back', 'go-forward', 'ok', 'quit')
+        for stock_item in stock_items:
             core_names.append('ubiquity/imported/%s' % stock_item)
         prefixes = []
         for p in self.pages:
@@ -1118,14 +1154,19 @@ class Wizard(BaseFrontend):
         elif isinstance(widget, Gtk.MenuItem):
             widget.set_label(text)
 
-    def allow_change_step(self, allowed):
-        if allowed:
-            cursor = None
-        else:
+    def set_busy_cursor(self, busy):
+        if busy:
             cursor = self.watch
-        if self.live_installer.get_parent_window():
+        else:
+            cursor = None
+        if (hasattr(self, "live_installer") and
+                self.live_installer.get_parent_window()):
             self.live_installer.get_parent_window().set_cursor(cursor)
         set_root_cursor(cursor)
+        self.busy_cursor = busy
+
+    def allow_change_step(self, allowed):
+        self.set_busy_cursor(not allowed)
         self.back.set_sensitive(allowed and self.allowed_go_backward)
         self.next.set_sensitive(allowed and self.allowed_go_forward)
         self.allowed_change_step = allowed
@@ -1179,12 +1220,17 @@ class Wizard(BaseFrontend):
                 self.set_current_page(self.steps.page_num(self.stepPartAuto))
             return False
 
-    def step_name(self, step_index):
+    def step_name(self, step_index, return_index=False):
         w = self.steps.get_nth_page(step_index)
+        name = None
+        index = None
         for p in self.pages:
             if w in p.all_widgets:
-                return p.module.NAME
-        return None
+                name = p.module.NAME
+                index = self.pages.index(p)
+        if return_index:
+            return name, index
+        return name
 
     def page_name(self, step_index):
         return self.steps.get_nth_page(step_index).get_name()
@@ -1258,6 +1304,11 @@ class Wizard(BaseFrontend):
             self.allow_go_backward(False)
         elif 'UBIQUITY_AUTOMATIC' not in os.environ:
             self.allow_go_backward(True)
+
+        # If we are in oem-config, ensure the back button is displayed if
+        # and only if we are not on the first page.
+        if self.oem_user_config:
+            self.back.set_visible(self.pagesindex > 0)
         return True
 
     def set_page_title(self, page, lang=None):
@@ -1346,7 +1397,7 @@ class Wizard(BaseFrontend):
         """Quit installer cleanly."""
         # Let the user know we're shutting down.
         self.finished_dialog.get_window().set_cursor(self.watch)
-        set_root_cursor(self.watch)
+        self.set_busy_cursor(True)
         self.quit_button.set_sensitive(False)
         self.reboot_button.set_sensitive(False)
         self.refresh()
@@ -1430,29 +1481,33 @@ class Wizard(BaseFrontend):
 
     def on_steps_switch_page(self, unused_notebook, unused_page, current):
         self.current_page = current
-        name = self.step_name(current)
+        name, index = self.step_name(current, return_index=True)
         if 'UBIQUITY_GREETER' in os.environ:
             if name == 'language':
                 self.navigation_control.hide()
             else:
                 self.navigation_control.show()
+        for i in range(len(self.pages))[:index + 1]:
+            self.dot_grid.get_child_at(i, 0).set_fraction(1)
+        for i in range(len(self.pages))[index + 1:]:
+            self.dot_grid.get_child_at(i, 0).set_fraction(0)
 
         syslog.syslog('switched to page %s' % name)
 
     # Callbacks provided to components.
 
     def watch_debconf_fd(self, from_debconf, process_input):
-        GObject.io_add_watch(from_debconf,
-                             GObject.IO_IN | GObject.IO_ERR | GObject.IO_HUP,
-                             self.watch_debconf_fd_helper, process_input)
+        GLib.io_add_watch(from_debconf,
+                          GLib.IO_IN | GLib.IO_ERR | GLib.IO_HUP,
+                          self.watch_debconf_fd_helper, process_input)
 
     def watch_debconf_fd_helper(self, source, cb_condition, callback):
         debconf_condition = 0
-        if (cb_condition & GObject.IO_IN) != 0:
+        if (cb_condition & GLib.IO_IN) != 0:
             debconf_condition |= filteredcommand.DEBCONF_IO_IN
-        if (cb_condition & GObject.IO_ERR) != 0:
+        if (cb_condition & GLib.IO_ERR) != 0:
             debconf_condition |= filteredcommand.DEBCONF_IO_ERR
-        if (cb_condition & GObject.IO_HUP) != 0:
+        if (cb_condition & GLib.IO_HUP) != 0:
             debconf_condition |= filteredcommand.DEBCONF_IO_HUP
 
         return callback(source, debconf_condition)
@@ -1529,7 +1584,6 @@ class Wizard(BaseFrontend):
     def switch_to_install_interface(self):
         self.installing = True
         self.lockdown_environment()
-        self.progress_section.show()
 
     def find_next_step(self, finished_step):
         # TODO need to handle the case where debconffilters launched from
@@ -1634,11 +1688,8 @@ class Wizard(BaseFrontend):
     def error_dialog(self, title, msg, fatal=True):
         # TODO: cancel button as well if capb backup
         self.run_automation_error_cmd()
-        # TODO cjwatson 2009-04-16: We need to call allow_change_step here
-        # to get a normal cursor, but that also enables the Back/Forward
-        # buttons. Cursor handling should be controllable independently.
-        saved_allowed_change_step = self.allowed_change_step
-        self.allow_change_step(True)
+        saved_busy_cursor = self.busy_cursor
+        self.set_busy_cursor(False)
         if not msg:
             msg = title
         dialog = Gtk.MessageDialog(
@@ -1646,7 +1697,7 @@ class Wizard(BaseFrontend):
             Gtk.MessageType.ERROR, Gtk.ButtonsType.OK, msg)
         dialog.set_title(title)
         dialog.run()
-        self.allow_change_step(saved_allowed_change_step)
+        self.set_busy_cursor(saved_busy_cursor)
         dialog.hide()
         if fatal:
             self.return_to_partitioning()
@@ -1685,11 +1736,8 @@ class Wizard(BaseFrontend):
 
     def question_dialog(self, title, msg, options, use_templates=True):
         self.run_automation_error_cmd()
-        # TODO cjwatson 2009-04-16: We need to call allow_change_step here
-        # to get a normal cursor, but that also enables the Back/Forward
-        # buttons. Cursor handling should be controllable independently.
-        saved_allowed_change_step = self.allowed_change_step
-        self.allow_change_step(True)
+        saved_busy_cursor = self.busy_cursor
+        self.set_busy_cursor(False)
         if not msg:
             msg = title
         buttons = []
@@ -1700,21 +1748,19 @@ class Wizard(BaseFrontend):
                 text = option
             if text is None:
                 text = option
-            buttons.extend((text, len(buttons) / 2 + 1))
-        dialog = Gtk.Dialog(
-            title, self.live_installer, Gtk.DialogFlags.MODAL, tuple(buttons))
-        vbox = Gtk.Box()
-        vbox.set_orientation(Gtk.Orientation.VERTICAL)
-        vbox.set_border_width(5)
-        label = Gtk.Label(label=msg)
-        label.set_line_wrap(True)
-        label.set_selectable(False)
-        vbox.pack_start(label, True, True, 0)
-        vbox.show_all()
-        dialog.get_content_area().pack_start(vbox, True, True, 0)
-        response = dialog.run()
-        self.allow_change_step(saved_allowed_change_step)
-        dialog.hide()
+            buttons.append((text, len(buttons) + 1))
+
+        self.ubi_question_dialog.set_title(title)
+        self.question_label.set_text(msg)
+        actions = self.ubi_question_dialog.get_action_area()
+        for action in actions.get_children():
+            actions.remove(action)
+        for text, response_id in buttons:
+            self.ubi_question_dialog.add_button(text, response_id)
+        self.ubi_question_dialog.show_all()
+        response = self.ubi_question_dialog.run()
+        self.set_busy_cursor(saved_busy_cursor)
+        self.ubi_question_dialog.hide()
         if response < 0:
             # something other than a button press, probably destroyed
             return None
@@ -1750,7 +1796,7 @@ class Wizard(BaseFrontend):
 
         def quit_quit():
             # Wait until we're actually out of this main loop
-            GObject.idle_add(idle_quit)
+            GLib.idle_add(idle_quit)
             return False
 
         if self.pending_quits == 0:

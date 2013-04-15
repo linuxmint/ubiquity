@@ -20,8 +20,8 @@
 import os
 import subprocess
 
-from ubiquity import osextras
-from ubiquity import misc
+from ubiquity import misc, osextras
+
 
 # I think it's clearer to keep our 'set' method, and it doesn't cause a
 # builtin-shadowing problem in practice unless you use 'from

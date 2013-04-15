@@ -26,8 +26,7 @@ def side_effect_factory(real_method):
 
 class OEMUserLanguageTests(unittest.TestCase):
     def setUp(self):
-        for obj in ('ubiquity.misc.execute',
-                'ubiquity.misc.execute_root'):
+        for obj in ('ubiquity.misc.execute', 'ubiquity.misc.execute_root'):
             patcher = mock.patch(obj)
             patcher.start()
             self.addCleanup(patcher.stop)
@@ -74,8 +73,7 @@ class OEMUserLanguageTests(unittest.TestCase):
 
 class LanguageTests(unittest.TestCase):
     def setUp(self):
-        for obj in ('ubiquity.misc.execute',
-                'ubiquity.misc.execute_root'):
+        for obj in ('ubiquity.misc.execute', 'ubiquity.misc.execute_root'):
             patcher = mock.patch(obj)
             patcher.start()
             self.addCleanup(patcher.stop)

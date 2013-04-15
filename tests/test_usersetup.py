@@ -77,7 +77,7 @@ class UserSetupTests(unittest.TestCase):
             'hostname_error_badchar',
             'hostname_error_badhyphen',
             'hostname_error_baddots',
-            ], '-abc..123$' + 'a' * 64)
+        ], '-abc..123$' + 'a' * 64)
         self.assertHostnameErrors([], 'abc123')
 
     def assertUsernameErrors(self, errors, username):
@@ -91,6 +91,7 @@ class UserSetupTests(unittest.TestCase):
     def test_unicode(self):
         # i18n needs to be imported to register ascii_transliterate
         from ubiquity import i18n
+
         self.gtk.controller.get_string = mock_get_string
         heart = '♥'
         self.gtk.set_fullname(heart)

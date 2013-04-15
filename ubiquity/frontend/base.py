@@ -27,10 +27,9 @@ import syslog
 
 import debconf
 
+from ubiquity import i18n, plugin_manager
 from ubiquity.debconfcommunicator import DebconfCommunicator
 from ubiquity.misc import drop_privileges, execute_root
-from ubiquity import i18n
-from ubiquity import plugin_manager
 
 
 # Lots of intentionally unused arguments here (abstract methods).
@@ -383,8 +382,8 @@ class BaseFrontend:
     def get_reboot_seen(self):
         reboot_seen = 'false'
         try:
-            reboot_seen = self.debconf_operation('fget', 'ubiquity/reboot',
-                'seen')
+            reboot_seen = self.debconf_operation(
+                'fget', 'ubiquity/reboot', 'seen')
         except debconf.DebconfError:
             pass
         if reboot_seen == 'false':
@@ -402,8 +401,8 @@ class BaseFrontend:
     def get_shutdown_seen(self):
         shutdown_seen = 'false'
         try:
-            shutdown_seen = self.debconf_operation('fget', 'ubiquity/poweroff',
-                'seen')
+            shutdown_seen = self.debconf_operation(
+                'fget', 'ubiquity/poweroff', 'seen')
         except debconf.DebconfError:
             pass
         if shutdown_seen == 'false':

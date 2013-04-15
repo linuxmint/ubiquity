@@ -62,9 +62,10 @@ def question_has_variables(question, lookup_variables):
     only_in_lookup = set(lookup_variables) - set(existing_variables)
     only_in_template = set(existing_variables) - set(lookup_variables)
     if only_in_lookup or only_in_template:
-        raise AssertionError(('%s\nOnly in lookup: %s\nOnly in template: %s' %
-            (question, ', '.join(only_in_lookup),
-             ', '.join(only_in_template))))
+        raise AssertionError(
+            ('%s\nOnly in lookup: %s\nOnly in template: %s' % (
+                question, ', '.join(only_in_lookup),
+                ', '.join(only_in_template))))
 
 
 # These tests skip when their dependencies are not met and tests/run takes
@@ -232,22 +233,22 @@ class TestPageGrub(TestPageBase):
         self.page.disk_cache = {
             'ignore-1': {
                 'device': '/dev/vda',
-                },
-            }
+            },
+        }
         self.page.partition_cache = {
             'ignore': {
                 'parted': {
                     'path': '/dev/vda1',
                     'fs': 'ext4',
-                    }
                 }
             }
+        }
         self.page.maybe_update_grub()
         self.assertEqual(self.page.ui.set_grub_options.call_count, 1)
         self.page.ui.set_grub_options.assert_called_once_with('/dev/vda', {
             '/dev/vda': True,
             '/dev/vda1': True,
-            })
+        })
 
     @mock.patch('ubiquity.misc.grub_options', _fake_grub_options('/dev/vda1'))
     @mock.patch('ubiquity.misc.grub_default', _fake_grub_default('/dev/vda'))
@@ -257,22 +258,22 @@ class TestPageGrub(TestPageBase):
         self.page.disk_cache = {
             'ignore-1': {
                 'device': '/dev/vda',
-                },
-            }
+            },
+        }
         self.page.partition_cache = {
             'ignore': {
                 'parted': {
                     'path': '/dev/vda1',
                     'fs': 'xfs',
-                    }
                 }
             }
+        }
         self.page.maybe_update_grub()
         self.assertEqual(self.page.ui.set_grub_options.call_count, 1)
         self.page.ui.set_grub_options.assert_called_once_with('/dev/vda', {
             '/dev/vda': True,
             '/dev/vda1': False,
-            })
+        })
 
     @mock.patch('ubiquity.misc.grub_options',
                 _fake_grub_options('/dev/vda1', '/dev/vda2'))
@@ -283,29 +284,29 @@ class TestPageGrub(TestPageBase):
         self.page.disk_cache = {
             'ignore-1': {
                 'device': '/dev/vda',
-                },
-            }
+            },
+        }
         self.page.partition_cache = {
             'ignore-1': {
                 'parted': {
                     'path': '/dev/vda1',
                     'fs': 'xfs',
-                    }
-                },
+                }
+            },
             'ignore-2': {
                 'parted': {
                     'path': '/dev/vda2',
                     'fs': 'ext2',
-                    }
                 }
             }
+        }
         self.page.maybe_update_grub()
         self.assertEqual(self.page.ui.set_grub_options.call_count, 1)
         self.page.ui.set_grub_options.assert_called_once_with('/dev/vda', {
             '/dev/vda': True,
             '/dev/vda1': False,
             '/dev/vda2': True,
-            })
+        })
 
     @mock.patch('ubiquity.misc.grub_options',
                 _fake_grub_options('/dev/vda1', '/dev/vda2', '/dev/vdb1'))
@@ -316,31 +317,31 @@ class TestPageGrub(TestPageBase):
         self.page.disk_cache = {
             'ignore-1': {
                 'device': '/dev/vda',
-                },
+            },
             'ignore-2': {
                 'device': '/dev/vdb',
-                },
-            }
+            },
+        }
         self.page.partition_cache = {
             'ignore-1': {
                 'parted': {
                     'path': '/dev/vda1',
                     'fs': 'xfs',
-                    },
                 },
+            },
             'ignore-2': {
                 'parted': {
                     'path': '/dev/vda2',
                     'fs': 'ext2',
-                    },
                 },
+            },
             'ignore-3': {
                 'parted': {
                     'path': '/dev/vdb1',
                     'fs': 'xfs',
-                    },
                 },
-            }
+            },
+        }
         self.page.maybe_update_grub()
         self.assertEqual(self.page.ui.set_grub_options.call_count, 1)
         self.page.ui.set_grub_options.assert_called_once_with('/dev/vda', {
@@ -349,7 +350,7 @@ class TestPageGrub(TestPageBase):
             '/dev/vda1': False,
             '/dev/vda2': True,
             '/dev/vdb1': False,
-            })
+        })
 
     @mock.patch('ubiquity.misc.grub_options',
                 _fake_grub_options('/dev/vda1', '/dev/vda2', '/dev/vdb1'))
@@ -360,31 +361,31 @@ class TestPageGrub(TestPageBase):
         self.page.disk_cache = {
             'ignore-1': {
                 'device': '/dev/vda',
-                },
+            },
             'ignore-2': {
                 'device': '/dev/vdb',
-                },
-            }
+            },
+        }
         self.page.partition_cache = {
             'ignore-1': {
                 'parted': {
                     'path': '/dev/vda1',
                     'fs': 'ext4',
-                    },
                 },
+            },
             'ignore-2': {
                 'parted': {
                     'path': '/dev/vda2',
                     'fs': 'ext2',
-                    },
                 },
+            },
             'ignore-3': {
                 'parted': {
                     'path': '/dev/vdb1',
                     'fs': 'jfs',
-                    },
                 },
-            }
+            },
+        }
         self.page.maybe_update_grub()
         self.assertEqual(self.page.ui.set_grub_options.call_count, 1)
         self.page.ui.set_grub_options.assert_called_once_with('/dev/vda', {
@@ -393,7 +394,7 @@ class TestPageGrub(TestPageBase):
             '/dev/vda1': True,
             '/dev/vda2': True,
             '/dev/vdb1': False,
-            })
+        })
 
     @mock.patch('ubiquity.misc.grub_options',
                 _fake_grub_options('/dev/vda1', '/dev/vda2', '/dev/vdb1'))
@@ -404,31 +405,31 @@ class TestPageGrub(TestPageBase):
         self.page.disk_cache = {
             'ignore-1': {
                 'device': '/dev/vda',
-                },
+            },
             'ignore-2': {
                 'device': '/dev/vdb',
-                },
-            }
+            },
+        }
         self.page.partition_cache = {
             'ignore-1': {
                 'parted': {
                     'path': '/dev/vda1',
                     'fs': 'ext4',
-                    },
                 },
+            },
             'ignore-2': {
                 'parted': {
                     'path': '/dev/vda2',
                     'fs': 'ext2',
-                    },
                 },
+            },
             'ignore-3': {
                 'parted': {
                     'path': '/dev/vdb1',
                     'fs': 'fat16',
-                    },
                 },
-            }
+            },
+        }
         self.page.maybe_update_grub()
         self.assertEqual(self.page.ui.set_grub_options.call_count, 1)
         self.page.ui.set_grub_options.assert_called_once_with('/dev/vda', {
@@ -437,7 +438,7 @@ class TestPageGrub(TestPageBase):
             '/dev/vda1': True,
             '/dev/vda2': True,
             '/dev/vdb1': True,
-            })
+        })
 
 
 @unittest.skipUnless('DEBCONF_SYSTEMRC' in os.environ, 'Need a database.')
@@ -480,6 +481,8 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         part = ubi_partman.Partition('/dev/sda1', 0, '1234-1234', 'ntfs')
         layout = {'=dev=sda': [part]}
         self.page.extra_options = {}
+        self.page.extra_options['use_device'] = ('debconf-return-value',
+                                                 [{'disk-desc': 0}])
         self.page.extra_options['resize'] = {
             '=dev=sda': ['', 0, 0, 0, '', 0, 'ntfs']}
 
@@ -503,7 +506,7 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         operating_systems, ubuntu_systems = \
             self.page.calculate_operating_systems(layout)
         options = self.page.calculate_autopartitioning_options(
-                        operating_systems, ubuntu_systems)
+            operating_systems, ubuntu_systems)
         self.assertIn('resize', options)
         self.assertCountEqual(resize, options['resize'])
         self.assertIn('use_device', options)
@@ -525,7 +528,7 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         operating_systems, ubuntu_systems = \
             self.page.calculate_operating_systems([])
         options = self.page.calculate_autopartitioning_options(
-                        operating_systems, ubuntu_systems)
+            operating_systems, ubuntu_systems)
 
         self.assertIn('use_device', options)
         self.assertCountEqual(use_device, options['use_device'])
@@ -569,7 +572,7 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         operating_systems, ubuntu_systems = \
             self.page.calculate_operating_systems(layout)
         options = self.page.calculate_autopartitioning_options(
-                        operating_systems, ubuntu_systems)
+            operating_systems, ubuntu_systems)
         self.assertIn('use_device', options)
         self.assertCountEqual(use_device, options['use_device'])
 
@@ -613,7 +616,7 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         operating_systems, ubuntu_systems = \
             self.page.calculate_operating_systems(layout)
         options = self.page.calculate_autopartitioning_options(
-                        operating_systems, ubuntu_systems)
+            operating_systems, ubuntu_systems)
         self.assertIn('use_device', options)
         self.assertCountEqual(use_device, options['use_device'])
 
@@ -656,7 +659,7 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         operating_systems, ubuntu_systems = \
             self.page.calculate_operating_systems(layout)
         options = self.page.calculate_autopartitioning_options(
-                        operating_systems, ubuntu_systems)
+            operating_systems, ubuntu_systems)
         self.assertIn('use_device', options)
         self.assertCountEqual(use_device, options['use_device'])
 
@@ -700,7 +703,7 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         operating_systems, ubuntu_systems = \
             self.page.calculate_operating_systems(layout)
         options = self.page.calculate_autopartitioning_options(
-                        operating_systems, ubuntu_systems)
+            operating_systems, ubuntu_systems)
         self.assertIn('use_device', options)
         self.assertCountEqual(use_device, options['use_device'])
 
@@ -727,12 +730,14 @@ class TestPageGtk(unittest.TestCase):
         # Without this, GtkBuilder cannot construct ResizeWidget and
         # PartitionBox widgets.
         from ubiquity import gtkwidgets
+
         gtkwidgets  # pacify pyflakes
         controller = mock.Mock()
         self.gtk = ubi_partman.PageGtk(controller)
 
     def test_advanced_page_link(self):
         from ubiquity import gtkwidgets
+
         self.gtk.part_auto_hidden_label.emit('activate-link', '')
         gtkwidgets.refresh()
         self.gtk.controller.go_forward.assert_called_once_with()
@@ -752,14 +757,14 @@ class TestPageGtk(unittest.TestCase):
             '/dev/vda2': False,
             '/dev/vdb': True,
             '/dev/vdb1': True,
-            })
+        })
         # The combo box should have everything but vda2.
         expected = [
             '/dev/vda Virtio Block Device (108 GB)',
             '/dev/vdb Virtio Block Device (801 GB)',
             '/dev/vda1 ',
             '/dev/vdb1 ',
-            ]
+        ]
         row_text = []
         for row in self.gtk.grub_device_entry.get_model():
             row_text.append(' '.join(row))
@@ -774,4 +779,4 @@ if __name__ == '__main__':
         TestPageGrub,
         TestPageGtk,
         PartmanPageDirectoryTests,
-        )
+    )

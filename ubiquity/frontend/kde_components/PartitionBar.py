@@ -24,7 +24,11 @@
 
 from PyQt4 import QtCore, QtGui
 
-from ubiquity.misc import format_size
+from ubiquity.misc import find_in_os_prober, format_size
+
+
+def name_from_path(path):
+    return find_in_os_prober(path) or path.replace('/dev/', '')
 
 
 class Partition:
@@ -41,12 +45,22 @@ class Partition:
                          'fat16':       '#C0DAFF',
                          'ntfs':        '#888786'}
 
-    def __init__(self, name, size, fs):
+    def __init__(self, path, size, fs, name=None):
         self.size = size
         self.fs = fs
         self.next = None
         self.index = None
-        self.name = name
+        self.path = path
+
+        if name is None:
+            if fs == 'free':
+                self.name = 'free space'
+            elif fs == 'swap':
+                self.name = 'swap'
+            else:
+                self.name = name_from_path(path)
+        else:
+            self.name = name
 
 
 class PartitionsBar(QtGui.QWidget):
@@ -137,21 +151,11 @@ class PartitionsBar(QtGui.QWidget):
                 # draw the labels
                 painter.setPen(QtCore.Qt.black)
 
-                # name is the path by default, or free space if unpartitioned
-                name = p.name
-                if name is None:
-                    if p.fs == 'free':
-                        name = 'free space'
-                    elif p.fs == 'swap':
-                        name = 'swap'
-                    else:
-                        name = p.path
-
                 # label vertical location
                 labelY = h + 8
 
                 texts = []
-                texts.append(name)
+                texts.append(p.name)
                 texts.append("%.01f%% (%s)" % (
                     float(p.size) / self.diskSize * 100, format_size(p.size)))
 
@@ -232,8 +236,8 @@ class PartitionsBar(QtGui.QWidget):
             painter.setPen(QtCore.Qt.black)
             painter.drawLine(xloc, 0, xloc, h)
 
-    def addPartition(self, name, size, fs):
-        partition = Partition(name, size, fs)
+    def addPartition(self, path, size, fs, name=None):
+        partition = Partition(path, size, fs, name=name)
         self.diskSize += size
 
         # set the previous partition to have this one as next partition
@@ -247,7 +251,7 @@ class PartitionsBar(QtGui.QWidget):
         part = None
         index = 0
         for p in self.partitions:
-            if p.name == path:
+            if p.path == path:
                 part = p
                 break
             index += 1
@@ -328,7 +332,7 @@ class PartitionsBar(QtGui.QWidget):
             # using PyQt object to avoid wrapping the size otherwise qt
             # truncates to 32bit int
             self.partitionResized.emit(
-                self.resize_part.name, self.resize_part.size)
+                self.resize_part.path, self.resize_part.size)
         else:
             if self.resize_part:
                 if abs(qMouseEvent.x() - self.resize_loc) < 3:

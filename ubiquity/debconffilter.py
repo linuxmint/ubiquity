@@ -19,17 +19,18 @@
 
 from __future__ import print_function
 
-import sys
-import os
-import fcntl
-import signal
 import errno
-import subprocess
+import fcntl
+import os
 import re
+import signal
+import subprocess
+import sys
 
 import debconf
 
 from ubiquity import misc
+
 
 # Each widget should have a run(self, priority, question) method; this
 # should ask the question in whatever way is appropriate, and may then
@@ -87,9 +88,10 @@ valid_commands = {
 
 
 class DebconfFilter:
-    def __init__(self, db, widgets={}):
+    def __init__(self, db, widgets={}, automatic=False):
         self.db = db
         self.widgets = widgets
+        self.automatic = automatic
         if 'DEBCONF_DEBUG' in os.environ:
             self.debug_re = re.compile(os.environ['DEBCONF_DEBUG'])
         else:
@@ -276,7 +278,7 @@ class DebconfFilter:
             input_widgets = self.find_widgets([question])
 
             if len(input_widgets) > 0:
-                if 'UBIQUITY_AUTOMATIC' in os.environ:
+                if self.automatic:
                     if self.db.fget(question, 'seen') == 'true':
                         self.reply(30, 'question skipped', log=True)
                         self.next_go_backup = False
@@ -345,7 +347,7 @@ class DebconfFilter:
                     progress_val = int(params[1])
                     for widget in self.find_widgets(
                             [self.progress_bars[0], 'PROGRESS'],
-                             'progress_set'):
+                            'progress_set'):
                         self.debug('filter', 'widget found for',
                                    self.progress_bars[0])
                         if not widget.progress_set(self.progress_bars[0],
@@ -355,7 +357,7 @@ class DebconfFilter:
                     progress_inc = int(params[1])
                     for widget in self.find_widgets(
                             [self.progress_bars[0], 'PROGRESS'],
-                             'progress_step'):
+                            'progress_step'):
                         self.debug('filter', 'widget found for',
                                    self.progress_bars[0])
                         if not widget.progress_step(self.progress_bars[0],
@@ -365,7 +367,7 @@ class DebconfFilter:
                     progress_info = params[1]
                     for widget in self.find_widgets(
                             [self.progress_bars[0], 'PROGRESS'],
-                             'progress_info'):
+                            'progress_info'):
                         self.debug('filter', 'widget found for',
                                    self.progress_bars[0])
                         if not widget.progress_info(self.progress_bars[0],
@@ -374,7 +376,7 @@ class DebconfFilter:
                 elif subcommand == 'STOP' and len(params) == 1:
                     for widget in self.find_widgets(
                             [self.progress_bars[0], 'PROGRESS'],
-                             'progress_stop'):
+                            'progress_stop'):
                         self.debug('filter', 'widget found for',
                                    self.progress_bars[0])
                         widget.progress_stop()

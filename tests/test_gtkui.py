@@ -23,7 +23,6 @@ class TestFrontend(unittest.TestCase):
                     'ubiquity.misc.has_connection',
                     'ubiquity.upower.setup_power_watch',
                     'dbus.mainloop.glib.DBusGMainLoop',
-                    'gi.repository.UbiquityWebcam.Webcam.available',
                     'ubiquity.i18n.reset_locale',
                     ):
             patcher = mock.patch(obj)
@@ -32,13 +31,12 @@ class TestFrontend(unittest.TestCase):
             if obj in ('ubiquity.misc.wireless_hardware_present',
                        'ubiquity.misc.has_connection'):
                 patched_obj.return_value = False
-            elif obj == 'gi.repository.UbiquityWebcam.Webcam.available':
-                patched_obj.return_value = True
             elif obj == 'ubiquity.i18n.reset_locale':
                 patched_obj.return_value = 'en_US.UTF-8'
 
     def test_question_dialog(self):
         from ubiquity.frontend import gtk_ui
+
         ui = gtk_ui.Wizard('test-ubiquity')
         with mock.patch('gi.repository.Gtk.Dialog.run') as run:
             run.return_value = 0
@@ -58,6 +56,7 @@ class TestFrontend(unittest.TestCase):
                      'only testable against a build tree')
     def test_pages_fit_on_a_netbook(self):
         from ubiquity.frontend import gtk_ui
+
         ui = gtk_ui.Wizard('test-ubiquity')
         ui.translate_pages()
         for page in ui.pages:
@@ -80,8 +79,11 @@ class TestFrontend(unittest.TestCase):
 
     def test_interface_translated(self):
         import subprocess
-        from ubiquity.frontend import gtk_ui
+
         from gi.repository import Gtk
+
+        from ubiquity.frontend import gtk_ui
+
         ui = gtk_ui.Wizard('test-ubiquity')
         missing_translations = []
         with mock.patch.object(ui, 'translate_widget') as translate_widget:
@@ -124,7 +126,9 @@ class TestFrontend(unittest.TestCase):
                 'page_title',
                 # To be calculated and set
                 'partition_lvm_status',
-                ]
+                # These are "placeholders" for debconfs impromptu notices
+                'ubi_question_dialog', 'question_label',
+            ]
             deb_host_arch = subprocess.Popen(
                 ['dpkg-architecture', '-qDEB_HOST_ARCH'],
                 stdout=subprocess.PIPE,

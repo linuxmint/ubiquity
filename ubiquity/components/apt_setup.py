@@ -19,8 +19,8 @@
 
 import debconf
 
-from ubiquity.filteredcommand import FilteredCommand
 from ubiquity import gsettings
+from ubiquity.filteredcommand import FilteredCommand
 
 
 class AptSetup(FilteredCommand):

@@ -1,3 +1,46 @@
+partman-partitioning (89ubuntu2) raring; urgency=low
+
+  * Detect "fsl" subarch for powerpc and set partion map to gpt
+
+ -- Ben Collins <ben.c@servergy.com>  Thu, 17 Jan 2013 14:23:43 -0500
+
+partman-partitioning (89ubuntu1) raring; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Make sure to wipe disk label on Sun disks before creating a new one.
+    - Depend on ntfs-3g-udeb as well as ntfsprogs-udeb.
+    - Add PATH, RAWMINSIZE, RAWPREFSIZE, and RAWMAXSIZE substitutions to
+      partman-partitioning/new_size in support of ubiquity's resize widget.
+    - Cache calls to tune2fs and ntfsresize, to make navigating through the
+      resize UI a little faster.
+    - Check that minimum filesystem sizes reported by tune2fs and ntfsresize
+      are between the minimum partition size and the current partition size;
+      if not, refuse to resize the partition at all.
+    - Support archdetect being anywhere on PATH.
+    - Use mac as the default disk label on ppc64.
+    - Save the swap size for ubiquity.
+    - On systems with only GPT disks, check that an EFI System Partition or
+      a BIOS Boot Partition exists, as appropriate.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 04 Dec 2012 00:25:13 +0000
+
+partman-partitioning (89) unstable; urgency=low
+
+  * Add myself to Uploaders and remove Anton Zinoviev (now inactive)
+
+  [ Updated translations ]
+  * Asturian (ast.po) by ivarela
+  * Galician (gl.po) by Jorge Barreiro
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 16 Oct 2012 13:18:02 +0200
+
+partman-partitioning (88) unstable; urgency=low
+
+  [ Steve McIntyre ]
+  * On x86 machines booted in EFI mode, use gpt disk label by default.
+
+ -- Cyril Brulebois <kibi@debian.org>  Thu, 20 Sep 2012 14:33:48 +0200
+
 partman-partitioning (87ubuntu1) quantal; urgency=low
 
   * Resynchronise with Debian.  Remaining changes:
@@ -2459,3 +2502,6 @@ partman-parted-partitioning (1) unstable; urgency=low
 
  -- Anton Zinoviev <zinoviev@debian.org>  Wed, 27 Aug 2003 07:03:28 +0200
 
+Local Variables:
+coding: utf-8
+End:

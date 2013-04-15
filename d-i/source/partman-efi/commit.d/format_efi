@@ -53,11 +53,20 @@ for dev in $DEVICES/*; do
 			db_subst $template TYPE "$RET"
 			db_subst $template PARTITION "$num"
 			db_subst $template DEVICE $(humandev $(cat device))
-			name_progress_bar $template
-			open_dialog CREATE_FILE_SYSTEM $id $new_efi_fs
-			read_line status
-			close_dialog
-			sync
+			db_progress START 0 3 partman/text/formatting
+			db_progress INFO $template
+			db_progress SET 1
+			log_sector_size="$(blockdev --getss "$(cat device)")"
+			if log-output -t partman --pass-stdout \
+			   mkdosfs -F "${new_efi_fs#fat}" \
+				   -S "$log_sector_size" \
+				   "$device" >/dev/null; then
+				sync
+				status=OK
+			else
+				status=failed
+			fi
+			db_progress STOP
 
 			if [ "$status" != OK ]; then
 				db_subst partman-basicfilesystems/create_failed TYPE efi

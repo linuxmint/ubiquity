@@ -21,15 +21,16 @@
 # with this application; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+import glob
 import os
 import sys
-import glob
 
-from aptdaemon.gtk3widgets import AptProgressDialog
-from gi.repository import GObject, Gtk
 from aptdaemon import client, enums
+from aptdaemon.gtk3widgets import AptProgressDialog
+from gi.repository import GLib, Gtk
 
-loop = GObject.MainLoop()
+
+loop = GLib.MainLoop()
 
 
 def _on_failure(error):
@@ -78,7 +79,7 @@ def main():
     purge = []
     for pkg in ('ubiquity', 'ubiquity-casper',
                 'ubiquity-ubuntu-artwork', 'ubiquity-slideshow-ubuntu',
-                'oem-config-slideshow-ubuntu'):
+                'oem-config-slideshow-ubuntu', 'ubiquity-frontend-gtk'):
         if glob.glob('/var/lib/dpkg/info/%s.list' % pkg):
             purge.append(pkg)
 

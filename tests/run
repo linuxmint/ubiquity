@@ -1,13 +1,14 @@
 #!/usr/bin/python3
 
-import unittest
-import os
-import sys
-import subprocess
 import fnmatch
+from itertools import chain
 import optparse
-import shutil
+import os
 import re
+import shutil
+import subprocess
+import sys
+import unittest
 
 
 def find_files(directory, pattern):
@@ -107,6 +108,7 @@ else:
 
 if options.coverage:
     from coverage import coverage
+
     cov = coverage()
     cov.start()
 
@@ -116,8 +118,8 @@ else:
     test_filter = ''
 
 tests = [t[:-3] for t in os.listdir('tests')
-         if t.startswith('test_') and t.endswith('.py') and
-            re.search(test_filter, t)]
+         if (t.startswith('test_') and t.endswith('.py') and
+             re.search(test_filter, t))]
 tests.sort()
 suite = unittest.TestLoader().loadTestsFromNames(tests)
 res = unittest.TextTestRunner(verbosity=2).run(suite)
@@ -125,7 +127,6 @@ if options.coverage:
     if os.path.exists('tests/coverage'):
         shutil.rmtree('tests/coverage')
     cov.stop()
-    from itertools import chain
     include = chain(find_files('ubiquity', '*.py'),
                     find_files('scripts', '*.py'))
     cov.html_report(include=include, directory='tests/coverage')

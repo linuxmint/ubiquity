@@ -23,7 +23,7 @@ class KeyboardQuery(Gtk.Window):
     __gsignals__ = {
         'layout_result': (
             GObject.SignalFlags.RUN_FIRST, None, (GObject.TYPE_STRING,)),
-        }
+    }
 
     def __init__(self, frontend):
         Gtk.Window.__init__(self)

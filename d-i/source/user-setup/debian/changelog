@@ -1,3 +1,50 @@
+user-setup (1.47ubuntu1) raring; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Add the initial user to the adm, lpadmin, and sambashare groups too.
+      Do not add them to the audio, video, floppy, netdev, powerdev,
+      scanner, or bluetooth groups.
+    - Default passwd/root-login to false.
+    - Create the spu group on powerpc/ps3 and powerpc/cell.
+    - Make is_system_user always return false if OVERRIDE_SYSTEM_USER is
+      set.
+    - Add preseedable passwd/auto-login question; if set to true, configure
+      gdm, kdm, lxdm, and lightdm for automatic login.  Add
+      passwd/auto-login-backup question which backs up the previous contents
+      of the files as well.
+    - Ask whether the user wants to encrypt their home directory.
+    - Allow forcing the encrypted home option.
+    - If a user requests an encrypted-home, we must have their login
+      passphrase, in order to wrap their mount passphrase; it's
+      fundamentally incompatible to preseed encrypted-home AND a crypted
+      password; if this happens, send the user back to password selection.
+    - Zero out swap devices at the end of install when encryption is
+      enabled.
+    - Provide a progress message for wiping swap space.
+    - If user-setup/allow-password-empty is preseeded to true, allow empty
+      passwords.
+    - Disable installation of pre-pkgsel.d/10kdesudo; it does nothing for
+      Ubuntu, and causes a confusing message that worries some people.
+    - Add weak password detection (purely length-based for now, matching
+      partman-crypto).
+    - Consider a password of '!' in shadow for root to be unset.
+    - Don't restrict guest login from login screen if autologin was
+      configured, just restrict autologin for guest specifically.
+    - If OVERRIDE_ALREADY_ENCRYPTED_SWAP is set in the environment, assume
+      that encrypted swap has already been set up rather than re-creating
+      and re-zeroing swap.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 03 Dec 2012 23:48:11 +0000
+
+user-setup (1.47) unstable; urgency=low
+
+  [ Updated translations ]
+  * Asturian (ast.po) by ivarela
+  * Spanish (es.po) by Javier Fernández-Sanguino
+  * Ukrainian (uk.po) by Yuri Chornoivan
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 17 Oct 2012 08:00:18 +0200
+
 user-setup (1.46ubuntu2) quantal; urgency=low
 
   * Fix syntax error in user-setup-apply if $ROOT is unset (LP: #1066256).

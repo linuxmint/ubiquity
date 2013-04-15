@@ -1,10 +1,11 @@
-import subprocess
 import string
+import subprocess
 
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 DBusGMainLoop(set_as_default=True)
-from gi.repository import Gtk, GObject
+from gi.repository import Gtk, GObject, GLib
+
 
 NM = 'org.freedesktop.NetworkManager'
 NM_DEVICE = 'org.freedesktop.NetworkManager.Device'
@@ -76,6 +77,8 @@ class NetworkManager:
         self.timeout_id = 0
         self.start(state_changed)
         self.active_connection = None
+        self.active_device_obj = None
+        self.active_conn = None
 
     def start(self, state_changed=None):
         self.bus = dbus.SystemBus()
@@ -128,13 +131,23 @@ class NetworkManager:
         obj = dbus.Dictionary(signature='sa{sv}')
         if passphrase:
             obj['802-11-wireless-security'] = {'psk': passphrase}
-        self.active_connection = self.manager.AddAndActivateConnection(
-            obj, dbus.ObjectPath(device), dbus.ObjectPath(saved_path),
-            signature='a{sa{sv}}oo')[1]
+        self.active_conn, self.active_connection = (
+            self.manager.AddAndActivateConnection(
+                obj, dbus.ObjectPath(device), dbus.ObjectPath(saved_path),
+                signature='a{sa{sv}}oo'))
+        self.active_device_obj = device_obj
 
     def disconnect_from_ap(self):
         if self.active_connection is not None:
             self.manager.DeactivateConnection(self.active_connection)
+            self.active_connection = None
+        if self.active_device_obj is not None:
+            self.active_device_obj.Disconnect()
+            self.active_device_obj = None
+        if self.active_conn is not None:
+            conn_obj = self.bus.get_object(NM, self.active_conn)
+            conn_obj.Delete()
+            self.active_conn = None
 
     def build_passphrase_cache(self):
         self.passphrases_cache = {}
@@ -174,8 +187,8 @@ class NetworkManager:
 
     def queue_build_cache(self, *args):
         if self.timeout_id:
-            GObject.source_remove(self.timeout_id)
-        self.timeout_id = GObject.timeout_add(500, self.build_cache)
+            GLib.source_remove(self.timeout_id)
+        self.timeout_id = GLib.timeout_add(500, self.build_cache)
 
     def properties_changed(self, props, path=None):
         if 'Strength' in props:
@@ -275,8 +288,8 @@ class NetworkManagerTreeView(Gtk.TreeView):
 
         def queue_rows_changed(*args):
             if self.rows_changed_id:
-                GObject.source_remove(self.rows_changed_id)
-            self.rows_changed_id = GObject.idle_add(self.rows_changed)
+                GLib.source_remove(self.rows_changed_id)
+            self.rows_changed_id = GLib.idle_add(self.rows_changed)
 
         model.connect('row-inserted', queue_rows_changed)
         model.connect('row-deleted', queue_rows_changed)

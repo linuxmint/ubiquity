@@ -33,10 +33,10 @@ import textwrap
 
 import debconf
 
-from ubiquity.frontend.base import BaseFrontend, Controller
-from ubiquity.plugin import Plugin
 from ubiquity import i18n
 from ubiquity.components import install, plugininstall
+from ubiquity.frontend.base import BaseFrontend, Controller
+from ubiquity.plugin import Plugin
 
 
 class PersistentDebconfCommunicator(debconf.Debconf):
@@ -65,7 +65,7 @@ class Wizard(BaseFrontend):
         """Crash handler."""
 
         if (issubclass(exctype, KeyboardInterrupt) or
-            issubclass(exctype, SystemExit)):
+                issubclass(exctype, SystemExit)):
             return
 
         self.post_mortem(exctype, excvalue, exctb)

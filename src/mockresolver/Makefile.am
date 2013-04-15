@@ -20,7 +20,7 @@ introspection_sources = $(libubimockresolver_la_SOURCES)
 
 UbiquityMockResolver-1.0.gir: libubimockresolver.la
 UbiquityMockResolver_1_0_gir_INCLUDES = Gio-2.0
-UbiquityMockResolver_1_0_gir_CFLAGS = $(INCLUDES) --identifier-prefix=Ubiquity
+UbiquityMockResolver_1_0_gir_SCANNERFLAGS = --identifier-prefix=Ubiquity
 UbiquityMockResolver_1_0_gir_LIBS = libubimockresolver.la
 UbiquityMockResolver_1_0_gir_FILES = $(introspection_sources)
 

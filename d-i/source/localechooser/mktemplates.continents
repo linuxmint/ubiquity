@@ -38,11 +38,6 @@ open (L, $iso3166tab) || die "$iso3166tab: $!";
 while (<L>) {
 	chomp;
 	my ($code, $country) = split(' ', $_, 2);
-	# Bubulle 5/25/2004 We should find a way to avoid enforcing ASCII here
-	if ($country !~ /^[-_A-Za-z0-9 !@#$%^&Z*()-_+={};:'",.<>?|]+$/) {
-		print STDERR "I: skipping country $country; not ASCII\n";
-		next;
-	}
 
 	# Escape commas
 	$country =~ s/,/\\,/g;

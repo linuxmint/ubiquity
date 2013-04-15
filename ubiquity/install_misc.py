@@ -41,8 +41,7 @@ from apt.progress.text import AcquireProgress
 import apt_pkg
 import debconf
 
-from ubiquity import misc
-from ubiquity import osextras
+from ubiquity import misc, osextras
 from ubiquity.casper import get_casper
 
 
@@ -452,7 +451,7 @@ def excepthook(exctype, excvalue, exctb):
     read by the caller."""
 
     if (issubclass(exctype, KeyboardInterrupt) or
-        issubclass(exctype, SystemExit)):
+            issubclass(exctype, SystemExit)):
         return
 
     tbtext = ''.join(traceback.format_exception(exctype, excvalue, exctb))
@@ -504,7 +503,7 @@ def broken_packages(cache):
 def mark_install(cache, pkg):
     cachedpkg = get_cache_pkg(cache, pkg)
     if (cachedpkg is not None and
-        (not cachedpkg.is_installed or cachedpkg.is_upgradable)):
+            (not cachedpkg.is_installed or cachedpkg.is_upgradable)):
         apt_error = False
         try:
             cachedpkg.mark_install()
@@ -524,7 +523,7 @@ def mark_install(cache, pkg):
                 # We have a conflict we couldn't solve
                 cache.clear()
                 raise InstallStepError(
-                        "Unable to install '%s' due to conflicts." % pkg)
+                    "Unable to install '%s' due to conflicts." % pkg)
 
 
 def expand_dependencies_simple(cache, keep, to_remove, recommends=True):
@@ -732,15 +731,15 @@ def copy_file(db, sourcepath, targetpath, md5_check):
         if md5_check:
             sourcehash = hashlib.md5()
 
-        with open(sourcepath, 'rb') as sourcefh, \
-             open(targetpath, 'wb') as targetfh:
-            while True:
-                buf = sourcefh.read(16 * 1024)
-                if not buf:
-                    break
-                targetfh.write(buf)
-                if md5_check:
-                    sourcehash.update(buf)
+        with open(sourcepath, 'rb') as sourcefh:
+            with open(targetpath, 'wb') as targetfh:
+                while True:
+                    buf = sourcefh.read(16 * 1024)
+                    if not buf:
+                        break
+                    targetfh.write(buf)
+                    if md5_check:
+                        sourcehash.update(buf)
 
         if not md5_check:
             break
@@ -763,8 +762,7 @@ def copy_file(db, sourcepath, targetpath, md5_check):
             if response == 'skip':
                 break
             elif response == 'abort':
-                syslog.syslog(syslog.LOG_ERR,
-                    'MD5 failure on %s' % targetpath)
+                syslog.syslog(syslog.LOG_ERR, 'MD5 failure on %s' % targetpath)
                 sys.exit(3)
             elif response == 'retry':
                 pass
@@ -907,8 +905,9 @@ class InstallBase:
             self.nested_progress_end()
             return
 
-        for pkg in to_install:
-            mark_install(cache, pkg)
+        with cache.actiongroup():
+            for pkg in to_install:
+                mark_install(cache, pkg)
 
         self.db.progress('SET', 1)
         self.progress_region(1, 10)
@@ -1061,8 +1060,8 @@ class InstallBase:
         # that exist in the live filesystem's apt cache, so that we can tell
         # the difference between "no such language pack" and "language pack
         # not retrievable given apt configuration in /target" later on.
-        to_install = [lp for lp in to_install
-                         if get_cache_pkg(cache, lp) is not None]
+        to_install = [
+            lp for lp in to_install if get_cache_pkg(cache, lp) is not None]
 
         install_new = True
         try:
@@ -1079,8 +1078,9 @@ class InstallBase:
             # TODO cjwatson 2010-03-18: To match pkgsel's semantics, we
             # ought to be willing to install packages from the package pool
             # on the CD as well.
-            to_install = [lp for lp in to_install
-                             if get_cache_pkg(cache, lp).is_installed]
+            to_install = [
+                lp for lp in to_install
+                if get_cache_pkg(cache, lp).is_installed]
 
         del cache
         record_installed(to_install)

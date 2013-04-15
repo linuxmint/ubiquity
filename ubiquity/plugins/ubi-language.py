@@ -21,14 +21,12 @@ from __future__ import print_function
 
 import locale
 import os
+import re
 
 import debconf
 
-from ubiquity import plugin
-from ubiquity import i18n
-from ubiquity import misc
-from ubiquity import auto_update
-from ubiquity import osextras
+from ubiquity import auto_update, i18n, misc, osextras, plugin
+
 
 NAME = 'language'
 AFTER = None
@@ -124,8 +122,7 @@ class PageGtk(PageBase):
                     self.try_ubuntu.set_sensitive(False)
                     self.controller.go_forward()
                 self.install_ubuntu.connect('clicked', inst)
-                self.try_ubuntu.connect('clicked',
-                    self.on_try_ubuntu_clicked)
+                self.try_ubuntu.connect('clicked', self.on_try_ubuntu_clicked)
             self.try_install_text_label = builder.get_object(
                 'try_install_text_label')
             # We do not want to show the yet to be substituted strings
@@ -178,8 +175,8 @@ class PageGtk(PageBase):
                 column.set_sizing(Gtk.TreeViewColumnSizing.GROW_ONLY)
                 self.treeview.append_column(column)
                 selection = self.treeview.get_selection()
-                selection.connect('changed',
-                                    self.on_language_selection_changed)
+                selection.connect(
+                    'changed', self.on_language_selection_changed)
             self.treeview.set_model(list_store)
 
     def set_language(self, language):
@@ -303,13 +300,13 @@ class PageGtk(PageBase):
             w.show()
 
     def plugin_set_online_state(self, state):
-        from gi.repository import GObject
+        from gi.repository import GLib
         if self.release_notes_label:
             if self.timeout_id:
-                GObject.source_remove(self.timeout_id)
+                GLib.source_remove(self.timeout_id)
             if state:
                 self.release_notes_label.show()
-                self.timeout_id = GObject.timeout_add(
+                self.timeout_id = GLib.timeout_add(
                     300, self.check_returncode)
             else:
                 self.release_notes_label.hide()
@@ -351,6 +348,8 @@ class PageGtk(PageBase):
             elif self.update_installer:
                 text = i18n.get_string('update_installer_only', lang)
                 self.release_notes_label.set_markup(text)
+            else:
+                self.release_notes_label.set_markup('')
 
     def set_oem_id(self, text):
         return self.oem_id_entry.set_text(text)
@@ -574,8 +573,8 @@ class PageKde(PageBase):
                 self.page.release_notes_label.show()
                 QTimer.singleShot(300, self.check_returncode)
                 self.timer = QTimer(self.page)
-                self.timer.connect(self.timer, SIGNAL("timeout()"),
-                    self.check_returncode)
+                self.timer.connect(
+                    self.timer, SIGNAL("timeout()"), self.check_returncode)
                 self.timer.start(300)
             else:
                 self.page.release_notes_label.hide()
@@ -596,8 +595,8 @@ class PageKde(PageBase):
             else:
                 self.update_installer = False
             self.update_release_notes_label()
-            self.timer.disconnect(self.timer, SIGNAL("timeout()"),
-                self.check_returncode)
+            self.timer.disconnect(
+                self.timer, SIGNAL("timeout()"), self.check_returncode)
 
     def update_release_notes_label(self):
         lang = self.selected_language()
@@ -666,15 +665,15 @@ class Page(plugin.Plugin):
 
         localechooser_script = '/usr/lib/ubiquity/localechooser/localechooser'
         if ('UBIQUITY_FRONTEND' in os.environ and
-            os.environ['UBIQUITY_FRONTEND'] == 'debconf_ui'):
+                os.environ['UBIQUITY_FRONTEND'] == 'debconf_ui'):
             localechooser_script += '-debconf'
 
         questions = ['localechooser/languagelist']
         environ = {
             'PATH': '/usr/lib/ubiquity/localechooser:' + os.environ['PATH'],
-            }
+        }
         if ('UBIQUITY_FRONTEND' in os.environ and
-            os.environ['UBIQUITY_FRONTEND'] == "debconf_ui"):
+                os.environ['UBIQUITY_FRONTEND'] == "debconf_ui"):
             environ['TERM_FRAMEBUFFER'] = '1'
         else:
             environ['OVERRIDE_SHOW_ALL_LANGUAGES'] = '1'
@@ -710,7 +709,7 @@ class Page(plugin.Plugin):
             new_language = self.ui.get_language()
             self.preseed(self.language_question, new_language)
             if (self.initial_language is None or
-                self.initial_language != new_language):
+                    self.initial_language != new_language):
                 self.db.reset('debian-installer/country')
         if self.ui.controller.oem_config:
             self.preseed('oem-config/id', self.ui.get_oem_id())
@@ -732,24 +731,69 @@ class Install(plugin.InstallPlugin):
                 'sh', '-c',
                 '/usr/lib/ubiquity/localechooser/post-base-installer ' +
                 '&& /usr/lib/ubiquity/localechooser/finish-install',
-                ]
+            ]
         return command, []
+
+    def _pam_env_lines(self, fd):
+        """Yield a sequence of logical lines from a PAM environment file."""
+        buf = ""
+        for line in fd:
+            line = line.lstrip()
+            if line and line[0] != "#":
+                if "#" in line:
+                    line = line[:line.index("#")]
+                for i in range(len(line) - 1, -1, -1):
+                    if line[i].isspace():
+                        break
+                if line[i] == "\\":
+                    # Continuation line.
+                    buf = line[:i]
+                else:
+                    buf += line
+                    yield buf
+                    buf = ""
+        if buf:
+            yield buf
+
+    def _pam_env_parse_file(self, path):
+        """Parse a PAM environment file just as pam_env does.
+
+        We use this for reading /etc/default/locale after configuring it.
+        """
+        try:
+            with open(path) as fd:
+                for line in self._pam_env_lines(fd):
+                    line = line.lstrip()
+                    if not line or line[0] == "#":
+                        continue
+                    if line.startswith("export "):
+                        line = line[7:]
+                    line = re.sub(r"[#\n].*", "", line)
+                    if not re.match(r"^[A-Z_]+=", line):
+                        continue
+                    # pam_env's handling of quoting is crazy, but in this
+                    # case it's better to imitate it than to fix it.
+                    key, value = line.split("=", 1)
+                    if value.startswith('"') or value.startswith("'"):
+                        value = re.sub(r"[\"'](.|$)", r"\1", value[1:])
+                    yield key, value
+        except IOError:
+            pass
 
     def install(self, target, progress, *args, **kwargs):
         progress.info('ubiquity/install/locales')
         rv = plugin.InstallPlugin.install(
             self, target, progress, *args, **kwargs)
         if not rv:
+            locale_file = "/etc/default/locale"
             if 'UBIQUITY_OEM_USER_CONFIG' not in os.environ:
-                # Start using the newly-generated locale, if possible.
-                try:
-                    locale.setlocale(locale.LC_ALL, '')
-                except locale.Error:
-                    pass
-            # fontconfig configuration needs to be adjusted based on the
-            # selected locale (from language-selector-common.postinst). Ignore
-            # errors.
-            misc.execute(
-                'chroot', target, 'fontconfig-voodoo',
-                '--auto', '--force', '--quiet')
+                locale_file = "/target%s" % locale_file
+            for key, value in self._pam_env_parse_file(locale_file):
+                if key in ("LANG", "LANGUAGE") or key.startswith("LC_"):
+                    os.environ[key] = value
+            # Start using the newly-generated locale, if possible.
+            try:
+                locale.setlocale(locale.LC_ALL, '')
+            except locale.Error:
+                pass
         return rv

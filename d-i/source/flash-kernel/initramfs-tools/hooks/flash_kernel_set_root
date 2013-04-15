@@ -57,6 +57,12 @@ if [ "$blsr" = "yes" ] || [ -n "$FLASH_KERNEL_SKIP" ]; then
 	exit 0
 fi
 
+# Do not run inside an LXC container
+if type running-in-container >/dev/null 2>&1 && \
+	running-in-container >/dev/null; then
+	exit 0
+fi
+
 # Record the root filesystem device for use during boot
 rootdev=$(egrep '^[^# 	]+[ 	]+/[ 	]' /etc/fstab | awk '{print $1}') || true
 

@@ -199,6 +199,15 @@ sub parse_layout {
 	my $arg = shift @{$tree};
 	if ($tag eq 'configItem') {
 	    ($name, $description) = parse_configItem $arg;
+	    if ($name eq 'ch') {
+		# "German (Switzerland)" is an unhelpful layout description,
+		# as this layout includes variants such as "French
+		# (Switzerland)".  Override the description to something
+		# more generic.  Be careful to ensure that a translation for
+		# this string is available somewhere; if not in iso_3166,
+		# then amend Keyboard/kbdnames-maker appropriately.
+		$description = 'Switzerland';
+	    }
 	    if ($name ne "") {
 		$layouts{$description} = $name;
 	    }

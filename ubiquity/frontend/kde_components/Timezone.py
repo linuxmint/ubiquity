@@ -34,6 +34,13 @@ class TimezoneMap(QtGui.QWidget):
         # load background pixmap
         self.imagePath = "/usr/share/ubiquity/pixmaps/timezone"
         self.pixmap = QtGui.QPixmap("%s/bg.png" % self.imagePath)
+        self.setMinimumSize(self.pixmap.size() / 2)
+        self.setMaximumSize(self.pixmap.size())
+        policy = QtGui.QSizePolicy(
+            QtGui.QSizePolicy.Preferred,
+            QtGui.QSizePolicy.Preferred)
+        policy.setHeightForWidth(True)
+        self.setSizePolicy(policy)
 
         # redraw timer for selected city time
         self.timer = QtCore.QTimer(self)
@@ -47,7 +54,7 @@ class TimezoneMap(QtGui.QWidget):
             '10.5', '11.0', '11.5', '12.0', '12.75', '13.0', '-1.0', '-2.0',
             '-3.0', '-3.5', '-4.0', '-4.5', '-5.0', '-5.5', '-6.0', '-7.0',
             '-8.0', '-9.0', '-9.5', '-10.0', '-11.0',
-            ]
+        ]
 
         zonePixmaps = {}
 
@@ -115,6 +122,15 @@ class TimezoneMap(QtGui.QWidget):
         # degrees south (150 degrees vs 180 degrees).
         y = y * (self.height() * 1.2)
         return y
+
+    def sizeHint(self):
+        return self.pixmap.size()
+
+    def heightForWidth(self, w):
+        size = self.pixmap.size()
+        if w > size.width():
+            w = size.width()
+        return w * size.height() / size.width()
 
     def paintEvent(self, unused_paintEvent):
         painter = QtGui.QPainter(self)
@@ -186,6 +202,8 @@ class TimezoneMap(QtGui.QWidget):
     # @return pixel coordinate of a latitude and longitude for self
     # map uses Miller Projection, but is also clipped
     def getPosition(self, la, lo):
+        width = min(self.width(), self.pixmap.width())
+        height = min(self.height(), self.pixmap.height())
         # need to add/sub magic numbers because the map doesn't actually go
         # from -180...180, -90...90 thus the upper corner is not -180, -90
         # and we have to compensate
@@ -195,9 +213,9 @@ class TimezoneMap(QtGui.QWidget):
         # the 180 - 360 accounts for the fact that the map does not span the
         # entire -90 to 90 the map does span the entire 360 though, just
         # offset
-        x = ((self.width() * (180.0 + lo) / 360.0) +
-             (self.width() * xdeg_offset / 180.0))
-        x = x % self.width()
+        x = ((width * (180.0 + lo) / 360.0) +
+             (width * xdeg_offset / 180.0))
+        x = x % width
 
         # top and bottom clipping latitudes
         topLat = 81
@@ -223,7 +241,7 @@ class TimezoneMap(QtGui.QWidget):
         y = y / mapRange
 
         # this then becomes the percentage of the height
-        y = y * self.height()
+        y = y * height
 
         return QtCore.QPoint(int(x), int(y))
 

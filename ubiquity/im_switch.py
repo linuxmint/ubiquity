@@ -28,9 +28,9 @@
 # launched, and kill them off again when switching languages.
 
 import os
-import subprocess
-import signal
 import shlex
+import signal
+import subprocess
 
 from ubiquity import misc
 
@@ -54,7 +54,8 @@ def get_language():
 def read_config_file(f):
     if not os.path.isfile(f) or not os.access(f, os.R_OK):
         return None
-    cfg = subprocess.Popen('''\
+    cfg = subprocess.Popen(
+        '''\
 . %s
 echo "XIM: $XIM"
 echo "XIM_PROGRAM: $XIM_PROGRAM"
@@ -130,8 +131,8 @@ def start_im():
     # Inform GTK about the change if necessary; requires
     # http://bugzilla.gnome.org/show_bug.cgi?id=502446.
     if (cfg_has('GTK_IM_MODULE') and
-        'UBIQUITY_FRONTEND' in os.environ and
-        os.environ['UBIQUITY_FRONTEND'] == 'gtk_ui'):
+            'UBIQUITY_FRONTEND' in os.environ and
+            os.environ['UBIQUITY_FRONTEND'] == 'gtk_ui'):
         from gi.repository import Gtk
         settings = Gtk.Settings.get_default()
         try:

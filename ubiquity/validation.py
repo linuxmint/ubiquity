@@ -32,12 +32,13 @@
 # Validation library.
 # Created by Antonio Olmo <aolmo#emergya._info> on 26 jul 2005.
 
+import os
+import re
+
 
 def check_grub_device(device):
     """Check that the user entered a valid boot device.
         @return True if the device is valid, False if it is not."""
-    import re
-    import os
     regex = re.compile(r'^/dev/([a-zA-Z0-9]+|mapper/[a-zA-Z0-9_]+)$')
     if regex.search(device):
         if not os.path.exists(device):
@@ -67,7 +68,6 @@ def check_hostname(name):
             - C{HOSTNAME_BADHYPHEN} starts or ends with a hyphen.
             - C{HOSTNAME_BADDOTS} contains consecutive/initial/final dots."""
 
-    import re
     result = set()
 
     if len(name) < 1 or len(name) > 63:
@@ -107,10 +107,11 @@ def password_strength(password):
         upper = 3
     if symbol > 3:
         symbol = 3
-    strength = (((length * 0.1) - 0.2)
-               + (digit * 0.1)
-               + (symbol * 0.15)
-               + (upper * 0.1))
+    strength = (
+        ((length * 0.1) - 0.2) +
+        (digit * 0.1) +
+        (symbol * 0.15) +
+        (upper * 0.1))
     if strength > 1:
         strength = 1
     if strength < 0:

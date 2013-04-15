@@ -517,28 +517,9 @@ if [ "$got_splash" ] && \
    (! db_get debian-installer/splash || [ "$RET" = true ]); then
 	defopt_params=${defopt_params:+$defopt_params }splash
 fi
-if [ "$grub_version" = grub2 ]; then
-	# Add user parameters to the menu file; some options are only added
-	# to the default entry for a kernel instead of all entries.
-	# We have to duplicate grub2's default for
-	# GRUB_CMDLINE_LINUX_DEFAULT here.
-	if [ -z "$got_splash" ] && \
-	   db_get debian-installer/framebuffer && [ "$RET" = true ] && \
-	   (! db_get debian-installer/splash || [ "$RET" = true ]); then
-		defopt_params="splash${defopt_params:+ $defopt_params}"
-	fi
-	if [ -z "$got_quiet" ] && \
-	   (! db_get debian-installer/quiet || [ "$RET" = true ]); then
-		defopt_params="quiet${defopt_params:+ $defopt_params}"
-	fi
-	# (quoting to deconfuse vim)
-	$chroot $ROOT 'debconf-set-selections' <<EOF
-$grub_package grub2/linux_cmdline string $kopt_params
-$grub_package grub2/linux_cmdline_default string $defopt_params
-EOF
-fi
 if [ "$grub_package" = grub-pc ]; then
 	# Empty this for now to stop it being asked. We'll fix this up later.
+	# (quoting to deconfuse vim)
 	$chroot $ROOT 'debconf-set-selections' <<EOF
 $grub_package grub-pc/install_devices multiselect
 $grub_package grub-pc/install_devices_empty boolean true
@@ -1159,11 +1140,9 @@ if [ "$grub_version" = "grub" ] ; then
 	fi 
 fi
 
+# Add user parameters to menu.lst; some options are only added to the
+# default entry for a kernel instead of all entries.
 if [ "$grub_version" = grub ]; then
-	# Add user parameters to menu.lst; some options are only added to
-	# the default entry for a kernel instead of all entries. We can't do
-	# this in the same place as the grub2 case because we need the menu
-	# file to exist.
 	if db_get debian-installer/splash && [ "$RET" = false ]; then
 		sed -i 's!^\(# defoptions=.*\) splash\( \|$\)!\1\2!' $ROOT/boot/grub/$menu_file
 	fi
@@ -1173,10 +1152,38 @@ if [ "$grub_version" = grub ]; then
 	if [ "$kopt_params" ]; then
 		sed -i "s!^\(# kopt=.*\)!\1 $kopt_params!" $ROOT/boot/grub/$menu_file
 	fi
-	# In either case, update the Debian kernel entries
-	if [ "$user_params" ]; then
-		update_grub
+else
+	# It's simplest to duplicate grub2's default for
+	# GRUB_CMDLINE_LINUX_DEFAULT here, as well as its handling of
+	# quoting.
+	set_config_item () {
+		local key value
+		key="$1"
+		value="$(echo "$2" | sed -e 's,[$`"\],\\&,g')"
+		if grep -q "^$key=" "$ROOT/etc/default/grub"; then
+			value="$(echo "$value" | sed -e 's,[\@],\\&,g')"
+			sed -i -re "s@^($key=).*@\1\"$value\"@" "$ROOT/etc/default/grub"
+		else
+			echo >> "$ROOT/etc/default/grub"
+			echo "$key=\"$value\"" >> "$ROOT/etc/default/grub"
+		fi
+	}
+
+	if [ -z "$got_splash" ] && \
+	   db_get debian-installer/framebuffer && [ "$RET" = true ] && \
+	   (! db_get debian-installer/splash || [ "$RET" = true ]); then
+		defopt_params="splash${defopt_params:+ $defopt_params}"
 	fi
+	if [ -z "$got_quiet" ] && \
+	   (! db_get debian-installer/quiet || [ "$RET" = true ]); then
+		defopt_params="quiet${defopt_params:+ $defopt_params}"
+	fi
+	set_config_item GRUB_CMDLINE_LINUX_DEFAULT "$defopt_params"
+	set_config_item GRUB_CMDLINE_LINUX "$kopt_params"
+fi
+# In either case, update the Debian kernel entries
+if [ "$user_params" ]; then
+	update_grub
 fi
 
 if db_get grub-installer/timeout

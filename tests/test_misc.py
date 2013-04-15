@@ -12,30 +12,32 @@ import mock
 
 from ubiquity import misc
 
+
 _proc_swaps = [
     'Filename\t\t\t\tType\t\tSize\tUsed\tPriority',
     '/dev/sda5                               partition\t1046524\t56160\t-1']
 _disk_info = ('Ubuntu-Server 10.04.1 LTS _Lucid Lynx_ '
               '- Release i386 (20100816.2)')
 _proc_mounts = [
-'rootfs / rootfs rw 0 0',
-'none /sys sysfs rw,nosuid,nodev,noexec,relatime 0 0',
-'none /proc proc rw,nosuid,nodev,noexec,relatime 0 0',
-'none /dev devtmpfs rw,relatime,size=503688k,nr_inodes=125922,mode=755 0 0',
-'none /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,'
-    'ptmxmode=000 0 0',
-'fusectl /sys/fs/fuse/connections fusectl rw,relatime 0 0',
-'/dev/disk/by-uuid/35583897-668f-4303-80a1-aa4e7f599978 / ext4 '
-    'rw,relatime,errors=remount-ro,barrier=1,data=ordered 0 0',
-'none /sys/kernel/debug debugfs rw,relatime 0 0',
-'none /sys/kernel/security securityfs rw,relatime 0 0',
-'none /dev/shm tmpfs rw,nosuid,nodev,relatime 0 0',
-'none /var/run tmpfs rw,nosuid,relatime,mode=755 0 0',
-'none /var/lock tmpfs rw,nosuid,nodev,noexec,relatime 0 0',
-'binfmt_misc /proc/sys/fs/binfmt_misc binfmt_misc '
-    'rw,nosuid,nodev,noexec,relatime 0 0',
-'gvfs-fuse-daemon /home/evan/.gvfs fuse.gvfs-fuse-daemon '
-    'rw,nosuid,nodev,relatime,user_id=1000,group_id=1000 0 0',
+    'rootfs / rootfs rw 0 0',
+    'none /sys sysfs rw,nosuid,nodev,noexec,relatime 0 0',
+    'none /proc proc rw,nosuid,nodev,noexec,relatime 0 0',
+    ('none /dev devtmpfs '
+     'rw,relatime,size=503688k,nr_inodes=125922,mode=755 0 0'),
+    ('none /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,'
+     'ptmxmode=000 0 0'),
+    'fusectl /sys/fs/fuse/connections fusectl rw,relatime 0 0',
+    ('/dev/disk/by-uuid/35583897-668f-4303-80a1-aa4e7f599978 / ext4 '
+     'rw,relatime,errors=remount-ro,barrier=1,data=ordered 0 0'),
+    'none /sys/kernel/debug debugfs rw,relatime 0 0',
+    'none /sys/kernel/security securityfs rw,relatime 0 0',
+    'none /dev/shm tmpfs rw,nosuid,nodev,relatime 0 0',
+    'none /var/run tmpfs rw,nosuid,relatime,mode=755 0 0',
+    'none /var/lock tmpfs rw,nosuid,nodev,noexec,relatime 0 0',
+    ('binfmt_misc /proc/sys/fs/binfmt_misc binfmt_misc '
+     'rw,nosuid,nodev,noexec,relatime 0 0'),
+    ('gvfs-fuse-daemon /home/evan/.gvfs fuse.gvfs-fuse-daemon '
+     'rw,nosuid,nodev,relatime,user_id=1000,group_id=1000 0 0'),
 ]
 
 
@@ -154,8 +156,8 @@ class MiscTests(unittest.TestCase):
         self.assertEqual(mock_execute.call_count, 1)
         self.assertEqual(mock_execute.call_args[0][0], 'setxkbmap')
         self.assertEqual(mock_set_list.call_count, 1)
-        self.assertEqual(mock_set_list.call_args[0][0],
-            'org.gnome.libgnomekbd.keyboard')
+        self.assertEqual(
+            mock_set_list.call_args[0][0], 'org.gnome.libgnomekbd.keyboard')
         self.assertEqual(mock_set_list.call_args[0][1], 'layouts')
         self.assertEqual('us', mock_set_list.call_args[0][2][0])
         self.assertEqual(len(mock_set_list.call_args[0][2]), 4)
@@ -167,8 +169,8 @@ class MiscTests(unittest.TestCase):
         self.assertEqual(mock_execute.call_count, 1)
         self.assertEqual(mock_execute.call_args[0][0], 'setxkbmap')
         self.assertEqual(mock_set_list.call_count, 1)
-        self.assertEqual(mock_set_list.call_args[0][0],
-            'org.gnome.libgnomekbd.keyboard')
+        self.assertEqual(
+            mock_set_list.call_args[0][0], 'org.gnome.libgnomekbd.keyboard')
         self.assertEqual(mock_set_list.call_args[0][1], 'layouts')
         self.assertEqual('fr\toss', mock_set_list.call_args[0][2][0])
         self.assertEqual(len(mock_set_list.call_args[0][2]), 4)
@@ -180,21 +182,20 @@ class MiscTests(unittest.TestCase):
         self.assertEqual(mock_execute.call_count, 1)
         self.assertEqual(mock_execute.call_args[0][0], 'setxkbmap')
         self.assertEqual(mock_set_list.call_count, 1)
-        self.assertEqual(mock_set_list.call_args[0][0],
-            'org.gnome.libgnomekbd.keyboard')
+        self.assertEqual(
+            mock_set_list.call_args[0][0], 'org.gnome.libgnomekbd.keyboard')
         self.assertEqual(mock_set_list.call_args[0][1], 'layouts')
         self.assertIn('se\tdvorak', mock_set_list.call_args[0][2])
 
     @mock.patch('ubiquity.gsettings.set_list')
     @mock.patch('ubiquity.misc.execute')
-    def test_set_indicator_keymaps_ta(self, mock_execute,
-                                        mock_set_list):
+    def test_set_indicator_keymaps_ta(self, mock_execute, mock_set_list):
         misc.set_indicator_keymaps('ta')
         self.assertEqual(mock_execute.call_count, 1)
         self.assertEqual(mock_execute.call_args[0][0], 'setxkbmap')
         self.assertEqual(mock_set_list.call_count, 1)
-        self.assertEqual(mock_set_list.call_args[0][0],
-            'org.gnome.libgnomekbd.keyboard')
+        self.assertEqual(
+            mock_set_list.call_args[0][0], 'org.gnome.libgnomekbd.keyboard')
         self.assertEqual(mock_set_list.call_args[0][1], 'layouts')
         self.assertEqual('in\ttam', mock_set_list.call_args[0][2][0])
         self.assertEqual(len(mock_set_list.call_args[0][2]), 4)
@@ -207,8 +208,8 @@ class MiscTests(unittest.TestCase):
         self.assertEqual(mock_execute.call_count, 1)
         self.assertEqual(mock_execute.call_args[0][0], 'setxkbmap')
         self.assertEqual(mock_set_list.call_count, 1)
-        self.assertEqual(mock_set_list.call_args[0][0],
-            'org.gnome.libgnomekbd.keyboard')
+        self.assertEqual(
+            mock_set_list.call_args[0][0], 'org.gnome.libgnomekbd.keyboard')
         self.assertEqual(mock_set_list.call_args[0][1], 'layouts')
         self.assertEqual('cn', mock_set_list.call_args[0][2][0])
         self.assertEqual(len(mock_set_list.call_args[0][2]), 1)
@@ -320,14 +321,15 @@ class GrubDefaultTests(unittest.TestCase):
     """
 
     def setUp(self):
-        for obj in (
+        to_patch = (
             'os.path.realpath',
             'os.path.samefile',
             'ubiquity.misc.boot_device',
             'ubiquity.misc.cdrom_mount_info',
             'ubiquity.misc.grub_device_map',
             'ubiquity.misc.is_removable',
-            ):
+        )
+        for obj in to_patch:
             patcher = mock.patch(obj)
             patcher.start()
             self.addCleanup(patcher.stop)
@@ -396,7 +398,7 @@ class GrubDefaultTests(unittest.TestCase):
         self.devices = [
             ['hd0', 'sda', 'disk-1'],
             ['hd1', 'sdb', 'disk-2'],
-            ]
+        ]
         self.cdrom_mount = ('/dev/sr0', 'vfat')
         self.assertEqual('/dev/sda', misc.grub_default())
 
@@ -406,7 +408,7 @@ class GrubDefaultTests(unittest.TestCase):
         self.devices = [
             ['hd0', 'sda', 'cdrom'],
             ['hd1', 'sdb', 'disk'],
-            ]
+        ]
         self.cdrom_mount = ('/dev/sda', 'vfat')
         self.assertEqual('/dev/sdb', misc.grub_default())
         self.cdrom_mount = ('/dev/disk/by-id/cdrom', 'vfat')
@@ -416,7 +418,7 @@ class GrubDefaultTests(unittest.TestCase):
         self.devices = [
             ['hd0', 'sda', 'usb'],
             ['hd1', 'sdb', 'disk'],
-            ]
+        ]
         self.cdrom_mount = ('/dev/sda', 'iso9660')
         self.removable_devices = ['/dev/sda']
         self.boot_device = None
@@ -426,7 +428,7 @@ class GrubDefaultTests(unittest.TestCase):
         self.devices = [
             ['hd0', 'sda', 'disk'],
             ['hd1', 'sdb', 'usb'],
-            ]
+        ]
         self.cdrom_mount = ('/dev/sdb', 'iso9660')
         self.removable_devices = ['/dev/sdb']
         self.boot_device = None

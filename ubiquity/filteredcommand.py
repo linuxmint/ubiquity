@@ -19,16 +19,17 @@
 
 from __future__ import print_function
 
-import sys
+import importlib
 import os
 import signal
 import subprocess
-import importlib
+import sys
 
 import debconf
 
-from ubiquity.debconffilter import DebconfFilter
 from ubiquity import misc
+from ubiquity.debconffilter import DebconfFilter
+
 
 # We identify as this to debconf.
 PACKAGE = 'ubiquity'
@@ -68,6 +69,16 @@ class UntrustedBase(object):
             time_str = time.ctime()[4:19]
             message = fmt % args
             print('%s %s: %s' % (time_str, PACKAGE, message), file=sys.stderr)
+
+    @property
+    def is_automatic(self):
+        """Is this command running in automatic mode?
+
+        In automatic mode, the UI will only be displayed if there are
+        questions to ask that have not been preseeded; otherwise the UI will
+        be skipped.  Some UIs may never display anything in automatic mode.
+        """
+        return "UBIQUITY_AUTOMATIC" in os.environ
 
 
 class FilteredCommand(UntrustedBase):
@@ -112,7 +123,7 @@ class FilteredCommand(UntrustedBase):
         widgets = {}
         for pattern in question_patterns:
             widgets[pattern] = self
-        self.dbfilter = DebconfFilter(self.db, widgets)
+        self.dbfilter = DebconfFilter(self.db, widgets, self.is_automatic)
 
         # TODO: Set as unseen all questions that we're going to ask.
 

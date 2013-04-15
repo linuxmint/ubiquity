@@ -25,6 +25,7 @@ import importlib
 import os
 import sys
 
+
 PLUGIN_PATH = (os.environ.get('UBIQUITY_PLUGIN_PATH', False)
                or '/usr/lib/ubiquity/plugins')
 

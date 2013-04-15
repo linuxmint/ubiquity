@@ -87,9 +87,7 @@ class PartMan(QtGui.QWidget):
                 # data for bar display
                 size = int(partition['parted']['size'])
                 fs = partition['parted']['fs']
-                path = partition['parted']['path'].replace("/dev/", "")
-                if fs == "free":
-                    path = fs
+                path = partition['parted']['path']
                 partition_bar.addPartition(path, size, fs)
 
         self.partition_list_treeview.reset()
@@ -162,8 +160,8 @@ class PartMan(QtGui.QWidget):
                 data = child.itemData
                 otherpart = data[1]
                 if (otherpart['dev'] == partition['dev'] and
-                    'id' in otherpart and
-                    otherpart['parted']['type'] == 'primary'):
+                        'id' in otherpart and
+                        otherpart['parted']['type'] == 'primary'):
                     dialog.partition_create_type_logical.setChecked(True)
                     break
             else:
@@ -181,7 +179,7 @@ class PartMan(QtGui.QWidget):
 
         self.create_use_method_names = {}
         for method, name, description in (
-            self.ctrlr.dbfilter.use_as(devpart, True)):
+                self.ctrlr.dbfilter.use_as(devpart, True)):
             self.create_use_method_names[description] = name
             dialog.partition_create_use_combo.addItem(description)
         if dialog.partition_create_use_combo.count() == 0:
@@ -189,7 +187,7 @@ class PartMan(QtGui.QWidget):
 
         dialog.partition_create_mount_combo.clear()
         for mp, choice_c, choice in (
-            self.ctrlr.dbfilter.default_mountpoint_choices()):
+                self.ctrlr.dbfilter.default_mountpoint_choices()):
             ##FIXME gtk frontend has a nifty way of showing the user readable
             ##'choice' text in the drop down, but only selecting the 'mp' text
             dialog.partition_create_mount_combo.addItem(mp)
@@ -241,7 +239,7 @@ class PartMan(QtGui.QWidget):
             self.create_dialog.partition_create_mount_combo.setEnabled(True)
             self.create_dialog.partition_create_mount_combo.clear()
             for mp, choice_c, choice in \
-                self.ctrlr.dbfilter.default_mountpoint_choices(method):
+                    self.ctrlr.dbfilter.default_mountpoint_choices(method):
                 self.create_dialog.partition_create_mount_combo.addItem(mp)
 
     def partman_edit_dialog(self, devpart, partition):
@@ -262,8 +260,8 @@ class PartMan(QtGui.QWidget):
 
         current_size = None
         if ('can_resize' not in partition or not partition['can_resize'] or
-            'resize_min_size' not in partition or
-            'resize_max_size' not in partition):
+                'resize_min_size' not in partition or
+                'resize_max_size' not in partition):
             dialog.partition_edit_size_label.hide()
             dialog.partition_edit_size_spinbutton.hide()
         else:
@@ -346,7 +344,7 @@ class PartMan(QtGui.QWidget):
             mountpoint = str(dialog.partition_edit_mount_combo.currentText())
 
             if (current_size is not None and size is not None and
-                current_size == size):
+                    current_size == size):
                 size = None
             if method == current_method:
                 method = None
@@ -356,7 +354,7 @@ class PartMan(QtGui.QWidget):
                 mountpoint = None
 
             if (size is not None or method is not None or fmt is not None or
-                mountpoint is not None):
+                    mountpoint is not None):
                 self.ctrlr.allow_change_step(False)
                 edits = {'size': size, 'method': method,
                          'mountpoint': mountpoint}
@@ -388,7 +386,7 @@ class PartMan(QtGui.QWidget):
             self.edit_dialog.partition_edit_format_checkbutton.setEnabled(True)
             self.edit_dialog.partition_edit_mount_combo.clear()
             for mp, choice_c, choice in \
-                self.ctrlr.dbfilter.default_mountpoint_choices(method):
+                    self.ctrlr.dbfilter.default_mountpoint_choices(method):
                 self.edit_dialog.partition_edit_mount_combo.addItem(mp)
 
     def on_partition_list_treeview_activated(self, index):

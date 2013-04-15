@@ -4,6 +4,7 @@ import dbus
 
 from ubiquity import misc
 
+
 UPOWER = 'org.freedesktop.UPower'
 UPOWER_PATH = '/org/freedesktop/UPower'
 

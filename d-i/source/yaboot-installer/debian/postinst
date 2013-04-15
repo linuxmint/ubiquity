@@ -237,7 +237,14 @@ writeimages() {
 # Get the Open Firmware path for a device. Requires non-devfs syntax.
 map_of_path() {
     # TODO: look for shorter name using OF aliases?
-    chroot /target ofpath "$1" || return 1
+    case $ARCH in
+	powerpc/chrp|powerpc/chrp_rs6k|powerpc/chrp_ibm|powerpc/cell)
+            chroot /target ofpathname "$1" || return 1
+	    ;;
+        *)
+            chroot /target ofpath "$1" || return 1
+	    ;;
+    esac
 }
 
 # Get a symlink which always points to the correct block device.

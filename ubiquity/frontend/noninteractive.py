@@ -30,15 +30,14 @@ import os
 import signal
 import sys
 
-from gi.repository import GObject
+from gi.repository import GLib
 
-from ubiquity import filteredcommand, i18n
-from ubiquity import misc
+from ubiquity import filteredcommand, i18n, misc
 from ubiquity.components import install, plugininstall, partman_commit
-from ubiquity.plugin import Plugin
-import ubiquity.progressposition
 import ubiquity.frontend.base
 from ubiquity.frontend.base import BaseFrontend
+from ubiquity.plugin import Plugin
+import ubiquity.progressposition
 
 
 class Wizard(BaseFrontend):
@@ -53,7 +52,7 @@ class Wizard(BaseFrontend):
         self.progress_position = ubiquity.progressposition.ProgressPosition()
         self.progress_val = 0
         self.progress_info = ''
-        self.mainloop = GObject.MainLoop()
+        self.mainloop = GLib.MainLoop()
 
         self.pages = []
         for mod in self.modules:
@@ -137,17 +136,17 @@ class Wizard(BaseFrontend):
         from the filtered command and a process_input callback which should
         be called when input events are received."""
 
-        GObject.io_add_watch(from_debconf,
-                             GObject.IO_IN | GObject.IO_ERR | GObject.IO_HUP,
-                             self.watch_debconf_fd_helper, process_input)
+        GLib.io_add_watch(from_debconf,
+                          GLib.IO_IN | GLib.IO_ERR | GLib.IO_HUP,
+                          self.watch_debconf_fd_helper, process_input)
 
     def watch_debconf_fd_helper(self, source, cb_condition, callback):
         debconf_condition = 0
-        if (cb_condition & GObject.IO_IN) != 0:
+        if (cb_condition & GLib.IO_IN) != 0:
             debconf_condition |= filteredcommand.DEBCONF_IO_IN
-        if (cb_condition & GObject.IO_ERR) != 0:
+        if (cb_condition & GLib.IO_ERR) != 0:
             debconf_condition |= filteredcommand.DEBCONF_IO_ERR
-        if (cb_condition & GObject.IO_HUP) != 0:
+        if (cb_condition & GLib.IO_HUP) != 0:
             debconf_condition |= filteredcommand.DEBCONF_IO_HUP
 
         return callback(source, debconf_condition)

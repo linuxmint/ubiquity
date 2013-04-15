@@ -19,19 +19,18 @@
 
 from __future__ import print_function
 
+import codecs
+from functools import reduce
+import locale
+import os
 import re
 import subprocess
-import codecs
-import os
-import locale
 import sys
-from functools import reduce
 
-from ubiquity import misc, im_switch
+from ubiquity import im_switch, misc
 
 
-# if 'just_country' is True, only the country is changing
-def reset_locale(frontend, just_country=False):
+def reset_locale(frontend):
     frontend.start_debconf()
     di_locale = frontend.db.get('debian-installer/locale')
     if not di_locale:
@@ -47,9 +46,6 @@ def reset_locale(frontend, just_country=False):
         except locale.Error as e:
             print('locale.setlocale failed: %s (LANG=%s)' % (e, di_locale),
                   file=sys.stderr)
-        if not just_country:
-            misc.execute_root('fontconfig-voodoo',
-                                '--auto', '--force', '--quiet')
         im_switch.start_im()
     return di_locale
 
@@ -82,7 +78,7 @@ def get_translations(languages=None, core_names=[], extra_prefixes=[]):
 
     global _translations
     if (_translations is None or languages is not None or core_names or
-        extra_prefixes):
+            extra_prefixes):
         if languages is None:
             use_langs = None
         else:
@@ -107,7 +103,7 @@ def get_translations(languages=None, core_names=[], extra_prefixes=[]):
             'partman-target/text/method',
             'grub-installer/bootdev',
             'popularity-contest/participate',
-            ))
+        ))
         prefixes = reduce(lambda x, y: x + '|' + y, extra_prefixes, prefixes)
 
         _translations = {}
@@ -149,7 +145,7 @@ def get_translations(languages=None, core_names=[], extra_prefixes=[]):
                     lang, encoding = lang.split('.', 1)
                     decoded_value = value.decode(encoding, 'replace')
                 if (use_langs is None or lang in use_langs or
-                    question in core_names):
+                        question in core_names):
                     decoded_value = strip_context(question, decoded_value)
                     descriptions[lang] = decoded_value.replace('\\n', '\n')
             elif name.startswith(b'extended_description'):
@@ -162,7 +158,7 @@ def get_translations(languages=None, core_names=[], extra_prefixes=[]):
                     lang, encoding = lang.split('.', 1)
                     decoded_value = value.decode(encoding, 'replace')
                 if (use_langs is None or lang in use_langs or
-                    question in core_names):
+                        question in core_names):
                     decoded_value = strip_context(question, decoded_value)
                     if lang not in descriptions:
                         descriptions[lang] = decoded_value.replace('\\n', '\n')
@@ -185,8 +181,8 @@ string_questions = {
     'new_size_label': 'partman-partitioning/new_size',
     'partition_create_heading_label': 'partman-partitioning/text/new',
     'partition_create_type_label': 'partman-partitioning/new_partition_type',
-    'partition_mount_label':
-        'partman-basicfilesystems/text/specify_mountpoint',
+    'partition_mount_label': (
+        'partman-basicfilesystems/text/specify_mountpoint'),
     'partition_use_label': 'partman-target/text/method',
     'partition_create_place_label': 'partman-partitioning/new_partition_place',
     'partition_edit_format_checkbutton': 'partman-basicmethods/text/format',

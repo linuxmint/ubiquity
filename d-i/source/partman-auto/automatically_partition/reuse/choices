@@ -8,7 +8,7 @@ cleanup_ro_partitions=
 mountpoint="$(mktemp -d)"
 cleanup () {
 	if [ -e $mountpoint ]; then
-		umount -l $mountpoint || true
+		umount -l $mountpoint 2>/dev/null || true
 		rmdir $mountpoint || true
 	fi
 	for p in $cleanup_ro_partitions; do
@@ -45,11 +45,10 @@ for dev in $DEVICES/*; do
 	cd $dev
 	open_dialog PARTITIONS
 	while { read_line num id size type fs path name; [ "$id" ]; }; do
-		[ "$fs" != free ] || continue
+		[ ! "$(echo "$fs" | egrep -s 'free|fat|ntfs|hfs|swap')" ] || continue
 		[ -e "$path" ] || continue
 		part=$dev//$id
-		t="$(blkid -o value -s TYPE $path)" || true
-		if [ -n "$t" ] && [ "$t" != "swap" ]; then
+		if [ -n "$fs" ]; then
 		    mounted=
 		    if type grub-mount >/dev/null 2>&1 && \
 			grub-mount "$path" "$mountpoint" 2>/dev/null; then

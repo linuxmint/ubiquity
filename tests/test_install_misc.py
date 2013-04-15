@@ -98,8 +98,8 @@ class InstallMiscTests(unittest.TestCase):
         with open(self.source_path("source-file-target-non-empty-dir"), "w"):
             pass
         os.mkdir(self.target_path("source-file-target-non-empty-dir"))
-        with open(self.target_path(
-            "source-file-target-non-empty-dir/file"), "w"):
+        tp = self.target_path("source-file-target-non-empty-dir/file")
+        with open(tp, "w"):
             pass
         self.try_remove_target("source-file-target-non-empty-dir")
         self.assertFalse(os.path.exists(

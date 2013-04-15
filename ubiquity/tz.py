@@ -19,12 +19,12 @@
 
 from __future__ import print_function
 
-import os
 import datetime
+import hashlib
+import os
+import sys
 import time
 import xml.dom.minidom
-import hashlib
-import sys
 
 
 TZ_DATA_FILE = '/usr/share/zoneinfo/zone.tab'
@@ -126,7 +126,8 @@ class Iso3166(object):
 
     def handle_entry(self, entry):
         if (entry.hasAttribute('alpha_2_code') and
-            (entry.hasAttribute('common_name') or entry.hasAttribute('name'))):
+                (entry.hasAttribute('common_name') or
+                 entry.hasAttribute('name'))):
             alpha_2_code = entry.getAttribute('alpha_2_code')
             if entry.hasAttribute('common_name'):
                 name = entry.getAttribute('common_name')
@@ -182,8 +183,8 @@ class Location(object):
 
         # Grab md5sum of the timezone file for later comparison
         try:
-            with open(os.path.join(
-                '/usr/share/zoneinfo', self.zone), 'rb') as tz_file:
+            zone_path = os.path.join('/usr/share/zoneinfo', self.zone)
+            with open(zone_path, 'rb') as tz_file:
                 self.md5sum = hashlib.md5(tz_file.read()).digest()
         except IOError:
             self.md5sum = None
@@ -231,8 +232,8 @@ class _Database(object):
             return self.tz_to_loc[tz]
         except:
             try:
-                with open(os.path.join(
-                    '/usr/share/zoneinfo', tz), 'rb') as tz_file:
+                zone_path = os.path.join('/usr/share/zoneinfo', tz)
+                with open(zone_path, 'rb') as tz_file:
                     md5sum = hashlib.md5(tz_file.read()).digest()
 
                 for loc in self.locations:

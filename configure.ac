@@ -1,5 +1,5 @@
 AC_PREREQ(2.52)
-AC_INIT([ubiquity], [2.12], [https://launchpad.net/ubuntu/+source/ubiquity/+filebug])
+AC_INIT([ubiquity], [2.14], [https://launchpad.net/ubuntu/+source/ubiquity/+filebug])
 AC_CONFIG_SRCDIR([src/panel/panel.c])
 AC_CONFIG_AUX_DIR([build])
 AC_CONFIG_MACRO_DIR([m4])
@@ -27,13 +27,6 @@ GTK3_REQUIRED=3.1.4
 GIO_REQUIRED=2.5.11
 
 if test "x$UBIQUITY_NO_GTK" = x; then
-  PKG_CHECK_MODULES(WEBCAM, [gtk+-3.0 >= $GTK3_REQUIRED
-			  gio-2.0 >= $GIO_REQUIRED
-			  gstreamer-0.10
-			  gstreamer-interfaces-0.10
-			  gudev-1.0])
-  AC_SUBST(WEBCAM_CFLAGS)
-  AC_SUBST(WEBCAM_LIBS)
   PKG_CHECK_MODULES(PANEL, [glib-2.0
 			  gtk+-3.0 >= $GTK3_REQUIRED
 			  indicator3-0.4
@@ -53,7 +46,6 @@ if test "x$UBIQUITY_NO_GTK" = x; then
   AC_CONFIG_FILES(
 	src/Makefile
 	src/wallpaper/Makefile
-	src/webcam/Makefile
 	src/panel/Makefile
 	src/mockresolver/Makefile
 	)

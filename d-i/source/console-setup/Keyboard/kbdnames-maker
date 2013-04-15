@@ -50,6 +50,7 @@ for my $mo (</usr/share/locale/*/LC_MESSAGES/xkeyboard-config.mo>) {
     $lang =~ s:__Latn:__latin:; # special fixup for sr
 
     my $d = Locale::gettext->domain("xkeyboard-config");
+    my $iso3166 = Locale::gettext->domain("iso_3166");
 
     for my $model (keys %KeyboardNames::models) {
 	my $name = $KeyboardNames::models{$model};
@@ -57,7 +58,12 @@ for my $mo (</usr/share/locale/*/LC_MESSAGES/xkeyboard-config.mo>) {
     }
     for my $layout (keys %KeyboardNames::layouts) {
 	my $name = $KeyboardNames::layouts{$layout};
-	my $local_layout = $d->get($layout);
+	my $local_layout;
+	if ($layout eq 'Switzerland') {
+	    $local_layout = $iso3166->get($layout);
+	} else {
+	    $local_layout = $d->get($layout);
+	}
 	print "$lang*layout*$name*$local_layout\n";
 	print "$lang*variant*$name**$local_layout\n";
 	for my $variant (keys %{$KeyboardNames::variants{$name}}) {

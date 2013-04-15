@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import sys
 import os
+import sys
 
 from PyQt4 import QtGui
 
 from ubiquity.frontend.kde_components.PartMan import PartMan
+
 
 if __name__ == "__main__":
 
@@ -32,7 +33,7 @@ if __name__ == "__main__":
         '/var/lib/partman/devices/=dev=sdc//',
         '/var/lib/partman/devices/=dev=sdc//32256-5074997759',
         '/var/lib/partman/devices/=dev=sdc//5075030016-5362882559',
-        ]
+    ]
 
     def tree_device(dev, part_id=None):
         prefix = '60partition_tree__________/var/lib/partman/devices/=dev='
@@ -47,20 +48,20 @@ if __name__ == "__main__":
             'device': '/dev/sda',
             'display': tree_device('sda'),
             'label': ['msdos'],
-            },
+        },
         '/var/lib/partman/devices/=dev=sdb//': {
             'dev': '=dev=sdb',
             'device': '/dev/sdb',
             'display': tree_device('sdb'),
             'label': ['msdos'],
-            },
+        },
         '/var/lib/partman/devices/=dev=sdc//': {
             'dev': '=dev=sdc',
             'device': '/dev/sdc',
             'display': tree_device('sdc'),
             'label': ['msdos'],
-            },
-        }
+        },
+    }
 
     partition_cache = {
         '/var/lib/partman/devices/=dev=sda//32256-8167703039': {
@@ -82,7 +83,7 @@ if __name__ == "__main__":
                 ('25filesystem', 'fat32', 'FAT32 file system'),
                 ('40swap', 'swap', 'swap area'),
                 ('70dont_use', 'dontuse', 'do not use the partition'),
-                ],
+            ],
             'parent': '/dev/sda',
             'parted': {
                 'fs': 'ext4',
@@ -92,11 +93,11 @@ if __name__ == "__main__":
                 'path': '/dev/sda1',
                 'size': '8167670784',
                 'type': 'primary',
-                },
+            },
             'resize_max_size': 8167670784,
             'resize_min_size': 2758852608,
             'resize_pref_size': 8167670784,
-            },
+        },
         '/var/lib/partman/devices/=dev=sda//8167735296-8587192319': {
             'can_resize': True,
             'detected_filesystem': 'linux-swap',
@@ -117,7 +118,7 @@ if __name__ == "__main__":
                 ('25filesystem', 'fat32', 'FAT32 file system'),
                 ('40swap', 'swap', 'swap area'),
                 ('70dont_use', 'dontuse', 'do not use the partition'),
-                ],
+            ],
             'parent': '/dev/sda',
             'parted': {
                 'fs': 'linux-swap',
@@ -127,11 +128,11 @@ if __name__ == "__main__":
                 'path': '/dev/sda5',
                 'size': '419457024',
                 'type': 'logical',
-                },
+            },
             'resize_max_size': 419457024,
             'resize_min_size': 4096,
             'resize_pref_size': 419457024,
-            },
+        },
         '/var/lib/partman/devices/=dev=sdb//32256-5074997759': {
             'can_resize': True,
             'detected_filesystem': 'ext4',
@@ -151,7 +152,7 @@ if __name__ == "__main__":
                 ('25filesystem', 'fat32', 'FAT32 file system'),
                 ('40swap', 'swap', 'swap area'),
                 ('70dont_use', 'dontuse', 'do not use the partition'),
-                ],
+            ],
             'parent': '/dev/sdb',
             'parted': {
                 'fs': 'ext4',
@@ -161,11 +162,11 @@ if __name__ == "__main__":
                 'path': '/dev/sdb1',
                 'size': '5074965504',
                 'type': 'primary',
-                },
+            },
             'resize_max_size': 5074965504,
             'resize_min_size': 223924224,
             'resize_pref_size': 5074965504,
-            },
+        },
         '/var/lib/partman/devices/=dev=sdb//5075030016-5362882559': {
             'can_resize': True,
             'detected_filesystem': 'linux-swap',
@@ -186,7 +187,7 @@ if __name__ == "__main__":
                 ('25filesystem', 'fat32', 'FAT32 file system'),
                 ('40swap', 'swap', 'swap area'),
                 ('70dont_use', 'dontuse', 'do not use the partition'),
-                ],
+            ],
             'parent': '/dev/sdb',
             'parted': {
                 'fs': 'linux-swap',
@@ -196,11 +197,11 @@ if __name__ == "__main__":
                 'path': '/dev/sdb5',
                 'size': '287852544',
                 'type': 'logical',
-                },
+            },
             'resize_max_size': 287852544,
             'resize_min_size': 4096,
             'resize_pref_size': 287852544,
-            },
+        },
         '/var/lib/partman/devices/=dev=sdc//32256-5074997759': {
             'can_resize': True,
             'detected_filesystem': 'ext4',
@@ -220,7 +221,7 @@ if __name__ == "__main__":
                 ('25filesystem', 'fat32', 'FAT32 file system'),
                 ('40swap', 'swap', 'swap area'),
                 ('70dont_use', 'dontuse', 'do not use the partition'),
-                ],
+            ],
             'parent': '/dev/sdc',
             'parted': {
                 'fs': 'ext4',
@@ -230,11 +231,11 @@ if __name__ == "__main__":
                 'path': '/dev/sdc1',
                 'size': '5074965504',
                 'type': 'primary',
-                },
+            },
             'resize_max_size': 5074965504,
             'resize_min_size': 223928320,
             'resize_pref_size': 5074965504,
-            },
+        },
         '/var/lib/partman/devices/=dev=sdc//5075030016-5362882559': {
             'can_resize': True,
             'detected_filesystem': 'linux-swap',
@@ -255,7 +256,7 @@ if __name__ == "__main__":
                 ('25filesystem', 'fat32', 'FAT32 file system'),
                 ('40swap', 'swap', 'swap area'),
                 ('70dont_use', 'dontuse', 'do not use the partition'),
-                ],
+            ],
             'parent': '/dev/sdc',
             'parted': {
                 'fs': 'linux-swap',
@@ -265,12 +266,12 @@ if __name__ == "__main__":
                 'path': '/dev/sdc5',
                 'size': '287852544',
                 'type': 'logical',
-                },
+            },
             'resize_max_size': 287852544,
             'resize_min_size': 4096,
             'resize_pref_size': 287852544,
-            },
-        }
+        },
+    }
 
     win.update(disk_cache, partition_cache, cache_order)
     win.update(disk_cache, partition_cache, cache_order)

@@ -6,4 +6,7 @@ ACLOCAL_AMFLAGS = -I m4
 
 EXTRA_DIST = m4/ChangeLog
 
-DISTCLEANFILES = intltool-extract intltool-merge intltool-update
+DISTCLEANFILES = \
+	intltool-extract \
+	intltool-merge \
+	intltool-update

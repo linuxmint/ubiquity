@@ -78,7 +78,7 @@ class PartmanCommit(FilteredCommand):
 
             answer_reversed = False
             if (question == 'partman-jfs/jfs_boot' or
-                question == 'partman-jfs/jfs_root'):
+                    question == 'partman-jfs/jfs_root'):
                 answer_reversed = True
             if response is None or response == 'ubiquity/text/continue':
                 answer = answer_reversed

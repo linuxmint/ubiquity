@@ -33,13 +33,14 @@ class PageGtk(plugin.PluginUI):
 
     def __init__(self, controller, *args, **kwargs):
         import dbus
+        from gi.repository import Gtk
 
         # NOTE: Import 'nm' even though it's not used in this function as
         # importing it as the side effect of registering NetworkManagerWidget
         # which we DO use in the Wireless step UI.
         from ubiquity import misc, nm
-        from gi.repository import Gtk
-        if 'UBIQUITY_AUTOMATIC' in os.environ:
+
+        if self.is_automatic:
             self.page = None
             return
         # Check whether we can talk to NM at all (e.g. debugging ubiquity
@@ -60,6 +61,7 @@ class PageGtk(plugin.PluginUI):
         self.nmwidget.connect('connection', self.state_changed)
         self.nmwidget.connect('selection_changed', self.selection_changed)
         self.nmwidget.connect('pw_validated', self.pw_validated)
+        self.no_wireless = builder.get_object('no_wireless')
         self.use_wireless = builder.get_object('use_wireless')
         self.use_wireless.connect('toggled', self.wireless_toggled)
         self.plugin_widgets = self.page
@@ -87,6 +89,7 @@ class PageGtk(plugin.PluginUI):
 
     def selection_changed(self, unused):
         from ubiquity import nm
+
         self.have_selection = True
         self.use_wireless.set_active(True)
         assert self.state is not None
@@ -96,7 +99,7 @@ class PageGtk(plugin.PluginUI):
             self.next_normal = True
         else:
             if (not self.nmwidget.is_row_an_ap() or
-                self.nmwidget.is_row_connected()):
+                    self.nmwidget.is_row_connected()):
                 frontend.translate_widget(frontend.next)
                 self.next_normal = True
             else:
@@ -123,6 +126,7 @@ class PageGtk(plugin.PluginUI):
 
     def plugin_skip_page(self):
         from ubiquity import nm
+
         if not nm.wireless_hardware_present():
             return True
         else:
@@ -137,6 +141,7 @@ class PageGtk(plugin.PluginUI):
             frontend.connecting_spinner.hide()
             frontend.connecting_spinner.stop()
             frontend.connecting_label.hide()
+            self.no_wireless.set_active(True)
             return False
 
     def plugin_on_next_clicked(self):
@@ -152,6 +157,7 @@ class PageGtk(plugin.PluginUI):
 
     def state_changed(self, unused, state):
         from ubiquity import nm
+
         self.state = state
         frontend = self.controller._wizard
         if not self.use_wireless.get_active():
@@ -163,7 +169,7 @@ class PageGtk(plugin.PluginUI):
             self.controller.allow_go_forward(True)
 
             frontend.translate_widget(frontend.back)
-            self.back_normal = False
+            self.back_normal = True
             frontend.back.set_sensitive(True)
         else:
             frontend.connecting_spinner.show()

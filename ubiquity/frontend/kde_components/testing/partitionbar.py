@@ -6,6 +6,7 @@ from PyQt4 import QtGui
 
 from ubiquity.frontend.kde_components.PartitionBar import PartitionsBar
 
+
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
     QtGui.QApplication.setStyle("Oxygen")

@@ -294,7 +294,7 @@ def partition_to_disk(partition):
     """Convert a partition device to its disk device, if any."""
     udevadm_part = udevadm_info(['-n', partition])
     if ('DEVPATH' not in udevadm_part or
-        udevadm_part.get('DEVTYPE') != 'partition'):
+            udevadm_part.get('DEVTYPE') != 'partition'):
         return partition
 
     disk_syspath = '/sys%s' % udevadm_part['DEVPATH'].rsplit('/', 1)[0]
@@ -360,7 +360,7 @@ def grub_default(boot=None):
     except OSError:
         same = False
     if ((same or target == '(hd0)') and
-        ((cdfs and cdfs != 'iso9660') or is_removable(cdsrc))):
+            ((cdfs and cdfs != 'iso9660') or is_removable(cdsrc))):
         # Installing from removable media other than a CD.  Make sure that
         # we don't accidentally install GRUB to it.
         boot = boot_device()
@@ -456,7 +456,7 @@ def windows_startup_folder(mount_path):
         'Documents and Settings/All Users/Start Menu/Programs/Startup',
         # Windows NT
         'Winnt/Profiles/All Users/Start Menu/Programs/Startup',
-                ]
+    ]
     for location in locations:
         path = os.path.join(mount_path, location)
         if os.path.exists(path):
@@ -525,8 +525,8 @@ def get_install_medium():
             else:
                 get_install_medium.medium = 'CD'
         except:
-            syslog.syslog(syslog.LOG_ERR,
-                "Unable to determine install medium.")
+            syslog.syslog(
+                syslog.LOG_ERR, "Unable to determine install medium.")
             get_install_medium.medium = 'CD'
     return get_install_medium.medium
 

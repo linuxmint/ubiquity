@@ -16,23 +16,21 @@ and configure everything.
 
 from __future__ import print_function
 
-import sys
-import os
+import atexit
 import errno
 import fcntl
-import shutil
-import syslog
-import atexit
-import optparse
-import subprocess
-import locale
 import importlib
+import locale
+import optparse
+import os
+import shutil
+import subprocess
+import sys
+import syslog
 
 sys.path.insert(0, '/usr/lib/ubiquity')
 
-from ubiquity import misc
-from ubiquity import im_switch
-from ubiquity import osextras
+from ubiquity import im_switch, misc, osextras
 
 
 VERSION = '@VERSION@'
@@ -207,7 +205,7 @@ def start_debconf():
         state = 0
         for line in orig_debconfrc:
             if (state == 0 and
-                line.rstrip('\n') and not line.startswith('#')):
+                    line.rstrip('\n') and not line.startswith('#')):
                 state = 1
             elif state == 1 and not line.rstrip('\n'):
                 print('Reshow: true', file=debconfrc_file)
@@ -363,9 +361,10 @@ def copy_debconf():
         patterns.append('^console-setup/')
 
     for q in patterns:
-        misc.execute_root('debconf-copydb', 'configdb', 'targetdb', '-p', q,
-                     '--config=Name:targetdb', '--config=Driver:File',
-                     '--config=Mode:0644', '--config=Filename:%s' % targetdb)
+        misc.execute_root(
+            'debconf-copydb', 'configdb', 'targetdb', '-p', q,
+            '--config=Name:targetdb', '--config=Driver:File',
+            '--config=Mode:0644', '--config=Filename:%s' % targetdb)
 
 
 def unmount_target():

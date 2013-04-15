@@ -15,6 +15,11 @@ if [ -n "$FLASH_KERNEL_SKIP" ]; then
         exit 0
 fi
 
+# Do not run inside an LXC container
+if type running-in-container >/dev/null 2>&1 && \
+        running-in-container >/dev/null; then
+    exit 0
+fi
 
 # this script is used as postinst.d and postrm.d script; this is used to
 # differentiate between the two

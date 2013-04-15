@@ -1061,8 +1061,8 @@ partition_with_id(PedDisk *disk, char *id)
         log("partition_with_id(%s)", id);
         if (2 != sscanf(id, "%lli-%lli", &start, &end))
                 critical_error("Bad id %s", id);
-        start_sector = start / PED_SECTOR_SIZE_DEFAULT;
-        end_sector = (end - PED_SECTOR_SIZE_DEFAULT + 1) / PED_SECTOR_SIZE_DEFAULT;
+        start_sector = start / disk->dev->sector_size;
+        end_sector = (end - disk->dev->sector_size + 1) / disk->dev->sector_size;
         if (disk == NULL)
                 return NULL;
         for (part = NULL;
@@ -1147,9 +1147,9 @@ partition_info(PedDisk *disk, PedPartition *part)
                 name = "";
         result = xasprintf("%i\t%lli-%lli\t%lli\t%s\t%s\t%s\t%s",
                            part->num,
-                           (part->geom).start * PED_SECTOR_SIZE_DEFAULT,
-                           (part->geom).end * PED_SECTOR_SIZE_DEFAULT + PED_SECTOR_SIZE_DEFAULT - 1,
-                           (part->geom).length * PED_SECTOR_SIZE_DEFAULT, type, fs, path, name);
+                           (part->geom).start * disk->dev->sector_size,
+                           (part->geom).end * disk->dev->sector_size + disk->dev->sector_size - 1,
+                           (part->geom).length * disk->dev->sector_size, type, fs, path, name);
         free(path);
         return result;
 }
@@ -2026,16 +2026,16 @@ command_new_partition()
         free(s_fs_type);
 
         if (!strcasecmp(position, "full")) {
-                part_start = range_start / PED_SECTOR_SIZE_DEFAULT;
-                part_end = ((range_end - PED_SECTOR_SIZE_DEFAULT + 1)
-                            / PED_SECTOR_SIZE_DEFAULT);
+                part_start = range_start / dev->sector_size;
+                part_end = ((range_end - dev->sector_size + 1)
+                            / dev->sector_size);
         } else if (!strcasecmp(position, "beginning")) {
-                part_start = range_start / PED_SECTOR_SIZE_DEFAULT;
-                part_end = (range_start + length) / PED_SECTOR_SIZE_DEFAULT;
+                part_start = range_start / dev->sector_size;
+                part_end = (range_start + length) / dev->sector_size;
         } else if (!strcasecmp(position, "end")) {
-                part_start = (range_end - length) / PED_SECTOR_SIZE_DEFAULT;
-                part_end = ((range_end - PED_SECTOR_SIZE_DEFAULT + 1)
-                            / PED_SECTOR_SIZE_DEFAULT);
+                part_start = (range_end - length) / dev->sector_size;
+                part_end = ((range_end - dev->sector_size + 1)
+                            / dev->sector_size);
         } else
                 critical_error("Bad position: %s", position);
         free(position);
@@ -2113,7 +2113,7 @@ command_resize_partition()
                 critical_error("Expected new size");
         log("New size: %lli", new_size);
         start = (part->geom).start;
-        end = start + new_size / PED_SECTOR_SIZE_DEFAULT - 1;
+        end = start + new_size / dev->sector_size - 1;
         if (named_partition_is_virtual(device_name,
                                        part->geom.start, part->geom.end)) {
                 resize_partition(disk, part, start, end, false);
@@ -2124,8 +2124,8 @@ command_resize_partition()
                 }
         }
         oprintf("OK\n");
-        oprintf("%lli-%lli\n", (part->geom).start * PED_SECTOR_SIZE_DEFAULT,
-                (part->geom).end * PED_SECTOR_SIZE_DEFAULT + PED_SECTOR_SIZE_DEFAULT - 1);
+        oprintf("%lli-%lli\n", (part->geom).start * dev->sector_size,
+                (part->geom).end * dev->sector_size + dev->sector_size - 1);
         free(id);
 }
 
@@ -2153,17 +2153,17 @@ command_virtual_resize_partition()
                 critical_error("Expected new size");
         log("New size: %lli", new_size);
         start = (part->geom).start;
-        end = start + new_size / PED_SECTOR_SIZE_DEFAULT - 1;
+        end = start + new_size / dev->sector_size - 1;
         /* ensure that the size is not less than the requested */
         do {
                 resize_partition(disk, part, start, end, false);
                 end = end + 1;
-        } while ((part->geom).length * PED_SECTOR_SIZE_DEFAULT < new_size);
+        } while ((part->geom).length * dev->sector_size < new_size);
         ped_disk_commit(disk);
         unchange_named(device_name);
         oprintf("OK\n");
-        oprintf("%lli-%lli\n", (part->geom).start * PED_SECTOR_SIZE_DEFAULT,
-                (part->geom).end * PED_SECTOR_SIZE_DEFAULT + PED_SECTOR_SIZE_DEFAULT - 1);
+        oprintf("%lli-%lli\n", (part->geom).start * dev->sector_size,
+                (part->geom).end * dev->sector_size + dev->sector_size - 1);
         free(id);
 }
 
@@ -2219,10 +2219,10 @@ command_get_resize_range()
         max_geom = ped_disk_get_max_partition_geometry(disk, part, constraint);
         if (part->type & PED_PARTITION_LOGICAL)
                 minimize_extended_partition(disk);
-        min_size = constraint->min_size * PED_SECTOR_SIZE_DEFAULT;
-        current_size = (part->geom).length * PED_SECTOR_SIZE_DEFAULT;
+        min_size = constraint->min_size * dev->sector_size;
+        current_size = (part->geom).length * dev->sector_size;
         if (max_geom)
-                max_size = max_geom->length * PED_SECTOR_SIZE_DEFAULT;
+                max_size = max_geom->length * dev->sector_size;
         else
                 max_size = current_size;
         oprintf("OK\n");
@@ -2263,10 +2263,10 @@ command_get_virtual_resize_range()
         max_geom = ped_disk_get_max_partition_geometry(disk, part, constraint);
         if (part->type & PED_PARTITION_LOGICAL)
                 minimize_extended_partition(disk);
-        min_size = constraint->min_size * PED_SECTOR_SIZE_DEFAULT;
-        current_size = (part->geom).length * PED_SECTOR_SIZE_DEFAULT;
+        min_size = constraint->min_size * dev->sector_size;
+        current_size = (part->geom).length * dev->sector_size;
         if (max_geom)
-                max_size = max_geom->length * PED_SECTOR_SIZE_DEFAULT;
+                max_size = max_geom->length * dev->sector_size;
         else
                 max_size = current_size;
         oprintf("OK\n");

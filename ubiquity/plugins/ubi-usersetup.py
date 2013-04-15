@@ -31,9 +31,7 @@ import re
 
 import debconf
 
-from ubiquity import validation
-from ubiquity import misc
-from ubiquity import plugin
+from ubiquity import misc, plugin, validation
 
 
 NAME = 'usersetup'
@@ -322,11 +320,11 @@ class PageGtk(PageBase):
         defined in ui file."""
 
         if (self.username_changed_id is None or
-            self.hostname_changed_id is None):
+                self.hostname_changed_id is None):
             return
 
         if (widget is not None and widget.get_name() == 'fullname' and
-            not self.username_edited):
+                not self.username_edited):
             self.username.handler_block(self.username_changed_id)
             new_username = misc.utf8(widget.get_text().split(' ')[0])
             new_username = new_username.encode('ascii', 'ascii_transliterate')
@@ -375,7 +373,7 @@ class PageGtk(PageBase):
             self.password_error_label,
             self.password_strength,
             self.allow_password_empty,
-            )
+        )
 
         complete = complete and password_ok
 
@@ -403,19 +401,19 @@ class PageGtk(PageBase):
     def on_hostname_changed(self, widget):
         self.hostname_edited = (widget.get_text() != '')
 
-        if not 'UBIQUITY_AUTOMATIC' in os.environ:
+        if not self.is_automatic:
             # Let's not call this every time the user presses a key.
-            from gi.repository import GObject
+            from gi.repository import GLib
             if self.hostname_timeout_id:
-                GObject.source_remove(self.hostname_timeout_id)
-            self.hostname_timeout_id = GObject.timeout_add(300,
-                                            self.hostname_timeout, widget)
+                GLib.source_remove(self.hostname_timeout_id)
+            self.hostname_timeout_id = GLib.timeout_add(
+                300, self.hostname_timeout, widget)
 
     def lookup_result(self, resolver, result, unused):
-        from gi.repository import GObject
+        from gi.repository import GLib
         try:
             resolver.lookup_by_name_finish(result)
-        except GObject.GError:
+        except GLib.GError:
             pass
         else:
             # FIXME: i18n
@@ -437,10 +435,10 @@ class PageGtk(PageBase):
             hostname, None, self.bogus_lookup_result, None)
 
     def bogus_lookup_result(self, resolver, result, unused):
-        from gi.repository import GObject
+        from gi.repository import GLib
         try:
             resolver.lookup_by_name_finish(result)
-        except GObject.GError:
+        except GLib.GError:
             self.resolver_ok = True
         else:
             self.resolver_ok = False
@@ -490,7 +488,7 @@ class PageKde(PageBase):
             misc.execute_root('apt-install', 'oem-config-kde')
 
         warningIcon = QPixmap(
-                     "/usr/share/icons/oxygen/48x48/status/dialog-warning.png")
+            "/usr/share/icons/oxygen/48x48/status/dialog-warning.png")
         self.page.fullname_error_image.setPixmap(warningIcon)
         self.page.username_error_image.setPixmap(warningIcon)
         self.page.password_error_image.setPixmap(warningIcon)
@@ -504,6 +502,8 @@ class PageKde(PageBase):
         #self.page.password.textChanged[str].connect(self.on_password_changed)
         #self.page.verified_password.textChanged[str].connect(
         #    self.on_verified_password_changed)
+        self.page.login_pass.clicked[bool].connect(self.on_login_pass_clicked)
+        self.page.login_auto.clicked[bool].connect(self.on_login_auto_clicked)
 
         self.page.password_debug_warning_label.setVisible(
             'UBIQUITY_DEBUG' in os.environ)
@@ -561,6 +561,13 @@ class PageKde(PageBase):
 
     def get_auto_login(self):
         return self.page.login_auto.isChecked()
+
+    def on_login_pass_clicked(self, checked):
+        self.page.login_encrypt.setEnabled(checked)
+
+    def on_login_auto_clicked(self, checked):
+        self.page.login_encrypt.setChecked(not(checked))
+        self.page.login_encrypt.setEnabled(not(checked))
 
     def set_encrypt_home(self, value):
         self.page.login_encrypt.setChecked(value)
@@ -695,7 +702,7 @@ class PageNoninteractive(PageBase):
 class Page(plugin.Plugin):
     def prepare(self, unfiltered=False):
         if ('UBIQUITY_FRONTEND' not in os.environ or
-            os.environ['UBIQUITY_FRONTEND'] != 'debconf_ui'):
+                os.environ['UBIQUITY_FRONTEND'] != 'debconf_ui'):
             self.preseed_bool('user-setup/allow-password-weak', True)
             if self.ui.get_hostname() == '':
                 try:
@@ -749,8 +756,7 @@ class Page(plugin.Plugin):
         self.ui.info_loop(None)
 
         # Trigger the bogus DNS server detection
-        if (not 'UBIQUITY_AUTOMATIC' in os.environ and
-            hasattr(self.ui, 'detect_bogus_result')):
+        if (not self.is_automatic and hasattr(self.ui, 'detect_bogus_result')):
             self.ui.detect_bogus_result()
 
         # We intentionally don't listen to passwd/auto-login or
@@ -769,7 +775,7 @@ class Page(plugin.Plugin):
                 'sh', '-c',
                 '/usr/lib/ubiquity/user-setup/user-setup-ask /target && '
                 '/usr/share/ubiquity/user-setup-encrypted-swap',
-                ]
+            ]
             return command, questions
 
     def set(self, question, value):
@@ -831,8 +837,9 @@ class Page(plugin.Plugin):
         elif question.startswith('user-setup/password-'):
             self.ui.password_error(self.extended_description(question))
         else:
-            self.ui.error_dialog(self.description(question),
-                                       self.extended_description(question))
+            self.ui.error_dialog(
+                self.description(question),
+                self.extended_description(question))
         return plugin.Plugin.error(self, priority, question)
 
 

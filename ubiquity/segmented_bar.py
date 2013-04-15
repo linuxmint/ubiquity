@@ -31,7 +31,7 @@
 import math
 
 import cairo
-from gi.repository import Gtk, GObject, PangoCairo, Gdk
+from gi.repository import GObject, Gdk, Gtk, PangoCairo
 
 from ubiquity.misc import find_in_os_prober, format_size
 
@@ -439,13 +439,15 @@ class SegmentedBar(Gtk.DrawingArea):
         cr.set_operator(cairo.OPERATOR_OVER)
         cr.translate(
             self.get_allocation().x + self.h_padding, self.get_allocation().y)
-        cr.rectangle(0, 0, self.get_allocation().width - self.h_padding,
-            max(2 * self.bar_height,
-            self.bar_height + self.bar_label_spacing + self.layout_height))
+        cr.rectangle(
+            0, 0, self.get_allocation().width - self.h_padding,
+            max(
+                2 * self.bar_height,
+                self.bar_height + self.bar_label_spacing + self.layout_height))
         cr.clip()
 
-        bar = self.render_bar(self.get_allocation().width - 2 * self.h_padding,
-            self.bar_height)
+        bar = self.render_bar(
+            self.get_allocation().width - 2 * self.h_padding, self.bar_height)
 
         cr.save()
         cr.set_source(bar)

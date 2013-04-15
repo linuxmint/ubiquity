@@ -86,7 +86,7 @@ class PartitionModel(QtCore.QAbstractItemModel):
 
     def headerData(self, section, orientation, role):
         if (orientation == QtCore.Qt.Horizontal and
-            role == QtCore.Qt.DisplayRole):
+                role == QtCore.Qt.DisplayRole):
             return self.rootItem.data(section)
 
         return QtCore.QVariant()
@@ -201,8 +201,8 @@ class TreeItem:
         partition = self.itemData[1]
         if 'id' not in partition or 'method' not in partition:
             if ('parted' in partition and
-                partition['parted']['fs'] != 'free' and
-                'detected_filesystem' in partition):
+                    partition['parted']['fs'] != 'free' and
+                    'detected_filesystem' in partition):
                 return partition['detected_filesystem']
             else:
                 return ''

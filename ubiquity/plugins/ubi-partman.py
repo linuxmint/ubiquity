@@ -599,6 +599,7 @@ class PageGtk(PageBase):
 
     def plugin_set_online_state(self, state):
         self.reuse_partition.set_sensitive(state)
+        self.reuse_partition_desc.set_sensitive(state)
 
     def set_autopartition_options(self, options, extra_options):
         # TODO Need to select a radio button when resize isn't around.
@@ -635,7 +636,7 @@ class PageGtk(PageBase):
                 opt_desc.show()
                 opt_widget.set_label(options[option].title)
                 opt_desc.set_markup(fmt % options[option].desc)
-                if not ticked:
+                if not ticked and opt_widget.get_sensitive():
                     opt_widget.set_active(True)
                     ticked = True
             else:
@@ -1779,6 +1780,15 @@ class Page(plugin.Plugin):
                 yield (method, 'dontuse', self.description(question))
             elif method == 'efi':
                 if os.path.exists('/var/lib/partman/efi'):
+                    yield (method, method, self.method_description(method))
+            elif method == 'crypto':
+                # TODO xnox 2013-04-03 this is a crude way to catch
+                # nested crypto devices. Ideally we should transverse
+                # parent devices of the devpart and look for
+                # $device/crypt_realdev file (this is what partman
+                # does). But we don't cache crypt_realdev at the
+                # moment.
+                if not 'crypt' in devpart:
                     yield (method, method, self.method_description(method))
             elif method == 'biosgrub':
                 # TODO cjwatson 2009-09-03: Quick kludge, since only GPT

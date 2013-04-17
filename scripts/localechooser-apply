@@ -91,7 +91,7 @@ combined="$(echo "$LOCALE" | sed "s/_[A-Z][A-Z]*/_$COUNTRY/")"
 if [ "$LOCALE" = "$LOCALE_TRANSLATIONS" ] && \
    ! grep -q "^${combined%%[.@]*}[.@ ]" /usr/share/i18n/SUPPORTED; then
 	available="$(grep ' UTF-8' /usr/share/i18n/SUPPORTED | \
-		grep "_$COUNTRY[.@ ]" | sed 's/[.@ ].*//' | sort -u)"
+		grep "_$COUNTRY[.@ ]" | cut -d' ' -f1 | sort -u)"
 	if [ "$(echo "$available" | wc -l)" = 1 ]; then
 		combined="$available"
 	else

@@ -178,6 +178,10 @@ class PartMan(QtGui.QWidget):
         dialog.partition_create_place_beginning.setChecked(True)
 
         self.create_use_method_names = {}
+
+        # Remove any previous entries
+        dialog.partition_create_use_combo.clear()
+
         for method, name, description in (
                 self.ctrlr.dbfilter.use_as(devpart, True)):
             self.create_use_method_names[description] = name

@@ -412,6 +412,14 @@ class Page(plugin.Plugin):
         clock_script = '/usr/share/ubiquity/clock-setup'
         env = {'PATH': '/usr/share/ubiquity:' + os.environ['PATH']}
 
+        # TODO: replace with more general version pushed down into
+        # is_automatic or similar
+        try:
+            self.automatic_page = (
+                self.db.get("ubiquity/automatic/timezone") == "true")
+        except debconf.DebconfError:
+            self.automatic_page = False
+
         if unfiltered:
             # In unfiltered mode, localechooser is responsible for selecting
             # the country, so there's no need to repeat the job here.
@@ -428,7 +436,7 @@ class Page(plugin.Plugin):
             self.collator = icu.Collator.createInstance(icu.Locale(locale))
         except:
             self.collator = None
-        if self.is_automatic:
+        if self.is_automatic or self.automatic_page:
             if self.db.fget('time/zone', 'seen') == 'true':
                 self.set_di_country(self.db.get('time/zone'))
         else:
@@ -468,7 +476,16 @@ class Page(plugin.Plugin):
                     zone = choices_c[0]
             self.ui.set_timezone(zone)
 
-        return plugin.Plugin.run(self, priority, question)
+        if self.automatic_page:
+            # TODO: invade frontend's privacy to avoid entering infinite
+            # loop when trying to back up over timezone question (which
+            # isn't possible anyway since it's just after partitioning);
+            # this needs to be tidied up substantially when generalising
+            # ubiquity/automatic/*
+            self.frontend.backup = False
+            return True
+        else:
+            return plugin.Plugin.run(self, priority, question)
 
     def get_default_for_region(self, region):
         try:

@@ -51,7 +51,7 @@ for dev in $DEVICES/*; do
 		if [ -n "$fs" ]; then
 		    mounted=
 		    if type grub-mount >/dev/null 2>&1 && \
-			grub-mount "$path" "$mountpoint" 2>/dev/null; then
+			grub-mount "$path" "$mountpoint" 2>/dev/null 3>&- 6>&- 7<&-; then
 			mounted=1
 		    else
 			blockdev --setro "$path" || continue

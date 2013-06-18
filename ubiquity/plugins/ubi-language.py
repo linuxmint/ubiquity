@@ -558,7 +558,7 @@ class PageKde(PageBase):
                 text = widget.text()
                 text = text.replace('${RELEASE}', release.name)
                 text = text.replace('${MEDIUM}', install_medium)
-                text = text.replace('Ubuntu', 'Linuxmint')
+                text = text.replace('Ubuntu', 'Linux Mint')
                 widget.setText(text)
 
         self.update_release_notes_label()

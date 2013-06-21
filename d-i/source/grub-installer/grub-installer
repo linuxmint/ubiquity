@@ -556,23 +556,18 @@ case "$grub_package" in
 	if apt-install --no-recommends grub-legacy ; then
 		inst_package=grub-legacy
 	else
-          apt-install $grub_package || exit_code=$? 
+		apt-install $grub_package || exit_code=$? 
 	fi
 	;;
-    grub-efi)
-     log-output -t grub-installer-lm $chroot $ROOT dpkg -i /usr/share/local-repository/binary/efibootmgr_*_amd64.deb \
-                         /usr/share/local-repository/binary/grub-efi_*_amd64.deb\
-                         /usr/share/local-repository/binary/grub-efi-amd64_*_amd64.deb\
-                         /usr/share/local-repository/binary/grub-efi-amd64-bin_*_amd64.deb || exit_code=$?
-	;;
-    *)
-     # Will pull in os-prober based on global setting for Recommends
-     apt-install $grub_package || exit_code=$? 
+   *)
+	# Will pull in os-prober based on global setting for Recommends
+	apt-install $grub_package || exit_code=$? 
 	case $grub_package in
 	    *-signed)
 		apt-install shim-signed || true
 		;;
 	esac
+	;;
 esac
 
 if [ $exit_code -ne 0 ] ; then

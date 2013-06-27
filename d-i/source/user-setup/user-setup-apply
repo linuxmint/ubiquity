@@ -283,6 +283,30 @@ TimedLoginDelay=10"
 					sed -i "s/\[daemon\]/\[daemon\]\n$AutologinParameters/" $GDMCustomFile
 				fi
 			fi
+
+               if [ -d "$ROOT/etc/mdm" ]; then
+                  # Configure MDM autologin
+                  MDMCustomFile=$ROOT/etc/mdm/mdm.conf
+                  if [ -e "$MDMCustomFile" ] && [ "$BACKUP" ]; then
+                    cp "$MDMCustomFile" "${MDMCustomFile}$BACKUP"
+                  fi
+                  AutologinParameters="AutomaticLoginEnable=true\n\
+AutomaticLogin=$USER\n\
+TimedLoginEnable=true\n\
+TimedLogin=$USER\n\
+TimedLoginDelay=10"
+
+                  # Prevent from updating if parameters already present (persistent usb key)
+                  if ! `grep -qs "AutomaticLogin=$USER" $MDMCustomFile` ; then
+                         if [ -e "$MDMCustomFile" ]; then
+                              sed -i '/\(Automatic\|Timed\)Login/d' $MDMCustomFile
+                         fi
+                         if ! `grep -qs '\[daemon\]' $MDMCustomFile` ; then
+                              echo '[daemon]' >> $MDMCustomFile
+                         fi
+                         sed -i "s/\[daemon\]/\[daemon\]\n$AutologinParameters/" $MDMCustomFile
+                  fi
+               fi
 	 
 			if $chroot $ROOT [ -f /etc/kde4/kdm/kdmrc ]; then
 				# Configure KDM autologin

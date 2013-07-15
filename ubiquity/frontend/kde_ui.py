@@ -81,7 +81,7 @@ class UbiquityUI(QtGui.QMainWindow):
             for line in fp:
                 if "DISTRIB_ID=" in line:
                     name = str.strip(line.split("=")[1], '\n')
-                if name != "Linux Mint":
+                if name != "LinuxMint":
                         distro_name = name
                 elif "DISTRIB_RELEASE=" in line:
                     distro_release = str.strip(line.split("=")[1], '\n')

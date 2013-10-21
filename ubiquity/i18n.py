@@ -213,6 +213,8 @@ def map_widget_name(prefix, name):
     elif name in string_questions:
         question = string_questions[name]
     else:
+        if name.endswith('1'):
+            name = name[:-1]
         question = '%s/%s' % (prefix, name)
     return question
 

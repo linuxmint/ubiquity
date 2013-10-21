@@ -15,6 +15,14 @@ abort () {
 load_extra () {
 	local auto memreq_lvm memreq_crypto
 
+	# These packages currently are of no use on GNU/kFreeBSD or GNU/Hurd,
+	# but do waste a lot of space, so skip installing them here
+	case "$(udpkg --print-os)" in
+	kfreebsd|hurd)
+		return 0
+		;;
+	esac
+
 	if [ -f /var/lib/partman/loaded-extra ]; then
 		return 0
 	fi

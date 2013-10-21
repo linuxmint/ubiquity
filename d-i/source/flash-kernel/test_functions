@@ -135,6 +135,23 @@ test_check_supported() {
 }
 add_test test_check_supported
 
+test_get_cpuinfo_hardware_dt() {
+    get_tempfile
+    mock_proc_dt="$last_tempfile"
+    echo -n "Calxeda ECX-2000" > "$mock_proc_dt"
+    (
+        . "$functions"
+        PROC_CPUINFO=""
+        PROC_DT="$mock_proc_dt"
+        machine=$(get_cpuinfo_hardware)
+        if [ "$machine" != "Calxeda ECX-2000" ]; then
+            echo "Expected machine to be Calxeda ECX-2000 but got $machine" >&2
+            exit 1
+        fi
+    )
+}
+add_test test_get_cpuinfo_hardware_dt 
+
 test_get_cpuinfo_hardware() {
     get_tempfile
     mock_proc_cpuinfo="$last_tempfile"
@@ -155,6 +172,7 @@ EOF
     (
         . "$functions"
         PROC_CPUINFO="$mock_proc_cpuinfo"
+        PROC_DT=""
         machine=$(get_cpuinfo_hardware)
         if [ "$machine" != "Marvell SheevaPlug Reference Board" ]; then
             echo "Expected machine to be Marvell SheevaPlug Reference Board but got $machine" >&2

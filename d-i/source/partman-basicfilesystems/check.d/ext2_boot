@@ -1,0 +1,81 @@
+#!/bin/sh
+# Check if boot partition gets mounted on /boot/grub, /boot or root,
+# is of type ext2 and is the first partition.
+
+ARCH="$(archdetect)"
+
+case $ARCH in
+    powerpc/chrp_pegasos)
+	;;
+    *)
+	exit 0
+	;;
+esac
+
+. /lib/partman/lib/base.sh
+
+for dev in $DEVICES/*; do
+	[ -d "$dev" ] || continue
+	cd $dev
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+		[ "$fs" != free ] || continue
+		[ -f $id/method ] || continue
+		[ -f $id/acting_filesystem ] || continue
+		[ -f $id/mountpoint ] || continue
+		mountpoint=$(cat $id/mountpoint)
+		filesystem=$(cat $id/acting_filesystem)
+		if [ "$mountpoint" = / ]; then
+			root_fs=$filesystem
+			root_type=$type
+			root_path=$path
+		elif [ "$mountpoint" = /boot ]; then
+			boot_fs=$filesystem
+			boot_type=$type
+			boot_path=$path
+		elif  [ "$mountpoint" = /boot/grub ]; then
+			boot_grub_fs=$filesystem
+			boot_grub_type=$type
+			boot_grub_path=$path
+		fi
+	done
+	close_dialog
+done
+
+# Check if separate /boot/grub partition exists 
+if [ -n "$boot_grub_path" ]; then
+	boot_fs=$boot_grub_fs
+	boot_type=$boot_grub_type
+	boot_path=$boot_grub_path
+fi
+
+# If no separate boot partition exists then root acts as boot
+if [ -z "$boot_path" ]; then
+	boot_fs=$root_fs
+	boot_type=$root_type
+	boot_path=$root_path
+fi
+
+# We need an ext2 filesystem to boot
+if [ "$boot_fs" != ext2 ]; then
+	db_set partman-basicfilesystems/boot_not_ext2 true
+	db_input critical partman-basicfilesystems/boot_not_ext2 || true
+	db_go || true
+	db_get partman-basicfilesystems/boot_not_ext2
+	if [ "$RET" = true ]; then
+		exit 1
+	fi
+fi
+
+# The boot file system has to be on the first partition
+part_num=$(echo "$boot_path" | sed -e 's/.*[^0-9]\+//')
+if [ "$part_num" -ne 1 ]; then
+	db_set partman-basicfilesystems/boot_not_first_partition true
+	db_input critical partman-basicfilesystems/boot_not_first_partition || true
+	db_go || true
+	db_get partman-basicfilesystems/boot_not_first_partition
+	if [ "$RET" = true ]; then
+		exit 1
+	fi
+fi
+

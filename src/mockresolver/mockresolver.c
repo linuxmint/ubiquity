@@ -147,6 +147,7 @@ ubiquity_mock_resolver_lookup_by_name_finish (GResolver *resolver,
 
 	addr = g_simple_async_result_get_op_res_gpointer
 		(G_SIMPLE_ASYNC_RESULT (result));
+	g_object_ref (addr);
 	return g_list_append (NULL, addr);
 }
 

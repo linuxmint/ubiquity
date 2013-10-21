@@ -79,6 +79,7 @@ EOF
 		divert /sbin/initctl
 		cat > /target/sbin/initctl <<EOF
 #!/bin/sh
+if [ "\$1" = version ]; then exec /sbin/initctl.REAL "\$@"; fi
 echo 1>&2
 echo 'Warning: Fake initctl called, doing nothing.' 1>&2
 exit 0

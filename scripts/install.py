@@ -268,24 +268,16 @@ class Install(install_misc.InstallBase):
             if subarch == 'efi':
                 keep.add('grub-efi')
                 keep.add('grub-efi-amd64')
-                efi_vars = "/sys/firmware/efi/vars"
-                sb_var = os.path.join(
-                    efi_vars,
-                    "SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c",
-                    "data")
-                if os.path.exists(sb_var):
-                    with open(sb_var, "rb") as sb_var_file:
-                        if sb_var_file.read(1) == b"\x01":
-                            keep.add('grub-efi-amd64-signed')
-                            keep.add('shim-signed')
-                            try:
-                                altmeta = self.db.get(
-                                    'base-installer/kernel/altmeta')
-                                if altmeta:
-                                    altmeta = '-%s' % altmeta
-                            except debconf.DebconfError:
-                                altmeta = ''
-                            keep.add('linux-signed-generic%s' % altmeta)
+                keep.add('grub-efi-amd64-signed')
+                keep.add('shim-signed')
+                try:
+                    altmeta = self.db.get(
+                        'base-installer/kernel/altmeta')
+                    if altmeta:
+                        altmeta = '-%s' % altmeta
+                except debconf.DebconfError:
+                    altmeta = ''
+                keep.add('linux-signed-generic%s' % altmeta)
             else:
                 keep.add('grub')
                 keep.add('grub-pc')

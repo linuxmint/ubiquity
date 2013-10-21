@@ -1,5 +1,7 @@
+#include <errno.h>
+
+#include "xasprintf.h"
 #include "mkfstab.h"
-#include "errno.h"
 
 static int has_device(struct fstab_entry *entry) {
 	return (strcmp(entry->typ, "proc") != 0
@@ -159,7 +161,7 @@ void get_fstab_d_dir() {
 			continue;
 
 		/* skipping directories */
-		asprintf(&fullname, "%s/%s", FSTAB_D, dentry->d_name);
+		fullname = xasprintf("%s/%s", FSTAB_D, dentry->d_name);
 		if(stat(fullname, &sbuf) == -1) {
 			fprintf(stderr, "%s: %s\n", strerror(errno), fullname);
 			continue;
@@ -235,7 +237,7 @@ void get_swapspaces() {
 			continue;
 
 		sscanf(line, "%s %*s %*s %*s %*s", filesystem);
-		asprintf(&swline, "%s\tnone\tswap\tsw", filesystem);
+		swline = xasprintf("%s\tnone\tswap\tsw", filesystem);
 		insert_line(swline);
 	}
 
@@ -262,8 +264,10 @@ void mapdevfs(struct fstab_entry *entry) {
 	}
 }
 
+#define ATTRIBUTE_UNUSED __attribute__ ((__unused__))
+
 #ifndef TEST
-int main(int argc, char *argv[]) {
+int main(int argc ATTRIBUTE_UNUSED, char *argv[] ATTRIBUTE_UNUSED) {
 	int i = 0;
 	FILE *outfile = NULL;
 
@@ -271,7 +275,9 @@ int main(int argc, char *argv[]) {
 	printf("W: using local mode!\n\n");
 #endif
 
-	system("modprobe floppy 1>/dev/null 2>&1");
+	if (system("modprobe floppy 1>/dev/null 2>&1") != 0) {
+		/* ignore failures */
+	}
 
 	get_filesystems();
 	get_swapspaces();
@@ -323,7 +329,7 @@ int main(int argc, char *argv[]) {
 	return(EXIT_SUCCESS);
 }
 #else
-int main(int argc, char **argv) {
+int main(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED) {
 	struct fstab_entry proc_entry = {"proc", "/proc", "proc", "defaults"};
 	struct fstab_entry tmpfs_entry = {"none", "/tmp", "tmpfs", "defaults"};
 	assert(!has_device(&proc_entry));

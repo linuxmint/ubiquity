@@ -32,7 +32,7 @@ install_driver_pkg () {
 for device in $(list-devices usb-partition); do
 	label=$(block-attr --label $device 2>/dev/null || true)
 	if [ "$label" = "OEMDRV" ]; then
-		db_input medium driver-injection-disk/load || true
+		db_input high driver-injection-disk/load || true
 		if ! db_go; then
 			exit 10 # back up
 		fi

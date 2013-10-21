@@ -147,19 +147,6 @@ dm_is_safe() {
 	return 0
 }
 
-loop_is_safe() {
-	local opts
-	type losetup-aes > /dev/null 2>&1 || return 1
-
-	opts=$(losetup-aes $1 2>&1)
-	if [ $? -eq 0 ] && echo "$opts" | grep -q encryption=; then
-		# loop entry has an encryption= option, assume it's safe
-		return 0
-	fi
-
-	return 1
-}
-
 swap_is_safe () {
 	local swap
 	local IFS="
@@ -169,9 +156,6 @@ swap_is_safe () {
 		case $swap in
 		    Filename*)
 			continue
-			;;
-		    /dev/loop*)
-			loop_is_safe ${swap%% *} || return 1
 			;;
 		    /dev/mapper/*)
 			dm_is_safe ${swap%% *} || return 1
@@ -186,26 +170,6 @@ swap_is_safe () {
 	return 0
 }
 
-get_free_loop () {
-	O=$IFS
-	IFS="
-"
-	for n in $(losetup-aes -a); do
-		n=${n%%:*}
-		n=${n#/dev/loop}
-		n=${n#/}
-		eval loop$n=1
-	done
-	IFS=$O
-
-	for n in 0 1 2 3 4 5 6 7; do
-		if eval [ -z "\$loop$n" ]; then
-			echo /dev/loop$n
-			break
-		fi
-	done
-}
-
 get_free_mapping() {
 	for n in 0 1 2 3 4 5 6 7; do
 		if [ ! -b "/dev/mapper/crypt$n" ]; then
@@ -213,37 +177,6 @@ get_free_mapping() {
 			break
 		fi
 	done
-}
-
-setup_loopaes () {
-	local loop device cipher keytype keyfile opts pass
-	loop=$1
-	device=$2
-	cipher=$3
-	keytype=$4
-	keyfile=$5
-
-	[ -x /sbin/losetup-aes ] || return 1
-
-	case $keytype in
-	    keyfile)
-		opts="-K $keyfile"
-		pass="$keyfile.pass"
-		;;
-	    random)
-		opts="-H random"
-		pass="/dev/null"
-		;;
-	esac
-
-	log-output -t partman-crypto \
-	/sbin/losetup-aes -e $cipher $opts -p0 -G / $loop $device < $pass
-	if [ $? -ne 0 ]; then
-		log "losetup failed"
-		return 2
-	fi
-
-	return 0
 }
 
 setup_dmcrypt () {
@@ -338,14 +271,6 @@ setup_cryptdev () {
 		cryptdev="/dev/mapper/$cryptdev"
 		;;
 
-	    loop-AES)
-		cryptdev=$(get_free_loop);
-		if [ -z "$cryptdev" ]; then
-			return 1
-		fi
-		setup_loopaes $cryptdev $realdev $cipher $keytype $keyfile || return 1
-		;;
-
 	esac
 
 	echo $cryptdev > $id/crypt_active
@@ -412,10 +337,7 @@ crypto_wipe_device () {
 	fi
 
 	# Setup crypto
-	if [ $method = loop-AES ]; then
-		targetdevice=$(get_free_loop)
-		setup_loopaes $targetdevice $device AES128 random || return 1
-	elif [ $method = dm-crypt ]; then
+	if [ $method = dm-crypt ]; then
 		targetdevice=$(get_free_mapping)
 		setup_dmcrypt $targetdevice $device aes xts-plain64 plain 128 /dev/urandom || return 1
 		targetdevice="/dev/mapper/$targetdevice"
@@ -437,9 +359,7 @@ crypto_wipe_device () {
 	fi
 
 	# Teardown crypto
-	if [ $method = loop-AES ]; then
-		log-output -t partman-crypto /sbin/losetup-aes -d $targetdevice
-	elif [ $method = dm-crypt ]; then
+	if [ $method = dm-crypt ]; then
 		log-output -t partman-crypto /sbin/cryptsetup remove ${targetdevice##/dev/mapper/}
 	fi
 
@@ -506,38 +426,6 @@ crypto_dooption () {
 	echo $RET > $part/$option
 }
 
-# Unmount CD image (if any); switch to loop-aes module; remount
-# As we don't have losetup available, we cannot see what's mounted,
-# so assume loop is only used for the CD image in hd-media installs
-crypto_reload_loop() {
-	local iso_image iso_mp
-
-	if db_get iso-scan/filename && [ "$RET" ]; then
-		iso_image=$RET
-		iso_mp=$(grep "^/dev/loop.*iso9660" /proc/mounts | \
-			 head -n1 | cut -d" " -f2)
-		if [ "$iso_mp" ]; then
-			log-output -t partman-crypto umount $iso_mp || return $?
-		fi
-	fi
-
-	RET=0
-	if log-output -t partman-crypto modprobe -r loop; then
-		modprobe -q loop-aes || return $?
-		sleep 1
-	else
-		RET=$?
-	fi
-
-	if [ "$iso_mp" ]; then
-		log "remounting CD image"
-		log-output -t partman-crypto \
-			mount -t iso9660 -o loop,ro,exec $iso_image $iso_mp || return $?
-	fi
-
-	return $RET
-}
-
 crypto_load_module() {
 	local module=$1
 
@@ -553,22 +441,12 @@ crypto_load_module() {
 		fi
 		modprobe -q $module
 		return $?
-	elif [ "$module" != loop-aes ]; then
+	else
 		if egrep -q "^(name|version) *: $module\$" /proc/crypto; then
 			return 0
 		fi
 		modprobe -q $module
 		return $?
-	fi
-
-	# loop-aes cannot be loaded if loop is already loaded (hd-media installs)
-	if ! log-output -t partman-crypto modprobe --first-time $module; then
-		log "failed to load module loop-aes; loop already loaded?"
-
-		if ! crypto_reload_loop; then
-			log "error: failed to replace already loaded module loop with loop-aes"
-			return 1
-		fi
 	fi
 }
 
@@ -690,13 +568,6 @@ crypto_set_defaults () {
 		echo passphrase > $part/keytype
 		echo sha256 > $part/keyhash
 		;;
-	    loop-AES)
-		echo AES256 > $part/cipher
-		echo keyfile > $part/keytype
-		rm -f $part/keysize
-		rm -f $part/ivalgorithm
-		rm -f $part/keyhash
-		;;
 	esac
 	touch $part/skip_erase
 	return 0
@@ -714,9 +585,6 @@ crypto_prepare_method () {
 	case $type in
 	    dm-crypt)
 		packages="$packages partman-crypto-dm"
-		;;
-	    loop-AES)
-		packages="$packages partman-crypto-loop"
 		;;
 	    *)
 		return 1
@@ -747,9 +615,6 @@ crypto_check_required_tools() {
 	    dm-crypt)
 		tools="$tools dmsetup cryptsetup"
 		;;
-	    loop-AES)
-		tools="$tools gpg base64"
-		;;
 	    *)
 		return 1
 	esac
@@ -773,9 +638,6 @@ crypto_check_required_options() {
 	case $type in
 	    dm-crypt)
 		options="cipher keytype keyhash ivalgorithm keysize"
-		;;
-	    loop-AES)
-		options="cipher keytype"
 		;;
 	esac
 
@@ -901,7 +763,7 @@ crypto_setup() {
 		done
 	done
 
-	# Create keys and do losetup/dmsetup
+	# Create keys and do dmsetup
 	for dev in $DEVICES/*; do
 		[ -d "$dev" ] || continue
 		cd $dev
@@ -935,9 +797,6 @@ crypto_setup() {
 			if [ $keytype = keyfile ] || [ $keytype = passphrase ]; then
 				keyfile=$(mapdevfs $path | tr / _)
 				keyfile="$dev/$id/${keyfile#_dev_}"
-				if [ $type = loop-AES ]; then
-					keyfile="${keyfile}.gpg"
-				fi
 
 				if [ ! -f $keyfile ]; then
 					if ! /bin/blockdev-keygen "$(humandev $path)" "$keytype" "$keyfile"; then

@@ -1,0 +1,51 @@
+#!/usr/bin/python3
+
+import os
+import syslog
+import sys
+import traceback
+
+from gi.repository import GnomeKeyring, GLib
+from urllib.parse import parse_qsl
+
+if __name__ == "__main__":
+
+    if not "DBUS_SESSION_BUS_ADDRESS" in os.environ:
+        os.environ["DBUS_SESSION_BUS_ADDRESS"] = "autolaunch:"
+
+    password = sys.stdin.readline().strip("\n")
+    token = sys.stdin.readline().strip("\n")
+
+    # we create the keyring using the users login password
+    keyring_name = os.environ.get("U1_TEST_KEYRING_NAME", "login")
+    try:
+        token_name = dict(parse_qsl(token))['token_name']
+    except:
+        syslog.syslog("Can't get token name: %s" %
+                      traceback.format_exc())
+        sys.exit(1)
+
+    res = GnomeKeyring.create_sync(keyring_name, password)
+
+    if res != GnomeKeyring.Result.OK:
+        syslog.syslog("failed to create keyring '%s': %s" % (keyring_name, res))        
+        sys.exit(1)
+
+    attrs = GnomeKeyring.Attribute.list_new()
+    GnomeKeyring.Attribute.list_append_string(attrs, "key-type",
+                                              "Ubuntu SSO credentials")
+    GnomeKeyring.Attribute.list_append_string(attrs, "token-name",
+                                              token_name)
+
+    (status, item_id) = GnomeKeyring.item_create_sync(
+        keyring_name,
+        GnomeKeyring.ItemType.GENERIC_SECRET,
+        token_name,
+        attrs,
+        token,
+        True)
+    if status != GnomeKeyring.Result.OK:
+        syslog.syslog("failed to create item '%s': %s" % (token_name, status))
+        sys.exit(1)
+
+    syslog.syslog("Success, created item %r in keyring %r" % (token_name, keyring_name))

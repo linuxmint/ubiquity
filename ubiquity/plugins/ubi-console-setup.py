@@ -531,7 +531,7 @@ class Page(plugin.Plugin):
                 self.description(question),
                 self.extended_description(question),
                 ('ubiquity/imported/yes', 'ubiquity/imported/no'))
-            if response is None or response == 'ubiquity/imported/yes':
+            if response == 'ubiquity/imported/yes':
                 self.preseed(question, 'true')
             else:
                 self.preseed(question, 'false')

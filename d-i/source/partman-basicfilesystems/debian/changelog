@@ -1,3 +1,142 @@
+partman-basicfilesystems (84ubuntu1) saucy; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - If partman/automount is preseeded to true, automatically mount
+      partitions with usefully-mountable filesystems on subdirectories of
+      /media.
+    - Add minimal support for NTFS partitions using ntfs-3g.
+    - Mount FAT filesystems at boot (fstab pass 1).
+    - Mount FAT (other than EFI System Partitions) and NTFS with
+      umask=007,gid=46 (static group plugdev).
+    - When formatting over the top of an existing swap partition, preserve
+      its UUID to avoid leaving systems that use UUIDs in /etc/fstab without
+      swap.
+    - mount.d/basic: Close mount's fd 3 so that it doesn't inherit a debconf
+      file descriptor, to prevent log-output hanging when ntfs-3g is in use.
+    - Special case loopmounted filesystems as it's safer to format the
+      underlying file, not the device.
+    - Allow armel/omap to use FAT for /boot, since the problems with it can
+      be worked around while it's difficult to use anything else given uboot
+      limitations.
+    - Stop using libparted to format swap partitions.
+    - Disable existing swap partitions before formatting them.
+    - Use mkdosfs to create FAT filesystems, since libparted cannot handle
+      doing that on non-512-sector disks.
+    - Always use mkfs.ext2 to create ext2 filesystems, since libparted's
+      ext2 code is deprecated and can't handle large sector sizes.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 01 Oct 2013 10:29:00 +0100
+
+partman-basicfilesystems (84) unstable; urgency=low
+
+  * Add nodiratime option for ext2, and noatime, nodiratime, relatime, and
+    discard options for fat16 and fat32 (see #722598; LP: #978032).
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 01 Oct 2013 10:09:30 +0100
+
+partman-basicfilesystems (83) unstable; urgency=low
+
+  [ Updated translations ]
+  * Tajik (tg.po) by Victor Ibragimov
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 14 Sep 2013 15:38:07 +0200
+
+partman-basicfilesystems (82) unstable; urgency=low
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama Khayat
+  * Czech (cs.po) by Miroslav Kure
+  * German (de.po) by Holger Wansing
+  * Italian (it.po) by Milo Casagrande
+  * Russian (ru.po) by Yuri Kozlov
+  * Tajik (tg.po) by Victor Ibragimov
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 08 Sep 2013 16:27:59 +0200
+
+partman-basicfilesystems (81) unstable; urgency=low
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Japanese (ja.po) by Kenshi Muto
+  * Bokmål, Norwegian (nb.po) by Hans Fredrik Nordhaug
+  * Polish (pl.po) by Michał Kułach
+  * Tajik (tg.po)
+  * Uyghur (ug.po) by Abduqadir Abliz
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 17 Aug 2013 08:13:00 +0200
+
+partman-basicfilesystems (80) unstable; urgency=low
+
+  [ Milan Kupcevic ]
+  * Warn if bootable partition is not ext2 on Pegasos machines. Closes: #717511
+
+  [ Updated translations ]
+  * French (fr.po) by Christian Perrier
+  * Slovak (sk.po) by Ivan Masár
+  * Thai (th.po) by Theppitak Karoonboonyanan
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 29 Jul 2013 11:10:07 +0200
+
+partman-basicfilesystems (79) unstable; urgency=low
+
+  [ Dmitrijs Ledkovs ]
+  * Set debian source format to '3.0 (native)'.
+  * Bump debhelper compat level to 9.
+  * Set Vcs-* to canonical format.
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 13 Jul 2013 13:36:46 +0200
+
+partman-basicfilesystems (78ubuntu2) saucy; urgency=low
+
+  * Always use mkfs.ext2 to create ext2 filesystems, since libparted's ext2
+    code is deprecated and can't handle large sector sizes (LP: #1215458).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 12 Sep 2013 13:29:43 +0100
+
+partman-basicfilesystems (78ubuntu1) saucy; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - If partman/automount is preseeded to true, automatically mount
+      partitions with usefully-mountable filesystems on subdirectories of
+      /media.
+    - Add minimal support for NTFS partitions using ntfs-3g.
+    - Mount FAT filesystems at boot (fstab pass 1).
+    - Mount FAT (other than EFI System Partitions) and NTFS with
+      umask=007,gid=46 (static group plugdev).
+    - When formatting over the top of an existing swap partition, preserve
+      its UUID to avoid leaving systems that use UUIDs in /etc/fstab without
+      swap.
+    - mount.d/basic: Close mount's fd 3 so that it doesn't inherit a debconf
+      file descriptor, to prevent log-output hanging when ntfs-3g is in use.
+    - Special case loopmounted filesystems as it's safer to format the
+      underlying file, not the device.
+    - Allow armel/omap to use FAT for /boot, since the problems with it can
+      be worked around while it's difficult to use anything else given uboot
+      limitations.
+    - Stop using libparted to format swap partitions.
+    - Disable existing swap partitions before formatting them.
+    - Use mkdosfs to create FAT filesystems, since libparted cannot handle
+      doing that on non-512-sector disks.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 28 May 2013 14:04:11 +0100
+
+partman-basicfilesystems (78) unstable; urgency=low
+
+  [ Updated translations ]
+  * Croatian (hr.po) by Tomislav Krznar
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 18 May 2013 14:51:20 +0200
+
+partman-basicfilesystems (77) unstable; urgency=low
+
+  [ Updated translations ]
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 05 Nov 2012 06:50:23 +0100
+
 partman-basicfilesystems (76ubuntu4) raring; urgency=low
 
   * Fix dangerous reuse of $device in format_basicfilesystems, introduced in

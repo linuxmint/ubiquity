@@ -341,6 +341,21 @@ get_recipedir () {
 	done
 }
 
+filter_reused () {
+	scheme_reused=$(
+	    foreach_partition '
+		if echo "$*" | grep -q '\''\$reuse{'\''; then
+			echo "$*"
+		fi'
+	)
+	scheme=$(
+	    foreach_partition '
+		if ! echo "$*" | grep -q '\''\$reuse{'\''; then
+			echo "$*"
+		fi'
+	)
+}
+
 choose_recipe () {
 	local recipes recipedir free_size choices min_size type target
 
@@ -358,6 +373,7 @@ choose_recipe () {
 	if [ ! -z "$RET" ] && [ -e "$RET" ]; then
 		recipe="$RET"
 		decode_recipe $recipe $type
+		filter_reused
 		if [ $(min_size) -le $free_size ]; then
 			return 0
 		else
@@ -375,6 +391,7 @@ choose_recipe () {
 	for recipe in $recipedir/*; do
 		[ -f "$recipe" ] || continue
 		decode_recipe $recipe $type
+		filter_reused
 		if [ $(min_size) -le $free_size ]; then
 			choices="${choices}${recipe}${TAB}${name}${NL}"
 			if [ "$default_recipe" = no ]; then
@@ -410,18 +427,7 @@ choose_recipe () {
 expand_scheme() {
 	# Filter out reused partitions first, as we don't want to take
 	# account of their size.
-	scheme_reused=$(
-	    foreach_partition '
-		if echo "$*" | grep -q '\''\$reuse{'\''; then
-			echo "$*"
-		fi'
-	)
-	scheme=$(
-	    foreach_partition '
-		if ! echo "$*" | grep -q '\''\$reuse{'\''; then
-			echo "$*"
-		fi'
-	)
+	filter_reused
 
 	# Make factors small numbers so we can multiply on them.
 	# Also ensure that fact, max and fs are valid

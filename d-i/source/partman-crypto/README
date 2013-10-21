@@ -8,20 +8,19 @@ The scripts do stuff more or less in the following order:
  4. init.d/crypto
  5. blockdev-keygen
  6. update.d/crypto_visuals
- 7. finish.d/check_randomfskey, aptinstall_crypto, fstab_loop
+ 7. finish.d/check_randomfskey, aptinstall_crypto
 
 choose_method/
   crypto
 
-    Entry in the "Use as:" menu. All encryption types (loop-AES,
-    dm-crypt) are merged into one choice. Writes "crypto"
-    into $dev/$id/method and activates the below crypto options.
+    Entry in the "Use as:" menu. All encryption types (currenly only
+    dm-crypt) are merged into one choice. Writes "crypto" into
+    $dev/$id/method and activates the below crypto options.
 
 active_partition/*
 
     Entries in the partition menu. Which are shown depends on crypt_type
-    and cipher. loop-AES shows no keysize option because it's ciphers have
-    fixed keysizes. The chosen values are stored in $dev/$id/<entry>
+    and cipher. The chosen values are stored in $dev/$id/<entry>
 
 choose_partition/
   crypto
@@ -39,7 +38,7 @@ update.d/
   crypto_visuals
 
     Shows "crypt" in the method column, and the name of the crypt disk as 
-    mountpoint, so the user can see which loop/dm device is which after
+    mountpoint, so the user can see which dm device is which after
     they have been setup.
 
 finish.d/
@@ -53,40 +52,22 @@ finish.d/
 finish.d/
   crypto_config
     
-    Replaces loop devices in fstab with corresponding real devices and 
-    adds crypto mount options. This is a bit of a hack used because we 
-    can't use get_mountoptions from partman. Crypto settings are stored 
-    in dev/$id of cleartext partition, but everything else is stored in
-    the crypt_device dev/$id. We want the mount options, finish.d checks,
-    etc. handled by whatever feels responsible for what should be store
-    d on the encrypted partition, so this seems necessary.
+    Adds crypttab entries.
 
 finish.d/
   crypto_aptinstall
 
     Installs userspace tools and helper packages for encryption. This 
-    is responsible for installing loop-aes-utils and loop-aes-rootfs (TODO)
-    into the target system. Similarily for dm-crypt, installs cryptsetup 
-    etc.
+    is responsible for installing installs cryptsetup etc.
 
 blockdev-keygen
    
     Asks for a passphrase, confirms that it has been entered correctly 
-    and optionally tests for a minimum length. If the name for a keyfile
-    is specified as third argument it creates a gnupg keyfile for use
-    with loop-AES, otherwise it just echoes the pass to stdout. 
+    and optionally tests for a minimum length.
     
-    The actual encryption keys for loop-AES keyfiles are generated from
-    /dev/random, so we need plenty of entropy. This script uses the 
-    cdebconf plugin "entropy" if available. See notes at the beginning
-    of the script for important steps for the caller.
-
-finish-install.d/
-  05crypto
-
-    Run by finish-install.d hook; Checks for loop-AES partitions,
-    determines target kernel version from base-installer/kernel/image
-    and installs a corresponding loop-aes-$KVERS package into /target.
+    This script uses the cdebconf plugin "entropy" if available. See
+    notes at the beginning of the script for important steps for the
+    caller.
 
 ciphers/$crypt_type/$cipher
 

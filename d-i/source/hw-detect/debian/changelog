@@ -1,3 +1,71 @@
+hw-detect (1.95ubuntu1) saucy; urgency=low
+
+  [ Colin Watson ]
+  * Resynchronise with Debian.  Remaining changes:
+    - Remove FireWire Ethernet support.
+    - Register lp module on i386 and amd64.
+    - Exit zero if you continue all the way through ethdetect's errors about
+      having no network interfaces.
+    - Register rtc module on amd64.
+    - Drop priorities of a couple of ethdetect questions to medium.
+    - disk-detect.sh: Do not check the kernel command line for any option
+      to enable dmraid support. If functional dmraid arrays are found, the
+      user will be asked if they wish to activate them.
+    - Make dmraid logging a bit neater.
+    - 'dmraid -c -s' changed its output format; cope with both old and new.
+    - Remove dm-emc from the multipath modules, since it's gone since
+      2.6.27.
+    - Improve checks for dm-* drivers being present to avoid relying on them
+      being built as modules.
+    - Offer iSCSI targets for preseeding if partman-iscsi is available and
+      no disk devices are found.
+    - Stop installing acpi, acpid, and acpi-support-base if acpi is
+      available.
+    - Add an 'archdetect-deb' package, containing /usr/bin/archdetect.  Add
+      an archdetect(1) manual page.
+    - Refer to /usr/share/common-licenses/GPL-2 in debian/copyright.
+    - Load xenbus_probe_frontend if we're running under the Xen hypervisor.
+    - Redirect update-dev output to /dev/null, as it is in principle
+      possible for it to write to stdout and that would interfere with
+      debconf.
+  * Drop changes for PS3 and Cell, since we haven't been able to support
+    these platforms for some time.
+
+  [ Dmitrijs Ledkovs ]
+  * Move firmware/injected drivers' .deb packages installation from
+    post-base-installer.d stage to pre-pkgsel.d stage. (LP: #1209287, LP:
+    #1216043)
+  * Bump question to load driver injection disk from medium to high, and
+    raise driver-injection-disk package priority to standard. Thus the
+    udeb will be loaded by default, but before installing any debs from
+    the OEMDRV a confirmation question will be asked (default true, can be
+    pre-seeded)
+
+ -- Dmitrijs Ledkovs <dmitrij.ledkov@ubuntu.com>  Fri, 04 Oct 2013 10:40:26 +0100
+
+hw-detect (1.95) unstable; urgency=low
+
+  [ Updated translations ]
+  * Tajik (tg.po) by Victor Ibragimov
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 16 Aug 2013 12:49:51 +0200
+
+hw-detect (1.94) unstable; urgency=low
+
+  [ Dmitrijs Ledkovs ]
+  * Set debian source format to '3.0 (native)'.
+  * Bump debhelper compat level to 9.
+  * Set Vcs-* to canonical format.
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 13 Jul 2013 14:10:15 +0200
+
+hw-detect (1.93) unstable; urgency=low
+
+  [ Updated translations ]
+  * Croatian (hr.po) by Tomislav Krznar
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 17 May 2013 19:34:43 +0200
+
 hw-detect (1.92ubuntu1) raring; urgency=low
 
   * Resynchronise with Debian.  Remaining changes:

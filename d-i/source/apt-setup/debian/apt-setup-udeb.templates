@@ -14,23 +14,23 @@ _Description: Configuring apt
 
 Template: apt-setup/progress/fallback
 Type: text
-# :sl1:
+# :sl2:
 _Description: Running ${SCRIPT}...
 
 Template: apt-setup/progress/local
 Type: text
-# :sl1:
+# :sl2:
 _Description: Scanning local repositories...
 
 Template: apt-setup/progress/security
 Type: text
-# :sl1:
+# :sl2:
 _Description: Scanning the security updates repository...
 
-Template: apt-setup/progress/volatile
+Template: apt-setup/progress/updates
 Type: text
-# :sl1:
-_Description: Scanning the volatile updates repository...
+# :sl2:
+_Description: Scanning the release updates repository...
 
 Template: apt-setup/local/key-error
 Type: select
@@ -65,12 +65,6 @@ Default: /ubuntu
 Description: for internal use; can be preseeded
  Path to use for security updates
 
-Template: apt-setup/volatile_host
-Type: string
-Default: volatile.debian.org
-Description: for internal use; can be preseeded
- Host to use for volatile updates
-
 Template: apt-setup/service-failed
 Type: error
 # :sl2:
@@ -85,25 +79,25 @@ _Description: Cannot access repository
 # All services are enabled by default to allow preseeding
 Template: apt-setup/services-select
 Type: multiselect
-Choices-C: security, volatile
-# SEC_HOST and VOL_HOST are host names (e.g. security.debian.org)
+Choices-C: security, updates
+# SEC_HOST is a host name (e.g. security.debian.org)
 # Translators: the *entire* string should be under 55 columns
 # including host name. In short, KEEP THIS SHORT and, yes, that's tricky
-# :sl3:
-__Choices: security updates (from ${SEC_HOST}), volatile updates (from ${VOL_HOST})
+# :sl1:
+__Choices: security updates (from ${SEC_HOST}), release updates
 Default: security
-# :sl3:
+# :sl1:
 _Description: Services to use:
  Debian has two services that provide updates to releases: security and
- volatile.
+ release updates.
  .
  Security updates help to keep your system secured against attacks. Enabling
  this service is strongly recommended.
  .
- Volatile updates provide more current versions for software that changes
+ Release updates provide more current versions for software that changes
  relatively frequently and where not having the latest version could reduce
- the usability of the software. An example is the virus signatures for a virus
- scanner. This service is only available for stable and oldstable releases.
+ the usability of the software. It also provides regression fixes.
+ This service is only available for stable and oldstable releases.
 
 # All services except partner and extras are enabled by default to allow
 # preseeding; partner will be automatically disabled if non-free software is

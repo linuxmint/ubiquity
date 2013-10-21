@@ -1135,7 +1135,7 @@ class PageGtk(PageBase):
         # point makes no sense. TODO cjwatson 2007-01-31: Unfortunately we
         # have to hardcode the list of known filesystems here.
         known_filesystems = ('ext4', 'ext3', 'ext2', 'filesystem',
-                             'btrfs', 'reiserfs', 'jfs', 'xfs',
+                             'btrfs', 'jfs', 'xfs',
                              'fat16', 'fat32', 'ntfs', 'uboot')
         show = bool(iterator and model[iterator][0] in known_filesystems)
         self.partition_mount_combo.set_visible(show)
@@ -2734,7 +2734,7 @@ class Page(plugin.Plugin):
                     self.description(question),
                     self.extended_description(question),
                     ('ubiquity/text/go_back', 'ubiquity/text/continue'))
-                if response is None or response == 'ubiquity/text/continue':
+                if response == 'ubiquity/text/continue':
                     self.preseed(question, 'true', seen=False)
                 else:
                     self.preseed(question, 'false', seen=False)
@@ -2921,8 +2921,7 @@ class Page(plugin.Plugin):
                         self.description(question),
                         self.extended_description(question),
                         ('ubiquity/text/go_back', 'ubiquity/text/continue'))
-                    if (response is None or
-                            response == 'ubiquity/text/continue'):
+                    if response == 'ubiquity/text/continue':
                         self.preseed(question, 'true', seen=False)
                     else:
                         self.preseed(question, 'false', seen=False)
@@ -2939,7 +2938,7 @@ class Page(plugin.Plugin):
                     self.description(question),
                     self.extended_description(question),
                     ('ubiquity/text/go_back', 'ubiquity/text/continue'))
-                if response is None or response == 'ubiquity/text/continue':
+                if response == 'ubiquity/text/continue':
                     self.preseed(question, 'true', seen=False)
                 else:
                     self.preseed(question, 'false', seen=False)
@@ -3138,7 +3137,7 @@ class Page(plugin.Plugin):
             if question in ('partman-jfs/jfs_boot', 'partman-jfs/jfs_root',
                             'partman/unmount_active'):
                 answer_reversed = True
-            if response is None or response == yes:
+            if response == yes:
                 answer = answer_reversed
             else:
                 answer = not answer_reversed

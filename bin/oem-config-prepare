@@ -28,29 +28,7 @@ if [ "$(id -u)" = 0 ]; then
 
 	touch /var/lib/oem-config/run
 else
-	case $frontend in
-		gtk_ui)
-			gksudo --desktop /usr/share/applications/oem-config-prepare-gtk.desktop -- "$0" ${quiet:---quiet} "$@"
-			;;
-		kde_ui)
-                        echo kde_ui
-			kdesu=
-			#kdesudo seems to have issues with this, so default to the original kdesu
-			if [ -x /usr/lib/kde4/libexec/kdesu.distrib ]; then
-			        kdesu=/usr/lib/kde4/libexec/kdesu.distrib
-			elif [ -x /usr/lib/kde4/libexec/kdesu ]; then
-			        kdesu=/usr/lib/kde4/libexec/kdesu
-			fi
-			if [ "$kdesu" ]; then
-				$kdesu -- "$0" ${quiet:---quiet} "$@"
-			else
-				sudo -- "$0" ${quiet:---quiet} "$@"
-			fi
-			;;
-		*)
-			sudo -- "$0" ${quiet:---quiet} "$@"
-			;;
-	esac
+	pkexec "$0" ${quiet:---quiet} "$@"
 fi
 
 if [ -z "$quiet" ]; then

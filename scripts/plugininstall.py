@@ -1612,13 +1612,14 @@ class Install(install_misc.InstallBase):
 
         # We don't use the copy_network_config casper user trick as it's not
         # ubuntu in install mode.
-        try:
-            casper_user = pwd.getpwuid(999).pw_name
-        except KeyError:
+        #try:
+        #    casper_user = pwd.getpwuid(999).pw_name
+        #except KeyError:
             # We're on a weird system where the casper user isn't uid 999
             # just stop there
-            return
+        #    return
 
+        casper_user = "mint"
         casper_user_home = os.path.expanduser('~%s' % casper_user)
         casper_user_wallpaper_cache_dir = os.path.join(casper_user_home,
                                                        '.cache', 'wallpaper')

@@ -895,7 +895,7 @@ class Wizard(BaseFrontend):
                          'install_details_expander']:
             box = self.builder.get_object(eventbox)
             style = box.get_style_context()
-            style.add_class('menubar')
+            style.add_class('ubiquity-menubar')
 
         # TODO lazy load
         from gi.repository import Vte

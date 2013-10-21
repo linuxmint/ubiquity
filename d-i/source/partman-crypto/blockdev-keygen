@@ -132,50 +132,6 @@ call_entropy_plugin () {
 	return 0
 }
 
-gnupg_encrypt () {
-	local keyfile passfifo gpgopts
-	keyfile=$1
-	passfifo=$2
-	gpgopts="--batch --no-options --no-random-seed-file --no-default-keyring --keyring /dev/null --passphrase-fd 3 --symmetric -a"
-
-	while [ ! -p $randfifo ]; do
-		sleep 1
-	done
-
-	base64 < $randfifo | gpg $gpgopts 3< $passfifo > $keyfile
-}
-
-# Create a GnuPG keyfile for use by loop-AES.
-# (v3 key format: 2925 bytes in base64)
-create_gnupg_keyfile () {
-	local keyfile pass passfifo pid
-	keyfile=$1
-	pass=$2
-
-	passfifo=$keyfile.pass
-	if [ ! -p $passfifo ]; then
-		mknod $passfifo p
-		chmod 0600 $passfifo
-	fi
-
-	# Fork off gnupg encrypting pipe
-	printf %s "$pass" > $passfifo &
-	gnupg_encrypt $keyfile $passfifo &
-	gpg_pid=$!
-
-	# Call plugin to feed randfifo
-	call_entropy_plugin 2925
-	if [ $? -ne 0 ] || ! wait $gpg_pid; then
-		rm $keyfile
-		kill $gpg_pid
-		return 1
-	fi
-
-	# for use by init.d/crypto
-	printf %s "$pass" > $passfifo &
-	return 0
-}
-
 # Create a one-time random keyfile for use during install
 create_random_keyfile() {
 	local keyfile keybytes
@@ -221,7 +177,7 @@ fi
 # Log available entropy
 logger -t partman-crypto "kernel entropy_avail: $(cat /proc/sys/kernel/random/entropy_avail) bits"
 
-if [ "$keytype" = random ] || [ "$keytype" = keyfile ]; then
+if [ "$keytype" = random ]; then
 	if ! have_entropy_plugin; then
 		db_fset partman-crypto/tools_missing seen false
 		db_input critical partman-crypto/tools_missing
@@ -231,18 +187,6 @@ if [ "$keytype" = random ] || [ "$keytype" = keyfile ]; then
 fi
 
 case $keytype in
-	keyfile)
-		pass=$(get_passphrase)
-		if [ -z "$pass" ]; then
-			problem_dialog
-			exit 1
-		fi
-		if ! create_gnupg_keyfile $keyfile "$pass"; then
-			problem_dialog
-			exit 1
-		fi
-		;;
-
 	passphrase)
 		pass=$(get_passphrase)
 		if [ -z "$pass" ]; then

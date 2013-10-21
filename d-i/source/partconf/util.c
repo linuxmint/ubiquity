@@ -5,6 +5,8 @@
 #include <stdarg.h>
 #include <sys/mount.h>
 
+#include "xasprintf.h"
+
 char *
 size_desc(long long bytes)
 {
@@ -37,19 +39,23 @@ modprobe(const char *mod)
     FILE *fp;
     char *cmd;
     char printk[1024] = "";
+    int got_printk = 0;
 
     if ((fp = fopen("/proc/sys/kernel/printk", "r")) != NULL) {
-        fgets(printk, sizeof(printk), fp);
+        if (fgets(printk, sizeof(printk), fp) != NULL)
+	    got_printk = 1;
         fclose(fp);
     }
-    if ((fp = fopen("/proc/sys/kernel/printk", "w")) != NULL) {
+    if (got_printk && (fp = fopen("/proc/sys/kernel/printk", "w")) != NULL) {
         fputs("0\n", fp);
         fclose(fp);
     }
-    asprintf(&cmd, "modprobe %s >>/var/log/messages 2>&1", mod);
-    system(cmd);
+    cmd = xasprintf("modprobe %s >>/var/log/messages 2>&1", mod);
+    if (system(cmd) != 0) {
+        /* ignore failures */
+    }
     free(cmd);
-    if ((fp = fopen("/proc/sys/kernel/printk", "w")) != NULL) {
+    if (got_printk && (fp = fopen("/proc/sys/kernel/printk", "w")) != NULL) {
         fputs(printk, fp);
         fclose(fp);
     }
@@ -67,7 +73,7 @@ check_proc_mounts(const char *mntpoint)
 
     if ((fp = fopen("/proc/mounts", "r")) == NULL)
         return 0;
-    asprintf(&tmp, "/target%s", mntpoint);
+    tmp = xasprintf("/target%s", mntpoint);
     while (fgets(buf, sizeof(buf), fp) != NULL) {
         sscanf(buf, "%*s %s", mnt);
         if (strcmp(tmp, mnt) == 0) {
@@ -92,7 +98,9 @@ check_proc_swaps(const char *dev)
 
     if ((fp = fopen("/proc/swaps", "r")) == NULL)
         return 0;
-    fgets(buf, sizeof(buf), fp);
+    if (fgets(buf, sizeof(buf), fp) == NULL) {
+	/* ignore failures; we'll get them again on the next line */
+    }
     while (fgets(buf, sizeof(buf), fp) != NULL) {
         if (strstr(buf, dev) == buf) {
             fclose(fp);
@@ -134,6 +142,26 @@ strcount(const char *s, int c)
     return ret;
 }
 
+int umount_target_sort(const void *v1, const void *v2)
+{
+    char *m1, *m2;
+
+    m1 = *(char **)v1;
+    m2 = *(char **)v2;
+    if (m1 == NULL && m2 == NULL)
+	return 0;
+    else if (m1 == NULL)
+	return -1;
+    else if (m2 == NULL)
+	return 1;
+    if (strstr(m1, m2) == m1)
+	return -1;
+    else if (strstr(m2, m1) == m2)
+	return 1;
+    else
+	return strcmp(m2, m1);
+}
+
 /*
  * 
  */
@@ -144,25 +172,6 @@ umount_target(void)
     char buf[1024], mnt[1024];
     char *mounts[1024];
     int i, m_count = 0;
-    int sort_func(const void *v1, const void *v2)
-    {
-	char *m1, *m2;
-
-	m1 = *(char **)v1;
-	m2 = *(char **)v2;
-	if (m1 == NULL && m2 == NULL)
-	    return 0;
-	else if (m1 == NULL)
-	    return -1;
-	else if (m2 == NULL)
-	    return 1;
-	if (strstr(m1, m2) == m1)
-	    return -1;
-	else if (strstr(m2, m1) == m2)
-	    return 1;
-	else
-	    return strcmp(m2, m1);
-    }
 
     if ((fp = fopen("/proc/mounts", "r")) == NULL)
         return 0;
@@ -175,7 +184,7 @@ umount_target(void)
     fclose(fp);
     if (m_count == 0)
 	return 1;
-    qsort(mounts, m_count, sizeof(char *), sort_func);
+    qsort(mounts, m_count, sizeof(char *), umount_target_sort);
     for (i = 0; i < m_count; i++) {
 	if (umount(mounts[i]) < 0)
 	    return 0;

@@ -97,8 +97,14 @@ Boot-Multi-Path: /boot/uImage.bin
 Required-packages: u-boot-tools
 Bootloader-sets-root: yes
 
-Machine: Highbank
+Machine: Calxeda Highbank
 Kernel-Flavors: generic highbank
+Required-Packages: u-boot-tools
+Boot-Script-Path: /boot/boot.scr
+U-Boot-Script-Name: bootscr.highbank
+
+Machine: Calxeda ECX-2000
+Kernel-Flavors: generic-lpae generic highbank
 Required-Packages: u-boot-tools
 Boot-Script-Path: /boot/boot.scr
 U-Boot-Script-Name: bootscr.highbank
@@ -230,6 +236,7 @@ Required-Packages: u-boot-tools
 Bootloader-sets-root: yes
 
 Machine: OMAP4 Panda board
+Machine: TI OMAP4 PandaBoard
 Method: generic
 U-Boot-Kernel-Address: 0x80008000
 U-Boot-Initrd-Address: 0x0
@@ -241,6 +248,8 @@ Boot-Initrd-Path: uInitrd
 Boot-Script-Path: preEnv.txt
 Required-Packages: u-boot-tools
 Bootloader-sets-root: yes
+DTB-Kernel-Version: 3.11
+DTB-Id: omap4-panda-es.dtb
 
 Machine: QNAP TS-109/TS-209
 Kernel-Flavors: orion5x
@@ -278,6 +287,34 @@ U-Boot-Kernel-Address: 0x00008000
 Required-Packages: u-boot-tools
 Bootloader-sets-root: yes
 
+Machine: SAMSUNG SSDK5440 board based on EXYNOS5440
+Kernel-Flavors: exynos5 exynos generic
+U-Boot-Kernel-Address: 0x80008000
+U-Boot-Initrd-Address: 0x80000000
+U-Boot-Script-Address: 0x80001000
+U-Boot-Script-Name: bootscr.exynos5
+DTB-Id: exynos5440-ssdk5440.dtb
+DTB-Kernel-Version: 3.11
+Boot-Kernel-Path: /boot/uImage
+Boot-Initrd-Path: /boot/uInitrd
+Boot-Script-Path: /boot/boot.scr
+Required-Packages: u-boot-tools
+Bootloader-sets-root: no
+
+Machine: SAMSUNG SD5v1 board based on EXYNOS5440
+Kernel-Flavors: exynos5 generic
+U-Boot-Kernel-Address: 0x80008000
+U-Boot-Initrd-Address: 0x80000000
+U-Boot-Script-Address: 0x80001000
+U-Boot-Script-Name: bootscr.exynos5
+DTB-Id: exynos5440-sd5v1.dtb
+DTB-Kernel-Version: 3.11
+Boot-Kernel-Path: /boot/uImage
+Boot-Initrd-Path: /boot/uInitrd
+Boot-Script-Path: /boot/boot.scr
+Required-Packages: u-boot-tools
+Bootloader-sets-root: no
+
 Machine: Seagate FreeAgent DockStar
 Kernel-Flavors: kirkwood
 U-Boot-Kernel-Address: 0x00008000
@@ -304,5 +341,12 @@ Bootloader-sets-root: no
 Machine: grouper
 Method: android
 Android-Boot-Device: /dev/mmcblk0
+Required-Packages: abootimg
+Bootloader-sets-root: yes
+
+Machine: QCT APQ8064 MAKO
+Method: android
+Android-Boot-Device: /dev/block/platform/msm_sdcc.1/by-name/boot
+Android-Skip-Initrd: yes
 Required-Packages: abootimg
 Bootloader-sets-root: yes

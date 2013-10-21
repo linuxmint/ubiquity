@@ -9,11 +9,6 @@ LANG=en_US.UTF-8 oem-config "$@"
 # Don't run again.
 rm -f /var/lib/oem-config/run
 
-# Remove the temporary OEM configuration user, if possible.
-if getent passwd oem >/dev/null; then
-	userdel --force --remove oem || true
-fi
-
 # Cleanup from anything the early command prepared
 RET="$(echo GET oem-config/late_command | debconf-communicate)" || true
 if [ "${RET%% *}" = 0 ]; then

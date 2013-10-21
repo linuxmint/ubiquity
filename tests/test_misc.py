@@ -249,6 +249,7 @@ class PrivilegeTests(unittest.TestCase):
         os.getuid.return_value = 0
 
         pwd.getpwuid.return_value.pw_name = 'fakegrp'
+        pwd.getpwuid.return_value.pw_gid = '1000'
         gr = mock.Mock()
         gr.gr_mem = ['fakegrp']
         gr.gr_gid = 1234
@@ -263,8 +264,7 @@ class PrivilegeTests(unittest.TestCase):
     @mock.patch('os.setgroups')
     def test_drop_privileges(self, *args):
         with EnvironmentVarGuard() as env:
-            env['SUDO_UID'] = '1000'
-            env['SUDO_GID'] = '1000'
+            env['PKEXEC_UID'] = '1000'
             misc.drop_privileges()
         os.seteuid.assert_called_once_with(1000)
         os.setegid.assert_called_once_with(1000)
@@ -285,8 +285,7 @@ class PrivilegeTests(unittest.TestCase):
     def test_drop_all_privileges(self, *args):
         pwd.getpwuid.return_value.pw_dir = 'fakeusr'
         with EnvironmentVarGuardRestore():
-            os.environ['SUDO_UID'] = '1000'
-            os.environ['SUDO_GID'] = '1000'
+            os.environ['PKEXEC_UID'] = '1000'
             misc.drop_all_privileges()
             os.setreuid.assert_called_once_with(1000, 1000)
             os.setregid.assert_called_once_with(1000, 1000)

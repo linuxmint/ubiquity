@@ -89,18 +89,8 @@ ifneq (,$(wildcard debian/ubiquity.dirs-$(DEB_HOST_ARCH)))
 endif
 	dh_installdirs
 
-	# For the meantime, nearly everything automake wants to install is
-	# part of the GTK frontend.
-ifndef UBIQUITY_NO_GTK
-	$(MAKE) install DESTDIR=$(CURDIR)/debian/ubiquity-frontend-gtk
-	rm -rf debian/ubiquity-frontend-gtk/usr/share/applications \
-		debian/ubiquity-frontend-gtk/usr/share/ubiquity/pixmaps
-	rm -f debian/ubiquity-frontend-gtk/usr/lib/$(DEB_HOST_MULTIARCH)/libubi*.la
-ifneq (,$(DEB_HOST_MULTIARCH))
-	mv debian/ubiquity-frontend-gtk/usr/lib/$(DEB_HOST_MULTIARCH)/girepository-1.0 \
-	   debian/ubiquity-frontend-gtk/usr/lib/
-endif
-endif
+	$(MAKE) install DESTDIR=`pwd`/debian/tmp
+
 	$(MAKE) -C d-i install
 
 	cp debian/ubiquity.install-any debian/ubiquity.install
@@ -116,6 +106,12 @@ else
 	dh_install
 endif
 endif
+	# No need to install duplicate
+	rm -f $(CURDIR)/debian/ubiquity/usr/lib/ubiquity/plugins/ubi-ubuntuone.py 
+	# We don't need the source files installed
+	rm -rf debian/ubiquity-frontend-gtk/usr/share/ubiquity/pixmaps/u1/assets/
+	rm -rf debian/ubiquity-frontend-kde/usr/share/ubiquity/qt/images/source/
+
 	dh_di_numbers
 
 	# Bits of manual installation that can't be done by dh_install
@@ -211,11 +207,6 @@ ifeq ($(DEB_HOST_ARCH),powerpc)
 	install d-i/source/yaboot-installer/debian/postinst \
 		debian/ubiquity/usr/lib/ubiquity/yaboot-installer/yaboot-installer
 endif
-
-	set -e; for size in 16 22 32 48 64 128; do \
-		mkdir -p debian/ubiquity-frontend-kde/usr/share/icons/hicolor/$${size}x$${size}/apps; \
-		cp desktop/hi$${size}-app-ubiquity.png debian/ubiquity-frontend-kde/usr/share/icons/hicolor/$${size}x$${size}/apps/ubiquity.png; \
-	done
 
 	touch install-stamp
 

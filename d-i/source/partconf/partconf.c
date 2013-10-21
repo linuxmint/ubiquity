@@ -15,6 +15,7 @@
 #include <cdebconf/debconfclient.h>
 #include <debian-installer.h>
 
+#include "xasprintf.h"
 #include "partconf.h"
 
 static struct debconfclient *debconf = NULL;
@@ -50,7 +51,8 @@ build_part_choices(struct partition *parts[], const int part_count)
 {
     char *list[part_count];
     char *tmp, *tmp2;
-    int i, max_len, len;
+    int i;
+    size_t max_len, len;
 
     //printf("part_count=%d\n", part_count);
     if (part_count <= 0)
@@ -63,7 +65,7 @@ build_part_choices(struct partition *parts[], const int part_count)
     }
     // pad with spaces
     for (i = 0; i < part_count; i++) {
-        asprintf(&list[i], "%-*s", max_len, parts[i]->description);
+        list[i] = xasprintf("%-*s", (int)max_len, parts[i]->description);
     }
     max_len = strlen("n/a");
     for (i = 0; i < part_count; i++) {
@@ -72,7 +74,7 @@ build_part_choices(struct partition *parts[], const int part_count)
     }
     // add and pad
     for (i = 0; i < part_count; i++) {
-        asprintf(&tmp, "%s  %-*s", list[i], max_len,
+        tmp = xasprintf("%s  %-*s", list[i], (int)max_len,
                 (parts[i]->size > 0) ? size_desc(parts[i]->size) : "n/a");
         free(list[i]);
         list[i] = tmp;
@@ -86,7 +88,7 @@ build_part_choices(struct partition *parts[], const int part_count)
             max_len = strlen(parts[i]->fstype);
     }
     for (i = 0; i < part_count; i++) {
-        asprintf(&tmp, "%s  %-*s", list[i], max_len,
+        tmp = xasprintf("%s  %-*s", list[i], (int)max_len,
                 (parts[i]->op.filesystem != NULL) ? parts[i]->op.filesystem :
                 (parts[i]->fstype != NULL) ? parts[i]->fstype : "n/a");
         free(list[i]);
@@ -99,7 +101,7 @@ build_part_choices(struct partition *parts[], const int part_count)
     }
     if (max_len > 0)
         for (i = 0; i < part_count; i++) {
-            asprintf(&tmp, "%s  %-*s", list[i], max_len,
+            tmp = xasprintf("%s  %-*s", list[i], (int)max_len,
                     (parts[i]->op.mountpoint != NULL) ? parts[i]->op.mountpoint : "");
             free(list[i]);
             list[i] = tmp;
@@ -109,7 +111,7 @@ build_part_choices(struct partition *parts[], const int part_count)
     //printf("<%s>\n", list[0]);
     for (i = 1; i < part_count; i++) {
         //printf("<%s>\n", list[i]);
-        asprintf(&tmp2, "%s, %s", tmp, list[i]);
+        tmp2 = xasprintf("%s, %s", tmp, list[i]);
         free(list[i]);
         free(tmp);
         tmp = tmp2;
@@ -128,7 +130,7 @@ fs_to_choice(char *fs)
         debconf_metaget(debconf, "partconf/internal-create-fs-choice", "description");
         choicefmt = strdup(debconf->value);
     }
-    asprintf(&tmp, choicefmt, fs);
+    tmp = xasprintf(choicefmt, fs);
     return tmp;
 }
 
@@ -143,7 +145,7 @@ build_fs_choices(void)
         if (tmp == NULL)
             tmp2 = fs_to_choice(filesystems[i]);
         else
-            asprintf(&tmp2, "%s, %s", tmp, fs_to_choice(filesystems[i]));
+            tmp2 = xasprintf("%s, %s", tmp, fs_to_choice(filesystems[i]));
         free(tmp);
         tmp = tmp2;
     }
@@ -355,7 +357,7 @@ finish(void)
             // Create the file system/swap
             if (strcmp(fs, "swap") == 0) {
                 append_message("partconf: Creating swap on %s\n", parts[i]->path);
-                asprintf(&cmd, "mkswap %s >/dev/null 2>>/var/log/messages", parts[i]->path);
+                cmd = xasprintf("mkswap %s >/dev/null 2>>/var/log/messages", parts[i]->path);
                 ret = system(cmd);
                 free(cmd);
                 if (ret != 0) {
@@ -375,7 +377,7 @@ finish(void)
 		  	mkfs_opts="-f";
 		}
                 append_message("partconf: Creating %s file system on %s\n", fs, parts[i]->path);
-                asprintf(&cmd, "mkfs.%s %s %s >/dev/null 2>>/var/log/messages", fs, mkfs_opts, parts[i]->path);
+                cmd = xasprintf("mkfs.%s %s %s >/dev/null 2>>/var/log/messages", fs, mkfs_opts, parts[i]->path);
                 ret = system(cmd);
                 free(cmd);
                 if (ret != 0) {
@@ -389,7 +391,7 @@ finish(void)
             if (strcmp(fs, "swap") == 0 && !check_proc_swaps(parts[i]->path)) {
                 // Activate swap
                 append_message("partconf: Activating swap on %s\n", parts[i]->path);
-                asprintf(&cmd, "swapon %s >/dev/null 2>>/var/log/messages", parts[i]->path);
+                cmd = xasprintf("swapon %s >/dev/null 2>>/var/log/messages", parts[i]->path);
                 ret = system(cmd);
                 free(cmd);
                 /* 
@@ -404,7 +406,7 @@ finish(void)
                 // And mount
                 append_message("partconf: Mounting %s on %s\n",
                         parts[i]->path, parts[i]->op.mountpoint);
-                asprintf(&mntpt, "/target%s", parts[i]->op.mountpoint);
+                mntpt = xasprintf("/target%s", parts[i]->op.mountpoint);
                 makedirs(mntpt);
                 fs = parts[i]->op.filesystem ? parts[i]->op.filesystem : parts[i]->fstype;
                 ret = mount(parts[i]->path, mntpt, fs, 0xC0ED0000, NULL);

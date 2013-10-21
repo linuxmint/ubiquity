@@ -22,6 +22,7 @@ BOOTSCRIPTS_DIR="${FK_CHECKOUT:-$FK_DIR}/bootscript"
 MACHINE_DB="$(cat "${FK_CHECKOUT:-$FK_DIR}/db/"*.db)"
 PROC_CPUINFO="/proc/cpuinfo"
 PROC_MTD="/proc/mtd"
+PROC_DT="/proc/device-tree/model"
 
 
 error() {
@@ -96,13 +97,20 @@ get_root_uuid() {
 }
 
 get_cpuinfo_hardware() {
-	grep "^Hardware" "$PROC_CPUINFO" | sed 's/Hardware\s*:\s*//'
+	if [ -f "$PROC_DT" ]; then
+		cat "$PROC_DT"
+	else
+		grep "^Hardware" "$PROC_CPUINFO" | sed 's/Hardware\s*:\s*//'
+	fi
 }
 
 get_kfile_suffix() {
 	local kfile="$1"
+	local full_version=${kfile#*-}
+	local flavour_abi=${full_version#*-}
+	local flavour=${flavour_abi#*-}
 
-	echo "$kfile" | sed -e 's/.*-//'
+	echo "$flavour"
 }
 
 # this is case-sensitive and doesn't support fields spanning multiple lines
@@ -176,6 +184,17 @@ gen_kernel() {
 	{
 		set_machine_id "$machine_id"
 		cat "$input"
+	} >"$output"
+}
+
+append_dtb() {
+	local kernel="$1"
+	local dtb="$2"
+	local output="$3"
+
+	{
+		cat "$kernel"
+		cat "$dtb"
 	} >"$output"
 }
 
@@ -292,10 +311,16 @@ abootimg_get_image_size() {
 android_flash() {
 	local device="$1"
 
-	printf "Flashing kernel and initramfs to $device... " >&2
-	abootimg -u "$device" -k "$kfile" -r "$ifile" >/dev/null ||
-		error "failed."
-	echo "done." >&2
+	if [ -z "$android_skip_initrd" ]; then
+		printf "Flashing kernel and initramfs to $device... " >&2
+		abootimg -u "$device" -k "$kfile" -r "$ifile" >/dev/null ||
+			error "failed."
+		echo "done." >&2
+	else
+		printf "Flashing the kernel (skipping initrd) to $device... " >&2
+		abootimg -u "$device" -k "$kfile" >/dev/null || error "failed."
+		echo "done." >&2
+	fi
 }
 
 main() {
@@ -372,6 +397,8 @@ machine_id="$(get_machine_field "$machine" "Machine-Id")" || :
 method="$(get_machine_field "$machine" "Method")" || method="generic"
 mtd_kernel="$(get_machine_field "$machine" "Mtd-Kernel")" || :
 mtd_initrd="$(get_machine_field "$machine" "Mtd-Initrd")" || :
+dtb_name="$(get_machine_field "$machine" "DTB-Id")" || :
+dtb_kver="$(get_machine_field "$machine" "DTB-Kernel-Version")" || :
 ukaddr="$(get_machine_field "$machine" "U-Boot-Kernel-Address")" || :
 uiaddr="$(get_machine_field "$machine" "U-Boot-Initrd-Address")" || :
 umaddr="$(get_machine_field "$machine" "U-Boot-Multi-Address")" || :
@@ -383,6 +410,7 @@ boot_initrd_path="$(get_machine_field "$machine" "Boot-Initrd-Path")" || :
 boot_script_path="$(get_machine_field "$machine" "Boot-Script-Path")" || :
 boot_multi_path="$(get_machine_field "$machine" "Boot-Multi-Path")" || :
 android_boot_device="$(get_machine_field "$machine" "Android-Boot-Device")" || :
+android_skip_initrd="$(get_machine_field "$machine" "Android-Skip-Initrd")" || :
 
 if [ -n "$mtd_kernel" ] || [ -n "$mtd_initrd" ]; then
 	if [ ! -e "$PROC_MTD" ]; then
@@ -438,16 +466,19 @@ tmpdir="$(mktemp -dt "$self.XXXXXXXX")"
 
 case "$method" in
 	"android")
-		part=""
-		largest_size="-1"
-		for p in "$android_boot_device"*[0-9]; do
-			abootimg="$(LC_ALL=C abootimg -i "$p" 2>/dev/null || true)"
-			image_size="$(abootimg_get_image_size "$abootimg")"
-			if [ -n "$image_size" ] &&
-				[ "$image_size" -gt "$largest_size" ]; then
-				part="$p"
-			fi
-		done
+		if abootimg -i "$android_boot_device" > /dev/null 2>&1; then
+			part="$android_boot_device"
+		else
+			largest_size="-1"
+			for p in "$android_boot_device"*[0-9]; do
+				abootimg="$(LC_ALL=C abootimg -i "$p" 2>/dev/null || true)"
+				image_size="$(abootimg_get_image_size "$abootimg")"
+				if [ -n "$image_size" ] &&
+					[ "$image_size" -gt "$largest_size" ]; then
+					part="$p"
+				fi
+			done
+		fi
 		if [ -z "$part" ]; then
 			error "Couldn't find Android boot partition on $android_boot_device"
 		fi
@@ -459,6 +490,17 @@ case "$method" in
 		if [ -n "$machine_id" ]; then
 			gen_kernel "$kernel" "$tmpdir/kernel" "$machine_id"
 			kernel="$tmpdir/kernel"
+		fi
+		if [ -n "$dtb_kver" ]; then
+			if dpkg --compare-versions "$kvers" ge "$dtb_kver" >/dev/null; then
+				dtb="/lib/firmware/$kvers/device-tree/$dtb_name"
+				if [ ! -f "$dtb" ] ; then
+					error "Couldn't find $dtb"
+				fi
+				append_dtb "$kernel" "$dtb" "$tmpdir/kernel.dtb"
+				mv "$tmpdir/kernel.dtb" "$tmpdir/kernel"
+				kernel="$tmpdir/kernel"
+			fi
 		fi
 		if [ -n "$ukaddr" ]; then
 			mkimage_kernel "$ukaddr" "$desc" "$kernel" \

@@ -1,3 +1,383 @@
+apt-setup (1:0.80ubuntu1) saucy; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Install the Ubuntu mirror generator instead of Debian's.
+    - Set apt-setup/security_host to security.ubuntu.com, or
+      ports.ubuntu.com on ports architectures; adjust directory and
+      distribution to match.
+    - Add security sources for restricted, universe, and multiverse,
+      commented out unless the respective components are enabled. Disable
+      security generator checks for contrib and non-free.
+    - For CD installs, leave the sources.list created by apt-setup in
+      /etc/apt/sources.list.apt-setup, and restore the sources.list created
+      during base installation for the rest of the installation.
+    - Honour OVERRIDE_BASE_INSTALLABLE when checking
+      /cdrom/.disk/base_installable.
+    - Set the mirror verification timeout to 30 seconds.
+    - Adjust services-select for Ubuntu, removing volatile and adding
+      partner (apt-setup/partner) and extras (apt-setup/extras).
+    - Always disable the CD at the end of installation if any mirrors are
+      present, even if it's a complete CD.
+    - Pre-populate apt's lists directory with signed Release files for
+      archive.ubuntu.com (and mirrors) and security.ubuntu.com, to protect
+      against downgrade attacks right from initial installation.
+    - Run 'apt-get update' for all sources.list lines produced by a single
+      generator in one go, and don't comment out sources.list lines if it
+      fails.
+    - Make the path to security updates configurable, as well as the host.
+    - Remove restricted from cdrom entry if apt-setup/restricted is false.
+    - Make sure apt-cdrom doesn't unmount the CD if cd_type ends with
+      /single.
+    - Enable all network sources, including security updates, even if the
+      network is unconfigured.
+    - Honour apt-setup/restricted, apt-setup/universe, and
+      apt-setup/multiverse when writing -backports lines.
+    - Run 'apt-get update', without downloading package lists or cleaning up
+      old files, after moving the sources.list generated during base system
+      installation back into place.
+    - If OVERRIDE_LEAVE_CD_MOUNTED is set, don't unmount /cdrom; this is a
+      bad idea in a live CD environment!
+    - Enable backports by default now that we have NotAutomatic enabled and
+      working.
+    - Add Release files for saucy.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 17 May 2013 15:24:03 +0100
+
+apt-setup (1:0.80) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Update comment on apt-setup/services-select Choices field.
+  * generators/01setup: Cope with the case where ROOT is unset.
+  * generators/01setup: If apt-setup/multiarch is empty, remove any existing
+    foreign architectures (as might have been set up by e.g. a live
+    filesystem build).
+  * Bail out cleanly from cdrom generator if /cdrom/.disk/info doesn't exist
+    or has zero size, to guard against image creation errors (LP: #245519).
+
+  [ Updated translations ]
+  * Croatian (hr.po) by Tomislav Krznar
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 12 May 2013 12:49:46 +0200
+
+apt-setup (1:0.79ubuntu1) saucy; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Install the Ubuntu mirror generator instead of Debian's.
+    - Set apt-setup/security_host to security.ubuntu.com, or
+      ports.ubuntu.com on ports architectures; adjust directory and
+      distribution to match.
+    - Add security sources for restricted, universe, and multiverse,
+      commented out unless the respective components are enabled. Disable
+      security generator checks for contrib and non-free.
+    - For CD installs, leave the sources.list created by apt-setup in
+      /etc/apt/sources.list.apt-setup, and restore the sources.list created
+      during base installation for the rest of the installation.
+    - Honour OVERRIDE_BASE_INSTALLABLE when checking
+      /cdrom/.disk/base_installable.
+    - Set the mirror verification timeout to 30 seconds.
+    - Adjust services-select for Ubuntu, removing volatile and adding
+      partner (apt-setup/partner) and extras (apt-setup/extras).
+    - Always disable the CD at the end of installation if any mirrors are
+      present, even if it's a complete CD.
+    - Pre-populate apt's lists directory with signed Release files for
+      archive.ubuntu.com (and mirrors) and security.ubuntu.com, to protect
+      against downgrade attacks right from initial installation.
+    - Run 'apt-get update' for all sources.list lines produced by a single
+      generator in one go, and don't comment out sources.list lines if it
+      fails.
+    - Make the path to security updates configurable, as well as the host.
+    - Remove restricted from cdrom entry if apt-setup/restricted is false.
+    - Make sure apt-cdrom doesn't unmount the CD if cd_type ends with
+      /single.
+    - Enable all network sources, including security updates, even if the
+      network is unconfigured.
+    - Honour apt-setup/restricted, apt-setup/universe, and
+      apt-setup/multiverse when writing -backports lines.
+    - Run 'apt-get update', without downloading package lists or cleaning up
+      old files, after moving the sources.list generated during base system
+      installation back into place.
+    - If OVERRIDE_LEAVE_CD_MOUNTED is set, don't unmount /cdrom; this is a
+      bad idea in a live CD environment!
+    - Bail out cleanly from cdrom generator if /cdrom/.disk/info doesn't
+      exist or has zero size.
+    - Enable backports by default now that we have NotAutomatic enabled and
+      working.
+    - If apt-setup/multiarch is empty, remove any existing foreign
+      architectures.
+  * Add Release files for saucy, and remove those for quantal (oops).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 08 May 2013 16:54:25 +0100
+
+apt-setup (1:0.79) unstable; urgency=low
+
+  * Fix support for apt-setup/multiarch preseed option: call “dpkg
+    --add-architecture $arch" for each architecture, instead of
+    generating dpkg.cfg (used by early multiarch implementations);
+    thanks, Raphaël Hertzog! (Closes: #703995)
+
+ -- Cyril Brulebois <kibi@debian.org>  Sat, 06 Apr 2013 20:11:42 +0200
+
+apt-setup (1:0.78) unstable; urgency=low
+
+  [ Updated translations ]
+  * Amharic (am.po) by Tegegne Tefera
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 30 Mar 2013 07:53:14 +0100
+
+apt-setup (1:0.77) unstable; urgency=low
+
+  [ Updated translations ]
+  * Hungarian (hu.po) by Dr. Nagy Elemér Károly
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 09 Dec 2012 12:27:15 +0100
+
+apt-setup (1:0.76) unstable; urgency=low
+
+  [ Updated translations ]
+  * Malayalam (ml.po) by Hrishikesh K B
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 10 Nov 2012 11:34:58 +0100
+
+apt-setup (1:0.75) unstable; urgency=low
+
+  [ Updated translations ]
+  * Amharic (am.po) by Tegegne Tefera
+  * Asturian (ast.po) by ivarela
+  * Welsh (cy.po) by Dafydd Tomos
+  * Kannada (kn.po) by Prabodh
+  * Serbian (sr.po) by Karolina Kalic
+  * Tamil (ta.po) by Dr.T.Vasudevan
+  * Ukrainian (uk.po) by Yuri Chornoivan
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 25 Oct 2012 06:12:12 +0200
+
+apt-setup (1:0.74) unstable; urgency=low
+
+  * [l10n] Drop use of sublevel 6 and move "recently" added
+    strings to the sublevel they pertain to.
+
+  [ Updated translations ]
+  * Hindi (hi.po) by Kumar Appaiah
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 06 Oct 2012 13:21:26 +0200
+
+apt-setup (1:0.73) unstable; urgency=low
+
+  [ Updated translations ]
+  * Czech (cs.po) by Miroslav Kure
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 30 Sep 2012 11:27:16 +0200
+
+apt-setup (1:0.72) unstable; urgency=low
+
+  [ Updated translations ]
+  * Persian (fa.po) by Hamid
+  * Lithuanian (lt.po) by Rimas Kudelis
+  * Traditional Chinese (zh_TW.po) by Ｖ字龍 | Vdragon
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 23 Sep 2012 14:42:57 +0200
+
+apt-setup (1:0.71) unstable; urgency=low
+
+  [ Updated translations ]
+  * Greek (el.po) by galaxico
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 25 Aug 2012 08:07:52 +0200
+
+apt-setup (1:0.70) unstable; urgency=low
+
+  * Team upload
+
+  [ Updated translations ]
+  * Spanish (es.po) by Javier Fernández-Sanguino
+  * Korean (ko.po) by Changwoo Ryu
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 26 Jul 2012 02:19:53 +0200
+
+apt-setup (1:0.69) unstable; urgency=low
+
+  * Team upload
+
+  [ Updated translations ]
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 03 Jul 2012 23:17:26 +0200
+
+apt-setup (1:0.68) unstable; urgency=low
+
+  * Team upload
+  
+  [ Updated translations ]
+  * Malayalam (ml.po) by Praveen
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 24 Jun 2012 11:45:07 +0200
+
+apt-setup (1:0.67) unstable; urgency=low
+
+  * Team upload
+
+  [ Updated translations ]
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 24 Jun 2012 08:09:23 +0200
+
+apt-setup (1:0.66) unstable; urgency=low
+
+  * Team upload
+
+  [ Updated translations ]
+  * Panjabi (pa.po) by A S Alam
+  * Romanian (ro.po) by Eddy Petrișor
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 23 Jun 2012 13:52:22 +0200
+
+apt-setup (1:0.65) unstable; urgency=low
+
+  * Team upload
+
+  [ Updated translations ]
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+  * Traditional Chinese (zh_TW.po) by Yao Wei (魏銘廷)
+  * Dzongkha (dz.po) by Dawa
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 22 Jun 2012 18:26:23 +0200
+
+apt-setup (1:0.64) unstable; urgency=low
+
+  * Team upload
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Viktar Siarheichyk
+  * Persian (fa.po) by Hamid
+  * Finnish (fi.po) by Timo Jyrinki
+  * Lithuanian (lt.po) by Rimas Kudelis
+  * Macedonian (mk.po) by Arangel Angov
+  * Bokmål, Norwegian (nb.po) by Hans Fredrik Nordhaug
+  * Dutch (nl.po) by Jeroen Schot
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Serbian (sr.po) by Karolina Kalic
+  * Telugu (te.po) by Arjuna Rao Chavala
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 21 Jun 2012 22:48:27 +0200
+
+apt-setup (1:0.63) unstable; urgency=low
+
+  * Team upload
+
+  [ Updated translations ]
+  * Croatian (hr.po) by Tomislav Krznar
+  * Latvian (lv.po) by Rūdolfs Mazurs
+  * Russian (ru.po) by Yuri Kozlov
+  * Telugu (te.po) by Arjuna Rao Chavala
+  * Uyghur (ug.po) by Sahran
+  * Traditional Chinese (zh_TW.po) by Yao Wei (魏銘廷)
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 20 Jun 2012 06:25:38 +0200
+
+apt-setup (1:0.62) unstable; urgency=low
+
+  * Team upload
+
+  [ Updated translations ]
+  * Telugu (te.po) by Arjuna Rao Chavala
+  * Vietnamese (vi.po) by Nguyen Vu Hung
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 18 Jun 2012 14:43:35 +0200
+
+apt-setup (1:0.61) unstable; urgency=low
+
+  * Team upload
+  * Replace XC-Package-Type by Package-Type
+
+  [ Updated translations ]
+  * French (fr.po) by Christian Perrier
+  * Czech (cs.po) by Miroslav Kure
+  * Danish (da.po) by Joe Hansen
+  * Estonian (et.po) by Mattias Põldaru
+  * Japanese (ja.po) by Kenshi Muto
+  * Marathi (mr.po) by sampada
+  * Slovak (sk.po) by Ivan Masár
+  * Telugu (te.po) by Arjuna Rao Chavala
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Turkish (tr.po) by Mert Dirik
+  * Traditional Chinese (zh_TW.po) by 林博仁
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 17 Jun 2012 19:26:38 +0200
+
+apt-setup (1:0.60) unstable; urgency=low
+
+  [ Philipp Kern ]
+  * Team upload.
+  * Replace the volatile name with release updates. (Closes: #665852)
+
+  [ Updated translations ]
+  * Danish (da.po) by Joe Hansen
+  * Telugu (te.po) by Arjuna Rao Chavala
+
+ -- Philipp Kern <pkern@debian.org>  Sat, 16 Jun 2012 12:47:33 +0200
+
+apt-setup (1:0.59) unstable; urgency=low
+
+  * Team upload
+  * Turn XC-Package-Type into Package-Type
+
+  [ Updated translations ]
+  * Welsh (cy.po) by Daffyd Tomos
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 15 Jun 2012 18:03:57 +0200
+
+apt-setup (1:0.58) unstable; urgency=low
+
+  * Team upload
+
+  [ Adam D. Barratt ]
+  * If no network mirror was selected during install, add a (commented-out)
+    entry pointing at ftp.debian.org, together with a comment explaining why
+    the entry is commented out and that it should be updated to use a relevant
+    mirror.  The comment is not translated, but this is still preferable to
+    the previous behaviour of creating clearly broken entries under such
+    circumstances which users then re-enabled.  (Closes: #613910)
+
+  [ Updated translations ]
+  * Amharic (am.po) by Tegegne Tefera
+  * Tibetan (bo.po) by Tennom
+  * Finnish (fi.po) by Timo Jyrinki
+  * Galician (gl.po) by Jorge Barreiro
+  * Lao (lo.po) by Anousak Souphavanh
+  * Lithuanian (lt.po) by Rimas Kudelis
+  * Latvian (lv.po) by Rūdolfs Mazurs
+  * Macedonian (mk.po) by Arangel Angov
+  * Panjabi (pa.po) by A S Alam
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+  * Slovenian (sl.po) by Vanja Cvelbar
+  * Vietnamese (vi.po) by Hai-Nam Nguyen
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+  * Traditional Chinese (zh_TW.po) by Yao Wei (魏銘廷)
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 14 Jun 2012 20:25:38 +0200
+
+apt-setup (1:0.57) unstable; urgency=low
+
+  [ Updated translations ]
+  * Asturian (ast.po) by Mikel González
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Catalan (ca.po) by Jordi Mallach
+  * Danish (da.po) by Joe Hansen
+  * Estonian (et.po) by Mattias Põldaru
+  * Indonesian (id.po) by Mahyuddin Susanto
+  * Icelandic (is.po) by Sveinn í Felli
+  * Italian (it.po) by Milo Casagrande
+  * Khmer (km.po) by Khoem Sokhem
+  * Kannada (kn.po) by Prabodh C P
+  * Malayalam (ml.po) by Praveen Arimbrathodiyil
+  * Norwegian Bokmal (nb.po) by Hans Fredrik Nordhaug
+  * Dutch (nl.po) by Jeroen Schot
+  * Polish (pl.po) by Marcin Owsiany
+  * Serbian (sr.po) by Karolina Kalic
+  * Uyghur (ug.po) by Sahran
+
+ -- Otavio Salvador <otavio@debian.org>  Thu, 15 Mar 2012 14:29:39 -0300
+
 apt-setup (1:0.56ubuntu2) quantal; urgency=low
 
   * Convert multiarch setup to new world order as of dpkg >= 1.16.2.

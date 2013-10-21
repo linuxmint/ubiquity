@@ -61,7 +61,7 @@ is_floppy() {
 
 # Loop through some /dev/ entries and test all the character ones
 for x in /dev/fd* /dev/hd* /dev/sd* ; do
-	[ -b "$x" ] || continue
+	[ -b "$x" -a -s "$x" ] || continue
 
 	if is_$TYPE "$x" ; then
 		echo $x

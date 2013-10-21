@@ -234,12 +234,27 @@ writeimages() {
     writefile "$extraimages" 'extra image records'
 }
 
+map_of_pathname() {
+  # ofpathname does not work correctly on YDL PowerStation Maple board, even
+  # though it is a chrp_ibm platform, but ofpath does.
+  grep -q ': Maple' /proc/cpuinfo && {
+    chroot /target ofpath "$1" || return 1
+    return
+  }
+  # ofpathname won't handle partition numbers, so we do here.
+  MAP_DEVICE=${1%[0-9]}
+  MAP_PARTNUM=${1#$MAP_DEVICE}
+  MAP_OFPATH="`chroot /target ofpathname "$MAP_DEVICE"`"
+  [ $? -ne 0 ] && return 1
+  echo "$MAP_OFPATH${MAP_PARTNUM:+:$MAP_PARTNUM}"
+}  
+
 # Get the Open Firmware path for a device. Requires non-devfs syntax.
 map_of_path() {
     # TODO: look for shorter name using OF aliases?
     case $ARCH in
 	powerpc/chrp|powerpc/chrp_rs6k|powerpc/chrp_ibm|powerpc/cell)
-            chroot /target ofpathname "$1" || return 1
+	    map_of_pathname "$1" || return 1
 	    ;;
         *)
             chroot /target ofpath "$1" || return 1

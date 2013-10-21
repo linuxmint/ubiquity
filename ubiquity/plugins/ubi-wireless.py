@@ -28,17 +28,40 @@ AFTER = ['prepare', 'language']
 WEIGHT = 12
 
 
-class PageGtk(plugin.PluginUI):
+class WirelessPageBase(plugin.PluginUI):
+    def __init__(self):
+        plugin.PluginUI.__init__(self)
+        self.skip = False
+
+    def plugin_set_online_state(self, online):
+        self.skip = online
+
+    def plugin_skip_page(self):
+        # Set from the command line with --wireless
+        if 'UBIQUITY_WIRELESS' in os.environ:
+            return False
+
+        from ubiquity import nm
+
+        if nm.wireless_hardware_present():
+            return self.skip
+        else:
+            return True
+
+
+class PageGtk(WirelessPageBase):
     plugin_title = 'ubiquity/text/wireless_heading_label'
 
     def __init__(self, controller, *args, **kwargs):
+        WirelessPageBase.__init__(self)
         import dbus
         from gi.repository import Gtk
 
-        # NOTE: Import 'nm' even though it's not used in this function as
-        # importing it as the side effect of registering NetworkManagerWidget
-        # which we DO use in the Wireless step UI.
-        from ubiquity import misc, nm
+        from ubiquity import misc
+        # NOTE: Import 'nmwidgets' even though it's not used in this function
+        # as importing it as the side effect of registering
+        # NetworkManagerWidget which we DO use in the Wireless step UI.
+        from ubiquity.frontend.gtk_components import nmwidgets
 
         if self.is_automatic:
             self.page = None
@@ -121,17 +144,6 @@ class PageGtk(plugin.PluginUI):
             self.next_normal = True
             self.controller.allow_go_forward(True)
 
-    def plugin_set_online_state(self, online):
-        self.skip = online
-
-    def plugin_skip_page(self):
-        from ubiquity import nm
-
-        if not nm.wireless_hardware_present():
-            return True
-        else:
-            return self.skip
-
     def plugin_on_back_clicked(self):
         frontend = self.controller._wizard
         if frontend.back.get_label() == self.stop_text:
@@ -185,3 +197,54 @@ class PageGtk(plugin.PluginUI):
 
     def pw_validated(self, unused, validated):
         self.controller.allow_go_forward(validated)
+
+
+class PageKde(WirelessPageBase):
+    plugin_breadcrumb = 'ubiquity/text/breadcrumb_wireless'
+
+    def __init__(self, controller, *args, **kwargs):
+        WirelessPageBase.__init__(self)
+        import dbus
+        from ubiquity import misc
+
+        if self.is_automatic:
+            self.page = None
+            return
+        # Check whether we can talk to NM at all (e.g. debugging ubiquity
+        # over ssh with X forwarding).
+        try:
+            misc.has_connection()
+        except dbus.DBusException:
+            self.page = None
+            return
+        self.controller = controller
+        self._setup_page()
+        self.plugin_widgets = self.page
+
+    def _setup_page(self):
+        from PyQt4 import uic, QtGui
+        from ubiquity.frontend.kde_components import nmwidgets
+        self.nmwidget = nmwidgets.NetworkManagerWidget()
+        self.nmwidget.state_changed.connect(self._update_ui)
+
+        self.page = uic.loadUi('/usr/share/ubiquity/qt/stepWireless.ui')
+        layout = QtGui.QHBoxLayout(self.page.nmwidget_container)
+        layout.setMargin(0)
+        layout.addWidget(self.nmwidget)
+
+        self.page.use_wireless.toggled.connect(self._update_ui)
+
+    def plugin_translate(self, lang):
+        dct = dict()
+        for text in self.nmwidget.get_translation_keys():
+            dct[text] = self.controller.get_string('ubiquity/text/' + text)
+
+        self.nmwidget.translate(dct)
+
+    def _update_ui(self):
+        from ubiquity import nm
+        if self.page.use_wireless.isChecked():
+            forward = self.nmwidget.get_state() == nm.NM_STATE_CONNECTED_GLOBAL
+        else:
+            forward = True
+        self.controller.allow_go_forward(forward)

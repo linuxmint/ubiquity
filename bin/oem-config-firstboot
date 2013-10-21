@@ -70,6 +70,13 @@ for try in $(seq 1 $TRY); do
 			/usr/sbin/oem-config-wrapper $DEBUG $AUTOMATIC --only || CODE=$?
 	fi
 	if [ "$CODE" -eq 0 ]; then
+		# Remove the temporary OEM configuration user, if possible
+		# and desired.
+		RET="$(echo GET oem-config/remove | debconf-communicate)"
+		if [ "${RET#* }" = true ] && getent passwd oem >/dev/null; then
+			pkill -u oem || true
+			userdel --force --remove oem || true
+		fi
 		exit 0
 	elif [ "$CODE" -eq 10 ]; then
 		cat <<EOF
@@ -119,6 +126,10 @@ EOF
 	rm -f /var/lib/oem-config/run
 	RET="$(echo GET oem-config/remove | debconf-communicate)"
 	if [ "${RET#* }" = true ]; then
+		if getent passwd oem >/dev/null; then
+			pkill -u oem || true
+			userdel --force --remove oem || true
+		fi
 		apt-get -y purge ubiquity >>/var/log/oem-config.log 2>&1
 	fi
 

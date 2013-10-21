@@ -1,3 +1,13 @@
 #! /usr/bin/make -f
+
+DEB_BUILD_GNU_TYPE := $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+DEB_HOST_GNU_TYPE := $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+
 %:
 	dh $@ --with d-i
+
+ifneq ($(DEB_BUILD_GNU_TYPE),$(DEB_HOST_GNU_TYPE))
+override_dh_auto_build:
+	dh_auto_build -- \
+		CC=$(DEB_HOST_GNU_TYPE)-gcc STRIP=$(DEB_HOST_GNU_TYPE)-strip
+endif

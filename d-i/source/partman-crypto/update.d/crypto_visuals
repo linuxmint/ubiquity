@@ -2,7 +2,7 @@
 
 # Shows "crypto" in the method column for partitions with method "crypto" and
 # the humandev name of the crypt disk as mountpoint, so the user can see which
-# loop/dm device is which after they've been setup.
+# dm device is which after they've been setup.
 
 . /lib/partman/lib/base.sh
 
@@ -23,11 +23,6 @@ method=$(cat $id/method)
 cryptdev_shortname ()
 {
 	case "$1" in
-	/dev/loop*)
-		n=${1#/dev/loop}
-		n=${n#/}
-		echo "loop${n}"
-		;;
 	/dev/mapper/*)
 		echo "${1#/dev/mapper/}"
 		;;

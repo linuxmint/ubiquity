@@ -14,6 +14,7 @@
 #include <getopt.h>
 #endif
 
+#include "xasprintf.h"
 #include "partconf.h"
 
 // If it's an LVM volume, it's on the form
@@ -35,7 +36,7 @@ test_lvm(struct partition *p)
     *vol++ = '\0';
     if (strchr(vol, '/') != NULL)
         return;
-    asprintf(&procfile, "/proc/lvm/VGs/%s/LVs/%s", grp, vol);
+    procfile = xasprintf("/proc/lvm/VGs/%s/LVs/%s", grp, vol);
     if ((fp = fopen(procfile, "r")) == NULL)
         return;
     while (fgets(buf, sizeof(buf), fp) != NULL) {
@@ -106,11 +107,65 @@ test_raid(struct partition *p)
             sscanf(buf, "%lld", &blocks);
             p->size = blocks * 512L;
             free(p->description);
-            asprintf(&p->description, "RAID logical volume %d", volno);
+            p->description = xasprintf("RAID logical volume %d", volno);
             break;
         }
     }
     fclose(fp);
+}
+
+/**
+ * Determine if a device is a CD-ROM/DVD based on major/minor device
+ * number. Based on information from Linux's Documentation/devices.txt.
+ */
+bool
+is_cdrom(const char * const device_name)
+{
+    struct stat st;
+
+    if (stat(device_name, &st) != 0)
+            return false;
+
+    switch (major(st.st_rdev)) {
+        case 11: /* SCSI CD-ROM devices */
+        case 113: /* Parallel port ATAPI CD-ROM devices */
+            return true;
+        default:
+            break;
+    }
+
+    if (minor(st.st_rdev) == 0) {
+        switch (major(st.st_rdev)) {
+            case 15: /* Sony CDU-31A/CDU-33A CD-ROM */
+            case 16: /* GoldStar CD-ROM */
+            case 17: /* Optics Storage CD-ROM */
+            case 18: /* Sanyo CD-ROM */
+            case 20: /* Hitachi CD-ROM */
+            case 23: /* Mitsumi proprietary CD-ROM */
+            case 24: /* Sony CDU-535 CD-ROM */
+            case 29: /* Aztech/Orchid/Okano/Wearnes CD-ROM */
+            case 30: /* Philips LMS CM-205 CD-ROM */
+            case 32: /* Philips LMS CM-206 CD-ROM */
+                return true;
+            default:
+                break;
+        }
+    }
+
+    if (minor(st.st_rdev) <= 3) {
+        switch (major(st.st_rdev)) {
+            case 25: /* First Matsushita (Panasonic/SoundBlaster: CD-ROM */
+            case 26: /* Second Matsushita (Panasonic/SoundBlaster: CD-ROM */
+            case 27: /* Fourth Matsushita (Panasonic/SoundBlaster: CD-ROM */
+            case 28: /* Third Matsushita (Panasonic/SoundBlaster: CD-ROM */
+            case 46: /* Parallel port ATAPI CD-ROM devices */
+                return true;
+            default:
+                break;
+        }
+    }
+
+    return false;
 }
 
 #ifndef FIND_PARTS_MAIN
@@ -131,7 +186,7 @@ block_partition(const char *part)
         if(entry->d_name[0] == '.')
             continue;
 
-        asprintf(&cmd, "/bin/sh %s/%s \"%s\" 1>/dev/null 2>&1",
+        cmd = xasprintf("/bin/sh %s/%s \"%s\" 1>/dev/null 2>&1",
             BLOCK_D, entry->d_name, part);
         ret = system(cmd);
         if(ret != 0) {
@@ -182,6 +237,8 @@ get_all_partitions(struct partition *parts[], const int max_parts, bool ignore_f
             continue;
         if (strstr(dev->path, "/dev/mtd") == dev->path)
             continue;
+        if (is_cdrom(dev->path))
+            continue;
         if (!ped_disk_probe(dev))
             continue;
         disk = ped_disk_new(dev);
@@ -212,7 +269,7 @@ get_all_partitions(struct partition *parts[], const int max_parts, bool ignore_f
 
                 if (sscanf(p->path, "/dev/hd%c%d", &drive, &part) == 2
                         && drive >= 'a' && drive <= 'z')
-                    asprintf(&p->description, "IDE%d %s\\, part. %d",
+                    p->description = xasprintf("IDE%d %s\\, part. %d",
                             (drive - 'a') / 2 + 1, targets[(drive - 'a') % 2],
                             part);
                 else
@@ -247,7 +304,7 @@ get_all_partitions(struct partition *parts[], const int max_parts, bool ignore_f
                             const char *bus_id = basename(buf);
                             if (sscanf(bus_id, "%d:%d:%d:%d",
                                         &host, &bus, &target, &lun) == 4) {
-                                asprintf(&p->description, "SCSI%d (%d\\,%d\\,%d) part. %d",
+                                p->description = xasprintf("SCSI%d (%d\\,%d\\,%d) part. %d",
                                         host + 1, bus, target, lun, part);
                                 done = 1;
                             }

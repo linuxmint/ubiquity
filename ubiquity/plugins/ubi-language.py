@@ -61,9 +61,6 @@ class PageBase(plugin.PluginUI):
     def get_oem_id(self):
         return ''
 
-    def set_alpha_warning(self, show):
-        self.show_alpha_warning = show
-
 
 class PageGtk(PageBase):
     plugin_is_language = True
@@ -398,28 +395,31 @@ class PageKde(PageBase):
 
         try:
             from PyQt4 import uic
-            from PyQt4.QtGui import QWidget, QPixmap
+            from PyQt4.QtGui import QWidget, QPixmap, QIcon
             self.page = uic.loadUi('/usr/share/ubiquity/qt/stepLanguage.ui')
             self.combobox = self.page.language_combobox
+            # Tell layout that all items are of uniform sizes
+            # Fixes LP:1187762
+            self.combobox.view().setUniformItemSizes(True)
             self.combobox.currentIndexChanged[str].connect(
                 self.on_language_selection_changed)
             if not self.controller.oem_config:
                 self.page.oem_id_label.hide()
                 self.page.oem_id_entry.hide()
 
+            def init_big_button(button, image_name):
+                pix = QPixmap('/usr/share/ubiquity/qt/images/' + image_name)
+                icon = QIcon(pix)
+                button.setIcon(icon)
+                button.setIconSize(pix.size())
+
             def inst(*args):
                 self.page.try_ubuntu.setEnabled(False)
                 self.controller.go_forward()
             self.page.install_ubuntu.clicked.connect(inst)
             self.page.try_ubuntu.clicked.connect(self.on_try_ubuntu_clicked)
-            picture1 = QPixmap(
-                "/usr/share/ubiquity/pixmaps/kubuntu-live-session.png")
-            self.page.image1.setPixmap(picture1)
-            self.page.image1.resize(picture1.size())
-            picture2 = QPixmap(
-                "/usr/share/ubiquity/pixmaps/kubuntu-install.png")
-            self.page.image2.setPixmap(picture2)
-            self.page.image2.resize(picture2.size())
+            init_big_button(self.page.install_ubuntu, 'install.png')
+            init_big_button(self.page.try_ubuntu, 'try.png')
 
             self.release_notes_url = ''
             self.update_installer = True
@@ -446,11 +446,7 @@ class PageKde(PageBase):
                 self.page.try_ubuntu.hide()
                 self.page.try_install_text_label.hide()
                 self.page.install_ubuntu.hide()
-                self.page.image1.hide()
-                self.page.image2.hide()
 
-            if self.only:
-                self.page.alpha_warning_label.hide()
             # We do not want to show the yet to be substituted strings
             # (${MEDIUM}, etc), so don't show the core of the page until
             # it's ready.
@@ -478,12 +474,6 @@ class PageKde(PageBase):
         self.page.install_ubuntu.setEnabled(False)
         self.controller._wizard.current_page = None
         self.controller.dbfilter.ok_handler()
-
-    def set_alpha_warning(self, show):
-        if not show and not self.only:
-            self.page.alpha_warning_label.hide()
-            if self.page.alpha_warning_label in self.widgetHidden:
-                self.widgetHidden.remove(self.page.alpha_warning_label)
 
     def on_release_notes_link(self, link):
         lang = self.selected_language()
@@ -515,8 +505,7 @@ class PageKde(PageBase):
     def set_language_choices(self, choices, choice_map):
         PageBase.set_language_choices(self, choices, choice_map)
         self.combobox.clear()
-        for choice in choices:
-            self.combobox.addItem(str(choice))
+        self.combobox.addItems(choices)
 
     def set_language(self, language):
         index = self.combobox.findText(str(language))
@@ -553,8 +542,7 @@ class PageKde(PageBase):
             install_medium = i18n.get_string(install_medium, lang)
             for widget in (self.page.try_install_text_label,
                            self.page.try_ubuntu,
-                           self.page.install_ubuntu,
-                           self.page.alpha_warning_label):
+                           self.page.install_ubuntu):
                 text = widget.text()
                 text = text.replace('${RELEASE}', release.name)
                 text = text.replace('${MEDIUM}', install_medium)
@@ -659,9 +647,6 @@ class Page(plugin.Plugin):
                 self.ui.set_oem_id(self.db.get('oem-config/id'))
             except debconf.DebconfError:
                 pass
-
-        show = self.db.get('ubiquity/show_alpha_warning') == 'true'
-        self.ui.set_alpha_warning(show)
 
         localechooser_script = '/usr/lib/ubiquity/localechooser/localechooser'
         if ('UBIQUITY_FRONTEND' in os.environ and

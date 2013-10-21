@@ -57,9 +57,21 @@ for dev in $DEVICES/*; do
 			db_progress INFO $template
 			db_progress SET 1
 			log_sector_size="$(blockdev --getss "$(cat device)")"
+			if [ "$log_sector_size" = 512 ]; then
+				mkdosfs_opts=
+			else
+				# mkdosfs has trouble handling cluster
+				# calculations for non-512-byte logical
+				# sectors.  Forcing one sector per cluster
+				# avoids this as long as the filesystem
+				# isn't too large, but that shouldn't be a
+				# problem for EFI System Partitions.
+				mkdosfs_opts='-s 1'
+			fi
 			if log-output -t partman --pass-stdout \
 			   mkdosfs -F "${new_efi_fs#fat}" \
 				   -S "$log_sector_size" \
+				   $mkdosfs_opts \
 				   "$device" >/dev/null; then
 				sync
 				status=OK

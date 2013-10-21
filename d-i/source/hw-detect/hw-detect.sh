@@ -182,15 +182,6 @@ get_manual_hw_info() {
 		echo "ide-cd:Linux ATAPI CD-ROM"
 	fi
 	get_rtc_info
-
-	case $SUBARCH in
-		powerpc/ps3)
-			echo "ps3rom:PS3 internal CD-ROM drive"
-			echo "ps3disk:PS3 internal disk drive"
-			echo "ps3_gelic:PS3 Gigabit Ethernet"
-			register-module snd_ps3
-		;;
-	esac
 }
 
 # Should be greater than the number of kernel modules we can reasonably
@@ -536,20 +527,6 @@ case "$(udpkg --print-architecture)" in
 		fi
 	fi
 	;;
-esac
-
-# Install PS3 utilities
-case $SUBARCH in
-	powerpc/ps3)
-		apt-install ps3pf-utils || true
-		;;
-esac
-
-# Install Cell utilities
-case $SUBARCH in
-	powerpc/ps3|powerpc/cell)
-		apt-install elfspe2 || true
-		;;
 esac
 
 db_progress SET $MAX_STEPS

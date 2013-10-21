@@ -2,21 +2,28 @@
 %:
 	dh $@ --with d-i
 
-ARCH_OS=$(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
+DEB_HOST_ARCH_OS := $(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
+DEB_BUILD_GNU_TYPE := $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+DEB_HOST_GNU_TYPE := $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
 
-ifeq ($(ARCH_OS),linux)
+ifeq ($(DEB_HOST_ARCH_OS),linux)
 DEFAULT_FS=ext4
 endif
-ifeq ($(ARCH_OS),kfreebsd)
+ifeq ($(DEB_HOST_ARCH_OS),kfreebsd)
 DEFAULT_FS=ufs
 endif
-ifeq ($(ARCH_OS),hurd)
+ifeq ($(DEB_HOST_ARCH_OS),hurd)
 DEFAULT_FS=ext2
 endif
 
 PROVIDES=made-filesystems, mounted-partitions, partitioned-harddrives, created-fstab
 
 MENUITEMNUM=4200
+
+ifneq ($(DEB_BUILD_GNU_TYPE),$(DEB_HOST_GNU_TYPE))
+override_dh_auto_build:
+	dh_auto_build -- CC=$(DEB_HOST_GNU_TYPE)-gcc
+endif
 
 override_dh_installdebconf:
 	dh_installdebconf

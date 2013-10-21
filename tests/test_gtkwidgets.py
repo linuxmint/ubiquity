@@ -10,6 +10,7 @@ from gi.repository import Gtk, TimezoneMap
 import mock
 
 from ubiquity import gtkwidgets, nm, segmented_bar
+from ubiquity.frontend.gtk_components import nmwidgets
 
 
 class MockController(object):
@@ -84,6 +85,93 @@ class WidgetTests(unittest.TestCase):
         self.assertEqual(gtkwidgets.gtk_to_cairo_color('red'), (1.0, 0, 0))
         self.assertEqual(gtkwidgets.gtk_to_cairo_color('blue'), (0, 0, 1.0))
 
+
+class NetworkStoreTests(unittest.TestCase):
+    def setUp(self):
+        self.model = nmwidgets.GtkNetworkStore()
+
+    def test_add_device(self):
+        self.model.add_device('/foo', 'Intel', 'Wireless')
+        device_it = self.model.get_iter_first()
+        self.assertEqual(self.model.get(device_it, 0, 1, 2),
+                         ('/foo', 'Intel', 'Wireless'))
+
+    def test_has_device(self):
+        self.model.add_device('/foo', 'Intel', 'Wireless')
+        self.model.add_device('/bar', 'Intel', 'Wireless')
+
+        self.assert_(self.model.has_device('/foo'))
+        self.assert_(not self.model.has_device('/not-there'))
+
+    def test_get_device_ids(self):
+        self.model.add_device('/foo', 'Intel', 'Wireless')
+        self.model.add_device('/bar', 'Intel', 'Wireless')
+
+        lst = self.model.get_device_ids()
+        self.assertListEqual(lst, ['/foo', '/bar'])
+
+    def test_add_ap(self):
+        self.model.add_device('/foo', 'Intel', 'Wireless')
+        self.model.add_ap('/foo', 'Orange', True, 40)
+        self.model.add_ap('/foo', 'Apple', False, 60)
+        device_it = self.model.get_iter_first()
+
+        ap_it = self.model.iter_children(device_it)
+        self.assert_(ap_it)
+        self.assertEqual(self.model.get(ap_it, 0, 1, 2), ('Orange', True, 40))
+
+        ap_it = self.model.iter_next(ap_it)
+        self.assert_(ap_it)
+        self.assertEqual(self.model.get(ap_it, 0, 1, 2), ('Apple', False, 60))
+
+        ap_it = self.model.iter_next(ap_it)
+        self.assert_(not ap_it)
+
+    def test_has_ap(self):
+        self.model.add_device('/foo', 'Intel', 'Wireless')
+        self.model.add_ap('/foo', 'Orange', True, 40)
+        self.model.add_ap('/foo', 'Apple', False, 60)
+
+        self.assert_(self.model.has_ap('/foo', 'Orange'))
+        self.assert_(not self.model.has_ap('/not-there', 'Orange'))
+        self.assert_(not self.model.has_ap('/foo', 'Aubergine'))
+
+    def test_set_ap_strength(self):
+        self.model.add_device('/foo', 'Intel', 'Wireless')
+        self.model.add_ap('/foo', 'Orange', True, 40)
+
+        self.model.set_ap_strength('/foo', 'Orange', 80)
+        device_it = self.model.get_iter_first()
+        ap_it = self.model.iter_children(device_it)
+        self.assertEqual(self.model[ap_it][2], 80)
+
+    def test_remove_aps_not_in(self):
+        def list_aps():
+            device_it = self.model.get_iter_first()
+            ap_it = self.model.iter_children(device_it)
+            ret = []
+            while ap_it:
+                ret.append(self.model[ap_it][0])
+                ap_it = self.model.iter_next(ap_it)
+            return ret
+
+        self.model.add_device('/foo', 'Intel', 'Wireless')
+        fruits = ['Orange', 'Apple', 'Grape']
+        for ssid in fruits:
+            self.model.add_ap('/foo', ssid, True, 0)
+
+        self.model.remove_aps_not_in('/foo', fruits)
+        ret = list_aps()
+        # There haven't been any changes in this update.
+        self.assertListEqual(fruits, ret)
+
+        # An AP that was present no longer is.
+        fruits.pop()
+        self.model.remove_aps_not_in('/foo', fruits)
+        ret = list_aps()
+        self.assertListEqual(fruits, ret)
+
+
 udevinfo = """
 UDEV_LOG=3
 DEVPATH=/devices/pci0000:00/0000:00:1c.1/0000:03:00.0/net/wlan0
@@ -105,8 +193,9 @@ class NetworkManagerTests(unittest.TestCase):
         patcher = mock.patch('ubiquity.nm.NetworkManager.start')
         patcher.start()
         self.addCleanup(patcher.stop)
-        self.model = Gtk.TreeStore(str, object, object)
-        self.manager = nm.NetworkManager(self.model)
+        self.model = nmwidgets.GtkNetworkStore()
+        self.manager = nm.NetworkManager(self.model,
+                                         nmwidgets.GLibQueuedCaller)
 
     @mock.patch('subprocess.Popen')
     def test_get_vendor_and_model_null(self, mock_subprocess):
@@ -139,41 +228,10 @@ class NetworkManagerTests(unittest.TestCase):
                 dbus.Byte(97), dbus.Byte(117)]
         self.assertEqual(nm.decode_ssid(ssid), 'R\ufffdseau')
 
-    def test_ssid_in_model(self):
-        iterator = self.model.append(None, ['/foo', 'Intel', 'Wireless'])
-        for ssid in ('Orange', 'Apple', 'Grape'):
-            self.model.append(iterator, [ssid, True, 0])
-        self.assertIsNotNone(
-            self.manager.ssid_in_model(iterator, 'Apple', True))
-        self.assertIsNone(self.manager.ssid_in_model(iterator, 'Grape', False))
-
-    def test_prune(self):
-        iterator = self.model.append(None, ['/foo', 'Intel', 'Wireless'])
-        fruits = ['Orange', 'Apple', 'Grape']
-        for ssid in fruits:
-            self.model.append(iterator, [ssid, True, 0])
-        i = self.model.iter_children(iterator)
-        self.manager.prune(i, fruits)
-        ret = []
-        while i:
-            ret.append(self.model[i][0])
-            i = self.model.iter_next(i)
-        # There haven't been any changes in this update.
-        self.assertListEqual(fruits, ret)
-        # An AP that was present no longer is.
-        fruits.pop()
-        i = self.model.iter_children(iterator)
-        self.manager.prune(i, fruits)
-        ret = []
-        while i:
-            ret.append(self.model[i][0])
-            i = self.model.iter_next(i)
-        self.assertListEqual(fruits, ret)
-
     def test_pixbuf_func(self):
         iterator = self.model.append(None, ['/foo', 'Intel', 'Wireless'])
         mock_cell = mock.Mock()
-        tv = nm.NetworkManagerTreeView()
+        tv = nmwidgets.NetworkManagerTreeView()
         tv.pixbuf_func(None, mock_cell, self.model, iterator, None)
         mock_cell.set_property.assert_called_with('pixbuf', None)
         # 0% strength, protected network
@@ -193,7 +251,7 @@ class NetworkManagerTests(unittest.TestCase):
     def test_data_func(self):
         iterator = self.model.append(None, ['/foo', 'Intel', 'Wireless'])
         mock_cell = mock.Mock()
-        tv = nm.NetworkManagerTreeView()
+        tv = nmwidgets.NetworkManagerTreeView()
         tv.data_func(None, mock_cell, self.model, iterator, None)
         mock_cell.set_property.assert_called_with('text', 'Intel Wireless')
         i = self.model.append(iterator, ['Orange', True, 0])
@@ -201,4 +259,4 @@ class NetworkManagerTests(unittest.TestCase):
         mock_cell.set_property.assert_called_with('text', 'Orange')
 
 if __name__ == '__main__':
-    run_unittest(WidgetTests, NetworkManagerTests)
+    run_unittest(WidgetTests, NetworkStoreTests, NetworkManagerTests)

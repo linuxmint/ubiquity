@@ -6,7 +6,6 @@
 from __future__ import print_function
 
 import os
-import subprocess
 import sys
 
 sys.path.insert(0, '/usr/lib/ubiquity')
@@ -16,19 +15,18 @@ from ubiquity import osextras
 
 def main():
     newargv = []
-    desktop = None
     frontend = None
     toexec = []
 
     i = 1
     while i < len(sys.argv):
-        if sys.argv[i] == '--desktop':
-            desktop = sys.argv[i + 1]
-            i += 2
-            # strip option and argument from newargv
-            continue
-        elif not sys.argv[i].startswith('-'):
+        if not sys.argv[i].startswith('-'):
             frontend = sys.argv[i]
+        elif sys.argv[i] == '--autopilot':
+            if os.getenv('GTK_MODULES'):
+                os.environ['GTK_MODULES'] += os.pathsep + 'autopilot'
+            else:
+                os.environ['GTK_MODULES'] = 'autopilot'
         newargv.append(sys.argv[i])
         i += 1
 
@@ -84,35 +82,7 @@ def main():
                 except ImportError:
                     pass
 
-        if frontend == 'gtk_ui':
-            toexec = ['gksudo', '--preserve-env']
-            if desktop:
-                toexec += ['--desktop', desktop]
-            toexec.append('--')
-        elif frontend == 'kde_ui':
-            # We need to pass through xauth information.  kdesudo won't do,
-            # though, as it can't be made to tell sudo to preserve the
-            # environment.
-            import tempfile
-            xauthority = tempfile.NamedTemporaryFile(prefix='ubiquity-',
-                                                     suffix='-xauth')
-            os.chmod(xauthority.name, 0o600)  # root can still read it
-            xauth_extract = subprocess.Popen(
-                ['xauth', 'extract', '-', os.environ['DISPLAY']],
-                stdout=subprocess.PIPE)
-            xauth_merge = subprocess.Popen(
-                ['xauth', '-f', xauthority.name, 'merge', '-'],
-                stdin=xauth_extract.stdout)
-            xauth_merge.wait()
-            xauth_extract.stdout.close()
-            xauth_extract.wait()
-            toexec = ['sudo', '-E', 'XAUTHORITY=%s' % xauthority.name]
-        else:
-            toexec = ['sudo', '-E']
-
-        # re-exec ourselves first time round, to cope with broken argument
-        # handling in kdesu
-        toexec.append(sys.argv[0])
+        toexec = ['pkexec', sys.argv[0]]
         toexec.extend(newargv)
 
     if 'UBIQUITY_WRAPPER_DEBUG' in os.environ:

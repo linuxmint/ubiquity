@@ -55,28 +55,17 @@ for dev in $DEVICES/*; do
 				if [ "$(udpkg --print-os)" = hurd ]; then
 					options="$options -b 4096 -I 128 -o hurd"
 				fi
-				if [ -z "$options" ]; then
-					name_progress_bar $template
-					open_dialog CREATE_FILE_SYSTEM $id $filesystem
-					read_line status
-					close_dialog
+				db_progress START 0 3 partman/text/formatting
+				db_progress INFO $template
+				db_progress SET 1
+				if log-output -t partman --pass-stdout \
+				   mkfs.ext2 $device $options >/dev/null; then
 					sync
+					status=OK
 				else
 					status=failed
 				fi
-				if [ "$status" != OK ]; then
-					db_progress START 0 3 partman/text/formatting
-					db_progress INFO $template
-					db_progress SET 1
-					if log-output -t partman --pass-stdout \
-					   mkfs.ext2 $device $options >/dev/null; then
-						sync
-						status=OK
-					else
-						status=failed
-					fi
-					db_progress STOP
-				fi
+				db_progress STOP
 				if [ "$status" = OK ]; then
 					label=''
 					if [ -f $id/label ]; then

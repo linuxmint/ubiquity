@@ -3,6 +3,7 @@
 from __future__ import print_function
 
 import errno
+import getpass
 import grp
 import imp
 import os
@@ -13,6 +14,7 @@ import sys
 import time
 
 import debconf
+import PAM
 
 sys.path.insert(0, '/usr/lib/ubiquity')
 
@@ -23,21 +25,21 @@ import ubiquity.frontend
 from ubiquity.misc import create_bool, utf8
 
 
-def ck_open_session(uid):
-    import dbus
-
-    bus = dbus.SystemBus()
-    manager_obj = bus.get_object(
-        'org.freedesktop.ConsoleKit', '/org/freedesktop/ConsoleKit/Manager')
-    manager = dbus.Interface(manager_obj, 'org.freedesktop.ConsoleKit.Manager')
-    params = dbus.Array([], signature="(sv)")
-    params.append(("unix-user", dbus.Int32(uid)))
-    params.append(("session-type", dbus.String("")))
-    params.append(("x11-display", dbus.String(os.environ['DISPLAY'])))
-    params.append(("x11-display-device", dbus.String('/dev/tty7')))
-    params.append(("is-local", dbus.Boolean(True)))
-    cookie = manager.OpenSessionWithParameters(params)
-    os.environ['XDG_SESSION_COOKIE'] = cookie
+def _pam_conv(auth, query_list, userData):
+    resp = []
+    for query, type in query_list:
+        if type == PAM.PAM_PROMPT_ECHO_ON:
+            val = input(query)
+            resp.append((val, 0))
+        elif type == PAM.PAM_PROMPT_ECHO_OFF:
+            val = getpass.getpass(query)
+            resp.append((val, 0))
+        elif type in (PAM.PAM_PROMPT_ERROR_MSG, PAM.PAM_PROMPT_TEXT_INFO):
+            print(query)
+            resp.append(('', 0))
+        else:
+            return None
+    return resp
 
 
 def set_locale():
@@ -86,6 +88,7 @@ class MissingProgramError(EnvironmentError):
 
 class DM:
     def __init__(self, vt, display, default_username):
+        self.auth = PAM.pam()
         self.vt = vt
         self.display = display
         self.server_started = False
@@ -99,7 +102,6 @@ class DM:
                           self.username)
             self.username = 'root'
             self.uid, self.gid = 0, 0
-        os.environ['SUDO_USER'] = self.username
         self.homedir = pwd.getpwnam(self.username)[5]
         self.uid = int(self.uid)
         self.gid = int(self.gid)
@@ -168,6 +170,28 @@ class DM:
                     subprocess.call(
                         hook, stdout=logfile, stderr=logfile,
                         preexec_fn=self.drop_privileges)
+
+    def pam_open_session(self):
+            self.auth.start('su')
+            self.auth.set_item(PAM.PAM_USER, self.username)
+            self.auth.set_item(PAM.PAM_CONV, _pam_conv)
+            self.auth.putenv('XDG_SESSION_CLASS=greeter')
+            self.auth.putenv('XDG_SEAT=seat0')
+            # at the time pam_open_session is called self.vt is the
+            # correct vt: either the one originally passed as cmd line
+            # arg or as determined by active_vt()
+            #
+            # self.vt is of the form str("vt10")
+            self.auth.putenv('XDG_VTNR=%s' % self.vt[2:])
+            self.auth.authenticate()
+            self.auth.open_session()
+            os.environ.update(
+                [i.split('=', 1) for i in self.auth.getenvlist()])
+
+    def pam_close_session(self):
+        if self.auth:
+            self.auth.close_session()
+            self.auth = None
 
     def run(self, *program):
         # Extract the program basename to see if we are in oem-config or
@@ -277,13 +301,12 @@ EndSection
         os.environ['DISPLAY'] = self.display
         os.environ['HOME'] = self.homedir
         # Give ubiquity a UID and GID that it can drop privileges to.
-        os.environ['SUDO_UID'] = str(self.uid)
-        os.environ['SUDO_GID'] = str(self.gid)
+        os.environ['PKEXEC_UID'] = str(self.uid)
         os.environ['GVFS_DISABLE_FUSE'] = '1'
         # Overlay scrollbars are now a gtk module
         os.environ['GTK_MODULES'] = 'overlay-scrollbar'
 
-        ck_open_session(self.uid)
+        self.pam_open_session()
 
         # run simple, custom scripts during install time
         if program_basename == 'ubiquity':
@@ -324,12 +347,13 @@ EndSection
             background_image = None
             for background in (
                     '/usr/share/backgrounds/edubuntu_default.png',
-                    '/usr/share/xfce4/backdrops/macinnis_wallpaper.png',
-                    '/usr/share/xfce4/backdrops/xubuntu-precise-right.png',
+                    '/usr/share/xfce4/backdrops/ubuntustudio-1310.png',
+                    '/usr/share/xfce4/backdrops/xubuntu-wallpaper.png',
                     '/usr/share/lubuntu/wallpapers/'
                     'lubuntu-default-wallpaper.png',
                     '/usr/share/backgrounds/ubuntukylin-default-settings.jpg',
-                    '/usr/share/backgrounds/warty-final-ubuntu.png'):
+                    '/usr/share/backgrounds/warty-final-ubuntu.png',
+                    '/usr/share/backgrounds/gnome/FootFall.png'):
                 exists = os.access(background, os.R_OK)
                 if exists:
                     background_image = background
@@ -375,6 +399,20 @@ EndSection
                      '1'),
                 ]
 
+                if osextras.find_on_path('gnome-shell'):
+                    gsettings_keys.append(
+                        ('org.gnome.settings-daemon.plugins.background',
+                         'active', 'false'))
+                    gsettings_keys.remove(
+                        ('org.gnome.desktop.wm.preferences', 'num-workspaces',
+                         '1'))
+
+                for gs_schema, gs_key, gs_value in gsettings_keys:
+                    subprocess.call(
+                        ['gsettings', 'set', gs_schema, gs_key, gs_value],
+                        stdin=null, stdout=logfile, stderr=logfile,
+                        preexec_fn=self.drop_privileges)
+
                 gsd = '/usr/lib/gnome-settings-daemon/gnome-settings-daemon'
                 if osextras.find_on_path(gsd):
                     extras.append(subprocess.Popen(
@@ -384,12 +422,6 @@ EndSection
                 elif background_image and osextras.find_on_path('feh'):
                     subprocess.call(
                         ['feh', '--bg-fill', background_image],
-                        stdin=null, stdout=logfile, stderr=logfile,
-                        preexec_fn=self.drop_privileges)
-
-                for gs_schema, gs_key, gs_value in gsettings_keys:
-                    subprocess.call(
-                        ['gsettings', 'set', gs_schema, gs_key, gs_value],
                         stdin=null, stdout=logfile, stderr=logfile,
                         preexec_fn=self.drop_privileges)
 
@@ -406,7 +438,9 @@ EndSection
                             preexec_fn=self.drop_privileges))
                         os.environ['GTK_MODULES'] += os.pathsep + 'gail'
 
-            if osextras.find_on_path('metacity'):
+            if osextras.find_on_path('gnome-shell'):
+                wm_cmd = ['gnome-shell', '--sm-disable', '--mode=ubiquity']
+            elif osextras.find_on_path('metacity'):
                 wm_cmd = ['metacity', '--sm-disable']
             elif osextras.find_on_path('xfwm4'):
                 wm_cmd = ['xfwm4', '--compositor=off']
@@ -447,13 +481,16 @@ EndSection
 
             if (os.path.exists('/usr/lib/ubiquity/panel') and
                     "xfwm4" not in wm_cmd):
-                if "openbox-lubuntu" not in wm_cmd and "openbox" not in wm_cmd:
+                if ("openbox-lubuntu" not in wm_cmd and
+                        "openbox" not in wm_cmd and
+                        "gnome-shell" not in wm_cmd):
                     extras.append(subprocess.Popen(
                         ['/usr/lib/ubiquity/panel'],
                         stdin=null, stdout=logfile, stderr=logfile,
                         preexec_fn=self.drop_privileges))
 
-            if osextras.find_on_path('nm-applet'):
+            if (osextras.find_on_path('nm-applet') and
+                    "gnome-shell" not in wm_cmd):
                 extras.append(subprocess.Popen(
                     ['nm-applet'],
                     stdin=null, stdout=logfile, stderr=logfile,
@@ -640,4 +677,5 @@ except XStartupError:
 ret = dm.run(*sys.argv[4:])
 if ret == 0:
     set_locale()
+dm.pam_close_session()
 sys.exit(ret)

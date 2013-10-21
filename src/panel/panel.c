@@ -29,20 +29,10 @@
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
-#include <libindicator/indicator-object.h>
+#include <libindicator/indicator-ng.h>
+#include <libido/libido.h>
 
 #define ENTRY_DATA_NAME "indicator-custom-entry-data"
-
-
-static gchar * indicator_order[] = {
-  "indicator-session-devices",
-  "indicator-sound",
-  "nm-applet",
-  "bluetooth-manager",
-  "ubiquity",
-  "keyboard",
-  NULL
-};
 
 enum {
 	STRUT_LEFT = 0,
@@ -108,13 +98,41 @@ set_strut (GtkWindow *gtk_window,
   gdk_error_trap_pop_ignored ();
 }
 
+/* like gtk_menu_shell_insert, but appends/prepends if @position is out
+ * of range */
+static void
+menu_shell_insert (GtkMenuShell *shell,
+                   GtkWidget    *item,
+                   gint          position)
+{
+    if (position <= 0) {
+        gtk_menu_shell_prepend (shell, item);
+    }
+    else {
+        GList *children = gtk_container_get_children (GTK_CONTAINER (shell));
+        if (children) {
+            if (position < g_list_length (children))
+                gtk_menu_shell_insert (shell, item, position);
+            else
+                gtk_menu_shell_append (shell, item);
+            g_list_free (children);
+        }
+        else
+            gtk_menu_shell_prepend (shell, item);
+    }
+}
+
 /* Stolen from indicator-loader.c in unity. */
 static void
 entry_added (IndicatorObject * io, IndicatorObjectEntry * entry, gpointer user_data)
 {
+    GtkMenuShell *menubar = user_data;
+
     g_debug("Signal: Entry Added");
 
     GtkWidget * menuitem = gtk_menu_item_new();
+    g_object_set_data_full (G_OBJECT (menuitem), "indicator object", g_object_ref (io), g_object_unref);
+
     GtkWidget * hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
 
     if (entry->image != NULL) {
@@ -127,23 +145,24 @@ entry_added (IndicatorObject * io, IndicatorObjectEntry * entry, gpointer user_d
         gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem), GTK_WIDGET(entry->menu));
     }
 
-    if (entry->name_hint != NULL) {
-        int i;
-        int found = 0;
-        for (i = 0; indicator_order[i] != NULL; i++) {
-            if (g_strcmp0(entry->name_hint, indicator_order[i]) == 0) {
-                gtk_menu_shell_insert(GTK_MENU_SHELL(user_data), menuitem, i);
-                found = 1;
-                break;
+    gint position = indicator_object_get_position (io);
+    gint i = -1;
+
+    if (position > 0) {
+        i = 0;
+        GList *items = gtk_container_get_children (GTK_CONTAINER (menubar));
+        if (items) {
+            GList *it;
+            for (it = items; it != NULL; it = it->next, i++) {
+                IndicatorObject *item_io = g_object_get_data (it->data, "indicator object");
+                gint item_position = indicator_object_get_position (item_io);
+                if (position > item_position)
+                    break;
             }
-        }
-        if (found == 0) {
-            gtk_menu_shell_append(GTK_MENU_SHELL(user_data), menuitem);
+            g_list_free (items);
         }
     }
-    else {
-        gtk_menu_shell_append(GTK_MENU_SHELL(user_data), menuitem);
-    }
+    menu_shell_insert (menubar, menuitem, i);
 
     gtk_widget_show(menuitem);
 
@@ -176,19 +195,9 @@ entry_removed (IndicatorObject * io, IndicatorObjectEntry * entry, gpointer user
 }
 
 static gboolean
-load_module (const gchar * name, GtkWidget * menu)
+load_indicator (IndicatorObject *io, GtkWidget * menu)
 {
-    g_debug("Looking at Module: %s", name);
-    g_return_val_if_fail(name != NULL, FALSE);
-
-    if (!g_str_has_suffix(name, G_MODULE_SUFFIX)) {
-        return FALSE;
-    }
-
-    g_debug("Loading Module: %s", name);
-
-    /* Build the object for the module */
-    IndicatorObject * io = indicator_object_new_from_file(name);
+    g_return_val_if_fail(io != NULL, FALSE);
 
     /* Connect to its signals */
     g_signal_connect(G_OBJECT(io), INDICATOR_OBJECT_SIGNAL_ENTRY_ADDED,   G_CALLBACK(entry_added),    menu);
@@ -205,6 +214,36 @@ load_module (const gchar * name, GtkWidget * menu)
     g_list_free(entries);
 
     return TRUE;
+}
+
+static void
+load_indicator_files (const gchar *directory, GtkWidget *menu)
+{
+	GDir *dir;
+	GError *error = NULL;
+	const gchar *name;
+	
+	dir = g_dir_open (INDICATOR_DIR, 0, &error);
+	if (dir == NULL) {
+		g_warning ("unable to open indicator directory: %s", error->message);
+		g_error_free (error);
+		return;
+	}
+
+	while ((name = g_dir_read_name (dir))) {
+		gchar *path = g_build_filename (directory, name, NULL);
+		IndicatorNg *io = indicator_ng_new_for_profile (path, "ubiquity", &error);
+		if (io) {
+			load_indicator (INDICATOR_OBJECT (io), menu);
+		}
+		else {
+			g_warning ("unable to load indicator '%s': %s", name, error->message);
+			g_clear_error (&error);
+		}
+		g_free (path);
+	}
+
+	g_dir_close (dir);
 }
 
 /* At some point subclass GtkWindow instead. */
@@ -229,13 +268,6 @@ static void
 on_screen_change (GdkScreen *screen, GtkWidget *win) {
 	on_realize(win, NULL);
 }
-
-static const char* indicators[] = {
-	"/usr/lib/indicators3/7/libsession.so",
-	"/usr/lib/indicators3/7/libapplication.so",
-	"/usr/lib/indicators3/7/libsoundmenu.so",
-	NULL
-};
 
 static void
 draw_child (GtkWidget *child, gpointer client_data) {
@@ -280,12 +312,15 @@ main(int argc, char* argv[]) {
 	GtkWidget *win;
 	GtkCssProvider *cssprovider;
 	GdkScreen *screen;
+	GError *error;
 
 	/* Disable global menus */
 	g_unsetenv ("UBUNTU_MENUPROXY");
 	gtk_init(&argc, &argv);
+	ido_init ();
 	screen = gdk_screen_get_default();
 	win = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_default_size (GTK_WINDOW (win), -1, 28);
 	g_signal_connect(win, "realize", G_CALLBACK(on_realize), NULL);
 	g_signal_connect(screen, "monitors-changed", G_CALLBACK(on_screen_change), win);
 	g_signal_connect(screen, "size-changed", G_CALLBACK(on_screen_change), win);
@@ -299,22 +334,17 @@ main(int argc, char* argv[]) {
 			"GtkWidget {\n"
 			"    -GtkWidget-focus-line-width: 0;\n"
 			"    -GtkWidget-focus-padding: 0;\n"
-			"}\n"
-			".menuitem {\n"
-			"    padding: 0px 0px 0px 0px;\n"
 			"}\n", -1, NULL);
 
 	gtk_style_context_add_provider_for_screen(screen,
 		GTK_STYLE_PROVIDER (cssprovider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 
 	GtkWidget* menubar = gtk_menu_bar_new();
-	gtk_menu_bar_set_pack_direction(GTK_MENU_BAR(menubar), GTK_PACK_DIRECTION_RTL);
-	int i;
-	for(i = 0; indicators[i]; i++) {
-		if (!load_module(indicators[i], menubar)) {
-			g_error("Unable to load module");
-		}
-	}
+
+	load_indicator_files (INDICATOR_DIR, menubar);
+	IndicatorObject * io = indicator_object_new_from_file("/usr/lib/indicators3/7/libapplication.so");
+	load_indicator(io, menubar);
+
 	GtkWidget* hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
 	gtk_container_add(GTK_CONTAINER(win), hbox);
 	gtk_box_pack_end(GTK_BOX(hbox), menubar, FALSE, FALSE, 0);

@@ -1762,6 +1762,8 @@ class Page(plugin.Plugin):
         for method in self.subdirectories('/lib/partman/choose_method'):
             if method == 'filesystem':
                 for fs in self.scripts('/lib/partman/valid_filesystems'):
+                    if fs == 'btrfs' and not os.path.exists('/sbin/mkfs.btrfs'):
+                        continue
                     if fs == 'ntfs':
                         if not create and devpart in self.partition_cache:
                             partition = self.partition_cache[devpart]

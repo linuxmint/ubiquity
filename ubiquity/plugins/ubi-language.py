@@ -492,14 +492,15 @@ class PageKde(PageBase):
                 self.page.release_notes_label.setText(text)
             self.updating_installer = False
 
-    def openURL(self, url):
-        from PyQt4.QtGui import QDesktopServices
-        from PyQt4.QtCore import QUrl
+    def openURL(self, url):        
+        import subprocess
         from ubiquity.misc import drop_privileges_save, regain_privileges_save
 
         # this nonsense is needed because kde doesn't want to be root
-        drop_privileges_save()
-        QDesktopServices.openUrl(QUrl(url))
+        drop_privileges_save()                    
+        uri = self.release_notes_url.replace('${LANG}', '')
+        subprocess.Popen(['sensible-browser', uri], close_fds=True,
+                             preexec_fn=misc.drop_all_privileges)
         regain_privileges_save()
 
     def set_language_choices(self, choices, choice_map):

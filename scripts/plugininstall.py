@@ -199,7 +199,7 @@ class Install(install_misc.InstallBase):
 
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/apt')
-        #self.configure_apt()
+        self.configure_apt()
 
         self.configure_plugins()
         self.configure_face()

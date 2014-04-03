@@ -1,3 +1,84 @@
+grub-installer (1.78ubuntu19) trusty; urgency=medium
+
+  * If grub-installer/bootdev was set to (hd0), override it to the OS device
+    name for the first disk if possible (LP: #1292628).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 28 Mar 2014 13:11:31 +0000
+
+grub-installer (1.78ubuntu18) trusty; urgency=medium
+
+  * When wiping the PReP partition on ppc64el/grub-ieee1275, limit the write
+    to the size of the partition, otherwise dd fails.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 21 Mar 2014 12:59:07 +0000
+
+grub-installer (1.78ubuntu17) trusty; urgency=medium
+
+  * On ppc64el/grub-ieee1275, wipe the PReP partition before running
+    grub-install.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 18 Mar 2014 15:44:21 +0000
+
+grub-installer (1.78ubuntu16) trusty; urgency=low
+
+  [ Dave Chiluk ]
+  * Force grub-installer/bootdev to take precedence over only_debian and
+    with_other_os. (LP: #1012629)
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Thu, 27 Feb 2014 17:04:45 +0000
+
+grub-installer (1.78ubuntu15) trusty; urgency=medium
+
+  * Cherrypick 1.92 changes:
+    * Adapt patch from Guilhem Moulin to always honor
+    grub-installer/bootdev, when it was preseeded, instead of insisting on
+    automatic detection which may lead to unpredictable results (e.g. use
+    a different device, or fail unattended installation). Closes:
+    #666974. LP: #1012629.
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Tue, 25 Feb 2014 16:43:41 +0000
+
+grub-installer (1.78ubuntu14) trusty; urgency=medium
+
+  * Only look for the prep flag, not boot as well; these appear to be
+    mutually exclusive on GPT.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 31 Jan 2014 15:16:35 +0000
+
+grub-installer (1.78ubuntu13) trusty; urgency=medium
+
+  * Fix ppc64el detection in boot device hack.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 31 Jan 2014 14:33:11 +0000
+
+grub-installer (1.78ubuntu12) trusty; urgency=medium
+
+  * Add a hack to pick the right boot device on ppc64el.  This should really
+    be done in grub-install instead, and will need to be done there in order
+    to support major GRUB upgrades properly, but this will tide us over for
+    now.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 31 Jan 2014 12:50:09 +0000
+
+grub-installer (1.78ubuntu11) trusty; urgency=medium
+
+  * Add ppc64el support.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 24 Jan 2014 17:11:23 +0000
+
+grub-installer (1.78ubuntu10) trusty; urgency=medium
+
+  * Handle NVMe devices, based on the debug logs from Colin
+    King. Preliminary support (LP: #1265483)
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Fri, 03 Jan 2014 10:28:09 +0000
+
+grub-installer (1.78ubuntu9) trusty; urgency=low
+
+  * Handle FusionIO devices, based on work by Igor Sharovar (LP: #1237519).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 12 Nov 2013 16:50:04 +0000
+
 grub-installer (1.78ubuntu8) saucy; urgency=low
 
   * Always use grub-efi-amd64-signed on 64bit UEFI systems instead of

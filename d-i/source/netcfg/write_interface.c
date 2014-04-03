@@ -82,20 +82,6 @@ static int nc_wi_dhcp(const struct netcfg_interface *interface, FILE *fd)
 	return 1;
 }
 
-/* Write out a DHCPv6 stanza for the given interface
- */
-static int nc_wi_dhcpv6(const struct netcfg_interface *interface, FILE *fd)
-{
-	if (interface->dhcp == 0) {
-		fprintf(fd, "\n# The primary network interface\n");
-		fprintf(fd, "auto %s\n", interface->name);
-	}
-
-	fprintf(fd, "iface %s inet6 dhcp\n", interface->name);
-
-	return 1;
-}
-
 /* Write out a SLAAC stanza for the given interface
  */
 static int nc_wi_slaac(const struct netcfg_interface *interface, FILE *fd)
@@ -103,10 +89,14 @@ static int nc_wi_slaac(const struct netcfg_interface *interface, FILE *fd)
 	if (interface->dhcp == 0)
 		fprintf(fd, "\n# The primary network interface\n");
 	fprintf(fd, "# This is an autoconfigured IPv6 interface\n");
-	if (interface->dhcp == 0)
+	if (interface->dhcp == 0) {
 		fprintf(fd, "auto %s\n", interface->name);
+	}
 
 	fprintf(fd, "iface %s inet6 auto\n", interface->name);
+/*	fprintf(fd, "\t# Activate RFC 4941 privacy extensions for outgoing connections. The\n");
+	fprintf(fd, "\t# machine will still be reachable via its EUI-64 interface identifier.\n");
+	fprintf(fd, "\tprivext 2\n");*/
 
 	return 1;
 }
@@ -252,16 +242,12 @@ int netcfg_write_interface(const struct netcfg_interface *interface)
 	} else if (interface->loopback == 1) {
 		di_debug("Writing loopback interface");
 		rv = nc_wi_loopback(interface, fd);
-	} else if (interface->dhcp == 1 ||
-		   interface->dhcpv6 == 1 || interface->slaac == 1) {
+	} else if (interface->dhcp == 1 || interface->slaac == 1) {
 		if (interface->dhcp == 1) {
 			di_debug("Writing DHCP stanza for %s", interface->name);
 			rv = nc_wi_dhcp(interface, fd);
 		}
-		if (interface->dhcpv6 == 1) {
-			di_debug("Writing DHCPv6 stanza for %s", interface->name);
-			rv = nc_wi_dhcpv6(interface, fd);
-		} else if (interface->slaac == 1) {
+		if (interface->slaac == 1) {
 			di_debug("Writing SLAAC stanza for %s", interface->name);
 			rv = nc_wi_slaac(interface, fd);
 		}

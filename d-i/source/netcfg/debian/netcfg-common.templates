@@ -7,15 +7,15 @@ Description: for internal use; can be preseeded
 Template: netcfg/use_autoconfig
 Type: boolean
 Default: true
+# IPv6
 # :sl1:
 _Description: Auto-configure networking?
- Networking can be configured by either manually entering all the
- information, or automatically detecting your networking settings using DHCP
- or a variety of IPv6-specific methods.  If you choose to use
+ Networking can be configured either by entering all the information
+ manually, or by using DHCP (or a variety of IPv6-specific methods) to
+ detect network settings automatically. If you choose to use
  autoconfiguration and the installer is unable to get a working
- configuration from your network, you will be given the opportunity to
- configure your network manually after the attempt to automatically
- configure it.
+ configuration from the network, you will be given the opportunity to
+ configure the network manually.
 
 Template: netcfg/get_domain
 Type: string
@@ -55,22 +55,23 @@ _Description: Wireless ESSID for ${iface}:
 
 Template: netcfg/wireless_essid_again
 Type: string
-# :sl2:
+# :sl1:
 _Description: Wireless ESSID for ${iface}:
  Attempting to find an available wireless network failed.
  .
  ${iface} is a wireless network interface. Please enter the name (the ESSID)
- of the wireless network you would like ${iface} to use. To skip wireless
- configuration and continue, leave this field blank.
+ of the wireless network you would like ${iface} to use. To connect to any
+ available network, leave this field blank.
 
 Template: netcfg/wireless_security_type
 Type: select
-Choices-C: wep/open, wpa 
-__Choices: WEP/Open Network, WPA PSK
+Choices-C: wep/open, wpa
+__Choices: WEP/Open Network, WPA/WPA2 PSK
 # :sl2:
 _Description: Wireless network type for ${iface}:
  Choose WEP/Open if the network is open or secured with WEP.
- Choose WPA if the network is a WPA PSK protected network.
+ Choose WPA/WPA2 if the network is protected with WPA/WPA2 PSK
+ (Pre-Shared Key).
 
 Template: netcfg/wireless_wep
 Type: string
@@ -100,22 +101,22 @@ Template: netcfg/invalid_pass
 Type: error
 # :sl2:
 _Description: Invalid passphrase
- The WPA PSK passphrase was either too long (more than 64 characters)
+ The WPA/WPA2 PSK passphrase was either too long (more than 64 characters)
  or too short (less than 8 characters).
 
 Template: netcfg/wireless_wpa
 Type: string
 # :sl2:
-_Description: WPA passphrase for wireless device ${iface}:
- Enter the passphrase for WPA PSK authentication. This should be the
+_Description: WPA/WPA2 passphrase for wireless device ${iface}:
+ Enter the passphrase for WPA/WPA2 PSK authentication. This should be the
  passphrase defined for the wireless network you are trying to use.
 
 Template: netcfg/invalid_essid
 Type: error
 # :sl2:
 _Description: Invalid ESSID
- The ESSID "${essid}" is invalid. ESSIDs may only be up to 32 characters,
- but may contain all kinds of characters.
+ The ESSID "${essid}" is invalid. ESSIDs may only be up to ${max_essid_len}
+ characters, but may contain all kinds of characters.
 
 Template: netcfg/wpa_progress
 Type: text
@@ -130,14 +131,14 @@ _Description: This may take some time.
 Template: netcfg/wpa_success_note
 Type: text
 # :sl2:
-_Description: WPA connection succeeded
+_Description: WPA/WPA2 connection succeeded
 
 Template: netcfg/wpa_supplicant_failed
 Type: note
 # :sl2:
 _Description: Failure of key exchange and association
  The exchange of keys and association with the access point failed.
- Please check the WPA parameters you provided.
+ Please check the WPA/WPA2 parameters you provided.
 
 Template: netcfg/get_hostname
 Type: string
@@ -150,6 +151,11 @@ _Description: Hostname:
  If you don't know what your hostname should be, consult your network
  administrator. If you are setting up your own home network, you can make
  something up here.
+
+Template: netcfg/hostname
+Type: string
+Description: for internal use; can be preseeded
+ Hostname to set for the system; ignores names provided by DHCP or DNS.
 
 Template: netcfg/invalid_hostname
 Type: error
@@ -174,7 +180,7 @@ Type: error
 # :sl2:
 _Description: No network interfaces detected
  No network interfaces were found. The installation
- system was unable to find a network device. 
+ system was unable to find a network device.
  .
  You may need to load a specific module for your network card, if you have
  one. For this, go back to the network hardware detection step.
@@ -214,11 +220,17 @@ Type: text
 # :sl2:
 _Description: Searching for wireless access points...
 
-Template: netcfg/disable_dhcp
+Template: netcfg/disable_autoconfig
 Type: boolean
 Default: false
 Description: for internal use; can be preseeded
  Set to true to force static network configuration
+
+Template: netcfg/disable_dhcp
+Type: boolean
+Default: false
+Description: for internal use; can be preseeded (deprecated)
+ Set to true to force static network configuration (deprecated)
 
 Template: netcfg/link_detect_progress
 Type: text
@@ -322,10 +334,40 @@ Type: text
 # :sl1:
 _Description: Configure the network
 
-Template: netcfg/network-manager
-Type: boolean
-Default: true
+Template: netcfg/target_network_config
+Type: select
+Choices-C: nm_config, ifupdown, loopback
+Choices: Network Manager, ifupdown (/etc/network/interfaces), No network configuration
 Description: for internal use; can be preseeded
- Set to false to prevent /etc/network/interfaces being adjusted for use by
- network-manager. If you do this, network-manager will probably not work
- correctly.
+ Specifies what kind of network connection management tool should be
+ configured post-installation if multiple are available. Automatic
+ selection is used in this order when not specified: network-manager if
+ available (on Linux only), ethernet configuration through ifupdown on wired
+ installation and loopback configuration through ifupdown on wireless
+ installations.
+
+Template: netcfg/link_wait_timeout
+Type: string
+Default: 3
+# :sl3:
+_Description: Waiting time (in seconds) for link detection:
+ Please enter the maximum time you would like to wait for network link
+ detection.
+
+Template: netcfg/bad_link_wait_timeout
+Type: error
+# :sl3:
+_Description: Invalid network link detection waiting time
+ The value you have provided is not valid. The maximum waiting time (in
+ seconds) for network link detection must be a positive integer.
+
+Template: netcfg/wireless_show_essids
+Type: select
+Choices-C: ${essid_list} manual
+# Translators: please do not translate the variable essid_list
+# :sl1:
+_Choices: ${essid_list} Enter ESSID manually
+# :sl1:
+_Description: Wireless network:
+ Select the wireless network to use during the installation process.
+

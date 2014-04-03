@@ -121,7 +121,7 @@ decode_recipe () {
 				max=$min
 			fi
 			case "$4" in # allow only valid file systems
-			    ext2|ext3|ext4|xfs|reiserfs|jfs|linux-swap|fat16|fat32|hfs|ufs)
+			    ext2|ext3|ext4|xfs|jfs|linux-swap|fat16|fat32|hfs|ufs)
 				fs="$4"
 				;;
 			    \$default_filesystem)
@@ -374,11 +374,20 @@ choose_recipe () {
 		recipe="$RET"
 		decode_recipe $recipe $type
 		filter_reused
-		if [ $(min_size) -le $free_size ]; then
+		min_size=$(min_size)
+		if [ $min_size -le $free_size ]; then
 			return 0
 		else
 			logger -t partman-auto \
-			"Available disk space ($free_size) too small for expert recipe ($(min_size)); skipping"
+			"Available disk space ($free_size) too small for expert recipe ($min_size); skipping"
+			hookdir=/lib/partman/not-enough-space.d
+			if [ -d $hookdir ] ; then
+				for h in $hookdir/* ; do
+					if [ -x $h ] ; then
+						$h $recipe $free_size $min_size
+					fi
+				done
+			fi
 		fi
 	fi
 

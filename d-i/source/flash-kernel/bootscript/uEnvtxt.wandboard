@@ -1,0 +1,6 @@
+loadpreenv=load mmc ${mmcdev}:${mmcpart} 0x12000000 preenv.txt; env import -t 0x12000000 ${filesize}
+loadkernel=load mmc ${mmcdev}:${mmcpart} 0x12000000 uImage
+loadinitrd=load mmc ${mmcdev}:${mmcpart} 0x12A00000 uInitrd
+
+bootcmd=run loadpreenv; run loadkernel; run loadinitrd; bootm 0x12000000 0x12A00000
+uenvcmd=boot

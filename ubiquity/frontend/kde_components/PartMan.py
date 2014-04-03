@@ -64,7 +64,9 @@ class PartMan(QtGui.QWidget):
             if item in disk_cache:
                 # the item is a disk
                 indexCount += 1
-                partition_bar = PartitionsBar(self.part_advanced_bar_frame)
+                partition_bar = PartitionsBar(
+                    self.part_advanced_bar_frame,
+                    controller=self.ctrlr)
                 self.part_advanced_bar_frame.layout().addWidget(partition_bar)
 
                 #hide all the other bars at first

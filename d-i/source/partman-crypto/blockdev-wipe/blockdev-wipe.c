@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2006 David Härdeman <david@2gen.com>
- * 
+ * Copyright (C) 2006 David HÃ¤rdeman <david@2gen.com>
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -63,19 +63,14 @@ static unsigned long long dev_size(int fd)
 {
 	int ret;
 	unsigned long long size;
-	unsigned long blocks;
 
 	ret = ioctl(fd, BLKGETSIZE64, &size);
-	if (ret == 0)
-		return size;
-
-	ret = ioctl(fd, BLKGETSIZE, &blocks);
 	if (ret < 0) {
 		close(fd);
 		die("failed to get device size", 1);
 	}
 
-	return blocks * 512;
+	return size;
 }
 
 static int do_wipe(int source, int target, size_t wsize)

@@ -69,8 +69,10 @@ void cleanup_rdnssd()
 		/* Definitely wasn't us */
 		return;
 	
-	waitpid(rdnssd_pid, &exit_status, WNOHANG);
-	
+	if (waitpid(rdnssd_pid, &exit_status, WNOHANG) != rdnssd_pid)
+		/* Not us either */
+		return;
+
 	if (WIFEXITED(exit_status))
 		/* Yep, that was me */
 		rdnssd_pid = -1;

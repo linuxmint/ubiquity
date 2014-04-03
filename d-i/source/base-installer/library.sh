@@ -28,6 +28,7 @@ KERNEL_FLAVOUR=$(uname -r | cut -d - -f 3-)
 MACHINE="$(uname -m)"
 NUMCPUS=$(cat /var/numcpus 2>/dev/null) || true
 CPUINFO=/proc/cpuinfo
+OFCPUS=/proc/device-tree/cpus/
 
 # files and directories
 APT_SOURCES=/target/etc/apt/sources.list
@@ -174,6 +175,16 @@ APT::Get::AllowUnauthenticated "true";
 Aptitude::CmdLine::Ignore-Trust-Violations "true";
 EOT
 	fi
+
+	if [ "$PROTOCOL" = https ] && db_get debian-installer/allow_unauthenticated_ssl && [ "$RET" = true ]; then
+		# This file will be left in place on the installed system.
+		cat > $APT_CONFDIR/00AllowUnauthenticatedSSL << EOT
+Acquire::https::Verify-Host "false";
+Acquire::https::Verify-Peer "false";
+EOT
+	fi
+
+	[ ! -d "$DPKG_CONFDIR" ] && mkdir -p "$DPKG_CONFDIR"
 
 	# Disable all syncing; it's unnecessary in an installation context,
 	# and can slow things down quite a bit.
@@ -348,7 +359,7 @@ kernel_update_list () {
 	# Hack to get the metapackages in the right order; should be
 	# replaced by something better at some point.
 	chroot /target apt-cache search ^linux-signed- | grep '^linux-signed-\(generic\|server\|virtual\|preempt\|rt\|xen\)';
-	chroot /target apt-cache search ^linux- | grep '^linux-\(amd64\|686\|k7\|generic\|server\|virtual\|preempt\|rt\|xen\|power\|cell\|ia64\|sparc\|hppa\|imx51\|dove\|omap\|omap4\|armadaxp\)';
+	chroot /target apt-cache search ^linux- | grep '^linux-\(amd64\|686\|k7\|generic\|server\|virtual\|preempt\|rt\|xen\|power\|cell\|omap\|omap4\|keystone\)';
 	chroot /target apt-cache search ^linux-signed-image- | grep -v '^linux-signed-image-[2-9]\.';
 	chroot /target apt-cache search ^linux-image- | grep -v '^linux-image-[2-9]\.';
 	chroot /target apt-cache search '^linux-signed-image-[2-9]\.' | sort -r;
@@ -932,13 +943,62 @@ EOT
 		else
 			SECDIRECTORY=/ubuntu
 		fi
+		
+		if [ "$MIRROR" = ports.ubuntu.com ]; then
+			# Awful Ubuntu-specific hack. *-security suites for ports
+			# architectures aren't available on security.ubuntu.com, only on
+			# ports.ubuntu.com.
+			SECMIRROR="$MIRROR"
+			SECDIRECTORY="$DIRECTORY"
+		fi
+		
 		echo "deb $PROTOCOL://$SECMIRROR$SECDIRECTORY $DISTRIBUTION-security $COMPONENTS" >> $APT_SOURCES
 		if db_get apt-setup/proposed && [ "$RET" = true ]; then
 			echo "deb $APTSOURCE $DISTRIBUTION-proposed $COMPONENTS" >> $APT_SOURCES
+		fi
+	    	if db_get apt-setup/overlay && [ "$RET" = true ]; then
+			db_get apt-setup/overlay_host
+			overlay_host="$RET"
+			db_get apt-setup/overlay_directory
+			overlay_directory="$RET"
+			db_get apt-setup/overlay_components
+			overlay_components="$RET"
+
+			echo "deb $PROTOCOL://$overlay_host$overlay_directory $DISTRIBUTION $overlay_components" >> $APT_SOURCES
+		fi
+		if db_get apt-setup/local0/repository; then
+		    echo "$RET" >> $APT_SOURCES
 		fi
 	fi
 }
 
 cleanup () {
 	rm -f "$KERNEL_LIST" "$KERNEL_LIST.unfiltered"
+}
+
+configure_apt_overlay () {
+    	if db_get apt-setup/overlay && [ "$RET" = true ]; then
+		db_get apt-setup/overlay_early_apt_pkg_install
+		early_pkg_list=$RET 
+
+		# We need to run apt-get update to get the PPA's package list
+		# Don't check error codes here; we will have a GPG error
+		log-output -t base-installer chroot /target apt-get update
+
+		# Install our packages
+		#
+		# We force GPG checks and assume the packages we install
+		# will give us our keyring. At this pount, we've already
+		# run debootstrap, and haven't checked its GPG key
+		# so its sane to force this through.
+		#
+		# apt_update will check all the keys it has for all releases
+		log-output -t base-installer chroot /target \
+			apt-get -o APT::Get::AllowUnauthenticated=true install $early_pkg_list || apt_overlay_install_failed=$?
+
+		if [ "$apt_overlay_install_failed" ]; then
+			warning "apt overlay install failed: $apt_overlay_install_failed"
+		fi
+
+	fi
 }

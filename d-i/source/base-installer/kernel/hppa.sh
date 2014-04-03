@@ -5,9 +5,9 @@ arch_get_kernel_flavour () {
 
 arch_check_usable_kernel () {
 	# TODO recent kernels expose os32/os64 in 'capabilities' line in cpuinfo
-	if echo "$1" | grep -Eq -- "-(parisc|hppa)(32)?(-.*)?$"; then return 0; fi
+	if echo "$1" | grep -Eq -- "-parisc(32)?(-.*)?$"; then return 0; fi
 	if [ "$2" = parisc ]; then return 1; fi
-	if echo "$1" | grep -Eq -- "-(parisc|hppa)(64)?(-.*)?$"; then return 0; fi
+	if echo "$1" | grep -Eq -- "-parisc(64)?(-.*)?$"; then return 0; fi
 
 	# default to usable in case of strangeness
 	warning "Unknown kernel usability: $1 / $2"
@@ -15,11 +15,8 @@ arch_check_usable_kernel () {
 }
 
 arch_get_kernel () {
-	case $1 in
-		parisc)		family=hppa32 ;;
-		parisc64)	family=hppa64 ;;
-	esac
-
-	echo "linux-$family"
-	echo "linux-image-$family"
+	if [ "$NUMCPUS" ] && [ "$NUMCPUS" -gt 1 ]; then
+		echo "linux-image-$1-smp"
+	fi
+	echo "linux-image-$1"
 }

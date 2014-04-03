@@ -29,6 +29,11 @@ HTTPCODECHOICES="$(cut -f1 debian/httplist-countries | xargs | sed 's/ /, /g')"
 HTTPCHOICES="$(country_names debian/httplist-countries)"
 printf " Done.\n"
 
+printf "Creating the list of countries for HTTPS mirrors..."
+HTTPSCODECHOICES="$(cut -f1 debian/httpslist-countries | xargs | sed 's/ /, /g')"
+HTTPSCHOICES="$(country_names debian/httpslist-countries)"
+printf " Done.\n"
+
 printf "Creating the list of countries for FTP mirrors..."
 FTPCODECHOICES="$(cut -f1 debian/ftplist-countries | xargs | sed 's/ /, /g')"
 FTPCHOICES="$(country_names debian/ftplist-countries)"
@@ -42,6 +47,7 @@ printf "Insert the lists of choices into the templates file..."
 	done
 ) | debian/templates-build.pl "$DEB_HOST_ARCH" | \
     perl -pe 'if (m,http/countries$,) { $found = 2; } elsif ($found and /^Choices-C:/ && length "'"$HTTPCODECHOICES"'") { s/$/, '"$HTTPCODECHOICES"'/; $found -= 1; }  elsif ($found and /^__Choices:/ && length "'"$HTTPCHOICES"'") { s/$/'"$HTTPCHOICES"'/; $found -= 1; }' | \
+    perl -pe 'if (m,https/countries$,) { $found = 2; } elsif ($found and /^Choices-C:/ && length "'"$HTTPSCODECHOICES"'") { s/$/, '"$HTTPSCODECHOICES"'/; $found -= 1; }  elsif ($found and /^__Choices:/ && length "'"$HTTPSCHOICES"'") { s/$/'"$HTTPSCHOICES"'/; $found -= 1; }' | \
     perl -pe 'if (m,ftp/countries$,) { $found = 2; } elsif ($found and /^Choices-C:/ && length "'"$FTPCODECHOICES"'") { s/$/, '"$FTPCODECHOICES"'/;  $found -= 1; } elsif ($found and /^__Choices:/ && length "'"$FTPCHOICES"'") { s/$/'"$FTPCHOICES"'/;  $found -= 1; }' \
     >debian/templates.tmp
 printf " Done.\n"

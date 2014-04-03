@@ -615,16 +615,31 @@ class PageGtk(PageBase):
             ("some_device_lvm", "use_lvm"),
         )
 
+        release = misc.get_release()
         if 'some_device_crypto' in extra_options:
             title = self.controller.get_string(
                 'ubiquity/text/use_crypto')
+            title = title.replace('${RELEASE}', release.name)
             desc = self.controller.get_string('ubiquity/text/use_crypto_desc')
             options['some_device_crypto'] = PartitioningOption(title, desc)
 
         if 'some_device_lvm' in extra_options:
             title = self.controller.get_string('ubiquity/text/use_lvm')
+            title = title.replace('${RELEASE}', release.name)
             desc = self.controller.get_string('ubiquity/text/use_lvm_desc')
             options['some_device_lvm'] = PartitioningOption(title, desc)
+
+        crypto_desc_obj = getattr(self, 'crypto_description_2')
+        text = self.controller.get_string(
+            'ubiquity/text/crypto_description_2')
+        text = text.replace('${RELEASE}', release.name)
+        crypto_desc_obj.set_label(text)
+
+        lvm_explanation_obj = getattr(self, 'partition_lvm_explanation')
+        text = self.controller.get_string(
+            'ubiquity/text/partition_lvm_explanation')
+        text = text.replace('${RELEASE}', release.name)
+        lvm_explanation_obj.set_label(text)
 
         ticked = False
         for option, name in option_to_widget:

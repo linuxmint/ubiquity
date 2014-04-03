@@ -222,7 +222,8 @@ while [ ! "$done" ]; do
 	db_get mirror/$protocol/directory
 	directory="/${RET#/}"
 
-	if [ "$protocol" = http ]; then
+	case $protocol in
+	    http|https)
 		db_get mirror/$protocol/proxy
 		proxy="$RET"
 		if [ -n "$proxy" ]; then
@@ -230,7 +231,8 @@ while [ ! "$done" ]; do
 				echo "Acquire::$protocol::Proxy \"$proxy\";" >> $ROOT/etc/apt/apt.conf.new
 			fi
 		fi
-	fi
+		;;
+	esac
 
 	echo "deb $protocol://$hostname$directory $codename $dists" > $file
 	

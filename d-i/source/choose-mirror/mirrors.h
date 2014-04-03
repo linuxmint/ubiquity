@@ -1,5 +1,5 @@
 /*
- * Data structure for representing http and ftp mirror information.
+ * Data structure for representing http, https, and ftp mirror information.
  * Contains essentially the same information as Mirrors.masterlist,
  * but only as much information as is necessary.
  */
@@ -13,7 +13,7 @@ struct mirror_t {
 
 /*
  * The string defined below must match the string used in the templates
- * (http and ftp) for this option.
+ * (http, https, and ftp) for this option.
  */
 #define MANUAL_ENTRY "manual"
 
@@ -22,7 +22,7 @@ struct mirror_t {
 /* Stack of suites */
 static const char suites[][SUITE_LENGTH] = {
 	/* higher preference */
-	"saucy",
+	"trusty",
 	/* lower preference */
 };
 

@@ -72,9 +72,13 @@ db_get apt-setup/services-select-ubuntu
 [ "$RET" ] || exit 0
 
 # Proxy configuration is common to all services
-if db_get mirror/http/proxy && [ -n "$RET" ]; then
-	proxy="$RET"
-	if ! grep -iq "Acquire::http::Proxy" $ROOT/etc/apt/apt.conf.new; then
-		echo "Acquire::http::Proxy \"$proxy\";" >> $ROOT/etc/apt/apt.conf.new
+case $protocol in
+    http|https)
+	if db_get mirror/$protocol/proxy && [ -n "$RET" ]; then
+		proxy="$RET"
+		if ! grep -iq "Acquire::$protocol::Proxy" $ROOT/etc/apt/apt.conf.new; then
+			echo "Acquire::$protocol::Proxy \"$proxy\";" >> $ROOT/etc/apt/apt.conf.new
+		fi
 	fi
-fi
+	;;
+esac

@@ -1,6 +1,6 @@
 arch_get_kernel_flavour () {
 	case "$SUBARCH" in
-	    armadaxp|dove|generic-lpae|generic|imx51|omap|omap4|iop32x|iop33x|ixp4xx|kirkwood|orion5x|versatile|mx5)
+	    iop32x|kirkwood|orion5x|versatile)
 		echo "$SUBARCH"
 		return 0 ;;
 	    ads)
@@ -21,6 +21,11 @@ arch_check_usable_kernel () {
 }
 
 arch_get_kernel () {
-	echo "linux-$1"
-	echo "linux-image-$1"
+	case "$KERNEL_MAJOR" in
+	    2.6|3.*)
+		echo "linux-image-$1"
+		;;
+	    *)	warning "Unsupported kernel major '$KERNEL_MAJOR'."
+		;;
+	esac
 }

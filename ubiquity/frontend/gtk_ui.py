@@ -49,7 +49,7 @@ DBusGMainLoop(set_as_default=True)
 
 #in query mode we won't be in X, but import needs to pass
 if 'DISPLAY' in os.environ:
-    from gi.repository import Gtk, Gdk, GObject, GLib
+    from gi.repository import Gtk, Gdk, GObject, GLib, Atk
     from ubiquity import gtkwidgets
 
 from ubiquity import (
@@ -240,8 +240,6 @@ class Wizard(BaseFrontend):
         self.set_busy_cursor(True)
         atexit.register(set_root_cursor)
 
-        self.laptop = misc.execute("laptop-detect")
-
         # Are we running alongside Orca?
         with open('/proc/cmdline') as fp:
             if 'access=v3' in fp.read():
@@ -330,6 +328,7 @@ class Wizard(BaseFrontend):
 
         for mod in self.pages:
             progress = Gtk.ProgressBar()
+            progress.get_accessible().set_role(Atk.Role.INVALID)
             progress.set_size_request(10, 10)
             progress.set_fraction(0)
             self.dot_grid.add(progress)
@@ -362,8 +361,6 @@ class Wizard(BaseFrontend):
                             AppIndicator.IndicatorStatus.ACTIVE)
                         self.indicator.set_menu(
                             self.builder.get_object('a11y_indicator_menu'))
-                        self.live_installer.connect(
-                            'key-press-event', self.a11y_profile_keys)
                         if osextras.find_on_path('canberra-gtk-play'):
                             subprocess.Popen(
                                 ['canberra-gtk-play', '--id=system-ready'],
@@ -371,6 +368,8 @@ class Wizard(BaseFrontend):
                     except:
                         print("Unable to set up accessibility profile support",
                               file=sys.stderr)
+            self.live_installer.connect(
+                'key-press-event', self.a11y_profile_keys)
 
     def all_children(self, parent):
         if isinstance(parent, Gtk.Container):
@@ -667,6 +666,10 @@ class Wizard(BaseFrontend):
                 event.keyval == Gdk.keyval_from_name('h')):
             self.a11y_profile_high_contrast_activate()
         elif (event.state & Gdk.ModifierType.CONTROL_MASK and
+                event.keyval == Gdk.keyval_from_name('s')):
+            self.a11y_profile_screen_reader_activate()
+        elif (event.state & Gdk.ModifierType.SUPER_MASK and
+                event.state & Gdk.ModifierType.MOD1_MASK and
                 event.keyval == Gdk.keyval_from_name('s')):
             self.a11y_profile_screen_reader_activate()
 

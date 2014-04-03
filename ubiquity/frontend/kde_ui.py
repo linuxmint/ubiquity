@@ -157,6 +157,9 @@ class Wizard(BaseFrontend):
         # Ubiquity uses the default Windows-95-like palette when running as a
         # DM.
         os.environ["QT_PLATFORM_PLUGIN"] = "kde"
+        # For above settings to apply automatically we need to indicate that we
+        # are inside a full KDE session.
+        os.environ["KDE_FULL_SESSION"] = "TRUE"
 
         self.app = QtGui.QApplication([])
         # The "hicolor" icon theme gets picked when Ubiquity is running as a
@@ -177,8 +180,11 @@ class Wizard(BaseFrontend):
         self.ui.content_widget.setVisible(False)
 
         if 'UBIQUITY_GREETER' in os.environ:
-            self.ui.setWindowState(
-                self.ui.windowState() ^ QtCore.Qt.WindowFullScreen)
+            self.ui.setWindowFlags(
+                QtCore.Qt.Dialog
+                | QtCore.Qt.CustomizeWindowHint
+                | QtCore.Qt.WindowTitleHint
+                )
 
         self.ui.setWizard(self)
 
@@ -258,8 +264,6 @@ class Wizard(BaseFrontend):
         self.parallel_db = None
 
         self.set_busy_cursor(True)
-
-        self.laptop = misc.execute("laptop-detect")
 
         # set default language
         self.locale = i18n.reset_locale(self)
@@ -426,7 +430,6 @@ class Wizard(BaseFrontend):
             if self.current_page is None:
                 break
 
-            self.backup = False
             page = self.pages[self.pagesindex]
             skip = False
             if hasattr(page.ui, 'plugin_skip_page'):
@@ -876,6 +879,10 @@ class Wizard(BaseFrontend):
 
     def set_page(self, n):
         self.run_automation_error_cmd()
+        # We only stop the backup process when we're on a page where questions
+        # need to be asked, otherwise you wont be able to back up past
+        # pages that do not stop on questions or are preseeded away.
+        self.backup = False
         self.ui.show()
 
         #set all the steps active

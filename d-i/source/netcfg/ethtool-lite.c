@@ -143,6 +143,8 @@ int ethtool_lite (const char * iface)
 	}
 
 	di_warning("ethtool-lite: couldn't determine status for %s\n", iface);
+#elif defined(__GNU__)
+	di_warning("ethtool-lite: unsupported on GNU/Hurd for %s\n", iface);
 #endif
 	close(fd);
 	return UNKNOWN;

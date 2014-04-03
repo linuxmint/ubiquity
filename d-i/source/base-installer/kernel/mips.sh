@@ -1,10 +1,7 @@
 arch_get_kernel_flavour () {
 	case "$SUBARCH" in
-	    4kc-malta|5kc-malta|r4k-ip22|r5k-ip22|r5k-ip32|sb1-bcm91250a|sb1a-bcm91480b)
+	    4kc-malta|5kc-malta|octeon|r4k-ip22|r5k-ip22|r5k-ip32|sb1-bcm91250a|sb1a-bcm91480b)
 		echo "$SUBARCH"
-		return 0 ;;
-	    qemu-mips32)
-		echo "qemu"
 		return 0 ;;
 	    *)
 		warning "Unknown $ARCH subarchitecture '$SUBARCH'."
@@ -36,11 +33,11 @@ arch_get_kernel () {
 			set r4k-ip22
 			;;
 		    5kc-malta)
-			echo "linux-image-$KERNEL_MAJOR-$1"
+			echo "linux-image-$1"
 			set 4kc-malta
 			;;
 		esac
-		echo "linux-image-$KERNEL_MAJOR-$1"
+		echo "linux-image-$1"
 		;;
 	    *)
 		warning "Unsupported kernel major '$KERNEL_MAJOR'."

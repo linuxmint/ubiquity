@@ -20,6 +20,8 @@ default_disk_label () {
 		fi;;
 	    arm|armeb|armel|armhf)
 		echo msdos;;
+	    arm64)
+		echo gpt;;
 	    amd64|kfreebsd-amd64|i386|kfreebsd-i386|hurd-i386)
 		case "$sub" in
 		    mac|efi)
@@ -51,6 +53,9 @@ default_disk_label () {
 		    4kc-malta | 5kc-malta)
 			# MIPS Malta
 			echo msdos;;
+		    octeon)
+			# Cavium Octeon
+			echo msdos;;
 		    r4k-ip22 | r5k-ip22 | r8k-ip26 | r10k-ip28)
 			# Indy
 			echo dvh;;
@@ -63,8 +68,6 @@ default_disk_label () {
 		    sb1-bcm91250a | sb1a-bcm91480b)
 			# Broadcom SB1 evaluation boards
 			echo msdos;;
-		    qemu-mips32)
-			echo msdos;;
 		    *)
 			echo UNKNOWN;;
 		esac;;
@@ -73,11 +76,6 @@ default_disk_label () {
 		    4kc-malta | 5kc-malta)
 			# MIPS Malta
 			echo msdos;;
-		    # DECstation
-		    r3k-kn02)
-			echo msdos;;
-		    r4k-kn04)
-			echo msdos;;
 		    sb1-bcm91250a | sb1a-bcm91480b)
 			# Broadcom SB1 evaluation boards
 			echo msdos;;
@@ -85,9 +83,7 @@ default_disk_label () {
 			echo msdos;;
 		    bcm947xx)
 			echo msdos;;
-		    qemu-mips32)
-			echo msdos;;
-		    loongson-2e | loongson-2f)
+		    loongson-2e | loongson-2f | loongson-3a)
 			echo msdos;;
 		    *)
 			echo UNKNOWN;;
@@ -123,6 +119,8 @@ default_disk_label () {
 		esac;;
 	    ppc64)
 		echo mac;;
+	    ppc64el)
+		echo gpt;;
 	    s390|s390x)
 		echo msdos;;
 	    sh4)

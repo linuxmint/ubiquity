@@ -1,3 +1,124 @@
+partman-auto (118ubuntu2) trusty; urgency=medium
+
+  * Add ppc64el recipe, just a symlink to powerpc-chrp_ibm for now.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 29 Jan 2014 16:45:59 +0000
+
+partman-auto (118ubuntu1) trusty; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    Recipe changes:
+    - Adjust default partition and EFI sizes for Ubuntu.
+    - Change the x86 atomic recipes to make the minimum swap size be 100% of
+      RAM, so that hibernate always works.
+    - In addition to EFI partition, reuse existing swap partitions and
+      BIOS Boot Partitions, if any, rather than creating new ones.
+
+    Automatic Partitioning:
+    - Offer resize_use_free autopartitioning method, except on armel/armhf.
+    - Add an option to reuse an existing installation.
+    - Split out the replace option from resize_use_free.
+
+    Code changes:
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+    - Make biggest_free respect the selection made in partman-auto/disk.
+    - Exclude devices containing the installation medium from automatic
+      partitioning.
+    - Use new get_real_resize_range function from partman-partitioning
+      72ubuntu3, which caches calls to tune2fs and ntfsresize.
+    - Support resizing the largest partition on multiple disks.
+    - Support formatting the entire partition for any partition that can be
+      resized.
+    - Signal to clear_partitions in partman-target that it should not notify
+      the user about the unformatted partitions we have set up.
+    - Add a hack to stop EFI System Partitions showing up as to-be-formatted
+      in the confirm-changes screen when there's an existing filesystem that
+      would cause partman-efi to skip them.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 17 Jan 2014 16:09:42 +0000
+
+partman-auto (118) unstable; urgency=low
+
+  * Add arm64 recipe
+
+ -- dann frazier <dannf@debian.org>  Tue, 14 Jan 2014 17:27:35 -0700
+
+partman-auto (117) unstable; urgency=low
+
+  [ Updated translations ]
+  * Tajik (tg.po) by Victor Ibragimov
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 05 Jan 2014 15:27:10 +0100
+
+partman-auto (116) unstable; urgency=low
+
+  [ Martin Michlmayr ]
+  * Remove recipes for Cobalt.
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 05 Jan 2014 15:26:10 +0100
+
+partman-auto (115) unstable; urgency=low
+
+  [ Miquel van Smoorenbur ]
+  * don't hide /dev/md* arrays if they are provisioned on whole-disk
+    devices - in that case the md array itself is partitionable, e.g. for
+    md-fakeraid like imsm (Intel Matrix raid). (Closes: #699431)
+
+ -- Dmitrijs Ledkovs <xnox@ubuntu.com>  Mon, 02 Dec 2013 22:30:17 +0000
+
+partman-auto (114) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Filter out reused partitions when calculating the size used by a recipe
+    (LP: #1197766).
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 01 Oct 2013 07:22:08 +0200
+
+partman-auto (112) unstable; urgency=low
+
+  * Skip installer disk when using
+    isohybrid ISO on USB stick. Closes: #607536
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 25 Sep 2013 07:29:54 +0200
+
+partman-auto (111) unstable; urgency=low
+
+  [ Updated translations ]
+  * Tajik (tg.po) by Victor Ibragimov
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 16 Aug 2013 23:16:22 +0200
+
+partman-auto (110) unstable; urgency=low
+
+  [ Cyril Brulebois ]
+  * Drop reiserfs from recipes.sh, it's no longer supported.
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 22 Jul 2013 20:06:10 +0200
+
+partman-auto (109) unstable; urgency=low
+
+  [ Petter Reinholdtsen ]
+
+  * Introduce new hook /lib/partman/not-enough-space.d/ called if
+    there is not enough space available to use the provided recipe.
+    This make it possible for Debian derivatives to abort the
+    installation if it is going to fail before the partitioning take
+    place (Closes: #653305).
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 18 Jul 2013 20:09:29 +0200
+
+partman-auto (108) unstable; urgency=low
+
+  [ Dmitrijs Ledkovs ]
+  * Set debian source format to '3.0 (native)'.
+  * Bump debhelper compat level to 9.
+  * Set Vcs-* to canonical format.
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 13 Jul 2013 14:18:03 +0200
+
 partman-auto (107ubuntu3) saucy; urgency=low
 
   * Filter out reused partitions when calculating the size used by a recipe

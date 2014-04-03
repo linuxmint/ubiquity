@@ -216,7 +216,35 @@ while ! disk_found; do
 	db_capb
 done
 
-# Activate support for Serial ATA RAID
+# Activate MDADM container(s)
+if anna-install mdadm-udeb; then
+	mkdir -p /dev/md
+	depmod -a >/dev/null 2>&1
+	for mod in dm-mod md-mod linear multipath raid0 raid1 raid456 raid5 raid6 raid10; do
+		modprobe $mod >/dev/null 2>&1 || true
+	done
+	if mdadm --examine --scan | grep -q container ; then
+		logger -t disk-detect "MDADM container(s) detected. (Intel/DDF RAID)"
+		# Ask the user whether they want to activate dmraid devices.
+		db_input high disk-detect/activate_mdadm || true
+		db_go
+		db_get disk-detect/activate_mdadm
+		activate_mdadm=$RET
+
+		if [ "$activate_mdadm" = true ]; then
+			mkdir -p /var/lib/disk-detect
+			touch /var/lib/disk-detect/activate_mdadm
+			logger -t disk-detect "Enabling mdmon support."
+			# TODO I wish below could be limited to containers...
+			log-output -t disk-detect mdadm --assemble --no-degraded --scan || true
+		fi
+
+	else
+		logger -t disk-detect "No Intel/DDF RAID disks detected."
+	fi
+fi
+
+# Activate support for Serial ATA RAID (dmraid)
 if anna-install dmraid-udeb; then
 	# Device mapper support is required to run dmraid
 	if ! dmsetup version >/dev/null 2>&1; then

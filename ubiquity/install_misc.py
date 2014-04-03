@@ -896,74 +896,75 @@ class InstallBase:
             self.db, 'ubiquity/install/title',
             'ubiquity/install/apt_indices_starting',
             'ubiquity/install/apt_indices')
-        cache = Cache()
 
-        if cache._depcache.broken_count > 0:
-            syslog.syslog(
-                'not installing additional packages, since there are broken '
-                'packages: %s' % ', '.join(broken_packages(cache)))
-            self.db.progress('STOP')
-            self.nested_progress_end()
-            return
+        with Cache() as cache:
 
-        with cache.actiongroup():
-            for pkg in to_install:
-                mark_install(cache, pkg)
+            if cache._depcache.broken_count > 0:
+                syslog.syslog(
+                    'not installing additional packages, since there are'
+                    ' broken packages: %s' % ', '.join(broken_packages(cache)))
+                self.db.progress('STOP')
+                self.nested_progress_end()
+                return
 
-        self.db.progress('SET', 1)
-        self.progress_region(1, 10)
-        if langpacks:
-            fetchprogress = DebconfAcquireProgress(
-                self.db, 'ubiquity/langpacks/title', None,
-                'ubiquity/langpacks/packages')
-            installprogress = DebconfInstallProgress(
-                self.db, 'ubiquity/langpacks/title',
-                'ubiquity/install/apt_info')
-        else:
-            fetchprogress = DebconfAcquireProgress(
-                self.db, 'ubiquity/install/title', None,
-                'ubiquity/install/fetch_remove')
-            installprogress = DebconfInstallProgress(
-                self.db, 'ubiquity/install/title',
-                'ubiquity/install/apt_info',
-                'ubiquity/install/apt_error_install')
-        chroot_setup(self.target)
-        commit_error = None
-        try:
+            with cache.actiongroup():
+                for pkg in to_install:
+                    mark_install(cache, pkg)
+
+            self.db.progress('SET', 1)
+            self.progress_region(1, 10)
+            if langpacks:
+                fetchprogress = DebconfAcquireProgress(
+                    self.db, 'ubiquity/langpacks/title', None,
+                    'ubiquity/langpacks/packages')
+                installprogress = DebconfInstallProgress(
+                    self.db, 'ubiquity/langpacks/title',
+                    'ubiquity/install/apt_info')
+            else:
+                fetchprogress = DebconfAcquireProgress(
+                    self.db, 'ubiquity/install/title', None,
+                    'ubiquity/install/fetch_remove')
+                installprogress = DebconfInstallProgress(
+                    self.db, 'ubiquity/install/title',
+                    'ubiquity/install/apt_info',
+                    'ubiquity/install/apt_error_install')
+            chroot_setup(self.target)
+            commit_error = None
             try:
-                if not self.commit_with_verify(cache,
-                                               fetchprogress, installprogress):
+                try:
+                    if not self.commit_with_verify(
+                            cache, fetchprogress, installprogress):
+                        fetchprogress.stop()
+                        installprogress.finish_update()
+                        self.db.progress('STOP')
+                        self.nested_progress_end()
+                        return
+                except IOError:
+                    for line in traceback.format_exc().split('\n'):
+                        syslog.syslog(syslog.LOG_ERR, line)
                     fetchprogress.stop()
                     installprogress.finish_update()
                     self.db.progress('STOP')
                     self.nested_progress_end()
                     return
-            except IOError:
-                for line in traceback.format_exc().split('\n'):
-                    syslog.syslog(syslog.LOG_ERR, line)
-                fetchprogress.stop()
-                installprogress.finish_update()
-                self.db.progress('STOP')
-                self.nested_progress_end()
-                return
-            except SystemError as e:
-                for line in traceback.format_exc().split('\n'):
-                    syslog.syslog(syslog.LOG_ERR, line)
-                commit_error = str(e)
-        finally:
-            chroot_cleanup(self.target)
-        self.db.progress('SET', 10)
+                except SystemError as e:
+                    for line in traceback.format_exc().split('\n'):
+                        syslog.syslog(syslog.LOG_ERR, line)
+                    commit_error = str(e)
+            finally:
+                chroot_cleanup(self.target)
+            self.db.progress('SET', 10)
 
-        cache.open(None)
-        if commit_error or cache._depcache.broken_count > 0:
-            if commit_error is None:
-                commit_error = ''
-            brokenpkgs = broken_packages(cache)
-            self.warn_broken_packages(brokenpkgs, commit_error)
+            cache.open(None)
+            if commit_error or cache._depcache.broken_count > 0:
+                if commit_error is None:
+                    commit_error = ''
+                brokenpkgs = broken_packages(cache)
+                self.warn_broken_packages(brokenpkgs, commit_error)
 
-        self.db.progress('STOP')
+            self.db.progress('STOP')
 
-        self.nested_progress_end()
+            self.nested_progress_end()
 
     def select_language_packs(self, save=False):
         try:
@@ -1062,7 +1063,7 @@ class InstallBase:
         # the difference between "no such language pack" and "language pack
         # not retrievable given apt configuration in /target" later on.
         to_install = [
-            lp for lp in to_install if get_cache_pkg(cache, lp) is not None]
+            pkg for pkg in to_install if get_cache_pkg(cache, pkg) is not None]
 
         install_new = True
         try:
@@ -1080,8 +1081,8 @@ class InstallBase:
             # ought to be willing to install packages from the package pool
             # on the CD as well.
             to_install = [
-                lp for lp in to_install
-                if get_cache_pkg(cache, lp).is_installed]
+                pkg for pkg in to_install
+                if get_cache_pkg(cache, pkg).is_installed]
 
         del cache
         record_installed(to_install)

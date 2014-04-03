@@ -313,11 +313,10 @@ crypto_do_wipe () {
 }
 
 crypto_wipe_device () {
-	local device size method interactive targetdevice
+	local device method interactive targetdevice
 	device=$1
-	size=$2
-	method=$3
-	interactive=$4
+	method=$2
+	interactive=$3
 	if [ "$interactive" != no ]; then
 		interactive=yes
 	fi
@@ -754,7 +753,7 @@ crypto_setup() {
 				continue
 			fi
 
-			if ! crypto_wipe_device $path $size $(cat $id/crypto_type) $interactive; then
+			if ! crypto_wipe_device $path $(cat $id/crypto_type) $interactive; then
 				db_fset partman-crypto/commit_failed seen false
 				db_input critical partman-crypto/commit_failed
 				db_go || true

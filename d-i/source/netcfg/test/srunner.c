@@ -5,27 +5,30 @@
 
 #include "test/srunner.h"
 
-static char test_run_root[PATH_MAX];
+static char *test_run_root;
 static char *original_path;
 
 int main(int argc, char *argv[])
 {
 	int number_failed;
 	SRunner *sr;
-	char buf[PATH_MAX], *p;
+	char *buf, *p;
 	(void)argc;
 
 	/* Put the absolute directory in which the binary resides into
 	 * test_run_root, so that srunner_mock_path can find it again.
 	 */
 	if (argv[0][0] == '/') {
-		strncpy(buf, argv[0], PATH_MAX);
+		buf = argv[0];
 	} else {
-		getcwd(buf, PATH_MAX);
+		char *cwd = getcwd(NULL, 0);
+		buf = malloc(strlen(cwd) + 1 + strlen(argv[0]) + 1);
+		strcpy(buf, cwd);
 		strcat(buf, "/");
 		strcat(buf, argv[0]);
+		free(cwd);
 	}
-	realpath(buf, test_run_root);
+	test_run_root = realpath(buf, NULL);
 	p = strrchr(test_run_root, '/');
 	*p = '\0';
 
@@ -51,7 +54,7 @@ void srunner_mock_path(const char *testcase)
 	original_path = strdup(getenv("PATH"));
 	
 	new_path_len = strlen(test_run_root)
-	               + 10 /* /mock_paths/ */
+	               + 12 /* /mock_paths/ */
 	               + strlen(testcase) + 1 /* : */
 	               + strlen(original_path) + 1 /* \0 */;
 	

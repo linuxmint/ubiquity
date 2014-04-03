@@ -78,6 +78,12 @@ fi
 # that we can do that sensibly while on a question page.
 while read name device source options; do
 	if echo "$options" | grep -q "swap"; then
+		case $device in
+		    LABEL=*|UUID=*)
+			device="$(blkid -l -o device -t "$device")"
+			[ "$device" ] || continue
+			;;
+		esac
 		if swapoff $device; then
 			if [ ! -b $device ]; then
 				ONE_MEG=$((1024*1024))

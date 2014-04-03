@@ -1,5 +1,7 @@
 #include <debian-installer.h>
 #include <cdebconf/debconfclient.h>
+#include <errno.h>
+#include <stdarg.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -8,6 +10,9 @@
 #include "mirrors.h"
 #ifdef WITH_HTTP
 #include "mirrors_http.h"
+#endif
+#ifdef WITH_HTTPS
+#include "mirrors_https.h"
 #endif
 #ifdef WITH_FTP
 #include "mirrors_ftp.h"
@@ -20,6 +25,8 @@
 #error Only one of WITH_FTP and WITH_FTP_MANUAL can be defined
 #endif
 
+#define MAX_PROTOCOLS 3
+
 static struct debconfclient *debconf;
 static char *protocol = NULL;
 static char *country  = NULL;
@@ -31,6 +38,23 @@ static int base_on_cd = 0;
 /* Available releases (suite/codename) on the mirror. */
 static struct release_t releases[MAXRELEASES];
 
+static char *xasprintf(const char *format, ...)
+{
+	va_list args;
+	char *result;
+
+	va_start(args, format);
+	if (vasprintf(&result, format, args) < 0) {
+		if (errno == ENOMEM) {
+			fputs("Out of memory!\n", stderr);
+			abort();
+		}
+		return NULL;
+	}
+
+	return result;
+}
+
 /*
  * Returns a string on the form "DEBCONF_BASE/protocol/supplied". The
  * calling function is responsible for freeing the string afterwards.
@@ -39,7 +63,7 @@ static char *add_protocol(char *string) {
 	char *ret;
 
 	assert(protocol != NULL); /* Fetched by choose_protocol */
-	asprintf(&ret, DEBCONF_BASE "%s/%s", protocol, string);
+	ret = xasprintf(DEBCONF_BASE "%s/%s", protocol, string);
 	return ret;
 }
 
@@ -66,9 +90,9 @@ static char *debconf_list(char *list[]) {
 }
 
 /*
- * Returns the correct mirror list, depending on whether protocol is
- * set to http or ftp. Do NOT free the structure - it is a pointer to
- * the static list in mirrors_protocol.h
+ * Returns the correct mirror list, depending on the value of "protocol".
+ * Do NOT free the structure - it is a pointer to the static list in
+ * mirrors_protocol.h.
  */
 static struct mirror_t *mirror_list(void) {
 	assert(protocol != NULL);
@@ -76,6 +100,10 @@ static struct mirror_t *mirror_list(void) {
 #ifdef WITH_HTTP
 	if (strcasecmp(protocol, "http") == 0)
 		return mirrors_http;
+#endif
+#ifdef WITH_HTTPS
+	if (strcasecmp(protocol, "https") == 0)
+		return mirrors_https;
 #endif
 #ifdef WITH_FTP
 	if (strcasecmp(protocol, "ftp") == 0)
@@ -240,6 +268,47 @@ static int cross_validate_release(struct release_t *release) {
 	return ret;
 }
 
+int cached_wget_is_gnu = -1;
+
+static int wget_is_gnu(void) {
+	if (cached_wget_is_gnu == -1)
+		cached_wget_is_gnu = (system("wget --version 2>/dev/null | grep -q 'GNU Wget'") == 0) ? 1 : 0;
+	return cached_wget_is_gnu;
+}
+
+char *append(char *str, const char *suffix) {
+	size_t len, newlen;
+
+	len = strlen (str);
+	newlen = len + strlen(suffix);
+	str = di_realloc(str, newlen + 1);
+	strcpy(str + len, suffix);
+	return str;
+}
+
+char *get_wget_options(void) {
+	char *options;
+
+	if (wget_is_gnu()) {
+		options = strdup("--no-verbose");
+		if (strcasecmp(protocol, "https") == 0) {
+			debconf_get(debconf, "debian-installer/allow_unauthenticated_ssl");
+			if (strcmp(debconf->value, "true") == 0)
+				options = append(options, " --no-check-certificate");
+		}
+	} else {
+		if (strcasecmp(protocol, "https") == 0)
+			/* We shouldn't normally get here, but let's make it
+			 * easier to debug in case somebody has hit us over
+			 * the head with preseeding.
+			 */
+			fputs("busybox wget does not support https\n", stderr);
+		options = strdup("-q");
+	}
+
+	return options;
+}
+
 static int manual_entry;
 
 /*
@@ -248,7 +317,7 @@ static int manual_entry;
 static int get_release(struct release_t *release, const char *name) {
 	char *command;
 	FILE *f = NULL;
-	char *hostname, *directory;
+	char *wget_options, *hostname, *directory;
 	char line[80];
 	char *p;
 	char buf[SUITE_LENGTH];
@@ -291,11 +360,13 @@ static int get_release(struct release_t *release, const char *name) {
 		p[0] = '\0';
 	}
 
-	asprintf(&command, "wget -q %s://%s%s/dists/%s/Release -O - | grep -E '^(Suite|Codename):'",
-		 protocol, hostname, directory, name);
+	wget_options = get_wget_options();
+	command = xasprintf("wget %s %s://%s%s/dists/%s/Release -O - | grep -E '^(Suite|Codename):'",
+			    wget_options, protocol, hostname, directory, name);
 	di_log(DI_LOG_LEVEL_DEBUG, "command: %s", command);
 	f = popen(command, "r");
 	free(command);
+	free(wget_options);
 	free(hostname);
 	free(directory);
 
@@ -461,7 +532,7 @@ static int find_releases(void) {
 static char *l10n_suite(const char *name) {
 	char *template, *l10n_name;
 
-	asprintf(&template, "%ssuites/%s", DEBCONF_BASE, name);
+	template = xasprintf("%ssuites/%s", DEBCONF_BASE, name);
 	if (! debconf_metaget(debconf, template, "description") &&
 	    strlen(debconf->value))
 		l10n_name = strdup(debconf->value);
@@ -483,29 +554,59 @@ static int check_base_on_cd(void) {
 	return 0;
 }
 
-static int choose_protocol(void) {
-#if defined (WITH_HTTP) && (defined (WITH_FTP) || defined (WITH_FTP_MANUAL))
-	/* Both are supported, so ask. */
-	debconf_subst(debconf, DEBCONF_BASE "protocol", "protocols", "http, ftp");
-	debconf_input(debconf, "medium", DEBCONF_BASE "protocol");
+static int fill_protocols(const char **protocols) {
+	int i = 0;
+
+#ifdef WITH_HTTP
+	protocols[i++] = "http";
 #endif
+#ifdef WITH_HTTPS
+	if (wget_is_gnu())
+		protocols[i++] = "https";
+#endif
+#if defined (WITH_FTP) || defined (WITH_FTP_MANUAL)
+	protocols[i++] = "ftp";
+#endif
+	protocols[i] = NULL;
+
+	return i;
+}
+
+static int choose_protocol(void) {
+	const char *protocols[MAX_PROTOCOLS + 1];
+	int i;
+	size_t len;
+	char *choices;
+
+	if (fill_protocols(protocols) <= 1)
+		return 0;
+
+	/* More than one protocol is supported, so ask. */
+	len = strlen(protocols[0]);
+	for (i = 1; protocols[i]; i++)
+		len += 2 + strlen(protocols[i]);
+	choices = di_malloc(len + 1);
+	strcpy(choices, protocols[0]);
+	for (i = 1; protocols[i]; i++) {
+		strcat(choices, ", ");
+		strcat(choices, protocols[i]);
+	}
+	debconf_subst(debconf, DEBCONF_BASE "protocol", "protocols", choices);
+	di_free(choices);
+	debconf_input(debconf, "medium", DEBCONF_BASE "protocol");
 	return 0;
 }
 
 static int get_protocol(void) {
-#if defined (WITH_HTTP) && (defined (WITH_FTP) || defined (WITH_FTP_MANUAL))
-	debconf_get(debconf, DEBCONF_BASE "protocol");
-	protocol = strdup(debconf->value);
-#else
-#ifdef WITH_HTTP
-	debconf_set(debconf, DEBCONF_BASE "protocol", "http");
-	protocol = "http";
-#endif
-#ifdef WITH_FTP
-	debconf_set(debconf, DEBCONF_BASE "protocol", "ftp");
-	protocol = "ftp";
-#endif
-#endif /* WITH_HTTP && WITH_FTP */
+	const char *protocols[MAX_PROTOCOLS + 1];
+
+	if (fill_protocols(protocols) > 1) {
+		debconf_get(debconf, DEBCONF_BASE "protocol");
+		protocol = strdup(debconf->value);
+	} else {
+		debconf_set(debconf, DEBCONF_BASE "protocol", protocols[0]);
+		protocol = strdup(protocols[0]);
+	}
 	return 0;
 }
 
@@ -707,7 +808,7 @@ static int set_proxy(void) {
 	char *px = add_protocol("proxy");
 	char *proxy_var;
 
-	asprintf(&proxy_var, "%s_proxy", protocol);
+	proxy_var = xasprintf("%s_proxy", protocol);
 
 	debconf_get(debconf, px);
 	if (debconf->value != NULL && strlen(debconf->value)) {
@@ -715,7 +816,7 @@ static int set_proxy(void) {
 			setenv(proxy_var, debconf->value, 1);
 		} else {
 			char *proxy_value;
-			asprintf(&proxy_value, "http://%s", debconf->value);
+			proxy_value = xasprintf("http://%s", debconf->value);
 			setenv(proxy_var, proxy_value, 1);
 			free(proxy_value);
 		}
@@ -753,8 +854,8 @@ static int choose_suite(void) {
 
 		choices_c[i] = name;
 		if (strcmp(name, releases[i].name) != 0)
-			asprintf(&choices[i], "%s${!TAB}-${!TAB}%s", releases[i].name,
-				 l10n_suite(name));
+			choices[i] = xasprintf("%s${!TAB}-${!TAB}%s", releases[i].name,
+					       l10n_suite(name));
 		else
 			choices[i] = l10n_suite(name);
 		if (releases[i].status & IS_DEFAULT) {
@@ -820,7 +921,7 @@ int set_codename (void) {
 int check_arch (void) {
 	char *command;
 	FILE *f = NULL;
-	char *hostname, *directory, *codename = NULL;
+	char *wget_options, *hostname, *directory, *codename = NULL;
 	int valid = 0;
 
 	if (base_on_cd && ! manual_entry) {
@@ -843,11 +944,13 @@ int check_arch (void) {
 	if (strlen(debconf->value) > 0) {
 		codename = strdup(debconf->value);
 
-		asprintf(&command, "wget -q %s://%s%s/dists/%s/main/binary-%s/Release -O - | grep ^Architecture:",
-			 protocol, hostname, directory, codename, ARCH_TEXT);
+		wget_options = get_wget_options();
+		command = xasprintf("wget %s %s://%s%s/dists/%s/main/binary-%s/Release -O - | grep ^Architecture:",
+				    wget_options, protocol, hostname, directory, codename, ARCH_TEXT);
 		di_log(DI_LOG_LEVEL_DEBUG, "command: %s", command);
 		f = popen(command, "r");
 		free(command);
+		free(wget_options);
 
 		if (f != NULL) {
 			char buf[SUITE_LENGTH];
@@ -903,6 +1006,15 @@ int main (int argc, char **argv) {
 	debconf_version(debconf, 2);
 
 	di_system_init("choose-mirror");
+
+#ifdef WITH_HTTPS
+	debconf_register(debconf, "mirror/http/mirror", "mirror/https/mirror");
+	debconf_register(debconf,
+			 "mirror/http/hostname", "mirror/https/hostname");
+	debconf_register(debconf,
+			 "mirror/http/directory", "mirror/https/directory");
+	debconf_register(debconf, "mirror/http/proxy", "mirror/https/proxy");
+#endif
 
 	while (state >= 0 && states[state]) {
 		int res;

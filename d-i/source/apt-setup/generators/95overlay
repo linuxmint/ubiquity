@@ -1,0 +1,41 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+file="$1"
+
+log() {
+	logger -t apt-setup "$@"
+}
+warning() {
+	log "warning: $@"
+}
+
+if db_get apt-setup/overlay && [ "$RET" = true ]; then
+	db_get mirror/codename
+	codename="$RET"
+
+	if db_get apt-setup/overlay_host; then
+		overlay_host="$RET"
+	fi
+
+	if db_get apt-setup/overlay_directory; then
+		overlay_directory="$RET"
+	fi
+
+	if db_get apt-setup/overlay_components; then
+		overlay_components="$RET"
+	fi
+
+	# If we have an overlay archive, we need to put those entries in as well
+	log "setting up overlay archive"
+
+	cat >> $file << EOF
+## Additional overlay archives specified at installation time
+deb http://$overlay_host$overlay_directory $codename $overlay_components
+deb-src http://$overlay_host$overlay_directory $codename $overlay_components
+EOF
+fi
+
+exit 0

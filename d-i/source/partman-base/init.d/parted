@@ -15,6 +15,20 @@ is_inactive_md() {
 	return 1
 }
 
+part_of_mdraid () {
+	local holder
+	local dev=${1#/dev/}
+	for holder in /sys/block/$dev/holders/*; do
+		local mddev=${holder##*/}
+		case "$mddev" in
+			md[0-9]|md[0-9][0-9]|md[0-9][0-9][0-9])
+				return 0
+				;;
+		esac
+	done
+	return 1
+}
+
 part_of_sataraid () {
 	local raiddev
 	for raiddev in $(dmraid -r -c); do
@@ -84,6 +98,11 @@ if [ ! -f /var/run/parted_server.pid ]; then
 			if is_inactive_md $device; then
 				continue
 			fi
+		fi
+
+		# Skip devices that are part of a mdraid device
+		if part_of_mdraid $device; then
+			continue
 		fi
 
 		# Skip devices that are part of a dmraid device

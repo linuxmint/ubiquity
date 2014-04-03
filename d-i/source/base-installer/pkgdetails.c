@@ -12,7 +12,7 @@ char *checksum_field=NULL;
 
 static void oom_die(void)
 {
-    fprintf(stderr, "Out of memory!\n");
+    fputs("Out of memory!\n", stderr);
     exit(1);
 }
 
@@ -270,15 +270,19 @@ static void dopkgstanzas(char *pkgsfile, char **pkgs, int pkgc)
 static int dotranslatewgetpercent(int low, int high, int end, char *str) {
     int ch;
     int val, lastval;
+    int allow_percentage;
 
     /* print out anything that looks like a % on its own line, appropriately
      * scaled */
 
     lastval = val = 0;
+    allow_percentage = 0;
     while ( (ch = getchar()) != EOF ) {
-        if (isdigit(ch)) {
+	if (isspace(ch)) {
+	    allow_percentage = 1;
+	} else if (allow_percentage && isdigit(ch)) {
 	    val *= 10; val += ch - '0';
-	} else if (ch == '%') {
+	} else if (allow_percentage && ch == '%') {
 	    float f = (float) val / 100.0 * (high - low) + low;
 	    if (str) {
 	    	printf("P: %d %d %s\n", (int) f, end, str);
@@ -288,6 +292,7 @@ static int dotranslatewgetpercent(int low, int high, int end, char *str) {
 	    lastval = val;
 	} else {
 	    val = 0;
+	    allow_percentage = 0;
 	}
     }
     return lastval == 100;

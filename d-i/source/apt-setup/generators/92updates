@@ -54,7 +54,11 @@ if db_get netcfg/dhcp_options && \
 	CODE=9
 else
 	CODE=0
-	export ASV_TIMEOUT="-o Acquire::http::Timeout=30"
+	case $protocol in
+	    http|https)
+		export ASV_TIMEOUT="-o Acquire::$protocol::Timeout=30"
+		;;
+	esac
 	if ! apt-setup-verify --from $PROGRESS_FROM --to $PROGRESS_TO $file; then
 		db_subst apt-setup/service-failed HOST "$host"
 		db_input critical apt-setup/service-failed || true

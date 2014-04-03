@@ -110,7 +110,8 @@ else
 	srcdirectory="$directory"
 fi
 
-if [ "$protocol" = http ]; then
+case $protocol in
+    http|https)
 	db_get mirror/$protocol/proxy
 	proxy="$RET"
 	if [ -n "$proxy" ]; then
@@ -118,7 +119,8 @@ if [ "$protocol" = http ]; then
 			echo "Acquire::$protocol::Proxy \"$proxy\";" >> $ROOT/etc/apt/apt.conf.new
 		fi
 	fi
-fi
+	;;
+esac
 
 db_get apt-setup/proposed
 PROPOSED="$RET"

@@ -1,6 +1,6 @@
 # -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
-# Copyright (C) 2010 Canonical Ltd.
+# Copyright (C) 2013 Canonical Ltd.
 # Written by Evan Dandrea <evan.dandrea@canonical.com>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -27,7 +27,7 @@ from ubiquity import i18n, misc, osextras, plugin, upower
 
 
 NAME = 'prepare'
-AFTER = 'language'
+AFTER = 'wireless'
 WEIGHT = 11
 OEM = False
 

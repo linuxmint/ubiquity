@@ -1,3 +1,64 @@
+partman-basicfilesystems (86ubuntu2) trusty; urgency=low
+
+  * Use mkfs.fat rather than mkdosfs if it exists (LP: #1257702).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 04 Dec 2013 14:34:24 +0000
+
+partman-basicfilesystems (86ubuntu1) trusty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - If partman/automount is preseeded to true, automatically mount
+      partitions with usefully-mountable filesystems on subdirectories of
+      /media.
+    - Add minimal support for NTFS partitions using ntfs-3g.
+    - Mount FAT filesystems at boot (fstab pass 1).
+    - Mount FAT (other than EFI System Partitions) and NTFS with
+      umask=007,gid=46 (static group plugdev).
+    - When formatting over the top of an existing swap partition, preserve
+      its UUID to avoid leaving systems that use UUIDs in /etc/fstab without
+      swap.
+    - mount.d/basic: Close mount's fd 3 so that it doesn't inherit a debconf
+      file descriptor, to prevent log-output hanging when ntfs-3g is in use.
+    - Special case loopmounted filesystems as it's safer to format the
+      underlying file, not the device.
+    - Allow armel/omap to use FAT for /boot, since the problems with it can
+      be worked around while it's difficult to use anything else given uboot
+      limitations.
+    - Stop using libparted to format swap partitions.
+    - Disable existing swap partitions before formatting them.
+    - Use mkdosfs to create FAT filesystems, since libparted cannot handle
+      doing that on non-512-sector disks.
+    - Always use mkfs.ext2 to create ext2 filesystems, since libparted's
+      ext2 code is deprecated and can't handle large sector sizes.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 03 Dec 2013 13:57:42 +0000
+
+partman-basicfilesystems (86) unstable; urgency=low
+
+  * Make nodiratime and discard mount options translatable (closes:
+    #725371).
+
+  [ Updated translations ]
+  * Hungarian (hu.po) by Judit Gyimesi
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 03 Dec 2013 13:12:49 +0000
+
+partman-basicfilesystems (85) unstable; urgency=low
+
+  [ Updated translations ]
+  * Danish (da.po) by Joe Hansen
+  * Greek, Modern (1453-) (el.po) by galaxico
+  * Esperanto (eo.po) by Felipe Castro
+  * Croatian (hr.po) by Tomislav Krznar
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Marathi (mr.po) by sampada
+  * Polish (pl.po) by Michał Kułach
+  * Turkish (tr.po) by Mert Dirik
+  * Ukrainian (uk.po) by Yuri Chornoivan
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 09 Nov 2013 21:52:14 +0100
+
 partman-basicfilesystems (84ubuntu1) saucy; urgency=low
 
   * Resynchronise with Debian.  Remaining changes:

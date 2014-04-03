@@ -195,6 +195,7 @@ int wpa_ctrl_request(struct wpa_ctrl *ctrl, const char *cmd, size_t cmd_len,
 			return -2;
 		}
 	}
+
 	return 0;
 }
 
@@ -211,6 +212,7 @@ static int wpa_ctrl_attach_helper(struct wpa_ctrl *ctrl, int attach)
 		return ret;
 	if (len == 3 && memcmp(buf, "OK\n", 3) == 0)
 		return 0;
+
 	return -1;
 }
 
@@ -235,6 +237,7 @@ int wpa_ctrl_recv(struct wpa_ctrl *ctrl, char *reply, size_t *reply_len)
 	if (res < 0)
 		return res;
 	*reply_len = res;
+
 	return 0;
 }
 
@@ -248,6 +251,7 @@ int wpa_ctrl_pending(struct wpa_ctrl *ctrl)
 	FD_ZERO(&rfds);
 	FD_SET(ctrl->s, &rfds);
 	select(ctrl->s + 1, &rfds, NULL, NULL, &tv);
+
 	return FD_ISSET(ctrl->s, &rfds);
 }
 

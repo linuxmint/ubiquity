@@ -2,6 +2,12 @@
 
 . /lib/partman/lib/base.sh
 
+if search-path mkfs.fat; then
+	MKFS_FAT=mkfs.fat
+else
+	MKFS_FAT=mkdosfs
+fi
+
 enable_swap
 
 for dev in $DEVICES/*; do
@@ -94,7 +100,7 @@ for dev in $DEVICES/*; do
 				log_sector_size="$(blockdev --getss \
 					"$(cat device)")"
 				if log-output -t partman --pass-stdout \
-				   mkdosfs -F "${filesystem#fat}" -n "$label" \
+				   $MKFS_FAT -F "${filesystem#fat}" -n "$label" \
 					   -S "$log_sector_size" \
 					   "$device" >/dev/null; then
 					sync

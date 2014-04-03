@@ -39,17 +39,9 @@
 
 #define IPV6_HOSTS \
 "# The following lines are desirable for IPv6 capable hosts\n" \
-"::1     ip6-localhost ip6-loopback\n" \
-"fe00::0 ip6-localnet\n" \
-"ff00::0 ip6-mcastprefix\n" \
+"::1     localhost ip6-localhost ip6-loopback\n" \
 "ff02::1 ip6-allnodes\n" \
 "ff02::2 ip6-allrouters\n"
-
-/* The time, in seconds, that we will wait for a link to be established
- * via link autonegotiation.  Sometime in the future this may become a
- * preseed option.
- */
-#define NETCFG_LINK_WAIT_TIME 3
 
 /* The number of times to attempt to verify gateway reachability.
  * Each try invokes arping with a one second timeout.
@@ -60,7 +52,10 @@
 #define MAXHOSTNAMELEN 63
 #endif
 
-typedef enum { NOT_ASKED = 30, GO_BACK, REPLY_WEP, REPLY_WPA, SKIP } response_t;
+#define RETURN_TO_MAIN 10
+#define CONFIGURE_MANUALLY 15
+
+typedef enum { NOT_ASKED = 30, GO_BACK, REPLY_WEP, REPLY_WPA } response_t;
 typedef enum { DHCP, STATIC, DUNNO } method_t;
 typedef enum { ADHOC = 1, MANAGED = 2 } wifimode_t;
 typedef enum { WPA_OK, WPA_QUEUED, WPA_UNAVAIL } wpa_t;
@@ -149,6 +144,7 @@ struct netcfg_interface {
 	wifimode_t mode;
 
 	/* Wireless configuration */
+        response_t wifi_security;
 	char *wepkey;
 	char *essid;
 
@@ -170,8 +166,6 @@ extern void netcfg_interface_init(struct netcfg_interface *iface);
 
 /* common functions */
 extern int check_kill_switch (const char *if_name);
-
-extern int get_hw_addr(const char *iface, struct sockaddr *sa);
 
 extern int is_interface_up (const char *if_name);
 
@@ -212,7 +206,7 @@ extern void netcfg_write_common (const char *ipaddress, const char *hostname, co
 void netcfg_nameservers_to_array(const char *nameservers, struct netcfg_interface *interface);
 
 extern int is_wireless_iface (const char *if_name);
-extern int netcfg_wireless_set_essid (struct debconfclient *client, struct netcfg_interface *interface, char *priority);
+extern int netcfg_wireless_set_essid (struct debconfclient *client, struct netcfg_interface *interface);
 extern int netcfg_wireless_set_wep (struct debconfclient *client, struct netcfg_interface *interface);
 extern int wireless_security_type (struct debconfclient *client, const char *if_name);
 extern int netcfg_set_passphrase (struct debconfclient *client, struct netcfg_interface *interface);

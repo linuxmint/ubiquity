@@ -8,10 +8,15 @@ arch_get_kernel_flavour () {
 }
 
 arch_check_usable_kernel () {
+	if echo "$1" | grep -Eq -- "-itanium(-.*)?$"; then return 0; fi
+	if [ "$2" = itanium ]; then return 1; fi
+	if echo "$1" | grep -Eq -- "-mckinley(-.*)?$"; then return 0; fi
+
+	# default to usable in case of strangeness
+	warning "Unknown kernel usability: $1 / $2"
 	return 0
 }
 
 arch_get_kernel () {
-	echo "linux-ia64"
-	echo "linux-image-ia64"
+	echo "linux-image-$1"
 }

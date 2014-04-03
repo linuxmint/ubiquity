@@ -10,6 +10,8 @@ else
 CFLAGS:=$(CFLAGS) -Os -fomit-frame-pointer
 endif
 
+STRIP := strip
+
 all: $(TARGETS)
 
 pkgdetails: pkgdetails.c
@@ -20,7 +22,7 @@ run-debootstrap: run-debootstrap.c
 
 small: CFLAGS:=-Os $(CFLAGS)
 small: $(TARGETS)
-	strip --remove-section=.comment --remove-section=.note $^
+	$(STRIP) --remove-section=.comment --remove-section=.note $^
 	ls -l $^
 
 clean:

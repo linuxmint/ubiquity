@@ -38,6 +38,7 @@ build-stamp:
 	dh_auto_configure -- --libexecdir=\$${prefix}/lib
 	dh_auto_build
 	$(MAKE) -C d-i build
+	convert -resize 32x32 data/ubiquity.svg pixmaps/ubiquity.xpm
 
 	touch build-stamp
 
@@ -65,7 +66,7 @@ clean: check
 	dh_auto_clean
 	dh_autoreconf_clean
 	dh_clean
-	rm -rf build-locale tests/partman-tree
+	rm -rf build-locale tests/partman-tree pixmaps/ubiquity.xpm
 
 	$(MAKE) -C d-i check
 
@@ -88,6 +89,7 @@ ifneq (,$(wildcard debian/ubiquity.dirs-$(DEB_HOST_ARCH)))
 	cat debian/ubiquity.dirs-$(DEB_HOST_ARCH) >> debian/ubiquity.dirs
 endif
 	dh_installdirs
+	dh_installmenu
 
 	$(MAKE) install DESTDIR=`pwd`/debian/tmp
 

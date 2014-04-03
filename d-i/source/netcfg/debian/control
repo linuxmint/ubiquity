@@ -1,37 +1,37 @@
 Source: netcfg
 Section: debian-installer
 Priority: optional
-Maintainer: Ubuntu Installer Team <ubuntu-installer@lists.ubuntu.com>
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 XSBC-Original-Maintainer: Debian Install System Team <debian-boot@lists.debian.org>
 Uploaders: Colin Watson <cjwatson@debian.org>,
-	Christian Perrier <bubulle@debian.org>
-Build-Depends: debhelper (>= 7.4.17), dpkg-dev (>= 1.9.0), libdebconfclient0-dev (>= 0.46), libdebian-installer4-dev (>= 0.41), po-debconf (>= 0.5.0), libiw-dev (>= 27+28pre9) [!s390 !kfreebsd-any !hurd-any]
-XS-Debian-Vcs-Browser: http://git.debian.org/?p=d-i/netcfg.git
-XS-Debian-Vcs-Git: git://git.debian.org/d-i/netcfg.git
-Vcs-Bzr: http://bazaar.launchpad.net/~ubuntu-core-dev/netcfg/ubuntu
+	Christian Perrier <bubulle@debian.org>,
+	Philipp Kern <pkern@debian.org>
+Build-Depends: debhelper (>= 9), dpkg-dev (>= 1.9.0), libdebconfclient0-dev (>= 0.46), libdebian-installer4-dev (>= 0.41), po-debconf (>= 0.5.0), libiw-dev (>= 27+28pre9) [!s390 !s390x !sparc !kfreebsd-any !hurd-any], check
+Vcs-Browser: http://anonscm.debian.org/gitweb/?p=d-i/netcfg.git
+Vcs-Git: git://anonscm.debian.org/d-i/netcfg.git
 
 Package: netcfg
-XC-Package-Type: udeb
-Architecture: i386 amd64 alpha arm armel armeb armhf hppa ia64 m68k mips mipsel powerpc ppc64 sparc kfreebsd-i386 kfreebsd-amd64 hurd-i386 sh4 sparc64
+Package-Type: udeb
+Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends},
 	ethernet-card-detection,
 	isc-dhcp-client-udeb,
 	freebsd-net-tools-udeb [kfreebsd-any],
-	wpasupplicant-udeb [!s390 !kfreebsd-any !hurd-any],
-	crypto-modules [!s390 !kfreebsd-any !hurd-any],
+	wpasupplicant-udeb [!s390 !s390x !sparc !kfreebsd-any !hurd-any],
+	crypto-modules [!s390 !s390x !sparc !kfreebsd-any !hurd-any],
 	rdnssd-udeb,
 	ndisc6-udeb
 Provides: configured-network
 XB-Installer-Menu-Item: 1800
 Description: Configure the network
  To install additional installer components or the Debian Base System over
- the network, you need to configure the network in the installer. This 
- component will first try to configure your network with DHCP and ask 
- you for static network configuration if this fails. The configured 
+ the network, you need to configure the network in the installer. This
+ component will first try to configure your network with DHCP and ask
+ you for static network configuration if this fails. The configured
  network settings will be copied to your newly installed system.
 
 Package: netcfg-static
-XC-Package-Type: udeb
+Package-Type: udeb
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends},
 	ethernet-card-detection,

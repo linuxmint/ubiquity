@@ -1,0 +1,74 @@
+#! /bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+# File paths for various configuration files
+FILE_PATH_NM_CONFIG=etc/NetworkManager/system-connections
+FILE_INTERFACES=/etc/network/interfaces
+FILE_NETCFG_CONNECTION_TYPE=/tmp/connection_type
+
+# The connection type file is written by the nm-conf code.
+# The base-installer snippet will already take care of copying
+# the generated interfaces file, so if we are not dealing
+# with nm-conf anyway: just exit.
+if [ ! -e $FILE_NETCFG_CONNECTION_TYPE ]; then
+	logger -t netcfg "DEBUG: copy-config: $FILE_NETCFG_CONNECTION_TYPE not found: netcfg did not complete or was compiled without network-manager support; exiting."
+	exit 0
+fi
+
+# Flag to determine whether Network Manager is installed.
+if in-target sh -c "dpkg-query -s network-manager 2>/dev/null | grep -q '^Status: install ok installed'"; then
+	NM_IS_INSTALLED=true
+else
+	NM_IS_INSTALLED=false
+fi
+
+# The type of the connection used during installation
+NETCFG_CONNECTION_TYPE=$(cat $FILE_NETCFG_CONNECTION_TYPE | \
+    grep "connection type" | cut -d ':' -f2 | sed 's/ //g')
+NETCFG_CONNECTION_SECURITY=$(cat $FILE_NETCFG_CONNECTION_TYPE | \
+    grep "security" | cut -d ':' -f2 | sed 's/ //g')
+
+# netcfg/target_network_config question values
+CONFIG_NM="nm_config"
+CONFIG_INTERFACES="ifupdown"
+CONFIG_LOOPBACK="loopback"
+
+db_get netcfg/target_network_config
+
+# Check for preseeding. If the value of the question is empty then set
+# default options. Document automatic selection changes in the template.
+if [ -z "$RET" ]; then
+	if $NM_IS_INSTALLED; then
+		db_set netcfg/target_network_config $CONFIG_NM
+	else
+		if [ "$NETCFG_CONNECTION_TYPE" = "wired" ]; then
+			db_set netcfg/target_network_config $CONFIG_INTERFACES
+		else # wireless
+			db_set netcfg/target_network_config $CONFIG_LOOPBACK
+		fi
+	fi
+fi
+
+db_get netcfg/target_network_config
+
+if [ "$RET" = "$CONFIG_NM" ]; then
+	# Copy NM config file. First make sure the directory exists
+	mkdir -p /target/$FILE_PATH_NM_CONFIG
+	cp /$FILE_PATH_NM_CONFIG/* /target/$FILE_PATH_NM_CONFIG/
+
+	# Rewrite /etc/network/interfaces to contain only loopback
+	netcfg write_loopback
+elif [ "$RET" = "$CONFIG_LOOPBACK" ]; then
+	# Rewrite /etc/network/interfaces to contain only loopback
+	netcfg write_loopback
+fi
+
+# Copy /etc/network/interfaces to target. Note: there's nothing particular to
+# be done if the /e/n/i option is chosen, since /e/n/i gets copied in any
+# situation.
+mkdir -p /target$(dirname $FILE_INTERFACES)
+cp $FILE_INTERFACES /target$FILE_INTERFACES
+
+exit 0

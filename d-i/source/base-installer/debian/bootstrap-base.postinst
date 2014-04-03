@@ -27,6 +27,11 @@ if [ ! -e /usr/share/debootstrap/scripts/"$DEBOOTSTRAP_SCRIPT" ]; then
 	error "debootstrap script '$DEBOOTSTRAP_SCRIPT' doesn't exist"
 fi
 
+# Check if a specific variant should be used
+if db_get base-installer/debootstrap_variant && [ "$RET" ]; then
+	DEBOOTSTRAP_VARIANT="--variant=$RET"
+fi
+
 # Avoid debconf sending email during the base install process
 DEBCONF_ADMIN_EMAIL=""
 export DEBCONF_ADMIN_EMAIL
@@ -83,6 +88,10 @@ install_base_system () {
 		else
 			warning "gpgv not found, not authenticating archive"
 		fi
+	elif [ "$PROTOCOL" = https ]; then
+		if db_get debian-installer/allow_unauthenticated_ssl && [ "$RET" = true ]; then
+			sigcheck="$sigcheck --no-check-certificate"
+		fi
 	fi
 
 	test -d $ETCDIR || mkdir -p $ETCDIR
@@ -103,6 +112,12 @@ install_base_system () {
 		if [ "$http_proxy" ]; then
 			export http_proxy
 		fi
+	elif [ "$PROTOCOL" = "https" ]; then
+		db_get mirror/https/proxy
+		https_proxy="$RET" || true
+		if [ "$https_proxy" ]; then
+			export https_proxy
+		fi
 	fi
 
 	# clean up after any past debootstrap run
@@ -118,6 +133,7 @@ install_base_system () {
 			--resolve-deps \
 			${include} ${exclude} \
 			${sigcheck} \
+			${DEBOOTSTRAP_VARIANT} \
 			${DISTRIBUTION} /target \
 			"$PROTOCOL://$MIRROR$DIRECTORY" \
 			${DEBOOTSTRAP_SCRIPT} \
@@ -132,6 +148,15 @@ install_base_system () {
 		exit_error base-installer/debootstrap-failed
 	fi
 
+	# If we need SSL certificates, copy them in now.
+	if [ "$PROTOCOL" = "https" ] && [ -d /etc/ssl/certs ]; then
+		if find /etc/ssl/certs/ -name \*.crt | grep -q .; then
+			mkdir -p /target/usr/local/share/ca-certificates
+			cp -a /etc/ssl/certs/*.crt /target/usr/local/share/ca-certificates/
+			chroot /target update-ca-certificates || true
+		fi
+	fi
+
 	# Progress bar is now stepped to 100
 }
 
@@ -142,6 +167,7 @@ waypoint 100	install_base_system
 waypoint 1	setup_dev
 waypoint 1	configure_apt_preferences
 waypoint 1	configure_apt
+waypoint 1	configure_apt_overlay
 waypoint 3	apt_update
 waypoint 5	post_install_hooks
 waypoint 1	pick_kernel

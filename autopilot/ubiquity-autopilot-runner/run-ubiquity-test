@@ -1,0 +1,402 @@
+#!/bin/bash
+
+#
+# Run ubiquity autopilot tests in KVM
+#
+# This script prepares a test environment to run ubiquity autopilot test, run
+# the tests and collect test artifacts
+#
+
+# Copyright (C) 2013, Canonical Ltd (http://www.canonical.com/)
+#
+# Author: Jean-Baptiste Lallement <jean-baptiste.lallement@canonical.com>
+#
+# This software is free software: you can redistribute it 
+# and/or modify it under the terms of the GNU General Public License 
+# as published by the Free Software Foundation, either version 3 of 
+# the License, or (at your option) any later version.
+# 
+# This software is distributed in the hope that it will 
+# be useful, but WITHOUT ANY WARRANTY; without even the implied warranty 
+# of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this software.  If not, see <http://www.gnu.org/licenses/>.
+#
+set -u
+
+RC=0
+BINDIR=$(dirname $(readlink -f $0))
+
+DISKSIZE=12G
+RAMSIZE=2048
+VCPU=2
+REQUIREDPKGS="bsdtar qemu-system-x86 bzr xz-utils cpio"
+SHAREDDIR=""
+OVERRIDEDIR=""
+WORKSPACE="${WORKSPACE:-/tmp/ubiquity.tests}"
+TESTNAME="${TESTNAME:-ubiquity_autopilot_tests.tests.test_english_default}"
+TESTCONFIG=""
+TIMEOUT=${TIMEOUT:-3600}
+DELAY=5
+SSHPORT=$(shuf -i 2000-65000 -n 1 -z)
+VNCPORT=$(shuf -i 1-2000 -n 1 -z)
+VNCOPTS="-vnc localhost:$VNCPORT"
+
+QEMUOPTS="-m $RAMSIZE -smp $VCPU \
+    -localtime -no-reboot \
+    -net nic,model=virtio -net user -redir tcp:$SSHPORT::22 \
+    -daemonize
+    "
+
+STARTAT=$(date)
+ENDAT=""
+
+on_exit() {
+    # Exit Handler
+    #
+    # Exit program with status in $RC
+    [ -n "$ENDAT" ] && exit $RC
+    ENDAT=$(date)
+    if [ -f "$WORKDIR/qemu.pid" ]; then
+        echo "I: Terminating qemu"
+        kill -9 $(cat $WORKDIR/qemu.pid) 2>/dev/null
+    fi
+    echo "I: Cleaning working directory"
+    [ -f "$DISKIMG" ] && rm -f "$DISKIMG"
+    [ -d "$WORKDIR" ] && rm -Rf "$WORKDIR"
+
+    hrule
+    echo -en "Run ended on $ENDAT\n"
+    hrule
+    exit $RC
+}
+
+trap on_exit EXIT INT QUIT ABRT PIPE TERM
+WORKDIR=$(mktemp -d /tmp/$(basename $0).XXXXXX)
+DISKDIR=$WORKDIR
+DISKIMG=""
+
+usage() {
+    # Display script usage
+    cat<<EOF
+Usage: $(basename $0) [OPTIONS...] <iso file>
+    Prepares a system from an ISO and run autopilot tests for ubiquity
+
+Arguments:
+    <iso file>      Path to a valid Ubuntu Desktop ISO 
+Options:
+    -h, --help      This help
+    -d, --debug     Enable debug mode
+    -o, --override PATH
+                    Directory to copy into the target filesystem
+    -S, --disksize DISKSIZE
+                    Set disk size (default: $DISKSIZE)
+    -s, --shm       Write disk image into /dev/shm
+        --sdl       Uses SDL instead of VNC by default
+    -t, --test TESTNAME
+                    Name of the test to run (default: $TESTNAME)
+    -T, --testconfig FILE
+                    Load test configuration from FILE
+
+EOF
+    RC=1 && exit
+}
+
+hrule() { seq -s_ 78|tr -d [[:digit:]]; echo; }
+
+check_prerequisites() {
+    # Check and set requirements to run this test
+    #
+    # Check and set the requirements to run this test. If any of the
+    # requirement is missing the programs exit with error
+    #
+    # Args:
+    #   $@: List of required packages
+    #
+    # Returns
+    #   Exit program is a requirement is not met
+    echo "I: Checking system requirements"
+    for pkg in $@; do
+        if ! dpkg-query -W -f'${Status}' $pkg|grep -q "install ok installed" 2>/dev/null; then
+            echo "E: $pkg is required and not installed on this system. Exiting!"
+            RC=1
+            exit
+        fi
+    done
+
+    QEMUCMD=$(which qemu-system-x86_64||true) 
+    if [ -z "$QEMUCMD" ]; then
+        echo "E: qemu is required and not installed on this system (run sudo apt-get install qemu). Exiting!"
+        RC=1
+        exit
+    fi
+    QEMUCMD="$(which eatmydata 2>/dev/null||true) $QEMUCMD"
+    QEMUOPTS="$QEMUOPTS -enable-kvm $VNCOPTS"
+
+}
+
+extract_kernel() {
+    # Extract kernel and initrd 
+    #
+    # Extract kernel and initrd from an ISO image
+    #
+    # Args:
+    #   $1: Path to a valid ISO
+    #   $2: Destination directory
+    src=$1
+    dst=$2
+    echo "I: Extracting kernel and initrd from iso"
+
+    if [ ! -f "$src" ]; then
+        echo "E: The file '$src' does not exists. Exiting!"
+        RC=2
+        exit
+    fi
+
+    if [ ! -d "$dst" ]; then
+        echo "E: The directory '$dst' does not exists or is not a directory. Exiting!"
+        RC=2
+        exit
+    fi
+
+    files="casper/initrd.lz casper/$(basename $KERNEL)"
+    echo "I: extracting files from $src: $files"
+    bsdtar xf $src -C $dst $files
+    ret=$?
+    if [ $ret -gt 0 ]; then
+        echo "E: bsdtar failed. Aborting!"
+        RC=$ret
+        exit
+    fi
+}
+
+create_disk_image() {
+    # Create a disk image 
+    #
+    # Args:
+    #   $1: Path of the disk image to create
+    #   $2: Size of the disk
+    diskpath=$1
+    disksize=$2
+    echo "I: Creating disk image"
+    qemu-img create -f qcow2 $diskpath $disksize
+    ret=$?
+    if [ $ret -gt 0 ]; then
+        echo "E: qemu-img create failed. Aborting!"
+        RC=$ret
+        exit
+    fi
+}
+prepare_initrd() {
+    # Put test payload into initrd
+    #
+    # Prepares the initrd and loads a payload that'll botstrap the test
+    #
+    # Args:
+    #   $1: working directory
+    #   $2: Path to initrd
+    #   $3: Path to test directory that contains the override of the target
+    #       file system
+    # Returns:
+    #   Nothing
+    workdir=$1/initrd
+    initrd=$2
+    initrdlz=${initrd}.lz
+    usercustomdir=$3
+    customdir=${BINDIR}/custom-installation
+
+    echo "I: Preparing initrd"
+    if [ ! -f "$initrdlz" ]; then
+        echo "E: file '$(basename $initrdlz)' not found. Aborting!"
+        RC=1
+        exit 
+    fi
+    mkdir -p $workdir
+
+    (
+        cd $workdir
+        xzcat $initrdlz|cpio --quiet -ivd 2>/dev/null
+        echo "I: Copying overrides"
+        cp -af $customdir $workdir/
+        [ -d "$usercustomdir" ] && cp -af "$usercustomdir" $workdir/
+        mkdir -p $workdir/custom-installation/iso-override/var/local/autopilot
+        echo "$TESTNAME" > $workdir/custom-installation/iso-override/var/local/autopilot/testsuites
+        [ -f "$TESTCONFIG" ] && cp $TESTCONFIG $workdir/custom-installation/iso-override/var/local/autopilot/config
+        if [ -n "$SHAREDDIR" ]; then
+            echo >> $workdir/custom-installation/iso-override/var/local/autopilot/config
+            echo "SHAREDVOL=ubiquity" >> $workdir/custom-installation/iso-override/var/local/autopilot/config
+        fi
+        echo "I: Repacking initrd"
+        [ -f "$initrd" ] && rm -f $initrd
+        find .|cpio --quiet -o -H newc > $initrd
+    )
+}
+
+boot_image() {
+    # Boot an image with a iso, a kernel, an initrd and a kernel cmdline
+    #
+    # Args:
+    #   $1: Working directory
+    #   $1: Path to ISO file
+    #   $2: Path to disk image
+    #   $3: Path to initrd file
+    #   $4: Path to kernel file
+    #   $5: Kernel command line
+    workdir=$1
+    isofile=$2
+    diskimg=$3
+    initrd=$4
+    kernel=$5
+    cmdline="$6"
+
+    for f in $2 $3 $4 $5; do
+        if [ ! -f "$f" ]; then
+            echo "E: Required file not found. Aborting!"
+            RC=1
+            exit
+        fi
+    done
+    echo "I: Booting image"
+    echo "I: local ssh port: $SSHPORT"
+
+    [ -n "$SHAREDDIR" ] && QEMUOPTS="$QEMUOPTS -virtfs local,id=ubiquity,path=${SHAREDDIR},security_model=none,mount_tag=ubiquity"
+    $QEMUCMD $QEMUOPTS -drive file=$diskimg,if=virtio -cdrom $isofile -boot d \
+        -initrd $initrd -kernel $kernel -append "$cmdline" \
+        -serial file:$workdir/ubiquity.ttyS0 \
+        -serial file:$workdir/ubiquity.ttyS1 \
+        -pidfile $workdir/qemu.pid
+}
+
+collect_artifacts() {
+    echo "I: Collecting test artifacts"
+    [ $# -eq 0 ] && return
+    [ -z "$WORKSPACE" ] && return
+
+    resultdir=$WORKSPACE/results/
+    mkdir -p $resultdir
+
+    rsync -avH $@ $resultdir
+
+    if [ -f "$resultdir/artifacts.tgz" ]; then
+        echo "I: Extracting artifacts to result directory"
+        tar xzf $resultdir/artifacts.tgz -C $resultdir/
+        rm -f "$resultdir/artifacts.tgz"
+    fi
+    find $resultdir | xargs touch
+    echo "I: Artifacts stored in $resultdir"
+}
+
+tail_logs() {
+    # Tail log files in -F mode in background
+    #   
+    # $@ List of log files
+    for log in $@; do
+        #tail -n0 -F --pid=$$ $log | mawk -Winteractive -v logfile="$log" '{print logfile":",$0}' &
+        tail -n0 -F --pid=$$ $log &
+    done
+}
+
+SHORTOPTS="hdDo:S:st:T:"
+LONGOPTS="help,debug,shareddir,override:,disksize:,sdl,shm,test:,testconfig:"
+
+TEMP=$(getopt -o $SHORTOPTS --long $LONGOPTS -- "$@")
+eval set -- "$TEMP"
+
+exec 2>&1
+
+while true ; do
+    case "$1" in
+        -h|--help)
+            usage;;
+        -d|--debug)
+            set -x
+            shift;;
+        -D|--shareddir)
+            SHAREDDIR=$(readlink -f $BINDIR/../..)
+            shift;;
+        -o|--override)
+            OVERRIDEDIR=$2
+            shift 2;;
+        -S|--disksize)
+            DISKSIZE=$2
+            shift 2;;
+        -s|--shm)
+            DISKDIR=/dev/shm
+            shift;;
+        --sdl)
+            VNCOPTS=""
+            shift;;
+        -t|--test)
+            TESTNAME=$2
+            shift 2;;
+        -T|--testconfig)
+            TESTCONFIG=$(readlink -f $2)
+            if [ ! -f "$TESTCONFIG" ]; then
+                echo "E: Configuration file not found :'$TESTCONFIG'. Aborting!"
+                exit 1
+            fi
+            shift 2;;
+        --)
+            shift;
+            break;;
+        *)
+            usage;;
+    esac
+done
+
+[ $# -ne 1 ] && usage
+ISO="$1"
+hrule
+cat<<EOF
+
+          _   _ _     _             _ _           _____         _   
+         | | | | |__ (_) __ _ _   _(_) |_ _   _  |_   _|__  ___| |_ 
+         | | | | '_ \\| |/ _\` | | | | | __| | | |   | |/ _ \\/ __| __|
+         | |_| | |_) | | (_| | |_| | | |_| |_| |   | |  __/\\__ \\ |_ 
+          \\___/|_.__/|_|\\__, |\\__,_|_|\\__|\\__, |   |_|\\___||___/\\__|
+                           |_|            |___/                     
+EOF
+hrule
+echo -en "Starting run on $STARTAT\n"
+hrule
+
+DISKIMG=$DISKDIR/disk.img
+INITRD=$WORKDIR/casper/initrd
+KERNEL=$WORKDIR/casper/vmlinuz
+if bsdtar tf $ISO casper/vmlinuz.efi >/dev/null 2>&1; then
+    KERNEL=${KERNEL}.efi
+fi
+KERNELOPTS="boot=casper DEBCONF_DEBUG=developer -- debconf/priority=critical locale=en_US console-setup/ask_detect=false console-setup/layoutcode=us automatic-ubiquity"
+KERNELOPTS="boot=casper DEBCONF_DEBUG=developer -- debconf/priority=critical locale=en_US console-setup/ask_detect=false console-setup/layoutcode=us noprompt console=ttyS0,115200"
+check_prerequisites $REQUIREDPKGS
+extract_kernel $ISO $WORKDIR
+create_disk_image $DISKIMG $DISKSIZE
+prepare_initrd $WORKDIR ${INITRD} "$OVERRIDEDIR"
+boot_image $WORKDIR $ISO $DISKIMG ${INITRD} $KERNEL "$KERNELOPTS"
+
+tail_logs $WORKDIR/ubiquity.ttyS0 
+
+PIDFILE=$WORKDIR/qemu.pid
+while sleep $DELAY; do
+    if [ ! -f "$PIDFILE" ]; then
+        echo "I: PID file not found: $PIDFILE"
+        break
+    fi
+    if ! kill -0 $(cat $WORKDIR/qemu.pid) 2>/dev/null; then
+        echo "I: Qemu process terminated."
+        break
+    fi
+    TIMEOUT=$((TIMEOUT - DELAY))
+    if [ $TIMEOUT -le 0 ]; then
+        echo "E: Test Timed out!"
+        break
+    fi
+done
+
+mkdir -p $WORKDIR/logs
+cp $WORKDIR/ubiquity.ttyS0 $WORKDIR/logs/console
+cp $WORKDIR/ubiquity.ttyS1 $WORKDIR/logs/artifacts.tgz
+
+collect_artifacts $WORKDIR/logs/

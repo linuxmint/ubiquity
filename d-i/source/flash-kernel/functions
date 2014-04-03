@@ -408,6 +408,7 @@ boot_device="$(get_machine_field "$machine" "Boot-Device")" || :
 boot_kernel_path="$(get_machine_field "$machine" "Boot-Kernel-Path")" || :
 boot_initrd_path="$(get_machine_field "$machine" "Boot-Initrd-Path")" || :
 boot_script_path="$(get_machine_field "$machine" "Boot-Script-Path")" || :
+boot_dtb_path="$(get_machine_field "$machine" "Boot-Dtb-Path")" || :
 boot_multi_path="$(get_machine_field "$machine" "Boot-Multi-Path")" || :
 android_boot_device="$(get_machine_field "$machine" "Android-Boot-Device")" || :
 android_skip_initrd="$(get_machine_field "$machine" "Android-Skip-Initrd")" || :
@@ -533,6 +534,14 @@ case "$method" in
 		elif [ -n "$kmtd" ]; then
 			flash_kernel "$tmpdir/uImage" "$kmtd" ""
 			rm -f "$tmpdir/uImage"
+		fi
+		if [ -n "$dtb_name" ] && [ -n "$boot_dtb_path" ]; then
+			dtb="/lib/firmware/$kvers/device-tree/$dtb_name"
+			if [ -f "$dtb" ]; then
+				cp "$dtb" "$tmpdir/$dtb_name"
+				dtb_path="$boot_mnt_dir/$boot_dtb_path"
+				backup_and_install "$tmpdir/$dtb_name" "$dtb_path"
+			fi				
 		fi
 		if [ -n "$boot_multi_path" ]; then
 			backup_and_install "$tmpdir/uImage" "$boot_multi_path"

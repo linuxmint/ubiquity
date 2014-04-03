@@ -2,12 +2,22 @@
 %:
 	dh $@
 
+DEB_BUILD_GNU_TYPE := $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+DEB_HOST_GNU_TYPE := $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+
+ifeq ($(DEB_BUILD_GNU_TYPE),$(DEB_HOST_GNU_TYPE))
+CROSS :=
+else
+CROSS := CC=$(DEB_HOST_GNU_TYPE)-gcc STRIP=$(DEB_HOST_GNU_TYPE)-strip
+endif
+
 override_dh_auto_build:
-	$(MAKE) small
+	# Don't try to sync the mirror masterlist during the build:
+	$(MAKE) small $(CROSS) ONLINE=n
 
 override_dh_auto_clean:
 	rm -rf debian/locales debian/sort-tmp
-	$(MAKE) clean Mirrors.masterlist
+	$(MAKE) clean check-masterlist
 
 override_dh_installdebconf:
 	dh_installdebconf

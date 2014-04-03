@@ -22,6 +22,7 @@
 */
 
 #include "netcfg.h"
+#include "nm-conf.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -37,12 +38,11 @@ static method_t netcfg_method = DHCP;
 
 response_t netcfg_get_method(struct debconfclient *client)
 {
-    int iret, ret;
+    int iret;
 
     iret = debconf_input(client, "medium", "netcfg/use_autoconfig");
-    ret = debconf_go(client);
 
-    if (ret == 30)
+    if (debconf_go(client) == CMD_GOBACK)
         return GO_BACK;
 
     debconf_get(client, "netcfg/use_autoconfig");
@@ -52,7 +52,7 @@ response_t netcfg_get_method(struct debconfclient *client)
     else
         netcfg_method = STATIC;
 
-    if (iret == 30)
+    if (iret == CMD_INPUTINVISIBLE)
         return NOT_ASKED;
 
     return 0;
@@ -77,13 +77,16 @@ int main(int argc, char *argv[])
 
     static struct debconfclient *client;
     static int requested_wireless_tools = 0;
-    int num_ifaces;
     char **ifaces;
     char *defiface = NULL, *defwireless = NULL;
     response_t res;
-    struct netcfg_interface interface;
+    int num_ifaces;
     char buf[256];
     int rv = 0;
+    struct netcfg_interface interface;
+#ifdef NM
+    struct nm_config_info nmconf;
+#endif
 
     /* initialize libd-i */
     di_system_init("netcfg");
@@ -117,10 +120,16 @@ int main(int argc, char *argv[])
     else
         debconf_set(client, "netcfg/use_autoconfig", "true");
 
+    /* also support disable_dhcp for compatibility */
+    debconf_get(client, "netcfg/disable_dhcp");
+
+    if (!strcmp(client->value, "true"))
+        debconf_set(client, "netcfg/use_autoconfig", "false");
+
     for (;;) {
         switch(state) {
         case BACKUP:
-            return 10;
+            return RETURN_TO_MAIN;
         case GET_INTERFACE:
             /* If we have returned from outside of netcfg and want to
              * reconfigure networking, check to see if wpasupplicant is
@@ -155,7 +164,6 @@ int main(int argc, char *argv[])
                 }
             }
 
-
             /* Choose a default by looking for link */
             if (num_ifaces > 1) {
                 while (*ifaces) {
@@ -164,7 +172,7 @@ int main(int argc, char *argv[])
                     if (check_kill_switch(*ifaces)) {
                         debconf_subst(client, "netcfg/kill_switch_enabled", "iface", *ifaces);
                         debconf_input(client, "high", "netcfg/kill_switch_enabled");
-                        if (debconf_go(client) == 30) {
+                        if (debconf_go(client) == CMD_GOBACK) {
                             state = BACKUP;
                             break;
                         }
@@ -176,9 +184,11 @@ int main(int argc, char *argv[])
                     }
 
                     interface_up(*ifaces);
+
                     netcfg_interface_init(&link_interface);
                     link_interface.name = strdup(*ifaces);
                     if (netcfg_detect_link (client, &link_interface) == 1) /* CONNECTED */ {
+                        /* CONNECTED */
                         di_info("found link on interface %s, making it the default.", *ifaces);
                         defiface = strdup(*ifaces);
                         free(link_interface.name);
@@ -266,15 +276,15 @@ int main(int argc, char *argv[])
             case 0:
                 state = QUIT;
                 break;
-            case 10:
+            case RETURN_TO_MAIN:
                 /*
                  * It doesn't make sense to go back to GET_METHOD because
-                 * the user has already been asked whether he wants to
+                 * the user has already been asked whether they want to
                  * try an alternate method.
                  */
                 state = (num_interfaces == 1) ? BACKUP : GET_INTERFACE;
                 break;
-            case 15:
+            case CONFIGURE_MANUALLY:
                 state = GET_STATIC;
                 break;
             default:
@@ -286,7 +296,7 @@ int main(int argc, char *argv[])
             {
                 int ret;
                 /* Misnomer - this should actually take care of activation */
-                if ((ret = netcfg_get_static(client, &interface)) == 10)
+                if ((ret = netcfg_get_static(client, &interface)) == RETURN_TO_MAIN)
                     state = GET_INTERFACE;
                 else if (ret)
                     state = GET_METHOD;
@@ -297,29 +307,23 @@ int main(int argc, char *argv[])
 
         case WCONFIG:
             if (requested_wireless_tools == 0) {
-                di_exec_shell_log("apt-install wireless-tools");
+                di_exec_shell_log("apt-install iw wireless-tools");
                 requested_wireless_tools = 1;
             }
             state = WCONFIG_ESSID;
             break;
 
         case WCONFIG_ESSID:
-            {
-                int ret;
-                ret = netcfg_wireless_set_essid(client, &interface, NULL);
-                if (ret == GO_BACK)
-                    state = BACKUP;
-                else if (ret == SKIP)
-                    state = GET_HOSTNAME_ONLY;
-                else {
-                    init_wpa_supplicant_support(&interface);
-                    if (interface.wpa_supplicant_status == WPA_UNAVAIL)
-                        state = WCONFIG_WEP;
-                    else
-                        state = WCONFIG_SECURITY_TYPE;
-                }
-                break;
+            if (netcfg_wireless_set_essid(client, &interface) == GO_BACK)
+                state = BACKUP;
+            else {
+                init_wpa_supplicant_support(&interface);
+                if (interface.wpa_supplicant_status == WPA_UNAVAIL)
+                    state = WCONFIG_WEP;
+                else
+                    state = WCONFIG_SECURITY_TYPE;
             }
+            break;
 
         case WCONFIG_SECURITY_TYPE:
             {
@@ -327,10 +331,14 @@ int main(int argc, char *argv[])
                 ret = wireless_security_type(client, interface.name);
                 if (ret == GO_BACK)
                     state = WCONFIG_ESSID;
-                else if (ret == REPLY_WPA)
+                else if (ret == REPLY_WPA) {
                     state = WCONFIG_WPA;
-                else
+                    interface.wifi_security = REPLY_WPA;
+                }
+                else {
                     state = WCONFIG_WEP;
+                    interface.wifi_security = REPLY_WEP;
+                }
                 break;
             }
 
@@ -361,9 +369,16 @@ int main(int argc, char *argv[])
                 state = WCONFIG_ESSID;
             else
                 state = GET_METHOD;
-            break; 
+            break;
 
         case QUIT:
+#ifdef NM
+            if (num_interfaces > 0) {
+                nm_get_configuration(&interface, &nmconf);
+                nm_write_configuration(nmconf);
+            }
+#endif
+
             netcfg_update_entropy();
             return 0;
         }

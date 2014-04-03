@@ -9,7 +9,7 @@ arch_check_usable_kernel () {
 
 arch_get_kernel () {
 	imgbase=linux-image
-	version=$KERNEL_MAJOR-alpha
+	version=alpha
 	
 	if [ "$NUMCPUS" ] && [ "$NUMCPUS" -gt 1 ]; then
 		echo "$imgbase-$version-smp"

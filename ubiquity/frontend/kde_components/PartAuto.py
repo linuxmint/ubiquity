@@ -161,8 +161,8 @@ class PartAuto(QtGui.QWidget):
             disks.append((text, bar_frame))
 
             dev = self.diskLayout[path.rsplit('/', 1)[1]]
-            before_bar = PartitionsBar()
-            after_bar = PartitionsBar()
+            before_bar = PartitionsBar(controller=self.controller)
+            after_bar = PartitionsBar(controller=self.controller)
 
             for p in dev:
                 before_bar.addPartition(p.device, int(p.size), p.filesystem)

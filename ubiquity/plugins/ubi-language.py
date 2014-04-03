@@ -404,14 +404,16 @@ class PageKde(PageBase):
             self.combobox.currentIndexChanged[str].connect(
                 self.on_language_selection_changed)
             if not self.controller.oem_config:
-                self.page.oem_id_label.hide()
-                self.page.oem_id_entry.hide()
+                self.page.oem_widget.hide()
 
             def init_big_button(button, image_name):
                 pix = QPixmap('/usr/share/ubiquity/qt/images/' + image_name)
                 icon = QIcon(pix)
                 button.setIcon(icon)
                 button.setIconSize(pix.size())
+                # Set a fixed height to ensure the button text is not cropped
+                # when the window is resized
+                button.setFixedHeight(button.sizeHint().height())
 
             def inst(*args):
                 self.page.try_ubuntu.setEnabled(False)

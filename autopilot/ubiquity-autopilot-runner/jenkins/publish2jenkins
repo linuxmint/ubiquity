@@ -1,0 +1,75 @@
+#!/bin/sh
+
+#
+# Create or update jenkins jobs for ubiquity testing
+# 
+
+# Copyright (C) 2013, Canonical Ltd (http://www.canonical.com/)
+#
+# Author: Jean-Baptiste Lallement <jean-baptiste.lallement@canonical.com>
+#
+# This software is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# This software is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this software.  If not, see <http://www.gnu.org/licenses/>.
+set -eu
+
+BASEDIR=$(dirname $(readlink -f $0))
+CONFIG_DIR=$BASEDIR/config
+TEMPLATE_DIR=$BASEDIR/templates
+UPDATE_CMD=$BASEDIR/update-jenkins-job
+UPDATE_OPTS="-U"
+SERVER=drude
+
+on_exit() {
+    # Do some cleanup
+    [ -f "$TMP_CFG" ] && rm -f "$TMP_CFG"
+}
+trap on_exit EXIT INT QUIT ABRT PIPE TERM
+
+TMP_CFG="$(mktemp /tmp/$(basename $0).XXXXXX)"
+
+for cfg in $CONFIG_DIR/*cfg; do
+    flavor=$(grep ^flavor $cfg |awk '{print $2}')
+    variant=$(grep ^variant $cfg |awk '{print $2}')
+
+    echo "I: Updating flavor '$flavor'"
+    # Download jobs
+    $UPDATE_CMD $UPDATE_OPTS -J $SERVER \
+        -t $TEMPLATE_DIR/ubiquity_ap-flavor_devel_daily-download.xml \
+        ubiquity_ap-${flavor}_devel_daily-download $cfg
+
+    # Main runner
+    $UPDATE_CMD $UPDATE_OPTS -J $SERVER \
+        -t $TEMPLATE_DIR/ubiquity_ap-flavor_devel_daily-run.xml \
+        ubiquity_ap-${flavor}_devel_daily-run $cfg
+
+    # Test cases
+    rc=0
+    testcases=$(python -c "import yaml; print(' '.join(yaml.safe_load(file('${cfg}', 'r'))['testcases']))" 2>/dev/null) || rc=$?
+    if [ $rc -gt 0 -o -z "$testcases" ]; then
+        echo "E: Failed to parse '$cfg'. Skipping!"
+        continue
+    fi
+
+    for testcase in $testcases; do
+        cat>$TMP_CFG<<EOF
+flavor: $flavor
+variant: $(grep ^variant $cfg |cut -d: -f2)
+testcase: $testcase
+EOF
+        echo "I: Updating testcase '$testcase'"
+        $UPDATE_CMD $UPDATE_OPTS -J $SERVER \
+            -t $TEMPLATE_DIR/ubiquity_ap-flavor_devel_daily-test.xml \
+            ubiquity_ap-${flavor}_devel_daily-${testcase} $TMP_CFG
+    done
+done
+    echo "I: Update successful"

@@ -1,3 +1,317 @@
+base-installer (1.144ubuntu1) trusty; urgency=medium
+
+  [ Colin Watson ]
+  * Resynchronise with Debian.  Remaining changes:
+    - Use and depend on the Ubuntu keyring.
+    - Enable the restricted component by default, unless
+      apt-setup/restricted is preseeded to false.
+    - Set up the default sources.list to look in -updates and -security (the
+      latter from apt-setup/security_host and apt-setup/security_path) as
+      well as the unadorned suite; also -proposed if apt-setup/proposed is
+      true.
+    - Use Ubuntu kernel image names.
+    - Allow preseeding base-installer/kernel/override-image to force a given
+      kernel to be used.
+    - Install busybox-initramfs rather than busybox.
+    - Revert Joey's patch to call base-installer.d hooks after running
+      debootstrap, which broke console-setup's expectation of being able to
+      insert its configuration file into /target before console-setup is
+      installed by debootstrap.
+    - Add armhf/keystone, armhf/omap, and armhf/omap4 subarchitectures.
+    - Install kernel headers to match the kernel. This may be overridden by
+      setting base-installer/kernel/headers to false.
+    - Add base-installer/kernel/backports-modules template, which may be
+      preseeded to install selected linux-backports-modules-* packages.
+    - Move some kernel installation support code from bootstrap-base to
+      base-installer, and allow live-installer to override the title
+      template used by that.
+    - Add powerpc/e500 and powerpc/e500mc subarchitectures.
+    - Add overlay archive support.
+    - Add arm64 and ppc64el architectures.
+
+  [ dann frazier ]
+  * Add arm64 kernel selection tests (LP: #1284712).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 27 Feb 2014 14:01:50 +0000
+
+base-installer (1.144) unstable; urgency=medium
+
+  [ Colin Watson ]
+  * Remove some unused variables from tests.
+  * Set Acquire::https::Verify-Host "false" as well as
+    Acquire::https::Verify-Peer "false" if
+    debian-installer/allow_unauthenticated_ssl=true, to match the behaviour
+    of "wget --no-check-certificate" (thanks to Mark Russell for the
+    report).
+
+  [ Paul Wise ]
+  * Allow preseeding the debootstrap variant to use
+
+  [ Adam Conrad ]
+  * Add POWER7+ and POWER8 support to powerpc64.
+
+ -- Colin Watson <cjwatson@debian.org>  Thu, 27 Feb 2014 10:15:15 +0000
+
+base-installer (1.143ubuntu2) trusty; urgency=medium
+
+  * Cherry-pick POWER7+ and POWER8 support from Debian for powerpc64.
+
+ -- Adam Conrad <adconrad@ubuntu.com>  Tue, 25 Feb 2014 17:53:44 -0700
+
+base-installer (1.143ubuntu1) trusty; urgency=medium
+
+  [ Colin Watson ]
+  * Reverse lots of our delta against Debian relating to architectures no
+    longer supported in Ubuntu (armel, hppa, ia64, sparc), to make merging
+    from Debian less painful.
+  * Resynchronise with Debian.  Remaining changes:
+    - Use and depend on the Ubuntu keyring.
+    - Enable the restricted component by default, unless
+      apt-setup/restricted is preseeded to false.
+    - Set up the default sources.list to look in -updates and -security (the
+      latter from apt-setup/security_host and apt-setup/security_path) as
+      well as the unadorned suite; also -proposed if apt-setup/proposed is
+      true.
+    - Use Ubuntu kernel image names.
+    - Allow preseeding base-installer/kernel/override-image to force a given
+      kernel to be used.
+    - Install busybox-initramfs rather than busybox.
+    - Revert Joey's patch to call base-installer.d hooks after running
+      debootstrap, which broke console-setup's expectation of being able to
+      insert its configuration file into /target before console-setup is
+      installed by debootstrap.
+    - Add armhf/keystone, armhf/omap, and armhf/omap4 subarchitectures.
+    - Install kernel headers to match the kernel. This may be overridden by
+      setting base-installer/kernel/headers to false.
+    - Add base-installer/kernel/backports-modules template, which may be
+      preseeded to install selected linux-backports-modules-* packages.
+    - Move some kernel installation support code from bootstrap-base to
+      base-installer, and allow live-installer to override the title
+      template used by that.
+    - Add powerpc/e500 and powerpc/e500mc subarchitectures.
+    - Add overlay archive support.
+    - Add ppc64el architecture.
+  * Remove code for some old Ubuntu i386 kernel names that no longer exist.
+
+  [ dann frazier ]
+  * Add arm64 kernel detection (LP: #1263756).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 14 Feb 2014 14:55:53 +0000
+
+base-installer (1.143) unstable; urgency=medium
+
+  * Add HTTPS support: pass --no-check-certificate to debootstrap if
+    debian-installer/allow_unauthenticated_ssl=true, set https_proxy if
+    necessary, and copy any certificates that exist in d-i into the target
+    system (LP: #1135163).
+
+ -- Colin Watson <cjwatson@debian.org>  Thu, 13 Feb 2014 13:59:27 +0000
+
+base-installer (1.142) unstable; urgency=medium
+
+  * pkgdetails.c: Only interpret percentages following whitespace, to cope
+    with GNU wget outputting the local file name (which may contain "%" due
+    to URL-encoding) after it finishes the download (LP: #1172101).
+
+ -- Colin Watson <cjwatson@debian.org>  Fri, 07 Feb 2014 16:17:36 +0000
+
+base-installer (1.141) unstable; urgency=low
+
+  [ Ian Campbell ]
+  * armhf: Support armmp kernel flavour on mx5 and express and as default on
+    generic platforms.
+  * armhf: Select armmp-lpae kernel flavour on generic platforms when the
+    hardware feature is available.
+
+ -- Colin Watson <cjwatson@debian.org>  Mon, 27 Jan 2014 17:10:49 +0000
+
+base-installer (1.140) unstable; urgency=medium
+
+  [ Aurelien Jarno ]
+  * mips: fix octeon cpuinfo.
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 30 Dec 2013 14:57:43 +0100
+
+base-installer (1.139) unstable; urgency=medium
+
+  * mips: Drop support for non-supported architectures.
+  * mips: Add support for octeon kernels.
+  * mipsel: Drop support for non-supported architectures
+  * mipsel: Add support for loongson-3a kernels.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Fri, 27 Dec 2013 21:23:37 +0100
+
+base-installer (1.138) unstable; urgency=low
+
+  [ Updated translations ]
+  * Bosnian (bs.po) by Amila Valjevčić
+  * Hungarian (hu.po) by Judit Gyimesi
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 15 Dec 2013 08:37:55 +0100
+
+base-installer (1.137) unstable; urgency=low
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+  * Ukrainian (uk.po) by Yuri Chornoivan
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 07 Nov 2013 18:58:07 +0100
+
+base-installer (1.136) unstable; urgency=low
+
+  [ Updated translations ]
+  * Tajik (tg.po) by Victor Ibragimov
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 14 Sep 2013 09:39:23 +0200
+
+base-installer (1.135) unstable; urgency=low
+
+  [ Updated translations ]
+  * Tajik (tg.po) by Victor Ibragimov
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 06 Sep 2013 06:17:11 +0200
+
+base-installer (1.134) unstable; urgency=low
+
+  [ Updated translations ]
+  * Tajik (tg.po) by Victor Ibragimov
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 15 Aug 2013 22:04:16 +0200
+
+base-installer (1.133) unstable; urgency=low
+
+  [ Dmitrijs Ledkovs ]
+  * Set debian source format to '3.0 (native)'.
+  * Bump debhelper compat level to 9.
+  * Set Vcs-* to canonical format.
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 13 Jul 2013 13:47:55 +0200
+
+base-installer (1.132) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Use correct compiler and strip when cross-building.
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 17 May 2013 15:00:00 +0200
+
+base-installer (1.131) unstable; urgency=low
+
+  [ Updated translations ]
+  * Croatian (hr.po) by Tomislav Krznar
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 12 May 2013 20:09:34 +0200
+
+base-installer (1.130) unstable; urgency=low
+
+  [ Milan Kupcevic ]
+  * Test suite support for Open Firmware /cpus directory. Closes: #629492
+
+ -- Cyril Brulebois <kibi@debian.org>  Tue, 25 Dec 2012 18:38:45 +0100
+
+base-installer (1.129) unstable; urgency=low
+
+  [ Milan Kupcevic ]
+  * Properly recognize PowerPC SMP machines. Closes: #629492
+
+  [ Updated translations ]
+  * Japanese (ja.po) by Kenshi Muto
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 09 Dec 2012 13:08:00 +0100
+
+base-installer (1.128) unstable; urgency=low
+
+  * Add support for armhf/vexpress.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sat, 20 Oct 2012 14:42:51 +0200
+
+base-installer (1.127) unstable; urgency=low
+
+  * Add myself to Uploaders.
+
+  [ Updated translations ]
+  * Asturian (ast.po) by ivarela
+  * Galician (gl.po) by Jorge Barreiro
+  * Kannada (kn.po) by Prabodh
+  * Ukrainian (uk.po) by Yuri Chornoivan
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 17 Oct 2012 21:54:13 +0200
+
+base-installer (1.126) unstable; urgency=low
+
+  * Team upload
+
+  [ Philipp Kern ]
+  * Add s390x support.
+
+ -- Philipp Kern <pkern@debian.org>  Sat, 11 Aug 2012 16:10:17 +0200
+
+base-installer (1.125) unstable; urgency=low
+
+  * Team upload
+  * Replace XC-package-Type with Package-Type
+
+  [ Updated translations ]
+  * Welsh (cy.po) by Daffyd Tomos
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 15 Jun 2012 18:02:43 +0200
+
+base-installer (1.124) unstable; urgency=low
+
+  * Team upload
+
+  [ Joey Hess ]
+  * Add missing semicolon to /etc/apt/apt.conf.d/00CDMountPoint.
+
+  [ Updated translations ]
+  * Tibetan (bo.po) by Tennom
+  * German (de.po) by Holger Wansing
+  * Galician (gl.po) by Jorge Barreiro
+  * Lithuanian (lt.po) by Rimas Kudelis
+  * Latvian (lv.po) by Rūdolfs Mazurs
+  * Macedonian (mk.po) by Arangel Angov
+  * Panjabi (pa.po) by A S Alam
+  * Portuguese (Brazil) (pt_BR.po) by Felipe Augusto van de Wiel (faw)
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 14 Jun 2012 20:33:53 +0200
+
+base-installer (1.123) unstable; urgency=low
+
+  [ Colin Watson ]
+  * pkgdetails: Use fputs rather than fprintf for out-of-memory message.
+
+  [ Martin Michlmayr ]
+  * Simplify armel kernel file by removing unsupported platforms.
+
+  [ Otavio Salvador ]
+  * [linux] do not list linux-image-2.6 kernels as they're available for
+    backward compatibility only.
+  * Change kernel selection to choose linux-image-. Closes: #655437.
+
+ -- Otavio Salvador <otavio@debian.org>  Tue, 03 Apr 2012 19:36:14 -0300
+
+base-installer (1.122ubuntu21) trusty; urgency=medium
+
+  * Cherry-pick from trunk:
+    - pkgdetails.c: Only interpret percentages following whitespace, to cope
+      with GNU wget outputting the local file name (which may contain "%"
+      due to URL-encoding) after it finishes the download (LP: #1172101).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 07 Feb 2014 16:38:27 +0000
+
+base-installer (1.122ubuntu20) trusty; urgency=medium
+
+  * Add ppc64el support.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 31 Jan 2014 10:06:42 +0000
+
+base-installer (1.122ubuntu19) trusty; urgency=low
+
+  * Merge in overlay archive support (LP: #1250930)
+  * Merge in Dann Frazier's local0 overloading patch  (LP: #1250930)
+  * Add keystone to allowed kernels list for armhf
+  
+ -- Michael Casadevall <mcasadevall@ubuntu.com>  Thu, 02 Jan 2014 06:07:21 -0500
+
 base-installer (1.122ubuntu17) saucy; urgency=low
 
   * Add generic-lpae the the allowed list of subarches in armhf/armel.

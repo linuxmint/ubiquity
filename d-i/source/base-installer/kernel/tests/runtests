@@ -23,7 +23,7 @@ verbose () {
 run_test () {
 	TEST="$1"
 
-	unset SUBARCH CPUINFO MACHINE FLAVOUR KERNEL_26 KERNEL_7 KERNEL_8 USABLE UNUSABLE \
+	unset SUBARCH CPUINFO OFCPUS MACHINE FLAVOUR KERNEL_26 KERNEL_3_10 KERNEL_7 KERNEL_8 USABLE UNUSABLE \
 		|| true
 	NUMCPUS=1
 	MAJORS=2.6
@@ -35,6 +35,9 @@ run_test () {
 				;;
 			cpuinfo)
 				CPUINFO="${TEST%/*}/$value"
+				;;
+			ofcpus)
+				OFCPUS="${TEST%/*}/$value"
 				;;
 			numcpus)
 				NUMCPUS="$value"
@@ -50,6 +53,9 @@ run_test () {
 				;;
 			kernel-2.6)
 				KERNEL_26="$value"
+				;;
+			kernel-3.10)
+				KERNEL_3_10="$value"
 				;;
 			kernel-7)
 				KERNEL_7="$value"
@@ -71,8 +77,8 @@ run_test () {
 		esac
 	done < "$TEST"
 
-	export ARCH SUBARCH CPUINFO NUMCPUS MACHINE
-	export MAJORS FLAVOUR KERNEL_26 KERNEL_7 KERNEL_8
+	export ARCH SUBARCH CPUINFO OFCPUS NUMCPUS MACHINE
+	export MAJORS FLAVOUR KERNEL_26 KERNEL_3_10 KERNEL_7 KERNEL_8
 	export USABLE UNUSABLE
 
 	TMP="$(mktemp -t base-installer-tests.XXXXXX)"

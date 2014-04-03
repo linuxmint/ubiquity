@@ -2,7 +2,7 @@ CFLAGS = -Wall -Os -s
 STRIP = strip
 
 blockdev-wipe: blockdev-wipe.c
-	$(CC) $(CFLAGS) -o $@ $< 
+	$(CC) $(CFLAGS) -o $@ $<
 	$(STRIP) -s $@
 
 clean:

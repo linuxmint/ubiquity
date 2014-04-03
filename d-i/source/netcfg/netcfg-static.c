@@ -39,7 +39,7 @@ int main(int argc, char** argv)
     /* initialize libd-i */
     di_system_init("netcfg-static");
     if (strcmp(basename(argv[0]), "ptom") != 0)
-	di_info("Starting netcfg v.%s (built %s)", NETCFG_VERSION, NETCFG_BUILD_DATE);
+        di_info("Starting netcfg v.%s (built %s)", NETCFG_VERSION, NETCFG_BUILD_DATE);
 
     parse_args(argc, argv);
     reap_old_files();
@@ -52,7 +52,7 @@ int main(int argc, char** argv)
     while (1) {
         switch(state) {
         case BACKUP:
-            return 10;
+            return RETURN_TO_MAIN;
         case GET_INTERFACE:
             if (netcfg_get_interface(client, &(interface.name), &num_interfaces, NULL))
                 state = BACKUP;
@@ -83,13 +83,13 @@ int main(int argc, char** argv)
         case WCONFIG:
             if (requested_wireless_tools == 0) {
                 requested_wireless_tools = 1;
-                di_exec_shell("apt-install wireless-tools");
+                di_exec_shell("apt-install iw wireless-tools");
             }
             state = WCONFIG_ESSID;
             break;
 
         case WCONFIG_ESSID:
-            if (netcfg_wireless_set_essid (client, &interface, NULL))
+            if (netcfg_wireless_set_essid (client, &interface))
                 state = BACKUP;
             else
                 state = WCONFIG_WEP;

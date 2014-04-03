@@ -27,23 +27,15 @@ from PyQt4 import QtCore, QtGui
 from ubiquity.misc import find_in_os_prober, format_size
 
 
-def name_from_path(path):
-    return find_in_os_prober(path) or path.replace('/dev/', '')
-
-
 class Partition:
-    # colors used to render partition types
-    # 'auto' is used to represent the results of automatic partitioning.
-    filesystemColours = {'auto':        '#509DE8',
-                         'ext2':        '#418DD4',
-                         'ext3':        '#418DD4',
-                         'ext4':        '#418DD4',
-                         'btrfs':       '#418DD4',
-                         'free':        '#FFFFFF',
-                         'linux-swap':  '#FF80E0',
-                         'fat32':       '#C0DAFF',
-                         'fat16':       '#C0DAFF',
-                         'ntfs':        '#888786'}
+    Colors = [
+        '#448eca',
+        '#a5cc42',
+        '#d87e30',
+        '#ffbdbd',
+        ]
+
+    FreeColor = '#777777'
 
     def __init__(self, path, size, fs, name=None):
         self.size = size
@@ -52,15 +44,18 @@ class Partition:
         self.index = None
         self.path = path
 
-        if name is None:
-            if fs == 'free':
-                self.name = 'free space'
-            elif fs == 'swap':
-                self.name = 'swap'
-            else:
-                self.name = name_from_path(path)
-        else:
+        if name is not None:
             self.name = name
+            return
+
+        if self.fs != 'linux-swap':
+            # Do not go through find_in_os_prober() for swap: it returns
+            # 'swap', which is not helpful since we show the filesystem anyway.
+            # Better continue to the fallback of showing the partition name.
+            name = find_in_os_prober(path)
+        if not name:
+            name = path.replace('/dev/', '')
+        self.name = '%s (%s)' % (name, fs)
 
 
 class PartitionsBar(QtGui.QWidget):
@@ -69,9 +64,10 @@ class PartitionsBar(QtGui.QWidget):
     ## signals
     partitionResized = QtCore.pyqtSignal(['PyQt_PyObject', 'PyQt_PyObject'])
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, controller=None):
         """ a widget to graphically show disk partitions. """
         QtGui.QWidget.__init__(self, parent)
+        self.controller = controller
         self.partitions = []
         self.bar_height = 20  # should be a multiple of 2
         self.diskSize = 0
@@ -89,154 +85,135 @@ class PartitionsBar(QtGui.QWidget):
 
     def paintEvent(self, qPaintEvent):
         painter = QtGui.QPainter(self)
-
-        # used for drawing sunken frame
-        sunkenFrameStyle = QtGui.QStyleOptionFrame()
-        sunkenFrameStyle.state = QtGui.QStyle.State_Sunken
-
         h = self.bar_height
         effective_width = self.width() - 1
 
-        path = QtGui.QPainterPath()
-        path.addRoundedRect(
-            1, 1, self.width() - 2, h - 2, self.radius, self.radius)
-
-        part_offset = 0
-        label_offset = 0
-        trunc_pix = 0
+        part_x = 0
+        label_x = 0
+        trunc_width = 0
         resize_handle_x = None
-        for p in self.partitions:
-            painter.setRenderHint(QtGui.QPainter.Antialiasing, True)
+        for idx, part in enumerate(self.partitions):
+            # this is done so that even after resizing a partition, the
+            # partitions after it are still drawn draw in the same places
+            trunc_width += (effective_width * float(part.size) / self.diskSize)
+            part_width = int(round(trunc_width))
+            trunc_width -= part_width
 
-            # this is done so that even after resizing, other partitions
-            # draw in the same places
-            trunc_pix += (effective_width * float(p.size) / self.diskSize)
-            pix_size = int(round(trunc_pix))
-            trunc_pix -= pix_size
+            grad, color = self._createGradient(idx, part, h)
 
-            # use the right color for the filesystem
-            if p.fs in Partition.filesystemColours:
-                pColor = QtGui.QColor(Partition.filesystemColours[p.fs])
-            else:
-                pColor = QtGui.QColor(Partition.filesystemColours['free'])
-
-            pal = QtGui.QPalette(pColor)
-            dark = pal.color(QtGui.QPalette.Dark)
-            mid = pColor.darker(125)
-            midl = mid.lighter(125)
-
-            grad = QtGui.QLinearGradient(
-                QtCore.QPointF(0, 0), QtCore.QPointF(0, h))
-
-            if p.fs == "free":
-                grad.setColorAt(.25, mid)
-                grad.setColorAt(1, midl)
-            else:
-                grad.setColorAt(0, midl)
-                grad.setColorAt(.75, mid)
-
-            painter.setPen(QtCore.Qt.NoPen)
-            painter.setBrush(QtGui.QBrush(grad))
-            painter.setClipRect(part_offset, 0, pix_size, h * 2)
-            painter.drawPath(path)
-
-            if part_offset > 0:
-                painter.setPen(dark)
-                painter.drawLine(part_offset, 3, part_offset, h - 3)
-
+            painter.setClipRect(part_x, 0, part_width + 1, self.height())
+            self._drawPartitionFrame(painter, 0, 0, self.width(), h, grad)
             painter.setClipping(False)
 
-            draw_labels = True
-            if draw_labels:
-                # draw the labels
-                painter.setPen(QtCore.Qt.black)
+            if idx > 0:
+                # Draw vertical separator between partitions
+                painter.setRenderHint(QtGui.QPainter.Antialiasing, False)
+                painter.drawLine(part_x, 0, part_x, h - 1)
 
-                # label vertical location
-                labelY = h + 8
-
-                texts = []
-                texts.append(p.name)
-                texts.append("%.01f%% (%s)" % (
-                    float(p.size) / self.diskSize * 100, format_size(p.size)))
-
-                nameFont = QtGui.QFont("arial", 10)
-                infoFont = QtGui.QFont("arial", 8)
-
-                painter.setFont(nameFont)
-                v_off = 0
-                width = 0
-                for text in texts:
-                    textSize = painter.fontMetrics().size(
-                        QtCore.Qt.TextSingleLine, text)
-                    painter.drawText(
-                        label_offset + 20,
-                        labelY + v_off + textSize.height() / 2, text)
-                    v_off += textSize.height()
-                    painter.setFont(infoFont)
-                    painter.setPen(QtGui.QColor(PartitionsBar.InfoColor))
-                    width = max(width, textSize.width())
-
-                painter.setPen(QtCore.Qt.NoPen)
-                painter.setBrush(mid)
-                labelRect = QtGui.QPainterPath()
-                labelRect.addRoundedRect(
-                    label_offset + 1, labelY - 3, 13, 13, 4, 4)
-                painter.drawPath(labelRect)
-
-                sunkenFrameStyle.rect = QtCore.QRect(
-                    label_offset, labelY - 4, 15, 15)
-                self.style().drawPrimitive(
-                    QtGui.QStyle.PE_Frame, sunkenFrameStyle, painter, self)
-                self.style().drawPrimitive(
-                    QtGui.QStyle.PE_Frame, sunkenFrameStyle, painter, self)
-
-                label_offset += width + 40
+            label_x += self._drawLabels(painter, part, label_x, h, color)
 
             # set the handle location for drawing later
-            if self.resize_part and p == self.resize_part.next:
-                resize_handle_x = part_offset
+            if self.resize_part and part == self.resize_part.next:
+                resize_handle_x = part_x
 
-            # increment the partition offset
-            part_offset += pix_size
-
-        sunkenFrameStyle.rect = QtCore.QRect(0, 0, self.width(), h)
-        self.style().drawPrimitive(
-            QtGui.QStyle.PE_Frame, sunkenFrameStyle, painter, self)
+            part_x += part_width
 
         if self.resize_part and resize_handle_x:
-            # draw a resize handle
-            part = self.resize_part
-            xloc = resize_handle_x
-            self.resize_loc = xloc
+            self._drawResizeHandle(
+                painter, self.resize_part, resize_handle_x, h)
 
-            painter.setPen(QtCore.Qt.NoPen)
-            painter.setBrush(QtCore.Qt.black)
+        painter.setPen(QtCore.Qt.red)
 
-            painter.setRenderHint(QtGui.QPainter.Antialiasing, True)
-            # move out so not created every time
-            arrow_offsets = (
-                (0, h / 2 - 1), (4, h / 2 - 1), (4, h / 2 - 3), (8, h / 2),
-                (4, h / 2 + 3), (4, h / 2 + 1), (0, h / 2 + 1))
+    def _createGradient(self, idx, part, h):
+        # use the right color for the filesystem
+        if part.fs == "free":
+            color = Partition.FreeColor
+        else:
+            color = Partition.Colors[idx % len(Partition.Colors)]
+        color = QtGui.QColor(color)
 
-            p1 = arrow_offsets[0]
-            if part.size > part.minsize:
-                arrow = QtGui.QPainterPath(
-                    QtCore.QPointF(xloc + -1 * p1[0], p1[1]))
-                for p in arrow_offsets:
-                    arrow.lineTo(xloc + -1 * p[0] + 1, p[1])
-                painter.drawPath(arrow)
+        grad = QtGui.QLinearGradient(
+            QtCore.QPointF(0, 0), QtCore.QPointF(0, h))
 
-            if part.size < part.maxsize:
-                arrow = QtGui.QPainterPath(QtCore.QPointF(xloc + p1[0], p1[1]))
-                for p in arrow_offsets:
-                    arrow.lineTo(xloc + p[0], p[1])
-                painter.drawPath(arrow)
+        if part.fs == "free":
+            grad.setColorAt(0, color.darker(150))
+            grad.setColorAt(0.25, color)
+        else:
+            grad.setColorAt(0, color)
+            grad.setColorAt(.75, color.darker(125))
+        return grad, color
 
-            painter.setRenderHint(QtGui.QPainter.Antialiasing, False)
-            painter.setPen(QtCore.Qt.black)
-            painter.drawLine(xloc, 0, xloc, h)
+    def _drawLabels(self, painter, part, x, h, partColor):
+        painter.setPen(QtCore.Qt.black)
+
+        # label vertical location
+        labelY = h + 8
+
+        texts = []
+        texts.append(part.name)
+        texts.append(format_size(part.size))
+
+        nameFont = QtGui.QFont("arial", 10)
+        infoFont = QtGui.QFont("arial", 8)
+
+        painter.setFont(nameFont)
+        v_off = 0
+        width = 0
+        for text in texts:
+            textSize = painter.fontMetrics().size(
+                QtCore.Qt.TextSingleLine, text)
+            painter.drawText(
+                x + 18,
+                labelY + v_off + textSize.height() / 2, text)
+            v_off += textSize.height()
+            painter.setFont(infoFont)
+            painter.setPen(QtGui.QColor(PartitionsBar.InfoColor))
+            width = max(width, textSize.width())
+
+        self._drawPartitionFrame(painter, x, labelY - 3, 13, 13, partColor)
+
+        return width + 40
+
+    def _drawResizeHandle(self, painter, part, xloc, h):
+        self.resize_loc = xloc
+
+        painter.setPen(QtCore.Qt.NoPen)
+        painter.setBrush(QtCore.Qt.black)
+
+        painter.setRenderHint(QtGui.QPainter.Antialiasing, True)
+        arrow_offsets = (
+            (0, h / 2 - 1), (4, h / 2 - 1), (4, h / 2 - 3), (8, h / 2),
+            (4, h / 2 + 3), (4, h / 2 + 1), (0, h / 2 + 1))
+
+        p1 = arrow_offsets[0]
+        if part.size > part.minsize:
+            arrow = QtGui.QPainterPath(
+                QtCore.QPointF(xloc + -1 * p1[0], p1[1]))
+            for p in arrow_offsets:
+                arrow.lineTo(xloc + -1 * p[0] + 1, p[1])
+            painter.drawPath(arrow)
+
+        if part.size < part.maxsize:
+            arrow = QtGui.QPainterPath(QtCore.QPointF(xloc + p1[0], p1[1]))
+            for p in arrow_offsets:
+                arrow.lineTo(xloc + p[0], p[1])
+            painter.drawPath(arrow)
+
+        painter.setRenderHint(QtGui.QPainter.Antialiasing, False)
+        painter.setPen(QtCore.Qt.black)
+        painter.drawLine(xloc, 0, xloc, h - 1)
+
+    def _drawPartitionFrame(self, painter, x, y, w, h, brush):
+        painter.fillRect(x + 1, y + 1, w - 2, h - 2, brush)
+        painter.setRenderHint(QtGui.QPainter.Antialiasing, True)
+        painter.setPen(self.palette().shadow().color())
+        painter.translate(0.5, 0.5)
+        painter.drawRoundedRect(x, y, w - 1, h - 1, 2, 2)
+        painter.translate(-0.5, -0.5)
 
     def addPartition(self, path, size, fs, name=None):
+        if name is None and fs == 'free' and self.controller:
+            name = self.controller.get_string('partition_free_space')
         partition = Partition(path, size, fs, name=name)
         self.diskSize += size
 

@@ -1,6 +1,15 @@
 #! /usr/bin/make -f
+
+DEB_BUILD_GNU_TYPE := $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+DEB_HOST_GNU_TYPE := $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+
 %:
 	dh $@
+
+ifneq ($(DEB_BUILD_GNU_TYPE),$(DEB_HOST_GNU_TYPE))
+override_dh_auto_build:
+	dh_auto_build -- CC=$(DEB_HOST_GNU_TYPE)-gcc
+endif
 
 override_dh_install:
 	dh_install
@@ -20,8 +29,3 @@ ifneq (,$(shell dh_listpackages | grep '^netcfg$$'))
 	(echo ; po2debconf debian/netcfg-static.templates) \
 	   >> debian/netcfg/DEBIAN/templates
 endif
-
-# We don't want to run the test suite at build time; it's not designed for
-# that
-override_dh_auto_test:
-

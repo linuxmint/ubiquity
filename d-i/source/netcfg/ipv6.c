@@ -214,6 +214,17 @@ int nc_v6_get_config_flags(struct debconfclient *client, struct netcfg_interface
 		}
 	}
 
+	/* In theory managed and other are independent of each other. In
+	 * practise both being present means that addresses and configuration
+	 * are available via DHCPv6. Hence set stateless_config to 0.
+	 * Otherwise the autoconfiguration logic will only spawn a stateless
+	 * client.
+	 */
+	if (interface->v6_stateful_config == 1 &&
+	    interface->v6_stateless_config == 1) {
+		interface->v6_stateless_config = 0;
+	}
+
 	debconf_progress_stop(client);
 
 	if (interface->v6_stateful_config != -1 &&

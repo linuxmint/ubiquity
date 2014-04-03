@@ -384,7 +384,7 @@ class Install(install_misc.InstallBase):
         # remaining" indicator at most every two seconds after that.
 
         copy_progress = 0
-        copied_size, counter = 0, 0
+        copied_size = 0
         directory_times = []
         time_start = time.time()
         times = [(time_start, copied_size)]

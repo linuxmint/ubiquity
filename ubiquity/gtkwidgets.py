@@ -88,7 +88,7 @@ class StylizedFrame(Gtk.Alignment):
 GObject.type_register(StylizedFrame)
 
 
-class ResizeWidget(Gtk.HPaned):
+class ResizeWidget(Gtk.Paned):
     __gtype_name__ = 'ResizeWidget'
     __gproperties__ = {
         'part_size': (
@@ -113,7 +113,8 @@ class ResizeWidget(Gtk.HPaned):
 
     def __init__(self, part_size=100, min_size=0, max_size=100,
                  existing_part=None, new_part=None):
-        Gtk.HPaned.__init__(self)
+        Gtk.Paned.__init__(self)
+        self.set_orientation(Gtk.Orientation.HORIZONTAL)
         assert min_size <= max_size <= part_size
         assert part_size > 0
         # The size (b) of the existing partition.
@@ -132,18 +133,19 @@ class ResizeWidget(Gtk.HPaned):
             Gtk.StateFlags.SELECTED)
         self.highlight_color.alpha = 0.5
 
-        # FIXME: Why do we still need these event boxes to get proper bounds
-        # for the linear gradient?
         self.existing_part = existing_part or PartitionBox()
-        eb = Gtk.EventBox()
-        eb.modify_bg(Gtk.StateFlags.NORMAL, self.highlight_color.to_color())
-        eb.add(self.existing_part)
-        self.pack1(eb, resize=False, shrink=False)
+        frame = Gtk.Frame.new()
+        frame.set_shadow_type(Gtk.ShadowType.ETCHED_IN)
+        frame.modify_bg(Gtk.StateFlags.NORMAL, self.highlight_color.to_color())
+        frame.add(self.existing_part)
+        self.pack1(frame, resize=False, shrink=False)
+
         self.new_part = new_part or PartitionBox()
-        eb = Gtk.EventBox()
-        eb.modify_bg(Gtk.StateFlags.NORMAL, self.highlight_color.to_color())
-        eb.add(self.new_part)
-        self.pack2(eb, resize=False, shrink=False)
+        frame = Gtk.Frame.new()
+        frame.set_shadow_type(Gtk.ShadowType.ETCHED_IN)
+        frame.modify_bg(Gtk.StateFlags.NORMAL, self.highlight_color.to_color())
+        frame.add(self.new_part)
+        self.pack2(frame, resize=False, shrink=False)
 
         self.show_all()
         # FIXME hideous, but do_realize fails inexplicably.
@@ -163,6 +165,7 @@ class ResizeWidget(Gtk.HPaned):
         self.new_part.set_size_request(pixels, -1)
 
     def do_draw(self, cr):
+        Gtk.Paned.do_draw(self, cr)
         s1 = self.existing_part.get_allocation().width
         s2 = self.new_part.get_allocation().width
         total = s1 + s2

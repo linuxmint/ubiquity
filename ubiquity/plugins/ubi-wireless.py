@@ -1,6 +1,6 @@
 # -*- coding: utf-8; Mode: Python; indent-tabs-mode: nil; tab-width: 4 -*-
 
-# Copyright (C) 2010 Canonical Ltd.
+# Copyright (C) 2013 Canonical Ltd.
 # Written by Evan Dandrea <evan.dandrea@canonical.com>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -24,7 +24,7 @@ from ubiquity import plugin
 
 NAME = 'wireless'
 #after prepare for default install, but language for oem install
-AFTER = ['prepare', 'language']
+AFTER = 'language'
 WEIGHT = 12
 
 

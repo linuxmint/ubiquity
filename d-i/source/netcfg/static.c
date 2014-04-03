@@ -303,17 +303,17 @@ static int netcfg_activate_static_ipv4(struct debconfclient *client,
 
 #elif defined(__FreeBSD_kernel__)
     deconfigure_network(NULL);
-    
+
     loop_setup();
     interface_up(interface->name);
-    
+
     /* Flush all previous addresses, routes */
     snprintf(buf, sizeof(buf), "ifconfig %s inet 0 down", interface->name);
     rv |= di_exec_shell_log(buf);
-    
+
     snprintf(buf, sizeof(buf), "ifconfig %s up", interface->name);
     rv |= di_exec_shell_log(buf);
-    
+
     snprintf(buf, sizeof(buf), "ifconfig %s %s",
              interface->name, interface->ipaddress);
     
@@ -545,7 +545,7 @@ int netcfg_get_static(struct debconfclient *client, struct netcfg_interface *ifa
     for (;;) {
         switch (state) {
         case BACKUP:
-            return 10; /* Back to main */
+            return RETURN_TO_MAIN;
             break;
 
         case GET_IPADDRESS:
@@ -589,7 +589,7 @@ int netcfg_get_static(struct debconfclient *client, struct netcfg_interface *ifa
             if (netcfg_get_gateway(client, iface))
                 state = GET_NETMASK;
             else
-                if (!netcfg_gateway_reachable(iface))
+                if (strlen(iface->gateway) > 0 && !netcfg_gateway_reachable(iface))
                     state = GATEWAY_UNREACHABLE;
                 else
                     state = GET_NAMESERVERS;
@@ -608,8 +608,15 @@ int netcfg_get_static(struct debconfclient *client, struct netcfg_interface *ifa
             break;
         case GET_HOSTNAME:
             {
-                char buf[MAXHOSTNAMELEN + 1];
-                if (get_hostname_from_dns(iface, buf, sizeof(buf)))
+                char buf[MAXHOSTNAMELEN + 1] = { 0 };
+
+                debconf_get(client, "netcfg/hostname");
+                if (!empty_str(client->value))
+                {
+                    strncpy(buf, client->value, MAXHOSTNAMELEN);
+                    preseed_hostname_from_fqdn(client, buf);
+                }
+                else if (get_hostname_from_dns(iface, buf, sizeof(buf)))
                     preseed_hostname_from_fqdn(client, buf);
             }
             state = (netcfg_get_hostname(client, "netcfg/get_hostname", hostname, 1)) ?
@@ -643,6 +650,7 @@ int netcfg_get_static(struct debconfclient *client, struct netcfg_interface *ifa
             debconf_input(client, "medium", "netcfg/confirm_static");
             debconf_go(client);
             debconf_get(client, "netcfg/confirm_static");
+
             if (strstr(client->value, "true")) {
                 state = GET_HOSTNAME;
                 netcfg_write_resolv(domain, iface);

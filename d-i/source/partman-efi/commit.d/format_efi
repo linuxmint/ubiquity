@@ -12,6 +12,12 @@ case $ARCH in
 	;;
 esac
 
+if search-path mkfs.fat; then
+	MKFS_FAT=mkfs.fat
+else
+	MKFS_FAT=mkdosfs
+fi
+
 enable_swap
 for dev in $DEVICES/*; do
 	[ -d "$dev" ] || continue
@@ -69,7 +75,7 @@ for dev in $DEVICES/*; do
 				mkdosfs_opts='-s 1'
 			fi
 			if log-output -t partman --pass-stdout \
-			   mkdosfs -F "${new_efi_fs#fat}" \
+			   $MKFS_FAT -F "${new_efi_fs#fat}" \
 				   -S "$log_sector_size" \
 				   $mkdosfs_opts \
 				   "$device" >/dev/null; then

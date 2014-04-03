@@ -1,0 +1,357 @@
+#! /usr/bin/python
+"""Create/Update jenkins jobs for a given project
+
+- Reads configuration from YAML configuration file
+- Create/updates the jenkins jobs on the server configured in the credentials
+file
+
+"""
+# Copyright (C) 2013, Canonical Ltd (http://www.canonical.com/)
+#
+# Author: Jean-Baptiste Lallement <jean-baptiste.lallement@canonical.com>
+#
+# This software is free software: you can redistribute it
+# and/or modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, either version 3 of
+# the License, or (at your option) any later version.
+#
+# This software is distributed in the hope that it will
+# be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+# of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this software.  If not, see <http://www.gnu.org/licenses/>.
+
+import os
+import logging
+import sys
+import jinja2
+import jenkins
+import argparse
+import yaml
+import urllib2
+from textwrap import dedent
+from pprint import pprint, pformat
+
+BASEDIR = os.path.dirname(__file__)
+DEFAULT_CREDENTIALS = os.path.expanduser('~/.jenkins.credentials')
+DEFAULT_TEMPLATE = "jenkins.tmpl.xml"
+DEFAULT_INSTANCE = "jenkins"  # Name of the instance to load from cred file
+
+JOBURL = "%s/job/%s/build?token=%s"
+
+
+def set_logging(debugmode=False):
+    """Initialize logging
+
+    Setup logging module
+
+    Args:
+        debugmode: Enable debug mode if True
+    """
+    basic_formatting = "%(asctime)s %(levelname)s %(message)s"
+    if debugmode:
+        basic_formatting = "<%(module)s:%(lineno)d - %(threadName)s> " + \
+            basic_formatting
+    logging.basicConfig(format=basic_formatting)
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG if debugmode else logging.INFO)
+    logging.debug('Debug mode enabled')
+
+
+def load_job_parameters(path):
+    """ Loads parameters from path and returns a dict
+
+    Loads job parameters from path. The parameters file is a YAML file and the
+    dictionariy returned will be merged with the template.
+
+    Args:
+        path: Path to parameters file in YAML format
+
+    Returns:
+        A dict mapping parameters or False if the file fails to load
+
+    Raises:
+        IOError: An error occured while loading the file
+    """
+    if not os.path.exists(path):
+        raise IOError("file '{}' does not exists!".format(path))
+    if not os.path.isfile(path):
+        raise IOError("'{}' is not a valid file".format(path))
+
+    logging.debug("Loading parameters from '{}'".format(path))
+    cfg = yaml.safe_load(file(path, 'r'))
+    return False if not cfg else cfg
+
+
+def load_jenkins_credentials(path, instance=DEFAULT_INSTANCE):
+    """ Load Credentials from credentials configuration file
+
+
+    Loads Jenkins credentials from path. The credentials file is a YAML file
+    with a section per jenkins instance.
+    The dictionariy returned will be merged with the template.
+
+    Args:
+        path: Path to parameters file in YAML format
+        instance: Name of the jenkins instance to load from the credentials
+            file
+
+    Returns:
+        A dict mapping parameters or False if the file fails to load
+
+    Raises:
+        IOError: An error occured while loading the file
+    """
+    if not os.path.exists(path):
+        raise IOError("file '{}' does not exists!".format(path))
+    if not os.path.isfile(path):
+        raise IOError("'{}' is not a valid file".format(path))
+
+    logging.debug("Loading credentials from '{}' for instance '{}'".format(
+        path, instance))
+    cred = yaml.safe_load(file(path, 'r'))
+    return False if not instance in cred else cred[instance]
+
+
+def get_jenkins_handle(config):
+    """ Returns a handle to a jenkins instance
+
+    Returns a handle to a jenkins instance using parameters defined in
+    dictonary 'config'
+
+    Args:
+        config: Configuration of the jenkins instance loaded from
+                load_jenkins_credentials()
+
+    Returns:
+        A handle to a Jenkins instance or None on failure
+    """
+    if not config['url']:
+        logging.error("Please provide a URL to the jenkins instance.")
+        return None
+
+    logging.debug("Establishing connection to {}".format(config['url']))
+    if 'username' in config:
+        logging.debug("With user {}".format(config['username']))
+        jenkins_handle = jenkins.Jenkins(
+            config['url'],
+            username=config['username'],
+            password=config['password'])
+    else:
+        jenkins_handle = jenkins.Jenkins(config['url'])
+    return jenkins_handle
+
+
+def get_jinja_environment(tmpldir):
+    """ Initialize jinja environment
+
+    Initialize Jinja environment based on the directory tmpldir
+
+    Args:
+        tmpldir: Name of the template directory
+
+    Returns:
+        A jinja2.Environment object
+
+    Raises:
+        IOError if directory doesn't exists or is not a directory
+    """
+    tmpldir = os.path.abspath(tmpldir)
+    logging.debug("Loading Jinja2 environment from '%s'", tmpldir)
+    if not os.path.exists(tmpldir):
+        raise IOError(
+            "Template directory '{}' does not exists!".format(tmpldir))
+    if not os.path.isdir(tmpldir):
+        raise IOError("'{}' is not a valid directory".format(tmpldir))
+    return jinja2.Environment(loader=jinja2.FileSystemLoader(tmpldir))
+
+
+def main():
+    ''' Main routine '''
+    parser = argparse.ArgumentParser(
+        description='Create/Update the configuration of the Jenkins jobs ',
+        formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-C', '--credentials', metavar='CREDENTIALFILE',
+                        default=DEFAULT_CREDENTIALS,
+                        help='use Jenkins and load credentials from '
+                        'CREDENTIAL FILE\n(default: %s)' % DEFAULT_CREDENTIALS)
+    parser.add_argument('-d', '--debug', action='store_true', default=False,
+                        help='enable debug mode')
+    parser.add_argument('-J', '--jenkins-instance', default=DEFAULT_INSTANCE,
+                        help="Name of the jenkins instance to load from the "
+                        "credentials file.")
+    parser.add_argument('-n', '--dry-run', action='store_true', default=False,
+                        help='enable dry-run mode')
+    parser.add_argument('-t', '--template', metavar='TEMPLATE',
+                        default=DEFAULT_TEMPLATE,
+                        help='Use jinja2 TEMPLATEFILE \n(default: %s)' %
+                        DEFAULT_TEMPLATE)
+    parser.add_argument('-O', '--output', metavar='FILE',
+                        help='Write job XML to FILE instead of updating jenkins '
+                        'configuration.')
+    parser.add_argument('-U', '--update-jobs', action='store_true',
+                        default=False,
+                        help='by default only new jobs are added. This '
+                        'option enables \nupdate of existing jobs from '
+                        'configuration template.')
+    parser.add_argument('-X', '--execute', action='store_true', default=False,
+                        help='Trigger a test execution')
+    parser.add_argument('name', help='Name of the job')
+    parser.add_argument('parameters', help='YAML file containing the '
+                        'parameters to load into the template')
+
+    args = parser.parse_args()
+    set_logging(args.debug)
+
+    try:
+        jparams = load_job_parameters(args.parameters)
+    except IOError as exc:
+        logging.error("{}. Exiting!".format(exc))
+        sys.exit(1)
+
+    if not jparams:
+        logging.error('Job parameters failed to load. Aborting!')
+        sys.exit(1)
+
+    if args.credentials:
+        credspath = args.credentials
+        try:
+            creds = load_jenkins_credentials(os.path.expanduser(credspath),
+                                             args.jenkins_instance)
+        except IOError as exc:
+            logging.error("{}. Exiting!".format(exc))
+            sys.exit(1)
+
+        if not creds:
+            logging.error('Credentials failed to load. Aborting!')
+            sys.exit(1)
+
+        jkh = get_jenkins_handle(creds)
+        if not jkh:
+            logging.error('Could not acquire connection to jenkins. ' +
+                          'Aborting!')
+            sys.exit(1)
+        try:
+            jjenv = get_jinja_environment(os.path.dirname(args.template))
+        except IOError as exc:
+            logging.error("{}. Exiting!".format(exc))
+            sys.exit(1)
+        if 'token' in creds and not 'token' in jparams:
+            jparams['token'] = creds['token']
+        if not setup_job(jkh, jjenv, args.name, args.template, jparams,
+                         args.update_jobs, args.output, args.dry_run):
+            logging.error('Failed to configure jenkins jobs. Aborting!')
+            sys.exit(2)
+        elif args.execute:
+            execute_job(creds['url'], jparams['token'], args.name,
+                        args.dry_run)
+
+
+def is_job_idle(jenkins_handle, jobname):
+    """ Returns True if the jenkins job is idle
+    :param jenkins_handle: jenkins handle
+    :param jobname: jenkins job name
+
+    :return status: True of job is idle, otherwise False
+    """
+    if jenkins_handle.job_exists(jobname):
+        info = jenkins_handle.get_job_info(jobname)
+        # There is no direct test for an idle job. However, lastBuild will
+        # always indicate the highest build number allocated for a job
+        # (includes active but not queued jobs).
+        return info['lastBuild'] == info['lastCompletedBuild']
+    return True
+
+
+def setup_job(jkh, jjenv, name, template, params, update=False, output=None, dry_run=False):
+    """ Add/update a jenkins job
+
+    Creates a jenkins job or update it if it already exist and update is set to
+    True.
+    The job is created/updated by merging an XML template in Jinja2 format with
+    parameters from a YAML file
+
+    Args:
+        jkh: handle to jenkins server.
+        jjenv: handle to jinja environment.
+        name: Name of the job.
+        template: Name of Jinja2 template file.
+        params: Dictionary containing the parameters to merge with the
+            template.
+        update: If False, only new jobs are allowed to be created. If True then
+            existing jobs will be updated
+
+    Returns:
+        True on success
+    """
+
+    template = os.path.basename(template)
+    logging.debug(dedent('''Job definition:
+         Name: %s
+         Template: %s
+         Parameters: %s
+    '''), name, template, pformat(params))
+
+    try:
+        tmpl = jjenv.get_template(template)
+    except jinja2.exceptions.TemplateNotFound:
+        logging.error("Template '%s' not found. Aborting!", template)
+        sys.exit(2)
+
+    jkcfg = tmpl.render(params)
+    jkcfg = jkcfg.replace(' \n', '')
+    jkcfg = jkcfg.replace('>\n\n', '>\n')
+    jobname = urllib2.quote(name)
+    if output is not None:
+        with open(output, 'w') as f_out:
+            f_out.write(jkcfg)
+    else:
+        if not jkh.job_exists(jobname):
+            logging.info("Creating Jenkins Job %s ", jobname)
+            if not dry_run:
+                jkh.create_job(jobname, jkcfg)
+            else:
+                logging.warning("dry run mode enabled. Job will not be created")
+        else:
+            if update:
+                if not is_job_idle(jkh, jobname):
+                    logging.warning("Job is running. Skipping reconfiguration!")
+                    return False
+                else:
+                    logging.info("Reconfiguring Jenkins Job %s ", jobname)
+                    if not dry_run:
+                        jkh.reconfig_job(jobname, jkcfg)
+                    else:
+                        logging.warning("dry run mode enabled. Job will not be "
+                                        "updated")
+            else:
+                logging.debug('update set to %s. Skipping reconfiguration of '
+                              '%s', update, jobname)
+    return True
+
+
+def execute_job(jksurl, token, jobname, dry_run=False):
+    """Execute a jenkins job
+
+    Execute a jenkins job
+
+    Args:
+        jkh: Handler to a jenkins instance
+        creds: Jenkins Credentials
+        jobname: Name of the job
+
+    Returns:
+        Nothing
+    """
+    joburl = JOBURL % (jksurl, jobname, token)
+    logging.debug('Job URL: %s', joburl)
+    if not dry_run:
+        urllib2.urlopen(joburl)
+    else:
+        logging.warning("dry run mode enabled. Job will not be triggered")
+
+
+if __name__ == "__main__":
+    main()

@@ -224,8 +224,10 @@ int check_kill_switch(const char *if_name)
  out:
     free(temp);
     free(linkbuf);
+
     if (fd != -1)
         close(fd);
+
     return ret;
 }
 
@@ -236,71 +238,6 @@ int check_kill_switch(const char *if_name)
     return 0;
 }
 #endif /* __linux__ */
-
-int get_hw_addr(const char *iface, struct sockaddr *sa)
-{
-#if defined(SIOCGIFHWADDR)
-    int s;
-    struct ifreq ifr;
-
-    if (strlen(iface) >= IFNAMSIZ) {
-        di_warning("Interface name '%s' too long for struct ifreq", iface);
-        return 0;
-    }
-
-    s = socket(AF_INET, SOCK_DGRAM, 0); /* doesn't matter what kind */
-    if (s < 0) {
-        di_warning("Unable to create socket: %s", strerror(errno));
-        return 0;
-    }
-
-    strncpy(ifr.ifr_name, iface, IFNAMSIZ);
-    if (ioctl(s, SIOCGIFHWADDR, &ifr) < 0) {
-        di_warning("Unable to get hardware address of %s: %s",
-                   iface, strerror(errno));
-        return 0;
-    }
-
-    memcpy(sa, &ifr.ifr_hwaddr, sizeof(*sa));
-    return 1;
-#elif defined(__FreeBSD_kernel__)
-    /* Code from iftop. */
-    int sysctlparam[6] = { CTL_NET, PF_ROUTE, 0, 0, NET_RT_IFLIST, 0 };
-    size_t needed = 0;
-    char *buf = NULL;
-    struct if_msghdr *msghdr = NULL;
-    struct sockaddr_dl *sdl;
-
-    sysctlparam[5] = if_nametoindex(iface);
-    if (sysctlparam[5] == 0) {
-        di_warning("Unable to get interface index of %s", iface);
-        return 0;
-    }
-    if (sysctl(sysctlparam, 6, NULL, &needed, NULL, 0) < 0) {
-        di_warning("Unable to get size of hardware address of %s", iface);
-        return 0;
-    }
-    buf = malloc(needed);
-    if (!buf) {
-        di_warning("Out of memory");
-        return 0;
-    }
-    if (sysctl(sysctlparam, 6, buf, &needed, NULL, 0) < 0) {
-        di_warning("Unable to get hardware address of %s", iface);
-        free(buf);
-        return 0;
-    }
-    msghdr = (struct if_msghdr *)buf;
-    sdl = (struct sockaddr_dl *)(msghdr + 1);
-    sa->sa_family = ARPHRD_ETHER;
-    memcpy(sa->sa_data, LLADDR(sdl), 6);
-    free(buf);
-    return 1;
-#else
-    di_warning("Unable to get hardware addresses on this platform");
-    return 0;
-#endif
-}
 
 #if defined(WIRELESS)
 int is_raw_80211(const char *iface)
@@ -328,6 +265,76 @@ int is_raw_80211(const char *iface)
 }
 #endif
 
+#if defined(__s390__)
+// Layer 3 qeth on s390(x) cannot do arping to test gateway reachability.
+int is_layer3_qeth(const char *iface)
+{
+    const int bufsize = 1024;
+    int retval = 0;
+    char* path;
+    char* buf;
+    size_t len;
+    ssize_t slen;
+    char* driver;
+    int fd;
+
+    // This is sufficient for both /driver and /layer2.
+    len = strlen(SYSCLASSNET) + strlen(iface) + strlen("/device/driver") + 1;
+
+    path = malloc(len);
+    snprintf(path, len, SYSCLASSNET "%s/device/driver", iface);
+
+    // lstat() on sysfs symlinks does not provide size information.
+    buf = malloc(bufsize);
+    slen = readlink(path, buf, bufsize - 1);
+
+    if (slen < 0) {
+        di_error("Symlink %s cannot be resolved: %s", path, strerror(errno));
+        goto out;
+    }
+
+    buf[slen + 1] = '\0';
+
+    driver = strrchr(buf, '/') + 1;
+    if (strcmp(driver, "qeth") != 0) {
+        di_error("no qeth found: %s", driver);
+        goto out;
+    }
+
+    snprintf(path, len, SYSCLASSNET "%s/device/layer2", iface);
+
+    fd = open(path, O_RDONLY);
+    if (fd == -1) {
+        di_error("%s cannot be opened: %s", path, strerror(errno));
+        goto out;
+    }
+
+    slen = read(fd, buf, 1);
+    if (slen == -1) {
+        di_error("Read from %s failed: %s", path, strerror(errno));
+        close(fd);
+        goto out;
+    }
+
+    if (buf[0] == '0') {
+        // driver == 'qeth' && layer2 == 0
+        retval = 1;
+    }
+
+    close(fd);
+
+out:
+    free(buf);
+    free(path);
+    return retval;
+}
+#else
+int is_layer3_qeth(const char *iface __attribute__((unused)))
+{
+    return 0;
+}
+#endif
+
 int qsort_strcmp(const void *a, const void *b)
 {
     const char **ia = (const char **)a;
@@ -343,36 +350,51 @@ int qsort_strcmp(const void *a, const void *b)
  * before we configure them, so we cannot use getifaddrs(). Instead we try
  * possible names for network interfaces and check whether they exists by
  * attempting to open the kernel device. */
-int get_all_ifs (int all, char*** ptr)
+int get_all_ifs (int all __attribute__ ((unused)), char*** ptr)
 {
     static const char *const fmt[] = { "eth%d", "wl%d", NULL };
 
-    mach_port_t device_master;
+    mach_port_t device_master, file_master;
     device_t device;
     int err;
     char **list;
     int num, i, j;
     char name[3 + 3 * sizeof (int) + 1];
+    char devname[5 + sizeof(name)];
 
     err = get_privileged_ports (0, &device_master);
     if (err)
-	return 0;
+        return 0;
 
     num = 0;
     list = malloc(sizeof *list);
     for (i = 0; fmt[i]; i++)
-	for (j = 0;; j++) {
-	    sprintf (name, fmt[i], j);
-	    err = device_open (device_master, D_READ, name, &device);
-	    if (err != 0)
-		break;
+        for (j = 0;; j++) {
+            char *thename;
+            sprintf (name, fmt[i], j);
+            sprintf (devname, "/dev/%s", name);
+            err = device_open (device_master, D_READ, name, &device);
+            if (err == 0)
+                thename = name;
+            else
+                {
+                    file_master = file_name_lookup (devname, O_READ | O_WRITE, 0);
+                    if (file_master == MACH_PORT_NULL)
+                        break;
 
-	    device_close (device);
-	    mach_port_deallocate (mach_task_self (), device);
+                    err = device_open (file_master, D_READ, name, &device);
+                    mach_port_deallocate (mach_task_self (), file_master);
+                    if (err != 0)
+                        break;
+                    thename = devname;
+                }
 
-	    list = realloc (list, (num + 2) * sizeof *list);
-	    list[num++] = strdup(name);
-	}
+            device_close (device);
+            mach_port_deallocate (mach_task_self (), device);
+
+            list = realloc (list, (num + 2) * sizeof *list);
+            list[num++] = strdup(thename);
+        }
     list[num] = NULL;
 
     mach_port_deallocate (mach_task_self (), device_master);
@@ -396,6 +418,14 @@ int get_all_ifs (int all, char*** ptr)
             continue;
 #if defined(__linux__)
         if (!strncmp(ibuf, "sit", 3))        /* ignore tunnel devices */
+            continue;
+#endif
+#if defined(__FreeBSD_kernel__)
+        if (!strncmp(ibuf, "pfsync", 6))     /* ignore pfsync devices */
+            continue;
+        if (!strncmp(ibuf, "pflog", 5))      /* ignore pflog devices */
+            continue;
+        if (!strncmp(ibuf, "usbus", 5))      /* ignore usbus devices */
             continue;
 #endif
 #if defined(WIRELESS)
@@ -524,8 +554,8 @@ char *get_ifdsc(struct debconfclient *client, const char *if_name)
             sprintf(template, "netcfg/internal-%s", ifp);
             free(ifp);
 
-            if (debconf_metaget(client, template, "description") == 0 &&
-                client->value != NULL) {
+            if (debconf_metaget(client, template, "description") ==
+                    CMD_SUCCESS && client->value != NULL) {
                 return strdup(client->value);
             }
         } else {
@@ -671,6 +701,8 @@ static char *find_bootif_iface(const char *bootif,
 {
 #ifdef __GNU__
     /* TODO: Use device_get_status(NET_ADDRESS), see pfinet/ethernet.c */
+    (void)bootif;
+    (void)bootif_addr;
     return NULL;
 #else
     struct ifaddrs *ifap, *ifa;
@@ -860,6 +892,7 @@ int netcfg_get_interface(struct debconfclient *client, char **interface,
         free(ptr);
         free(old_selection);
         *numif = 0;
+
         return ret;
     }
     else if (num_interfaces == 1) {
@@ -875,7 +908,7 @@ int netcfg_get_interface(struct debconfclient *client, char **interface,
         debconf_subst(client, "netcfg/choose_interface", "ifchoices", ptr);
         free(ptr);
 
-        asked = (debconf_input(client, "critical", "netcfg/choose_interface") == 0);
+        asked = (debconf_input(client, "critical", "netcfg/choose_interface") == CMD_SUCCESS);
         ret = debconf_go(client);
 
         /* If the question is not asked, honor preseeded interface name.
@@ -918,7 +951,7 @@ int netcfg_get_interface(struct debconfclient *client, char **interface,
         free(ptr);
 
     netcfg_die(client);
-    return 10; /* unreachable */
+    return RETURN_TO_MAIN; /* unreachable */
 }
 
 /*
@@ -982,17 +1015,15 @@ short valid_domain (const char *dname)
  */
 int netcfg_get_hostname(struct debconfclient *client, char *template, char *hostname, short accept_domain)
 {
-    int ret;
     char *s, buf[1024];
 
     for(;;) {
         if (accept_domain)
             have_domain = 0;
         debconf_input(client, "high", template);
-        ret = debconf_go(client);
 
-        if (ret == 30) /* backup */
-            return ret;
+        if (debconf_go(client) == CMD_GOBACK)
+            return GO_BACK;
 
         debconf_get(client, template);
 
@@ -1043,7 +1074,7 @@ int netcfg_get_hostname(struct debconfclient *client, char *template, char *host
 }
 
 /* @brief Get the domainname.
- * @return 0 for success, with *domain = domain, 30 for 'goback',
+ * @return 0 for success, with *domain = domain, GO_BACK for 'goback',
  */
 int netcfg_get_domain(struct debconfclient *client,  char domain[], const char *priority)
 {
@@ -1072,6 +1103,7 @@ int netcfg_get_domain(struct debconfclient *client,  char domain[], const char *
             ++start; /* trim leading dots */
         strncpy(domain, start, MAXHOSTNAMELEN);
     }
+
     return 0;
 }
 
@@ -1122,18 +1154,22 @@ void netcfg_write_common(const char *ipaddress, const char *hostname, const char
     }
 
     if ((fp = file_open(HOSTS_FILE, "w"))) {
-        fprintf(fp, "127.0.0.1\tlocalhost\n");
+        fprintf(fp, "127.0.0.1\tlocalhost");
 
         if (!empty_str(ipaddress)) {
             if (domain_nodot && !empty_str(domain_nodot))
-                fprintf(fp, "%s\t%s.%s\t%s\n", ipaddress, hostname, domain_nodot, hostname);
+                fprintf(fp, "\n%s\t%s.%s\t%s\n", ipaddress, hostname, domain_nodot, hostname);
             else
-                fprintf(fp, "%s\t%s\n", ipaddress, hostname);
+                fprintf(fp, "\n%s\t%s\n", ipaddress, hostname);
         } else {
+#if defined(__linux__) || defined(__GNU__)
             if (domain_nodot && !empty_str(domain_nodot))
-                fprintf(fp, "127.0.1.1\t%s.%s\t%s\n", hostname, domain_nodot, hostname);
+                fprintf(fp, "\n127.0.1.1\t%s.%s\t%s\n", hostname, domain_nodot, hostname);
             else
-                fprintf(fp, "127.0.1.1\t%s\n", hostname);
+                fprintf(fp, "\n127.0.1.1\t%s\n", hostname);
+#else
+            fprintf(fp, "\t%s\n", hostname);
+#endif
         }
 
         fprintf(fp, "\n" IPV6_HOSTS);
@@ -1207,6 +1243,15 @@ int get_hostname_from_dns (const struct netcfg_interface *interface, char *hostn
             di_warning("Unknown address family in interface passed to seed_hostname_from_dns(): %i", interface->address_family);
             return 0;
         }
+
+        if (err) {
+            di_debug("getnameinfo() returned %i (%s)", err, err == EAI_SYSTEM ? strerror(errno) : gai_strerror(err));
+        }
+
+        if (err == 0) {
+            /* We found a name!  We found a name! */
+            di_debug("Hostname found: %s", hostname);
+        }
     } else {
         /* Autoconfigured interface; we need to find the IP address ourselves
          */
@@ -1246,7 +1291,7 @@ int get_hostname_from_dns (const struct netcfg_interface *interface, char *hostn
                                     : sizeof(struct sockaddr_in6),
                               hostname, max_hostname_len, NULL, 0, NI_NAMEREQD);
             if (err) {
-                di_debug("getnameinfo() returned %i: errno %i (%s)", err, errno, strerror(errno));
+                di_debug("getnameinfo() returned %i (%s)", err, err == EAI_SYSTEM ? strerror(errno) : gai_strerror(err));
             }
                               
             if (err == 0) {
@@ -1267,9 +1312,12 @@ void interface_up (const char *if_name)
     strncpy(ifr.ifr_name, if_name, IFNAMSIZ);
 
     if (skfd && ioctl(skfd, SIOCGIFFLAGS, &ifr) >= 0) {
+        di_info("Activating interface %s", if_name);
         strncpy(ifr.ifr_name, if_name, IFNAMSIZ);
         ifr.ifr_flags |= (IFF_UP | IFF_RUNNING);
         ioctl(skfd, SIOCSIFFLAGS, &ifr);
+    } else {
+        di_info("Getting flags for interface %s failed, not activating interface.", if_name);
     }
 }
 
@@ -1280,9 +1328,12 @@ void interface_down (const char *if_name)
     strncpy(ifr.ifr_name, if_name, IFNAMSIZ);
 
     if (skfd && ioctl(skfd, SIOCGIFFLAGS, &ifr) >= 0) {
+        di_info("Taking down interface %s", if_name);
         strncpy(ifr.ifr_name, if_name, IFNAMSIZ);
         ifr.ifr_flags &= ~IFF_UP;
         ioctl(skfd, SIOCSIFFLAGS, &ifr);
+    } else {
+        di_info("Getting flags for interface %s failed, not taking down interface.", if_name);
     }
 }
 
@@ -1397,7 +1448,8 @@ int netcfg_get_nameservers (struct debconfclient *client, char **nameservers, ch
     *nameservers = NULL;
     if (ptr)
         *nameservers = strdup(ptr);
-    return ret;
+
+    return 0;
 }
 
 void netcfg_update_entropy (void)
@@ -1416,40 +1468,85 @@ int netcfg_detect_link(struct debconfclient *client, const struct netcfg_interfa
 {
     char arping[256];
     int count, rv = 0;
-    int link_waits = NETCFG_LINK_WAIT_TIME * 4;
+    int link_waits;
     int gw_tries = NETCFG_GATEWAY_REACHABILITY_TRIES;
+    const char *if_name = interface->name;
+    const char *gateway = interface->gateway;
 
-    if (!empty_str(interface->gateway))
-        sprintf(arping, "arping -c 1 -w 1 -f -I %s %s", interface->name, interface->gateway);
-    
+    if (!empty_str(gateway))
+        sprintf(arping, "arping -c 1 -w 1 -f -I %s %s", if_name, gateway);
+
+    /* Ask for link detection timeout. */
+    int ok = 0;
+    debconf_capb(client, "");
+
+    while (!ok) {
+        debconf_input(client, "low", "netcfg/link_wait_timeout");
+        debconf_go(client);
+        debconf_get(client, "netcfg/link_wait_timeout");
+
+        char *ptr, *end_ptr;
+        ptr = client->value;
+
+        if (!empty_str(ptr)) {
+            link_waits = strtol(ptr, &end_ptr, 10);
+            /* The input contains a single positive integer. */
+            if (*end_ptr == '\0' && link_waits > 0) {
+                ok = 1;
+                link_waits *= 4;
+            }
+        }
+
+        if (!ok) {
+            if (!empty_str(ptr)) {
+                di_info("The value %s provided is not valid", ptr);
+            }
+            else {
+                di_info("No value provided");
+            }
+
+            debconf_input (client, "critical", "netcfg/bad_link_wait_timeout");
+            debconf_go (client);
+            debconf_set(client, "netcfg/link_wait_timeout", "3");
+        }
+    }
+
+    di_info("Waiting time set to %d", link_waits / 4);
+
     debconf_capb(client, "progresscancel");
-    debconf_subst(client, "netcfg/link_detect_progress", "interface", interface->name);
-    debconf_progress_start(client, 0, 100, "netcfg/link_detect_progress");
+    debconf_subst(client, "netcfg/link_detect_progress", "interface", if_name);
+    debconf_progress_start(client, 0, link_waits, "netcfg/link_detect_progress");
     for (count = 0; count < link_waits; count++) {
         usleep(250000);
-        if (debconf_progress_set(client, 50 * count / link_waits) == 30) {
+        if (debconf_progress_set(client, count) == CMD_PROGRESSCANCELLED) {
             /* User cancelled on us... bugger */
             rv = 0;
+            di_info("Detecting link on %s was cancelled", if_name);
             break;
         }
-        if (ethtool_lite(interface->name) == 1) /* ethtool-lite's CONNECTED */ {
-            if (!empty_str(interface->gateway) && !is_wireless_iface(interface->name)) {
+        if (ethtool_lite(if_name) == 1) /* ethtool-lite's CONNECTED */ {
+            di_info("Found link on %s", if_name);
+
+            if (!empty_str(gateway) && !is_wireless_iface(if_name) && !is_layer3_qeth(if_name)) {
                 for (count = 0; count < gw_tries; count++) {
                     if (di_exec_shell_log(arping) == 0)
                         break;
-                    if (debconf_progress_set(client, 50 + 50 * count / gw_tries) == 30)
-                        break;
                 }
+                di_info("Gateway reachable on %s", if_name);
             }
+
             rv = 1;
             break;
         }
-        debconf_progress_set(client, 100);
+    }
+
+    if (count == link_waits) {
+        di_info("Reached timeout for link detection on %s", if_name);
     }
 
     debconf_progress_stop(client);
-    debconf_capb(client, "");
-    
+    debconf_capb(client, "backup");
+
     return rv;
 }
 

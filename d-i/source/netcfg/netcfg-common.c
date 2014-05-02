@@ -1032,7 +1032,7 @@ int netcfg_get_hostname(struct debconfclient *client, char *template, char *host
         if (!valid_domain(hostname)) {
             di_info("%s is an invalid domain", hostname);
             debconf_subst(client, "netcfg/invalid_hostname",
-                          "hostname", client->value);
+                          "hostname", hostname);
             snprintf(buf, sizeof(buf), "%i", MAXHOSTNAMELEN);
             debconf_subst(client, "netcfg/invalid_hostname",
                       "maxhostnamelen", buf);
@@ -1040,6 +1040,7 @@ int netcfg_get_hostname(struct debconfclient *client, char *template, char *host
             debconf_go(client);
             debconf_set(client, template, "ubuntu");
             *hostname = '\0';
+            continue;
         }
 
         if (accept_domain && (s = strchr(hostname, '.'))) {
@@ -1057,7 +1058,7 @@ int netcfg_get_hostname(struct debconfclient *client, char *template, char *host
         if (!valid_hostname(hostname)) {
             di_info("%s is an invalid hostname", hostname);
             debconf_subst(client, "netcfg/invalid_hostname",
-                          "hostname", client->value);
+                          "hostname", hostname);
             snprintf(buf, sizeof(buf), "%i", MAXHOSTNAMELEN);
             debconf_subst(client, "netcfg/invalid_hostname",
                       "maxhostnamelen", buf);

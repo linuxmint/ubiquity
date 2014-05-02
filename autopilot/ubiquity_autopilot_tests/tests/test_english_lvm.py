@@ -45,11 +45,7 @@ class EnglishLVMInstallTestCase(UbiquityAutopilotTestCase):
         self.keyboard_layout_page_tests()
         self.go_to_next_page()
         self.user_info_page_tests('Autopilot', 'password')
-
-        if flavor == 'Ubuntu':
-            self.ubuntu_one_page_tests()
-        else:
-            self.go_to_progress_page()
+        self.go_to_progress_page()
 
         self.progress_page_tests()
         self.assertThat(lambda: self.app.select_single(

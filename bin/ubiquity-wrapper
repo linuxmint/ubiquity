@@ -18,15 +18,17 @@ def main():
     frontend = None
     toexec = []
 
+    if os.getenv('GTK_MODULES', False):
+        os.environ['GTK_MODULES'] += os.pathsep + 'overlay-scrollbar'
+    else:
+        os.environ['GTK_MODULES'] = 'overlay-scrollbar'
+
     i = 1
     while i < len(sys.argv):
         if not sys.argv[i].startswith('-'):
             frontend = sys.argv[i]
         elif sys.argv[i] == '--autopilot':
-            if os.getenv('GTK_MODULES'):
-                os.environ['GTK_MODULES'] += os.pathsep + 'autopilot'
-            else:
-                os.environ['GTK_MODULES'] = 'autopilot'
+            os.environ['GTK_MODULES'] += os.pathsep + 'autopilot'
         newargv.append(sys.argv[i])
         i += 1
 

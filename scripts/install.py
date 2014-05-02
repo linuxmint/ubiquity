@@ -476,6 +476,22 @@ class Install(install_misc.InstallBase):
                     except Exception:
                         # We can live with timestamps being wrong.
                         pass
+                if (hasattr(os, "listxattr") and
+                        hasattr(os, "supports_follow_symlinks") and
+                        os.supports_follow_symlinks):
+                    try:
+                        attrnames = os.listxattr(
+                            sourcepath, follow_symlinks=False)
+                        for attrname in attrnames:
+                            attrvalue = os.getxattr(
+                                sourcepath, attrname, follow_symlinks=False)
+                            os.setxattr(
+                                targetpath, attrname, attrvalue,
+                                follow_symlinks=False)
+                    except OSError as e:
+                        if e.errno not in (
+                                errno.EPERM, errno.ENOTSUP, errno.ENODATA):
+                            raise
 
                 if int((copied_size * 90) / total_size) != copy_progress:
                     copy_progress = int((copied_size * 90) / total_size)

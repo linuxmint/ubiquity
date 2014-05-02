@@ -493,9 +493,6 @@ def main(oem_config):
                       action='store_true',
                       help='Export variables needed for autopilot to drive '
                            'ubiquity UI.')
-    parser.add_option('--no-sso', dest='u1_sso',
-                      default=True, action='store_false',
-                      help='Disable the u1 SSO page.')
     parser.add_option('--wireless', dest='wireless',
                       action='store_true',
                       help='Force enable the wireless page, even if network '
@@ -536,9 +533,6 @@ def main(oem_config):
     if options.ldtp:
         os.environ['UBIQUITY_LDTP'] = '1'
 
-    if not options.u1_sso or not osextras.find_on_path('u1sdtool'):
-        os.environ['UBIQUITY_NO_SSO'] = '1'
-
     if options.wireless:
         os.environ['UBIQUITY_WIRELESS'] = '1'
 
@@ -547,6 +541,7 @@ def main(oem_config):
         # pkexec doesn't set username, but it's used in a few places.
         # fake it from PKEXEC =)
         os.environ['SUDO_USER'] = pwd.getpwuid(int(uid)).pw_name
+        os.environ['HOME'] = pwd.getpwuid(int(uid)).pw_dir
 
     acquire_lock()
 

@@ -442,6 +442,14 @@ case $ARCH in
 	else
 		grub_package="grub-efi"
 	fi
+	if [ ! -d /target/boot/efi ]; then
+		# No EFI System Partition, so presumably the partitioner
+		# believed this to be unnecessary, perhaps because we're
+		# installing on a pre-existing MBR partition table or
+		# perhaps because there's a BIOS Boot Partition.  In either
+		# case, the right answer is to fall back to grub-pc.
+		grub_package="grub-pc"
+	fi
 	;;
     powerpc/*)
 	grub_package="grub-ieee1275"

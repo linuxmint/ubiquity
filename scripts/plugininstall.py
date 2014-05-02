@@ -202,7 +202,6 @@ class Install(install_misc.InstallBase):
         self.configure_apt()
 
         self.configure_plugins()
-        self.configure_face()
 
         self.next_region()
         self.run_target_config_hooks()
@@ -326,15 +325,6 @@ class Install(install_misc.InstallBase):
         except ValueError:
             return (None, None)
         return uid, gid
-
-    def configure_face(self):
-        PHOTO_PATH = '/var/lib/ubiquity/webcam_photo.png'
-        target_user = self.db.get('passwd/username')
-        uid, gid = self._get_uid_gid_on_target(target_user)
-        if os.path.exists(PHOTO_PATH) and uid and gid:
-            targetpath = self.target_file('home', target_user, '.face')
-            shutil.copy2(PHOTO_PATH, targetpath)
-            os.lchown(targetpath, uid, gid)
 
     def configure_python(self):
         """Byte-compile Python modules.

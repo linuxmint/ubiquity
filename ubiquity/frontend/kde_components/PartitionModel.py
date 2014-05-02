@@ -23,6 +23,7 @@ class PartitionModel(QtCore.QAbstractItemModel):
         self.clear()
 
     def clear(self):
+        self.beginResetModel()
         rootData = []
         rootData.append(QtCore.QVariant(get_string('partition_column_device')))
         rootData.append(QtCore.QVariant(get_string('partition_column_type')))
@@ -32,9 +33,13 @@ class PartitionModel(QtCore.QAbstractItemModel):
         rootData.append(QtCore.QVariant(get_string('partition_column_size')))
         rootData.append(QtCore.QVariant(get_string('partition_column_used')))
         self.rootItem = TreeItem(rootData)
+        self.endResetModel()
 
     def append(self, data, ubiquity):
+        row = self.rowCount(QtCore.QModelIndex())
+        self.beginInsertRows(QtCore.QModelIndex(), row, row)
         self.rootItem.appendChild(TreeItem(data, ubiquity, self.rootItem))
+        self.endInsertRows()
 
     def columnCount(self, parent):
         if parent.isValid():

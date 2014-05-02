@@ -22,7 +22,6 @@ import random
 import time
 import configparser
 import unittest
-import subprocess
 
 from testtools.matchers import Equals, NotEquals
 
@@ -592,32 +591,6 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
         self._check_navigation_buttons(continue_button=True, back_button=True,
                                        quit_button=False, skip_button=False)
 
-    def ubuntu_one_page_tests(self, ):
-        # Only run U1 tests on Ubuntu and is ubiqutiy plugin of U1 is installed
-        if not self.ubuntuone_is_installed():
-            self.go_to_progress_page()
-            return
-        self.go_to_next_page()
-        self._update_current_step('stepUbuntuOne')
-        self._check_navigation_buttons(continue_button=True, back_button=True,
-                                       quit_button=False, skip_button=True)
-        logger.debug("run_ubuntu_one_page_tests()")
-        #uOnePage = self.main_window.select_single(BuilderName='stepUbuntuOne')
-        page_objects = ['u1_about_label', 'cloud_label', 'music_label',
-                        'photos_label', 'apps_label', 'u1_existing_account',
-                        'u1_new_account', 'u1_explain_email_2',
-                        'u1_explain_email', 'u1_terms',
-                        'password_mismatch', 'u1_ask_name_pass',
-                        'u1_ask_email', 'u1_no_internet']
-        self.check_visible_object_with_label(page_objects)
-        # XXX: we currently can't test signing in as it is yet to possible
-        # to set ubiquity to use a staging server for testing.
-        skip_button = self.main_window.select_single('GtkButton', name='skip')
-        self.pointing_device.click_object(skip_button)
-        #lets just sleep a little to wait for progress page as we
-        # can't wait on the page_title
-        time.sleep(5)
-
     def progress_page_tests(self, ):
         ''' Runs the test for the installation progress page
 
@@ -1059,21 +1032,3 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
                     logger.debug("{0} flavor detected".format(distro))
                     return str(distro)
                 raise SystemError("Could not get distro name")
-
-    def ubuntuone_is_installed(self, ):
-        # Skip this step if the required package is not installed
-        pkg = 'ubiquity-plugin-ubuntuone'
-        cmd = ("dpkg-query -W -f ${Status} %s" % pkg).split()
-        try:
-            logger.debug("Verifying if '%s' is installed." % pkg)
-            out = subprocess.check_output(cmd, stderr=subprocess.DEVNULL)
-            if not out.decode('utf-8').endswith(' installed'):
-                logger.info("Package '%s' is not installed. Skipping step!"
-                            % pkg)
-                return False
-            logger.debug('Ok')
-        except subprocess.CalledProcessError:
-            logger.info("Package '%s' is not installed. Skipping step!" % pkg)
-            return False
-
-        return True

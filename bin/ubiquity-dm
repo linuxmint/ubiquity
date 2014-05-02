@@ -497,15 +497,17 @@ EndSection
                         "gnome-shell" not in wm_cmd):
                     multiarchdir = os.path.split(
                         sysconfig.get_config_var('multiarchsubdir'))[-1]
-                    indicators = [
+                    indicators = list(filter(os.path.isfile, [
                         os.path.join('/usr/lib', multiarchdir, i) for i in (
                             'indicator-application/'
                             'indicator-application-service',
                             'indicator-session/indicator-session-service',
                             'indicator-sound/indicator-sound-service',
                             'indicator-bluetooth/indicator-bluetooth-service',
+                            'indicator-keyboard/indicator-keyboard-service',
                             'indicator-keyboard-service',
-                            )]
+                            'indicator-power/indicator-power-service',
+                            )]))
                     extras.append(subprocess.Popen(
                         ['/usr/lib/ubiquity/panel'],
                         stdin=null, stdout=logfile, stderr=logfile,

@@ -173,11 +173,11 @@ Index: b/source/localechooser/post-base-installer.d/05localechooser
  	cut -f 2-3 -d\; | \
  	grep "$LANGUAGECODE" | \
  	head -n 1 | \
-@@ -126,11 +237,33 @@
- 	echo "LANGUAGE=C" >>$ROOTPROFILE
- fi
- 
-+locale_gen () {
+@@ -134,7 +245,25 @@
+ 		# locale is supposed to have a meaningful existence.
+ 		mkdir -p "/target/usr/share/locale-langpack/${loc%_*}"
+ 	done
+-	log-output -t localechooser chroot /target /usr/sbin/locale-gen "$@"
 +	# Arrange for the installation environment to have a copy of the
 +	# locale as well.
 +	local locale old_locales new_locales added_dirs
@@ -197,15 +197,6 @@ Index: b/source/localechooser/post-base-installer.d/05localechooser
 +	done
 +	log-output -t localechooser chroot /target localedef --add-to-archive $added_dirs || true
 +	log-output -t localechooser chroot /target rm -rf $added_dirs || true
-+}
-+
- if [ "$LOCALE" != C ]; then
--	log-output -t localechooser chroot /target /usr/sbin/locale-gen "$LOCALE" || true
-+	locale_gen "$LOCALE" || true
- fi
- if [ "$EXTRAS" ]; then
--	log-output -t localechooser chroot /target /usr/sbin/locale-gen $EXTRAS || true
-+	locale_gen $EXTRAS || true
- fi
+ }
  
- exit 0
+ if [ "$LOCALE" != C ]; then

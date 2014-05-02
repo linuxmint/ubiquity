@@ -1,3 +1,44 @@
+netcfg (1.116ubuntu1) trusty; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Set priority for get_domain to high for static configurations.
+    - Set priority for get_domain to medium for non-static configurations.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Set DHCP and DHCPv6 timeout to 30s.
+    - Use isc-dhcp-client-udeb on all architectures.
+    - Flush all addresses and routes before configuring interfaces
+      (LP: #848072)
+    - Don't copy /etc/resolv.conf to target if resolvconf is installed.
+      (We already write resolvconf configuration to /etc/network/interfaces.)
+    - Add a post-base-install hook to detect resolvconf and copy
+      /run/resolvconf/resolv.conf to outside the target so that when /run
+      is bind-mounted DNS resolving continues to work. (LP: #926447)
+    - Apply patch from Alec Warner making netcfg respect netcfg/dhcpv6_timeout
+      and running dhclient in one-shot mode (-1). (LP: #917905)
+    - Fix FTBFS by checking the return value of fgets and fscanf.
+    - Fix nm-conf to generate a valid NetworkManager static configuration file.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 03 Apr 2014 14:46:49 +0100
+
+netcfg (1.116) unstable; urgency=medium
+
+  [ Colin Watson ]
+  * Substitute hostname rather than client->value in netcfg_get_hostname, to
+    avoid substituting nonsense like "value set" in some cases.
+  * Don't issue duplicate error messages if the hostname fails both the
+    valid_domain and valid_hostname tests.
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 02 Apr 2014 09:35:55 +0200
+
+netcfg (1.115) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Hungarian (hu.po) by Judit Gyimesi
+
+ -- Cyril Brulebois <kibi@debian.org>  Fri, 14 Mar 2014 17:25:08 +0100
+
 netcfg (1.114ubuntu1) trusty; urgency=low
 
   * Resynchronise with Debian.  Remaining changes:

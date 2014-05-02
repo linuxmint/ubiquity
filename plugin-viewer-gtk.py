@@ -43,7 +43,7 @@ class MockController(object):
 
 if __name__ == "__main__":
     """ Run with:
-    ./plugin-viewer-gtk.py ubi-ubuntuone
+    ./plugin-viewer-gtk.py ubi-timezone
     """
     def _on_button_next_clicked(button):
         stop = page_gtk.plugin_on_next_clicked()
@@ -69,10 +69,6 @@ if __name__ == "__main__":
     mock_controller = MockController(win)
     page_gtk = plugin_module.PageGtk(mock_controller)
     page_gtk.plugin_translate("en")
-
-    # this user password is for the Ubuntu SSO plugin, to test keyring
-    # creation.
-    page_gtk._user_password = "test keyring password"
 
     win.button_next.connect(
         "clicked", _on_button_next_clicked)

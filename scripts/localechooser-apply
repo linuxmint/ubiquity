@@ -199,6 +199,7 @@ if [ "$LOCALE_TRANSLATIONS" != "$LOCALE" ]; then
 		LC_TELEPHONE LC_MEASUREMENT LC_IDENTIFICATION; do
 		set_field /etc/default/locale "$category" "$LOCALE"
 	done
+	mkdir -p "/usr/share/locale-langpack/${LOCALE%_*}"
 	/usr/sbin/locale-gen --no-purge "$LOCALE" || true
 fi
 
@@ -209,6 +210,7 @@ fi
 LANGCODE="${LOCALE_TRANSLATIONS%%_*}"
 LANGCODE="${LANGCODE%%.*}"
 LANGCODE="${LANGCODE%%@*}"
+mkdir -p "/usr/share/locale-langpack/${LANGCODE%_*}"
 /usr/share/locales/install-language-pack "$LANGCODE" '' || true
 
 # TODO: kbd/cyr handling?

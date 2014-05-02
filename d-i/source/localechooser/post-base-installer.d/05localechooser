@@ -126,11 +126,22 @@ if [ "$LEVEL" = "3" ] || [ "$LEVEL" = "4" ]; then
 	echo "LANGUAGE=C" >>$ROOTPROFILE
 fi
 
+locale_gen () {
+	local loc
+	for loc; do
+		# Create a skeleton locale-langpack subdirectory so that
+		# /usr/share/language-tools/language-options knows that this
+		# locale is supposed to have a meaningful existence.
+		mkdir -p "/target/usr/share/locale-langpack/${loc%_*}"
+	done
+	log-output -t localechooser chroot /target /usr/sbin/locale-gen "$@"
+}
+
 if [ "$LOCALE" != C ]; then
-	log-output -t localechooser chroot /target /usr/sbin/locale-gen "$LOCALE" || true
+	locale_gen "$LOCALE" || true
 fi
 if [ "$EXTRAS" ]; then
-	log-output -t localechooser chroot /target /usr/sbin/locale-gen $EXTRAS || true
+	locale_gen $EXTRAS || true
 fi
 
 exit 0

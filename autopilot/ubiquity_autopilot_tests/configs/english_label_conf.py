@@ -136,39 +136,6 @@ def generate_config():
         'The name it uses when it talks to other computers.'
     stepUserInfo["login_encrypt"] = 'Require my password to log in'
 
-    #CREATE STEP UBUNTU 1 CONFIG
-    config['stepUbuntuOne'] = {}
-    stepUbuntuOne = config['stepUbuntuOne']
-    stepUbuntuOne['u1_about_label'] = 'Ubuntu One is the single account you ' \
-        'use to log in to all services and sites related to Ubuntu.\n\nGet ' \
-        'new apps from the Software Center, store files in your personal ' \
-        'cloud, buy tracks from the Music Store, manage your payments and ' \
-        'subscriptions - you decide which services you need.\n\nIf you have ' \
-        'an existing Ubuntu single sign on account, that is now called your ' \
-        'Ubuntu One account.'
-    stepUbuntuOne['cloud_label'] = 'Cloud'
-    stepUbuntuOne['music_label'] = 'Music'
-    stepUbuntuOne['photos_label'] = 'Photos'
-    stepUbuntuOne['apps_label'] = 'Apps'
-    stepUbuntuOne['u1_existing_account'] = \
-        'I am a returning Ubuntu One user and my password is:'
-    stepUbuntuOne['u1_new_account'] = 'I am a new Ubuntu One user.'
-    stepUbuntuOne['u1_explain_email_2'] = '<span size="small">If you ' \
-        'don\'t have an account yet, don\'t worry we\'ll create one for ' \
-        'you.</span>'
-    stepUbuntuOne['u1_explain_email'] = '<span size="small">Enter the email ' \
-        'address you use to log into your Ubuntu One account.</span>'
-    stepUbuntuOne['u1_terms'] = \
-        'I have read and accept the <a href="">Ubuntu One terms of use</a>'
-    stepUbuntuOne['u1_tc_check'] = ''
-    stepUbuntuOne['password_mismatch'] = 'Passwords do not match'
-    stepUbuntuOne['u1_ask_name_pass'] = \
-        'Please tell us your name and choose a password:'
-    stepUbuntuOne['u1_ask_email1'] = 'Please type your email:'
-    stepUbuntuOne['u1_no_internet'] = 'There is no internet connection. ' \
-        'To be able to create an account or to log in to Ubuntu One, you ' \
-        'need to be connected to the internet.'
-
     #write config to tmp file
     with open('/tmp/english_config.ini', 'w') as configfile:
         config.write(configfile)

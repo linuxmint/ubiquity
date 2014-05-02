@@ -494,16 +494,23 @@ class PageKde(PageBase):
                 self.page.release_notes_label.setText(text)
             self.updating_installer = False
 
-    def openURL(self, url):        
-        import subprocess
-        from ubiquity.misc import drop_privileges_save, regain_privileges_save
+    def openURL(self, url):
+        from PyQt4.QtGui import QDesktopServices
+        from PyQt4.QtCore import QUrl
+        import shutil
+        import os
 
         # this nonsense is needed because kde doesn't want to be root
-        drop_privileges_save()                    
-        uri = self.release_notes_url.replace('${LANG}', '')
-        subprocess.Popen(['sensible-browser', uri], close_fds=True,
-                             preexec_fn=misc.drop_all_privileges)
-        regain_privileges_save()
+        misc.drop_privileges()
+        misc.drop_privileges_save()
+        # copy over gtkrc-2.0 to get the themeing right
+        if os.path.exists("/usr/share/kubuntu-default-settings"):
+            shutil.copy("/usr/share/kubuntu-default-settings/" +
+                        "dot-gtkrc-2.0-kde4",
+                        os.getenv("HOME") + "/.gtkrc-2.0")
+        QDesktopServices.openUrl(QUrl(url))
+        misc.regain_privileges()
+        misc.regain_privileges_save()
 
     def set_language_choices(self, choices, choice_map):
         PageBase.set_language_choices(self, choices, choice_map)

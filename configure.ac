@@ -1,5 +1,5 @@
 AC_PREREQ(2.52)
-AC_INIT([ubiquity], [2.17], [https://launchpad.net/ubuntu/+source/ubiquity/+filebug])
+AC_INIT([ubiquity], [2.18], [https://launchpad.net/ubuntu/+source/ubiquity/+filebug])
 AC_CONFIG_SRCDIR([src/panel/panel.c])
 AC_CONFIG_AUX_DIR([build])
 AC_CONFIG_MACRO_DIR([m4])
@@ -52,8 +52,6 @@ if test "x$UBIQUITY_NO_GTK" = x; then
 	src/mockresolver/Makefile
 	)
 else
-  AC_SUBST(WEBCAM_CFLAGS, [""])
-  AC_SUBST(WEBCAM_LIBS, [""])
   AC_SUBST(PANEL_CFLAGS, [""])
   AC_SUBST(PANEL_LIBS, [""])
   AC_SUBST(WALLPAPER_CFLAGS, [""])

@@ -2179,7 +2179,7 @@ class Page(plugin.Plugin):
                     options['reuse'] = reuse
             else:
                 # "Just Windows (or Mac, ...) is present" case
-                q = 'ubiquity/partitioner/single_os_replace'
+                q = 'ubiquity/partitioner/no_systems_format'
                 self.db.subst(q, 'OS', system)
                 self.db.subst(q, 'DISTRO', release.name)
                 title = self.description(q)

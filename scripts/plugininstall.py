@@ -199,7 +199,7 @@ class Install(install_misc.InstallBase):
 
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/apt')        
-
+        self.configure_apt()
         self.configure_plugins()
 
         self.next_region()
@@ -238,7 +238,7 @@ class Install(install_misc.InstallBase):
         self.install_extras()
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/bootloader')
-        self.configure_apt()
+
         self.configure_bootloader()
 
         self.next_region(size=4)

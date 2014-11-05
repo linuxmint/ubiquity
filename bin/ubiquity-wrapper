@@ -18,6 +18,10 @@ def main():
     frontend = None
     toexec = []
 
+    #Disable the screensaver to prevent a segfault situation in GTK2
+    os.system("sudo -u mint gsettings set org.cinnamon.desktop.screensaver lock-enabled false 2> /dev/null")
+    os.system("sudo -u mint gsettings set org.mate.screensaver lock-enabled false 2> /dev/null")
+
     if os.getenv('GTK_MODULES', False):
         os.environ['GTK_MODULES'] += os.pathsep + 'overlay-scrollbar'
     else:

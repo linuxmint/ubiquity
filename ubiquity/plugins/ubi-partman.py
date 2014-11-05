@@ -3109,10 +3109,26 @@ class Page(plugin.Plugin):
                 raise AssertionError("Arrived at %s unexpectedly" % question)
 
         elif question.startswith('partman/confirm'):
-            self.db.set('ubiquity/partman-confirm', question[8:])
-            self.preseed(question, 'true', seen=False)
-            self.succeeded = True
-            self.done = True
+            response = self.frontend.question_dialog(
+                self.description(question),
+                self.extended_description(question),
+                ('ubiquity/text/go_back', 'ubiquity/text/continue'))
+            if response == 'ubiquity/text/continue':
+                self.db.set('ubiquity/partman-confirm', question[8:])
+                self.preseed(question, 'true', seen=False)
+                self.succeeded = True
+                self.done = True
+            else:
+                self.preseed(question, 'false', seen=False)
+                if self.autopartition_question is not None:
+                    # Try autopartitioning again.
+                    with misc.raised_privileges():
+                        parted = parted_server.PartedServer()
+                        for disk in parted.disks():
+                            parted.select_disk(disk)
+                            parted.open_dialog('UNDO')
+                            parted.close_dialog()
+                        osextras.unlink_force('/var/lib/partman/initial_auto')
             return True
 
         elif question == 'partman/exception_handler':

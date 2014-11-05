@@ -316,8 +316,7 @@ class Wizard(BaseFrontend):
         widget = Breadcrumb()
         widget.setObjectName(name)
         layout = self.ui.steps_widget.layout()
-        # "- 1" to insert before the bottom spacer
-        layout.insertWidget(layout.count() - 1, widget)
+        layout.addWidget(widget)
         return widget
 
     def _apply_stylesheet(self):

@@ -30,13 +30,17 @@ from ubiquity.frontend.kde_components import qssutils
 __all__ = ["Breadcrumb"]
 
 
-class Breadcrumb(QtGui.QFrame):
+# HACK! Breadcrumb should not have to inherit from QLabel! Inheriting from
+# QFrame should be enough, but right now (Trusty) if I change Breadcrumb to
+# inherit from QFrame then _mainLabel is not given enough vertical space and
+# its text gets cropped at the bottom.
+class Breadcrumb(QtGui.QLabel):
     TODO = 0
     CURRENT = 1
     DONE = 2
 
     def __init__(self, parent=None):
-        QtGui.QFrame.__init__(self, parent)
+        super(Breadcrumb, self).__init__(parent)
         self.setProperty("isBreadcrumb", True)
 
         self._tickLabel = QtGui.QLabel()

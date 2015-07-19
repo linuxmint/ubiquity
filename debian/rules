@@ -246,8 +246,8 @@ binary-indep: install-stamp
 	dh_compress
 	dh_fixperms
 	dh_python3 /usr/lib/ubiquity
-	dh_installdeb
 	dh_shlibdeps
+	dh_installdeb
 	dh_gencontrol -- -Vmangled-version='$(MANGLED_VERSION)'
 	dh_md5sums
 	NO_PNG_PKG_MANGLE=1 dh_builddeb -- -Zxz
@@ -288,8 +288,9 @@ binary-arch: install-stamp
 	dh_compress
 	dh_fixperms
 	dh_python3 /usr/lib/ubiquity
-	dh_installdeb
+	dh_makeshlibs
 	dh_shlibdeps
+	dh_installdeb
 	dh_gencontrol -- -V'console-setup-depends=$(console-setup-depends)' -Vmangled-version='$(MANGLED_VERSION)'
 	dh_md5sums
 	NO_PNG_PKG_MANGLE=1 dh_builddeb -- -Zxz

@@ -422,7 +422,9 @@ def acquire_lock():
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, close_fds=True,
             universal_newlines=True)
         try:
-            print('VERSION 2.0', file=test_debconf.stdin)
+            # FIXME: use test_debconf.communicate():
+            # flushing is required due to python3.4 changes; see LP: #1326707
+            print('VERSION 2.0', file=test_debconf.stdin, flush=True)
             test_debconf.stdout.readline()
         except IOError:
             pass

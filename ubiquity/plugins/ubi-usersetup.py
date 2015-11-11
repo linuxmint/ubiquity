@@ -773,8 +773,7 @@ class Page(plugin.Plugin):
             # TODO: It would be neater to use a wrapper script.
             command = [
                 'sh', '-c',
-                '/usr/lib/ubiquity/user-setup/user-setup-ask /target && '
-                '/usr/share/ubiquity/user-setup-encrypted-swap',
+                '/usr/lib/ubiquity/user-setup/user-setup-ask /target',
             ]
             return command, questions
 

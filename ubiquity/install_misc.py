@@ -584,6 +584,8 @@ def locale_to_language_pack(locale):
     lang = locale.split('.')[0]
     if lang == 'zh_CN':
         return 'zh-hans'
+    elif lang == 'zh_HK':
+        return 'zh-hant'
     elif lang == 'zh_TW':
         return 'zh-hant'
     else:

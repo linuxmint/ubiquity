@@ -198,8 +198,7 @@ class Install(install_misc.InstallBase):
         self.configure_locale()
 
         self.next_region()
-        self.db.progress('INFO', 'ubiquity/install/apt')
-        self.configure_local_mirror()
+        self.db.progress('INFO', 'ubiquity/install/apt')        
         self.configure_apt()
         self.configure_plugins()
 
@@ -570,14 +569,6 @@ class Install(install_misc.InstallBase):
         """Apply plugin settings to installed system."""
         for plugin in self.plugins:
             self.run_plugin(plugin)
-
-    def configure_local_mirror(self):
-        if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
-            return  # No need in OEM mode
-        try:
-            misc.execute('mint-switch-to-local-mirror')
-        except Exception as e:
-            print(e)
 
     def configure_apt(self):
         """Configure /etc/apt/sources.list."""

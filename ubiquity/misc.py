@@ -483,7 +483,7 @@ def get_release():
                         #name=line[0], version=line[1])
             #syslog.syslog(syslog.LOG_ERR, 'Unable to determine the release.')
         #if not get_release.release_info:
-        get_release.release_info = ReleaseInfo(name='Linux Mint', version='16')
+        get_release.release_info = ReleaseInfo(name='Linux Mint', version='17.3')
     return get_release.release_info
 
 get_release.release_info = None

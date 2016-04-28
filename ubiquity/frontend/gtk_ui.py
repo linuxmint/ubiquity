@@ -1568,6 +1568,9 @@ class Wizard(BaseFrontend):
         self.quit_main_loop()
 
     # Callbacks
+    def dialog_hide_on_delete(self, widget, event, data=None):
+        widget.hide()
+        return True
 
     def on_quit_clicked(self, unused_widget):
         self.warning_dialog.set_transient_for(

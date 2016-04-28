@@ -175,7 +175,7 @@ class PartAuto(QtGui.QWidget):
             addBars(bar_frame, before_bar, after_bar)
         self.disks.append(disks)
 
-        #LVM
+        # LVM
         button = QtGui.QRadioButton(
             self.lvm_choice, self.autopart_selection_frame)
         self.autopartitionTexts.append(self.lvm_choice)
@@ -183,10 +183,10 @@ class PartAuto(QtGui.QWidget):
         self.autopartition_buttongroup.addButton(button, bId)
         button.clicked.connect(self.controller.setNextButtonTextInstallNow)
         bId += 1
-        #add use entire disk options to combobox again
+        # add use entire disk options to combobox again
         self.disks.append(disks)
 
-        #Crypto
+        # Crypto
         button = QtGui.QRadioButton(
             self.crypto_choice, self.autopart_selection_frame)
         self.autopartitionTexts.append(self.crypto_choice)
@@ -195,7 +195,7 @@ class PartAuto(QtGui.QWidget):
         button.clicked.connect(self.controller.setNextButtonTextInstallNow)
         self.crypto_button_id = bId
         bId += 1
-        #add use entire disk options to combobox again
+        # add use entire disk options to combobox again
         self.disks.append(disks)
 
         box = QtGui.QHBoxLayout()
@@ -230,7 +230,7 @@ class PartAuto(QtGui.QWidget):
         button.clicked.connect(self.controller.setNextButtonTextNext)
         self.disks.append([])
 
-        #select the first button
+        # select the first button
         b = self.autopartition_buttongroup.button(0)
         b and b.click()
 
@@ -282,7 +282,7 @@ class PartAuto(QtGui.QWidget):
         else:
             # If we haven't added any items to the disk combobox, hide it.
             self.part_auto_disk_box.show()
-        #enable the crypto password fields
+        # enable the crypto password fields
         if button_id == self.crypto_button_id:
             self.passwordIcon.setEnabled(True)
             self.password.setEnabled(True)
@@ -296,7 +296,7 @@ class PartAuto(QtGui.QWidget):
             self.badPassword.setEnabled(False)
             self.controller.allow_go_forward(True)
 
-    #show warning if passwords do not match
+    # show warning if passwords do not match
     def verify_password(self):
         complete = False
 

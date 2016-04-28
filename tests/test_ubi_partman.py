@@ -110,15 +110,15 @@ class PartmanPageDirectoryTests(unittest.TestCase):
             mocked_method.side_effect = side_effect_factory(real_method)
             self.addCleanup(method.stop)
 
-    #def test_filesystem_description(self):
-    #    for fs in self.page.scripts('/lib/partman/valid_filesystems'):
-    #        print self.page.filesystem_description(fs)
+    # def test_filesystem_description(self):
+    #     for fs in self.page.scripts('/lib/partman/valid_filesystems'):
+    #         print self.page.filesystem_description(fs)
 
-    #def test_method_description(self):
-    #    for method in self.page.subdirectories('/lib/partman/choose_method'):
-    #        if method != 'dont_use':
-    #            self.assertNotEqual(method,
-    #                                self.page.method_description(method))
+    # def test_method_description(self):
+    #     for method in self.page.subdirectories('/lib/partman/choose_method'):
+    #         if method != 'dont_use':
+    #             self.assertNotEqual(method,
+    #                                 self.page.method_description(method))
 
 
 # A couple of mock helpers for some of the tests below.
@@ -495,9 +495,8 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         desc = self.page.extended_description(question)
         resize = ubi_partman.PartitioningOption(title, desc)
 
-        question = 'ubiquity/partitioner/single_os_replace'
-        question_has_variables(question, ['OS', 'DISTRO'])
-        self.page.db.subst(question, 'OS', operating_system)
+        question = 'ubiquity/partitioner/multiple_os_format'
+        question_has_variables(question, ['DISTRO'])
         self.page.db.subst(question, 'DISTRO', self.release.name)
         title = self.page.description(question)
         desc = self.page.extended_description(question)
@@ -519,7 +518,7 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         self.page.extra_options = {}
         self.page.extra_options['use_device'] = ('debconf-return-value',
                                                  [{'disk-desc': 0}])
-        question = 'ubiquity/partitioner/no_systems_format'
+        question = 'ubiquity/partitioner/multiple_os_format'
         question_has_variables(question, ['DISTRO'])
         self.page.db.subst(question, 'DISTRO', self.release.name)
         title = self.page.description(question)
@@ -550,6 +549,7 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         part = ubi_partman.Partition('/dev/sda1', 0, '1234-1234', 'ext4')
         layout = {'=dev=sda': [part]}
         self.page.extra_options = {}
+        self.page.extra_options['replace'] = ['/dev/sda1']
         self.page.extra_options['use_device'] = ('debconf-return-value',
                                                  [{'disk-desc': 0}])
         self.page.extra_options['reuse'] = [(0, '/dev/sda1')]
@@ -557,6 +557,13 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         question = 'ubiquity/partitioner/ubuntu_format'
         question_has_variables(question, ['CURDISTRO'])
         self.page.db.subst(question, 'CURDISTRO', operating_system)
+        title = self.page.description(question)
+        desc = self.page.extended_description(question)
+        replace = ubi_partman.PartitioningOption(title, desc)
+
+        question = 'ubiquity/partitioner/multiple_os_format'
+        question_has_variables(question, ['DISTRO'])
+        self.page.db.subst(question, 'DISTRO', self.release.name)
         title = self.page.description(question)
         desc = self.page.extended_description(question)
         use_device = ubi_partman.PartitioningOption(title, desc)
@@ -573,6 +580,10 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
             self.page.calculate_operating_systems(layout)
         options = self.page.calculate_autopartitioning_options(
             operating_systems, ubuntu_systems)
+
+        self.assertIn('replace', options)
+        self.assertCountEqual(replace, options['replace'])
+
         self.assertIn('use_device', options)
         self.assertCountEqual(use_device, options['use_device'])
 
@@ -596,6 +607,7 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         part = ubi_partman.Partition('/dev/sda1', 0, '1234-1234', 'ext4')
         layout = {'=dev=sda': [part]}
         self.page.extra_options = {}
+        self.page.extra_options['replace'] = ['/dev/sda1']
         self.page.extra_options['use_device'] = ('debconf-return-value',
                                                  [{'disk-desc': 0}])
         self.page.extra_options['reuse'] = [(0, '/dev/sda1')]
@@ -603,6 +615,13 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         question = 'ubiquity/partitioner/ubuntu_format'
         question_has_variables(question, ['CURDISTRO'])
         self.page.db.subst(question, 'CURDISTRO', operating_system)
+        title = self.page.description(question)
+        desc = self.page.extended_description(question)
+        replace = ubi_partman.PartitioningOption(title, desc)
+
+        question = 'ubiquity/partitioner/multiple_os_format'
+        question_has_variables(question, ['DISTRO'])
+        self.page.db.subst(question, 'DISTRO', self.release.name)
         title = self.page.description(question)
         desc = self.page.extended_description(question)
         use_device = ubi_partman.PartitioningOption(title, desc)
@@ -617,6 +636,10 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
             self.page.calculate_operating_systems(layout)
         options = self.page.calculate_autopartitioning_options(
             operating_systems, ubuntu_systems)
+
+        self.assertIn('replace', options)
+        self.assertCountEqual(replace, options['replace'])
+
         self.assertIn('use_device', options)
         self.assertCountEqual(use_device, options['use_device'])
 
@@ -639,6 +662,7 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         part = ubi_partman.Partition('/dev/sda1', 0, '1234-1234', 'ext4')
         layout = {'=dev=sda': [part]}
         self.page.extra_options = {}
+        self.page.extra_options['replace'] = ['/dev/sda1']
         self.page.extra_options['use_device'] = ('debconf-return-value',
                                                  [{'disk-desc': 0}])
         self.page.extra_options['reuse'] = [(0, '/dev/sda1')]
@@ -646,6 +670,13 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         question = 'ubiquity/partitioner/ubuntu_format'
         question_has_variables(question, ['CURDISTRO'])
         self.page.db.subst(question, 'CURDISTRO', operating_system)
+        title = self.page.description(question)
+        desc = self.page.extended_description(question)
+        replace = ubi_partman.PartitioningOption(title, desc)
+
+        question = 'ubiquity/partitioner/multiple_os_format'
+        question_has_variables(question, ['DISTRO'])
+        self.page.db.subst(question, 'DISTRO', self.release.name)
         title = self.page.description(question)
         desc = self.page.extended_description(question)
         use_device = ubi_partman.PartitioningOption(title, desc)
@@ -660,6 +691,10 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
             self.page.calculate_operating_systems(layout)
         options = self.page.calculate_autopartitioning_options(
             operating_systems, ubuntu_systems)
+
+        self.assertIn('replace', options)
+        self.assertCountEqual(replace, options['replace'])
+
         self.assertIn('use_device', options)
         self.assertCountEqual(use_device, options['use_device'])
 

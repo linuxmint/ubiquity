@@ -32,6 +32,11 @@ Type: text
 # :sl2:
 _Description: Scanning the release updates repository...
 
+Template: apt-setup/progress/backports
+Type: text
+# :sl2:
+_Description: Scanning the backports repository...
+
 Template: apt-setup/local/key-error
 Type: select
 Default: Retry
@@ -55,13 +60,13 @@ _Description: Downloading local repository key failed:
 
 Template: apt-setup/security_host
 Type: string
-Default: security.ubuntu.com
+Default: @SECURITYHOST@
 Description: for internal use; can be preseeded
  Host to use for security updates
 
 Template: apt-setup/security_path
 Type: string
-Default: /ubuntu
+Default: @SECURITYPATH@
 Description: for internal use; can be preseeded
  Path to use for security updates
 
@@ -79,13 +84,13 @@ _Description: Cannot access repository
 # All services are enabled by default to allow preseeding
 Template: apt-setup/services-select
 Type: multiselect
-Choices-C: security, updates
+Choices-C: security, updates, backports
 # SEC_HOST is a host name (e.g. security.debian.org)
 # Translators: the *entire* string should be under 55 columns
 # including host name. In short, KEEP THIS SHORT and, yes, that's tricky
 # :sl1:
-__Choices: security updates (from ${SEC_HOST}), release updates
-Default: security
+__Choices: security updates (from ${SEC_HOST}), release updates, backported software
+Default: security, updates
 # :sl1:
 _Description: Services to use:
  Debian has two services that provide updates to releases: security and
@@ -98,20 +103,37 @@ _Description: Services to use:
  relatively frequently and where not having the latest version could reduce
  the usability of the software. It also provides regression fixes.
  This service is only available for stable and oldstable releases.
+ .
+ Backported software are adapted from the development version to work with
+ this release. Although this software has not gone through such complete
+ testing as that contained in the release, it includes newer versions of
+ some applications which may provide useful features. Enabling backports
+ here does not cause any of them to be installed by default; it only
+ allows you to manually select backports to use.
 
-# All services except partner and extras are enabled by default to allow
-# preseeding; partner will be automatically disabled if non-free software is
-# disabled.  For convenience, preseeding apt-setup/partner or
-# apt-setup/extras will automatically enable the respective services.
+Template: apt-setup/enable-source-repositories
+Type: boolean
+Default: false
+# :sl3:
+_Description: Enable source repositories in APT?
+ By default source repositories are listed in /etc/apt/sources.list (with
+ appropriate "deb-src" lines) so that "apt-get source" works. However, if
+ you don't need this feature, you can disable those entries and save some
+ bandwidth during "apt-get update" operations.
+
+# All services except partner are enabled by default to allow
+# preseeding; partner will be automatically disabled if non-free
+# software is disabled.  For convenience, preseeding apt-setup/partner
+# will automatically enable the respective service.
 Template: apt-setup/services-select-ubuntu
 Type: multiselect
-Choices-C: security, partner, extras
-# SEC_HOST, PARTNER_HOST, and EXTRAS_HOST are host names (e.g.
+Choices-C: security, partner
+# SEC_HOST, and PARTNER_HOST are host names (e.g.
 # security.ubuntu.com)
 # Translators: the *entire* string should be under 55 columns
 # including host name. In short, KEEP THIS SHORT and, yes, that's tricky
 # :sl2:
-__Choices: security updates (from ${SEC_HOST}), partner archive (from ${PARTNER_HOST}), extras archive (from ${EXTRAS_HOST})
+__Choices: security updates (from ${SEC_HOST}), partner archive (from ${PARTNER_HOST}))
 Default: security
 # :sl2:
 _Description: Services to use:
@@ -123,9 +145,6 @@ _Description: Services to use:
  .
  The partner archive contains software provided by Canonical's partners as a
  service to Ubuntu users.
- .
- The extras archive contains free software offered by third-party
- application developers who want to ship their latest software.
 
 Template: apt-setup/multiarch
 Type: string

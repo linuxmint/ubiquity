@@ -86,6 +86,19 @@ _Description: Device for boot loader installation:
     drive;
   - "/dev/fd0" will install GRUB to a floppy.
 
+Template: grub-installer/choose_bootdev
+Type: select
+Choices-C: manual, ${DEVICES_LIST}
+#flag:translate!:2
+__Choices: Enter device manually, ${DESCRIPTIONS}
+# :sl2:
+_Description: Device for boot loader installation:
+ You need to make the newly installed system bootable, by installing
+ the GRUB boot loader on a bootable device. The usual way to do this is to
+ install GRUB on the master boot record of your first hard drive. If you
+ prefer, you can install GRUB elsewhere on the drive, or to another drive,
+ or even to a floppy.
+
 Template: grub-installer/password
 Type: password
 # :sl2:
@@ -196,6 +209,21 @@ Type: text
 # :sl1:
 _Description: Updating /etc/kernel-img.conf...
 
+Template: grub-installer/progress/step_force_efi_removable
+Type: text
+# :sl1:
+_Description: Checking whether to force usage of the removable media path
+
+Template: grub-installer/progress/step_mount_filesystems
+Type: text
+# :sl1:
+_Description: Mounting filesystems
+
+Template: grub-installer/progress/step_update_debconf_efi_removable
+Type: text
+# :sl1:
+_Description: Configuring grub-efi for future usage of the removable media path
+
 Template: debian-installer/grub-installer/title
 Type: text
 #  Main menu item
@@ -220,9 +248,47 @@ Default: true
 Description: for internal use; can be preseeded
  Make sure that at least one partition is marked as active (bootable).
 
+Template: grub-installer/mounterr
+Type: error
+# :sl4:
+_Description: Failed to mount /target/proc
+ Mounting the proc file system on /target/proc failed.
+ .
+ Check /var/log/syslog or see virtual console 4 for the details.
+ .
+ Warning: Your system may be unbootable!
+
+Template: rescue/menu/grub-efi-force-removable
+Type: text
+# Rescue menu item
+# :sl2:
+_Description: Force GRUB installation to the EFI removable media path
+
 Template: grub-installer/timeout
 Type: text
 Description: for internal use; can be preseeded
  Wait for the given number of seconds before proceeding with the boot process.
  This makes it possible to leave time for invoking grub's menu in VMs where
  it might take a little bit before you get access to the console.
+
+Template: grub-installer/force-efi-extra-removable
+Type: boolean
+Default: false
+# :sl1:
+_Description: Force GRUB installation to the EFI removable media path?
+ It seems that this computer is configured to boot via EFI, but maybe
+ that configuration will not work for booting from the hard
+ drive. Some EFI firmware implementations do not meet the EFI
+ specification (i.e. they are buggy!) and do not support proper
+ configuration of boot options from system hard drives.
+ .
+ A workaround for this problem is to install an extra copy of the EFI
+ version of the GRUB boot loader to a fallback location, the
+ "removable media path". Almost all EFI systems, no matter how buggy,
+ will boot GRUB that way.
+ .
+ Warning: If the installer failed to detect another operating system
+ that is present on your computer that also depends on this fallback,
+ installing GRUB there will make that operating system temporarily
+ unbootable. GRUB can be manually configured later to boot it if
+ necessary.

@@ -1,0 +1,75 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+file="$1"
+
+db_get apt-setup/services-select-ubuntu
+if ! echo "$RET" | grep -q security; then
+	exit
+fi
+
+db_get apt-setup/security_host
+host="$RET"
+[ "$host" ] || exit
+
+db_get apt-setup/security_path
+directory="$RET"
+[ "$directory" ] || exit
+
+if ! db_get mirror/codename || [ -z "$RET" ]; then
+	db_get cdrom/codename
+fi
+codename="$RET"
+
+# To determine if restricted should be included, grep the file to see if it
+# is listed in it.
+dists="main"
+for dist in restricted; do
+	if grep -v 'cdrom:' $ROOT/etc/apt/sources.list.new | grep -q '^[^#]* '$dist; then
+		dists="$dists $dist"
+	fi
+done
+
+deb_src="deb-src"
+db_get apt-setup/enable-source-repositories
+if [ "$RET" = false ]; then
+	deb_src="# deb-src"
+fi
+
+# Don't test mirror if no network selected in netcfg
+echo "deb http://$host$directory $codename-security $dists" >> $file
+echo "$deb_src http://$host$directory $codename-security $dists" >> $file
+
+# Security sources for Ubuntu universe; not used much, but e.g. unsupported
+# binary packages from a supported source package will end up here.
+if db_get apt-setup/universe && [ "$RET" = true ]; then
+	DEB='deb'
+	DEB_SRC=$deb_src
+else
+	DEB='# deb'
+	DEB_SRC='# deb-src'
+fi
+cat >> $file <<EOF
+${DEB} http://$host$directory $codename-security universe
+${DEB_SRC} http://$host$directory $codename-security universe
+EOF
+
+# Security sources for Ubuntu multiverse, with the same caveats as for
+# universe.
+if db_get apt-setup/multiverse && [ "$RET" = true ]; then
+	DEB='deb'
+	DEB_SRC=$deb_src
+else
+	DEB='# deb'
+	DEB_SRC='# deb-src'
+fi
+cat >> $file <<EOF
+${DEB} http://$host$directory $codename-security multiverse
+${DEB_SRC} http://$host$directory $codename-security multiverse
+EOF
+
+apt-setup-signed-release security.ubuntu.com "$file"
+
+exit 0

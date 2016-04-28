@@ -27,7 +27,7 @@ CONFIG_DIR=$BASEDIR/config
 TEMPLATE_DIR=$BASEDIR/templates
 UPDATE_CMD=$BASEDIR/update-jenkins-job
 UPDATE_OPTS="-U"
-SERVER=drude
+SERVER=${SERVER:-drude}
 
 on_exit() {
     # Do some cleanup
@@ -40,6 +40,7 @@ TMP_CFG="$(mktemp /tmp/$(basename $0).XXXXXX)"
 for cfg in $CONFIG_DIR/*cfg; do
     flavor=$(grep ^flavor $cfg |awk '{print $2}')
     variant=$(grep ^variant $cfg |awk '{print $2}')
+    node=$(grep ^node $cfg |awk '{print $2}')
 
     echo "I: Updating flavor '$flavor'"
     # Download jobs
@@ -65,6 +66,7 @@ for cfg in $CONFIG_DIR/*cfg; do
 flavor: $flavor
 variant: $(grep ^variant $cfg |cut -d: -f2)
 testcase: $testcase
+node: $node
 EOF
         echo "I: Updating testcase '$testcase'"
         $UPDATE_CMD $UPDATE_OPTS -J $SERVER \

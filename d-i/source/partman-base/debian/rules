@@ -1,10 +1,8 @@
 #! /usr/bin/make -f
 %:
-	dh $@ --with d-i
+	dh $@ --with autoreconf,d-i
 
 DEB_HOST_ARCH_OS := $(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
-DEB_BUILD_GNU_TYPE := $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
-DEB_HOST_GNU_TYPE := $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
 
 ifeq ($(DEB_HOST_ARCH_OS),linux)
 DEFAULT_FS=ext4
@@ -20,10 +18,13 @@ PROVIDES=made-filesystems, mounted-partitions, partitioned-harddrives, created-f
 
 MENUITEMNUM=4200
 
-ifneq ($(DEB_BUILD_GNU_TYPE),$(DEB_HOST_GNU_TYPE))
-override_dh_auto_build:
-	dh_auto_build -- CC=$(DEB_HOST_GNU_TYPE)-gcc
-endif
+export DEB_CFLAGS_MAINT_APPEND := -Wall -Os
+
+override_dh_auto_configure:
+	dh_auto_configure -- --prefix=/
+
+override_dh_install:
+	dh_install --fail-missing
 
 override_dh_installdebconf:
 	dh_installdebconf

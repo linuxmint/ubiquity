@@ -61,7 +61,7 @@ def is_passphrase_valid(passphrase):
         return False
 
     for c in passphrase:
-        if not c in string.hexdigits:
+        if c not in string.hexdigits:
             return False
     return True
 
@@ -93,9 +93,9 @@ def draw_level_pix(wanted_level):
     painter.setCompositionMode(QtGui.QPainter.CompositionMode_Clear)
     painter.setBrush(QtCore.Qt.black)
     painter.drawPolygon(QtGui.QPolygon(
-        [center.x(), bottom,  0, middle,  0, bottom]))
+        [center.x(), bottom, 0, middle, 0, bottom]))
     painter.drawPolygon(QtGui.QPolygon(
-        [center.x(), bottom,  right, middle,  right, bottom]))
+        [center.x(), bottom, right, middle, right, bottom]))
     painter.translate(0, 2)
     painter.drawRect(0, pix.height() - 2, pix.width(), 2)
     painter.end()

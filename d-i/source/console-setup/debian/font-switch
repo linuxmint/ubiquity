@@ -1,0 +1,31 @@
+#!/bin/sh
+
+LANGUAGE="$1"
+
+FONT_RECORD=/var/run/console-setup.font
+
+case "$LANGUAGE" in
+	ku|kk|ky)		CODESET=CyrAsia ;;
+	be|bg|br|mk|ru|sr|uk)	CODESET=CyrSlav ;;
+	el)			CODESET=Greek ;;
+	ast|et|sq|tr|xh)	CODESET=Lat15 ;;
+	bs|cs|hr|hu|pl|ro|sk|sl)	CODESET=Lat2 ;;
+	cy|eo)			CODESET=Lat38 ;;
+	lv|lt)			CODESET=Lat7 ;;
+
+	*) # Languages which are fine with default VGA font
+		[ -r $FONT_RECORD ] || exit 0
+		# Need to switch back to Lat15
+		CODESET=Lat15
+		;;
+esac
+
+FONT="`eval echo /usr/share/consolefonts/$CODESET*`"
+
+if [ -r "$FONT" ]
+then
+	gunzip < "$FONT" > /tmp/font.psf
+	setfont /tmp/font.psf
+	rm /tmp/font.psf
+	echo "$FONT" > $FONT_RECORD
+fi

@@ -1,3 +1,350 @@
+apt-setup (1:0.104ubuntu4) xenial; urgency=medium
+
+  * Now that we have CC.ports.ubuntu.com, fix generators/91security to
+    stop assuming all ports work off ports.ubuntu.com. Instead, correctly
+    mangle the templates to have the right per-arch
+    apt-setup/security_host default.
+  * Add release-files for archive.canonical.com xenial-proposed, and
+    ports.ubuntu.com/xenial-*
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Wed, 10 Feb 2016 12:20:48 +0000
+
+apt-setup (1:0.104ubuntu3) xenial; urgency=high
+
+  * Fix apt-setup/enable-source-repositories in security & overlay
+    generators.
+  * Set apt-setup/enable-source-repositories default to false. LP: #74747
+  * For freedom, set apt-setup/enable-source-repositoreis=true. I'm open
+    to be overruled by a technical board decision.
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Thu, 28 Jan 2016 20:40:54 +0000
+
+apt-setup (1:0.104ubuntu2) xenial; urgency=medium
+
+  * Fix mismerge that caused us not to disable the CD at the end of
+    installation if any mirrors are present in the case of complete CD
+    images (LP: #1529297).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 30 Dec 2015 20:18:05 +0000
+
+apt-setup (1:0.104ubuntu1) xenial; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Install the Ubuntu mirror generator instead of Debian's.
+    - Set apt-setup/security_host to security.ubuntu.com, or
+      ports.ubuntu.com on ports architectures; adjust directory and
+      distribution to match.
+    - Add security sources for restricted, universe, and multiverse,
+      commented out unless the respective components are enabled. Disable
+      security generator checks for contrib and non-free.
+    - For CD installs, leave the sources.list created by apt-setup in
+      /etc/apt/sources.list.apt-setup, and restore the sources.list created
+      during base installation for the rest of the installation.
+    - Honour OVERRIDE_BASE_INSTALLABLE when checking
+      /cdrom/.disk/base_installable.
+    - Set the mirror verification timeout to 30 seconds.
+    - Adjust services-select for Ubuntu, removing volatile and adding
+      partner (apt-setup/partner) and extras (apt-setup/extras).
+    - Always disable the CD at the end of installation if any mirrors are
+      present, even if it's a complete CD.
+    - Pre-populate apt's lists directory with signed Release files for
+      archive.ubuntu.com (and mirrors) and security.ubuntu.com, to protect
+      against downgrade attacks right from initial installation.
+    - Run 'apt-get update' for all sources.list lines produced by a single
+      generator in one go, and don't comment out sources.list lines if it
+      fails.
+    - Make the path to security updates configurable, as well as the host.
+    - Remove restricted from cdrom entry if apt-setup/restricted is false.
+    - Make sure apt-cdrom doesn't unmount the CD if cd_type ends with
+      /single.
+    - Enable all network sources, including security updates, even if the
+      network is unconfigured.
+    - Honour apt-setup/restricted, apt-setup/universe, and
+      apt-setup/multiverse when writing -backports lines.
+    - Run 'apt-get update', without downloading package lists or cleaning up
+      old files, after moving the sources.list generated during base system
+      installation back into place.
+    - If OVERRIDE_LEAVE_CD_MOUNTED is set, don't unmount /cdrom; this is a
+      bad idea in a live CD environment!
+    - Enable backports by default now that we have NotAutomatic enabled and
+      working.
+    - Add Release files.
+  * Replace saucy Release and Release.gpg files with those for xenial.
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Tue, 01 Dec 2015 22:07:12 -0500
+
+apt-setup (1:0.104) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Thai (th.po) by Theppitak Karoonboonyanan
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 30 Nov 2015 07:04:21 +0100
+
+apt-setup (1:0.103) unstable; urgency=medium
+
+  [ Raphaël Hertzog ]
+  * Add a new apt-setup/enable-source-repositories question to let the
+    user disable "deb-src" entries for network repositories that
+    are listed in /etc/apt/sources.list. Closes: #647405
+
+  [ Colin Watson ]
+  * Fix dh_installdebconf override to work properly with an
+    architecture-independent-only build (closes: #805994).
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * German (de.po) by Holger Wansing
+  * French (fr.po) by Christian Perrier
+  * Bokmål, Norwegian (nb.po) by Hans Fredrik Nordhaug
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Slovak (sk.po) by Ivan Masár
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 25 Nov 2015 06:50:56 +0100
+
+apt-setup (1:0.102) unstable; urgency=medium
+
+  [ Raphaël Hertzog ]
+  * Add a new apt-setup/disable-cdrom-entries to be used in preseeding
+    that will drop the "cdrom" entries in the target /etc/apt/sources.list.
+    Closes: #702257
+  * Also disable "cdrom" entries when the detected cd_type is live.
+    Closes: #652987
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 11 Sep 2015 07:01:54 +0200
+
+apt-setup (1:0.101) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Portuguese (Brazil) (pt_BR.po) by Adriano Rafael Gomes
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 22 Jul 2015 10:23:51 +0200
+
+apt-setup (1:0.100) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Portuguese (Brazil) (pt_BR.po) by Adriano Rafael Gomes
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 13 Jun 2015 08:50:09 +0200
+
+apt-setup (1:0.99) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Portuguese (Brazil) (pt_BR.po) by Adriano Rafael Gomes
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 18 May 2015 14:21:50 +0200
+
+apt-setup (1:0.98) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Tamil (ta.po) by Dr.T.Vasudevan
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 11 May 2015 08:38:36 +0200
+
+apt-setup (1:0.97) unstable; urgency=medium
+
+  * Stop enabling backports by default (Closes: #764982). Rationale:
+     - Packages in the base suite are preferred to the ones in the
+       backports suite so one needs to specifically ask for the version
+       from backports.
+     - That isn't true for packages which are only available in the
+       backports suite.
+    This means one could possibly install such packages without even
+    noticing they're not fetched from the base suite; and that seems
+    a dangerous default.
+
+ -- Cyril Brulebois <kibi@debian.org>  Tue, 14 Apr 2015 02:58:09 +0200
+
+apt-setup (1:0.96) unstable; urgency=low
+
+  [ Updated translations ]
+  * Catalan (ca.po) by Jordi Mallach
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 05 Apr 2015 08:49:52 +0200
+
+apt-setup (1:0.95) unstable; urgency=low
+
+  [ Updated translations ]
+  * Romanian (ro.po) by Bradut Boghita
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 23 Mar 2015 06:54:17 +0100
+
+apt-setup (1:0.94) unstable; urgency=low
+
+  [ Updated translations ]
+  * Danish (da.po) by Joe Hansen
+  * Vietnamese (vi.po) by Hai-Nam Nguyen
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 07 Mar 2015 18:48:23 +0100
+
+apt-setup (1:0.93) unstable; urgency=low
+
+  [ Updated translations ]
+  * German (de.po) by Holger Wansing
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 26 Jan 2015 08:18:28 +0100
+
+apt-setup (1:0.92) unstable; urgency=low
+
+  [ Updated translations ]
+  * Slovenian (sl.po) by Vanja Cvelbar
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 22 Oct 2014 08:24:53 +0200
+
+apt-setup (1:0.91) unstable; urgency=low
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 20 Sep 2014 09:25:02 +0200
+
+apt-setup (1:0.90) unstable; urgency=medium
+
+  [ Colin Watson ]
+  * Enable amd64 as a foreign architecture by default for x32 installations.
+    This can be controlled by preseeding apt-setup/multiarch.
+
+  [ Updated translations ]
+  * Danish (da.po) by Joe Hansen
+  * Estonian (et.po) by Mattias Põldaru
+  * Panjabi (pa.po) by A S Alam
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 07 Sep 2014 08:33:47 +0200
+
+apt-setup (1:0.89) unstable; urgency=low
+
+  [ Updated translations ]
+  * Portuguese (pt.po) by Miguel Figueiredo
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 08 May 2014 08:52:08 +0200
+
+apt-setup (1:0.88) unstable; urgency=low
+
+  [ Updated translations ]
+  * Amharic (am.po) by Tegegne Tefera
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 05 Apr 2014 08:43:40 +0200
+
+apt-setup (1:0.87) unstable; urgency=low
+
+  [ Updated translations ]
+  * Korean (ko.po) by Changwoo Ryu
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 19 Mar 2014 07:02:55 +0100
+
+apt-setup (1:0.86) unstable; urgency=high
+
+  [ Colin Watson ]
+  * Handle proxy and timeout configuration appropriately when installing
+    over HTTPS (LP: #1135163).
+
+  [ Cyril Brulebois ]
+  * Make sure to disable interactivity in “apt-cdrom ident” calls, by adding
+    “< /dev/null” as done in some “apt-cdrom add” calls. This command became
+    interactive in some apt versions (See: #740673), so be explicit about
+    what we want, which should avoid hanging.
+
+  [ Updated translations ]
+  * Belarusian (be.po) by Viktar Siarheichyk
+  * Bosnian (bs.po) by Amila Valjevčić
+  * Hungarian (hu.po) by Judit Gyimesi
+  * Bokmål, Norwegian (nb.po) by Hans Fredrik Nordhaug
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+
+ -- Cyril Brulebois <kibi@debian.org>  Fri, 14 Mar 2014 20:41:00 +0100
+
+apt-setup (1:0.85) unstable; urgency=low
+
+  [ Updated translations ]
+  * Danish (da.po) by Joe Hansen
+  * Galician (gl.po) by Jorge Barreiro
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 07 Nov 2013 06:56:34 +0100
+
+apt-setup (1:0.84) unstable; urgency=low
+
+  [ Updated translations ]
+  * Danish (da.po) by Joe Hansen
+  * Greek, Modern (1453-) (el.po) by galaxico
+  * Esperanto (eo.po) by Felipe Castro
+  * Spanish (es.po) by Javier Fernández-Sanguino
+  * Croatian (hr.po) by Tomislav Krznar
+  * Icelandic (is.po) by Sveinn í Felli
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Kannada (kn.po) by Prabodh C P (FSMK Localisation Team)
+  * Latvian (lv.po) by Rūdolfs Mazurs
+  * Malayalam (ml.po) by Anish Sheela
+  * Marathi (mr.po) by sampada
+  * Bokmål, Norwegian (nb.po) by Hans Fredrik Nordhaug
+  * Polish (pl.po) by Michał Kułach
+  * Turkish (tr.po) by Mert Dirik
+  * Ukrainian (uk.po) by Yuri Chornoivan
+  * Traditional Chinese (zh_TW.po) by Yao Wei (魏銘廷)
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 13 Oct 2013 17:14:36 +0200
+
+apt-setup (1:0.83) unstable; urgency=low
+
+  [ Updated translations ]
+  * Arabic (ar.po) by Ossama Khayat
+  * Czech (cs.po) by Miroslav Kure
+  * German (de.po) by Holger Wansing
+  * Italian (it.po) by Milo Casagrande
+  * Russian (ru.po) by Yuri Kozlov
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 05 Sep 2013 07:00:00 +0200
+
+apt-setup (1:0.82) unstable; urgency=low
+
+  [ Jérémy Bobbio ]
+  * Add support for backports. Closes: #691651
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * French (fr.po) by Christian Perrier
+  * Japanese (ja.po) by Kenshi Muto
+  * Slovak (sk.po) by Ivan Masár
+  * Tajik (tg.po) by Victor Ibragimov
+  * Thai (th.po) by Kiatkachorn Ratanatharathorn
+  * Uyghur (ug.po) by Abduqadir Abliz
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 22 Aug 2013 15:28:33 +0200
+
+apt-setup (1:0.81) unstable; urgency=low
+
+  [ Dmitrijs Ledkovs ]
+  * Set debian source format to '3.0 (native)'.
+  * Bump debhelper compat level to 9.
+  * Set Vcs-* to canonical format.
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 13 Jul 2013 13:08:02 +0200
+
+apt-setup (1:0.80ubuntu8) wily; urgency=medium
+
+  * debian/apt-mirror-setup.templates-ubuntu:
+    - apt-setup/use_overlay -> apt-setup/overlay: that's the name used for the
+      template used in apt-setup, net-retriever, etc.
+    - switch apt-setup/overlay to default to false; in usual cases we don't
+      want to use an overlay, and this follows the description which says it
+      should not be enabled.
+    - apt-setup/overlay_components: fix typo in template name; it's used as
+      "overlay_components" elsewhere in d-i.
+    - apt-setup/overlay_path -> apt-setup/overlay_directory: again, follow the
+      actual name used in other d-i scripts.
+    - apt-setup/overlay_path: default to / rather than an arbitrary PPA.
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Fri, 03 Jul 2015 23:20:20 -0400
+
+apt-setup (1:0.80ubuntu7) vivid; urgency=medium
+
+  * Remove extras.ubuntu.com. (LP: #1409555)
+  * Regenerate translations (needs later re-import from Launchpad?!)
+  * Drop extras.ubuntu.com release files
+
+ -- Dimitri John Ledkov <dimitri.j.ledkov@linux.intel.com>  Sun, 08 Feb 2015 20:01:29 +0000
+
 apt-setup (1:0.80ubuntu6) trusty; urgency=medium
 
   * Cherry-pick from trunk:

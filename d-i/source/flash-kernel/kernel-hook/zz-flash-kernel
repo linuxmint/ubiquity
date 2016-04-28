@@ -16,8 +16,7 @@ if [ -n "$FLASH_KERNEL_SKIP" ]; then
 fi
 
 # Do not run inside an LXC container
-if type running-in-container >/dev/null 2>&1 && \
-        running-in-container >/dev/null; then
+if systemd-detect-virt --quiet --container; then
     exit 0
 fi
 

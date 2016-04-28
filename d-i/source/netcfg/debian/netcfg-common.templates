@@ -26,6 +26,34 @@ _Description: Domain name:
  If you are setting up a home network, you can make something up, but make
  sure you use the same domain name on all your computers.
 
+Template: netcfg/use_vlan
+Type: boolean
+Default: false
+# :sl6:
+_Description: Is this system connected to a VLAN trunk port?
+ IEEE 802.1Q Virtual LANs (VLANs) are a way of partitioning a physical
+ network into distinct broadcast domains. Packets can be tagged with
+ different VLAN IDs so that a single "trunk" connection may be used to
+ transport data for various VLANs.
+ .
+ If the network interface is directly connected to a VLAN trunk port,
+ specifying a VLAN ID may be necessary to get a working connection.
+
+Template: netcfg/vlan_id
+Type: string
+# :sl6:
+_Description: VLAN ID (1-4094):
+ If the network interface is directly connected to a VLAN trunk port,
+ specifying a VLAN ID may be necessary to get a working connection.
+
+Template: netcfg/vlan_failed
+Type: error
+# :sl6:
+_Description: Error setting up VLAN
+ The command used to set up the VLAN during the installation returned
+ an error. Please check the installer logs, or go back and try another
+ configuration.
+
 Template: netcfg/get_nameservers
 Type: string
 # :sl1:
@@ -65,6 +93,7 @@ _Description: Wireless ESSID for ${iface}:
 
 Template: netcfg/wireless_security_type
 Type: select
+Default: wpa
 Choices-C: wep/open, wpa
 __Choices: WEP/Open Network, WPA/WPA2 PSK
 # :sl2:

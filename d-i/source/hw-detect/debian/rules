@@ -1,7 +1,18 @@
 #! /usr/bin/make -f
+include /usr/share/dpkg/default.mk
+
 %:
 	dh $@
+
+DISK_DETECT=false
+ifneq (,$(filter $(DEB_HOST_ARCH),s390x))
+DISK_DETECT=true
+endif
 
 override_dh_auto_install:
 	$(foreach PACKAGE, $(shell dh_listpackages), \
 	  $(MAKE) install-$(PACKAGE) DESTDIR=$(CURDIR)/debian/$(PACKAGE);)
+
+override_dh_installdebconf:
+	dh_installdebconf
+	sed 's/#MULTIPATH_DETECT#/$(DISK_DETECT)/' -i debian/disk-detect/DEBIAN/templates

@@ -65,6 +65,9 @@ class PageBase(plugin.PluginUI):
     def __init__(self, *args, **kwargs):
         plugin.PluginUI.__init__(self)
 
+    def update_branded_strings(self):
+        pass
+
     def show_page_advanced(self):
         pass
 
@@ -99,6 +102,9 @@ class PageBase(plugin.PluginUI):
 
     def get_grub_choice(self):
         return misc.grub_default()
+
+    def show_crypto_page(self):
+        pass
 
     def get_crypto_keys(self):
         pass
@@ -156,7 +162,7 @@ class PageGtk(PageBase):
         self.resize_max_size = None
         self.resize_pref_size = None
         self.resize_path = ''
-        self.auto_colors = ['8b94ef', 'eeef2f', 'ef8b8b']
+        self.auto_colors = ['3465a4', '73d216', 'f57900']
         self.extra_options = {}
 
         self.partition_mount_combo.get_child().set_activates_default(True)
@@ -193,12 +199,27 @@ class PageGtk(PageBase):
             self.partition_toolbar.child_set_property(wdg, 'homogeneous',
                                                       False)
 
-        # GtkBuilder signal mapping is broken (LP: #852054).
+        # GtkBuilder signal mapping is broken (LP: # 852054).
         self.part_auto_hidden_label.connect(
             'activate-link', self.part_auto_hidden_label_activate_link)
 
         # Define a list to save grub imformation
         self.grub_options = []
+
+    def update_branded_strings(self):
+        release = misc.get_release()
+
+        crypto_desc_obj = getattr(self, 'crypto_description_2')
+        text = self.controller.get_string(
+            'ubiquity/text/crypto_description_2')
+        text = text.replace('${RELEASE}', release.name)
+        crypto_desc_obj.set_label(text)
+
+        lvm_explanation_obj = getattr(self, 'partition_lvm_explanation')
+        text = self.controller.get_string(
+            'ubiquity/text/partition_lvm_explanation')
+        text = text.replace('${RELEASE}', release.name)
+        lvm_explanation_obj.set_label(text)
 
     def plugin_get_current_page(self):
         if self.current_page == self.page_ask:
@@ -300,15 +321,8 @@ class PageGtk(PageBase):
         # TODO dmitrij.ledkov 2012-07-25 no way to go back and return
         # to here? This needs to be addressed in the design document.
         if crypto and use_device and self.current_page == self.page_ask:
-            self.set_page_title(
-                self.controller.get_string('ubiquity/text/crypto_label'))
-            self.current_page = self.page_crypto
-            self.move_crypto_widgets()
-            self.show_encryption_passphrase(crypto)
-            self.controller.go_to_page(self.current_page)
-            self.controller.toggle_next_button('install_button')
+            self.show_crypto_page()
             self.plugin_is_install = one_disk
-            self.info_loop(None)
             return True
 
         if (self.current_page == self.page_crypto and
@@ -324,8 +338,8 @@ class PageGtk(PageBase):
             reuse or replace)
 
         # Looks like not... go to disk space allocation page
-        if (self.current_page in [self.page_ask, self.page_crypto]
-                and not done_partitioning):
+        if (self.current_page in [self.page_ask, self.page_crypto] and
+                not done_partitioning):
             if resize:
                 self.set_page_title(self.resize_use_free.get_label())
                 if 'wubi' in self.extra_options:
@@ -403,6 +417,11 @@ class PageGtk(PageBase):
         disk_id = partman_id.rsplit('/', 1)[1]
         return disk_id
 
+    def count_partitions(self, disk_id):
+        return len([
+            partition for partition in self.disk_layout[disk_id]
+            if partition.device != "free"])
+
     def set_part_auto_hidden_label(self):
         '''Sets the number of partitions in the "X smaller partitions are
         hidden" label.  It subtracts one from the total count to account for
@@ -411,7 +430,7 @@ class PageGtk(PageBase):
         disk_id = self.get_current_disk_partman_id()
         if not disk_id:
             return
-        partition_count = len(self.disk_layout[disk_id]) - 1
+        partition_count = self.count_partitions(disk_id) - 1
         if partition_count == 0:
             self.part_auto_hidden_label.set_text('')
         elif partition_count == 1:
@@ -523,7 +542,7 @@ class PageGtk(PageBase):
         entire = self.controller.get_string('part_auto_allocate_entire_label')
         self.part_auto_allocate_label.set_text(entire)
         # Set the number of partitions that will be deleted.
-        partition_count = len(self.disk_layout[disk_id])
+        partition_count = self.count_partitions(disk_id)
         if partition_count == 0:
             self.part_auto_hidden_label.set_text('')
         elif partition_count == 1:
@@ -628,18 +647,6 @@ class PageGtk(PageBase):
             title = title.replace('${RELEASE}', release.name)
             desc = self.controller.get_string('ubiquity/text/use_lvm_desc')
             options['some_device_lvm'] = PartitioningOption(title, desc)
-
-        crypto_desc_obj = getattr(self, 'crypto_description_2')
-        text = self.controller.get_string(
-            'ubiquity/text/crypto_description_2')
-        text = text.replace('${RELEASE}', release.name)
-        crypto_desc_obj.set_label(text)
-
-        lvm_explanation_obj = getattr(self, 'partition_lvm_explanation')
-        text = self.controller.get_string(
-            'ubiquity/text/partition_lvm_explanation')
-        text = text.replace('${RELEASE}', release.name)
-        lvm_explanation_obj.set_label(text)
 
         ticked = False
         for option, name in option_to_widget:
@@ -1130,15 +1137,24 @@ class PageGtk(PageBase):
                 self.controller.dbfilter.edit_partition(devpart, **edits)
 
     def plugin_translate(self, lang):
-        symbolic_widgets = ['partition_button_new', 'partition_button_delete']
-        for widget_name in symbolic_widgets:
+        widgets = (
+            ('partition_button_new', "empty"),
+            ('partition_button_delete', "empty"),
+            ('partition_button_edit', "i18n"),
+        )
+        for widget_name, action in widgets:
             widget = getattr(self, widget_name)
-            text = widget.get_label()
+            text = self.controller.get_string(widget_name, lang)
             if len(text) == 0:
                 continue
             a11y = widget.get_accessible()
             a11y.set_name(text)
-            widget.set_label('')
+            if action == "empty":
+                widget.set_label('')
+            elif action == "i18n":
+                widget.set_label(text)
+            else:
+                raise ValueError("unknown action '%s'" % action)
 
     @plugin.only_this_page
     def on_partition_use_combo_changed(self, combobox):
@@ -1432,8 +1448,8 @@ class PageGtk(PageBase):
             complete = False
             self.password_match.set_current_page(
                 self.password_match_pages['empty'])
-            if passw and (not passw.startswith(vpassw)
-                          or len(vpassw) / len(passw) > 0.8):
+            if passw and (not passw.startswith(vpassw) or
+                          len(vpassw) / len(passw) > 0.8):
                 self.password_match.set_current_page(
                     self.password_match_pages['mismatch'])
         else:
@@ -1451,6 +1467,16 @@ class PageGtk(PageBase):
         self.controller.allow_go_forward(complete)
         self.partition_dialog_okbutton.set_sensitive(complete)
         return complete
+
+    def show_crypto_page(self):
+        self.set_page_title(
+            self.controller.get_string('ubiquity/text/crypto_label'))
+        self.current_page = self.page_crypto
+        self.move_crypto_widgets()
+        self.show_encryption_passphrase(True)
+        self.controller.go_to_page(self.current_page)
+        self.controller.toggle_next_button('install_button')
+        self.info_loop(None)
 
     def get_crypto_keys(self):
         if self.info_loop(None):
@@ -1607,6 +1633,8 @@ class Page(plugin.Plugin):
         self.local_progress = False
         self.swap_size = 0
 
+        self.ui.update_branded_strings()
+
         self.install_bootloader = False
         if (self.db.get('ubiquity/install_bootloader') == 'true' and
                 'UBIQUITY_NO_BOOTLOADER' not in os.environ):
@@ -1702,7 +1730,7 @@ class Page(plugin.Plugin):
                 return (script, arg, option)
         else:
             raise PartmanOptionError("%s should have %s (%s) option" %
-                                    (question, want_script, want_arg))
+                                     (question, want_script, want_arg))
 
     def preseed_script(self, question, menu_options,
                        want_script, want_arg=None):
@@ -1777,8 +1805,6 @@ class Page(plugin.Plugin):
         for method in self.subdirectories('/lib/partman/choose_method'):
             if method == 'filesystem':
                 for fs in self.scripts('/lib/partman/valid_filesystems'):
-                    if fs == 'btrfs' and not os.path.exists('/sbin/mkfs.btrfs'):
-                        continue
                     if fs == 'ntfs':
                         if not create and devpart in self.partition_cache:
                             partition = self.partition_cache[devpart]
@@ -1805,7 +1831,7 @@ class Page(plugin.Plugin):
                 # $device/crypt_realdev file (this is what partman
                 # does). But we don't cache crypt_realdev at the
                 # moment.
-                if not 'crypt' in devpart:
+                if 'crypt' not in devpart:
                     yield (method, method, self.method_description(method))
             elif method == 'biosgrub':
                 # TODO cjwatson 2009-09-03: Quick kludge, since only GPT
@@ -2081,7 +2107,7 @@ class Page(plugin.Plugin):
             return self.extended_description(q)
 
     def calculate_operating_systems(self, layout):
-        # Get your #2 pencil ready, it's time to crunch some numbers.
+        # Get your # 2 pencil ready, it's time to crunch some numbers.
         operating_systems = []
         for disk in layout:
             for partition in layout[disk]:
@@ -2143,7 +2169,10 @@ class Page(plugin.Plugin):
 
         if os_count == 0:
             # "There are no operating systems present" case
-            q = 'ubiquity/partitioner/no_systems_format'
+            # Ideally we would know this for sure.  However, there may well
+            # be other things on the disk that we haven't correctly
+            # detected, so we must be conservative.
+            q = 'ubiquity/partitioner/multiple_os_format'
             self.db.subst(q, 'DISTRO', release.name)
             title = self.description(q)
             desc = self.extended_description(q)
@@ -2153,8 +2182,18 @@ class Page(plugin.Plugin):
             system = operating_systems[0]
             if len(ubuntu_systems) == 1:
                 # "An older version of Ubuntu is present" case
-                q = 'ubiquity/partitioner/ubuntu_format'
-                self.db.subst(q, 'CURDISTRO', system)
+                if 'replace' in self.extra_options:
+                    q = 'ubiquity/partitioner/ubuntu_format'
+                    self.db.subst(q, 'CURDISTRO', system)
+                    title = self.description(q)
+                    desc = self.extended_description(q)
+                    opt = PartitioningOption(title, desc)
+                    options['replace'] = opt
+
+                # There may well be other things on the disk that we haven't
+                # correctly detected, so we must be conservative.
+                q = 'ubiquity/partitioner/multiple_os_format'
+                self.db.subst(q, 'DISTRO', release.name)
                 title = self.description(q)
                 desc = self.extended_description(q)
                 opt = PartitioningOption(title, desc)
@@ -2179,8 +2218,10 @@ class Page(plugin.Plugin):
                     options['reuse'] = reuse
             else:
                 # "Just Windows (or Mac, ...) is present" case
-                q = 'ubiquity/partitioner/no_systems_format'
-                self.db.subst(q, 'OS', system)
+                # Ideally we would know this for sure.  However, there may
+                # well be other things on the disk that we haven't correctly
+                # detected, so we must be conservative.
+                q = 'ubiquity/partitioner/multiple_os_format'
                 self.db.subst(q, 'DISTRO', release.name)
                 title = self.description(q)
                 desc = self.extended_description(q)
@@ -2211,10 +2252,10 @@ class Page(plugin.Plugin):
                 opt = PartitioningOption(title, desc)
                 options['replace'] = opt
 
-            q = 'ubiquity/partitioner/ubuntu_and_os_format'
-            system = (set(operating_systems) - set(ubuntu_systems)).pop()
-            self.db.subst(q, 'OS', system)
-            self.db.subst(q, 'CURDISTRO', ubuntu)
+            # There may well be other things on the disk that we haven't
+            # correctly detected, so we must be conservative.
+            q = 'ubiquity/partitioner/multiple_os_format'
+            self.db.subst(q, 'DISTRO', release.name)
             title = self.description(q)
             desc = self.extended_description(q)
             opt = PartitioningOption(title, desc)
@@ -3095,10 +3136,21 @@ class Page(plugin.Plugin):
             return True
 
         elif question.startswith('partman-crypto/passphrase'):
+            # Go forward rather than back in response to passphrase and
+            # passphrase-again questions if the UI is not available but they
+            # have been preseeded
+            if not hasattr(self.ui, 'get_crypto_keys'):
+                return self.db.fget(question, 'seen') == 'true'
+
+            do_preseed = True
             if not self.ui.get_crypto_keys():
-                return False
-            self.preseed(question, self.ui.get_crypto_keys())
-            return True
+                if hasattr(self.ui, 'show_crypto_page'):
+                    do_preseed = False
+                    self.ui.show_crypto_page()
+
+            if do_preseed:
+                self.preseed(question, self.ui.get_crypto_keys())
+                return True
 
         elif question == 'partman-crypto/mainmenu':
             if self.activating_crypto:
@@ -3159,6 +3211,9 @@ class Page(plugin.Plugin):
             if question == 'partman/unmount_active':
                 yes = 'ubiquity/imported/yes'
                 no = 'ubiquity/imported/no'
+            elif question == 'partman-efi/non_efi_system':
+                yes = 'ubiquity/text/in_uefi_mode'
+                no = 'ubiquity/text/go_back'
             else:
                 yes = 'ubiquity/text/continue'
                 no = 'ubiquity/text/go_back'
@@ -3167,7 +3222,9 @@ class Page(plugin.Plugin):
                 self.extended_description(question), (no, yes))
 
             answer_reversed = False
-            if question in ('partman-jfs/jfs_boot', 'partman-jfs/jfs_root',
+            if question in ('partman-jfs/jfs_boot',
+                            'partman-jfs/jfs_root',
+                            'partman-efi/non_efi_system',
                             'partman/unmount_active'):
                 answer_reversed = True
             if response == yes:

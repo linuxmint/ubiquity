@@ -198,8 +198,9 @@ class Install(install_misc.InstallBase):
         self.configure_locale()
 
         self.next_region()
-        self.db.progress('INFO', 'ubiquity/install/apt')        
+        self.db.progress('INFO', 'ubiquity/install/apt')
         self.configure_apt()
+
         self.configure_plugins()
 
         self.next_region()
@@ -217,7 +218,7 @@ class Install(install_misc.InstallBase):
             pass
 
         self.next_region()
-        #self.remove_unusable_kernels()
+        self.remove_unusable_kernels()
 
         self.next_region(size=4)
         self.db.progress('INFO', 'ubiquity/install/hardware')
@@ -230,15 +231,13 @@ class Install(install_misc.InstallBase):
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/installing')
 
-        #if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
-            #self.install_oem_extras()
-        #else:
-            #self.install_extras()
-            
-        self.install_extras()
+        if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
+            self.install_oem_extras()
+        else:
+            self.install_extras()
+
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/bootloader')
-
         self.configure_bootloader()
 
         self.next_region(size=4)
@@ -256,17 +255,17 @@ class Install(install_misc.InstallBase):
         if 'UBIQUITY_OEM_USER_CONFIG' not in os.environ:
             self.install_restricted_extras()
 
-        # self.db.progress('INFO', 'ubiquity/install/apt_clone_restore')
-        # try:
-        #     self.apt_clone_restore()
-        # except:
-        #     syslog.syslog(
-        #         syslog.LOG_WARNING,
-        #         'Could not restore packages from the previous install:')
-        #     for line in traceback.format_exc().split('\n'):
-        #         syslog.syslog(syslog.LOG_WARNING, line)
-        #     self.db.input('critical', 'ubiquity/install/broken_apt_clone')
-        #     self.db.go()
+        self.db.progress('INFO', 'ubiquity/install/apt_clone_restore')
+        try:
+            self.apt_clone_restore()
+        except:
+            syslog.syslog(
+                syslog.LOG_WARNING,
+                'Could not restore packages from the previous install:')
+            for line in traceback.format_exc().split('\n'):
+                syslog.syslog(syslog.LOG_WARNING, line)
+            self.db.input('critical', 'ubiquity/install/broken_apt_clone')
+            self.db.go()
         try:
             self.copy_network_config()
         except:
@@ -466,7 +465,7 @@ class Install(install_misc.InstallBase):
         except debconf.DebconfError:
             domain = ''
         if hostname == '':
-            hostname = 'mint'
+            hostname = 'ubuntu'
 
         with open(self.target_file('etc/hosts'), 'w') as hosts:
             print("127.0.0.1\tlocalhost", file=hosts)
@@ -919,6 +918,10 @@ class Install(install_misc.InstallBase):
         osextras.unlink_force(
             self.target_file('etc/ssl/private/ssl-cert-snakeoil.key'))
 
+        # ensure /etc/mtab is a symlink
+        osextras.unlink_force(self.target_file('etc/mtab'))
+        os.symlink('../proc/self/mounts', self.target_file('etc/mtab'))
+
         install_misc.chroot_setup(self.target, x11=True)
         install_misc.chrex(
             self.target, 'dpkg-divert', '--package', 'ubiquity', '--rename',
@@ -933,6 +936,11 @@ class Install(install_misc.InstallBase):
                     'popularity-contest',
                     'libpaper1',
                     'ssl-cert']
+        arch, subarch = install_misc.archdetect()
+
+        # this postinst installs EFI application and cleans old entries
+        if arch in ('amd64', 'i386') and subarch == 'efi':
+            packages.append('fwupdate')
 
         try:
             for package in packages:
@@ -996,8 +1004,8 @@ class Install(install_misc.InstallBase):
     def configure_bootloader(self):
         """Configure and install the boot loader."""
         if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
-            #the language might be different than initial install.
-            #recopy translations if we have them now
+            # the language might be different than initial install.
+            # recopy translations if we have them now
             full_lang = self.db.get('debian-installer/locale').split('.')[0]
             for lang in [full_lang.split('.')[0], full_lang.split('_')[0]]:
                 source = (
@@ -1230,22 +1238,22 @@ class Install(install_misc.InstallBase):
     def install_extras(self):
         """Try to install packages requested by installer components."""
         # We only ever install these packages from the CD.
-        #sources_list = self.target_file('etc/apt/sources.list')
-        #os.rename(sources_list, "%s.apt-setup" % sources_list)
-        #with open("%s.apt-setup" % sources_list) as old_sources:
-            #with open(sources_list, 'w') as new_sources:
-                #found_cdrom = False
-                #for line in old_sources:
-                    #if 'cdrom:' in line:
-                        #print(line, end="", file=new_sources)
-                        #found_cdrom = True
-        #if not found_cdrom:
-            #os.rename("%s.apt-setup" % sources_list, sources_list)
+        sources_list = self.target_file('etc/apt/sources.list')
+        os.rename(sources_list, "%s.apt-setup" % sources_list)
+        with open("%s.apt-setup" % sources_list) as old_sources:
+            with open(sources_list, 'w') as new_sources:
+                found_cdrom = False
+                for line in old_sources:
+                    if 'cdrom:' in line:
+                        print(line, end="", file=new_sources)
+                        found_cdrom = True
+        if not found_cdrom:
+            os.rename("%s.apt-setup" % sources_list, sources_list)
 
-        #self.do_install(install_misc.query_recorded_installed())
+        self.do_install(install_misc.query_recorded_installed())
 
-        #if found_cdrom:
-            #os.rename("%s.apt-setup" % sources_list, sources_list)
+        if found_cdrom:
+            os.rename("%s.apt-setup" % sources_list, sources_list)
 
         # TODO cjwatson 2007-08-09: python reimplementation of
         # oem-config/finish-install.d/07oem-config-user. This really needs
@@ -1419,24 +1427,28 @@ class Install(install_misc.InstallBase):
             with open(manifest_remove) as manifest_file:
                 for line in manifest_file:
                     if line.strip() != '' and not line.startswith('#'):
-                        difference.add(line.split()[0])
+                        pkg = line.split(':')[0]
+                        difference.add(pkg.split()[0])
             live_packages = set()
             with open(manifest) as manifest_file:
                 for line in manifest_file:
                     if line.strip() != '' and not line.startswith('#'):
-                        live_packages.add(line.split()[0])
+                        pkg = line.split(':')[0]
+                        live_packages.add(pkg.split()[0])
             desktop_packages = live_packages - difference
         elif os.path.exists(manifest_desktop) and os.path.exists(manifest):
             desktop_packages = set()
             with open(manifest_desktop) as manifest_file:
                 for line in manifest_file:
                     if line.strip() != '' and not line.startswith('#'):
-                        desktop_packages.add(line.split()[0])
+                        pkg = line.split(':')[0]
+                        desktop_packages.add(pkg.split()[0])
             live_packages = set()
             with open(manifest) as manifest_file:
                 for line in manifest_file:
                     if line.strip() != '' and not line.startswith('#'):
-                        live_packages.add(line.split()[0])
+                        pkg = line.split(':')[0]
+                        live_packages.add(pkg.split()[0])
             difference = live_packages - desktop_packages
         else:
             difference = set()
@@ -1448,7 +1460,7 @@ class Install(install_misc.InstallBase):
 
         if arch in ('amd64', 'i386'):
             for pkg in ('grub', 'grub-pc', 'grub-efi', 'grub-efi-amd64',
-                        'grub-efi-amd64-signed', 'shim-signed',
+                        'grub-efi-amd64-signed', 'shim-signed', 'mokutil',
                         'lilo'):
                 if pkg not in keep:
                     difference.add(pkg)
@@ -1603,14 +1615,13 @@ class Install(install_misc.InstallBase):
 
         # We don't use the copy_network_config casper user trick as it's not
         # ubuntu in install mode.
-        #try:
-        #    casper_user = pwd.getpwuid(999).pw_name
-        #except KeyError:
+        try:
+            casper_user = pwd.getpwuid(999).pw_name
+        except KeyError:
             # We're on a weird system where the casper user isn't uid 999
             # just stop there
-        #    return
+            return
 
-        casper_user = "mint"
         casper_user_home = os.path.expanduser('~%s' % casper_user)
         casper_user_wallpaper_cache_dir = os.path.join(casper_user_home,
                                                        '.cache', 'wallpaper')
@@ -1619,13 +1630,8 @@ class Install(install_misc.InstallBase):
         target_user_wallpaper_cache_dir = os.path.join(target_user_cache_dir,
                                                        'wallpaper')
         if (not os.path.isdir(target_user_wallpaper_cache_dir) and
-            os.path.isfile('/usr/lib/gnome-settings-daemon/'
-                           'gnome-update-wallpaper-cache')):
-            # installer mode (else, g-s-d created it)
-            if not os.path.isdir(casper_user_wallpaper_cache_dir):
-                subprocess.call(['sudo', '-u', casper_user, '-i', 'DISPLAY=:0',
-                                 '/usr/lib/gnome-settings-daemon/'
-                                 'gnome-update-wallpaper-cache'])
+                os.path.isdir(casper_user_wallpaper_cache_dir)):
+
             # copy to targeted user
             uid = subprocess.Popen(
                 ['chroot', self.target, 'sudo', '-u', target_user, '--',
@@ -1724,7 +1730,7 @@ class Install(install_misc.InstallBase):
             return
         if not stat.S_ISCHR(st.st_mode):
             return
-        if not os.path.isdir(self.target_file("var/lib/urandom")):
+        if not os.path.isdir(self.target_file("var/lib/systemd")):
             return
 
         poolbytes = 512
@@ -1739,7 +1745,7 @@ class Install(install_misc.InstallBase):
         old_umask = os.umask(0o077)
         try:
             with open("/dev/urandom", "rb") as urandom:
-                with open(self.target_file("var/lib/urandom/random-seed"),
+                with open(self.target_file("var/lib/systemd/random-seed"),
                           "wb") as seed:
                     seed.write(urandom.read(poolbytes))
         except IOError:

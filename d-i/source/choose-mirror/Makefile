@@ -58,7 +58,7 @@ $(MASTERLIST): force-try-update
 force-try-update: ;
 
 check-masterlist:
-	if [ -d .git ] && which git >/dev/null 2>&1; then \
+	@if [ -d .git ] && which git >/dev/null 2>&1; then \
 		last=`git log --format=format:%at -- $(MASTERLIST)|head -1`; \
 		now=`date +%s`; \
 		if [ $$((now-last)) -gt $$((60*60*24*14)) ]; then \

@@ -26,7 +26,7 @@ class DefaultInstallTestCase(UbiquityAutopilotTestCase):
     """
 
     def test_default_install(self, ):
-        #first check we have an emulator instance
+        # first check we have an emulator instance
         flavor = self.get_distribution()
         self.assertIsInstance(self.main_window, gtktoplevel.GtkWindow)
         self.assertThat(self.main_window.visible, Eventually(Equals(True)))
@@ -53,10 +53,10 @@ class DefaultInstallTestCase(UbiquityAutopilotTestCase):
             'GtkDialog',
             name='finished_dialog').visible,
             Eventually(Equals(True), timeout=180))
-        #XXX: Uncomment if you want to restart after install complete
-        ## we need to sleep here to wait for dialog to fully load. It appears
-        ## in dbus before its actually visible. As the test has already passed
-        ## this doesn't affect outcome
-        #time.sleep(5)
+        # XXX: Uncomment if you want to restart after install complete
+        # we need to sleep here to wait for dialog to fully load. It appears
+        # in dbus before its actually visible. As the test has already passed
+        # this doesn't affect outcome
+        # time.sleep(5)
         #
-        #self.keyboard.press_and_release('Enter')
+        # self.keyboard.press_and_release('Enter')

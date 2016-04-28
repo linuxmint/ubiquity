@@ -37,23 +37,8 @@ load_module() {
 	module_probe "$module" "$priority"
 }
 
-list_modules_dir() {
-	find $1 -type f | sed 's/\.ko$//; s/.*\///'
-}
-
 list_nic_modules() {
-	list_modules_dir /lib/modules/*/kernel/drivers/net
-	if [ -d /lib/modules/$(uname -r)/kernel/drivers/usb/net ]; then
-		list_modules_dir /lib/modules/$(uname -r)/kernel/drivers/usb/net
-	else
-		# usb nic modules not separated from non-nic. List all
-		# usb modules that have an entry in devnames.
-		for module in $(list_modules_dir /lib/modules/*/kernel/drivers/usb); do
-			if [ -n "$(get_static_modinfo $module)" ]; then
-				echo $module
-			fi
-		done
-	fi
+	find /lib/modules/*/kernel/drivers/net -name phy -prune -o -type f -print | sed 's/\.ko$//; s/.*\///'
 }
 
 snapshot_devs() {
@@ -86,6 +71,8 @@ get_static_modinfo() {
 
 	if grep -q "^${module}:" $TEMP_EXTRACT; then
 		modinfo=$(zcat $DEVNAMES_STATIC | grep "^${module}:" | head -n 1 | cut -d':' -f2-)
+	else
+		modinfo="$(modinfo 2>/dev/null -F description "$module")"
 	fi
 	echo "$modinfo"
 }

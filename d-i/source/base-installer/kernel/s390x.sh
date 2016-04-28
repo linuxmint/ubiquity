@@ -4,16 +4,15 @@ arch_get_kernel_flavour () {
 }
 
 arch_check_usable_kernel () {
-	case "$1" in
-	    *-s390x-tape)
-		# Bastian Blank says: "-s390-tape is only a kernel
-		# image without any logic and modules"
-		return 1 ;;
-	    *)
-		return 0 ;;
-	esac
+	if echo "$1" | grep -Eq -- "-(generic|virtual)(-.*)?$"; then return 0; fi
+
+	return 1
 }
 
 arch_get_kernel () {
-	echo "linux-image-$1"
+	echo "linux-generic"
+	echo "linux-image-generic"
+
+	echo "linux-virtual"
+	echo "linux-image-virtual"
 }

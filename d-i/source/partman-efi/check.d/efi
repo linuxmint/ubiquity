@@ -1,5 +1,13 @@
 #!/bin/sh
 
+if [ -f /var/lib/partman/ignore_uefi ]; then
+	exit 0
+fi
+
+if [ -f /var/lib/partman/ignore_uefi ]; then
+	exit 0
+fi
+
 . /lib/partman/lib/base.sh
 
 have_efi=no
@@ -19,7 +27,7 @@ for dev in $DEVICES/*; do
 
 	for part in $partitions; do
 		id=${part%%,*}
-		part=${part#*,}
+		part=${part##*,}
 		num=${part%%,*}
 		size=${part#*,}
 		[ -f $id/method ] || continue
@@ -51,14 +59,10 @@ ARCH="$(archdetect)"
 
 # Experimentally-verified minimum size for a FAT32 filesystem created using
 # libparted.
-case $ARCH in
-    i386/*|amd64/*)
-	if [ "$new_efi_size" ] && longint_le "$new_efi_size" 34091007; then
-		db_input critical partman-efi/too_small_efi || true
-		db_go || true
-		exit 1
-	fi
-	;;
-esac
+if [ "$new_efi_size" ] && longint_le "$new_efi_size" 34091007; then
+	db_input critical partman-efi/too_small_efi || true
+	db_go || true
+	exit 1
+fi
 
 exit 0

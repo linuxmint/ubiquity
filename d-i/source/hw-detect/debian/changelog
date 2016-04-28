@@ -1,3 +1,364 @@
+hw-detect (1.117ubuntu2) xenial; urgency=medium
+
+  * Enable disk-detect/multipath/enable by default on s390x.
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Thu, 14 Apr 2016 14:16:02 +0100
+
+hw-detect (1.117ubuntu1) xenial; urgency=low
+
+  * Merge 1.117 from debian to pick up fix for LP: #1559193.
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Add an 'archdetect-deb' package, containing /usr/bin/archdetect.  Add
+      an archdetect(1) manual page.
+    - Add support for activating fakeraid devices with mdadm.
+    - disk-detect.sh: Do not check the kernel command line for any option
+      to enable dmraid support. If functional dmraid arrays are found, the
+      user will be asked if they wish to activate them.
+    - 'dmraid -c -s' changed its output format; cope with both old and new.
+    - Make dmraid logging a bit neater.
+    - Offer iSCSI targets for preseeding if partman-iscsi is available and
+      no disk devices are found.
+    - disk-detect.sh: Use mpath[a-z] now rather than mpath[0-9] to identify
+      multipath devices and thus know to install partman-multipath.
+    - disk-detect.sh: run update-dev after installing multipath and sg3.
+    - debian/control: Depends on multipath-udeb (>= 0.5.0), which introduces
+      the multipath device naming changes above.
+    - Remove dm-emc from the multipath modules, since it's gone since
+      2.6.27.
+    - Improve checks for dm-* drivers being present to avoid relying on them
+      being built as modules.
+    - Bump question to load driver injection disk from medium to high, and
+      raise driver-injection-disk package priority to standard. Thus the
+      udeb will be loaded by default, but before installing any debs from
+      the OEMDRV a confirmation question will be asked (default true, can be
+      pre-seeded)
+    - Drop priorities of a couple of ethdetect questions to medium.
+    - Exit zero if you continue all the way through ethdetect's errors about
+      having no network interfaces.
+    - Remove FireWire Ethernet support.
+    - disk-detect.sh: multipath: reload udev rules before re-add devices
+      to guarantee all devices may get new udev properties
+    - disk-detect.sh: multipath: deactivate LVM volumes before multipath
+      discovery to unlock individual paths
+    - disk-detect.sh: multipath: deactivate md arrays before multipath
+      discovery to unlock individual paths
+    - disk-detect.sh: use iscsi-start wrapper in partman-iscsi to be able to set
+      a custom iSCSI initiatorName from the installer.
+    - disk-detect.sh: load SCSI device handlers before SCSI low-level
+      device drivers.
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Mon, 04 Apr 2016 14:37:02 +0100
+
+hw-detect (1.117) unstable; urgency=medium
+
+  * Team upload
+
+  [ Hendrik Brueckner ]
+  * Improve and split harddrive detection into DASD and SCSI dependency
+    on s390x (Closes: #818586)
+
+ -- Philipp Kern <pkern@debian.org>  Sun, 03 Apr 2016 11:40:24 +0200
+
+hw-detect (1.116) unstable; urgency=medium
+
+  [ Colin Watson ]
+  * Use HTTPS for Vcs-* URLs, and link to cgit rather than gitweb.
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 02 Feb 2016 07:04:13 +0100
+
+hw-detect (1.115) unstable; urgency=medium
+
+  [ Colin Watson ]
+  * Compress devnames-static.gz using "gzip -n" (Lintian).
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 17 Jan 2016 21:31:03 +0100
+
+hw-detect (1.114ubuntu4) xenial; urgency=medium
+
+  [ Mauricio Faria de Oliveira ]
+  * disk-detect.sh: multipath: reload udev rules before re-add devices
+    to guarantee all devices may get new udev properties (LP: #1549456)
+  * disk-detect.sh: multipath: deactivate LVM volumes before multipath
+    discovery to unlock individual paths (LP: #1549504)
+  * disk-detect.sh: multipath: deactivate md arrays before multipath
+    discovery to unlock individual paths (LP: #1549506)
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Mon, 21 Mar 2016 14:24:03 -0400
+
+hw-detect (1.114ubuntu3) xenial; urgency=medium
+
+  * disk-detect.sh: use iscsi-start wrapper in partman-iscsi to be able to set
+    a custom iSCSI initiatorName from the installer.
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Tue, 01 Mar 2016 16:39:30 -0500
+
+hw-detect (1.114ubuntu2) xenial; urgency=medium
+
+  * disk-detect.sh: load SCSI device handlers before SCSI low-level
+    device drivers (LP: #1546606).
+
+ -- Mauricio Faria de Oliveira <mauricfo@linux.vnet.ibm.com>  Wed, 17 Feb 2016 10:19:45 -0200
+
+hw-detect (1.114ubuntu1) xenial; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Add an 'archdetect-deb' package, containing /usr/bin/archdetect.  Add
+      an archdetect(1) manual page.
+    - Add support for activating fakeraid devices with mdadm.
+    - disk-detect.sh: Do not check the kernel command line for any option
+      to enable dmraid support. If functional dmraid arrays are found, the
+      user will be asked if they wish to activate them.
+    - 'dmraid -c -s' changed its output format; cope with both old and new.
+    - Make dmraid logging a bit neater.
+    - Offer iSCSI targets for preseeding if partman-iscsi is available and
+      no disk devices are found.
+    - disk-detect.sh: Use mpath[a-z] now rather than mpath[0-9] to identify
+      multipath devices and thus know to install partman-multipath.
+    - disk-detect.sh: run update-dev after installing multipath and sg3.
+    - debian/control: Depends on multipath-udeb (>= 0.5.0), which introduces
+      the multipath device naming changes above.
+    - Remove dm-emc from the multipath modules, since it's gone since
+      2.6.27.
+    - Improve checks for dm-* drivers being present to avoid relying on them
+      being built as modules.
+    - Bump question to load driver injection disk from medium to high, and
+      raise driver-injection-disk package priority to standard. Thus the
+      udeb will be loaded by default, but before installing any debs from
+      the OEMDRV a confirmation question will be asked (default true, can be
+      pre-seeded)
+    - Drop priorities of a couple of ethdetect questions to medium.
+    - Exit zero if you continue all the way through ethdetect's errors about
+      having no network interfaces.
+    - Remove FireWire Ethernet support.
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Fri, 04 Dec 2015 12:19:18 -0500
+
+hw-detect (1.114) unstable; urgency=high
+
+  * Fix a hang during ethdetect (Closes: #803769). Thanks, Karsten Merker!
+
+ -- Cyril Brulebois <kibi@debian.org>  Sat, 14 Nov 2015 16:34:33 +0100
+
+hw-detect (1.113) unstable; urgency=medium
+
+  [ Ben Hutchings ]
+  * ethdetect: Don't look for Linux USB net drivers under drivers/usb
+  * ethdetect: Use embedded module description for modules not listed in
+    devnames-static.txt
+  * ethdetect: Exclude PHY drivers from list of net drivers
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 10 Sep 2015 07:06:55 +0200
+
+hw-detect (1.112) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 10 Aug 2015 08:57:22 +0200
+
+hw-detect (1.111) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 25 Jul 2015 18:48:50 +0200
+
+hw-detect (1.110) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 22 Jun 2015 06:53:24 +0200
+
+hw-detect (1.109) unstable; urgency=medium
+
+  * No longer install acpi acpid acpi-support-base as it duplicates
+    functionality which is nowadays provided by systemd/logind.
+    Thanks to Michael Biebl for the notice and patch.
+    Closes: #783247
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 28 Apr 2015 07:00:05 +0200
+
+hw-detect (1.108) unstable; urgency=high
+
+  * Make sure not to look at past lines in dmesg (Closes: #779546):
+    - If user supplies firmware on a USB stick, missing firmware detection
+      happens again, and if dmesg hasn't received enough lines to get rid of
+      old “firmware: failed to load” entries, the situation looks like it
+      hasn't improved.
+    - To avoid such a loop, note the timestamp of the last dmesg line after
+      having scanned for such lines, and in case missing firmware detection
+      runs again, use this timestamp to filter out previous lines in case it's
+      still present in the new dmesg output; or use the whole dmesg output if
+      that timestamp has vanished.
+    - Tested successfully on bare metal with iwlwifi.
+
+ -- Cyril Brulebois <kibi@debian.org>  Fri, 17 Apr 2015 19:24:22 +0200
+
+hw-detect (1.107) unstable; urgency=low
+
+  [ Updated translations ]
+  * Danish (da.po) by Joe Hansen
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 08 Mar 2015 08:03:17 +0100
+
+hw-detect (1.106) unstable; urgency=low
+
+  [ Petter Reinholdtsen ]
+  * Add more logging in check-missing-firmware, to make debugging
+    easier.
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 22 Oct 2014 08:17:49 +0200
+
+hw-detect (1.105) unstable; urgency=low
+
+  [ Petter Reinholdtsen ]
+  * Change check-missing-firmware to look in dmesg for firmware requests
+    as the linux kernel and udev no longer tell us via
+    /dev/.udev/firmware-missing and /run/udev/firmware-missing which
+    firmware files are needed (Closes: #725714).
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 16 Oct 2014 21:43:52 +0200
+
+hw-detect (1.104) unstable; urgency=low
+
+  [ Updated translations ]
+  * German (de.po) by Holger Wansing
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 25 Sep 2014 07:05:53 +0200
+
+hw-detect (1.103) unstable; urgency=low
+
+  [ Petter Reinholdtsen ]
+  * Enable hardening when building archdetect.
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 15 Sep 2014 11:25:54 +0200
+
+hw-detect (1.102) unstable; urgency=low
+
+  * Revert the archdetect vs. archdetect-udeb change (Closes: #761135).
+    Reasons include:
+     - Disruptive changes are not welcome so late in the release cycle
+       (especially when little to nothing has to be gained).
+     - No tests have been performed, since debian-installer starts
+       failing to build from source.
+     - Reusing a package name for a different package-type is a recipe
+       for disaster.
+
+ -- Cyril Brulebois <kibi@debian.org>  Thu, 11 Sep 2014 08:32:43 +0200
+
+hw-detect (1.101) unstable; urgency=low
+
+  * Upload to unstable.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Wed, 10 Sep 2014 00:03:14 +0200
+
+hw-detect (1.100.0.exp.1) experimental; urgency=low
+
+  * Improve driver injection disk support.  Adjust
+    driver-injection-disk.sh to also probe disks for OEMDRV label (LP:
+    #1332187).  Patch from Kent Baxley and Ubuntu.
+  * Move firmware installation code to pre-pkgsel.d.  Relocate hook to
+    move firmware/injected drivers' .deb packages installation from
+    post-base-installer.d stage to pre-pkgsel.d stage to make sure it
+    is done after any injected drivers are installed in the
+    pre-pkgsel.d step (LP: #1209287, LP: #1216043).  Patch from
+    Dmitrijs Ledkovs and Ubuntu.
+  * Correct email address for Bart Cornelis in changelog to avoid
+    lintian error.
+  * Introduce archdetect deb package and archdetect(1) manual page.
+    This is useful to know what setting d-i uses for architecture.
+    Rename udeb to archdetect-udeb providing archdetect for backward
+    compatibility, and add new archdetect binary package.  Build with
+    hardening flags to ensure binary is hardened.  Based on patch from
+    Colin Watson and Ubuntu.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Tue, 09 Sep 2014 13:00:39 +0200
+
+hw-detect (1.100) unstable; urgency=low
+
+  [ Petter Reinholdtsen ]
+  * Correct detection of Macs needing to blacklist snd-aoa
+    modules. This should get sound working out of the box on iMac G5
+    20 and others (Closes: #650588).  Patch from Risto Suominen and
+    Ben Harris.
+  * Remove code trying to install the libc6-sparcv9 package on sparc,
+    as the package no longer exist since wheezy. (Closes: #505829).
+
+ -- Petter Reinholdtsen <pere@debian.org>  Tue, 09 Sep 2014 10:27:24 +0200
+
+hw-detect (1.99) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Bosnian (bs.po) by Amila Valjevčić
+  * Hungarian (hu.po) by Judit Gyimesi
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+
+ -- Cyril Brulebois <kibi@debian.org>  Fri, 14 Mar 2014 15:32:19 +0100
+
+hw-detect (1.98) unstable; urgency=low
+
+  [ Updated translations ]
+  * Tajik (tg.po) by Victor Ibragimov
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 14 Sep 2013 15:15:28 +0200
+
+hw-detect (1.97) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Merge from Ubuntu:
+    - Refer to /usr/share/common-licenses/GPL-2 in debian/copyright.
+    - Load xenbus_probe_frontend if we're running under the Xen hypervisor
+      (LP: #857662).
+    - Redirect update-dev output to /dev/null, as it is in principle
+      possible for it to write to stdout and that would interfere with
+      debconf.
+
+  [ Updated translations ]
+  * Tajik (tg.po) by Victor Ibragimov
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 07 Sep 2013 07:43:20 +0200
+
+hw-detect (1.95ubuntu7) wily; urgency=medium
+
+  * disk-detect.sh: run update-dev after installing multipath and sg3.
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Mon, 03 Aug 2015 09:41:46 -0400
+
+hw-detect (1.95ubuntu6) wily; urgency=medium
+
+  * debian/control: drop the Depends I added; with the multipath command
+    always there but dm-multipath modules not loaded, the output of multipath
+    can confuse partman-base. This is the least intrusive change by dropping
+    delta for now.
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Thu, 09 Jul 2015 17:43:30 -0400
+
+hw-detect (1.95ubuntu5) wily; urgency=medium
+
+  * disk-detect.sh: Use mpath[a-z] now rather than mpath[0-9] to identify
+    multipath devices and thus know to install partman-multipath.
+  * debian/control: Depends on multipath-udeb (>= 0.5.0), which introduces
+    the multipath device naming changes above.
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Mon, 06 Jul 2015 11:20:20 -0400
+
+hw-detect (1.95ubuntu4) utopic; urgency=medium
+
+  * driver-injection-disk.sh: also probe disks for OEMDRV label (LP: #1332187)
+
+ -- Kent Baxley <kent.baxley@canonical.com>  Fri, 27 Jun 2014 11:52:43 -0500
+
+hw-detect (1.95ubuntu3) utopic; urgency=medium
+
+  * Drop "Register rtc module on i386 and amd64". Kernel dropped this
+    module. (LP: #1317077)
+  * Drop "Register lp module on i386 and amd64." as cups now ships
+    /etc/modules-load.d/cups-filters.conf which loads lp modules.
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Wed, 07 May 2014 09:32:31 +0100
+
 hw-detect (1.95ubuntu2) trusty; urgency=medium
 
   * Add support for activating fakeraid devices with mdadm.
@@ -4321,7 +4682,7 @@ ddetect (0.41) unstable; urgency=low
     - Change old TITLE command to new SETTITLE command.
     - Updated nb.po.
 
- -- Bart Cornelis <cobaco@bartLaptop>  Sat, 27 Sep 2003 14:26:52 +0200
+ -- Bart Cornelis <cobaco@linux.be>  Sat, 27 Sep 2003 14:26:52 +0200
 
 ddetect (0.40) unstable; urgency=low
 
@@ -4710,3 +5071,4 @@ ddetect (0.03) unstable; urgency=low
   * Initial Release.
 
  -- David Whedon <dwhedon@gordian.com>  Mon, 13 Nov 2000 23:46:39 -0800
+

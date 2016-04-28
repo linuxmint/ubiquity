@@ -29,7 +29,7 @@ install_driver_pkg () {
 }
 
 #try to mount possible driver disk
-for device in $(list-devices usb-partition); do
+for device in $(list-devices disk; list-devices usb-partition); do
 	label=$(block-attr --label $device 2>/dev/null || true)
 	if [ "$label" = "OEMDRV" ]; then
 		db_input high driver-injection-disk/load || true

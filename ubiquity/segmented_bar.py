@@ -163,7 +163,7 @@ class CairoExtensions:
         r, g, b = color[:2], color[2:4], color[4:]
         r, g, b = [(int(n, 16) / 255.0) for n in (r, g, b)]
         return Color(r, g, b)
-        #return CairoExtensions.rgba_to_color((color << 8) | 0x000000ff)
+        # return CairoExtensions.rgba_to_color((color << 8) | 0x000000ff)
 
     @staticmethod
     def rounded_rectangle(cr, x, y, w, h, r, corners=CairoCorners.all,

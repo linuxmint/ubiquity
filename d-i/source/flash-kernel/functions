@@ -187,6 +187,19 @@ gen_kernel() {
 	} >"$output"
 }
 
+gen_ubootenv() {
+	ENVSTUBDIRS="/etc/flash-kernel/ubootenv.d /usr/share/flash-kernel/ubootenv.d"
+	ENVSTUBS="$(find $ENVSTUBDIRS -type f -regex '.*/[0-9a-zA-Z_-]+' -printf '%f\n' | LC_ALL=C sort -u)"
+	for file in $ENVSTUBS; do
+		for dir in $ENVSTUBDIRS; do
+			if [ -f $dir/$file ]; then
+				cat $dir/$file
+				break
+			fi
+		done
+	done
+}
+
 append_dtb() {
 	local kernel="$1"
 	local dtb="$2"
@@ -252,10 +265,19 @@ mkimage_script() {
 	local sdesc="$2"
 	local sdata="$3"
 	local script="$4"
+	local tdata="$tmpdir/$(basename $sdata)"
+
+	local ubootenv="$(mktemp --tmpdir=$tmpdir)"
+	gen_ubootenv > $ubootenv
 
 	printf "Generating boot script u-boot image... " >&2
+	sed -e "/@@UBOOT_ENV_EXTRA@@/{
+		s/@@UBOOT_ENV_EXTRA@@//g
+		r $ubootenv
+		}" < $sdata > $tdata
+
 	mkimage -A arm -O linux -T script -C none -a "$saddr" -e "$saddr" \
-		-n "$sdesc" -d "$sdata" "$script" >&2 1>/dev/null
+		-n "$sdesc" -d "$tdata" "$script" >&2 1>/dev/null
 	echo "done." >&2
 }
 
@@ -269,6 +291,17 @@ mkimage_multi() {
 	printf "Generating u-boot image..." >&2
 	mkimage -A arm -O linux -T multi -C none -a "$maddr" -e "$maddr" \
 		-n "$mdesc" -d "$kdata:$idata" "$umulti" >&2 1>/dev/null
+	echo "done." >&2
+}
+
+mkimage_env() {
+	local esize="$1"
+	local edata="$2"
+	local escript="$3"
+
+	# FIXME: should leverage gen_ubootenv
+	printf "Generating u-boot environment image... " >&2
+	mkenvimage -r -s "$esize" -o "$escript" "$edata"
 	echo "done." >&2
 }
 
@@ -323,6 +356,29 @@ android_flash() {
 	fi
 }
 
+include_only_flavors() {
+	# include_only_flavors(flav1, flav2, flav3)
+	# filter lines of input in uname -r format (X.Y.Z-N-flavor)
+	# and filter-out anything that is not in the listed input
+	# if exactly zero flavors are given, then assume everything is a match
+	local cur_uname cur_flav allowed_flav
+	while read cur_uname; do
+		if [ $# -eq 0 ]; then
+			echo "$cur_uname"
+		else
+			# could use cur_flav=$(get_kfile_suffix "$cur_uname")
+			# but this is much faster.
+			cur_flav=${cur_uname#*-*-}
+			for allowed_flav in "$@"; do
+				if [ "${cur_flav}" = "${allowed_flav}" ]; then
+					echo "$cur_uname"
+					break
+				fi
+			done
+		fi
+	done
+}
+
 main() {
 if [ "x$1" = "x--machine" ]; then
 	machine="$2"
@@ -341,7 +397,10 @@ fi
 # kernel + initrd installation/upgrade mode, with optional version
 
 kvers="$1"
-latest_version=$(linux-version list | linux-version sort | tail -1)
+
+# if get_machine_field returns non-zero, then all flavors are allowed
+kflavors="$(get_machine_field "$machine" "Kernel-Flavors")" || :
+latest_version=$(linux-version list | include_only_flavors $kflavors | linux-version sort | tail -1)
 if [ -n "$kvers" ] && [ "$kvers" != "$latest_version" ]; then
 	echo "Ignoring old or unknown version $kvers (latest is $latest_version)" >&2
 	exit 0
@@ -381,10 +440,15 @@ fi
 kfile_suffix=$(get_kfile_suffix "$kfile")
 
 if ! check_supported "$machine"; then
+	# do nothing if an unsupported platform is booted from EFI
+	if [ -d /sys/firmware/efi ]; then
+		echo "Unsupported platform on EFI system, doing nothing."
+		exit 0
+	fi
 	error "Unsupported platform."
 fi
 
-if kflavors="$(get_machine_field "$machine" "Kernel-Flavors")"; then
+if [ -n "$kflavors" ]; then
 	if ! check_kflavors "$kfile_suffix" $kflavors; then
 		echo "Kernel suffix $kfile_suffix does not match any of the expected flavors ($kflavors), therefore not writing it to flash." >&2
 		exit 0
@@ -404,6 +468,9 @@ uiaddr="$(get_machine_field "$machine" "U-Boot-Initrd-Address")" || :
 umaddr="$(get_machine_field "$machine" "U-Boot-Multi-Address")" || :
 usaddr="$(get_machine_field "$machine" "U-Boot-Script-Address")" || :
 usname="$(get_machine_field "$machine" "U-Boot-Script-Name")" || :
+# FIXME: currently hard coded because only RPi2 uses this; let's not define
+# new fields without consulting with Debian.
+ussize=16384
 boot_device="$(get_machine_field "$machine" "Boot-Device")" || :
 boot_kernel_path="$(get_machine_field "$machine" "Boot-Kernel-Path")" || :
 boot_initrd_path="$(get_machine_field "$machine" "Boot-Initrd-Path")" || :
@@ -494,7 +561,7 @@ case "$method" in
 		fi
 		if [ -n "$dtb_kver" ]; then
 			if dpkg --compare-versions "$kvers" ge "$dtb_kver" >/dev/null; then
-				dtb="/lib/firmware/$kvers/device-tree/$dtb_name"
+				dtb="$(find /lib/firmware/$kvers/device-tree/ -name $dtb_name)"
 				if [ ! -f "$dtb" ] ; then
 					error "Couldn't find $dtb"
 				fi
@@ -524,19 +591,17 @@ case "$method" in
 		if [ -n "$boot_kernel_path" ]; then
 			boot_kernel_path="$boot_mnt_dir/$boot_kernel_path"
 			# don't mv the original kernel
-			if [ "$kernel" != "$kfile" ]; then
-				backup_and_install "$kernel" \
-					"$boot_kernel_path"
-			else
-				# TODO add support for kernel symlink
-				:
+			if [ "$kernel" = "$kfile" ]; then
+				cp "$kernel" "$tmpdir/kernel"
+				kernel="$tmpdir/kernel"
 			fi
+			backup_and_install "$kernel" "$boot_kernel_path"
 		elif [ -n "$kmtd" ]; then
 			flash_kernel "$tmpdir/uImage" "$kmtd" ""
 			rm -f "$tmpdir/uImage"
 		fi
 		if [ -n "$dtb_name" ] && [ -n "$boot_dtb_path" ]; then
-			dtb="/lib/firmware/$kvers/device-tree/$dtb_name"
+			dtb="$(find /lib/firmware/$kvers/device-tree/ -name $dtb_name)"
 			if [ -f "$dtb" ]; then
 				cp "$dtb" "$tmpdir/$dtb_name"
 				dtb_path="$boot_mnt_dir/$boot_dtb_path"
@@ -554,13 +619,11 @@ case "$method" in
 		if [ -n "$boot_initrd_path" ]; then
 			boot_initrd_path="$boot_mnt_dir/$boot_initrd_path"
 			# don't mv the original initrd
-			if [ "$initrd" != "$ifile" ]; then
-				backup_and_install "$initrd" \
-					"$boot_initrd_path"
-			else
-				# TODO add support for initrd symlink
-				:
+			if [ "$initrd" = "$ifile" ]; then
+				cp "$initrd" "$tmpdir/initrd"
+				initrd="$tmpdir/initrd"
 			fi
+			backup_and_install "$initrd" "$boot_initrd_path"
 		elif [ -n "$imtd" ]; then
 			ipad=0
 			# padding isn't needed for U-Boot images
@@ -578,6 +641,14 @@ case "$method" in
 					mkimage_script "$usaddr" "boot script" "$boot_script" \
 						"$tmpdir/boot.scr"
 					boot_script="$tmpdir/boot.scr"
+					backup_and_install "$boot_script" "$boot_script_path"
+				;;
+				uboot.env*)
+					boot_script_path="$boot_mnt_dir/$boot_script_path"
+					boot_script="$BOOTSCRIPTS_DIR/$usname"
+					mkimage_env "$ussize" "$boot_script" \
+						"$tmpdir/uboot.env"
+					boot_script="$tmpdir/uboot.env"
 					backup_and_install "$boot_script" "$boot_script_path"
 				;;
 				uEnvtxt*)

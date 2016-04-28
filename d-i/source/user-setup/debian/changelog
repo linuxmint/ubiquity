@@ -1,3 +1,220 @@
+user-setup (1.63ubuntu4) xenial; urgency=medium
+
+  * Fix sddm.conf paths when replacing PLACEHOLDER for the DE to be run by
+    SDDM in the autologin case. (LP: #1543197)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 20 Apr 2016 10:52:59 -0400
+
+user-setup (1.63ubuntu3) xenial; urgency=medium
+
+  * Fix paths for GDM configs which are now in /etc/gdm3. (LP: #1571415)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 18 Apr 2016 16:00:31 -0400
+
+user-setup (1.63ubuntu2) xenial; urgency=medium
+
+  * Add the initial user to the lxd group.
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Wed, 09 Mar 2016 14:18:18 -0500
+
+user-setup (1.63ubuntu1) xenial; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Add the initial user to the adm, libvirtd and sambashare groups too.
+      Do not add them to the audio, video, floppy, netdev, scanner, or
+      bluetooth groups.
+    - Default passwd/root-login to false.
+    - Create the spu group on powerpc/ps3 and powerpc/cell.
+    - Make is_system_user always return false if OVERRIDE_SYSTEM_USER is
+      set.
+    - Add preseedable passwd/auto-login question; if set to true, configure
+      gdm, kdm, lxdm, sddm, and lightdm for automatic login.  Add
+      passwd/auto-login-backup question which backs up the previous contents
+      of the files as well.
+    - Ask whether the user wants to encrypt their home directory.
+    - Allow forcing the encrypted home option.
+    - If a user requests an encrypted-home, we must have their login
+      passphrase, in order to wrap their mount passphrase; it's
+      fundamentally incompatible to preseed encrypted-home AND a crypted
+      password; if this happens, send the user back to password selection.
+    - Zero out swap devices at the end of install when encryption is
+      enabled.
+    - Provide a progress message for wiping swap space.
+    - If user-setup/allow-password-empty is preseeded to true, allow empty
+      passwords.
+    - Disable installation of pre-pkgsel.d/10kdesudo; it does nothing for
+      Ubuntu, and causes a confusing message that worries some people.
+    - Add weak password detection (purely length-based for now, matching
+      partman-crypto).
+    - Consider a password of '!' in shadow for root to be unset.
+    - Don't restrict guest login from login screen if autologin was
+      configured, just restrict autologin for guest specifically.
+    - If OVERRIDE_ALREADY_ENCRYPTED_SWAP is set in the environment, assume
+      that encrypted swap has already been set up rather than re-creating
+      and re-zeroing swap.
+    - Add maas to reserved-usernames.
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Fri, 27 Nov 2015 16:39:02 -0500
+
+user-setup (1.63) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Thai (th.po) by Theppitak Karoonboonyanan
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 02 Oct 2015 14:33:55 +0200
+
+user-setup (1.62) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 22 Jul 2015 06:51:24 +0200
+
+user-setup (1.61) unstable; urgency=low
+
+  [ Updated translations ]
+  * Romanian (ro.po) by Ioan Eugen Stan
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 10 Apr 2015 13:07:02 +0200
+
+user-setup (1.60) unstable; urgency=low
+
+  [ Updated translations ]
+  * Danish (da.po) by Joe Hansen
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 09 Mar 2015 08:55:14 +0100
+
+user-setup (1.59) unstable; urgency=low
+
+  [ Updated translations ]
+  * Dutch (nl.po) by Frans Spiesschaert
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 06 Feb 2015 07:07:12 +0100
+
+user-setup (1.58) unstable; urgency=low
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 20 Sep 2014 14:43:00 +0200
+
+user-setup (1.57) unstable; urgency=medium
+
+  * Drop powerdev from groups to which the first created user is added.
+    Thanks to Michael Biebl for pointing this.
+
+  [ Updated translations ]
+  * Danish (da.po) by Joe Hansen
+  * Estonian (et.po) by Mattias Põldaru
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 06 Sep 2014 09:38:28 +0200
+
+user-setup (1.56) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Hungarian (hu.po) by Judit Gyimesi
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+
+ -- Cyril Brulebois <kibi@debian.org>  Fri, 14 Mar 2014 19:08:58 +0100
+
+user-setup (1.55) unstable; urgency=low
+
+  * Add first created user to lpadmin group so that it can use local
+    printers when installed. Closes: #697331
+  * Update Standards to 3.9.5 (checked)
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 05 Jan 2014 12:33:09 +0100
+
+user-setup (1.54) unstable; urgency=low
+
+  [ Updated translations ]
+  * Bosnian (bs.po) by Amila Valjevčić
+  * Hungarian (hu.po) by Judit Gyimesi
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 10 Dec 2013 15:33:06 +0100
+
+user-setup (1.53) unstable; urgency=low
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+  * Ukrainian (uk.po) by Yuri Chornoivan
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 10 Nov 2013 14:57:08 +0100
+
+user-setup (1.52) unstable; urgency=low
+
+  [ Updated translations ]
+  * Finnish (fi.po) by Timo Jyrinki
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 08 Sep 2013 19:24:50 +0200
+
+user-setup (1.51) unstable; urgency=low
+
+  [ Updated translations ]
+  * Tajik (tg.po) by Victor Ibragimov
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 17 Aug 2013 10:55:40 +0200
+
+user-setup (1.50) unstable; urgency=low
+
+  [ Dmitrijs Ledkovs ]
+  * Set debian source format to '3.0 (native)'.
+  * Bump debhelper compat level to 9.
+  * Set Vcs-* to canonical format.
+
+  [ Christian Perrier ]
+  * Add myself to Uploaders
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 14 Jul 2013 13:12:58 +0200
+
+user-setup (1.49) unstable; urgency=low
+
+  [ Updated translations ]
+  * Croatian (hr.po) by Tomislav Krznar
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 19 May 2013 18:31:54 +0200
+
+user-setup (1.48ubuntu7) wily; urgency=medium
+
+  * user-setup-apply: use correct syntax escaping, fix the lightdm
+    configuration to enable autologin on new installations (lp: #1498544)
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 23 Sep 2015 10:09:41 +0200
+
+user-setup (1.48ubuntu6) wily; urgency=medium
+
+  * Update autologin LightDM confgiguration to used [Seat:*] sections instead of
+    deprecated [SeatDefaults]
+  * Fix autologin LightDM confgiguration to not set innapropriate setting
+    autologin-session to an invalid value (LP: #1484083)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 18 Aug 2015 17:00:03 +1200
+
+user-setup (1.48ubuntu5) vivid; urgency=medium
+
+  * Fix typo in previous upload: AutomaticLogin line for gdm was containing
+    an extra slash.
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Thu, 16 Apr 2015 13:37:08 -0500
+
+user-setup (1.48ubuntu4) vivid; urgency=medium
+
+  [ Jörn Schönyan ]
+  * Handle SDDM autologin with other DMs than Plasma (LP: #1423103)
+
+  [ Tim Lunn ]
+  * Don't set TimedLogin, this gets set when Auto login is selected
+    in ubiquity but there is no UI to unset it (LP: #1412791)
+
+ -- Tim Lunn <tim@feathertop.org>  Wed, 15 Apr 2015 14:39:37 -0500
+
+user-setup (1.48ubuntu3) utopic; urgency=medium
+
+  [ KDEUSER56 / Rohan Garg ]
+  * Add SDDM autologin support (LP: #1362752).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 16 Sep 2014 13:55:09 +0100
+
 user-setup (1.48ubuntu2) trusty; urgency=medium
 
   * Add the initial user to the libvirtd group (LP: #1304008).

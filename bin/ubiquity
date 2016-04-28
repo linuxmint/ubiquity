@@ -21,6 +21,7 @@ import errno
 import fcntl
 import importlib
 import locale
+from operator import attrgetter
 import optparse
 import os
 import pwd
@@ -67,7 +68,7 @@ def disable_autologin():
     # Reverse actions of user-setup-apply.
     for name in ('/etc/gdm/custom.conf', '/etc/kde4/kdm/kdmrc',
                  '/etc/lxdm/lxdm.conf', '/etc/xdg/lubuntu/lxdm/lxdm.conf',
-                 '/etc/lightdm/lightdm.conf', '/etc/mdm/mdm.conf'):
+                 '/etc/lightdm/lightdm.conf'):
         if os.path.exists('%s.oem' % name):
             try:
                 os.rename('%s.oem' % name, name)
@@ -102,9 +103,12 @@ def open_terminal():
         flags = fcntl.fcntl(tty, fcntl.F_GETFL)
         fcntl.fcntl(tty, fcntl.F_SETFL, flags)
         # Leave stderr alone in the following; it's already redirected to
-        # our log file.
+        # our log file.  We also need to avoid closing the FD for
+        # /dev/urandom (http://bugs.python.org/issue21207).
+        dev_ino = attrgetter("st_dev", "st_ino")
+        urandom_dev_ino = dev_ino(os.stat("/dev/urandom"))
         for i in range(tty):
-            if i != 2:
+            if i != 2 and dev_ino(os.fstat(i)) != urandom_dev_ino:
                 os.close(i)
         for i in range(2):
             if tty != i:
@@ -380,6 +384,7 @@ def unmount_target():
     paths.sort()
     paths.reverse()
     for path in paths:
+        misc.execute_root('fuser', '-cv', path)
         misc.execute_root('umount', path)
 
 
@@ -422,8 +427,14 @@ def acquire_lock():
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, close_fds=True,
             universal_newlines=True)
         try:
-            # FIXME: use test_debconf.communicate():
-            # flushing is required due to python3.4 changes; see LP: #1326707
+            # It seems that in python3.4, the below print is not
+            # flushed by default, thus adding "flush=True" kargs and
+            # thus avoid a boot hang as seen in LP: #1326707 But flush
+            # karg was only introduced in python3.3, instead this is a
+            # big FIXME and should instead use
+            # test_debconf.communicate() I'll propose a merge proposal
+            # which does that, but not at 1 AM when it is still
+            # boiling hot in London and I can't fall asleep.
             print('VERSION 2.0', file=test_debconf.stdin, flush=True)
             test_debconf.stdout.readline()
         except IOError:

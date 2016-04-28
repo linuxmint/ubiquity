@@ -27,7 +27,7 @@ arch_check_usable_kernel () {
 
 arch_get_kernel () {
 	case "$KERNEL_MAJOR" in
-	    2.6|3.*)
+	    2.6|3.*|4.*)
 		case $1 in
 		    r5k-ip22)
 			set r4k-ip22

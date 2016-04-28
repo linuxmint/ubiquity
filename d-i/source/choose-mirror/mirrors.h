@@ -17,12 +17,18 @@ struct mirror_t {
  */
 #define MANUAL_ENTRY "manual"
 
+/*
+ * Allow to read the full Architectures: line from Release file,
+ * which is up to 123 bytes long at time of writing.
+ */
+#define BUFFER_LENGTH 256
+
 #define SUITE_LENGTH 32
 
 /* Stack of suites */
 static const char suites[][SUITE_LENGTH] = {
 	/* higher preference */
-	"trusty",
+	"xenial",
 	/* lower preference */
 };
 
@@ -40,6 +46,7 @@ static const char suites[][SUITE_LENGTH] = {
 struct release_t {
 	char *name;
 	char *suite;
+	char *archs;
 	int status;
 };
 

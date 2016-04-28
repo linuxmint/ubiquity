@@ -1,8 +1,21 @@
 from __future__ import print_function
 
 import sys
+import os.path
 
-from PyQt4.QtGui import QWidget, QHBoxLayout, QLabel, QPixmap
+from PyQt4.QtGui import QWidget, QHBoxLayout, QLabel, QSizePolicy
+from PyQt4.QtSvg import QSvgWidget
+
+
+class SquareSvgWidget(QSvgWidget):
+    def __init__(self, parent=None):
+        QSvgWidget.__init__(self, parent)
+        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        sizePolicy.setHeightForWidth(True)
+        self.setSizePolicy(sizePolicy)
+
+    def heightForWidth(self, width):
+        return width
 
 
 class StateBox(QWidget):
@@ -10,7 +23,7 @@ class StateBox(QWidget):
         QWidget.__init__(self, parent)
 
         self.label = QLabel(text, self)
-        self.image = QLabel(self)
+        self.image = SquareSvgWidget(self)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -24,12 +37,14 @@ class StateBox(QWidget):
         self.status = state
         if state:
             # A tickmark
-            name = "dialog-ok-apply.png"
+            name = "dialog-ok-apply.svg"
         else:
             # A cross
-            name = "edit-delete.png"
-        name = "/usr/share/icons/oxygen/22x22/actions/" + name
-        self.image.setPixmap(QPixmap(name))
+            name = "edit-delete.svg"
+        icon = "/usr/share/icons/breeze/actions/22/" + name
+        if not os.path.isfile(icon):
+            icon = "/usr/share/icons/breeze/actions/toolbar/" + name
+        self.image.load(icon)
 
     def get_state(self):
         return self.status

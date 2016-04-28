@@ -1,3 +1,313 @@
+partman-base (187ubuntu2) xenial; urgency=medium
+
+  [ Viktor Mihajlovski ]
+  * Add disk label type to device directory, such that
+    e.g. partman-partitioning can elect dasd partitioning table for dasd
+    drives. LP: #1548411.
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Mon, 29 Feb 2016 14:47:30 +0000
+
+partman-base (187ubuntu1) wily; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Ubiquity integration: If PARTMAN_NO_COMMIT is set, then exit rather
+      than running commit.d and finish.d scripts; add a partman-commit
+      script; dump extra information to /var/lib/partman/snoop if
+      PARTMAN_SNOOP is set; check for per-menu 'no_show_choices' file in
+      ask_user and don't reshow the menu if it exists.
+    - Don't skip over dmraid devices if the user chooses not to activate
+      them.
+    - If the only thing mounted on a disk is the installation medium and it
+      uses more or less the whole disk, then silently exclude that disk; if
+      the installation medium is mounted but doesn't use the whole disk,
+      issue a warning that partitioning may be difficult; if anything else
+      is mounted, offer to unmount it. partman/filter_mounted=false disables
+      this.
+    - debian/control: replace harddrive-detection Depends with the specific
+      disk-detect version needed (>= 1.95ubuntu4) to support multipath-tools
+      0.5.0. There are no other harddrive-detection providers yet anyway.
+    - Multipath support: 
+      - lib/base.sh: is_multipath_part(): Use 'p' (not '-part') as multipath
+        disk-partition separator.
+      - lib/base.sh: humandev(): Accept spaces in multipath WWID.
+      - init.d/parted: part_of_multipath(): Update grep expression for more
+        recent output of 'multipath -l'.
+      - lib/base.sh: drop the p separator for multipath partitions
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Mon, 10 Aug 2015 11:23:02 -0400
+
+partman-base (187) unstable; urgency=medium
+
+  [ Philip Hands ]
+  * Do not list /dev/mmcblk.(rpmb|boot.) devices, as they cannot be
+    usefully partitioned (Closes: #773229)
+    Prompted by a patch from Tsung-Han Lin <tsung-han.lin@canonical.com>
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 22 Jul 2015 11:05:28 +0200
+
+partman-base (186) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 02 Jul 2015 15:55:21 +0200
+
+partman-base (185) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Portuguese (Brazil) (pt_BR.po) by Adriano Rafael Gomes
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 19 May 2015 19:16:36 +0200
+
+partman-base (184) unstable; urgency=low
+
+  [ Updated translations ]
+  * Romanian (ro.po) by Ioan Eugen Stan
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 09 Apr 2015 20:06:18 +0200
+
+partman-base (183) unstable; urgency=low
+
+  * Drop cruft files from an unclean git copy:
+    - Makefile
+    - debian/partman-base.dirs
+    - debian/partman-utils.dirs
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 09 Mar 2015 17:02:04 +0100
+
+partman-base (182) unstable; urgency=low
+
+  [ Updated translations ]
+  * Danish (da.po) by Joe Hansen
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 08 Mar 2015 11:59:54 +0100
+
+partman-base (181ubuntu4) wily; urgency=medium
+
+  * lib/base.sh: drop the p separator for multipath partitions: since
+    multipath-tools 0.5.0, there is no separator, devices are of the format
+    mpath[a-z]+[0-9]+, where [0-9]+ is the partition number.
+  * debian/control: replace harddrive-detection Depends with the specific
+    disk-detect version needed (>= 1.95ubuntu4) to support multipath-tools
+    0.5.0. There are no other harddrive-detection providers yet anyway.
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Mon, 06 Jul 2015 11:42:55 -0400
+
+partman-base (181ubuntu3) vivid; urgency=medium
+
+  [ Mauricio Faria de Oliveira ]
+  * init.d/parted: part_of_multipath(): Update grep expression for more
+    spaces between disk and major:minor (happens when sd[a-z][a-z] exist)
+    (LP: #1436020)
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Fri, 10 Apr 2015 16:40:29 -0400
+
+partman-base (181ubuntu2) vivid; urgency=medium
+
+  [ Mauricio Faria de Oliveira ]
+  * Fix multipath support: (LP: #1430074)
+    - lib/base.sh: is_multipath_part(): Use 'p' (not '-part') as multipath
+      disk-partition separator.
+    - lib/base.sh: humandev(): Use 'p' (not '-part') as multipath
+      disk-partition separator.
+    - lib/base.sh: humandev(): Accept spaces in multipath WWID.
+    - init.d/parted: part_of_multipath(): Update grep expression for more
+      recent output of 'multipath -l'.
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Tue, 17 Mar 2015 00:06:34 -0400
+
+partman-base (181ubuntu1) vivid; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Ubiquity integration: If PARTMAN_NO_COMMIT is set, then exit rather
+      than running commit.d and finish.d scripts; add a partman-commit
+      script; dump extra information to /var/lib/partman/snoop if
+      PARTMAN_SNOOP is set; check for per-menu 'no_show_choices' file in
+      ask_user and don't reshow the menu if it exists.
+    - Don't skip over dmraid devices if the user chooses not to activate
+      them.
+    - If the only thing mounted on a disk is the installation medium and it
+      uses more or less the whole disk, then silently exclude that disk; if
+      the installation medium is mounted but doesn't use the whole disk,
+      issue a warning that partitioning may be difficult; if anything else
+      is mounted, offer to unmount it. partman/filter_mounted=false disables
+      this.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 08 Mar 2015 09:35:52 +0000
+
+partman-base (181) unstable; urgency=high
+
+  * Fix command_get_file_system() to correctly look at fstype and not at
+    part->fs_type, fixing possible NULL pointer dereferences. Thanks to
+    the many reporters, to Steve McIntyre for the initial backtrace, and
+    to Lennart Sorensen for the patch! (Closes: #778773)
+
+ -- Cyril Brulebois <kibi@debian.org>  Wed, 04 Mar 2015 17:30:29 +0100
+
+partman-base (180ubuntu1) vivid; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Ubiquity integration: If PARTMAN_NO_COMMIT is set, then exit rather
+      than running commit.d and finish.d scripts; add a partman-commit
+      script; dump extra information to /var/lib/partman/snoop if
+      PARTMAN_SNOOP is set; check for per-menu 'no_show_choices' file in
+      ask_user and don't reshow the menu if it exists.
+    - Don't skip over dmraid devices if the user chooses not to activate
+      them.
+    - If the only thing mounted on a disk is the installation medium and it
+      uses more or less the whole disk, then silently exclude that disk; if
+      the installation medium is mounted but doesn't use the whole disk,
+      issue a warning that partitioning may be difficult; if anything else
+      is mounted, offer to unmount it. partman/filter_mounted=false disables
+      this.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 27 Nov 2014 10:28:33 +0000
+
+partman-base (180) unstable; urgency=low
+
+  * Avoid overwriting the bootloader area on more platforms: detect
+    Freescale and AM33XX systems along with Allwinner ones, and disable
+    ped_disk_clobber on such systems, when the device is /dev/mmcblk0
+    (Closes: #770666). With many thanks to Vagrant Cascadian!
+
+ -- Cyril Brulebois <kibi@debian.org>  Sun, 23 Nov 2014 12:38:26 +0100
+
+partman-base (179ubuntu1) vivid; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Ubiquity integration: If PARTMAN_NO_COMMIT is set, then exit rather
+      than running commit.d and finish.d scripts; add a partman-commit
+      script; dump extra information to /var/lib/partman/snoop if
+      PARTMAN_SNOOP is set; check for per-menu 'no_show_choices' file in
+      ask_user and don't reshow the menu if it exists.
+    - Don't skip over dmraid devices if the user chooses not to activate
+      them.
+    - If the only thing mounted on a disk is the installation medium and it
+      uses more or less the whole disk, then silently exclude that disk; if
+      the installation medium is mounted but doesn't use the whole disk,
+      issue a warning that partitioning may be difficult; if anything else
+      is mounted, offer to unmount it. partman/filter_mounted=false disables
+      this.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 11 Nov 2014 13:48:44 +0000
+
+partman-base (179) unstable; urgency=medium
+
+  [ Colin Watson ]
+  * Build-depend on libparted-dev rather than transitional package
+    libparted0-dev.
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 15 Oct 2014 08:21:20 +0200
+
+partman-base (178) unstable; urgency=medium
+
+  [ Karsten Merker ]
+  * Fix error handling in the is_sunxi_system() function in parted_server.c
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 06 Sep 2014 11:27:52 +0200
+
+partman-base (177) unstable; urgency=medium
+
+  [ Karsten Merker ]
+  * Make sure that the firmware area on the MMC device of sunxi-based
+    systems is not overwritten when creating a new disklabel.
+    Closes: #751704.
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 06 Sep 2014 08:30:11 +0200
+
+partman-base (176) unstable; urgency=medium
+
+  [ Colin Watson ]
+  * Merge from Ubuntu:
+    - Use the device's logical sector size throughout rather than
+      PED_SECTOR_SIZE_DEFAULT (closes: #474698, LP: #1065281).
+
+  [ Updated translations ]
+  * Danish (da.po) by Joe Hansen
+  * Estonian (et.po) by Mattias Põldaru
+
+ -- Colin Watson <cjwatson@debian.org>  Thu, 28 Aug 2014 19:42:48 +0100
+
+partman-base (175ubuntu1) utopic; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Ubiquity integration: If PARTMAN_NO_COMMIT is set, then exit rather
+      than running commit.d and finish.d scripts; add a partman-commit
+      script; dump extra information to /var/lib/partman/snoop if
+      PARTMAN_SNOOP is set; check for per-menu 'no_show_choices' file in
+      ask_user and don't reshow the menu if it exists.
+    - Don't skip over dmraid devices if the user chooses not to activate
+      them.
+    - If the only thing mounted on a disk is the installation medium and it
+      uses more or less the whole disk, then silently exclude that disk; if
+      the installation medium is mounted but doesn't use the whole disk,
+      issue a warning that partitioning may be difficult; if anything else
+      is mounted, offer to unmount it. partman/filter_mounted=false disables
+      this.
+    - Use the device's logical sector size throughout rather than
+      PED_SECTOR_SIZE_DEFAULT.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 11 Aug 2014 17:09:57 +0100
+
+partman-base (175) unstable; urgency=medium
+
+  * Make tests cope with parted 3.2 automatically creating a partition when
+    creating a fresh loop label (closes: #757662).
+
+ -- Colin Watson <cjwatson@debian.org>  Sun, 10 Aug 2014 16:34:36 +0100
+
+partman-base (174ubuntu2) utopic; urgency=medium
+
+  * Rebuild against libparted2.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 21 Jul 2014 21:44:51 +0100
+
+partman-base (174ubuntu1) utopic; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Ubiquity integration: If PARTMAN_NO_COMMIT is set, then exit rather
+      than running commit.d and finish.d scripts; add a partman-commit
+      script; dump extra information to /var/lib/partman/snoop if
+      PARTMAN_SNOOP is set; check for per-menu 'no_show_choices' file in
+      ask_user and don't reshow the menu if it exists.
+    - Don't skip over dmraid devices if the user chooses not to activate
+      them.
+    - If the only thing mounted on a disk is the installation medium and it
+      uses more or less the whole disk, then silently exclude that disk; if
+      the installation medium is mounted but doesn't use the whole disk,
+      issue a warning that partitioning may be difficult; if anything else
+      is mounted, offer to unmount it. partman/filter_mounted=false disables
+      this.
+    - Use the device's logical sector size throughout rather than
+      PED_SECTOR_SIZE_DEFAULT.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 14 Jul 2014 16:48:22 +0100
+
+partman-base (174) unstable; urgency=low
+
+  [ Phillip Susi ]
+  * parted_server: Remove support for filesystem create/check/copy, which is
+    no longer supported in parted 3 (closes: #738923).
+
+  [ Colin Watson ]
+  * Convert to autoconf/automake, allowing us to detect whether libparted >=
+    3.1 is present at build time and only link with -lparted-fs-resize in
+    that case.
+  * Remove support for CHECK_FILE_SYSTEM, CREATE_FILE_SYSTEM, and
+    COPY_PARTITION from partman-command, matching changes to parted_server.
+
+ -- Colin Watson <cjwatson@debian.org>  Mon, 14 Jul 2014 09:41:29 +0100
+
+partman-base (173) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Hungarian (hu.po) by Judit Gyimesi
+
+ -- Cyril Brulebois <kibi@debian.org>  Fri, 14 Mar 2014 17:58:15 +0100
+
 partman-base (172ubuntu1) trusty; urgency=medium
 
   * Resynchronise with Debian.  Remaining changes:

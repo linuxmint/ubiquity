@@ -1,5 +1,5 @@
 ifndef TARGETS
-TARGETS=mapdevfs log-output
+TARGETS=mapdevfs log-output resolv
 endif
 
 CFLAGS=-Wall -W -Os -fomit-frame-pointer -g
@@ -14,6 +14,8 @@ mapdevfs: mapdevfs.c
 
 log-output: log-output.c
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@ -ldebian-installer
+
+resolv: resolv.c
 
 strip: $(TARGETS)
 	$(STRIP) $^

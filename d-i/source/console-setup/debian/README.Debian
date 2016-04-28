@@ -1,0 +1,43 @@
+SHARED KEYBOARD LAYOUT
+
+In Debian the default keyboard layout is shared between the console
+and X.  It is specified in /etc/default/keyboard.
+
+
+USING DEBCONF FOR EASIER CONFIGURATION
+
+While it will be safe to edit directly the configuration files
+(/etc/default/keyboard and /etc/default/console-setup) perhaps it will
+be easier to use
+
+dpkg-reconfigure keyboard-configuration
+dpkg-reconfigure console-setup
+
+If your keyboard configuration is too complex, Debconf may refuse to
+reconfigure it.  This doesn't mean this configuration is not supported
+and can not be used on the console.  It only means you have to edit
+the configuration files by hand.
+
+Consult the manual pages keyboard(5), console-setup(5) and setupcon(1). 
+
+
+DEBIAN PACKAGES 
+
+keyboard-configuration
+   This package creates and maintains the configuration file
+   /etc/default/keyboard.
+
+console-setup
+   This package is responsible for the actual configuration of the
+   console (font and keyboard).  It is responsible for the
+   configuration file /etc/default/console-setup.
+
+console-setup-mini
+   This is a limited version of console-setup.  It doesn't create a file
+   /etc/default/console-setup but it will use such a file if it exists.
+   Notice that if /etc/default/console-setup doesn't exist, then no
+   font will be loaded so some non-ASCII symbols will not display
+   correctly.  However, Unicode/non-Unicode mode and the charmap will
+   still be configured according to the current locale.
+
+ -- Anton Zinoviev <zinoviev@debian.org>, Mon, 28 Mar 2011 22:14:16 +0300

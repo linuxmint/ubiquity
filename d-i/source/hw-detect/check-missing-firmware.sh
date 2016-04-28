@@ -38,6 +38,7 @@ get_module () {
 # then down any interfaces specified by ethdetect.
 upnics() {
 	for iface in $IFACES; do
+		log "taking network interface $iface up/down"
 		ip link set "$iface" up || true
 		ip link set "$iface" down || true
 	done
@@ -61,6 +62,42 @@ nic_is_configured() {
 	return 1
 }
 
+get_fresh_dmesg() {
+	dmesg_file=/tmp/dmesg.txt
+	dmesg_ts=/tmp/dmesg-ts.txt
+
+	# Get current dmesg:
+	dmesg > $dmesg_file
+
+	# Truncate if needed:
+	if [ -f $dmesg_ts ]; then
+		# Transform [foo] into \[foo\] to make it possible to search for
+		# "^$tspattern" (-F for fixed string doesn't play well with ^ to
+		# anchor the pattern on the left):
+		tspattern=$(cat $dmesg_ts | sed 's,\[,\\[,;s,\],\\],')
+		log "looking at dmesg again, restarting from $tspattern"
+
+		# Find the line number for the first match, empty if not found:
+		ln=$(grep -n "^$tspattern" $dmesg_file |sed 's/:.*//'|head -n 1)
+		if [ ! -z "$ln" ]; then
+			log "timestamp found, truncating dmesg accordingly"
+			sed -i "1,$ln d" $dmesg_file
+		else
+			log "timestamp not found, using whole dmesg"
+		fi
+	else
+		log "looking at dmesg for the first time"
+	fi
+
+	# Save the last timestamp:
+	grep -o '^\[ *[0-9.]\+\]' $dmesg_file | tail -n 1 > $dmesg_ts
+	log "saving timestamp for a later use: $(cat $dmesg_ts)"
+
+	# Write and clean-up:
+	cat $dmesg_file
+	rm $dmesg_file
+}
+
 check_missing () {
 	upnics
 
@@ -69,6 +106,28 @@ check_missing () {
 	
 	modules=""
 	files=""
+
+	# The linux kernel and udev no longer let us know via
+	# /dev/.udev/firmware-missing and /run/udev/firmware-missing
+	# which firmware files the kernel drivers look for.  Check
+	# dmesg instead.  See also bug #725714.
+	fwlist=/tmp/check-missing-firmware-dmesg.list
+	get_fresh_dmesg | sed -rn 's/^(\[[^]]*\] )?([^ ]+) [^ ]+: firmware: failed to load ([^ ]+) .*/\2 \3/p' > $fwlist
+	while read module fwfile ; do
+	    log "looking for firmware file $fwfile requested by $module"
+	    if [ ! -e /lib/firmware/$fwfile ] ; then
+		if grep -q "^$fwfile$" $DENIED 2>/dev/null; then
+		    log "listed in $DENIED"
+		    continue
+		fi
+		files="${files:+$files }$fwfile"
+		modules="$module${modules:+ $modules}"
+	    fi
+	done < $fwlist
+
+	# This block looking in $MISSING should be removed when
+	# hw-detect no longer should support installing using older
+	# udev and kernel versions.
 	for missing_dir in $MISSING
 	do
 		if [ ! -d "$missing_dir" ]; then
@@ -121,7 +180,7 @@ check_missing () {
 		log "missing firmware files ($files) for $modules"
 		return 0
 	else
-		log "no missing firmware in $MISSING"
+		log "no missing firmware in loaded kernel modules"
 		return 1
 	fi
 }
@@ -274,6 +333,7 @@ while check_missing && ask_load_firmware; do
 	# than one firmware file (example iwlagn)
 	for module in $(echo $modules | tr " " "\n" | sort -u); do
 		if ! nic_is_configured $module; then
+			log "removing and loading kernel module $module"
 			modprobe -r $module || true
 			modprobe $module || true
 		fi

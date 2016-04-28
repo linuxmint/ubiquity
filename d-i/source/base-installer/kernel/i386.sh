@@ -1,36 +1,16 @@
 arch_get_kernel_flavour () {
 	# Should we offer an amd64 kernel?
-	local HAVE_LM
 	if grep -q '^flags.*\blm\b' "$CPUINFO"; then
-		HAVE_LM=y
-	else
-		HAVE_LM=n
-	fi
-
+		echo 686-pae amd64 686 586
 	# Should we offer a PAE kernel?
-	local HAVE_PAE
-	if grep -q '^flags.*\bpae\b' "$CPUINFO"; then
-		HAVE_PAE=y
+	elif grep -q '^flags.*\bpae\b' "$CPUINFO"; then
+		echo 686-pae 686 586
+	# Should we offer a 686 kernel?
+	elif grep -q '^flags.*\bfpu\b.*\btsc\b.*\bcx8\b.*\bcmov\b' "$CPUINFO"; then
+		echo 686 586
 	else
-		HAVE_PAE=n
+		echo 586
 	fi
-
-	case "$HAVE_LM$HAVE_PAE" in
-	    yy)
-		echo 686-pae 686-bigmem amd64 486
-		return 0
-		;;
-	    yn)
-		warning "Processor with LM but no PAE???"
-		;;
-	    ny)
-		echo 686-pae 686-bigmem 486
-		return 0
-		;;
-	    nn)
-		echo 486
-		;;
-	esac
 }
 
 arch_check_usable_kernel () {
@@ -39,6 +19,13 @@ arch_check_usable_kernel () {
 	set -- $2
 	while [ $# -ge 1 ]; do
 		case "$1:$NAME" in
+		    *-dbg)
+			return 1
+			;;
+		    *-"$1"-pae)
+			# Don't allow -pae suffix, as this requires an
+			# extra CPU feature
+			;;
 		    *:*-"$1" | *:*-"$1"-*)
 			# Allow any other hyphenated suffix
 			return 0

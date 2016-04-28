@@ -267,7 +267,7 @@ int is_raw_80211(const char *iface)
 
 #if defined(__s390__)
 // Layer 3 qeth on s390(x) cannot do arping to test gateway reachability.
-int is_layer3_qeth(const char *iface)
+int is_layer3_qeth(const struct netcfg_interface *interface)
 {
     const int bufsize = 1024;
     int retval = 0;
@@ -277,6 +277,12 @@ int is_layer3_qeth(const char *iface)
     ssize_t slen;
     char* driver;
     int fd;
+    char* iface;
+
+    if (interface->parentif)
+        iface = interface->parentif;
+    else
+        iface = interface->name;
 
     // This is sufficient for both /driver and /layer2.
     len = strlen(SYSCLASSNET) + strlen(iface) + strlen("/device/driver") + 1;
@@ -293,11 +299,11 @@ int is_layer3_qeth(const char *iface)
         goto out;
     }
 
-    buf[slen + 1] = '\0';
+    buf[slen] = '\0';
 
     driver = strrchr(buf, '/') + 1;
     if (strcmp(driver, "qeth") != 0) {
-        di_error("no qeth found: %s", driver);
+        di_info("no qeth found: %s", driver);
         goto out;
     }
 
@@ -329,7 +335,7 @@ out:
     return retval;
 }
 #else
-int is_layer3_qeth(const char *iface __attribute__((unused)))
+int is_layer3_qeth(const struct netcfg_interface *interface  __attribute__((unused)))
 {
     return 0;
 }
@@ -640,7 +646,7 @@ static char *get_bootif(void)
             char *subst;
 
             s += sizeof("BOOTIF=") - 1;
-            bootif_len = strcspn(s, " ");
+            bootif_len = strcspn(s, " \n");
             if (bootif_len != (ETH_ALEN * 3 - 1) + 3)
                 continue;
             bootif = strndup(s + 3, bootif_len - 3); /* skip hardware type */
@@ -1338,6 +1344,24 @@ void interface_down (const char *if_name)
     }
 }
 
+void netcfg_interface_up (const struct netcfg_interface *iface)
+{
+	if (iface->parentif)
+		interface_up (iface->parentif);
+
+	if (iface->name)
+		interface_up (iface->name);
+}
+
+void netcfg_interface_down (const struct netcfg_interface *iface)
+{
+	if (iface->name)
+		interface_down (iface->name);
+
+	if (iface->parentif)
+		interface_down (iface->parentif);
+}
+
 void parse_args (int argc, char ** argv)
 {
     if (argc == 2) {
@@ -1469,7 +1493,7 @@ int netcfg_detect_link(struct debconfclient *client, const struct netcfg_interfa
 {
     char arping[256];
     int count, rv = 0;
-    int link_waits;
+    int link_waits = 12;  /* default for netcfg/link_wait_timeout times 4 */
     int gw_tries = NETCFG_GATEWAY_REACHABILITY_TRIES;
     const char *if_name = interface->name;
     const char *gateway = interface->gateway;
@@ -1528,7 +1552,7 @@ int netcfg_detect_link(struct debconfclient *client, const struct netcfg_interfa
         if (ethtool_lite(if_name) == 1) /* ethtool-lite's CONNECTED */ {
             di_info("Found link on %s", if_name);
 
-            if (!empty_str(gateway) && !is_wireless_iface(if_name) && !is_layer3_qeth(if_name)) {
+            if (!empty_str(gateway) && !is_wireless_iface(if_name) && !is_layer3_qeth(interface)) {
                 for (count = 0; count < gw_tries; count++) {
                     if (di_exec_shell_log(arping) == 0)
                         break;
@@ -1564,6 +1588,8 @@ void netcfg_interface_init(struct netcfg_interface *iface)
     iface->v6_stateless_config = -1;
     iface->loopback = -1;
     iface->mode = MANAGED;
+    iface->parentif = NULL;
+    iface->vlanid = -1;
 }
 
 /* Parse an IP address (v4 or v6), with optional CIDR netmask, into
@@ -1577,10 +1603,11 @@ int netcfg_parse_cidr_address(const char *address, struct netcfg_interface *inte
     struct in_addr addr;
     struct in6_addr addr6;
     int ok;
-    char *maskptr, addrstr[NETCFG_ADDRSTRLEN];
+    char *maskptr, *addrstr, addrbuf[NETCFG_ADDRSTRLEN];
     int i;
     
-    strncpy(addrstr, address, NETCFG_ADDRSTRLEN);
+    strncpy(addrbuf, address, NETCFG_ADDRSTRLEN);
+    addrstr = strtrim(addrbuf);
     
     if ((maskptr = strchr(addrstr, '/'))) {
         /* Houston, we have a netmask; split it into bits */
@@ -1678,6 +1705,15 @@ int netcfg_gateway_reachable(const struct netcfg_interface *interface)
     } else if (interface->address_family == AF_INET6) {
         int i;
         
+        /* Check if the gateway is a link-local address (fe80::/64) */
+        if (gw_addr.in6.s6_addr16[0] == htons(0xFE80) &&
+                gw_addr.in6.s6_addr16[1] == 0 &&
+                gw_addr.in6.s6_addr16[2] == 0 &&
+                gw_addr.in6.s6_addr16[3] == 0) {
+            return 1;
+        }
+
+        /* Check if the gateway is on the same subnet */
         for (i = 0; i < 4; i++) {
             if ((gw_addr.in6.s6_addr32[i] & mask.in6.s6_addr32[i]) != net.in6.s6_addr32[i]) {
                 return 0;
@@ -1730,7 +1766,24 @@ void rtrim(char *s)
 	
 	n = strlen(s) - 1;
 	
-	while (isspace(s[n])) {
+	while (n >= 0 && isspace(s[n])) {
 		s[n] = '\0';
+		n--;
 	}
+}
+
+char *strtrim(char *s)
+{
+	size_t len;
+
+	len = strlen(s);
+	if (!len)
+		return s;
+
+	rtrim(s);
+
+	while (*s && isspace(*s))
+		s++;
+
+	return s;
 }

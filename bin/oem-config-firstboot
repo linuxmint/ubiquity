@@ -77,6 +77,11 @@ for try in $(seq 1 $TRY); do
 			pkill -u oem || true
 			userdel --force --remove oem || true
 		fi
+		/bin/systemctl set-default graphical.target || true
+		/bin/systemctl disable oem-config.service || true
+		/bin/systemctl disable oem-config.target || true
+		rm -f /lib/systemd/system/oem-config.* || true
+		/bin/systemctl --no-block isolate graphical.target || true
 		exit 0
 	elif [ "$CODE" -eq 10 ]; then
 		cat <<EOF

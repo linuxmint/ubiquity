@@ -4,6 +4,9 @@ set -e
 . /usr/share/debconf/confmodule
 . /lib/preseed/preseed.sh
 
+# Re-enable locale and kbd selection
+echo 0 >/var/run/auto-install.active
+
 # transitional kludge to deal with old path based locations
 db_get preseed/file
 [ "${RET#/floppy*}" != "$RET" ] && RET="floppy://${RET#/floppy}"

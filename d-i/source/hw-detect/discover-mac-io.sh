@@ -68,7 +68,8 @@ for dir in $(find "/proc/device-tree/" -type d); do
 		for child in "$dir"/*; do
 			if [ -f "$child/name" ]; then
 				childname="$(cat "$child/name" 2>/dev/null || true)"
-				if [ "$childname" = sound ]; then
+				if [ "$childname" = sound ] && \
+				   [ ! -f "$child/layout-id" ]; then
 					# blacklist snd-aoa modules so snd-powermac is loaded
 					register-module -b snd-aoa-codec-tas
 					register-module -b snd-aoa-fabric-layout

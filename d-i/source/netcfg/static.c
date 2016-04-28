@@ -39,6 +39,7 @@ static int netcfg_get_pointopoint(struct debconfclient *client, struct netcfg_in
 {
     int ret, ok = 0;
     union inX_addr addr;
+    char *ptr;
     
     while (!ok) {
         debconf_input(client, "critical", "netcfg/get_pointopoint");
@@ -48,13 +49,14 @@ static int netcfg_get_pointopoint(struct debconfclient *client, struct netcfg_in
             return ret;
 
         debconf_get(client, "netcfg/get_pointopoint");
+        ptr = strtrim(client->value);
 
-        if (empty_str(client->value)) {           /* No P-P is ok */
+        if (empty_str(ptr)) {           /* No P-P is ok */
             interface->pointopoint[0] = '\0';
             return 0;
         }
 
-        ok = inet_pton (interface->address_family, client->value, &addr);
+        ok = inet_pton (interface->address_family, ptr, &addr);
 
         if (!ok) {
             debconf_capb(client);
@@ -72,12 +74,14 @@ static int netcfg_get_netmask(struct debconfclient *client, struct netcfg_interf
 {
     int ret, ok = 0;
     union inX_addr addr;
+    char *ptr;
 
     /* Preseed a vaguely sensible looking default netmask if one wasn't
      * provided.
      */
     debconf_get (client, "netcfg/get_netmask");
-    if (empty_str(client->value)) {
+    ptr = strtrim(client->value);
+    if (empty_str(ptr)) {
         if (interface->address_family == AF_INET) {
             debconf_set(client, "netcfg/get_netmask", "255.255.255.0");
         } else if (interface->address_family == AF_INET6) {
@@ -94,7 +98,8 @@ static int netcfg_get_netmask(struct debconfclient *client, struct netcfg_interf
 
         debconf_get (client, "netcfg/get_netmask");
 
-        ok = inet_pton (interface->address_family, client->value, &addr);
+        ptr = strtrim(client->value);
+        ok = inet_pton (interface->address_family, ptr, &addr);
 
         if (!ok) {
             debconf_capb(client);
@@ -104,7 +109,7 @@ static int netcfg_get_netmask(struct debconfclient *client, struct netcfg_interf
         }
     }
 
-    inet_ptom(interface->address_family, client->value, &(interface->masklen));
+    inet_ptom(interface->address_family, ptr, &(interface->masklen));
     return 0;
 }
 
@@ -163,7 +168,7 @@ static int netcfg_get_gateway(struct debconfclient *client, struct netcfg_interf
             return ret;
 
         debconf_get(client, "netcfg/get_gateway");
-        ptr = client->value;
+        ptr = strtrim(client->value);
 
         if (empty_str(ptr) || /* No gateway, that's fine */
             (strcmp(ptr, "none") == 0)) /* special case for preseeding */ {
@@ -305,7 +310,7 @@ static int netcfg_activate_static_ipv4(struct debconfclient *client,
     deconfigure_network(NULL);
 
     loop_setup();
-    interface_up(interface->name);
+    netcfg_interface_up(interface);
 
     /* Flush all previous addresses, routes */
     snprintf(buf, sizeof(buf), "ifconfig %s inet 0 down", interface->name);
@@ -340,7 +345,7 @@ static int netcfg_activate_static_ipv4(struct debconfclient *client,
     deconfigure_network(NULL);
 
     loop_setup();
-    interface_up(interface->name);
+    netcfg_interface_up(interface);
 
     /* Flush all previous addresses, routes */
     snprintf(buf, sizeof(buf), "ip -f inet addr flush dev %s", interface->name);
@@ -367,7 +372,7 @@ static int netcfg_activate_static_ipv4(struct debconfclient *client,
         rv |= di_exec_shell_log(buf);
     }
     else if (!empty_str(interface->gateway)) {
-        snprintf(buf, sizeof(buf), "ip route add default via %s", interface->gateway);
+        snprintf(buf, sizeof(buf), "ip route add default via %s dev %s", interface->gateway, interface->name);
         rv |= di_exec_shell_log(buf);
     }
 #endif
@@ -421,7 +426,7 @@ static int netcfg_activate_static_ipv6(struct debconfclient *client,
     deconfigure_network(NULL);
     
     loop_setup();
-    interface_up(interface->name);
+    netcfg_interface_up(interface);
     
     /* Flush all previous addresses, routes */
     snprintf(buf, sizeof(buf), "ifconfig %s inet 0 down", interface->name);
@@ -444,7 +449,7 @@ static int netcfg_activate_static_ipv6(struct debconfclient *client,
     deconfigure_network(NULL);
 
     loop_setup();
-    interface_up(interface->name);
+    netcfg_interface_up(interface);
 
     /* Flush all previous addresses, routes */
     snprintf(buf, sizeof(buf), "ip -f inet6 addr flush dev %s", interface->name);
@@ -456,8 +461,8 @@ static int netcfg_activate_static_ipv6(struct debconfclient *client,
     /* Now down and up the interface, to get LL and SLAAC addresses back,
      * since flushing the addresses and routes gets rid of all that
      * sort of thing. */
-    interface_down(interface->name);
-    interface_up(interface->name);
+    netcfg_interface_down(interface);
+    netcfg_interface_up(interface);
 
     /* Add the new IP address and netmask */
     snprintf(buf, sizeof(buf), "ip addr add %s/%d dev %s",
@@ -469,7 +474,7 @@ static int netcfg_activate_static_ipv6(struct debconfclient *client,
     rv |= di_exec_shell_log(buf);
 
     if (!empty_str(interface->gateway)) {
-        snprintf(buf, sizeof(buf), "ip route add default via %s", interface->gateway);
+        snprintf(buf, sizeof(buf), "ip route add default via %s dev %s", interface->gateway, interface->name);
         rv |= di_exec_shell_log(buf);
     }
 #endif

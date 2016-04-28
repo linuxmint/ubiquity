@@ -12,6 +12,12 @@ warning() {
 	log "warning: $@"
 }
 
+deb_src="deb-src"
+db_get apt-setup/enable-source-repositories
+if [ "$RET" = false ]; then
+	deb_src="# deb-src"
+fi
+
 if db_get apt-setup/overlay && [ "$RET" = true ]; then
 	db_get mirror/codename
 	codename="$RET"
@@ -34,7 +40,7 @@ if db_get apt-setup/overlay && [ "$RET" = true ]; then
 	cat >> $file << EOF
 ## Additional overlay archives specified at installation time
 deb http://$overlay_host$overlay_directory $codename $overlay_components
-deb-src http://$overlay_host$overlay_directory $codename $overlay_components
+$deb_src http://$overlay_host$overlay_directory $codename $overlay_components
 EOF
 fi
 

@@ -14,13 +14,26 @@
 
 Template: console-setup/use_system_font
 Type: text
-# :sl2:
+# :sl3:
 _Description: Do not change the boot/kernel font
 
+Template: console-setup/guess_font
+Type: text
+# :sl3:
+_Description: Let the system select a suitable font
+
+Template: console-setup/framebuffer_only
+Type: text
+# Used in the font size question like this: "12x24, framebuffer only"
+# :sl3:
+_Description: framebuffer only
+
+# If you change the text in the following choices, you should update
+# also the value of the $codesets variable in console-setup.config
 Template: console-setup/codeset47
 Type: select
 # :sl3:
-__Choices: . Arabic, # Armenian, # Cyrillic - KOI8-R and KOI8-U, # Cyrillic - non-Slavic languages, # Cyrillic - Slavic languages (also Bosnian and Serbian Latin), . Ethiopic, # Georgian, # Greek, # Hebrew, # Lao, # Latin1 and Latin5 - western Europe and Turkic languages, # Latin2 - central Europe and Romanian, # Latin3 and Latin8 - Chichewa; Esperanto; Irish; Maltese and Welsh, # Latin7 - Lithuanian; Latvian; Maori and Marshallese, . Latin - Vietnamese, # Thai, . Combined - Latin; Slavic Cyrillic; Hebrew; basic Arabic, . Combined - Latin; Slavic Cyrillic; Greek, . Combined - Latin; Slavic and non-Slavic Cyrillic
+__Choices: . Arabic, # Armenian, # Cyrillic - KOI8-R and KOI8-U, # Cyrillic - non-Slavic languages, # Cyrillic - Slavic languages (also Bosnian and Serbian Latin), . Ethiopic, # Georgian, # Greek, # Hebrew, # Lao, # Latin1 and Latin5 - western Europe and Turkic languages, # Latin2 - central Europe and Romanian, # Latin3 and Latin8 - Chichewa; Esperanto; Irish; Maltese and Welsh, # Latin7 - Lithuanian; Latvian; Maori and Marshallese, . Latin - Vietnamese, # Thai, . Combined - Latin; Slavic Cyrillic; Hebrew; basic Arabic, . Combined - Latin; Slavic Cyrillic; Greek, . Combined - Latin; Slavic and non-Slavic Cyrillic, Guess optimal character set
 # :sl3:
 _Description: Character set to support:
  Please choose the character set that should be supported by the console font.
@@ -34,7 +47,7 @@ Choices: ${CHOICES}
 # The languages with many non-ASCII letters should not use formatted
 # lists.  If you decide to use formatted lists then keep the lines
 # relatively short.
-# :sl2:
+# :sl3:
 _Description: Font for the console:
  "VGA" has a traditional appearance and has medium coverage of
  international scripts. "Fixed" has a simplistic appearance and has
@@ -48,28 +61,19 @@ _Description: Font for the console:
 Template: console-setup/fontsize-text47
 Type: select
 Choices: ${CHOICES}
-# :sl2:
+# :sl3:
 _Description: Font size:
- Please select the size of the font for the Linux console. For
- reference, the font used when the computer boots has size 16.
+ Please select the size of the font for the console. For reference,
+ the font used when the computer boots has size 8x16.
 
 Template: console-setup/fontsize-fb47
 Type: select
 Choices: ${CHOICES}
-# :sl2:
+# :sl3:
 _Description: Font size:
- Please select the size of the font for the Linux console.
- Simple integers corresponding to fonts can
- be used with all console drivers. The number then represents the
- font height (number of scan lines). Alternatively, the font may
- be represented as HEIGHTxWIDTH; however, such font specifications
- require the kbd console package (not console-tools) plus
- framebuffer (and the RadeonFB kernel driver for framebuffer does
- not support them either).
- .
- Font heights can be useful for figuring out the real
- size of the symbols on the console. For
- reference, the font used when the computer boots has size 16.
+ Please select the size of the font for the console.  For reference,
+ the font used when the computer boots has size 8x16.  Some font sizes
+ require the kbd console package (not console-tools) plus framebuffer.
 
 Template: console-setup/charmap47
 Type: select

@@ -29,6 +29,62 @@ export PATH="/bin:/sbin:$PATH"
 
 . /etc/default/console-setup
 
+# CODESET
+[ "$CODESET" != guess ] || CODESET=''
+if [ -z "$CODESET" ]; then
+    case "$CHARMAP" in
+        UTF-8)            CODESET=Uni2;;
+        ARMSCII-8)        CODESET=Armenian ;;
+        CP1251)           CODESET=CyrSlav ;;
+        CP1255)           CODESET=Hebrew ;;
+        CP1256)           CODESET=Arabic ;;
+        GEORGIAN-ACADEMY) CODESET=Georgian ;;
+        GEORGIAN-PS)      CODESET=Georgian ;;
+        IBM1133)          CODESET=Lao ;;
+        ISIRI-3342)       CODESET=Arabic ;;
+        ISO-8859-1)       CODESET=Lat15 ;;
+        ISO-8859-2)       CODESET=Lat2 ;;
+        ISO-8859-3)       CODESET=Lat38 ;;
+        ISO-8859-4)       CODESET=Lat7 ;; # sometimes Lat15
+        ISO-8859-5)       CODESET=CyrSlav ;;
+        ISO-8859-6)       CODESET=Arabic ;;
+        ISO-8859-7)       CODESET=Greek ;;
+        ISO-8859-8)       CODESET=Hebrew ;;
+        ISO-8859-9)       CODESET=Lat15 ;;
+        ISO-8859-10)      CODESET=Lat15 ;;
+        ISO-8859-11)      CODESET=Thai ;;
+        ISO-8859-13)      CODESET=Lat7 ;;
+        ISO-8859-14)      CODESET=Lat38 ;;
+        ISO-8859-15)      CODESET=Lat15 ;;
+        ISO-8859-16)      CODESET=Lat2 ;;
+        KOI8-R)           CODESET=CyrKoi ;;
+        KOI8-U)           CODESET=CyrKoi ;;
+        TIS-620)          CODESET=Thai ;;
+        VISCII)           CODESET=Vietnamese ;;
+        *)	            ;;
+    esac
+fi
+
+# FONTSIZE
+if [ -z "$FONTSIZE" -o "$FONTSIZE" = guess ]; then
+    FONTSIZE=16
+fi
+case "$FONTSIZE" in
+    8x*)
+        FONTSIZE=${FONTSIZE#*x}
+        ;;
+    *x8)
+        FONTSIZE=${FONTSIZE%x*}
+        ;;
+    *x*)
+        a=${FONTSIZE%x*}
+        b=${FONTSIZE#*x}
+        if [ "$a" -lt "$b" ]; then
+            FONTSIZE=${b}x${a}
+        fi
+        ;;
+esac
+
 setup_unicode () {
     # Set up Unicode/non-Unicode mode.
     # TODO: this will probably break something if terminal line emulation is
@@ -50,7 +106,7 @@ setup_font () {
     else
 	FONT="/etc/console-setup/$CODESET-$FONTFACE$FONTSIZE.psf"
     fi
-    if [ -f "$FONT" ]; then
+    if [ -f "$FONT" ] || [ -f "$FONT.gz" ]; then
 	SETFONT_ARGS="${SETFONT_ARGS:+$SETFONT_ARGS }$FONT"
     fi
     if [ "$ACM" ]; then
@@ -59,7 +115,7 @@ setup_font () {
     else
 	ACM="/etc/console-setup/$CHARMAP.acm"
     fi
-    if [ -f "$ACM" ]; then
+    if [ -f "$ACM" ] || [ -f "$ACM.gz" ]; then
 	SETFONT_ARGS="${SETFONT_ARGS:+$SETFONT_ARGS }-m $ACM"
     fi
     if [ "$SETFONT_ARGS" ]; then

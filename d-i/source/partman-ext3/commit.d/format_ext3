@@ -47,56 +47,33 @@ for dev in $DEVICES/*; do
 			db_subst $template PARTITION "$num"
 			db_subst $template DEVICE $(humandev $(cat device))
 
-			status=failed
-
-			# Commented out for now. As libparted can't create resizable
-			# file systems and ext2prepare is too buggy to use for etch,
-			# we will always use mkfs.ext3 directly in etch, although
-			# that doesn't give us a progress bar.
-			# This will also give us dir_index by default.
-			#if [ -x /sbin/tune2fs ] && ! [ -f $id/usage ]; then
-			#	name_progress_bar $template
-			#	open_dialog CREATE_FILE_SYSTEM $id ext2
-			#	read_line status
-			#	close_dialog
-			#	sync
-			#	if [ "$status" = OK ]; then
-			#		log-output -t partman --pass-stdout \
-			#			/sbin/tune2fs -j $device >/dev/null || status=failed
-			#		sync
-			#	fi
-			#fi
-
-			if [ "$status" != OK ]; then
-				db_progress START 0 3 partman/text/formatting
-				db_progress INFO $template
-				db_progress SET 1
-				if [ -f $id/usage ]; then
-					usage="-T $(cat $id/usage)"
-				else
-					usage=''
-				fi
-				# According to Szabolcs Szakacsits, the NTFS-3g
-				# author, it is safer to format the loop file,
-				# rather than the device.
-				if [ -s loop ]; then
-					device="$(cat loop)"
-					force=-F
-				fi
-				options=''
-				db_get partman-ext3/lazy_itable_init
-				if [ "$RET" = true ]; then
-					options='-E lazy_itable_init'
-				fi
-				if log-output -t partman --pass-stdout \
-				   mkfs.$filesystem $options $force "$device" $usage >/dev/null; then
-					sync
-					status=OK
-				else
-					status=failed
-				fi
-				db_progress STOP
+			db_progress START 0 3 partman/text/formatting
+			db_progress INFO $template
+			db_progress SET 1
+			if [ -f $id/usage ]; then
+				usage="-T $(cat $id/usage)"
+			else
+				usage=''
 			fi
+			# According to Szabolcs Szakacsits, the NTFS-3g
+			# author, it is safer to format the loop file,
+			# rather than the device.
+			if [ -s loop ]; then
+				device="$(cat loop)"
+			fi
+			options=''
+			db_get partman-ext3/lazy_itable_init
+			if [ "$RET" = true ]; then
+				options='-E lazy_itable_init'
+			fi
+			if log-output -t partman --pass-stdout \
+			   mkfs.$filesystem -F $options "$device" $usage >/dev/null; then
+				sync
+				status=OK
+			else
+				status=failed
+			fi
+			db_progress STOP
 			if [ "$status" = OK ]; then
 				label=''
 				if [ -f $id/label ]; then

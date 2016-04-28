@@ -29,13 +29,13 @@ debian/templates.gen: debian/templates-arch
 test:
 	dh_auto_test
 
-override_dh_install:
+override_dh_install-arch:
 	dh_install
 	if [ -e "kernel/$(DEB_HOST_ARCH).sh" ]; then \
 		install -D -m644 "kernel/$(DEB_HOST_ARCH).sh" \
 		                 debian/base-installer/usr/lib/base-installer/kernel.sh; \
 	fi
 
-override_dh_installdebconf:
+override_dh_installdebconf-arch:
 	dh_installdebconf
 	(echo ; cat debian/templates.gen) >> debian/base-installer/DEBIAN/templates

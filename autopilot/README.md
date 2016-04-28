@@ -116,6 +116,7 @@ Execute the tasks below on the slave:
    handling to run multiple time in parallel.
 
         $ bzr cat lp:ubuntu-server-iso-testing/download-latest-test-iso.py > ~/bin/download-latest-test-iso.py
+        $ chmod 755 ~/bin/download-latest-test-iso.py
 
  * Create the following links in ~/bin/
 
@@ -138,7 +139,8 @@ Execute the tasks below on the slave:
 
  * Create the same symlinks than symlinks in `/home/ubiquity/bin/`
 
-        $ find /home/ubiquity/bin/ ! -type d -exec ln -s {} $HOME/bin/
+        $ find /home/ubiquity/bin/ ! -type d -exec ln -s {} $HOME/bin/ \;
+        $ ln -s /home/ubiquity/ubiquity/autopilot/ubiquity-autopilot-runner/ ubiquity-autopilot-runner
 
  * **Logout** from user jenkins
 

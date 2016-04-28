@@ -56,7 +56,7 @@ class WidgetTests(unittest.TestCase):
     def test_timezone_map(self):
         tzmap = TimezoneMap.TimezoneMap()
         self.win.add(tzmap)
-        #tzmap.select_city('America/New_York')
+        # tzmap.select_city('America/New_York')
         self.win.show_all()
         self.win.connect('destroy', Gtk.main_quit)
         gtkwidgets.refresh()

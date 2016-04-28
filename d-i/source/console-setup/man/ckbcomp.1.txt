@@ -1,0 +1,122 @@
+CKBCOMP(1)                Console-setup User's Manual               CKBCOMP(1)
+
+
+
+NAME
+       ckbcomp  -  compile a XKB keyboard description to a keymap suitable for
+       loadkeys or kbdcontrol
+
+
+SYNOPSIS
+       ckbcomp [OPTION...] [XKBLAYOUT [XKBVARIANT [XKBOPTIONS]...]]
+
+
+DESCRIPTION
+       The ckbcomp keymap compiler converts a description of an  XKB  keyboard
+       layout  into  a console keymap that can be read directly by loadkeys(1)
+       or kbdcontrol(1).
+
+       On its standard output ckbcomp dumps the generated keyboard definition.
+       The most important difference between the arguments of setxkbmap(1) and
+       the arguments of ckbcomp is the additional parameter -charmap when non-
+       Unicode keyboard map is wanted.  Without -charmap ckbcomp will generate
+       Unicode keyboard.
+
+
+
+OPTIONS
+   General options
+       -?,-help
+              Print a usage message and exit.
+
+       -charmap charmap
+              The encoding to use for the output keymap.  There should  be  an
+              character    mapping    table    defining   this   encoding   in
+              /usr/local/share/consoletrans.   Definitions  of  the  following
+              charmaps   are  provided:  ARMSCII-8,  CP1251,  CP1255,  CP1256,
+              GEORGIAN-ACADEMY, GEORGIAN-PS, IBM1133, ISIRI-3342,  ISO-8859-1,
+              ISO-8859-2,   ISO-8859-3,  ISO-8859-4,  ISO-8859-5,  ISO-8859-6,
+              ISO-8859-7, ISO-8859-8,  ISO-8859-9,  ISO-8859-10,  ISO-8859-11,
+              ISO-8859-13,   ISO-8859-14,  ISO-8859-15,  ISO-8859-16,  KOI8-R,
+              KOI8-U, TIS-620 and VISCII.
+
+
+       -Idir  Look in the top-level directory dir for files  included  by  the
+              keymap description.  This option may be used multiple times.  If
+              a file can not be found in any of the specified directories,  it
+              will  be searched also in some other standard locations, such as
+              /usr/local/etc/console-setup/ckb,  /usr/local/share/X11/xkb  and
+              /etc/X11/xkb
+
+
+       -v level
+              Set  level  of detail for listing.  The argument level must be a
+              number from 1 to 10.
+
+       -compact
+              Generate a compact keymap with at most two xkb  groups  and  two
+              levels in each or only one xkb-group and up to four levels.
+
+       -freebsd
+              Generate a keymap for FreeBSD.
+
+       -backspace [bs|del]
+              Specifies  the  behaviour  of the <BackSpace> and <Delete> keys.
+              Value bs specifies VT100-conformant behaviour: <BackSpace>  will
+              generate  ^H  (ASCII  BS)  and <Delete> will generate ^?  (ASCII
+              DEL).    Value   del   specifies   VT220-conformant    behavior:
+              <BackSpace> will generate ^?  (ASCII DEL) and <Delete> will gen-
+              erate a special function sequence.
+
+
+   XKB Keyboard Description
+       The keyboard layout, variant and options components can be also  speci-
+       fied directly on the command line.  See the synopsis of the command.
+
+       -symbols name
+              Specifies  the  symbols  component  name of the XKB keyboard de-
+              scription.
+
+       -keycodes name
+              Specifies the keycodes component name of the  XKB  keyboard  de-
+              scription.
+
+       -rules name
+              The name of the rules file to use.
+
+       -model name
+              Specifies the keyboard model used to choose the component names.
+
+       -layout name
+              Specifies the layout used to choose the component names.
+
+       -variant name
+              Specifies the layout variant used to choose the component names.
+
+       -option name
+              Adds an option used to choose component names.
+
+
+FILES
+       /usr/local/share/consoletrans
+       /usr/local/etc/console-setup/ckb
+       /usr/share/X11/xkb
+       /etc/X11/xkb
+
+
+NOTES
+       If  the  option -freebsd is used together with -backspace del, then the
+       key <Delete> will generate the special code fkey70.  It is your respon-
+       sibility  to  assign  the appropriate sequence to this special  code by
+       using the following command:
+
+           kbdcontrol -f 70 "`printf '\033[3~'`"
+
+
+
+SEE ALSO
+       keyboard(5), setxkbmap(1)
+
+
+
+console-setup                     2011-03-17                        CKBCOMP(1)

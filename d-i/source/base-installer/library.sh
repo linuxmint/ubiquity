@@ -534,10 +534,6 @@ install_kernel_linux () {
 		do_initrd=yes
 	fi
 
-	if [ `archdetect` = mipsel/loongson-2f ]; then
-	    do_initrd=yes
-	fi
-
 	if db_get base-installer/kernel/linux/link_in_boot ; then
 		if [ "$RET" = "true" ]; then
 			link_in_boot=yes
@@ -978,27 +974,27 @@ cleanup () {
 
 configure_apt_overlay () {
     	if db_get apt-setup/overlay && [ "$RET" = true ]; then
-		db_get apt-setup/overlay_early_apt_pkg_install
-		early_pkg_list=$RET 
+		if db_get apt-setup/overlay_early_apt_pkg_install && [ "$RET" ]; then
+			early_pkg_list=$RET 
 
-		# We need to run apt-get update to get the PPA's package list
-		# Don't check error codes here; we will have a GPG error
-		log-output -t base-installer chroot /target apt-get update
+			# We need to run apt-get update to get the PPA's package list
+			# Don't check error codes here; we will have a GPG error
+			log-output -t base-installer chroot /target apt-get update
 
-		# Install our packages
-		#
-		# We force GPG checks and assume the packages we install
-		# will give us our keyring. At this pount, we've already
-		# run debootstrap, and haven't checked its GPG key
-		# so its sane to force this through.
-		#
-		# apt_update will check all the keys it has for all releases
-		log-output -t base-installer chroot /target \
-			apt-get -o APT::Get::AllowUnauthenticated=true install $early_pkg_list || apt_overlay_install_failed=$?
+			# Install our packages
+			#
+			# We force GPG checks and assume the packages we install
+			# will give us our keyring. At this pount, we've already
+			# run debootstrap, and haven't checked its GPG key
+			# so its sane to force this through.
+			#
+			# apt_update will check all the keys it has for all releases
+			log-output -t base-installer chroot /target \
+				apt-get -o APT::Get::AllowUnauthenticated=true install $early_pkg_list || apt_overlay_install_failed=$?
 
-		if [ "$apt_overlay_install_failed" ]; then
-			warning "apt overlay install failed: $apt_overlay_install_failed"
+			if [ "$apt_overlay_install_failed" ]; then
+				warning "apt overlay install failed: $apt_overlay_install_failed"
+			fi
 		fi
-
 	fi
 }

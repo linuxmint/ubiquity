@@ -1,2 +1,39 @@
 #! /bin/sh -e
+
+log () {
+	logger -t grub-installer "$@"
+}
+
+error () {
+	log "error: $@"
+}
+
+die () {
+	local template="$1"
+	shift
+
+	error "$@"
+	db_input critical "$template" || [ $? -eq 30 ]
+	db_go || true
+	exit 1
+}
+
+mountvirtfs () {
+	fstype="$1"
+	path="$2"
+	if grep -q "[[:space:]]$fstype\$" /proc/filesystems && \
+	   ! grep -q "^[^ ]\+ \+$path " /proc/mounts; then
+		mkdir -p "$path" || \
+			die grub-installer/mounterr "Error creating $path"
+		mount -t "$fstype" "$fstype" "$path" || \
+			die grub-installer/mounterr "Error mounting $path"
+		trap "umount $path" HUP INT QUIT KILL PIPE TERM EXIT
+	fi
+}
+
+# If we're installing grub-efi, it wants /sys mounted in the
+# target. Maybe /proc too?
+mountvirtfs proc /target/proc
+mountvirtfs sysfs /target/sys
+
 grub-installer /target

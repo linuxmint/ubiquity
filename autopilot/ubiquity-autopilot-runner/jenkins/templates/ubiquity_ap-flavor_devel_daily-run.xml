@@ -30,6 +30,19 @@
   <triggers class="vector"/>
   <concurrentBuild>false</concurrentBuild>
   <builders>
+    <hudson.tasks.Shell>
+      <command>#!/bin/bash
+
+BRANCH=&quot;lp:ubiquity&quot;
+BZRDIR=`echo &quot;$BRANCH&quot; | awk -F: &apos;{ print $(NF) }&apos;`
+if [ -d $JENKINS_HOME/$BZRDIR ]; then
+     cd $JENKINS_HOME/$BZRDIR
+     bzr pull
+else
+     bzr branch ${BRANCH} $JENKINS_HOME/${BZRDIR}
+fi
+</command>
+    </hudson.tasks.Shell>
     <hudson.plugins.parameterizedtrigger.TriggerBuilder>
       <configs>
         <hudson.plugins.parameterizedtrigger.BlockableBuildTriggerConfig>

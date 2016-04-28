@@ -1,0 +1,199 @@
+.\"Copyright (C) 2007, 2011 Anton Zinoviev <anton@lml.bas.bg>
+.\"
+.\"Copying and distribution of this file, with or without
+.\"modification, are permitted in any medium without royalty provided
+.\"the copyright notice and this notice are preserved.  This file is
+.\"offered as-is, without any warranty.
+.\"
+.TH CKBCOMP 1 2011-03-17 console-setup "Console-setup User's Manual"
+.SH NAME
+ckbcomp \- compile a XKB keyboard description to a keymap suitable for loadkeys or kbdcontrol
+
+.SH SYNOPSIS
+.B ckbcomp
+.RI [ OPTION ...]\ [ XKBLAYOUT \ [ XKBVARIANT \ [ XKBOPTIONS ]...]]
+
+.SH DESCRIPTION
+The
+.B ckbcomp
+keymap compiler converts a description of an XKB keyboard layout into
+a console keymap that can be read directly by
+.BR loadkeys (1)
+or
+.BR kbdcontrol (1).
+.P
+On its standard output
+.B ckbcomp
+dumps the generated keyboard definition.  The most important
+difference between the arguments of 
+.BR setxkbmap (1)
+and the arguments of
+.B ckbcomp
+is the additional parameter
+.I -charmap
+when non-Unicode keyboard map is wanted.  Without
+.I -charmap
+.B ckbcomp
+will generate Unicode keyboard.
+
+
+.SH OPTIONS
+.SS General options
+.TP
+.BR -? , -help
+Print a usage message and exit.
+.TP
+.BI -charmap\  charmap
+The encoding to use for the output keymap.  There should be an
+character mapping table defining this encoding in
+.IR /usr/local/share/consoletrans .
+Definitions of the following charmaps are provided:
+.nh
+.BR ARMSCII-8 ,
+.BR CP1251 ,
+.BR CP1255 ,
+.BR CP1256 ,
+.BR GEORGIAN-ACADEMY ,
+.BR GEORGIAN-PS ,
+.BR IBM1133 ,
+.BR ISIRI-3342 ,
+.BR ISO-8859-1 ,
+.BR ISO-8859-2 ,
+.BR ISO-8859-3 ,
+.BR ISO-8859-4 ,
+.BR ISO-8859-5 ,
+.BR ISO-8859-6 ,
+.BR ISO-8859-7 ,
+.BR ISO-8859-8 ,
+.BR ISO-8859-9 ,
+.BR ISO-8859-10 ,
+.BR ISO-8859-11 ,
+.BR ISO-8859-13 ,
+.BR ISO-8859-14 ,
+.BR ISO-8859-15 ,
+.BR ISO-8859-16 ,
+.BR KOI8-R ,
+.BR KOI8-U ,
+.BR TIS-620 " and"
+.BR VISCII .
+.hy
+
+.TP
+.BI -I dir
+Look in the top-level directory
+.I dir
+for files included by the keymap description.  This option may be used
+multiple times.  If a file can not be found in any of the specified
+directories, it will be searched also in some other standard
+locations, such as
+.IR /usr/local/etc/console-setup/ckb ,
+.IR /usr/local/share/X11/xkb
+and
+.IR /etc/X11/xkb
+
+.TP
+.BI -v\  level
+Set level of detail for listing.  The argument
+.I level
+must be a number from 1 to 10.
+.TP
+.BI -compact
+Generate a compact keymap with at most two xkb groups and two levels
+in each or only one xkb-group and up to four levels.
+.TP
+.BI -freebsd
+Generate a keymap for FreeBSD.
+.TP
+.BR -backspace\  [ bs | del ]
+Specifies the behaviour of the
+.SM <BackSpace>
+and
+.SM <Delete>
+keys. Value
+.B bs
+specifies VT100-conformant behaviour:
+.nh
+.SM <BackSpace>
+.hy
+will generate
+.B ^H
+.SM (ASCII BS)
+and
+.nh
+.SM <Delete>
+.hy
+will generate
+.B ^?
+.SM (ASCII DEL).
+Value
+.B del
+specifies VT220-conformant behavior:
+.nh
+.SM <BackSpace>
+.hy
+will generate
+.B ^?
+.SM (ASCII DEL)
+and
+.nh
+.SM <Delete>
+.hy
+will generate a special function sequence.
+
+.SS XKB Keyboard Description
+The keyboard layout, variant and options components can be also
+specified directly on the command line.  See the synopsis of the
+command.
+.TP
+.BI -symbols\  name
+Specifies the symbols component name of the XKB keyboard description.
+.TP
+.BI -keycodes\  name
+Specifies the keycodes component name of the XKB keyboard description.
+.TP
+.BI -rules\  name
+The name of the rules file to use.
+.TP
+.BI -model\  name
+Specifies the keyboard model used to choose the component names.
+.TP
+.BI -layout\  name
+Specifies the layout used to choose the component names.
+.TP
+.BI -variant\  name
+Specifies the layout variant used to choose the component names.
+.TP
+.BI -option\  name
+Adds an option used to choose component names.
+
+.SH FILES
+.I /usr/local/share/consoletrans
+.br
+.I /usr/local/etc/console-setup/ckb
+.br
+.I /usr/share/X11/xkb
+.br
+.I /etc/X11/xkb
+
+.SH NOTES
+If the option
+.I -freebsd
+is used together with
+.IR -backspace\ del ,
+then the key
+.SM <Delete>
+will generate the special code
+.BR fkey70 .
+It is your responsibility to assign the appropriate sequence to this
+special  code by using the following command:
+.in +4n
+.nf
+
+kbdcontrol -f 70 "`printf '\\033[3~'`"
+
+.fi
+.in
+
+.SH SEE ALSO
+.BR keyboard (5),
+.BR setxkbmap (1)

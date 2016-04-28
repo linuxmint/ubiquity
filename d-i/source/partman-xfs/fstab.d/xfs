@@ -21,13 +21,8 @@ for dev in $DEVICES/*; do
 				rm -f $id/options/noexec
 			fi
 			options=$(get_mountoptions $dev $id)
-			if [ "$mountpoint" = / ]; then
-				# remount-ro does not work for XFS, do not add it
-				pass=1
-			else
-				pass=2
-			fi
-			echo "$path" "$mountpoint" xfs $options 0 $pass
+			# There is no xfs fsck
+			echo "$path" "$mountpoint" xfs $options 0 0
 			;;
 		esac
 	done

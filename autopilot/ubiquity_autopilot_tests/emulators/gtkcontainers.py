@@ -76,19 +76,19 @@ class GtkBox(GtkContainers):
             logger.debug("select_language()")
             treeview = self.select_single('GtkTreeView')
             treeview.click()
-            #for sanity lets ensure we always start at the top of the list
+            # for sanity lets ensure we always start at the top of the list
             logger.debug("Selecting top item of treeview list")
             self.kbd.press_and_release('Home')
             tree_items = treeview.get_all_items()
             top_item = tree_items[0]
-            #If we are at the top
+            # If we are at the top
             if top_item.selected:
                 logger.debug("top item {0} selected"
                              .format(top_item.accessible_name))
-                #Now select required Language
+                # Now select required Language
                 self.kbd.type(item.accessible_name[0:2])
                 item.click()
-                #check selected
+                # check selected
                 if item.selected:
                     logger.debug("Install language successfully selected! :-)")
                     return
@@ -105,10 +105,10 @@ class GtkBox(GtkContainers):
         """
         logger.debug("_get_install_language()")
         treeview = self.select_single('GtkTreeView')
-        #lets get all items
+        # lets get all items
         treeview_items = treeview.get_all_items()
 
-        #get a language which the first two chars can be ascii decoded
+        # get a language which the first two chars can be ascii decoded
         test_language = self._get_decode_ascii_item(treeview_items)
         return test_language
 
@@ -143,7 +143,7 @@ class GtkBox(GtkContainers):
             location_map = self.select_single('CcTimezoneMap')
             self.pointing_device.move_to_object(location_map)
             x1, y1, x2, y2 = location_map.globalRect
-            #hmmmm this is tricky! and really hacky
+            # hmmmm this is tricky! and really hacky
             pos = self.pointing_device.position()
             x = pos[0]
             y = pos[1]
@@ -199,26 +199,26 @@ class GtkBox(GtkContainers):
             kb.press_and_release('Delete')
             kb.type(name)
 
-        #lets get the fullname from the entry
+        # lets get the fullname from the entry
         # as we don't know the kb layout till runtime
         fullname = entry.text
         logger.debug("Checking that name, username and hostname all contain "
                      "'{0}'".format(name))
-        #now check computer name contains username
+        # now check computer name contains username
         hostname_entry = self.select_single('GtkEntry', name='hostname')
         expectThat(hostname_entry.text).contains(
             fullname.lower(),
             msg="GtkBox._enter_username(): Expected the hostname entry: "
                 "'{0}', to contain '{1}'"
                 .format(hostname_entry.text, fullname.lower()))
-        #check username contains name
+        # check username contains name
         username_entry = self.select_single('GtkEntry', name='username')
         expectThat(username_entry.text).contains(
             fullname.lower(),
             msg="GtkBox._enter_username(): Expected the username entry: "
                 "'{0}', to contain '{1}'"
                 .format(username_entry.text, fullname.lower()))
-        #check the GtkYes images are now visible
+        # check the GtkYes images are now visible
         logger.debug("Checking the stock 'gtk-yes' images are visible")
         images = ['fullname_ok', 'hostname_ok', 'username_ok']
         for image in images:

@@ -119,7 +119,7 @@ EOF
 			# Some packages (eg. the kernel-image package) require a mounted
 			# /proc/. Only mount it if not mounted already
 			if [ ! -f /target/proc/cmdline ]; then
-				mount -t procfs proc /target/proc
+				mount -t linprocfs proc /target/proc
 			fi
 			# Some package might need sysfs mounted
 			# Only mount it if not mounted already

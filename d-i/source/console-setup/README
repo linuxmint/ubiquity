@@ -1,192 +1,283 @@
+===========
+WHAT IS IT?
+===========
+
+This package provides the console with the same keyboard configuration
+scheme that X Window System has. In result, there is no need to
+duplicate or change the console keyboard files just to make simple
+customizations such as the use of dead keys, the key functioning as
+AltGr or Compose key, the key(s) to switch between Latin and non-Latin
+layouts, etc.  Besides the keyboard, the package configures also the
+font on the console.  It includes a rich collection of fonts and
+supports several languages that would be otherwise unsupported on the
+console (such as Armenian, Georgian, Lao and Thai).
+
+The package supports Linux and FreeBSD kernels.  On Linux it supports
+PC, Amiga, Atari, old Macintosh, Sun4 and Sun5 keyboards.  On FreeBSD
+it supports PC keyboards.
+
+There are no binaries in the package: it can be compiled on one
+platform and used on another.  For its compilation it requires GNUmake
+and Perl.  
+
+The package can be installed in two ways -- with or without
+precompiled keyboard files.  If it is installed with precompiled
+keyboard files, then it won't require Perl for its normal work, but
+not all possible keyboard configurations will be properly supported.
+If the package is installed without precompiled keyboard files, then
+it will require Perl for its normal work but you will be able to use
+arbitrary keyboard configuration on the console.
+
+
 ============
 INSTALLATION
 ============
 
-Run "make build" and "make install".  The first of these commands will
-build the package and the second command will install the necessary
-data in /usr/local and /etc.
+First you need to compile the package.  Notice, that this can take a
+long time, especially if you will use precompiled keyboard files.  Use
+one of the following commands:
 
-This command will install in /etc/console-setup/ckb keyboard
-definitions that are more or less identical to the keyboard
-definitions used by X Window.  If your system uses X Window there are
-very good chances that there are already keyboard definitions in
-/etc/X11/xkb or /usr/X11R6/lib/X11/xkb.  In that case you can remove
-/etc/console-setup/ckb in order to use the data proveded by X Window
-and to have identical keyboard configuration on the console and in X
-Window.
+   make build-linux         # For Linux without precompiled keyboard files
+   make build-mini-linux    # For Linux with precompiled keyboard files
+   gmake build-freebsd      # For FreeBSD without precompiled keyboard files
+   gmake build-mini-freebsd # For FreeBSD with precompiled keyboard files
 
-If you want to install the files in different places you can use a
-command like this one:
+Then in order to install the package in /usr/local use one of the
+following commands:
 
-   make etcdir=my_package/etc prefix=my_package/usr install
+   make install-linux
+   make install-mini-linux
+   gmake install-freebsd
+   gmake install-mini-freebsd
 
-This command will install the configuration files in the directory
-my_package/etc and the other files under the hierarchy my_package/usr.
+You don't have to install the package in /usr/local -- you can install
+it anywhere and test how it works from there, for example:
 
-In order to uninstall the package use the comand "make uninstall".
+   mkdir /tmp/cs
+   make prefix=/tmp/cs install-linux 
+
+The Makefile also provides uninstall targets (such as uninstall-linux)
+but if you have installed 'stow', then it is recommended to use it for
+the deinstallation.
+
+In order to use console-setup it is not necessary to have installed X
+Window because the package comes with its own version of the X
+keyboard files.  By default they are installed in
+/usr/local/etc/console-setup/ckb.  If, however, X Window is installed,
+then you can remove this directory and console-setup will use the same
+files X uses.
+
+If X Window is installed in the system and you want to use
+console-setup with precompiled keyboard files, then compile it with
+
+   make xkbdir=/usr/local/share/X11/xkb build-mini-linux
+
 
 ===========
 BASIC USAGE
 ===========
 
-The easiest way to setup the console is to use the "setupcon" program.
-In most cases you will invoke it without arguments - it will read its
-configuration from ~/.console-setup or /etc/default/console-setup.
-The command "make install" installs the example configuration file
-"config" as /etc/default/console-setup.  You can edit it to suit your
-needs.
+First look at the configuration files keyboard and console-setup.  By
+default they will be installed in /usr/local/etc/default.  Read their
+manual pages: keyboard(5) and console-setup(5).  You can find
+preformatted text version of these manual pages in the directory man/
+of the source package.
 
-In general, the configuration has two parts - font and keyboard.  The
-font configuration is straightforward, read README.fonts for more
-details.
+When you are ready, run the command 'setupcon' without parameters and
+that's it.  In order to make your system automatically configure the
+console, simply put the command 'setupcon' in some of the boot
+scripts.
 
-The keyboard configuration consists of giving values to four variables
-- XKBMODEL, XKBLAYOUT, XKBVARIANT and XKBOPTIONS.  These variables
-have the same meaning as the XkbModel, XkbLayout, XkbVariant and
-XkbOptions options in the fail /etc/X11/xorg.conf and also the same
-meaning as the parameters of the options -model, -layout, -variant and
--options of the setxkbmap utility.  For detailed instructions read
-"The XKB Configuration Guide" by Kamil Toman and Ivan U. Pascal:
+If you are using FreeBSD, create a file /etc/rc.local with the
+following contents:
 
-   http://www.xfree86.org/current/XKB-Config.html
+------------------------
+#!/bin/sh
 
-Other possible readings are:
+setupcon
+------------------------
 
-   http://pascal.tsu.ru/en/xkb/
-   http://www.charvolant.org/~doug/xkb/
+Then create a file /etc/rc.conf.local with the following contents
+(this will make console-setup the only package responsible to
+configure the console):
 
-If you do not want to read these, here are two examples:
-
-# This will give you the standard US QWERTY layout (us), where the
-# menu-key acts as Compose-key (compose:menu) and the CapsLock will be
-# third Control key (ctrl:nocaps).
-XKBMODEL=pc105
-XKBLAYOUT=us
-XKBVARIANT=
-XKBOPTIONS=compose:menu,ctrl:nocaps
-
-# In this configuration the Control+Shift combination will toggle
-# (grp:ctrl_shift_toggle) between French keyboard (fr) without dead
-# keys (nodeadkeys) and British (gb) "Dvorak" (dvorak) keyboard.  The
-# right Win-key will be Compose-key (compose:rwin) and the right
-# Alt-key will be AltGr (lv3:lalt_switch).
-XKBMODEL=pc105
-XKBLAYOUT=fr,gb
-XKBVARIANT=nodeadkeys,dvorak
-XKBOPTIONS=grp:ctrl_shift_toggle,compose:rwin,lv3:ralt_switch
-
-==========================
-ALTERNATIVE CONFIGURATIONS
-==========================
-
-If you have to switch often between different encodings, keyboards or
-languages you can prepare several alternative configuration files for
-setupcon.  Suppose that most of the time you use Greek language, Greek
-keyboard and UTF-8 encoding, but sometimes you need to type in German
-and ISO-8859-15 encoding.  Create the main configuration file
-/etc/default/console-setup for Greek:
-
-ACTIVE_CONSOLES="/dev/tty[1-6]"
-CHARMAP=UTF-8
-CODESET=Greek
-FONTFACE=VGA
-FONTSIZE=16
-XKBMODEL=pc105
-XKBLAYOUT=us,gr
-XKBVARIANT=
-# The right Alt toggles between Latin and Greek
-# The option grp_led:scroll is ignored
-XKBOPTIONS=grp:toggle,grp_led:scroll
-
-Create also a second file /etc/default/console-setup.german for German:
-
-ACTIVE_CONSOLES="/dev/tty[1-6]"
-CHARMAP=ISO-8859-15
-CODESET=Lat15
-FONTFACE=VGA
-FONTSIZE=16
-XKBMODEL=pc105
-XKBLAYOUT=de
-XKBVARIANT=
-# The right Alt functions as AltGr
-XKBOPTIONS=lv3:ralt_switch
-
-Then use the command "setupcon" to configure Greek console and the
-command "setupcon german" to configure German console.  (By the way,
-when you change the working encoding as in this example, you will have
-to change also the locale.)
-
-If you don't want to exploit superuser priviledges, use the files
-~/.console-setup and ~/.console-setup.german instead of
-/etc/default/console-setup and /etc/default/console-setup.german.
+------------------------
+font8x8="NO"
+font8x14="NO"
+font8x16="NO"
+scrnmap="NO"
+keymap="NO"
+------------------------
 
 
-==============
-ADVANCED USAGE
-==============
+============================
+TERMINAL TYPE (FreeBSD version 8.3 and earlier only)
+============================
 
-You may want to make your system automatically configure the console.
-In this case make sure that the "setupcon" program is invoked during
-the system bootup.  You may want to use as example the startup script
-of Debian - debian/console-setup.console-setup.init.
+In order to display properly the line draw symbols on FreeBSD, the
+programs use the description of the capabilities of the terminal of
+the console in order to find the position of these symbols in the
+current encoding.  Traditionally this meant that the different
+encodings ought to be used with different terminal types.  Obviously
+this is very inconvenient for a multi-lingual package such as
+console-setup.  In order to overcome this difficulty, for the line draw
+symbols console-setup uses some of the special codes from 1 to 31.  In
+this way only one unified terminal type can be used for all languages.
 
-If you want to configure the console too early it may happen that the
-/usr file system is not yet mounted.  In order to overcome this
-obstacle make sure that "setupcon" is installed in /bin and not in
-/usr/local/bin or /usr/bin.  In addition use the command
+Console-setup provides the description of the terminal it uses in two
+formats -- the older termcap and the newer terminfo.  They are
+installed in /usr/local/etc/console-setup/.
 
-   setupcon --save
+On FreeBSD the older format is used (termcap).  You have to append the
+console-setup definition to the system-wide file and to recompile it:
 
-This command will put in the directory /etc/console-setup all data
-(font, ACM and keyboard map) relevant to your configuration.  Notice
-that the following utilities are still necessary: "setfont" or
-"consolechars", "kbd_mode" and "loadkeys".  Depending of your
-distribution they may be installed in /bin (in which case you can have
-early console setup), or all or some of them may be in /usr/bin (in
-which case they will be unavailable before /usr is mounted).
+   cat /usr/local/etc/console-setup/termcap >>/etc/termcap
+   cap_mkdb -f /usr/share/misc/termcap /etc/termcap
 
-Sometimes only the keyboard part of the configuration is possible
-before the /usr file system becomes available.  In this case you can
-setup the console in two passes.  First, use the command
+Then open /etc/ttys in a text editor and find all lines whose first
+word is of the form ttyv0, ttyv1, etc:
 
-   setupcon -k
+   ttyv0   "/usr/libexec/getty Pc"         cons25  on  secure
 
-as early as possible to setup the keyboard (the early keyboard setup
-may be essential if for example fsck fails).  Next wait until /usr is
-mounted and use the command
+Replace cons25 with cons25cs (cs is an abbreviation of console-setup).
+Console-setup provides also the following alternative terminal types:
+cons25cs-m, cons30cs, cons30cs-m, cons43cs, cons43cs-m, cons50cs,
+cons50cs-m, cons60cs and cons60cs-m.  The number tells how many lines
+are used on the console and the suffix -m means 'monochrome'.  If for
+example the console is configured to use video mode 80x30 with color
+video display, then in /etc/ttys use cons30cs instead of cons25cs
 
-   setupcon -f
+If you login from the console to a remote system that doesn't
+understands the terminal types of console-setup, this can be a
+problem.  In case the remote system uses the newer terminfo format
+(this is true on Linux systems) you can solve the problem in the
+following way (there is no need to be root on the remote system):
 
-to configure the font.
+   local:  scp /usr/local/etc/console-setup/terminfo remote.system.org:.
+   local:  ssh remote.system.org
+   remote: tic terminfo
+   remote: rm terminfo
 
-=======
-CKBCOMP
-=======
+I don't know if something similar can be done as non-root user on
+systems that use termcap.  If you login in a such system, then change
+the terminal type to 'cons25w':
 
-The "ckbcomp" utility is used to generate keyboard map that the kernel
-(and the "loadkeys" utility) understands.  It accepts more or less the
-same arguments as the setxkbmap utility:
+   TERM=cons25w; export TERM   # if you use Bourne-alike shell
+   setenv TERM cons25w         # if you use the C shell
 
-ckbcomp [args] [<layout> [<variant> [<option> ... ]]]
 
-Where legal args are:
-  -?,-help            Print this message
-  -charmap <name>         Specifies the encoding to use
-  -I<dir>             Add <dir> to list of directories to be used
-  -keycodes <name>    Specifies keycodes component name
-  -symbols <name>     Specifies symbols component name
-  -rules <name>       Name of rules file to use
-  -model <name>       Specifies model used to choose component names
-  -layout <name>      Specifies layout used to choose component names
-  -variant <name>     Specifies layout variant used to choose component names
-  -v[erbose] [<lvl>]  Sets verbosity (1..10).  Higher values yield
-                      more messages
-  -option <name>      Adds an option used to choose component names
+====================
+BACKSPACE AND DELETE
+====================
 
-On its standard output "ckbcomp" dumps the generated keyboard
-definition.  The most important difference between the arguments of
-"setxkbmap" and the arguments of "ckbcomp" is that ckbcomp requires an
-additional parameter -charmap when non-Unicode map is wanted.  Without
--charmap "ckbcomp" will generate Unicode keyboard.  Look at the
-example configuration file for setupcon to see the supported values
-for -charmap.
+(This section has not been updated for FreeBSD version 9.)
+
+This hasn't been a problem on Linux since a while.  But on FreeBSD it
+is not unusual to have programs that do not respond correctly to these
+keys.  For example in some situations Backspace will delete the symbol
+at the cursor (not the preceding symbol) in other situations the
+Backspace key will display help information (because this key actually
+generates the combination Control-h).
+
+I don't know why proper solution of the problem hasn't been applied by
+the FreeBSD project, considering how easy is it to do so.  After I
+reconfigured properly the keys Backspace and Delete, all programs I
+tested worked correctly (absolutely no reconfiguration of these
+programs was necessary).
+
+In general, there are two standards for the codes these keys generate.
+The first one strives to be conformant with the behavior of the old
+DEC VT100 terminal.  This standard is used by default on FreeBSD.  The
+second standard is conformant with the newer terminal VT220.  The
+following table summarizes the codes generated by the keys according
+to these two standards (^H is BS, ^? is DEL and ^[ is ESC):
+
+              VT100  VT220
+   Control-h   ^H     ^H
+   Backspace   ^H     ^?
+   Delete      ^?    ^[[3~
+
+Notice that VT100 makes Backspace and Control-h to behave identically.
+This means the programs (notably Emacs) are unable to differentiate
+between Backspace and Control-h.  No reconfiguration can help this.
+The problem is aggravated by the fact that the other standard (that of
+VT220) is widespread on Linux systems, whence many programs require
+reconfiguration in order to work correctly with VT100 codes.
+
+There are two methods the programs can use in order to determine the
+properties of the terminal they are working on and in particular the
+codes generated by the keys Backspace and Delete.  The first method is
+to read the settings of the terminal line.  This method gives limited
+information; it is, however, in a sense directly supported by the
+kernel of the operating system.  Use the command 'stty -a' to see
+these settings.
+
+The second method is based on the variable of the environment TERM.
+Use 'echo $TERM' to see its value.  This variable tells the programs
+the name of the terminal you are using.  When the name of the terminal
+is known, the programs look in a database describing the capabilities
+of all terminals in order to determine the capabilities of your
+particular terminal.  There are two implementations of such a database
+-- termcap and the terminfo, but for our purposes it makes no
+difference which one is used on your system.
+
+Somewhat inconsistently, two different programs are responsible for
+the configuration of the terminal capabilities -- init and getty:
+
+1. Init is the first process.  It configures the environment and in
+   particular it is responsible for the value of the variable TERM.
+
+2. Init starts several instances of getty.  Each virtual terminal has
+   its own getty process.  Getty is responsible to configure the
+   terminal line before you login (the settings of 'stty -a').
+
+So, the following is the plan.  
+
+First, teach the system about the terminal types of console-setup (if
+you haven't done so yet):
+
+   cat /usr/local/etc/console-setup/termcap >>/etc/termcap
+   cap_mkdb -f /usr/share/misc/termcap /etc/termcap
+
+The second in order is getty.  Open /etc/gettytab in a text editor.
+This file tells getty how to configure different kinds of terminals.
+Find the lines that look like this:
+
+  P|Pc|Pc console:\
+          :ht:np:sp#115200:
+
+Make a copy of these lines and edit the copy to look like this:
+
+  Pd|Pcd|Pc console del:\
+          :ht:np:sp#115200:er=^?:
+
+There are only two changes: first, the changed names ('Pd', 'Pcd' and
+'Pc console del' instead of 'P', 'Pc' and 'Pc console') and second,
+the string 'er=^?:' is appended.
+
+And the third is init.  Open /etc/ttys in a text editor.  Find the
+lines starting with a word of the form ttyv0, ttyv1, ttyv2, etc.
+
+   ttyv0   "/usr/libexec/getty Pc"           cons25   on secure
+
+Then change these lines to look like this:
+
+   ttyv0   "/usr/libexec/getty Pcd"           cons25cs-del   on secure
+
+There are two changes: first, the terminal name is 'cons25cs-del'
+(this is the value init will assign to the variable TERM) and second,
+init tells getty that the terminal type is Pcd.  Here 'Pcd' is the new
+terminal type you've just defined in /etc/gettytab.  Instead of
+'cons25cs-del' you can use one of the following types:
+'cons25cs-del-m', 'cons30cs-del', 'cons30cs-del-m', 'cons43cs-del',
+'cons43cs-del-m', 'cons50cs-del', 'cons50cs-del-m', 'cons60cs-del' or
+'cons60cs-del-m'.  The number specifies how many lines are used on the
+console and the suffix '-m' stands for 'monochrome'.
+
+-- 
+Copyright (C) 2011 Anton Zinoviev <anton@lml.bas.bg>
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.  This file is offered as-is,
+without any warranty.

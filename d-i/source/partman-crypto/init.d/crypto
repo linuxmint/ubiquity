@@ -57,19 +57,29 @@ create_partition () {
 	open_dialog PARTITIONS
 	free_space=''
 	while { read_line num id size type fs path name; [ "$id" ]; }; do
-		if [ "$fs" = free ]; then
+		case $fs in
+		    free|unknown)
 			free_space=$id
 			free_size=$size
+			free_fs=$fs
 			# we can't break here
-		fi
+			;;
+		esac
 	done
 	close_dialog
 
 	# create partition in the free space
 	if [ "$free_space" ]; then
-		open_dialog NEW_PARTITION primary $filesystem $free_space full $free_size
-		read_line num id size type fs path name
-		close_dialog
+		if [ "$free_fs" = unknown ]; then
+			# parted >= 3.2 gives us a partition automatically.
+			id=$free_space
+		else
+			# With parted < 3.2 we must create a partition
+			# manually.
+			open_dialog NEW_PARTITION primary $filesystem $free_space full $free_size
+			read_line num id size type fs path name
+			close_dialog
+		fi
 		if [ -z "$id" ]; then
 			log "error: NEW_PARTITION returned no id"
 			return

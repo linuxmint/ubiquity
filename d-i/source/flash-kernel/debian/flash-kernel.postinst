@@ -3,7 +3,14 @@
 set -e
 
 if [ "$1" = "triggered" ]; then
-    FLASH_KERNEL_NOTRIGGER=y flash-kernel
+    # we dont want to run if FLASH_KERNEL_SKIP is set, the ubuntu
+    # image build system uses this
+    if [ -n "$FLASH_KERNEL_SKIP" ]; then
+        echo "FLASH_KERNEL_SKIP is set, skipping flash-kernel call"
+        exit 0
+    else
+        FLASH_KERNEL_NOTRIGGER=y flash-kernel
+    fi
 fi
 
 #DEBHELPER#

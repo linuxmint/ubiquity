@@ -88,7 +88,7 @@ language_display_level() {
 		fi
 		# ASCII only if we are on serial console, dumb, or Mach terminal
 		# Both variables should already be set at init time
-		if [ "$TERM_TYPE" = "serial" ] || [ "$TERM" = "dumb" ] || [ "$TERM" = "mach-color" ] ; then
+		if [ "$TERM_TYPE" = "serial" ] || [ "$TERM" = "dumb" ] || [ "$TERM" = "mach-gnu-color" ] ; then
 			level=0
 		fi
 		;;
@@ -114,7 +114,7 @@ build_language_template() {
 	rm -f /var/lib/localechooser/langlevel
 
 	IFS="$NL"
-	for line in $(zcat $LANGUAGELISTDATA | grep "^[0-$level]:"); do
+	for line in $(zcat $LANGUAGELISTDATA | grep -a "^[0-$level]:"); do
 		name="$(echo "$line" | cut -d: -f3)"
 		codes="$(choices_add "$codes" \
 			"$(echo "$line" | cut -d: -f2)")"
@@ -161,7 +161,7 @@ do_preseed() {
 	# otherwise set default language and/or country based on locale
 	if [ "$ps_language" ] || [ "$ps_country" ]; then
 		if [ "$ps_language" ] &&
-		   ! has_choice $tpl_languagelist $lang; then
+		   ! has_choice $tpl_languagelist $ps_language; then
 			log "Preseeded language ignored: unknown language code"
 		fi
 		if [ "$ps_country" ]; then
@@ -357,28 +357,6 @@ is_complete_locale() {
 	echo "$1" | grep -q "_"
 }
 
-# Find the preferred locale given language, country, and encoding.
-preferred_locale() {
-	OLDIFS="$IFS"
-	IFS="$NL"
-	# Look for locales with the right encoding first.
-	for trylocale in $(grep "^$1_$2" $SUPPORTEDLOCALES || true); do
-		IFS="$OLDIFS"
-		if [ -z "$3" ] || [ "${trylocale#* }" = "$3" ]; then
-			echo "${trylocale% *}"
-			return
-		fi
-		IFS="$NL"
-	done
-	# Pick the first of any other available locales.
-	for trylocale in $(grep "^$1_$2" $SUPPORTEDLOCALES || true); do
-		IFS="$OLDIFS"
-		echo "${trylocale% *}"
-		return
-	done
-	IFS="$OLDIFS"
-}
-
 # Find a supported locale which best fits the selected language and country.
 # Refinement: use the modifier inherited from language selection (if the
 # resulting locale is valid).
@@ -403,11 +381,10 @@ get_default_locale() {
 	fi
 
 	# Check if a valid locale exists for the selected language + country
-	for entry in $COUNTRYCODE$DEFAULT_LOCALE_POSTFIX \
-	             $COUNTRYCODE; do
-		PREFERRED_LOCALE="$(preferred_locale "$lang" "$entry" "$ENCODING")"
-		if [ "$PREFERRED_LOCALE" ]; then
-			echo "$PREFERRED_LOCALE"
+	for entry in ${lang}_$COUNTRYCODE$DEFAULT_LOCALE_POSTFIX \
+	             ${lang}_$COUNTRYCODE; do
+		if grep -q "^$entry " $SUPPORTEDLOCALES; then
+			echo "$entry"
 			break
 		fi
 	done

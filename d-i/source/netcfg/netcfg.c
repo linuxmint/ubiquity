@@ -40,7 +40,11 @@ response_t netcfg_get_method(struct debconfclient *client)
 {
     int iret;
 
+#ifdef __s390__
+    iret = debconf_input(client, "high", "netcfg/use_autoconfig");
+#else
     iret = debconf_input(client, "medium", "netcfg/use_autoconfig");
+#endif
 
     if (debconf_go(client) == CMD_GOBACK)
         return GO_BACK;
@@ -67,6 +71,7 @@ int main(int argc, char *argv[])
            GET_METHOD,
            GET_DHCP,
            GET_STATIC,
+           GET_VLAN,
            WCONFIG,
            WCONFIG_ESSID,
            WCONFIG_SECURITY_TYPE,
@@ -93,7 +98,7 @@ int main(int argc, char *argv[])
     netcfg_interface_init(&interface);
 
     if (strcmp(basename(argv[0]), "ptom") != 0)
-        di_info("Starting netcfg v.%s (built %s)", NETCFG_VERSION, NETCFG_BUILD_DATE);
+        di_info("Starting netcfg v.%s", NETCFG_VERSION);
 
     parse_args (argc, argv);
     reap_old_files ();
@@ -245,13 +250,19 @@ int main(int argc, char *argv[])
                 state = BACKUP;
             else if (! interface.name || ! num_interfaces)
                 state = GET_HOSTNAME_ONLY;
-            else {
-                if (is_wireless_iface (interface.name))
-                    state = WCONFIG;
-                else
-                    state = GET_METHOD;
-            }
+            else if (is_wireless_iface (interface.name))
+                state = WCONFIG;
+            else
+                state = GET_VLAN;
             break;
+
+	case GET_VLAN:
+            if (netcfg_set_vlan(client, &interface) == GO_BACK)
+                state = BACKUP;
+            else
+                state = GET_METHOD;
+            break;
+
         case GET_HOSTNAME_ONLY:
             if(netcfg_get_hostname(client, "netcfg/get_hostname", hostname, 0))
                 state = BACKUP;
@@ -260,6 +271,7 @@ int main(int argc, char *argv[])
                 state = QUIT;
             }
             break;
+
         case GET_METHOD:
             if ((res = netcfg_get_method(client)) == GO_BACK)
                 state = (num_interfaces == 1) ? BACKUP : GET_INTERFACE;

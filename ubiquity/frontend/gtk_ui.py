@@ -37,6 +37,7 @@ import atexit
 import configparser
 from functools import reduce
 import gettext
+import gi
 import os
 import subprocess
 import sys
@@ -47,7 +48,7 @@ import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 DBusGMainLoop(set_as_default=True)
 
-#in query mode we won't be in X, but import needs to pass
+# in query mode we won't be in X, but import needs to pass
 if 'DISPLAY' in os.environ:
     from gi.repository import Gtk, Gdk, GObject, GLib, Atk
     from ubiquity import gtkwidgets
@@ -196,10 +197,9 @@ class Wizard(BaseFrontend):
             elif isinstance(widget, gtkwidgets.StateBox):
                 label = widget.label
 
-            # If we're runing Orca, we want to be able to read labels.
             if label:
-                label.set_property('can-focus', self.screen_reader)
-                label.set_selectable(self.screen_reader)
+                label.set_selectable(True)
+                label.set_property('can-focus', False)
 
         BaseFrontend.__init__(self, distro)
         self.previous_excepthook = sys.excepthook
@@ -347,27 +347,18 @@ class Wizard(BaseFrontend):
 
         self.customize_installer()
 
-        # Put up the a11y indicator in *-ubiquity and oemconfig.
-        if osextras.find_on_path('casper-a11y-enable'):
-            with open('/proc/cmdline') as fp:
-                if ('UBIQUITY_GREETER' in os.environ or self.oem_user_config or
-                        'only-ubiquity' in fp.read()):
-                    try:
-                        from gi.repository import AppIndicator3 as AppIndicator
-                        self.indicator = AppIndicator.Indicator.new(
-                            'ubiquity', 'accessibility-directory',
-                            AppIndicator.IndicatorCategory.OTHER)
-                        self.indicator.set_status(
-                            AppIndicator.IndicatorStatus.ACTIVE)
-                        self.indicator.set_menu(
-                            self.builder.get_object('a11y_indicator_menu'))
-                        if osextras.find_on_path('canberra-gtk-play'):
-                            subprocess.Popen(
-                                ['canberra-gtk-play', '--id=system-ready'],
-                                preexec_fn=misc.drop_all_privileges)
-                    except:
-                        print("Unable to set up accessibility profile support",
-                              file=sys.stderr)
+        # Put up the a11y indicator.
+        if osextras.find_on_path('a11y-profile-manager-indicator'):
+            try:
+                subprocess.Popen(['a11y-profile-manager-indicator',
+                                  '-i'], preexec_fn=misc.drop_all_privileges)
+                if osextras.find_on_path('canberra-gtk-play'):
+                    subprocess.Popen(
+                        ['canberra-gtk-play', '--id=system-ready'],
+                        preexec_fn=misc.drop_all_privileges)
+            except:
+                print("Unable to set up accessibility profile support",
+                      file=sys.stderr)
             self.live_installer.connect(
                 'key-press-event', self.a11y_profile_keys)
 
@@ -405,9 +396,6 @@ class Wizard(BaseFrontend):
                 if toplevel.get_name() != 'live_installer':
                     for c in self.all_children(toplevel):
                         widgets.append((c, None))
-        if hasattr(self, "indicator"):
-            for c in self.all_children(self.indicator.get_menu()):
-                widgets.append((c, None))
         self.translate_widgets(lang=lang, widgets=widgets, reget=False)
         self.set_page_title(current_page, lang)
 
@@ -542,6 +530,31 @@ class Wizard(BaseFrontend):
 
         gsettings.set(gs_schema, gs_key, gs_value)
 
+    def disable_screen_reader(self):
+        gs_key = 'screenreader'
+        for gs_schema in 'org.gnome.settings-daemon.plugins.media-keys', \
+                         'org.mate.SettingsDaemon.plugins.media-keys':
+            gs_previous = '%s/%s' % (gs_schema, gs_key)
+            if gs_previous in self.gsettings_previous:
+                return
+
+            gs_value = gsettings.get(gs_schema, gs_key)
+            self.gsettings_previous[gs_previous] = gs_value
+
+            if gs_value:
+                gsettings.set(gs_schema, gs_key, '')
+
+        atexit.register(self.enable_screen_reader)
+
+    def enable_screen_reader(self):
+        gs_key = 'screenreader'
+        for gs_schema in 'org.gnome.settings-daemon.plugins.media-keys', \
+                         'org.mate.SettingsDaemon.plugins.media-keys':
+            gs_previous = '%s/%s' % (gs_schema, gs_key)
+            gs_value = self.gsettings_previous[gs_previous]
+
+            gsettings.set(gs_schema, gs_key, gs_value)
+
     def disable_screensaver(self):
         gs_schema = 'org.gnome.desktop.screensaver'
         gs_key = 'idle-activation-enabled'
@@ -662,51 +675,45 @@ class Wizard(BaseFrontend):
             self.thunar_set_volmanrc(self.thunar_previous)
 
     def a11y_profile_keys(self, window, event):
-        if (event.state & Gdk.ModifierType.CONTROL_MASK and
-                event.keyval == Gdk.keyval_from_name('h')):
-            self.a11y_profile_high_contrast_activate()
-        elif (event.state & Gdk.ModifierType.CONTROL_MASK and
-                event.keyval == Gdk.keyval_from_name('s')):
-            self.a11y_profile_screen_reader_activate()
-        elif (event.state & Gdk.ModifierType.SUPER_MASK and
-                event.state & Gdk.ModifierType.MOD1_MASK and
-                event.keyval == Gdk.keyval_from_name('s')):
-            self.a11y_profile_screen_reader_activate()
+        if osextras.find_on_path('a11y-profile-manager'):
+            hc_profile_found = False
+            sr_profile_found = False
 
-    def a11y_profile_high_contrast_activate(self, widget=None):
-        subprocess.call(['log-output', '-t', 'ubiquity',
-                         '--pass-stdout', 'casper-a11y-enable',
-                         'high-contrast'], preexec_fn=misc.drop_all_privileges)
-        os.environ['UBIQUITY_A11Y_PROFILE'] = 'high-contrast'
+            subp = subprocess.Popen(['a11y-profile-manager',
+                                    '-l'],
+                                    stdout=subprocess.PIPE,
+                                    preexec_fn=misc.drop_all_privileges,
+                                    universal_newlines=True)
+
+            for line in subp.stdout:
+                value = line.rstrip('\n')
+                if value.endswith('high-contrast'):
+                    hc_profile_found = True
+                    self.hc_profile_name = value
+                if value.endswith('blindness'):
+                    sr_profile_found = True
+                    self.sr_profile_name = value
+
+            if (hc_profile_found is True and event.state &
+                Gdk.ModifierType.CONTROL_MASK and
+                    event.keyval == Gdk.keyval_from_name('h')):
+                self.a11y_profile_high_contrast_activate()
+            elif (sr_profile_found is True and event.state &
+                  Gdk.ModifierType.SUPER_MASK and
+                    event.state & Gdk.ModifierType.MOD1_MASK and
+                    event.keyval == Gdk.keyval_from_name('s')):
+                self.a11y_profile_screen_reader_activate()
+
+    def a11y_profile_set(self, value):
+        gsettings.set("com.canonical.a11y-profile-manager",
+                      "active-profile", value)
+
+    def a11y_profile_high_contrast_activate(self):
+        self.a11y_profile_set(self.hc_profile_name)
 
     def a11y_profile_screen_reader_activate(self, widget=None):
-        if self.orca_process and self.orca_process.poll() != 0:
-            return
-
-        subprocess.call(
-            ['log-output', '-t', 'ubiquity', '--pass-stdout',
-             'casper-a11y-enable', 'blindness'],
-            preexec_fn=misc.drop_all_privileges)
+        self.a11y_profile_set(self.sr_profile_name)
         os.environ['UBIQUITY_A11Y_PROFILE'] = 'screen-reader'
-        if osextras.find_on_path('orca'):
-            self.orca_process = subprocess.Popen(
-                ['orca'], preexec_fn=misc.drop_all_privileges)
-
-    def a11y_profile_keyboard_modifiers_activate(self, widget=None):
-        subprocess.call(
-            ['log-output', '-t', 'ubiquity', '--pass-stdout',
-             'casper-a11y-enable', 'keyboard-modifiers'],
-            preexec_fn=misc.drop_all_privileges)
-        os.environ['UBIQUITY_A11Y_PROFILE'] = 'keyboard-modifiers'
-
-    def a11y_profile_onscreen_keyboard_activate(self, widget=None):
-        subprocess.call(
-            ['log-output', '-t', 'ubiquity', '--pass-stdout',
-             'casper-a11y-enable', 'onscreen-keyboard'],
-            preexec_fn=misc.drop_all_privileges)
-        os.environ['UBIQUITY_A11Y_PROFILE'] = 'onscreen-keyboard'
-        if osextras.find_on_path('onboard'):
-            subprocess.Popen(['onboard'], preexec_fn=misc.drop_all_privileges)
 
     def run(self):
         """run the interface."""
@@ -723,10 +730,11 @@ class Wizard(BaseFrontend):
         self.disable_volume_manager()
         self.disable_screensaver()
         self.disable_powermgr()
+        self.disable_screen_reader()
 
         if 'UBIQUITY_ONLY' in os.environ:
             self.disable_logout_indicator()
-            if not 'UBIQUITY_DEBUG' in os.environ:
+            if 'UBIQUITY_DEBUG' not in os.environ:
                 self.disable_terminal()
 
         # show interface
@@ -743,6 +751,7 @@ class Wizard(BaseFrontend):
             self.refresh()
 
         self.set_current_page(0)
+        self.live_installer.show()
 
         while(self.pagesindex < len(self.pages)):
             if self.current_page is None:
@@ -831,15 +840,27 @@ class Wizard(BaseFrontend):
 
         return self.returncode
 
-    def on_slideshow_link_clicked(self, unused_view, unused_frame, req,
-                                  unused_action, decision):
-        uri = req.get_uri()
-        decision.ignore()
-        subprocess.Popen(['sensible-browser', uri],
-                         close_fds=True, preexec_fn=misc.drop_all_privileges)
+    def on_context_menu(self, unused_web_view, unused_context_menu,
+                        unused_event, unused_hit_test_result):
+        # True will not show the menu
         return True
 
+    def on_slideshow_link_clicked(self, web_view, decision, decision_type):
+        gi.require_version('WebKit2', '4.0')
+        from gi.repository import WebKit2
+        if decision_type == WebKit2.PolicyDecisionType.NEW_WINDOW_ACTION:
+            request = decision.get_request()
+            uri = request.get_uri()
+            decision.ignore()
+            subprocess.Popen(['sensible-browser', uri],
+                             close_fds=True,
+                             preexec_fn=misc.drop_all_privileges)
+            return True
+        return False
+
     def start_slideshow(self):
+        # WebKit2 spawns a process which we don't want to run as root
+        misc.drop_privileges_save()
         self.progress_mode.set_current_page(
             self.progress_pages['progress_bar'])
 
@@ -863,32 +884,35 @@ class Wizard(BaseFrontend):
 
         slides = 'file://%s#%s' % (slideshow_main, parameters_encoded)
 
-        from gi.repository import WebKit
+        gi.require_version('WebKit2', '4.0')
+        from gi.repository import WebKit2
         # We have no significant browsing interface, so there isn't much point
         # in WebKit creating a memory-hungry cache.
-        WebKit.set_cache_model(WebKit.CacheModel.DOCUMENT_VIEWER)
-        webview = WebKit.WebView()
+        context = WebKit2.WebContext.get_default()
+        context.set_cache_model(WebKit2.CacheModel.DOCUMENT_VIEWER)
+        webview = WebKit2.WebView()
         # WebKit puts file URLs in their own domain by default.
         # This means that anything which checks for the same origin,
         # such as creating a XMLHttpRequest, will fail unless this
         # is disabled.
         # http://www.gitorious.org/webkit/webkit/commit/624b946
         s = webview.get_settings()
-        s.set_property('enable-file-access-from-file-uris', True)
-        s.set_property('enable-default-context-menu', False)
+        s.set_property('allow-file-access-from-file-urls', True)
+        webview.connect('context-menu', self.on_context_menu)
         if (os.environ.get('UBIQUITY_A11Y_PROFILE') == 'screen-reader'):
             s.set_property('enable-caret-browsing', True)
 
-        webview.connect('new-window-policy-decision-requested',
+        webview.connect('decide-policy',
                         self.on_slideshow_link_clicked)
 
-        self.webkit_scrolled_window.add(webview)
-        webview.open(slides)
+        webview.show()
+        self.page_mode.insert_page(webview, None, 1)
+        webview.load_uri(slides)
         # TODO do these in a page loaded callback
         self.page_mode.show()
         self.page_mode.set_current_page(1)
-        webview.show()
         webview.grab_focus()
+        misc.regain_privileges_save()
 
     def customize_installer(self):
         """Initial UI setup."""
@@ -898,20 +922,24 @@ class Wizard(BaseFrontend):
                          'install_details_expander']:
             box = self.builder.get_object(eventbox)
             style = box.get_style_context()
-            style.add_class('ubiquity-menubar')
-        
-        self.live_installer.set_icon_name("ubiquity")
+            style.add_class('menubar')
+
         # TODO lazy load
-        from gi.repository import Vte
+        import gi
+        gi.require_version("Vte", "2.91")
+        from gi.repository import Vte, Pango
+        misc.drop_privileges_save()
         self.vte = Vte.Terminal()
         self.install_details_sw.add(self.vte)
         tail_cmd = [
             '/bin/busybox', 'tail', '-f', '/var/log/installer/debug',
             '-f', '/var/log/syslog', '-q',
         ]
-        self.vte.fork_command_full(0, None, tail_cmd, None, 0, None, None)
-        self.vte.set_font_from_string("Ubuntu Mono 8")
+        self.vte.spawn_sync(0, None, tail_cmd, None, 0, None, None, None)
+        fontdesc = Pango.font_description_from_string("Ubuntu Mono 8")
+        self.vte.set_font(fontdesc)
         self.vte.show()
+        misc.regain_privileges_save()
         # FIXME shrink the window horizontally instead of locking the window
         # size.
         self.live_installer.set_resizable(False)
@@ -1022,7 +1050,7 @@ class Wizard(BaseFrontend):
         self.quit.hide()
         f = (Gdk.WMFunction.RESIZE | Gdk.WMFunction.MAXIMIZE |
              Gdk.WMFunction.MOVE)
-        if not 'UBIQUITY_ONLY' in os.environ:
+        if 'UBIQUITY_ONLY' not in os.environ:
             f |= Gdk.WMFunction.MINIMIZE
         self.live_installer.get_window().set_functions(f)
         self.allow_change_step(False)
@@ -1051,7 +1079,7 @@ class Wizard(BaseFrontend):
             self.quit.show()
         f = Gdk.WMFunction.RESIZE | Gdk.WMFunction.MAXIMIZE | \
             Gdk.WMFunction.MOVE | Gdk.WMFunction.CLOSE
-        if not 'UBIQUITY_ONLY' in os.environ:
+        if 'UBIQUITY_ONLY' not in os.environ:
             f |= Gdk.WMFunction.MINIMIZE
         self.refresh()
 
@@ -1387,7 +1415,13 @@ class Wizard(BaseFrontend):
                                          '/org/gnome/SessionManager')
             manager.RequestReboot()
         else:
-            misc.execute_root("reboot")
+            # don't let reboot race with the shutdown of X in ubiquity-dm;
+            # reboot might be too fast and X will stay around forever instead
+            # of moving to plymouth
+            misc.execute_root(
+                "sh", "-c",
+                "if ! service display-manager status; then killall Xorg; "
+                "while pidof X; do sleep 0.5; done; fi; reboot")
 
     def do_shutdown(self):
         """Callback for main program to actually shutdown the machine."""
@@ -1402,7 +1436,13 @@ class Wizard(BaseFrontend):
                                          '/org/gnome/SessionManager')
             manager.RequestShutdown()
         else:
-            misc.execute_root("poweroff")
+            # don't let poweroff race with the shutdown of X in ubiquity-dm;
+            # poweroff might be too fast and X will stay around forever instead
+            # of moving to plymouth
+            misc.execute_root(
+                "sh", "-c",
+                "if ! service display-manager status; then killall Xorg; "
+                "while pidof X; do sleep 0.5; done; fi; poweroff")
 
     def quit_installer(self, *args):
         """Quit installer cleanly."""
@@ -1421,10 +1461,6 @@ class Wizard(BaseFrontend):
         self.quit_main_loop()
 
     # Callbacks
-
-    def dialog_hide_on_delete(self, widget, event, data=None):
-        widget.hide()
-        return True
 
     def on_quit_clicked(self, unused_widget):
         self.warning_dialog.set_transient_for(

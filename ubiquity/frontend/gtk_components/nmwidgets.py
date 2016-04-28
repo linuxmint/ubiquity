@@ -320,7 +320,7 @@ class NetworkManagerWidget(Gtk.Box):
             return True
         if len(passphrase) == 64:
             for c in passphrase:
-                if not c in string.hexdigits:
+                if c not in string.hexdigits:
                     return False
             return True
         else:

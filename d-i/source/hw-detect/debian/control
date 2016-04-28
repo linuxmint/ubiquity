@@ -5,8 +5,8 @@ Maintainer: Ubuntu Installer Team <ubuntu-installer@lists.ubuntu.com>
 XSBC-Original-Maintainer: Debian Install System Team <debian-boot@lists.debian.org>
 Uploaders: Petter Reinholdtsen <pere@debian.org>, Colin Watson <cjwatson@debian.org>, Christian Perrier <bubulle@debian.org>
 Build-Depends: debhelper (>= 9), dpkg-dev (>= 1.9.0), po-debconf (>= 0.5.0), libdebian-installer4-dev (>= 0.76)
-XS-Debian-Vcs-Browser: http://anonscm.debian.org/gitweb/?p=d-i/hw-detect.git
-XS-Debian-Vcs-Git: git://anonscm.debian.org/d-i/hw-detect.git
+XS-Debian-Vcs-Browser: https://anonscm.debian.org/cgit/d-i/hw-detect.git
+XS-Debian-Vcs-Git: https://anonscm.debian.org/git/d-i/hw-detect.git
 Vcs-Bzr: http://bazaar.launchpad.net/~ubuntu-core-dev/hw-detect/ubuntu
 
 Package: hw-detect
@@ -26,8 +26,10 @@ Description: Detect network hardware and load kernel drivers for it
 
 Package: disk-detect
 Package-Type: udeb
-Architecture: all
-Depends: cdebconf-udeb (>= 0.38), hw-detect, di-utils (>= 1.13), pciutils-udeb
+Architecture: any
+Depends: cdebconf-udeb (>= 0.38), hw-detect, di-utils (>= 1.13), pciutils-udeb,
+	 harddrive-detection-dasd [s390x],
+	 harddrive-detection-zfcp [s390x]
 Priority: optional
 Provides: harddrive-detection
 Enhances: hw-detect

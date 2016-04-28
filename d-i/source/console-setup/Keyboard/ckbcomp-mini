@@ -1,29 +1,43 @@
 #!/bin/sh
 
-#     ckbcomp-mini -- convert XKB specification to keymap for loadkeys
-#     Copyright © 2006 Anton Zinoviev
+#     ckbcomp-mini -- convert XKB specification to loadkeys/kbdcontrol format
+#     Copyright (c) 2006,2009,2011 Anton Zinoviev <anton@lml.bas.bg>
 
-#     This program is free software; you can redistribute it and/or modify
-#     it under the terms of the GNU General Public License as published by
-#     the Free Software Foundation; either version 2 of the License, or
-#     (at your option) any later version.
+#     Permission is hereby granted, free of charge, to any person
+#     obtaining a copy of this file (the "Program"), to deal in the
+#     Program without restriction, including without limitation the
+#     rights to use, copy, modify, merge, publish, distribute,
+#     sublicense, and/or sell copies of the Program, and to permit
+#     persons to whom the Program is furnished to do so, subject to
+#     the following conditions: The above copyright notice and this
+#     permission notice shall be included in all copies or substantial
+#     portions of the Program.
 
-#     This program is distributed in the hope that it will be useful,
-#     but WITHOUT ANY WARRANTY; without even the implied warranty of
-#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#     GNU General Public License for more details.
-
-#     If you have not received a copy of the GNU General Public License
-#     along with this program, write to the Free Software Foundation, Inc.,
-#     59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#     THE PROGRAM IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+#     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+#     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+#     NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+#     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+#     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+#     FROM, OUT OF OR IN CONNECTION WITH THE PROGRAM OR THE USE OR
+#     OTHER DEALINGS IN THE PROGRAM.
 
 # Default values:
-ekmapdir=/usr/share/console-setup-mini
 model=pc105
 layout=''
 variant=''
 options=''
+charmap=''
+freebsd=''
 verbose_option=no
+
+installdir=${0%/*}
+case "$installdir" in
+    */bin) installdir=${installdir%/bin} ;;
+    *) installdir=$installdir/.. ;;
+esac
+datadir=$installdir/share/console-setup
+[ -d "$datadir" ] || datadir=/usr/share/console-setup
 
 # The same as /usr/bin/which - in order to make "which" available in
 # environments where "which" does not exist
@@ -39,10 +53,10 @@ which () {
     return 1
 }
 
-while [ "$1" ]; do
+while [ "$*" ]; do
     case "$1" in
 	-I*)
-	    ekmapdir=${1#-I}
+	    datadir=${1#-I}
 	    ;;
 	-model)
 	    shift
@@ -50,11 +64,11 @@ while [ "$1" ]; do
 	    ;;
 	-layout)
 	    shift
-	    layout="$1"
+	    layout=">$1"
 	    ;;
 	-variant)
 	    shift
-	    variant="$1"
+	    variant=">$1"
 	    ;;
 	-option)
 	    shift
@@ -62,6 +76,13 @@ while [ "$1" ]; do
 	    ;;
 	-charmap)
 	    shift
+            charmap=`echo "$1"|sed 's/-//g'`
+	    ;;
+	-backspace)
+	    shift
+	    ;;
+	-freebsd)
+            freebsd=yes
 	    ;;
 	-\?|-help)
 	    cat >&2 <<EOF
@@ -74,24 +95,29 @@ Where legal args are:
 -layout <name>      Specifies layout used to choose component names
 -variant <name>     Specifies layout variant used to choose component names
 -option <name>      Adds an option used to choose component names
+-freebsd            Generate a keymap for FreeBSD
+-backspace <type>   Ignored
 EOF
 	    exit 0
 	    ;;
 	-*)
-	    echo "setupcon: Unrecognised option $1" >&2
+	    echo "ckbcomp-mini: Unrecognised option $1" >&2
 	    exit 1
 	    ;;
 	*)
 	    if [ -z "$layout" ]; then
-		layout="$1"
+		layout=">$1"
 	    elif [ -z "$variant" ]; then
-		variant="$1"
+		variant=">$1"
 	    else
 		options=$(echo $options $1 | sed 's/,/ /g')
 	    fi
     esac
     shift
 done
+
+layout=${layout#>}
+variant=${variant#>}
 
 case "$model" in
     amiga|ataritt|macintosh_old|pc105|sun4|sun5)
@@ -105,7 +131,11 @@ if [ -z "$layout" ]; then
     layout=us
 fi
 
-ekmap=$ekmapdir/$model.ekmap.gz
+if [ "$freebsd" ]; then
+    ekmap=$datadir/$model.ekbd.gz
+else
+    ekmap=$datadir/$model.ekmap.gz
+fi
 
 if [ ! -f $ekmap ]; then
     echo "ckbcomp-mini: $ekmap does not exist" >&2
@@ -114,12 +144,6 @@ fi
 
 layout=${layout#*,}
 variant=${variant#*,}
-
-if [ "$variant" ]; then
-    kmap="$layout:$variant"
-else
-    kmap="$layout"
-fi
 
 ckbcomp_rec () {
     local kmap
@@ -133,22 +157,66 @@ ckbcomp_rec () {
 		    ?include*)
 			ckbcomp_rec "${line##* }"
                         ;;
-		    keycode*)
-			echo "$line"
-			;;
 		    *)
+			echo "$line"
 			;;
 		    esac
 	    done
 	  }
 }
 
-echo 'keymaps 0-4,6,8,10,12,14'
-ckbcomp_rec "$kmap"
-for option in $options; do
-    zcat $ekmap \
-	| grep "^$option::" \
-	| sed "s/^$option:://"
-done
-echo 'strings as usual'
+utf_keymap () {
+    if [ -z "$freebsd" ]; then
+        echo 'keymaps 0-4,6,8,10,12,14'
+    fi
+    ckbcomp_rec "$layout:$variant"
+    for option in $options; do
+        zcat $ekmap \
+	    | grep "^$option::" \
+	    | sed "s/^$option:://"
+    done
+    if [ -n "$freebsd" -a -n "$charmap" ]; then
+        file1="/etc/console-setup/dkey.${charmap}.inc"
+        file2="$installdir/etc/console-setup/dkey.${charmap}.inc"
+        if [ -f "$file1" ]; then
+            cat "$file1"
+        elif [ -f "$file2" ]; then
+            cat "$file2"
+        fi
+    fi
+    if [ -z "$freebsd" ]; then
+        echo 'strings as usual'
+        if [ "$charmap" ]; then
+            file1="/etc/console-setup/compose.${charmap}.inc"
+            file2="$installdir/etc/console-setup/compose.${charmap}.inc"
+            if [ -f "$file1" ]; then
+                cat "$file1"
+            elif [ -f "$file2" ]; then
+                cat "$file2"
+            fi
+        fi
+    fi
+}
 
+if [ "$charmap" ]; then
+    if [ -f $datadir/charmap_functions.sh ]; then
+        . $datadir/charmap_functions.sh
+    else
+        echo $charmap is not supported >&2
+        exit 1
+    fi
+    utf_keymap \
+        | while read x; do
+              line=''
+              for i in $x; do
+                  case $i in
+                      +U+????) line="$line+`to_$charmap ${i#+U+}` " ;;
+                      U+????) line="$line`to_$charmap ${i#U+}` " ;;
+                      *) line="$line$i " ;;
+                  esac
+              done
+              echo $line
+          done
+else
+    utf_keymap
+fi

@@ -53,22 +53,28 @@ fi
 
 db_get netcfg/target_network_config
 
-if [ "$RET" = "$CONFIG_NM" ]; then
+case $RET in
+    $CONFIG_NM)
 	# Copy NM config file. First make sure the directory exists
 	mkdir -p /target/$FILE_PATH_NM_CONFIG
 	cp /$FILE_PATH_NM_CONFIG/* /target/$FILE_PATH_NM_CONFIG/
 
 	# Rewrite /etc/network/interfaces to contain only loopback
 	netcfg write_loopback
-elif [ "$RET" = "$CONFIG_LOOPBACK" ]; then
+	;;
+
+    $CONFIG_LOOPBACK)
 	# Rewrite /etc/network/interfaces to contain only loopback
 	netcfg write_loopback
-fi
+	;;
+esac
 
-# Copy /etc/network/interfaces to target. Note: there's nothing particular to
-# be done if the /e/n/i option is chosen, since /e/n/i gets copied in any
-# situation.
-mkdir -p /target$(dirname $FILE_INTERFACES)
-cp $FILE_INTERFACES /target$FILE_INTERFACES
+case $RET in
+    $CONFIG_NM|$CONFIG_LOOPBACK)
+	# Copy /etc/network/interfaces to target.
+	mkdir -p /target$(dirname $FILE_INTERFACES)
+	cp $FILE_INTERFACES /target$FILE_INTERFACES
+	;;
+esac
 
 exit 0

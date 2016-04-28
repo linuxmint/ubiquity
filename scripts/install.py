@@ -49,12 +49,7 @@ class Install(install_misc.InstallBase):
             os.makedirs('/var/lib/ubiquity')
         with open('/var/lib/ubiquity/started-installing', 'a'):
             pass
-        
-        if not os.path.exists('/var/lib/ubiquity'):
-              os.makedirs('/var/lib/ubiquity')
-        with open('/var/lib/ubiquity/started-installing', 'a'):
-              pass
-            
+
         self.update_proc = None
 
         if os.path.isdir('/rofs'):
@@ -225,24 +220,28 @@ class Install(install_misc.InstallBase):
             with open(manifest_remove) as manifest_file:
                 for line in manifest_file:
                     if line.strip() != '' and not line.startswith('#'):
-                        difference.add(line.split()[0])
+                        pkg = line.split(':')[0]
+                        difference.add(pkg.split()[0])
             live_packages = set()
             with open(manifest) as manifest_file:
                 for line in manifest_file:
                     if line.strip() != '' and not line.startswith('#'):
-                        live_packages.add(line.split()[0])
+                        pkg = line.split(':')[0]
+                        live_packages.add(pkg.split()[0])
             desktop_packages = live_packages - difference
         elif os.path.exists(manifest_desktop) and os.path.exists(manifest):
             desktop_packages = set()
             with open(manifest_desktop) as manifest_file:
                 for line in manifest_file:
                     if line.strip() != '' and not line.startswith('#'):
-                        desktop_packages.add(line.split()[0])
+                        pkg = line.split(':')[0]
+                        desktop_packages.add(pkg.split()[0])
             live_packages = set()
             with open(manifest) as manifest_file:
                 for line in manifest_file:
                     if line.strip() != '' and not line.startswith('#'):
-                        live_packages.add(line.split()[0])
+                        pkg = line.split(':')[0]
+                        live_packages.add(pkg.split()[0])
             difference = live_packages - desktop_packages
         else:
             difference = set()
@@ -275,6 +274,9 @@ class Install(install_misc.InstallBase):
                 keep.add('grub-efi-amd64')
                 keep.add('grub-efi-amd64-signed')
                 keep.add('shim-signed')
+                keep.add('mokutil')
+                keep.add('fwupdate-signed')
+                install_misc.record_installed(['fwupdate-signed'])
                 try:
                     altmeta = self.db.get(
                         'base-installer/kernel/altmeta')

@@ -287,6 +287,9 @@ on_draw(GtkWidget *widget, cairo_t *cr, gpointer userdata) {
 		pixbuf = gdk_pixbuf_new_from_file("/usr/share/lxpanel/images/lubuntu-background.png", NULL);
 	}
 	if (!pixbuf) {
+		pixbuf = gdk_pixbuf_new_from_file("/usr/share/themes/Greybird/ubiquity-panel-bg.png", NULL);
+	}
+	if (!pixbuf) {
 		pixbuf = gdk_pixbuf_new_from_file("/usr/share/ubiquity/pixmaps/panel.png", NULL);
 	}
 	if (pixbuf) {

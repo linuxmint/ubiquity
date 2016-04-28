@@ -1,3 +1,275 @@
+partman-auto (134ubuntu1) xenial; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    Recipe changes:
+    - Adjust default partition and EFI sizes for Ubuntu.
+    - Change the x86 atomic recipes to make the minimum swap size be 100% of
+      RAM, so that hibernate always works.
+    - In addition to EFI partition, reuse existing swap partitions and
+      BIOS Boot Partitions, if any, rather than creating new ones.
+    - Use fat32 rather than free as a filesystem type for the efi partitions
+      for amd64, arm64, i386; otherwise it's seen as an ext2 partition by
+      partman-efi, which causes errors or missing settings.
+
+    Automatic Partitioning:
+    - Offer resize_use_free autopartitioning method, except on armel/armhf.
+    - Add an option to reuse an existing installation.
+    - Split out the replace option from resize_use_free.
+
+    Code changes:
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+    - Make biggest_free respect the selection made in partman-auto/disk.
+    - Exclude devices containing the installation medium from automatic
+      partitioning.
+    - Use new get_real_resize_range function from partman-partitioning
+      72ubuntu3, which caches calls to tune2fs and ntfsresize.
+    - Support resizing the largest partition on multiple disks.
+    - Support formatting the entire partition for any partition that can be
+      resized.
+  * Double minimum and maximum sizes for the /boot partitions on amd64, i386,
+    and arm (especially for EFI). (LP: #1465050)
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Wed, 09 Mar 2016 17:20:43 -0500
+
+partman-auto (134) unstable; urgency=medium
+
+  [ Colin Watson ]
+  * Use HTTPS for Vcs-* URLs, and link to cgit rather than gitweb.
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 13 Feb 2016 15:36:56 +0100
+
+partman-auto (133) unstable; urgency=medium
+
+  [ Martin Michlmayr ]
+  * Update partition layout defaults:
+    - atomic:
+      - Set minimimum size of / partition to 900 MB for platforms without
+        separate /boot partition and to 800 MB for those with /boot.
+    - home:
+      - Increase maximum size of / partition to 20 GB or 30 GB, depending
+        on the platform.
+      - Increase minimum size of / partition to 1500 MB and of /home to
+        1000 MB.  This allocates more space to the / partition on smaller
+        disks and ensures the separate /home option is not offered on 2 GB
+        disks.
+      - Increase priority of / partition so more space is allocated to it
+        on small disks.  Closes: #770032
+    - multi:
+      - Increase maximum size of / partition to 25 GB.  Closes: #725642
+      - Increase maximum size of /var partition to 10 GB.  Closes: #803604
+      - Increase maximum size of /tmp partition to 2 GB.
+      - Increase minimum size of / partition to 2000 MB, of /var to 1000 MB,
+        of /tmp to 256 MB and of /home to 4000 MB.  This ensures that this
+        option is no longer offered on 4 GB disks.
+      - Increase priority of /home partition since most space should be
+        allocated to it.
+      - Increase priority of /tmp partition so more than the minimum is
+        allocated to it.
+      - Adjust priority of / partition in relation to other partitions.
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 10 Jan 2016 07:01:50 +0100
+
+partman-auto (132) unstable; urgency=medium
+
+  [ Martin Michlmayr ]
+  * Remove recipes for armel/iop32x and armel/ixp4xx as these flavours
+    are no longer supported.
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 08 Jan 2016 06:52:25 +0100
+
+partman-auto (131ubuntu1) xenial; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    Recipe changes:
+    - Adjust default partition and EFI sizes for Ubuntu.
+    - Change the x86 atomic recipes to make the minimum swap size be 100% of
+      RAM, so that hibernate always works.
+    - In addition to EFI partition, reuse existing swap partitions and
+      BIOS Boot Partitions, if any, rather than creating new ones.
+    - Use fat32 rather than free as a filesystem type for the efi partitions
+      for amd64, arm64, i386; otherwise it's seen as an ext2 partition by
+      partman-efi, which causes errors or missing settings.
+
+    Automatic Partitioning:
+    - Offer resize_use_free autopartitioning method, except on armel/armhf.
+    - Add an option to reuse an existing installation.
+    - Split out the replace option from resize_use_free.
+
+    Code changes:
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+    - Make biggest_free respect the selection made in partman-auto/disk.
+    - Exclude devices containing the installation medium from automatic
+      partitioning.
+    - Use new get_real_resize_range function from partman-partitioning
+      72ubuntu3, which caches calls to tune2fs and ntfsresize.
+    - Support resizing the largest partition on multiple disks.
+    - Support formatting the entire partition for any partition that can be
+      resized.
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Tue, 22 Dec 2015 16:02:50 -0500
+
+partman-auto (131) unstable; urgency=medium
+
+  [ Helge Deller ]
+  * Increase palo and /boot partitions on hppa architecture
+  * Increase /boot partition on alpha architecture
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 08 Oct 2015 07:09:32 +0200
+
+partman-auto (130) unstable; urgency=medium
+
+  [ Aurelien Jarno ]
+  * Remove recipes for sb1-bcm91250a sb1a-bcm91480b as these flavours are
+    now gone.
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 02 Sep 2015 07:03:55 +0200
+
+partman-auto (129) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 10 Aug 2015 09:13:31 +0200
+
+partman-auto (128) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 25 Jul 2015 22:00:29 +0200
+
+partman-auto (127) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 02 Jul 2015 15:50:00 +0200
+
+partman-auto (126) unstable; urgency=low
+
+  [ Updated translations ]
+  * Danish (da.po) by Joe Hansen
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 08 Mar 2015 11:45:24 +0100
+
+partman-auto (125ubuntu2) vivid; urgency=medium
+
+  * Use fat32 rather than free as a filesystem type for the efi partitions
+    for amd64, arm64, i386; otherwise it's seen as an ext2 partition by
+    partman-efi, which causes errors or missing settings. (LP: #1428877)
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Tue, 14 Apr 2015 11:29:20 -0500
+
+partman-auto (125ubuntu1) vivid; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    Recipe changes:
+    - Adjust default partition and EFI sizes for Ubuntu.
+    - Change the x86 atomic recipes to make the minimum swap size be 100% of
+      RAM, so that hibernate always works.
+    - In addition to EFI partition, reuse existing swap partitions and
+      BIOS Boot Partitions, if any, rather than creating new ones.
+
+    Automatic Partitioning:
+    - Offer resize_use_free autopartitioning method, except on armel/armhf.
+    - Add an option to reuse an existing installation.
+    - Split out the replace option from resize_use_free.
+
+    Code changes:
+    - Accept autopartitioning automatically rather than showing
+      choose_partition.
+    - Drop priority of partman-auto/choose_recipe question to medium.
+    - Add support for partman-auto/method=loop via partman-auto-loop.
+    - Make biggest_free respect the selection made in partman-auto/disk.
+    - Exclude devices containing the installation medium from automatic
+      partitioning.
+    - Use new get_real_resize_range function from partman-partitioning
+      72ubuntu3, which caches calls to tune2fs and ntfsresize.
+    - Support resizing the largest partition on multiple disks.
+    - Support formatting the entire partition for any partition that can be
+      resized.
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Thu, 12 Feb 2015 16:10:29 -0500
+
+partman-auto (125) unstable; urgency=medium
+
+  * Reinstate symlinks which were accidentally replaced with older copies of
+    their target files in 124. This reinstates the following which were in 123
+    or earlier:
+    - arm64, arm64-efi and i386-efi:
+      - Combine / and /usr partitions in 'multi' recipes (from 123).
+      - Increase the EFI System Partition size slightly to ensure that it's at
+        least 512MiB, not just 512MB (from 122).
+    - mipsel-cobalt:
+      - Remove recipes (from 116).
+
+ -- Ian Campbell <ijc@debian.org>  Wed, 28 Jan 2015 09:05:17 +0000
+
+partman-auto (124) unstable; urgency=medium
+
+  * Translations unfuzzied for /usr removal.
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 26 Sep 2014 16:40:03 -0400
+
+partman-auto (123) unstable; urgency=medium
+
+  [ Ben Hutchings ]
+  * Combine / and /usr partitions in 'multi' recipes. Closes: #652275
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 25 Sep 2014 06:42:55 +0200
+
+partman-auto (122) unstable; urgency=medium
+
+  [ Colin Watson ]
+  * Increase the EFI System Partition size slightly to ensure that it's at
+    least 512MiB, not just 512MB.  See LP #1306164.
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 07 Sep 2014 08:29:29 +0200
+
+partman-auto (121) unstable; urgency=medium
+
+  [ Ian Campbell ]
+  * Add arm64/efi receipe, reusing amd64/efi.
+
+ -- Ian Campbell <ijc@debian.org>  Fri, 05 Sep 2014 19:03:06 +0100
+
+partman-auto (120) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Estonian (et.po) by Mattias Põldaru
+
+  [ Frederic Bonnard ]
+  * Add ppc64el recipes (closes: #752418).
+
+ -- Aurelien Jarno <aurel32@debian.org>  Wed, 27 Aug 2014 09:54:38 +0200
+
+partman-auto (119) unstable; urgency=medium
+
+  [ Mario Limonciello ]
+  * Add the rest of the support necessary to allow reusing EFI partitions
+    (closes: #729326).
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 08 Jul 2014 12:56:28 +0100
+
+partman-auto (118ubuntu5) vivid; urgency=medium
+
+  * Re-add recipes-ppc64el symlink. It was mistakenly dropped in the
+    last upload because I failed to notice it hadn't been committed.
+
+ -- dann frazier <dannf@ubuntu.com>  Mon, 02 Feb 2015 20:55:38 -0700
+
+partman-auto (118ubuntu4) vivid; urgency=medium
+
+  * Add arm64/efi recipe, reusing amd64/efi. (From Debian)
+
+ -- dann frazier <dannf@ubuntu.com>  Mon, 02 Feb 2015 19:37:10 -0700
+
 partman-auto (118ubuntu3) trusty; urgency=medium
 
   * Increase the EFI System Partition size slightly to ensure that it's at

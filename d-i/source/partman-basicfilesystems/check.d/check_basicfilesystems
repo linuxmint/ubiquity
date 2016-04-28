@@ -2,6 +2,14 @@
 
 . /lib/partman/lib/base.sh
 
+if search-path fsck.fat; then
+	FSCK_FAT=fsck.fat
+elif search-path dosfsck; then
+	FSCK_FAT=dosfsck
+else
+	FSCK_FAT=
+fi
+
 for dev in $DEVICES/*; do
 	[ -d "$dev" ] || continue
 	cd $dev
@@ -21,6 +29,10 @@ for dev in $DEVICES/*; do
 		filesystem=$(cat $id/acting_filesystem)
 		case $filesystem in
 		    fat16|fat32)
+			# We can't check FAT filesystems if dosfstools is
+			# unavailable (i.e. on non-Linux architectures), but
+			# it's probably OK to just allow mounting them.
+			[ "$FSCK_FAT" ] || continue
 			log "Check the file system in $dev/$id"
 			template=partman-basicfilesystems/progress_checking
 			RET=''
@@ -29,10 +41,19 @@ for dev in $DEVICES/*; do
 			db_subst $template TYPE "$RET"
 			db_subst $template PARTITION "$num"
 			db_subst $template DEVICE $(humandev $(cat device))
-			name_progress_bar $template
-			open_dialog CHECK_FILE_SYSTEM $id
-			read_line status
+			open_dialog PARTITION_INFO $id
+			read_line x1 x2 x3 x4 x5 device x6
 			close_dialog
+			db_progress START 0 1 partman/text/please_wait
+			db_progress INFO $template
+			if log-output -t partman --pass-stdout \
+			    $FSCK_FAT -n $device >/dev/null; then
+				status=good
+			else
+				status=failed
+			fi
+			db_progress STOP    
+
 			if [ "$status" != good ]; then
 				db_subst partman-basicfilesystems/check_failed TYPE "$filesystem"
 				db_subst partman-basicfilesystems/check_failed PARTITION "$num"

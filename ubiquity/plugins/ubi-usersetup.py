@@ -235,20 +235,6 @@ class PageGtk(PageBase):
         self.resolver_ok = True
         self.plugin_widgets = self.page
 
-    def plugin_translate(self, lang):
-        # TODO Move back into the frontend as we can check
-        # isinstance(LabelledEntry and just call set_label.  We'll need to
-        # properly name the debconf keys though (s/inactive_label//)
-        user = self.controller.get_string('username_inactive_label', lang)
-        full = self.controller.get_string('fullname_inactive_label', lang)
-        pasw = self.controller.get_string('password_inactive_label', lang)
-        vpas = self.controller.get_string('password_again_inactive_label',
-                                          lang)
-        self.username.set_placeholder_text(user)
-        self.fullname.set_placeholder_text(full)
-        self.password.set_placeholder_text(pasw)
-        self.verified_password.set_placeholder_text(vpas)
-
     # Functions called by the Page.
 
     def set_fullname(self, value):
@@ -499,8 +485,8 @@ class PageKde(PageBase):
         self.page.fullname.textChanged[str].connect(self.on_fullname_changed)
         self.page.username.textChanged[str].connect(self.on_username_changed)
         self.page.hostname.textChanged[str].connect(self.on_hostname_changed)
-        #self.page.password.textChanged[str].connect(self.on_password_changed)
-        #self.page.verified_password.textChanged[str].connect(
+        # self.page.password.textChanged[str].connect(self.on_password_changed)
+        # self.page.verified_password.textChanged[str].connect(
         #    self.on_verified_password_changed)
         self.page.login_pass.clicked[bool].connect(self.on_login_pass_clicked)
         self.page.login_auto.clicked[bool].connect(self.on_login_auto_clicked)
@@ -773,7 +759,8 @@ class Page(plugin.Plugin):
             # TODO: It would be neater to use a wrapper script.
             command = [
                 'sh', '-c',
-                '/usr/lib/ubiquity/user-setup/user-setup-ask /target',
+                '/usr/lib/ubiquity/user-setup/user-setup-ask /target && '
+                '/usr/share/ubiquity/user-setup-encrypted-swap',
             ]
             return command, questions
 

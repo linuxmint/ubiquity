@@ -111,7 +111,7 @@ class PageGtk(PageBase):
         self.install_ubuntu = builder.get_object('install_ubuntu')
         self.try_ubuntu = builder.get_object('try_ubuntu')
         if not self.only:
-            if not 'UBIQUITY_GREETER' in os.environ:
+            if 'UBIQUITY_GREETER' not in os.environ:
                 choice_section_vbox = builder.get_object('choice_section_vbox')
                 choice_section_vbox and choice_section_vbox.hide()
             else:
@@ -424,7 +424,7 @@ class PageKde(PageBase):
             init_big_button(self.page.try_ubuntu, 'try.png')
 
             self.release_notes_url = ''
-            self.update_installer = False
+            self.update_installer = True
             self.updating_installer = False
             if self.controller.oem_config or auto_update.already_updated():
                 self.update_installer = False
@@ -444,7 +444,7 @@ class PageKde(PageBase):
             else:
                 self.page.release_notes_label.hide()
 
-            if not 'UBIQUITY_GREETER' in os.environ:
+            if 'UBIQUITY_GREETER' not in os.environ:
                 self.page.try_ubuntu.hide()
                 self.page.try_install_text_label.hide()
                 self.page.install_ubuntu.hide()
@@ -556,7 +556,7 @@ class PageKde(PageBase):
                 text = widget.text()
                 text = text.replace('${RELEASE}', release.name)
                 text = text.replace('${MEDIUM}', install_medium)
-                text = text.replace('Ubuntu', 'Linux Mint')
+                text = text.replace('Ubuntu', 'Kubuntu')
                 widget.setText(text)
 
         self.update_release_notes_label()

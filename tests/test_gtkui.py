@@ -72,7 +72,7 @@ class TestFrontend(unittest.TestCase):
             # height 556, because e.g. HP Mini has 580 - 24px (indicators)
             # Anything smaller will need to use Alt+Ctrl+Pgd/Right
             # Scrollbars anyone?
-            #self.assertLessEqual(alloc.width, 640, page.module.NAME)  # fixme
+            # self.assertLessEqual(alloc.width, 640, page.module.NAME)  # fixme
             self.assertLessEqual(alloc.height, 556, page.module.NAME)
             if page.module.NAME == 'partman':
                 ui.allow_change_step(False)
@@ -130,6 +130,11 @@ class TestFrontend(unittest.TestCase):
                 'ubi_question_dialog', 'question_label',
                 # Calculated error string
                 'label_global_error',
+                'warning_password_label', 'label1', 'secureboot_label',
+                # secure boot
+                'disable_secureboot', 'prepare_foss_disclaimer_license',
+                'label_free_space', 'label_required_space',
+                'label_download_updates',
             ]
             deb_host_arch = subprocess.Popen(
                 ['dpkg-architecture', '-qDEB_HOST_ARCH'],

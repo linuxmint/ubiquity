@@ -1,8 +1,10 @@
 /* The best bits of mii-diag and ethtool mixed into one big jelly roll. */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 #include <net/if.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
@@ -21,19 +23,7 @@
 
 #if defined(__linux__)
 
-#ifndef ETHTOOL_GLINK
-# define ETHTOOL_GLINK 0x0000000a
-#endif
-
-#ifndef SIOCETHTOOL
-# define SIOCETHTOOL 0x8946
-#endif
-
-struct ethtool_value
-{
-	u_int32_t cmd;
-	u_int32_t data;
-};
+#define SYSCLASSNET "/sys/class/net/"
 
 #elif defined(__FreeBSD_kernel__)
 
@@ -50,6 +40,39 @@ int ethtool_lite (const char * iface)
 #ifdef TEST
 	char* iface;
 #endif
+
+#if defined(__linux__)
+	int len = strlen(SYSCLASSNET) + strlen(iface) + strlen("/carrier") + 1;
+	char* filename = malloc(len);
+	snprintf(filename, len, SYSCLASSNET "%s/carrier", iface);
+	FILE* fp = fopen(filename, "r");
+	free(filename);
+
+	char result[2];
+	if (fgets(result, sizeof(result), fp) == NULL) {
+		fclose(fp);
+		if (errno == EINVAL) {
+			di_info("ethtool-lite: %s is down", iface);
+			return DISCONNECTED;
+		}
+		di_error("ethtool-lite: getting carrier failed: %s",
+			strerror(errno));
+		return UNKNOWN;
+	}
+	fclose(fp);
+
+	switch (result[0]) {
+	case '1':
+		di_info("ethtool-lite: %s: carrier up", iface);
+		return CONNECTED;
+	case '0':
+		di_info("ethtool-lite: %s: carrier down", iface);
+		return DISCONNECTED;
+	}
+	di_info("ethtool-lite: %s: could not determine carrier state; got \"%s\"",
+		iface, result);
+	return UNKNOWN;
+#elif defined(__FreeBSD_kernel__)
 	int fd = socket(AF_INET, SOCK_DGRAM, 0);
 
 	if (fd < 0)
@@ -68,57 +91,6 @@ int ethtool_lite (const char * iface)
 	iface = argv[1];
 #endif
 
-#if defined(__linux__)
-	struct ethtool_value edata;
-	struct ifreq ifr;
-
-	memset (&edata, 0, sizeof(struct ethtool_value));
-	edata.cmd = ETHTOOL_GLINK;
-	ifr.ifr_data = (char *)&edata;
-	strncpy (ifr.ifr_name, iface, IFNAMSIZ);
-
-	if (ioctl (fd, SIOCETHTOOL, &ifr) >= 0)
-	{
-		di_info("ethtool-lite: %s is %sconnected.\n", iface,
-		        (edata.data) ? "" : "dis");
-		close(fd);
-		return (edata.data) ? CONNECTED : DISCONNECTED;
-	}
-	else
-	{
-		di_info("ethtool-lite: ethtool ioctl on %s failed\n", iface);
-		u_int16_t *data = (u_int16_t *)&ifr.ifr_data;
-		int ctl;
-		data[0] = 0;
-
-		if (ioctl (fd, 0x8947, &ifr) >= 0)
-			ctl = 0x8948;
-		else if (ioctl (fd, SIOCDEVPRIVATE, &ifr) >= 0)
-			ctl = SIOCDEVPRIVATE + 1;
-		else
-		{
-			di_warning("ethtool-lite: couldn't determine MII ioctl to use for %s\n", iface);
-			close(fd);
-			return UNKNOWN;
-		}
-
-		data[1] = 1;
-
-		if (ioctl (fd, ctl, &ifr) >= 0)
-		{
-			int ret = !(data[3] & 0x0004);
-
-			di_info ("ethtool-lite: %s is %sconnected. (MII)\n", iface,
-				(ret) ? "dis" : "");
-
-			close(fd);
-			return ret ? DISCONNECTED : CONNECTED;
-		}
-	}
-
-	di_warning("ethtool-lite: MII ioctl failed for %s\n", iface);
-
-#elif defined(__FreeBSD_kernel__)
 	struct ifmediareq ifmr;
 
 	memset(&ifmr, 0, sizeof(ifmr));
@@ -129,15 +101,14 @@ int ethtool_lite (const char * iface)
 		close(fd);
 		return UNKNOWN;
 	}
+	close(fd);
 
 	if (ifmr.ifm_status & IFM_AVALID) {
 		if (ifmr.ifm_status & IFM_ACTIVE) {
 			di_info("ethtool-lite: %s is connected.\n", iface);
-			close(fd);
 			return CONNECTED;
 		} else {
 			di_info("ethtool-lite: %s is disconnected.\n", iface);
-			close(fd);
 			return DISCONNECTED;
 		}
 	}
@@ -146,6 +117,5 @@ int ethtool_lite (const char * iface)
 #elif defined(__GNU__)
 	di_warning("ethtool-lite: unsupported on GNU/Hurd for %s\n", iface);
 #endif
-	close(fd);
 	return UNKNOWN;
 }

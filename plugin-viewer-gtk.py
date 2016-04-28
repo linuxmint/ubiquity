@@ -11,7 +11,8 @@ DBusGMainLoop(set_as_default=True)
 #   from ubiquity.frontend.base import Controller
 
 # for testing online status
-from ubiquity.misc import add_connection_watch
+#from ubiquity.misc import add_connection_watch
+
 
 class MockController(object):
 
@@ -68,14 +69,14 @@ if __name__ == "__main__":
 
     mock_controller = MockController(win)
     page_gtk = plugin_module.PageGtk(mock_controller)
-    page_gtk.plugin_translate("en")
+    #page_gtk.plugin_translate("en")
 
     win.button_next.connect(
         "clicked", _on_button_next_clicked)
     win.button_back.connect(
         "clicked", lambda b: page_gtk.plugin_on_back_clicked())
 
-    add_connection_watch(page_gtk.plugin_set_online_state)
+    #add_connection_watch(page_gtk.plugin_set_online_state)
 
     # fake debconf interface:
     page_gtk.db = {'netcfg/get_hostname': 'test hostname'}
@@ -86,7 +87,10 @@ if __name__ == "__main__":
     button_box.pack_start(win.button_next, True, True, 6)
 
     box = Gtk.VBox()
-    box.pack_start(page_gtk.page, True, True, 6)
+    if hasattr(page_gtk, 'page'):
+        box.pack_start(page_gtk.page, True, True, 6)
+    else: 
+        box.pack_start(page_gtk.current_page, True, True, 6)
     box.pack_start(button_box, True, True, 6)
 
     win.add(box)

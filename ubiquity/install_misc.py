@@ -475,6 +475,24 @@ def archdetect():
         return answer, ''
 
 
+def is_secure_boot():
+    try:
+        secureboot = ''
+        secureboot_efivar = subprocess.Popen(
+            ['od', '-An', '-t', 'u1',
+             os.path.join('/sys/firmware/efi/efivars',
+                          'SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c')],
+            stdout=subprocess.PIPE, universal_newlines=True)
+        answer = secureboot_efivar.communicate()[0].strip()
+        if answer is not None:
+            secureboot = answer.split(' ')[-1]
+        if len(secureboot) > 0:
+            return (int(secureboot) == 1)
+        return False
+    except:
+        return False
+
+
 # TODO this can probably go away now.
 def get_cache_pkg(cache, pkg):
     # work around broken has_key in python-apt 0.6.16
@@ -584,8 +602,6 @@ def locale_to_language_pack(locale):
     lang = locale.split('.')[0]
     if lang == 'zh_CN':
         return 'zh-hans'
-    elif lang == 'zh_HK':
-        return 'zh-hant'
     elif lang == 'zh_TW':
         return 'zh-hant'
     else:
@@ -857,7 +873,7 @@ class InstallBase:
                             (item.destfile, e))
                         continue
 
-                    if candidate.sha256 is not "":
+                    if candidate.sha256 is not None:
                         sha256 = hashlib.sha256()
                         for chunk in iter(lambda: destfile.read(16384), b''):
                             sha256.update(chunk)

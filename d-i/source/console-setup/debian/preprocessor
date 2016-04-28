@@ -5,11 +5,16 @@ tmp=`tempfile`
 
 mini=''
 file=''
+udeb=''
 
 while [ "$1" ]; do
     case "$1" in
+	--udeb)
+            mini=1
+            udeb=1
+	    ;;
 	--mini)
-	    mini=1
+            mini=1
 	    ;;
 	-*)
 	    echo Unknown parameter: "$1" 1>&2
@@ -47,7 +52,7 @@ awk '
 }
 /## *CHARMAPS *##/ {
     printf "charmaps='\''";
-    system("cd Keyboard && ls acm/*.acm |sed -e '\''s/^acm.//'\'' -e '\''s/.acm$//'\''");
+    system("ls acm/*.acm |sed -e '\''s/^acm.//'\'' -e '\''s/.acm$//'\''");
     printf "UTF-8'\''\n";
     next;
 }
@@ -63,8 +68,8 @@ if [ "$mini" ]; then
     awk '
 /## *KBDNAMES *##/ {
     printf "all_kbdnames () {\n cat <<'\''EOF'\'' \n";
-    system("cd Keyboard && ./kbdnames-maker MyKeyboardNames.pl | grep '\''^C[*]'\'' | grep -v '\''[*]model[*]'\''");
-    printf "EOF\n [ ! -f /usr/share/console-setup-mini/kbdnames.gz ] || zcat /usr/share/console-setup-mini/kbdnames.gz \n}\n";
+    system("cd Keyboard && ./kbdnames-maker KeyboardNames.pl | grep '\''^C[*]'\'' | grep -v '\''[*]model[*]'\'"$rmkbdnames"'");
+    printf "EOF\n [ ! -f /usr/share/console-setup/kbdnames.gz ] || zcat /usr/share/console-setup/kbdnames.gz \n}\n";
     next;
 }
 {
@@ -74,7 +79,7 @@ else
     awk '
 /## *KBDNAMES *##/ {
     printf "all_kbdnames () {\n cat <<'\''EOF'\''\n";
-    system("cd Keyboard && ./kbdnames-maker MyKeyboardNames.pl");
+    system("cd Keyboard && ./kbdnames-maker KeyboardNames.pl");
     printf "EOF\n}\n";
     next;
 }

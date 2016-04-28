@@ -100,7 +100,7 @@ class PageGtk(plugin.PluginUI):
         self.query = KeyboardQuery(self.controller._wizard)
         self.query.connect('layout_result', self.calculate_result)
         self.query.connect('delete-event', self.calculate_closed)
-        #self.controller._wizard.overlay.set_property('greyed', True)
+        # self.controller._wizard.overlay.set_property('greyed', True)
         self.query.set_transient_for(self.page.get_toplevel())
         self.query.run()
 
@@ -286,19 +286,22 @@ class PageKde(plugin.PluginUI):
     @plugin.only_this_page
     def on_keyboard_layout_selected(self, *args):
         layout = self.get_keyboard()
-        l = self.controller.dbfilter.get_locale()
+        lang = self.controller.dbfilter.get_locale()
         if layout is not None:
-            #skip updating keyboard if not using display
-            if self.keyboardDisplay:
-                ly = keyboard_names.layout_id(l, misc.utf8(layout))
-                self.keyboardDisplay.setLayout(ly)
+                # skip updating keyboard if not using display
+                if self.keyboardDisplay:
+                    try:
+                        ly = keyboard_names.layout_id(lang, misc.utf8(layout))
+                    except KeyError:
+                        ly = keyboard_names.layout_id('C', misc.utf8(layout))
+                    self.keyboardDisplay.setLayout(ly)
 
-                #no variants, force update by setting none
-                #if not keyboard_names.has_variants(l, ly):
-                #    self.keyboardDisplay.setVariant(None)
+                    # no variants, force update by setting none
+                    # if not keyboard_names.has_variants(l, ly):
+                    #    self.keyboardDisplay.setVariant(None)
 
-            self.current_layout = layout
-            self.controller.dbfilter.change_layout(layout)
+                self.current_layout = layout
+                self.controller.dbfilter.change_layout(layout)
 
     @plugin.only_this_page
     def on_keyboard_variant_selected(self, *args):
@@ -307,11 +310,15 @@ class PageKde(plugin.PluginUI):
 
         if self.keyboardDisplay:
             var = None
-            l = self.controller.dbfilter.get_locale()
-            ly = keyboard_names.layout_id(l, layout)
+            lang = self.controller.dbfilter.get_locale()
+            try:
+                ly = keyboard_names.layout_id(lang, layout)
+            except KeyError:
+                ly = keyboard_names.layout_id('C', layout)
             if variant:
                 try:
-                    var = keyboard_names.variant_id(l, ly, misc.utf8(variant))
+                    var = keyboard_names.variant_id(lang, ly,
+                                                    misc.utf8(variant))
                 except KeyError:
                     var = None
 
@@ -336,8 +343,11 @@ class PageKde(plugin.PluginUI):
             self.page.keyboard_layout_combobox.setCurrentIndex(index)
 
         if self.keyboardDisplay:
-            l = self.controller.dbfilter.get_locale()
-            ly = keyboard_names.layout_id(l, misc.utf8(layout))
+            lang = self.controller.dbfilter.get_locale()
+            try:
+                ly = keyboard_names.layout_id(lang, misc.utf8(layout))
+            except KeyError:
+                ly = keyboard_names.layout_id('C', misc.utf8(layout))
             self.keyboardDisplay.setLayout(ly)
 
     def get_keyboard(self):
@@ -360,12 +370,15 @@ class PageKde(plugin.PluginUI):
             self.page.keyboard_variant_combobox.setCurrentIndex(index)
 
         if self.keyboardDisplay:
-            l = self.controller.dbfilter.get_locale()
-            layout = keyboard_names.layout_id(l, self.get_keyboard())
+            lang = self.controller.dbfilter.get_locale()
+            try:
+                layout = keyboard_names.layout_id(lang, self.get_keyboard())
+            except KeyError:
+                layout = keyboard_names.layout_id('C', self.get_keyboard())
             if variant:
                 try:
                     var = keyboard_names.variant_id(
-                        l, layout, misc.utf8(variant))
+                        lang, layout, misc.utf8(variant))
                 except KeyError:
                     var = None
 

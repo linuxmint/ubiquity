@@ -4,6 +4,7 @@
 #export DH_VERBOSE=1
 
 export DH_OPTIONS
+export LC_ALL=C.UTF-8
 
 VERSION := $(shell dpkg-parsechangelog | awk '/^Version:/ { print $$2 }')
 EXPECTED_AC_VERSION := $(shell echo "$(VERSION)" | cut -d. -f1,2)
@@ -52,8 +53,8 @@ check:
 		sh -n $$x; \
 	done
 	# Check the syntax of any Python scripts.
-	#./tests/run-pyflakes
-	#./tests/run-pep8
+	./tests/run-pyflakes
+	./tests/run-pep8
 
 pychecker:
 	./run-pychecker
@@ -70,11 +71,11 @@ clean: check
 
 	$(MAKE) -C d-i check
 
-d-i/source/console-setup/Keyboard/MyKeyboardNames.pl:
-	$(MAKE) -C d-i/source/console-setup/Keyboard MyKeyboardNames.pl \
+d-i/source/console-setup/Keyboard/KeyboardNames.pl:
+	$(MAKE) -C d-i/source/console-setup/Keyboard KeyboardNames.pl \
 		xkbdir=/usr/share/X11/xkb
 
-debian/kbdnames.gz: d-i/source/console-setup/Keyboard/MyKeyboardNames.pl
+debian/kbdnames.gz: d-i/source/console-setup/Keyboard/KeyboardNames.pl
 	d-i/source/console-setup/Keyboard/kbdnames-maker $< | gzip -9c > $@
 
 install: install-stamp
@@ -136,7 +137,7 @@ endif
 		d-i/source/clock-setup/finish-install.d/10clock-setup \
 		> debian/ubiquity/usr/lib/ubiquity/clock-setup/finish-install
 	chmod +x debian/ubiquity/usr/lib/ubiquity/clock-setup/finish-install
-	sed -e 's,/usr/share/console-setup-mini/keyboard-configuration.config,/var/lib/dpkg/info/keyboard-configuration.config,g' \
+	sed -e 's,/usr/share/console-setup/keyboard-configuration.config,/var/lib/dpkg/info/keyboard-configuration.config,g' \
 	    -e 's,^\([[:space:]]*\)update-initramfs,\1: update-initramfs,' \
 		d-i/source/console-setup/debian/keyboard-configuration.postinst \
 		> debian/ubiquity/usr/lib/ubiquity/console-setup/keyboard-configuration.postinst
@@ -211,12 +212,11 @@ endif
 
 tests: install-stamp
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
-# 	CODE=0; env -u LD_PRELOAD ./tests/run --xvfb-log debian/xvfb.log || CODE=$$?; \
-# 	echo "xauth/Xrdb output:"; \
-# 	cat debian/xvfb.log; \
-# 	rm -f debian/xvfb.log; \
-# 	exit $$CODE
-	echo "no tests"
+	CODE=0; env -i LANG=C.UTF-8 ./tests/run --xvfb-log debian/xvfb.log || CODE=$$?; \
+	echo "xauth/Xrdb output:"; \
+	cat debian/xvfb.log; \
+	rm -f debian/xvfb.log; \
+	exit $$CODE
 endif
 
 BINARY_INDEP_OPTIONS := -i
@@ -236,6 +236,7 @@ binary-indep: install-stamp
 	dh_installdocs
 	dh_installdebconf
 	# oem-config
+	dh_systemd_enable --name=oem-config
 	dh_installinit -n --name=oem-config
 	dh_installinit -n --name=oem-config-debconf
 	dh_installman
@@ -259,7 +260,7 @@ endif
 
 # Build architecture-dependent files here.
 binary-arch: DH_OPTIONS=$(BINARY_ARCH_OPTIONS)
-binary-arch: install-stamp
+binary-arch: tests install-stamp
 	dh_testdir
 	dh_testroot
 	dh_installchangelogs
@@ -279,6 +280,7 @@ binary-arch: install-stamp
 	grep-dctrl -v -FTemplate base-installer/ d-i/templates \
 		>> debian/ubiquity/DEBIAN/templates
 	# ubiquity
+	dh_systemd_enable --name=ubiquity
 	dh_installinit --no-start --name=ubiquity
 	dh_installman
 	dh_lintian
@@ -295,4 +297,4 @@ binary-arch: install-stamp
 	NO_PNG_PKG_MANGLE=1 dh_builddeb -- -Zxz
 
 binary: binary-indep binary-arch
-.PHONY: build clean binary-indep binary-arch binary install
+.PHONY: build clean binary-indep binary-arch binary install tests

@@ -33,7 +33,7 @@ class Partition:
         '#a5cc42',
         '#d87e30',
         '#ffbdbd',
-        ]
+    ]
 
     FreeColor = '#777777'
 
@@ -61,7 +61,7 @@ class Partition:
 class PartitionsBar(QtGui.QWidget):
     InfoColor = '#333333'
 
-    ## signals
+    # signals
     partitionResized = QtCore.pyqtSignal(['PyQt_PyObject', 'PyQt_PyObject'])
 
     def __init__(self, parent=None, controller=None):
@@ -249,7 +249,8 @@ class PartitionsBar(QtGui.QWidget):
 
         if part.next is None or part.next.index != -1:
             # if our resize partition is at the end or the next one is not
-            p = Partition('Linux Mint', new_size, 'auto')
+            # free space
+            p = Partition('Kubuntu', new_size, 'auto')
             p.next = part.next
             part.next = p
 

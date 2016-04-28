@@ -158,6 +158,7 @@ def grub_options():
         result = subp.communicate()[0].splitlines()
         for res in result:
             res = res.split(':')
+            res[0] = re.match(r'[/\w\d]+', res[0]).group()
             oslist[res[0]] = res[1]
         p = PartedServer()
         for disk in p.disks():
@@ -430,6 +431,8 @@ def os_prober():
         result = subp.communicate()[0].splitlines()
         for res in result:
             res = res.split(':')
+            # launchpad bug #1265192, fix os-prober Windows EFI path
+            res[0] = re.match(r'[/\w\d]+', res[0]).group()
             if res[2] == 'Ubuntu':
                 version = [v for v in re.findall('[0-9.]*', res[1]) if v][0]
                 # Get rid of the superfluous (development version) (11.04)
@@ -472,18 +475,21 @@ ReleaseInfo = namedtuple('ReleaseInfo', 'name, version')
 
 def get_release():
     if get_release.release_info is None:
-        #try:
-            #with open('/cdrom/.disk/info') as fp:
-                #line = fp.readline()
-                #if line:
-                    #line = line.split()
-                    #if line[2] == 'LTS':
-                        #line[1] += ' LTS'
-                    #get_release.release_info = ReleaseInfo(
-                        #name=line[0], version=line[1])
-            #syslog.syslog(syslog.LOG_ERR, 'Unable to determine the release.')
-        #if not get_release.release_info:
-        get_release.release_info = ReleaseInfo(name='Linux Mint', version='17.3')
+        try:
+            with open('/cdrom/.disk/info') as fp:
+                line = fp.readline()
+                if line:
+                    line = line.split()
+                    if line[2] == 'LTS':
+                        line[1] += ' LTS'
+                    line[0] = line[0].replace('-', ' ')
+                    get_release.release_info = ReleaseInfo(
+                        name=line[0], version=line[1])
+        except:
+            syslog.syslog(syslog.LOG_ERR, 'Unable to determine the release.')
+
+        if not get_release.release_info:
+            get_release.release_info = ReleaseInfo(name='Ubuntu', version='')
     return get_release.release_info
 
 get_release.release_info = None
@@ -603,7 +609,7 @@ def dmimodel():
         kwargs['stderr'] = open('/dev/null', 'w')
     try:
         proc = subprocess.Popen(
-            ['dmidecode', '--string', 'system-manufacturer'],
+            ['dmidecode', '--quiet', '--string', 'system-manufacturer'],
             stdout=subprocess.PIPE, universal_newlines=True, **kwargs)
         manufacturer = proc.communicate()[0]
         if not manufacturer:
@@ -620,9 +626,10 @@ def dmimodel():
                 key = 'system-version'
             else:
                 key = 'system-product-name'
-            proc = subprocess.Popen(['dmidecode', '--string', key],
-                                    stdout=subprocess.PIPE,
-                                    universal_newlines=True)
+            proc = subprocess.Popen(
+                ['dmidecode', '--quiet', '--string', key],
+                stdout=subprocess.PIPE,
+                universal_newlines=True)
             model = proc.communicate()[0]
         if 'apple' in manufacturer:
             # MacBook4,1 - strip the 4,1
@@ -631,6 +638,8 @@ def dmimodel():
         # Ensure the resulting string does not begin or end with a dash.
         model = re.sub('[^a-zA-Z0-9]+', '-', model).rstrip('-').lstrip('-')
         if model.lower() == 'not-available':
+            return
+        if model.lower() == "To be filled by O.E.M.".lower():
             return
     except Exception:
         syslog.syslog(syslog.LOG_ERR, 'Unable to determine the model from DMI')
@@ -840,11 +849,11 @@ def install_size():
     if min_install_size:
         return min_install_size
 
-    # Fallback size to 8 GB
-    size = 8 * 1024 * 1024 * 1024
+    # Fallback size to 5 GB
+    size = 5 * 1024 * 1024 * 1024
 
-    # Maximal size to 10 GB
-    max_size = 10 * 1024 * 1024 * 1024
+    # Maximal size to 8 GB
+    max_size = 8 * 1024 * 1024 * 1024
 
     try:
         with open('/cdrom/casper/filesystem.size') as fp:
@@ -855,8 +864,8 @@ def install_size():
     # TODO substitute into the template for the state box.
     min_disk_size = size * 2  # fudge factor
 
-    # Set minimum size to 10GB if current minimum size is larger
-    # than 10GB and we still have an extra 20% of free space
+    # Set minimum size to 8GB if current minimum size is larger
+    # than 8GB and we still have an extra 20% of free space
     if min_disk_size > max_size and size * 1.2 < max_size:
         min_disk_size = max_size
 

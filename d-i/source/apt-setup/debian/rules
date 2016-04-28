@@ -10,12 +10,24 @@ else
 MULTIARCH :=
 endif
 
+ifeq (,$(filter-out amd64 i386,$(DEB_HOST_ARCH)))
+SECURITYHOST := security.ubuntu.com
+SECURITYPATH := /ubuntu
+else
+SECURITYHOST := ports.ubuntu.com
+SECURITYPATH := /ubuntu-ports
+endif
+
 override_dh_installdebconf:
 	dh_installdebconf
-	sed -i 's/@MULTIARCH@/$(MULTIARCH)/' \
-		debian/apt-setup-udeb/DEBIAN/templates
 ifneq (,$(filter apt-mirror-setup,$(shell dh_listpackages)))
 	echo >> debian/apt-mirror-setup/DEBIAN/templates
 	po2debconf debian/apt-mirror-setup.templates-ubuntu \
 		>> debian/apt-mirror-setup/DEBIAN/templates
 endif
+	sed -i 's/@MULTIARCH@/$(MULTIARCH)/' \
+		debian/apt-setup-udeb/DEBIAN/templates
+	sed -i 's/@SECURITYHOST@/$(SECURITYHOST)/' \
+		debian/apt-setup-udeb/DEBIAN/templates
+	sed -i 's|@SECURITYPATH@|$(SECURITYPATH)|' \
+		debian/apt-setup-udeb/DEBIAN/templates

@@ -26,11 +26,12 @@
 #include <sys/mount.h> /* for BLKGETSIZE definitions */
 #include <getopt.h>
 #include <string.h>
+#include <time.h>
 
 /* Progress indicator to output */
 # define PROGRESS_INDICATOR "*\n"
 /* How many progress indicators to output in total */
-#define PROGRESS_PARTS 65536
+#define PROGRESS_PARTS 1000
 /* How many bytes to write at a time (default) */
 #define DEFAULT_WSIZE 4096
 /* Debugging output */
@@ -79,11 +80,14 @@ static int do_wipe(int source, int target, size_t wsize)
 	unsigned long long done = 0;
 	unsigned int previous_progress = 0;
 	unsigned int progress = 0;
-	char buf[wsize];
+	time_t last_sync = 0;
 	int i;
 	ssize_t count;
+	char *buf = calloc(wsize, 1);
 
-	memset(buf, '\0', wsize);
+	if (buf == NULL)
+		die("buffer allocation failed", 1);
+
 	size = dev_size(target);
 	dprintf("Block size in bytes is %llu\n", size);
 	/* From now on, try to make sure stdout is unbuffered */
@@ -107,11 +111,21 @@ static int do_wipe(int source, int target, size_t wsize)
 		done += count;
 		progress = ((done * PROGRESS_PARTS)/ size);
 		dprintf("We just wrote %zi, done %llu\n", count, done);
-		for (i = 0; i < progress - previous_progress; i++)
-			printf(PROGRESS_INDICATOR);
-		previous_progress = progress;
+		if (progress > previous_progress) {
+			/* sync on every progress output, but at most once per second */
+			time_t now = time(NULL);
+			if (now != last_sync) {
+				fdatasync(target);
+				last_sync = now;
+			}
+			for (i = 0; i < progress - previous_progress; i++)
+				printf(PROGRESS_INDICATOR);
+			previous_progress = progress;
+		}
 	}
 
+	free(buf);
+	fdatasync(target);
 	return 0;
 }
 
@@ -144,7 +158,7 @@ int main(int argc, char **argv, char **envp)
 		usage("you must specify one target device", argv[0]);
 
 	/* Get target */
-	target = open(argv[optind], O_WRONLY | O_SYNC);
+	target = open(argv[optind], O_WRONLY);
 	if (target < 0)
 		die("failed to open device", 1);
 

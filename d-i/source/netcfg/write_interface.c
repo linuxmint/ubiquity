@@ -30,6 +30,7 @@ static int nc_wi_header(FILE *fd)
 {
 	fprintf(fd, "# This file describes the network interfaces available on your system\n");
 	fprintf(fd, "# and how to activate them. For more information, see interfaces(5).\n");
+	fprintf(fd, "\nsource /etc/network/interfaces.d/*\n");
 	
 	return 1;
 }
@@ -42,6 +43,20 @@ static int nc_wi_loopback(const struct netcfg_interface *interface, FILE *fd)
 	
 	return 1;
 }
+
+/* Write VLAN settings, such as: vlan_raw_device eth0
+*/
+static int nc_wi_vlan(const struct netcfg_interface *interface, FILE *fd)
+{
+	int rv;
+	rv = 1;
+	if (interface && interface->parentif &&
+	    (fprintf(fd, "\tvlan_raw_device %s\n", interface->parentif) < 0)) {
+		rv = 0;
+	}
+	return rv;
+}
+
 
 static int nc_wi_wireless_options(const struct netcfg_interface *interface, FILE *fd)
 {
@@ -258,7 +273,10 @@ int netcfg_write_interface(const struct netcfg_interface *interface)
 		di_debug("Writing static IPv6 stanza for %s", interface->name);
 		rv = nc_wi_static_ipv6(interface, fd);
 	}
-	
+	if (rv && interface && interface->parentif) {
+		di_debug("Writing VLAN: %s", interface->name);
+		rv = nc_wi_vlan(interface, fd);
+	}
 	if (rv && interface && is_wireless_iface(interface->name)) {
 		di_debug("Writing wireless options for %s", interface->name);
 		rv = nc_wi_wireless_options(interface, fd);

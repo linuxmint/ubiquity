@@ -252,20 +252,29 @@ echo "Find the free space"
 open_dialog PARTITIONS $LV
 free_space=''
 while { read_line num id size type fs path name; [ "$id" ]; }; do
-	if [ "$fs" = free ]; then
+	case $fs in
+	    free|unknown)
 		free_space=$id
 		free_size=$size
-	fi
+		free_fs=$fs
+		;;
+	esac
 done
 close_dialog
 echo "Free: $free_space - $free_size"
 echo
 
-echo "Create new partition"
-open_dialog NEW_PARTITION $LV primary ext2 $free_space full $free_size
-read_line num id size type fs path name
-close_dialog
-echo "New: $num $id $size $type"
+if [ "$free_fs" = unknown ]; then
+	# parted >= 3.2 gives us a partition automatically.
+	id=$free_space
+else
+	# With parted < 3.2 we must create a partition manually.
+	echo "Create new partition"
+	open_dialog NEW_PARTITION $LV primary ext2 $free_space full $free_size
+	read_line num id size type fs path name
+	close_dialog
+	echo "New: $num $id $size $type"
+fi
 
 partitions=
 echo "Partition info for $LV:"

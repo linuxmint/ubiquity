@@ -14,6 +14,14 @@ fi
 
 # enable non-free repository if any firmware / injected drivers are
 # detected.
-if [ -n "/var/cache/firmware/*.deb" ]; then
+if [ -d /var/cache/firmware ]; then
+	for deb in /var/cache/firmware/*.deb; do
+		if [ -f "$deb" ]; then
+			need_nonfree=1
+		fi
+	done
+fi
+
+if [ "$need_nonfree" ]; then
 	db_set apt-setup/non-free true
 fi

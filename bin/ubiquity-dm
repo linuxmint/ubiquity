@@ -167,7 +167,9 @@ class DM:
     def drop_privileges(self):
         os.setgroups(self.groups)
         os.setgid(self.gid)
+        os.setegid(self.gid)
         os.setuid(self.uid)
+        os.seteuid(self.uid)
 
     def server_preexec(self):
         signal.signal(signal.SIGUSR1, signal.SIG_IGN)
@@ -288,8 +290,8 @@ EndSection
                     if type(status) is int and status != 0:
                         if plymouth_running:
                             subprocess.call(['plymouth', 'quit'])
-                        raise XStartupError('X server exited with return code '
-                                            + str(status))
+                        raise XStartupError('X server exited with return '
+                                            'code ' + str(status))
                     if timeout == 0:
                         if plymouth_running:
                             subprocess.call(['plymouth', 'quit'])
@@ -364,7 +366,12 @@ EndSection
             visual_a11y = 'access=v' in proc_cmdline
 
             background_image = None
-            for background in ('/usr/share/backgrounds/linuxmint/default_background.jpg'):
+            for background in (
+                    '/usr/share/xfce4/backdrops/xubuntu-wallpaper.png',
+                    '/usr/share/backgrounds/'
+                    'ubuntustudio/ubuntustudio-default.png',
+                    '/usr/share/lubuntu/wallpapers/'
+                    'lubuntu-default-wallpaper.png'):
                 exists = os.access(background, os.R_OK)
                 if exists:
                     background_image = background
@@ -393,14 +400,42 @@ EndSection
                     ('org.gnome.desktop.wm.preferences', 'num-workspaces',
                      '1'),
                 ]
+
                 # Setting a wallpaper image, or solid color.
                 if visual_a11y:
                     gsettings_keys.append(
                         ('org.gnome.desktop.background', 'picture-options',
-                            'none'))
+                         'none'))
                     gsettings_keys.append(
                         ('org.gnome.desktop.background', 'picture-uri',
-                            "''"))
+                         "''"))
+
+                if osextras.find_on_path('marco'):
+                    gsettings_keys = [
+                        ('org.mate.lockdown', 'disable-lock-screen',
+                         'true'),
+                        ('org.mate.lockdown', 'disable-user-switching',
+                         'true'),
+                        ('org.mate.SettingsDaemon.plugins.background',
+                         'active', 'true'),
+                        ('org.mate.background', 'draw-background',
+                         'true'),
+                        ('org.mate.background', 'show-desktop-icons',
+                         'false'),
+                        ('org.mate.Marco.general', 'compositing-manager',
+                         'true'),
+                        ('org.mate.Marco.general', 'num-workspaces',
+                         '1'),
+                    ]
+
+                    # Setting a wallpaper image, or solid color.
+                    if visual_a11y:
+                        gsettings_keys.append(
+                            ('org.mate.background', 'picture-options',
+                             'none'))
+                        gsettings_keys.append(
+                            ('org.mate.background', 'picture-filename',
+                             "''"))
 
                 if osextras.find_on_path('gnome-shell'):
                     gsettings_keys.append(
@@ -418,6 +453,8 @@ EndSection
 
                 usd = '/usr/lib/unity-settings-daemon/unity-settings-daemon'
                 gsd = '/usr/lib/gnome-settings-daemon/gnome-settings-daemon'
+                msd = '/usr/bin/mate-settings-daemon'
+
                 if osextras.find_on_path(usd):
                     extras.append(subprocess.Popen(
                         [usd], stdin=null, stdout=logfile, stderr=logfile,
@@ -426,6 +463,11 @@ EndSection
                 elif osextras.find_on_path(gsd):
                     extras.append(subprocess.Popen(
                         [gsd], stdin=null, stdout=logfile, stderr=logfile,
+                        preexec_fn=self.drop_privileges))
+
+                elif osextras.find_on_path(msd):
+                    extras.append(subprocess.Popen(
+                        [msd], stdin=null, stdout=logfile, stderr=logfile,
                         preexec_fn=self.drop_privileges))
 
                 elif background_image and osextras.find_on_path('feh'):
@@ -447,10 +489,12 @@ EndSection
 
             if osextras.find_on_path('gnome-shell'):
                 wm_cmd = ['gnome-shell', '--sm-disable', '--mode=ubiquity']
+            elif osextras.find_on_path('marco'):
+                wm_cmd = ['marco', '--sm-disable']
             elif osextras.find_on_path('metacity'):
                 wm_cmd = ['metacity', '--sm-disable']
             elif osextras.find_on_path('xfwm4'):
-                wm_cmd = ['xfwm4', '--compositor=off']
+                wm_cmd = ['xfwm4', '--compositor=off', '--sm-client-disable']
             elif osextras.find_on_path('matchbox-window-manager'):
                 wm_cmd = ['matchbox-window-manager']
             elif osextras.find_on_path('openbox-lubuntu'):
@@ -463,7 +507,7 @@ EndSection
             else:
                 raise MissingProgramError(
                     'No window manager found (tried '
-                    'metacity, xfwm4, matchbox-window-manager, '
+                    'marco, metacity, xfwm4, matchbox-window-manager, '
                     'openbox-lubuntu, openbox, compiz)')
 
             wm = subprocess.Popen(
@@ -472,11 +516,12 @@ EndSection
 
             if osextras.find_on_path('xfsettingsd'):
                 extras.append(subprocess.Popen(
-                    ['xsetroot', '-solid', 'black'],
+                    ['xprop', '-root', '-format', '_NET_NUMBER_OF_DESKTOPS',
+                     '32c', '-set', '_NET_NUMBER_OF_DESKTOPS', '1'],
                     stdin=null, stdout=logfile, stderr=logfile,
                     preexec_fn=self.drop_privileges))
                 extras.append(subprocess.Popen(
-                    ['xfsettingsd'],
+                    ['xfsettingsd', '--sm-client-disable'],
                     stdin=null, stdout=logfile, stderr=logfile,
                     preexec_fn=self.drop_privileges))
 
@@ -486,8 +531,7 @@ EndSection
                     stdin=null, stdout=logfile, stderr=logfile,
                     preexec_fn=self.drop_privileges))
 
-            if (os.path.exists('/usr/lib/ubiquity/panel') and
-                    "xfwm4" not in wm_cmd):
+            if os.path.exists('/usr/lib/ubiquity/panel'):
                 if ("openbox-lubuntu" not in wm_cmd and
                         "openbox" not in wm_cmd and
                         "gnome-shell" not in wm_cmd):
@@ -503,7 +547,7 @@ EndSection
                             'indicator-keyboard/indicator-keyboard-service',
                             'indicator-keyboard-service',
                             'indicator-power/indicator-power-service',
-                            )]))
+                        )]))
                     extras.append(subprocess.Popen(
                         ['/usr/lib/ubiquity/panel'],
                         stdin=null, stdout=logfile, stderr=logfile,
@@ -553,9 +597,12 @@ EndSection
                             stdin=null, stdout=logfile, stderr=logfile,
                             preexec_fn=self.drop_privileges))
         elif self.frontend == 'kde_ui':
-            if not 'access=v1' in proc_cmdline:
+            # Force Qt5 KDE theming to load for kwin and friends.
+            os.environ["QT_QPA_PLATFORMTHEME"] = "kde"
+            if 'access=v1' not in proc_cmdline:
                 log('paint background')
-                path = '/usr/share/wallpapers/kde-default.png'
+                path = \
+                    '/usr/share/wallpapers/Next/contents/images/2560x1600.png'
                 extras.append(subprocess.Popen(
                     ['ubiquity-qtsetbg', path],
                     stdin=null, stdout=logfile, stderr=logfile,
@@ -563,9 +610,31 @@ EndSection
 
             log("add_ubiquity_kdedir")
             add_ubiquity_kdedir()
+            log('start kde4breeze')
+            if osextras.find_on_path('kf5-config'):
+                output = subprocess.check_output(
+                    ['kf5-config', '--path', 'lib'],
+                    preexec_fn=self.drop_privileges)
+                output = output.decode()
+                output = output.replace('\n', '')
+                output = output.split(':')[1]
+                breeze = subprocess.Popen(
+                    [output + '/kconf_update_bin/kde4breeze'],
+                    stdin=null, stdout=logfile, stderr=logfile,
+                    preexec_fn=self.drop_privileges)
+                ret = breeze.wait()
+                log('kde4breeze exited with code {}'.format(ret))
+                if ret != 0:
+                    raise
+            else:
+                raise
             log('start kwin')
+            if osextras.find_on_path('kwin'):
+                wm_cmd = ['kwin']
+            elif osextras.find_on_path('kwin_x11'):
+                wm_cmd = ['kwin_x11']
             wm = subprocess.Popen(
-                'kwin', stdin=null, stdout=logfile, stderr=logfile,
+                wm_cmd, stdin=null, stdout=logfile, stderr=logfile,
                 preexec_fn=self.drop_privileges)
 
         log('start greeter')

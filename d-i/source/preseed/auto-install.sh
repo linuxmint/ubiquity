@@ -34,7 +34,10 @@ else
 	db_get auto-install/defaultroot && dir="$RET"
 fi
 
-if expr $host_port : [^.]*$ >/dev/null; then
+if expr "$host_port" : '^.*\[[:a-fA-F0-9]*\]' > /dev/null; then
+	# IPv6 address with or without port
+	:
+elif expr $host_port : [^.]*$ >/dev/null; then
 	db_get netcfg/get_domain && domain="$RET"
 
 	if [ -n "$domain" ] && [ "$domain" != "unassigned-domain" ] && [ "$domain" != "unnassigned-domain" ]; then

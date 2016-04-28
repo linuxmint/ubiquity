@@ -12,7 +12,7 @@ logoutput="log-output -t load-install-cd"
 
 check_id() {
 	cd_ids=$(LC_ALL=C $logoutput --pass-stdout chroot $ROOT \
-		 apt-cdrom ident | grep "^Identifying" | cut -d" " -f2)
+		 apt-cdrom ident < /dev/null | grep "^Identifying" | cut -d" " -f2)
 
 	for cd_id in $cd_ids; do
 		if [ "$cd_id" = "$(head -n1 /var/lib/install-cd.id)" ]; then

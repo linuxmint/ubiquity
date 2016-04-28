@@ -1,3 +1,98 @@
+debian-installer-utils (1.113ubuntu1) xenial; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    - user-params: Don't propagate vga=*, break=*, *-ubiquity, or
+      noninteractive to installed system.
+    - list-devices:
+      + New "mmc-partition" type for detecting partitions on MMC devices.
+      + Make sure we also detect platform-omap MMCs.
+      + Don't return entries for extended partitions.
+    - Don't include the battery subsystem on calls to udevadm trigger.
+    - log-output: Always install a no-op SIGCHLD handler, in case the
+      subsidiary process starts a daemon which does not fully disconnect its
+      standard file descriptors.
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Wed, 23 Dec 2015 15:15:15 -0500
+
+debian-installer-utils (1.113) unstable; urgency=high
+
+  * Add support for NVMe devices (Closes: #799117). Thanks to Mario
+    Limonciello for the report and the patch.
+
+ -- Cyril Brulebois <kibi@debian.org>  Thu, 03 Dec 2015 00:47:43 +0100
+
+debian-installer-utils (1.112) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 25 Jul 2015 18:28:59 +0200
+
+debian-installer-utils (1.111) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 20 Jun 2015 07:06:27 +0200
+
+debian-installer-utils (1.110) unstable; urgency=low
+
+  [ Updated translations ]
+  * Danish (da.po) by Joe Hansen
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 08 Mar 2015 07:42:06 +0100
+
+debian-installer-utils (1.109ubuntu1) vivid; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    - user-params: Don't propagate vga=*, break=*, *-ubiquity, or
+      noninteractive to installed system.
+    - list-devices:
+      + New "mmc-partition" type for detecting partitions on MMC devices.
+      + Make sure we also detect platform-omap MMCs.
+      + Don't return entries for extended partitions.
+    - Don't include the battery subsystem on calls to udevadm trigger.
+    - log-output: Always install a no-op SIGCHLD handler, in case the
+      subsidiary process starts a daemon which does not fully disconnect its
+      standard file descriptors.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 18 Nov 2014 15:34:00 +0000
+
+debian-installer-utils (1.109) unstable; urgency=medium
+
+  [ Ian Campbell ]
+  * Accept "---" as user-params separator in addition to "--" (Closes: #762007)
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 11 Oct 2014 07:41:14 +0200
+
+debian-installer-utils (1.108) unstable; urgency=low
+
+  [ Updated translations ]
+  * Danish (da.po) by Joe Hansen
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 10 Sep 2014 13:58:20 +0200
+
+debian-installer-utils (1.107) unstable; urgency=medium
+
+  [ Steven Chamberlain ]
+  * Fix procfs mounting on GNU/kFreeBSD: it's called linprocfs, rather
+    than procfs (Closes: #696901).
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 22 May 2014 06:51:08 +0200
+
+debian-installer-utils (1.106) unstable; urgency=high
+
+  [ Wouter Verhelst ]
+  * resolv.c: move here from partman-nbd, and install into di-utils.
+
+  [ Colin Watson ]
+  * Revert change in 1.103 to install no-op SIGCHLD handler even outside the
+    --pass-stdout case, since if a process daemonises without closing its
+    standard file descriptors and then tries to write to them it will
+    receive SIGPIPE, and that breaks speech synthesis in d-i (see #739989).
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 25 Feb 2014 00:12:49 +0000
+
 debian-installer-utils (1.105ubuntu1) trusty; urgency=medium
 
   * Resynchronise with Debian.  Remaining changes:

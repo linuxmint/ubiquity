@@ -34,6 +34,9 @@ arch_check_usable_kernel () {
         while [ $# -ge 1 ]; do
                 TRY="$1"
                 case "$TRY:$NAME" in
+		    *:*-dbg)
+			return 1
+			;;
 		    *:*-"$TRY"-lpae | *:*-"$TRY"-lpae-*)
                         # Allow any other hyphenated suffix
 			if test `arch_has_lpae` = y ; then
@@ -61,7 +64,9 @@ arch_check_usable_kernel () {
 
 arch_get_kernel () {
 	case "$KERNEL_MAJOR" in
-	    2.6|3.*)
+	    2.6|3.*|4.*)
+		imgbase="linux-image"
+
 		set -- $1
 		while [ $# -ge 1 ]; do
 			case $1 in

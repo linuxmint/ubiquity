@@ -3,14 +3,15 @@
 . /usr/share/debconf/confmodule
 
 if db_get auto-install/enable && [ "$RET" = true ]; then
-	# find at least one preseed
-	if [ -e /preseed.cfg ] ||
-	   { db_get preseed/url  && [ "$RET" ]; } ||
-	   { db_get preseed/file && [ "$RET" ]; }; then
-		# disable locale & kbd selection
-		echo 1 >/var/run/auto-install.active
-	else
-		# register that no preseed was specified
+	# disable locale & kbd selection for now
+	echo 1 >/var/run/auto-install.active
+	# check that no preseed has been specified
+	if ! [ -e /preseed.cfg ] &&
+	   ! { db_get preseed/url  && [ "$RET" ]; } &&
+	   ! { db_get preseed/file && [ "$RET" ]; }; then
+		# register that no preseed was specified.
 		touch /var/run/preseed_unspecified_at_boot
+		# A preseed URL might still be delivered via DHCP.
+		# auto-install.sh checks for that, and removes the file if need be.
 	fi
 fi

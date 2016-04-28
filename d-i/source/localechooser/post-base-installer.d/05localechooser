@@ -48,12 +48,12 @@ case ${LOCALE%%_*} in
 			SUPPORTEDLOCALES=/usr/share/i18n/SUPPORTED
 		fi
 
-		LOCALE_TRANSLATIONS="$(grep "^$ORIG_LANGUAGE;" /usr/share/localechooser/languagelist | cut -d';' -f5)"
+		LOCALE_TRANSLATIONS="$(grep "^$ORIG_LANGUAGE;" /usr/share/localechooser/languagelist | cut -d';' -f4)"
 		newlocale="$(echo "$LOCALE" | sed "s/_[A-Z][A-Z]*/_$COUNTRY/")"
 		if grep -q "^${newlocale%%[.@]*}[.@ ]" $SUPPORTEDLOCALES && \
 		   [ "$newlocale" != "$LOCALE_TRANSLATIONS" ]; then
 			LOCALE="$newlocale"
-			LANGLIST="$(grep "^$ORIG_LANGUAGE;" /usr/share/localechooser/languagelist | cut -d';' -f6)"
+			LANGLIST="$(grep "^$ORIG_LANGUAGE;" /usr/share/localechooser/languagelist | cut -d';' -f5)"
 		fi
 	fi
 	;;
@@ -99,7 +99,7 @@ if [ ! -e "$DESTFILE" ] || ! grep -q '^LANG=' $DESTFILE; then
 fi
 if [ "$LOCALE_TRANSLATIONS" != "$LOCALE" ]; then
 	for category in \
-		LC_NUMERIC LC_MONETARY LC_PAPER LC_NAME LC_ADDRESS \
+		LC_NUMERIC LC_TIME LC_MONETARY LC_PAPER LC_NAME LC_ADDRESS \
 		LC_TELEPHONE LC_MEASUREMENT LC_IDENTIFICATION; do
 		set_field /target/etc/default/locale "$category" "$LOCALE"
 	done

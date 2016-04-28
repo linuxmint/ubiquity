@@ -1,3 +1,106 @@
+flash-kernel (3.0~rc.4ubuntu62) xenial; urgency=medium
+
+  * Adjust the size of uboot.env based on empirical results on the rpi2.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Sat, 13 Feb 2016 23:25:39 -0800
+
+flash-kernel (3.0~rc.4ubuntu61) xenial; urgency=medium
+
+  * Adjust the uboot.env.rpi2 to use the one Paolo Pisati has tested,
+    instead of trying to base on the Snappy one, which is failing to boot.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Fri, 12 Feb 2016 11:44:45 -0800
+
+flash-kernel (3.0~rc.4ubuntu60) xenial; urgency=medium
+
+  * Extend support for the RPi2 to actually install the kernel/initramfs
+    on the fat partition, and provide a uboot boot script based on the one
+    used for Snappy images.
+  * Extend functions to support generating uboot.env images, as an
+    alternative to boot.scr and uEnv.txt, and use this for RPi2 as well.
+  * Cherry-pick fixes from Debian to support copying kernel/initrd to
+    destination.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Thu, 11 Feb 2016 17:09:53 -0800
+
+flash-kernel (3.0~rc.4ubuntu59) xenial; urgency=medium
+
+  * Add support for the Raspberry Pi2; thanks to Paolo Pisati
+  * <paolo.pisati@canonical.com>.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Tue, 09 Feb 2016 22:35:28 -0800
+
+flash-kernel (3.0~rc.4ubuntu58) xenial; urgency=medium
+
+  * Call systemd-detect-virt instead of the Ubuntu specific
+    running-in-container wrapper. (LP: #1539016)
+
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Thu, 28 Jan 2016 14:22:57 +0100
+
+flash-kernel (3.0~rc.4ubuntu57) xenial; urgency=medium
+
+  * Cherry pick from Debian: Succeed but do nothing when run on an
+    unknown machine which was booted via EFI. (LP: #1517582)
+
+ -- dann frazier <dannf@ubuntu.com>  Tue, 01 Dec 2015 13:51:27 -0700
+
+flash-kernel (3.0~rc.4ubuntu56) xenial; urgency=medium
+
+  * make the package postinst respect FLASH_KERNEL_SKIP (LP: #1517582)
+
+ -- Oliver Grawert <ogra@ubuntu.com>  Wed, 25 Nov 2015 21:12:16 +0100
+
+flash-kernel (3.0~rc.4ubuntu55) wily; urgency=medium
+
+  * Wandboard: Use /dev/disk/by-path/platform-2198000.usdhc-part1
+    instead of the hardcoded mmcblk1p1, this should make things work on
+    boards with just a single microSD card in.
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Thu, 27 Aug 2015 11:55:41 -0400
+
+flash-kernel (3.0~rc.4ubuntu54) vivid; urgency=medium
+
+  * Allow us to find DTBs in both the old flat layout and the new vendor
+    subdirectory layout, so we keep backward compatibility (LP: #1408004)
+
+ -- Adam Conrad <adconrad@ubuntu.com>  Fri, 27 Feb 2015 03:46:28 -0700
+
+flash-kernel (3.0~rc.4ubuntu53) utopic; urgency=medium
+
+  * Merge in remaining trusty SRU changes:
+    * Add U-Boot environment configuration support (LP: #1328597)
+    * HP Moonshot Cartridges: Use $baudrate from u-boot environment as
+      serial console speed (LP: #1373628)
+    * HP Moonshot Cartridges: Enable hardware flow control as required by
+      the HP moonshot chassis (LP: #1328280)
+    * Enable U-Boot environment support for X-Gene platforms
+    * Use filesystem agnostic "load" command instead of assuming ext4
+    * Add support for HP ProLiant m800 cartridges (LP: #1326437)
+    * Set required boot arguments for HP ProLiant m800 cartridges
+      (LP: #1373659)
+
+ -- dann frazier <dannf@ubuntu.com>  Mon, 29 Sep 2014 16:20:15 -0600
+
+flash-kernel (3.0~rc.4ubuntu52) utopic; urgency=medium
+
+  * Do not fail if there are no specified Kernel-Flavors for this machine.
+
+ -- Scott Moser <smoser@ubuntu.com>  Wed, 27 Aug 2014 15:59:26 -0400
+
+flash-kernel (3.0~rc.4ubuntu51) utopic; urgency=medium
+
+  * Filter the selection of 'latest' usable kernel through the
+    whitelist.  (LP: #1356569)
+
+ -- Manoj Iyer <manoj.iyer@canonical.com>  Tue, 19 Aug 2014 14:27:33 -0500
+
+flash-kernel (3.0~rc.4ubuntu50) utopic; urgency=medium
+
+  * Added support for user defined uboot environment variables
+  * Added support for HP ProLiant m800 Server Cartridge
+
+ -- Manoj Iyer <manoj.iyer@canonical.com>  Thu, 24 Apr 2014 17:34:28 -0500
+
 flash-kernel (3.0~rc.4ubuntu49) trusty; urgency=medium
 
   * db/all.db: add dummy entries as noops when running on VMs (LP: #1298070)

@@ -1,0 +1,415 @@
+.\"Copyright (C) 2011 Anton Zinoviev <anton@lml.bas.bg>
+.\"
+.\"Copying and distribution of this file, with or without
+.\"modification, are permitted in any medium without royalty provided
+.\"the copyright notice and this notice are preserved.  This file is
+.\"offered as-is, without any warranty.
+.\"
+.TH CONSOLE-SETUP 5 2011-03-17 console-setup "Console-setup User's Manual"
+.SH NAME
+console-setup \- configuration file for setupcon
+.SH DESCRIPTION
+The file
+.B console-setup
+specifies the encoding and the font to be used by
+.BR setupcon (1)
+in order to setup the console.  It can be used also to specify the
+keyboard layout but it is not recommended to do so, use
+.BR keyboard (5)
+instead.
+.PP
+The font specification consists of three parameters \- codeset, font
+face and font size.  The codeset specifies what characters will be
+supported by the font.  There isn't one-to-one correspondence between
+codeset and encoding, for example the codeset
+.B Lat15
+is suitable for ISO\ 8859-1, ISO\ 8859-9 and ISO\ 8859-15.  The
+codesets are two kinds \- small and big.  Only small codesets are
+supported on FreeBSD.
+.PP
+The font face determines the general look of the font.  Each font face
+is available in certain possible sizes.  On FreeBSD only
+.BR 8x16 ", " 8x14 " and " 8x8
+are valid sizes.  On Linux if framebuffer is not used or
+.BR consolechars (1)
+is installed instead of
+.BR setfont (1),
+then the permitted sizes have the form
+.RI 8x NUMBER .
+
+.PP
+The console driver of FreeBSD permits fonts in different sizes to be
+simultaneously loaded.  Which one of them will be actually used
+depends on the current video mode.  Therefore, on this platform the
+font size specification will be ignored and
+.BR setupcon (1)
+will load the selected font face in all available sizes.
+.PP
+The file
+.B console-setup
+consists of variable settings in
+.SM POSIX
+format:
+.IP
+.IR VARIABLE "='" VALUE '
+.PP
+Only one assignment is allowed per line.  Comments (starting with '#')
+are also allowed.
+
+.SH OPTIONS
+The following variables can be set.
+
+.TP
+.B ACTIVE_CONSOLES
+Specifies the device files in
+.I /dev
+of the virtual terminals to be configured.  File name wild-cards
+.RB ( * ",\ " ? )
+are allowed.  On Linux usually you can set this to
+.B /dev/tty[1-6]
+and on FreeBSD a sensible value is
+.BR /dev/ttyv[0-8] .
+You can assign to this variable also the special value
+.BR guess .
+It will cause
+.BR setupcon (1)
+to attempt to guess the active virtual consoles by looking in
+configuration files such as
+.IR /etc/inittab " and " /etc/ttys .
+This guessing is not always reliable.
+
+.TP
+.B CHARMAP
+Specifies the desired encoding on the console.  Valid values are:
+.nh
+.BR UTF-8 ,
+.BR ARMSCII-8 ,
+.BR CP1251 ,
+.BR CP1255 ,
+.BR CP1256 ,
+.BR GEORGIAN-ACADEMY ,
+.BR GEORGIAN-PS ,
+.BR IBM1133 ,
+.BR ISIRI-3342 ,
+.BR ISO-8859-1 ,
+.BR ISO-8859-2 ,
+.BR ISO-8859-3 ,
+.BR ISO-8859-4 ,
+.BR ISO-8859-5 ,
+.BR ISO-8859-6 ,
+.BR ISO-8859-7 ,
+.BR ISO-8859-8 ,
+.BR ISO-8859-9 ,
+.BR ISO-8859-10 ,
+.BR ISO-8859-11 ,
+.BR ISO-8859-13 ,
+.BR ISO-8859-14 ,
+.BR ISO-8859-15 ,
+.BR ISO-8859-16 ,
+.BR KOI8-R ,
+.BR KOI8-U ,
+.BR TIS-620 " and"
+.BR VISCII .
+.hy
+The special value
+.B guess
+is also recognized in which case the system command
+.BR locale (1)
+will be used to guess the desired encoding (currently this works
+reliably only with
+.SM GNU
+libc).
+
+.TP
+.B CODESET
+In most cases the special value
+.B guess
+can be used here in which case a suitable codeset will be guessed.
+The codeset determines which symbols are supported by the font.  Valid
+small codesets are:
+.nh
+.BR Armenian ,
+.BR CyrAsia ,
+.BR CyrKoi ,
+.BR CyrSlav ,
+.BR Georgian ,
+.BR Greek ,
+.BR Hebrew ,
+.BR Lao ,
+.BR Lat15 ,
+.BR Lat2 ,
+.BR Lat38 ,
+.BR Lat7 " and"
+.BR Thai .
+.hy
+Valid big codesets are:
+.nh
+.BR Arabic ,
+.BR Ethiopian ,
+.BR Uni1 ,
+.BR Uni2 ,
+.BR Uni3 " and"
+.BR Vietnamese .
+.hy
+Only small codesets can be used on FreeBSD.  See below the section
+entitled \*(lqCODESETS\*(rq for detailed description of each of these
+codesets.
+
+.TP
+.BR FONTFACE " and " FONTSIZE
+Valid font faces are: 
+.nh
+.BR VGA " (sizes " 8x8 ", " 8x14 ", " 8x16 ", " 16x28 " and " 16x32 ),
+.BR Terminus " (sizes " 6x12 ", " 8x14 ", " 8x16 ", " 10x20 ", " 12x24 ", " 14x28 " and " 16x32 ),
+.BR TerminusBold " (sizes " 8x14 ", " 8x16 ", " 10x20 ", " 12x24 ", " 14x28 " and " 16x32 ),
+.BR TerminusBoldVGA " (sizes " 8x14 " and " 8x16 ),
+and
+.BR Fixed " (sizes " 8x13 ", " 8x14 ", " 8x15 ", " 8x16 " and " 8x18 ).
+If however
+.BR CODESET = Ethiopian ,
+then the available font faces are
+.BR Goha " and " GohaClassic ,
+each in sizes
+.BR 8x12 ", " 8x14 " and " 8x16 .
+.hy
+
+Set
+.B FONTFACE
+and
+.B FONTSIZE
+to empty strings if you want to configure only the keyboard and to
+leave the console font unchanged.
+
+.TP
+.B VIDEOMODE
+Set
+.B VIDEOMODE
+to an empty string to avoid setting up the video mode.  On FreeBSD you
+can run
+.in +4n
+.nf
+
+vidcontrol -i mode
+
+.fi
+.in
+in order to see all possible video modes.  On Linux
+.BR fbset (1)
+is used to configure the video mode but very often this doesn't work
+because the default framebuffer driver (VesaFB) is rather limited and
+doesn't allow changes of the video mode.
+
+.TP
+.BR FONT ", " FONT_MAP " and " CONSOLE_MAP
+If set, specify that a non standard font is to be used.  The value of
+the variable
+.B FONT
+consists of one or more space separated font file names.  On Linux,
+when the font doesn't contain embedded Unicode map, an external map
+can be specified with the variable
+.BR FONT_MAP .
+The value of
+.B CONSOLE_MAP
+is a file that specifies a translation map from the user's 8-bit
+encoding to Unicode (Linux only) or directly to font positions.
+
+.TP
+.BR SCREEN_WIDTH " and " SCREEN_HEIGHT
+If set, these variables specify a screen size that
+.BR setupcon (1)
+will enforce with
+.BR stty (1).
+This can be useful with some braille devices that are only 40 cells
+wide.  The screen size can not exceed what the current screen
+resolution can display according to the size of the loaded font.
+
+.SH CODESETS
+There are two kinds of codesets \- small (up to 256\ symbols) and big
+(up to 512\ symbols).  Only small codesets can be used on FreeBSD.
+When the screen is in text mode (i.e. framebuffer is not used) then
+fonts covering big codesets will reduce the number of available
+foreground colors.
+
+.SS Arabic (a big codeset)
+Supported languages: Arabic, Kurdish in Iran, Pashto, Persian and Urdu.
+.P
+Completely covered by the following font faces:
+.BR Fixed " (size " 8x16 ") and " VGA " (sizes " 8x16 " and " 16x32 ).
+
+.SS Armenian
+Supported language: Armenian.
+.P
+Completely covered by the following font faces:
+.B Fixed
+(all sizes).
+
+.SS CyrAsia
+This codeset supports some of the non-Slavic Cyrillic languages \-
+Abkhazia, Avaric, Azerbaijani, Bashkir, Buryat, Chechen, Chuvash,
+Inupiaq (Eskimo), Kara-Kalpak, Kazakh, Kirgiz, Komi, Kumyk, Kurdish,
+Lezghian, Mari (Cheremis), Mongolian, Ossetic, Selkup
+(Ostyak-Samoyed), Tajik, Tatar, Turkmen, Tuvinian, Uzbek and Yakut.
+.P
+Completely supported by the following font faces:
+.B Fixed
+(all sizes).
+
+.SS CyrKoi
+Supports entirely the 8-bit encodings KOI8-R and KOI8-U.  Suitable for
+Russian and Ukrainian when one of these two encodings is used.
+.P
+Completely covered by the following font faces (in all sizes):
+.BR Fixed ", " Terminus ", " TerminusBold ", " TerminusBoldVGA " and " VGA .
+
+.SS CyrSlav
+Supports entirely the 8-bit encodings ISO-8859-5 and CP1251.  Suitable
+the Slavic Cyrillic languages \- Belarusian, Bulgarian, Macedonian,
+Russian, Serbian and Ukrainian.  For Serbian both the Cyrillic and the
+Latin alphabets are supported.
+.P
+Completely covered by the following font faces:
+.BR Fixed " (all sizes), " Terminus " (all sizes), " TerminusBold " (all sizes), " TerminusBoldVGA " (all sizes), " VGA " (sizes " 8x16 " and " 16x32 ).
+
+.SS Ethiopian (a big codeset)
+Supports Amharic, Ethiopic (Geez), Tigre and Tigrinya.
+.P
+This codeset is partially covered by the following font faces:
+.BR Fixed " (sizes " 8x15 " and " 8x18 "), " Goha " (all sizes) and " GohaClassic " (all sizes)."
+
+.SS Georgian
+Supported language: Georgian.
+.P
+Completely covered by the following font faces:
+.B Fixed
+(all sizes).
+
+.SS Greek
+Supported language: Greek.
+.P
+Completely covered by the following font faces:
+.BR Fixed " (all sizes) and " VGA " (sizes " 8x16 " and " 16x32 ).
+
+.SS Hebrew
+Supported languages: Hebrew and Yiddish.
+.P
+Completely covered by the following font faces:
+.BR Fixed " (sizes " 8x13 ", " 8x15 ", " 8x16 " and " 8x18 ") and " VGA " (sizes " 8x16 " and " 16x32 ).
+
+.SS Lao
+Supported languages: Lao.
+.P
+Completely covered by the following font faces:
+.BR Fixed " (sizes " 8x15 " and " 8x16 ).
+
+.SS Lat15
+Covers entirely ISO-8859-1, ISO-8859-9 and ISO-8859-15.  Suitable for
+the so called Latin1 and Latin5 languages \- Afar, Afrikaans,
+Albanian, Aragonese, Asturian, Aymara, Basque, Bislama, Breton,
+Catalan, Chamorro, Danish, Dutch, English, Estonian, Faroese, Fijian, Finnish,
+French, Frisian, Friulian, Galician, German, Hiri Motu, Icelandic,
+Ido, Indonesian, Interlingua, Interlingue, Italian, Low Saxon, Lule
+Sami, Luxembourgish, Malagasy, Manx Gaelic, Norwegian Bokmal,
+Norwegian Nynorsk, Occitan, Oromo or Galla, Portuguese, Rhaeto-Romance
+(Romansch), Scots Gaelic, Somali, South Sami, Spanish, Swahili,
+Swedish, Tswana, Turkish, Volapuk, Votic, Walloon, Xhosa, Yapese and
+Zulu.
+.P
+Completely covered by the following font faces:
+.BR Fixed " (all sizes), " Terminus " (all sizes), " TerminusBold " (all sizes), " TerminusBoldVGA " (all sizes), " VGA " (sizes " 8x16 " and " 16x32 ).
+
+.SS Lat2
+Covers entirely ISO-8859-2.  The Euro sign and the Romanian letters
+with comma below are also supported.  Suitable for the so called
+Latin2 languages \- Bosnian, Croatian, Czech, Hungarian, Polish,
+Romanian, Slovak, Slovenian and Sorbian (lower and upper).
+.P
+Completely covered by the following font faces:
+.BR Fixed " (all sizes), " Terminus " (all sizes), " TerminusBold " (all sizes), " TerminusBoldVGA " (all sizes), " VGA " (sizes " 8x16 " and " 16x32 ).
+
+.SS Lat38
+Covers entirely ISO-8859-3 and ISO-8859-14.  Suitable for Chichewa
+Esperanto, Irish, Maltese and Welsh.
+.P
+Completely covered by the following font faces:
+.BR Fixed " (all sizes) and " VGA " (sizes " 8x16 " and " 16x32 ).
+
+.SS Lat7
+Covers entirely ISO-8859-13.  Suitable for Lithuanian, Latvian, Maori
+and Marshallese.
+.P
+Completely covered by the following font faces:
+.BR Fixed " (all sizes), " Terminus " (all sizes), " TerminusBold " (all sizes), " TerminusBoldVGA " (all sizes), " VGA " (sizes " 8x16 " and " 16x32 ).
+
+.SS Thai
+Supported language: Thai.
+.P
+Completely covered by the following font faces:
+.B Fixed
+(all sizes).
+
+.SS Uni1 (a big codeset)
+Supports most of the Latin languages, the Slavic Cyrillic
+languages, Hebrew and barely Arabic.
+.P
+Completely covered by the following font faces:
+.BR Fixed " (sizes " 8x15 " and " 8x16 ") and " VGA " (all sizes)."
+
+.SS Uni2 (a big codeset)
+Supports most of the Latin languages, the Slavic Cyrillic languages
+and Greek.
+.P
+Completely covered by the following font faces:
+.BR Fixed " (all sizes) and " VGA " (sizes " 8x16 " and " 16x32 ).
+
+.SS Uni3 (a big codeset)
+Supports most of the Latin and Cyrillic languages.
+.P
+Completely covered by the following font faces:
+.B Fixed
+(all sizes).
+
+.SS Vietnamese (a big codeset)
+Supported language: Vietnamese.
+.P
+Completely covered by the following font faces:
+.BR Fixed " (sizes " 8x13 ", " 8x15 ", " 8x16 " and " 8x18 ).
+
+.SH FILES
+The standard location of the
+.B console-setup
+configuration file is
+.IR /usr/local/etc/default/console-setup .
+The keyboard configuration is in
+.IR /usr/local/etc/default/keyboard .
+Fonts that can be used with the variable
+.B FONT
+are usually installed in
+.IR /usr/share/consolefonts/ " or " /usr/share/syscons/fonts/ .
+Translation maps that can be used with the variable CONSOLE_MAP are
+usually installed in
+.IR /usr/share/consoletrans/ " or " /usr/share/syscons/scrnmaps/ .
+
+.SH NOTES
+The aim of the Terminus font is to reduce the eyes-fatigue when one
+has to read a lot.  Currently this font supports only the Latin, the
+Cyrillic and the Greek scripts (the 
+.BR Lat15 ", " Lat2 ", " Lat7 ", " CyrAsia ", " CyrKoi ", " CyrSlav ", " Greek ", " Uni2 " and " Uni3
+codesets).
+.P
+The fonts with font face
+.B TerminusBoldVGA
+are optimized for use with regular text video modes.  They should not
+be used with framebuffer video modes.  The fonts with font face
+.B TerminusBold
+are optimized for use with the framebuffer video modes.  The fonts
+with font face
+.B Terminus
+can be used in all video modes.
+
+.SH SEE ALSO
+.BR setupcon (1),
+.BR keyboard (5),
+.BR setfont (1),
+.BR consolechars (1),
+.BR vidcontrol (1)
+

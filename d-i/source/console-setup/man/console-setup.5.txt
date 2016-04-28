@@ -1,0 +1,318 @@
+CONSOLE-SETUP(5)          Console-setup User's Manual         CONSOLE-SETUP(5)
+
+
+
+NAME
+       console-setup - configuration file for setupcon
+
+DESCRIPTION
+       The  file  console-setup specifies the encoding and the font to be used
+       by setupcon(1) in order to setup the console.  It can be used  also  to
+       specify  the  keyboard  layout  but it is not recommended to do so, use
+       keyboard(5) instead.
+
+       The font specification consists of three  parameters  -  codeset,  font
+       face and font size.  The codeset specifies what characters will be sup-
+       ported by the font.   There  isn't  one-to-one  correspondence  between
+       codeset  and  encoding,  for  example the codeset Lat15 is suitable for
+       ISO 8859-1, ISO 8859-9 and ISO 8859-15.  The codesets are two  kinds  -
+       small and big.  Only small codesets are supported on FreeBSD.
+
+       The  font face determines the general look of the font.  Each font face
+       is available in certain possible sizes.  On FreeBSD only 8x16, 8x14 and
+       8x8  are  valid  sizes.   On  Linux  if framebuffer is not used or con-
+       solechars(1) is installed instead of  setfont(1),  then  the  permitted
+       sizes have the form 8xNUMBER.
+
+
+       The  console  driver  of FreeBSD permits fonts in different sizes to be
+       simultaneously loaded.  Which one of them will be actually used depends
+       on  the  current video mode.  Therefore, on this platform the font size
+       specification will be ignored and setupcon(1) will  load  the  selected
+       font face in all available sizes.
+
+       The file console-setup consists of variable settings in POSIX format:
+
+              VARIABLE='VALUE'
+
+       Only  one assignment is allowed per line.  Comments (starting with '#')
+       are also allowed.
+
+
+OPTIONS
+       The following variables can be set.
+
+
+       ACTIVE_CONSOLES
+              Specifies the device files in /dev of the virtual  terminals  to
+              be  configured.   File  name wild-cards (*, ?)  are allowed.  On
+              Linux usually you can set this to /dev/tty[1-6] and on FreeBSD a
+              sensible  value is /dev/ttyv[0-8].  You can assign to this vari-
+              able also the special value guess.  It will cause setupcon(1) to
+              attempt  to guess the active virtual consoles by looking in con-
+              figuration files  such  as  /etc/inittab  and  /etc/ttys.   This
+              guessing is not always reliable.
+
+
+       CHARMAP
+              Specifies  the  desired  encoding  on the console.  Valid values
+              are: UTF-8, ARMSCII-8, CP1251, CP1255, CP1256, GEORGIAN-ACADEMY,
+              GEORGIAN-PS,   IBM1133,   ISIRI-3342,   ISO-8859-1,  ISO-8859-2,
+              ISO-8859-3,  ISO-8859-4,  ISO-8859-5,  ISO-8859-6,   ISO-8859-7,
+              ISO-8859-8,  ISO-8859-9,  ISO-8859-10, ISO-8859-11, ISO-8859-13,
+              ISO-8859-14, ISO-8859-15, ISO-8859-16, KOI8-R,  KOI8-U,  TIS-620
+              and VISCII.  The special value guess is also recognized in which
+              case the system command locale(1) will be used to guess the  de-
+              sired  encoding  (currently  this  works  reliably only with GNU
+              libc).
+
+
+       CODESET
+              In most cases the special value guess can be used here in  which
+              case a suitable codeset will be guessed.  The codeset determines
+              which symbols are supported by the font.  Valid  small  codesets
+              are:   Armenian,  CyrAsia,  CyrKoi,  CyrSlav,  Georgian,  Greek,
+              Hebrew, Lao, Lat15, Lat2, Lat38, Lat7 and Thai.  Valid big code-
+              sets  are:  Arabic,  Ethiopian, Uni1, Uni2, Uni3 and Vietnamese.
+              Only small codesets can be used on FreeBSD.  See below the  sec-
+              tion  entitled  "CODESETS"  for  detailed description of each of
+              these codesets.
+
+
+       FONTFACE and FONTSIZE
+              Valid font faces are: VGA (sizes  8x8,  8x14,  8x16,  16x28  and
+              16x32),  Terminus  (sizes  6x12, 8x14, 8x16, 10x20, 12x24, 14x28
+              and 16x32), TerminusBold (sizes 8x14, 8x16, 10x20, 12x24,  14x28
+              and  16x32),  TerminusBoldVGA  (sizes  8x14 and 8x16), and Fixed
+              (sizes  8x13,  8x14,  8x15,  8x16   and   8x18).    If   however
+              CODESET=Ethiopian,  then  the  available font faces are Goha and
+              GohaClassic, each in sizes 8x12, 8x14 and 8x16.
+
+              Set FONTFACE and FONTSIZE to empty strings if you want  to  con-
+              figure  only  the  keyboard  and  to  leave the console font un-
+              changed.
+
+
+       VIDEOMODE
+              Set VIDEOMODE to an empty string to avoid setting up  the  video
+              mode.  On FreeBSD you can run
+
+                  vidcontrol -i mode
+
+              in  order to see all possible video modes.  On Linux fbset(1) is
+              used to configure the video mode but  very  often  this  doesn't
+              work  because  the default framebuffer driver (VesaFB) is rather
+              limited and doesn't allow changes of the video mode.
+
+
+       FONT, FONT_MAP and CONSOLE_MAP
+              If set, specify that a non standard font is  to  be  used.   The
+              value  of  the variable FONT consists of one or more space sepa-
+              rated font file names.  On Linux, when the font doesn't  contain
+              embedded  Unicode map, an external map can be specified with the
+              variable FONT_MAP.  The value of  CONSOLE_MAP  is  a  file  that
+              specifies  a  translation  map from the user's 8-bit encoding to
+              Unicode (Linux only) or directly to font positions.
+
+
+       SCREEN_WIDTH and SCREEN_HEIGHT
+              If set, these variables specify a screen size  that  setupcon(1)
+              will enforce with stty(1).  This can be useful with some braille
+              devices that are only 40 cells wide.  The screen  size  can  not
+              exceed  what the current screen resolution can display according
+              to the size of the loaded font.
+
+
+CODESETS
+       There are two kinds of codesets - small (up to 256 symbols) and big (up
+       to 512 symbols).  Only small codesets can be used on FreeBSD.  When the
+       screen is in text mode (i.e. framebuffer is not used) then fonts cover-
+       ing big codesets will reduce the number of available foreground colors.
+
+
+   Arabic (a big codeset)
+       Supported languages: Arabic, Kurdish in Iran, Pashto, Persian and Urdu.
+
+       Completely  covered  by the following font faces: Fixed (size 8x16) and
+       VGA (sizes 8x16 and 16x32).
+
+
+   Armenian
+       Supported language: Armenian.
+
+       Completely covered by the following font faces: Fixed (all sizes).
+
+
+   CyrAsia
+       This codeset supports some of the non-Slavic Cyrillic languages -  Abk-
+       hazia,  Avaric, Azerbaijani, Bashkir, Buryat, Chechen, Chuvash, Inupiaq
+       (Eskimo), Kara-Kalpak, Kazakh, Kirgiz, Komi, Kumyk, Kurdish,  Lezghian,
+       Mari  (Cheremis),  Mongolian,  Ossetic, Selkup (Ostyak-Samoyed), Tajik,
+       Tatar, Turkmen, Tuvinian, Uzbek and Yakut.
+
+       Completely supported by the following font faces: Fixed (all sizes).
+
+
+   CyrKoi
+       Supports entirely the 8-bit encodings KOI8-R and KOI8-U.  Suitable  for
+       Russian and Ukrainian when one of these two encodings is used.
+
+       Completely  covered  by the following font faces (in all sizes): Fixed,
+       Terminus, TerminusBold, TerminusBoldVGA and VGA.
+
+
+   CyrSlav
+       Supports entirely the 8-bit encodings ISO-8859-5 and CP1251.   Suitable
+       the Slavic Cyrillic languages - Belarusian, Bulgarian, Macedonian, Rus-
+       sian, Serbian and Ukrainian.  For Serbian both  the  Cyrillic  and  the
+       Latin alphabets are supported.
+
+       Completely covered by the following font faces: Fixed (all sizes), Ter-
+       minus (all  sizes),  TerminusBold  (all  sizes),  TerminusBoldVGA  (all
+       sizes), VGA (sizes 8x16 and 16x32).
+
+
+   Ethiopian (a big codeset)
+       Supports Amharic, Ethiopic (Geez), Tigre and Tigrinya.
+
+       This  codeset  is  partially covered by the following font faces: Fixed
+       (sizes 8x15 and 8x18), Goha (all sizes) and GohaClassic (all sizes).
+
+
+   Georgian
+       Supported language: Georgian.
+
+       Completely covered by the following font faces: Fixed (all sizes).
+
+
+   Greek
+       Supported language: Greek.
+
+       Completely covered by the following font faces: Fixed (all  sizes)  and
+       VGA (sizes 8x16 and 16x32).
+
+
+   Hebrew
+       Supported languages: Hebrew and Yiddish.
+
+       Completely  covered  by  the  following  font faces: Fixed (sizes 8x13,
+       8x15, 8x16 and 8x18) and VGA (sizes 8x16 and 16x32).
+
+
+   Lao
+       Supported languages: Lao.
+
+       Completely covered by the following font faces: Fixed (sizes  8x15  and
+       8x16).
+
+
+   Lat15
+       Covers  entirely  ISO-8859-1, ISO-8859-9 and ISO-8859-15.  Suitable for
+       the so called Latin1 and Latin5 languages - Afar, Afrikaans,  Albanian,
+       Aragonese,  Asturian, Aymara, Basque, Bislama, Breton, Catalan, Chamor-
+       ro, Danish, Dutch, English, Estonian, Faroese, Fijian, Finnish, French,
+       Frisian, Friulian, Galician, German, Hiri Motu, Icelandic, Ido, Indone-
+       sian, Interlingua, Interlingue, Italian, Low Saxon, Lule  Sami,  Luxem-
+       bourgish,  Malagasy,  Manx Gaelic, Norwegian Bokmal, Norwegian Nynorsk,
+       Occitan, Oromo or Galla, Portuguese, Rhaeto-Romance  (Romansch),  Scots
+       Gaelic, Somali, South Sami, Spanish, Swahili, Swedish, Tswana, Turkish,
+       Volapuk, Votic, Walloon, Xhosa, Yapese and Zulu.
+
+       Completely covered by the following font faces: Fixed (all sizes), Ter-
+       minus  (all  sizes),  TerminusBold  (all  sizes),  TerminusBoldVGA (all
+       sizes), VGA (sizes 8x16 and 16x32).
+
+
+   Lat2
+       Covers entirely ISO-8859-2.  The Euro sign  and  the  Romanian  letters
+       with comma below are also supported.  Suitable for the so called Latin2
+       languages - Bosnian, Croatian, Czech, Hungarian, Polish, Romanian, Slo-
+       vak, Slovenian and Sorbian (lower and upper).
+
+       Completely covered by the following font faces: Fixed (all sizes), Ter-
+       minus (all  sizes),  TerminusBold  (all  sizes),  TerminusBoldVGA  (all
+       sizes), VGA (sizes 8x16 and 16x32).
+
+
+   Lat38
+       Covers  entirely ISO-8859-3 and ISO-8859-14.  Suitable for Chichewa Es-
+       peranto, Irish, Maltese and Welsh.
+
+       Completely covered by the following font faces: Fixed (all  sizes)  and
+       VGA (sizes 8x16 and 16x32).
+
+
+   Lat7
+       Covers  entirely  ISO-8859-13.  Suitable for Lithuanian, Latvian, Maori
+       and Marshallese.
+
+       Completely covered by the following font faces: Fixed (all sizes), Ter-
+       minus  (all  sizes),  TerminusBold  (all  sizes),  TerminusBoldVGA (all
+       sizes), VGA (sizes 8x16 and 16x32).
+
+
+   Thai
+       Supported language: Thai.
+
+       Completely covered by the following font faces: Fixed (all sizes).
+
+
+   Uni1 (a big codeset)
+       Supports most of the Latin languages, the  Slavic  Cyrillic  languages,
+       Hebrew and barely Arabic.
+
+       Completely  covered  by the following font faces: Fixed (sizes 8x15 and
+       8x16) and VGA (all sizes).
+
+
+   Uni2 (a big codeset)
+       Supports most of the Latin languages, the Slavic Cyrillic languages and
+       Greek.
+
+       Completely  covered  by the following font faces: Fixed (all sizes) and
+       VGA (sizes 8x16 and 16x32).
+
+
+   Uni3 (a big codeset)
+       Supports most of the Latin and Cyrillic languages.
+
+       Completely covered by the following font faces: Fixed (all sizes).
+
+
+   Vietnamese (a big codeset)
+       Supported language: Vietnamese.
+
+       Completely covered by the following  font  faces:  Fixed  (sizes  8x13,
+       8x15, 8x16 and 8x18).
+
+
+FILES
+       The  standard  location  of  the  console-setup  configuration  file is
+       /usr/local/etc/default/console-setup.  The keyboard configuration is in
+       /usr/local/etc/default/keyboard.  Fonts that can be used with the vari-
+       able  FONT  are  usually  installed  in   /usr/share/consolefonts/   or
+       /usr/share/syscons/fonts/.   Translation maps that can be used with the
+       variable CONSOLE_MAP are usually installed in  /usr/share/consoletrans/
+       or /usr/share/syscons/scrnmaps/.
+
+
+NOTES
+       The aim of the Terminus font is to reduce the eyes-fatigue when one has
+       to read a lot.  Currently this font supports only the Latin, the Cyril-
+       lic  and  the  Greek  scripts  (the Lat15, Lat2, Lat7, CyrAsia, CyrKoi,
+       CyrSlav, Greek, Uni2 and Uni3 codesets).
+
+       The fonts with font face TerminusBoldVGA are  optimized  for  use  with
+       regular  text  video  modes.   They should not be used with framebuffer
+       video modes.  The fonts with font face TerminusBold are  optimized  for
+       use  with the framebuffer video modes.  The fonts with font face Termi-
+       nus can be used in all video modes.
+
+
+SEE ALSO
+       setupcon(1), keyboard(5), setfont(1), consolechars(1), vidcontrol(1)
+
+
+
+
+console-setup                     2011-03-17                  CONSOLE-SETUP(5)

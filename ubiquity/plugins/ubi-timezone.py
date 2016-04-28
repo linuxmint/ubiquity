@@ -32,7 +32,7 @@ import ubiquity.tz
 
 
 NAME = 'timezone'
-#after partman for default install, but language for oem install
+# after partman for default install, but language for oem install
 AFTER = ['partman', 'language']
 WEIGHT = 10
 
@@ -66,12 +66,12 @@ class PageGtk(plugin.PluginUI):
         self.online = state
 
     def plugin_translate(self, lang):
-        #c = self.controller
-        #if c.get_string('ubiquity/imported/time-format', lang) == '12-hour':
+        # c = self.controller
+        # if c.get_string('ubiquity/imported/time-format', lang) == '12-hour':
         #    fmt = c.get_string('ubiquity/imported/12-hour', lang)
-        #else:
+        # else:
         #    fmt = c.get_string('ubiquity/imported/24-hour', lang)
-        #self.tzmap.set_time_format(fmt)
+        # self.tzmap.set_time_format(fmt)
         inactive = self.controller.get_string(
             'timezone_city_entry_inactive_label', lang)
         self.city_entry.set_placeholder_text(inactive)
@@ -178,13 +178,9 @@ class PageGtk(plugin.PluginUI):
                     model.append([
                         result['name'], result['admin1'], result['country'],
                         result['latitude'], result['longitude']])
-                
 
                 # Only cache positive results.
                 self.geoname_cache[text] = model
-                
-            except ValueError:
-                syslog.syslog('Server return does not appear to be valid JSON.')
 
             except ValueError:
                 syslog.syslog(
@@ -193,7 +189,7 @@ class PageGtk(plugin.PluginUI):
         self.city_entry.get_completion().set_model(model)
 
     def setup_page(self):
-        # TODO Put a frame around the completion to add contrast (LP: #605908)
+        # TODO Put a frame around the completion to add contrast (LP: # 605908)
         from gi.repository import Gtk, GLib
         from gi.repository import TimezoneMap
         self.tzdb = ubiquity.tz.Database()
@@ -321,11 +317,11 @@ class PageKde(plugin.PluginUI):
             return
 
         self.page.timezone_city_combo.blockSignals(True)
-        #self.page.timezone_city_combo.currentIndexChanged[int].disconnect(
+        # self.page.timezone_city_combo.currentIndexChanged[int].disconnect(
         #    self.cityChanged)
         default = self.populateCities(regionIndex)
         self.page.timezone_city_combo.blockSignals(False)
-        #self.page.timezone_city_combo.currentIndexChanged[int].connect(
+        # self.page.timezone_city_combo.currentIndexChanged[int].connect(
         #    self.cityChanged)
 
         if default:

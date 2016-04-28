@@ -27,14 +27,14 @@ from testtools.matchers import (
     Annotate,
     Is,
     IsInstance
-    )
+)
 from testtools.content import text_content
 
 from ubiquity_autopilot_tests.tools import compare
 from ubiquity_autopilot_tests.exception import (
     NonFatalErrors,
     FatalError
-    )
+)
 
 
 logger = logging.getLogger(__name__)

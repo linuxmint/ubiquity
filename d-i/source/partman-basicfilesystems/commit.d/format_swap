@@ -1,5 +1,18 @@
 #!/bin/sh
 
+ARCH="$(archdetect)"
+
+# The mkswap utility only supports Linux-type swap partitions, used
+# on Linux and Hurd;  do not use it on kfreebsd which does need to
+# format swap partitions
+case $ARCH in
+    kfreebsd-*)
+        exit 0
+        ;;
+    *)
+        ;;
+esac
+
 . /lib/partman/lib/base.sh
 
 for dev in $DEVICES/*; do
@@ -39,7 +52,6 @@ for dev in $DEVICES/*; do
 			fi
 			db_subst $template PARTITION "$num"
 			db_subst $template DEVICE $(humandev $(cat device))
-			name_progress_bar $template
 			db_progress START 0 3 partman/text/formatting
 			db_progress INFO $template
 			db_progress SET 1

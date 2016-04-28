@@ -100,8 +100,8 @@ class MiscTests(unittest.TestCase):
         mock_open.return_value = magic
         magic.readline.return_value = _disk_info
         release = misc.get_release()
-        self.assertEqual(release.name, 'Linuxmint')
-        self.assertEqual(release.version, '4.2.1 LTS')
+        self.assertEqual(release.name, 'Ubuntu Server')
+        self.assertEqual(release.version, '10.04.1 LTS')
 
     @mock.patch('builtins.open')
     def test_get_release_fail(self, mock_open):
@@ -110,22 +110,22 @@ class MiscTests(unittest.TestCase):
         self.assertEqual(release.name, 'Ubuntu')
         self.assertEqual(release.version, '')
 
-    #@mock.patch('os.path.exists')
-    #def windows_startup_folder(self, mock_exists):
-    #    #mock_exists.return_value = True
-    #    locations = [
-    #        # Windows 7
-    #        'ProgramData/Microsoft/Windows/Start Menu/Programs/Startup',
-    #        # Windows XP
-    #        'Documents and Settings/All Users/Start Menu/Programs/Startup',
-    #        # Windows NT
-    #        'Winnt/Profiles/All Users/Start Menu/Programs/Startup',
-    #                ]
-    #    locations_iter = iter(locations)
-    #    def exists(path):
-    #        return path == locations_iter.next()
+    # @mock.patch('os.path.exists')
+    # def windows_startup_folder(self, mock_exists):
+    #     #mock_exists.return_value = True
+    #     locations = [
+    #         # Windows 7
+    #         'ProgramData/Microsoft/Windows/Start Menu/Programs/Startup',
+    #         # Windows XP
+    #         'Documents and Settings/All Users/Start Menu/Programs/Startup',
+    #         # Windows NT
+    #         'Winnt/Profiles/All Users/Start Menu/Programs/Startup',
+    #                 ]
+    #     locations_iter = iter(locations)
+    #     def exists(path):
+    #         return path == locations_iter.next()
 
-    #    self.assertEqual(misc.windows_startup_folder('/tmp/tmp.XXXXXX'))
+    #     self.assertEqual(misc.windows_startup_folder('/tmp/tmp.XXXXXX'))
 
     @mock.patch('builtins.open')
     def test_mount_info(self, mock_open):
@@ -221,18 +221,18 @@ class MiscTests(unittest.TestCase):
         self.assertEqual(mock_execute.call_count, 0)
         self.assertEqual(mock_set_list.call_count, 0)
 
-#class PartedServerTests(unittest.TestCase):
-#    def setUp(self):
-#        patcher = mock.patch('ubiquity.parted_server.PartedServer')
-#        patcher.start()
-#        # Probably best to patch at the dialog level rather than each method
-#        # call.
-#        # Maybe implement this once we have tests for PartedServer itself,
-#        # with mocks we can reuse.
-#        self.addCleanup(patcher.stop)
+# class PartedServerTests(unittest.TestCase):
+#     def setUp(self):
+#         patcher = mock.patch('ubiquity.parted_server.PartedServer')
+#         patcher.start()
+#         # Probably best to patch at the dialog level rather than each method
+#         # call.
+#         # Maybe implement this once we have tests for PartedServer itself,
+#         # with mocks we can reuse.
+#         self.addCleanup(patcher.stop)
 #
-#    def test_boot_device(self):
-#        print misc.boot_device()
+#     def test_boot_device(self):
+#         print misc.boot_device()
 
 
 class PrivilegeTests(unittest.TestCase):
@@ -438,4 +438,3 @@ class GrubDefaultTests(unittest.TestCase):
 
 if __name__ == '__main__':
     run_unittest(MiscTests, PrivilegeTests, GrubDefaultTests)
-    pass

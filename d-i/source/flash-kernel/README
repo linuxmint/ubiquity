@@ -134,3 +134,17 @@ The supported fields are:
 * DTB-Kernel-Version: (optional) minimal kernel version for DTB concatenation
 
 * DTB-Id: (optional) specifies the name of the DTB file for this device
+
+
+Adding U-Boot Commands for Pre-Boot Execution
+- - - - - - - - - - - - - - - - - - - - - - -
+
+Packages can drop in files containing U-Boot commands to be executed by a
+platform's bootscript before starting the OS. These files should be
+dropped in /usr/share/flash-kernel/ubootenv.d. Users can add additional
+stubs, or override stubs provided by packages, by adding files to
+/etc/flash-kernel/ubootenv.d. Files in the /etc path that have the same
+name as files in the /usr path will override the /usr counterparts.
+
+Platform bootscripts must contain the @@UBOOT_ENV_EXTRA@@ macro for the
+contents of these stubs to be incorporated.

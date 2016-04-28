@@ -17,16 +17,6 @@ addfstab () {
 		"$(escape "$1")" "$(escape "$2")" \
 		"$(escape "$3")" "$(escape "$4")" \
 		"$5" "$6"
-	if [ "$OS" = hurd ] ;
-	then
-		if [ -x /target/hurd/"$3" ]
-		then
-			settrans -pk "/target/$2" /hurd/"$3" "$1"
-		elif [ -x /target/hurd/"$3fs" ]
-		then
-			settrans -pk "/target/$2" /hurd/"$3fs" "$1"
-		fi
-	fi
 }
 
 db_get partman/mount_style
@@ -74,6 +64,13 @@ fstab=$(
 				else
 					addfstab "$(mapdevfs $fs)" "$mp" "$type" "$options" "$dump" "$pass"
 				fi
+			fi
+			;;
+		    ([a-zA-Z]*/ROOT/*)
+			if [ "$type" = "zfs" -a "$mp" != "/" ]; then
+			     # This is definitely a ZFS, it's not the root fs (which is auto mounted
+			     # in the initrd).
+			     addfstab "$fs" "$mp" "$type" "$options" "$dump" "$pass"
 			fi
 			;;
 		esac

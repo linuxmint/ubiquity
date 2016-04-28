@@ -18,10 +18,6 @@ default_disk_label () {
 		else
 			echo msdos
 		fi;;
-	    arm|armeb|armel|armhf)
-		echo msdos;;
-	    arm64)
-		echo gpt;;
 	    amd64|kfreebsd-amd64|i386|kfreebsd-i386|hurd-i386)
 		case "$sub" in
 		    mac|efi)
@@ -29,6 +25,10 @@ default_disk_label () {
 		    *)
 			echo msdos;;
 		esac;;
+	    arm|armeb|armel|armhf)
+		echo msdos;;
+	    arm64)
+		echo gpt;;
 	    hppa)
 		echo msdos;;
 	    ia64)
@@ -83,7 +83,7 @@ default_disk_label () {
 			echo msdos;;
 		    bcm947xx)
 			echo msdos;;
-		    loongson-2e | loongson-2f | loongson-3a)
+		    loongson-2e | loongson-2f | loongson-3)
 			echo msdos;;
 		    *)
 			echo UNKNOWN;;
@@ -117,12 +117,16 @@ default_disk_label () {
 		    *)
 			echo UNKNOWN;;
 		esac;;
-	    ppc64)
-		echo mac;;
 	    ppc64el)
 		echo gpt;;
 	    s390|s390x)
-		echo msdos;;
+		if [ -e ./label ]; then
+		    disklabel=$(cat label)
+		fi
+		if [ "$disklabel" != dasd ]; then
+		    disklabel=msdos
+		fi
+		echo $disklabel;;
 	    sh4)
 		echo msdos;;
 	    sparc|sparc64)
@@ -227,10 +231,6 @@ create_new_label() {
 			return 1
 		fi
 		db_reset partman-partitioning/confirm_write_new_label
-		# XXX hack of death. This will make sure that the partition label is
-		# cleared and only on Sun labels otherwise bad things can happen.
-		dddevice=$(cat device)
-		log-output -t auto-shared dd if=/dev/zero of=$dddevice bs=512 count=1
 	fi
 
 	open_dialog NEW_LABEL "$chosen_type"

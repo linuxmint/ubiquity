@@ -55,7 +55,8 @@ def wireless_hardware_present():
     # NetworkManager keeps DBus objects for wireless devices around even when
     # the hardware switch is off.
     bus = dbus.SystemBus()
-    manager = bus.get_object(NM, '/org/freedesktop/NetworkManager')
+    nm = bus.get_object(NM, '/org/freedesktop/NetworkManager')
+    manager = dbus.Interface(nm, 'org.freedesktop.NetworkManager')
     try:
         devices = manager.GetDevices()
     except dbus.DBusException:
@@ -123,8 +124,10 @@ class NetworkManager:
 
     def start(self, state_changed=None):
         self.bus = dbus.SystemBus()
-        self.manager = self.bus.get_object(
+        self.nm = self.bus.get_object(
             NM, '/org/freedesktop/NetworkManager')
+        self.manager = dbus.Interface(
+            self.nm, 'org.freedesktop.NetworkManager')
         add = self.bus.add_signal_receiver
         add(self.queue_build_cache, 'AccessPointAdded', NM_DEVICE_WIFI, NM)
         add(self.queue_build_cache, 'AccessPointRemoved', NM_DEVICE_WIFI, NM)

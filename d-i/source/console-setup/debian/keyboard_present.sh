@@ -24,6 +24,7 @@ keyboard_present () {
 
     [ -d /sys/bus/usb/devices ] || return 0
     for d in /sys/bus/usb/devices/*:*; do
+	[ -d "$d" ] || continue
 	class=$(cat "$d/bInterfaceClass") # 03 = Human Interface Device
 	subclass=$(cat "$d/bInterfaceSubClass") # 01 = Boot Interface Subclass
 	protocol=$(cat "$d/bInterfaceProtocol") # 01 = Keyboard

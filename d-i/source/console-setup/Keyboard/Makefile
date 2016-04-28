@@ -1,33 +1,43 @@
 SHELL = /bin/sh
 
-build : compose_files gziped_acmfiles KeyboardNames.pl MyKeyboardNames.pl
+xkbdir ?= ./ckb
+
+build : compose_files dkey_files KeyboardNames.pl
 
 models = amiga ataritt macintosh_old pc105 sun4 sun5
 
-gziped_ekmaps =  $(addsuffix .ekmap.gz, $(models))
+gzipped_ekmaps =  $(addsuffix .ekmap.gz, $(models))
 
-build-mini : $(gziped_ekmaps) pc105.tree
+gzipped_ekbds = pc105.ekbd.gz
+
+build-mini-linux : $(gzipped_ekmaps) charmap_functions.sh pc105.tree
+
+build-mini-freebsd : $(gzipped_ekbds) charmap_functions.sh
 
 %.gz : %
 	gzip -9 <$< >$@
 
-%.ekmap : MyKeyboardNames.pl
-	./kbdcompiler $(@:%.ekmap=%) MyKeyboardNames.pl $(xkbdir) >$@
+%.ekmap : 
+	./kbdcompiler $(@:%.ekmap=%) KeyboardNames.pl $(xkbdir) >$@
 
-%.tree : %.ekmap.gz keymaptree.use MyKeyboardNames.pl
-	./keymaptree -output $@ -useonly "$$(< keymaptree.use grep -v '^#' | xargs | sed 's/ /,/g')" -names MyKeyboardNames.pl $(@:%.tree=%)
+%.tree : %.ekmap.gz keymaptree.use
+	./keymaptree -output $@ -useonly "$$(< keymaptree.use grep -v '^#' | xargs | sed 's/ /,/g')" -names KeyboardNames.pl $(@:%.tree=%)
 
-acmfiles = $(wildcard acm/*.acm)
+%.ekbd : 
+	./kbdcompiler freebsd-$(@:%.ekbd=%) KeyboardNames.pl $(xkbdir) >$@
 
-gziped_acmfiles = $(addsuffix .gz, $(acmfiles))
+charmap_functions.sh : $(acmfiles)
+	./make_charmap_functions ../acm $(charmaps) >$@
 
-gziped_acmfiles : $(gziped_acmfiles)
+acmfiles = $(wildcard ../acm/*.acm)
 
 charmaps = $(basename $(notdir $(acmfiles)))
 
 compose_files = $(addprefix compose.,$(addsuffix .inc, $(charmaps)))
+dkey_files = $(addprefix dkey.,$(addsuffix .inc, $(charmaps)))
 
 $(compose_files): charmap = $(patsubst compose.%.inc,%, $@)
+$(dkey_files): charmap = $(patsubst dkey.%.inc,%, $@)
 
 VISCII-XCOMPOSE = locale/vi_VN.viscii/Compose
 ISO-8859-1-XCOMPOSE = locale/iso8859-1/Compose
@@ -44,29 +54,29 @@ ISO-8859-15-XCOMPOSE = locale/iso8859-15/Compose
 $(compose_files) :
 	echo '# Compose sequences for $(charmap)' >$@
 	$(if $($(charmap)-XCOMPOSE), \
-		./compose_translator --acm acm/$(charmap).acm \
+		./compose_translator --acm ../acm/$(charmap).acm \
 				     $($(charmap)-XCOMPOSE) >>$@)
 
+$(dkey_files) : dkey_sequences
+	./dkey_bsd ../acm/$(charmap).acm dkey_sequences >$@
+
 compose_files : $(compose_files)
+dkey_files : $(dkey_files)
 
 
 .PHONY: clean
 clean:
 	-rm -f *~
-	-rm -f acm/*.acm.gz
-	-rm -rf compose $(compose_files)
-	-rm -rf keymaps tree-keymaps
+	-rm -rf compose $(compose_files) $(dkey_files)
+	-rm -rf linux-keymaps freebsd-keymaps keymaps tree-keymaps
 	-rm -f keymaps.dir names.list
-	-rm -f $(gziped_ekmaps)
+	-rm -f charmap_functions.sh
+	-rm -f $(gzipped_ekmaps) $(gzipped_ekbds)
 	-rm -f *.tree
-	-rm -f MyKeyboardNames.pl
 
 .PHONY: maintainer-clean
 maintainer-clean: clean
 	./xmlreader >KeyboardNames.pl
 
 KeyboardNames.pl:
-	./xmlreader >KeyboardNames.pl
-
-MyKeyboardNames.pl:
-	./xmlreader $(xkbdir)/rules/xorg.xml >MyKeyboardNames.pl
+	./xmlreader $(xkbdir)/rules/xorg.xml >KeyboardNames.pl

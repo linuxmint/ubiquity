@@ -18,6 +18,62 @@ esac
 [ -r /etc/default/console-setup ] || exit 0
 . /etc/default/console-setup # also sources /etc/default/keyboard
 
+# CODESET
+[ "$CODESET" != guess ] || CODESET=''
+if [ -z "$CODESET" ]; then
+    case "$CHARMAP" in
+        UTF-8)            CODESET=Uni2;;
+        ARMSCII-8)        CODESET=Armenian ;;
+        CP1251)           CODESET=CyrSlav ;;
+        CP1255)           CODESET=Hebrew ;;
+        CP1256)           CODESET=Arabic ;;
+        GEORGIAN-ACADEMY) CODESET=Georgian ;;
+        GEORGIAN-PS)      CODESET=Georgian ;;
+        IBM1133)          CODESET=Lao ;;
+        ISIRI-3342)       CODESET=Arabic ;;
+        ISO-8859-1)       CODESET=Lat15 ;;
+        ISO-8859-2)       CODESET=Lat2 ;;
+        ISO-8859-3)       CODESET=Lat38 ;;
+        ISO-8859-4)       CODESET=Lat7 ;; # sometimes Lat15
+        ISO-8859-5)       CODESET=CyrSlav ;;
+        ISO-8859-6)       CODESET=Arabic ;;
+        ISO-8859-7)       CODESET=Greek ;;
+        ISO-8859-8)       CODESET=Hebrew ;;
+        ISO-8859-9)       CODESET=Lat15 ;;
+        ISO-8859-10)      CODESET=Lat15 ;;
+        ISO-8859-11)      CODESET=Thai ;;
+        ISO-8859-13)      CODESET=Lat7 ;;
+        ISO-8859-14)      CODESET=Lat38 ;;
+        ISO-8859-15)      CODESET=Lat15 ;;
+        ISO-8859-16)      CODESET=Lat2 ;;
+        KOI8-R)           CODESET=CyrKoi ;;
+        KOI8-U)           CODESET=CyrKoi ;;
+        TIS-620)          CODESET=Thai ;;
+        VISCII)           CODESET=Vietnamese ;;
+        *)	            ;;
+    esac
+fi
+
+# FONTSIZE
+if [ -z "$FONTSIZE" -o "$FONTSIZE" = guess ]; then
+    FONTSIZE=16
+fi
+case "$FONTSIZE" in
+    8x*)
+        FONTSIZE=${FONTSIZE#*x}
+        ;;
+    *x8)
+        FONTSIZE=${FONTSIZE%x*}
+        ;;
+    *x*)
+        a=${FONTSIZE%x*}
+        b=${FONTSIZE#*x}
+        if [ "$a" -lt "$b" ]; then
+            FONTSIZE=${b}x${a}
+        fi
+        ;;
+esac
+
 # Copy console-setup configuration
 mkdir -p "$DESTDIR/etc/default"
 cp -p /etc/default/keyboard "$DESTDIR/etc/default"
@@ -34,6 +90,10 @@ if [ -f "$FONT" ]; then
 	mkdir -p "$DESTDIR${FONT%/*}"
 	cp -p "$FONT" "$DESTDIR$FONT"
 fi
+if [ -f "$FONT.gz" ]; then
+	mkdir -p "$DESTDIR${FONT%/*}"
+	cp -p "$FONT.gz" "$DESTDIR$FONT.gz"
+fi
 if [ -f "$ACM" ]; then
 	ACM="/etc/console-setup/${ACM##*/}"
 	ACM="${ACM%.gz}"
@@ -43,6 +103,10 @@ fi
 if [ -f "$ACM" ]; then
 	mkdir -p "$DESTDIR${ACM%/*}"
 	cp -p "$ACM" "$DESTDIR$ACM"
+fi
+if [ -f "$ACM.gz" ]; then
+	mkdir -p "$DESTDIR${ACM%/*}"
+	cp -p "$ACM.gz" "$DESTDIR$ACM.gz"
 fi
 if [ -f /etc/console-setup/cached.kmap.gz ]; then
 	mkdir -p "$DESTDIR/etc/console-setup"

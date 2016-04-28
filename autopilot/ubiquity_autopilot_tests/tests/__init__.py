@@ -68,7 +68,7 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
         english_label_conf.generate_config()
         self.english_config = configparser.ConfigParser()
         self.english_config.read('/tmp/english_config.ini')
-        #delete config at end of test
+        # delete config at end of test
         self.addCleanup(os.remove, '/tmp/english_config.ini')
         # always starts with 1 row ('/dev/sda')
         self.part_table_rows = 1
@@ -113,6 +113,25 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
         nxt_button.click()
 
         if wait:
+            # When the test clicks "Install now" a confirm overwrite disk
+            # dialog appears. This is an "ubi_question_dialog" and although
+            # we can grab it with autopilot we cannot easily select the
+            # continue button as it has no name or BuilderName properties
+            # There are two buttons that basically have identical xpaths
+            # so even identifying the correct button is not really possible.
+            # We experience the same during the manual partition step when
+            # creating a new table. The dialog seems to be a generic msg dialog
+            # that's created on the fly so we can't even add those properties.
+            # The best we can do here is a bit of damage limitation and use a
+            # lengthy sleep and keyboard right to the continue button.
+            print("go_to_next_page() Entering workaround "
+                  "for ubi_question_dialog")
+            print("If the test failed here it is most likely a timing issue")
+            # This maybe overkill but better to be safe
+            time.sleep(20)
+            self.kbd.press_and_release('Right')
+            self.kbd.press_and_release('Enter')
+            print("Workaround ended continuing with wait for next step")
             # This sleep just bridges a weird error when the next button,
             # sometimes flickers its sensitive property back to 1 once clicked
             # and then goes back to 0
@@ -128,7 +147,7 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
             'GtkLabel', name='page_title')
         self.assertThat(page_title.label,
                         Eventually(NotEquals(self.current_page_title),
-                                   timeout=120))
+                                   timeout=240))
 
     def go_to_progress_page(self, ):
         """ This simply clicks next and goes to the progress page
@@ -154,16 +173,16 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
 
         self._update_current_step('stepLanguage')
         self._check_navigation_buttons()
-        #first check pageTitle visible and correct if label given
+        # first check pageTitle visible and correct if label given
         logger.debug("run_welcome_page_tests()")
-        #selecting an install language
+        # selecting an install language
         logger.debug("Selecting stepLanguage page object")
         welcome_page = self.main_window.select_single(
             'GtkBox', name='stepLanguage')
         treeview = welcome_page.select_single('GtkTreeView')
-        #lets get all items
+        # lets get all items
         treeview_items = treeview.get_all_items()
-        #first lets check all the items are non-empty unicode strings
+        # first lets check all the items are non-empty unicode strings
         logger.debug("Checking all tree items are valid unicode")
         for item in treeview_items:
             logger.debug("Check tree item with name '%s' is unicode" %
@@ -188,7 +207,7 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
         welcome_page.select_language(language)
 
         self.assertThat(language.selected, Equals(True))
-        ##Test release notes label is visible
+        # Test release notes label is visible
         logger.debug("Checking the release_notes_label")
         self.check_visible_object_with_label('release_notes_label')
         release_notes_label = welcome_page.select_single(
@@ -233,8 +252,11 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
         preparing_page = self.main_window.select_single(
             'GtkAlignment', BuilderName='stepPrepare')
 
-        objList = ['prepare_best_results', 'prepare_foss_disclaimer',
-                   'prepare_download_updates', 'prepare_nonfree_software']
+        objList = [
+            'prepare_foss_disclaimer_license',
+            'prepare_download_updates',
+            'prepare_nonfree_software'
+        ]
         self.check_visible_object_with_label(objList)
 
         if updates:
@@ -248,15 +270,6 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
             thrdprty_checkbutton = preparing_page.select_single(
                 'GtkCheckButton', BuilderName='prepare_nonfree_software')
             self.pointing_device.click_object(thrdprty_checkbutton)
-
-        self._check_preparing_statebox('prepare_network_connection',
-                                       visible=networkConnection)
-        #and sufficient space
-        self._check_preparing_statebox('prepare_sufficient_space',
-                                       visible=sufficientSpace)
-        # and power source
-        self._check_preparing_statebox('prepare_power_source',
-                                       visible=powerSource)
 
         self._check_page_titles()
         self._check_navigation_buttons()
@@ -417,10 +430,10 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
                      "load")
         time.sleep(5)  # need to give time for all UI elements to load
         custom_page.create_new_partition_table()
-        #update number of table rows
+        # update number of table rows
         self.part_table_rows = treeview.get_number_of_rows()
         logger.debug("TOTAL NUMBER OF ROWS: {0}".format(self.part_table_rows))
-        #lets create the partitions from here
+        # lets create the partitions from here
         if part_config:
             logger.debug("Setting the given partition config")
             config = part_config
@@ -457,7 +470,7 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
                             "Partition dialog did not close")
             self._check_partition_created(elem)
         # TODO: Uncomment once bug 1066152 is fixed
-        #self._check_page_titles()
+        # self._check_page_titles()
         self._check_navigation_buttons()
 
     def location_page_tests(self, ):
@@ -527,7 +540,7 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
             text = u'Testing keyboard layout'
             with self.keyboard.focused_type(entry) as kb:
                 kb.type(text)
-                #check entry value is same length as text
+                # check entry value is same length as text
                 if len(entry.text) == len(text):
                     # only test the entry value if we are using english install
                     if self.english_install:
@@ -543,7 +556,7 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
                         "unicode but it wasnt"
                         .format(self.current_step))
                     break
-                #delete the entered text before trying again
+                # delete the entered text before trying again
                 kb.press_and_release('Ctrl+a')
                 kb.press_and_release('Delete')
         # TODO: Test detecting keyboard layout
@@ -581,7 +594,7 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
         self.check_visible_object_with_label(objects)
 
         user_info_page.create_user(username, pwd)
-        #TODO: get these working
+        # TODO: get these working
         if encrypted:
             user_info_page.encrypt_home_dir(encrypt=True)
         if autologin:
@@ -599,35 +612,36 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
             to assertain the percentage complete.
 
         '''
-        #TODO: Remove all these prints once dbus bug is fixed
+        # TODO: Remove all these prints once dbus bug is fixed
         logger.debug("run_install_progress_page_tests()")
         print("run_install_progress_page_tests()")
-        #We cant assert page title here as its an external html page
-        #Maybe try assert WebKitWebView is visible
+        # We cant assert page title here as its an external html page
+        # Maybe try assert WebKitWebView is visible
         #
         # NOTE: disable test to check if webkit view is visible. autopilot
         #       randomly crashes with LP#1284671 and very often in the QA Lab
-        #print("Selecting WebKit")
-        #webkitwindow = self.main_window.select_single(
-        #    'GtkScrolledWindow', name='webkit_scrolled_window'
-        #)
-        #print("Test webkitwindow visible")
-        #self.expectThat(webkitwindow.visible, Equals(True))
-        #print("Webkit window found and is visible")
+        # print("Selecting WebKit")
+        # webkitwindow = self.main_window.select_single(
+        #     'GtkScrolledWindow', name='webkit_scrolled_window'
+        # )
+        # print("Test webkitwindow visible")
+        # self.expectThat(webkitwindow.visible, Equals(True))
+        # print("Webkit window found and is visible")
         print("Selecting Progress bar")
         progress_bar = self.main_window.select_single('GtkProgressBar',
                                                       name='install_progress')
 
-        #Copying files progress bar
+        # Copying files progress bar
         print("Entering first tracking loop all that will be called "
               "from here is GtkWindow name = liveinstaller and the "
               "progressbar")
         self._track_install_progress()
         print("First loop complete waiting for pbar to go back to 0")
+        # CI VM infrastructure can be a bit slow, hence long timeout.
         self.assertThat(progress_bar.fraction, Eventually(
-            Equals(0.0), timeout=180))
+            Equals(0.0), timeout=530))
         print("Now entering the second loop...........")
-        #And now the install progress bar
+        # And now the install progress bar
         self._track_install_progress()
 
     def check_visible_object_with_label(self, visible_obj):
@@ -667,9 +681,9 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
 
     def _check_object(self, obj_name, obj_visible=True):
         logger.debug("Checking {0} object.......".format(obj_name))
-        #select current page object
+        # select current page object
         page = self.main_window.select_single(BuilderName=self.current_step)
-        #select object
+        # select object
         page_object = page.select_single(BuilderName=obj_name)
         if obj_visible:
             visible_message = "[Page:'{0}'] Expected {1} object to be " \
@@ -689,14 +703,14 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
                               "[Page:'{0}'] Expected {1} objects label "
                               "value to be unicode but it wasn't"
                               .format(self.current_step, page_object.name))
-        #we only want to test visible english values, hidden ones don't matter
+        # we only want to test visible english values, hidden ones don't matter
         if (self.current_step in self.english_config) and obj_visible:
             if self.english_install and (
                     obj_name in self.english_config[self.current_step]):
                 logger.debug(
                     "Checking {0} object's english label value....".format(
                         obj_name))
-                #if english install check english values
+                # if english install check english values
                 self.expectThat(page_object.label, Equals(
                     self.english_config[self.current_step][obj_name]))
 
@@ -713,11 +727,11 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
                                                       name='install_progress')
         progress = 0.0
         while progress < 1.0:
-            #print("Progressbar = %d" % progress)
-            #keep updating fraction value
-            #print("Getting an updated pbar.fraction")
+            # print("Progressbar = %d" % progress)
+            # keep updating fraction value
+            # print("Getting an updated pbar.fraction")
             progress = progress_bar.fraction
-            #print("Got an updated pbar fraction")
+            # print("Got an updated pbar fraction")
             # lets sleep for longer at early stages then
             # reduce nearer to complete
             if progress < 0.5:
@@ -729,7 +743,7 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
             else:
                 pass
 
-            #logger.debug('Percentage complete "{0:.0f}%"'
+            # logger.debug('Percentage complete "{0:.0f}%"'
             #             .format(progress * 100))
 
     def _check_no_visible_dialogs(self, arg=None):
@@ -780,7 +794,7 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
         dialog_labels = dlg_object.select_many('GtkLabel')
         message = ''
         for gtklabel in dialog_labels:
-            #only add labels longer than 'Continue' so we avoid button labels
+            # only add labels longer than 'Continue' so we avoid button labels
             if len(gtklabel.label) > 8:
                 message += (gtklabel.label + '. ')
 
@@ -813,7 +827,7 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
             'GtkAlignment',
             BuilderName='stepPartAdvanced')
         tree_view = custom_page.select_single('GtkTreeView')
-        #assert a new row has been added to the partition table
+        # assert a new row has been added to the partition table
         total_rows = self._update_table_row_count(config)
         logger.debug("TOTAL NUMBER OF ROWS: {0}".format(self.part_table_rows))
         self.assertThat(total_rows, Equals(self.part_table_rows))
@@ -913,7 +927,7 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
         tree_view = custom_page.select_single('GtkTreeView')
         num = tree_view.get_number_of_rows()
         if num == self.total_number_partitions:
-            #TODO: assert 'free space' changes to a partition
+            # TODO: assert 'free space' changes to a partition
             # this will take some further work.
             time.sleep(15)
             return num
@@ -951,10 +965,10 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
         if self.current_step in self.english_config:
             if self.english_install and (
                     'page_title' in self.english_config[self.current_step]):
-                #if english install check english values
+                # if english install check english values
                 self.expectThat(current_page_title.label, Equals(
                     self.english_config[self.current_step]['page_title']))
-        #also lets check it changed from the previous page
+        # also lets check it changed from the previous page
 
         message_one = "Expected %s page title '%s' to not equal the "\
             "previous %s page title '%s' but it does" % (
@@ -964,63 +978,24 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
         self.expectThat(self.previous_page_title,
                         NotEquals(self.current_page_title),
                         message=message_one)
-        ## XXX Re-enable to catch bugs where page title changes after a page
-        ##     has loaded
+        # XXX Re-enable to catch bugs where page title changes after a page
+        #     has loaded
         #
-        ## This second one catches the known bug for the stepPartAdvanced page
-        ## title switching back to the prev page title
-        #message_two = "Expected %s page title '%s' to not equal the "\
-        #    "previous %s page title '%s' but it does" % (
-        #        self.current_step, current_page_title.label,
-        #        self.step_before, self.previous_page_title)
-        ## This only runs if the current page title changes from its initial
-        ## value when page loaded
-        #if current_page_title.label != self.current_page_title:
-        #    self.expectThat(self.previous_page_title,
-        #                    NotEquals(current_page_title.label),
-        #                    message=message_two)
-        #    self.expectThat(current_page_title.visible, Equals(True),
-        #                    "[Page:'{0}'] Expect page title to be visible "
-        #                    "but it wasn't".format(self.current_step))
-
-    def _check_preparing_statebox(self, stateboxName, visible=True,
-                                  imagestock='gtk-yes'):
-        """ Checks the preparing page statebox's """
-        logger.debug("Running checks on {0} StateBox".format(stateboxName))
-        preparing_page = self.main_window.select_single(
-            'GtkAlignment', BuilderName='stepPrepare')
-        state_box = preparing_page.select_single(
-            'StateBox', BuilderName=stateboxName)
-        logger.debug('check({0}, {1})'.format(visible, imagestock))
-        logger.debug("Running checks.......")
-        if visible:
-            self.expectThat(state_box.visible, Equals(visible),
-                            "StateBox.check(): Expected {0} statebox to be "
-                            "visible but it wasn't"
-                            .format(state_box.name))
-            label = state_box.select_single('GtkLabel')
-            self.expectThat(label.label, NotEquals(u''),
-                            "[Page:'{0}'] Expected {1} Statebox's label to "
-                            "contain text but it didn't"
-                            .format(self.current_step, stateboxName))
-            self.expectThat(label.visible, Equals(visible),
-                            "[Page:'{0}'] Expected {1} Statebox label's "
-                            "visible property to be {2} "
-                            .format(self.current_step, stateboxName,
-                                    str(visible)))
-            self.expectIsInstance(label.label, str,
-                                  "[Page:'{0}'] Expected {1} Statebox's label "
-                                  "to be unicode but it wasn't"
-                                  .format(self.current_step, stateboxName))
-            image = state_box.select_single('GtkImage')
-            self.expectThat(image.stock, Equals(imagestock))
-            self.expectThat(image.visible, Equals(visible))
-
-        else:
-            self.expectThat(state_box.visible, Equals(False),
-                            "[Page:'{0}'] Expected {1} statebox to not be "
-                            "visible but it was"
-                            .format(self.current_step, stateboxName))
+        # This second one catches the known bug for the stepPartAdvanced page
+        # title switching back to the prev page title
+        # message_two = "Expected %s page title '%s' to not equal the "\
+        #     "previous %s page title '%s' but it does" % (
+        #         self.current_step, current_page_title.label,
+        #         self.step_before, self.previous_page_title)
+        # This only runs if the current page title changes from its initial
+        # value when page loaded
+        # if current_page_title.label != self.current_page_title:
+        #     self.expectThat(self.previous_page_title,
+        #                     NotEquals(current_page_title.label),
+        #                     message=message_two)
+        #     self.expectThat(current_page_title.visible, Equals(True),
+        #                     "[Page:'{0}'] Expect page title to be visible "
+        #                     "but it wasn't".format(self.current_step))
 
     def get_distribution(self, ):
         """Returns the name of the running distribution."""

@@ -90,7 +90,11 @@ while read name device source options; do
 				size=$(($(stat -c %s ${device})/${ONE_MEG}))
 				dd if=/dev/zero of=$device bs=${ONE_MEG} count=$size 2>/dev/null || true
 			else
-				dd if=/dev/zero of=$device bs=16M 2>/dev/null || true
+				# ensure to keep the original swap partition signature so
+				# that we retain the UUID in /etc/crypttab; see corresponding
+				# ecryptfs-setup-swap change in LP#953875
+				dd if=/dev/zero of=$device bs=16M seek=1 2>/dev/null || true
+				dd if=/dev/zero of=$device bs=4K seek=1 count=4096 2>/dev/null || true
 			fi
 			cryptdisks_start "$name" && swapon "/dev/mapper/$name" || true
 		fi

@@ -6,6 +6,8 @@ int
 main(int argc, char *argv[])
 {
 	PedDevice *dev;
+	// use "-l" to list all prep partitions found (not just the first one).
+	int list = (argc == 2 && !strncmp(argv[1], "-l", strlen("-l")));
 
 	ped_exception_fetch_all();
 	ped_device_probe_all();
@@ -27,8 +29,10 @@ main(int argc, char *argv[])
 				path = ped_partition_get_path(part);
 				if (path) {
 					printf("%s\n", path);
-					free(path);
-					return 0;
+					if (!list) {
+						free(path);
+						return 0;
+					}
 				}
 				free(path);
 			}

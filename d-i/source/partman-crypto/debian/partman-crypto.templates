@@ -144,7 +144,36 @@ Type: text
 # :sl3:
 _Description: Erase data on this partition
 
-Template: partman-crypto/warn_erase
+# Overwrite with zeroes
+Template: partman-crypto/plain_warn_erase
+Type: boolean
+Default: false
+# :sl3:
+_Description: Really erase the data on ${DEVICE}?
+ The data on ${DEVICE} will be overwritten with zeroes. It can no longer be
+ recovered after this step has completed. This is the last opportunity to
+ abort the erase.
+
+Template: partman-crypto/progress/plain_erase_title
+Type: text
+# :sl3:
+_Description: Erasing data on ${DEVICE}
+
+Template: partman-crypto/progress/plain_erase_text
+Type: text
+# :sl3:
+_Description: The installer is now overwriting ${DEVICE} with zeroes to delete its previous contents. This step may be skipped by cancelling this action.
+
+Template: partman-crypto/plain_erase_failed
+Type: error
+# :sl3:
+_Description: Erasing data on ${DEVICE} failed
+ An error occurred while trying to overwrite the data on ${DEVICE} with
+ zeroes. The data has not been erased.
+
+
+# Cryptographic overwrite to protect metadata
+Template: partman-crypto/crypto_warn_erase
 Type: boolean
 Default: false
 # :sl3:
@@ -153,17 +182,24 @@ _Description: Really erase the data on ${DEVICE}?
  longer be recovered after this step has completed. This is the last
  opportunity to abort the erase.
 
-Template: partman-crypto/progress/erase
+Template: partman-crypto/progress/crypto_erase_title
 Type: text
 # :sl3:
 _Description: Erasing data on ${DEVICE}
 
-Template: partman-crypto/erase_failed
+Template: partman-crypto/progress/crypto_erase_text
+Type: text
+# :sl3:
+_Description: The installer is now overwriting ${DEVICE} with random data to prevent meta-information leaks from the encrypted volume. This step may be skipped by cancelling this action, albeit at the expense of a slight reduction of the quality of the encryption.
+
+Template: partman-crypto/crypto_erase_failed
 Type: error
 # :sl3:
 _Description: Erasing data on ${DEVICE} failed
- An error occurred trying to erase the data on ${DEVICE}. The data has
- not been erased.
+ An error occurred while trying to overwrite ${DEVICE} with random
+ data. Recovery of the device's previous contents is possible and
+ meta-information of its new contents may be leaked.
+
 
 Template: partman/progress/init/crypto
 Type: text
@@ -305,6 +341,16 @@ _Description: Unsafe swap space detected
  an encrypted swap space and then run setup of encrypted volumes again.
  This program will now abort.
 
+# SECURITY NOTE
+# -------------
+# Starting with partman-crypto/77, 3 extra items can be preseeded:
+#  - partman-crypto/passphrase
+#  - partman-crypto/passphrase-again
+#  - partman-crypto/weak_passphrase
+#
+# The security of the installed system depends on the preseed source.
+# For example: The passphrase could easily be eavesdropped on a local
+# network. A proper key escrow system might be a better idea.
 Template: partman-crypto/passphrase
 Type: password
 # :sl3:

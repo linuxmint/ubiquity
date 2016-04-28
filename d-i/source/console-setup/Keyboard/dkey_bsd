@@ -1,0 +1,98 @@
+#!/usr/bin/perl
+
+use strict;
+
+my %deadkeys = (
+    0x0300 => [ 'dgra', 0x0060 ], # dead_grave
+    0x0301 => [ 'dacu', 0x00b4 ], # dead_acute
+    0x0302 => [ 'dcir', 0x005e ], # dead_circumflex
+    0x0303 => [ 'dtil', 0x007e ], # dead_tilde
+    0x0304 => [ 'dmac', 0x00AF ], # dead_macron
+    0x0306 => [ 'dbre', 0x02D8 ], # dead_breve
+    0x0307 => [ 'ddot', 0x02D9 ], # dead_abovedot
+    0x0308 => [ 'ddia', 0x00A8 ], # dead_diaeresis
+    0x0309 => [ 'dsla', 0x0000 ], # dead_hook
+    0x030a => [ 'drin', 0x00B0 ], # dead_abovering
+    0x0327 => [ 'dced', 0x00B8 ], # dead_cedilla
+    0x030b => [ 'ddac', 0x02DD ], # dead_doubleacute
+    0x0328 => [ 'dogo', 0x02DB ], # dead_ogonek
+    0x030c => [ 'dcar', 0x02C7 ], # dead_caron
+    );
+
+my %acmtable;
+my $acm = $ARGV[0];
+my $deadsequences = $ARGV[1];
+
+sub printsym {
+    my $c = $_[0];
+    if (defined $c) {
+        if ($c >= 0x20 && $c <= 0x7e) {
+            return sprintf "\'%c\'", $c;
+        } else {
+            return sprintf "%i", $c;
+        }
+    } else {
+        return undef;
+    }
+}
+
+for my $i (0..127) {
+    $acmtable{$i} = $i;
+}
+
+(-f $acm) or die "$0: ${acm} does not exist\n";
+if ($acm =~ /gz$/) {
+    open (ACM, '-|:utf8', "zcat $acm") or die "$0: $acm: $!\n";
+} else {
+    open (ACM, '<:utf8', $acm) or die "$0: $acm: $!\n";
+}
+while (<ACM>) {
+    s/\#.*//;
+    chomp;
+    next unless (/[^\s]/);
+    if (/^\s*0x([0-9a-fA-F]{1,2})\s+\'([^\']+)\'\s*$/) {
+        my $uni = ord ($2);
+        my $c = hex ($1);
+        $acmtable{$uni} = $c;
+    } else {
+        die "$0: Syntax error in ACM file: $_\n";
+    }
+}
+close ACM;
+
+my $deadkey = '';
+my @sequences;
+
+sub print_deadkey {
+    if (defined $deadkeys{$deadkey} && @sequences) {
+        my $name = $deadkeys{$deadkey}[0];
+        my $abort = printsym($acmtable{$deadkeys{$deadkey}[1]});
+        $abort = 0 if (! defined $abort);
+        printf "  %-5s %-4s", $name, $abort;
+        for my $i (0 .. $#sequences) {
+            print "\n            " if ($i > 0 && $i % 4 == 0);
+            print $sequences[$i];
+        }
+        print "\n";
+    }
+}
+
+open(DEADSEQ, $deadsequences) or die "$0: $deadsequences: $!\n";
+while (<DEADSEQ>) {
+    s/\#.*//;
+    chomp;
+    next unless (/[^\s]/);
+    if (/^Deadkey[[:space:]]+U\+([0-9a-fA-F]{4})[[:space:]]*$/) {
+        print_deadkey();
+        $deadkey=hex($1);
+        @sequences = ();
+    } elsif (/^U\+([0-9a-fA-F]{4})[[:space:]]+U\+([0-9a-fA-F]{4})[[:space:]]*$/){
+        my $a = printsym($acmtable{hex($1)});
+        my $b = printsym($acmtable{hex($2)});
+        if ((defined $a) && (defined $b)) {
+            push @sequences, " ( $a $b )";
+        }
+    }
+}
+print_deadkey();
+close DEADSEQ;

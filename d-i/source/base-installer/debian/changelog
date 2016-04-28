@@ -1,3 +1,158 @@
+base-installer (1.158ubuntu2) xenial; urgency=high
+
+  * Fix s390x kernels.
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Mon, 25 Jan 2016 17:33:27 +0000
+
+base-installer (1.158ubuntu1) xenial; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Use and depend on the Ubuntu keyring.
+    - Enable the restricted component by default, unless
+      apt-setup/restricted is preseeded to false.
+    - Set up the default sources.list to look in -updates and -security (the
+      latter from apt-setup/security_host and apt-setup/security_path) as
+      well as the unadorned suite; also -proposed if apt-setup/proposed is
+      true.
+    - Use Ubuntu kernel image names.
+    - Allow preseeding base-installer/kernel/override-image to force a given
+      kernel to be used.
+    - Install busybox-initramfs rather than busybox.
+    - Revert Joey's patch to call base-installer.d hooks after running
+      debootstrap, which broke console-setup's expectation of being able to
+      insert its configuration file into /target before console-setup is
+      installed by debootstrap.
+    - Add armhf/keystone, armhf/omap, and armhf/omap4 subarchitectures.
+    - Install kernel headers to match the kernel. This may be overridden by
+      setting base-installer/kernel/headers to false.
+    - Add base-installer/kernel/backports-modules template, which may be
+      preseeded to install selected linux-backports-modules-* packages.
+    - Move some kernel installation support code from bootstrap-base to
+      base-installer, and allow live-installer to override the title
+      template used by that.
+    - Add powerpc/e500 and powerpc/e500mc subarchitectures.
+    - Add overlay archive support.
+  * Fix up architecture tests to still pass with less delta from Debian.
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Tue, 08 Dec 2015 10:25:44 -0500
+
+base-installer (1.158) unstable; urgency=medium
+
+  [ Cyril Brulebois ]
+  * Use -arch variant for both dh_install and dh_installdebconf overrides,
+    fixing FTBFS with -A (Closes: #806218).
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 27 Nov 2015 07:13:36 +0100
+
+base-installer (1.157) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 22 Jul 2015 12:19:19 +0200
+
+base-installer (1.156) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 14 Jun 2015 07:38:50 +0200
+
+base-installer (1.155) unstable; urgency=low
+
+  [ Martin Michlmayr ]
+  * Support Linux 4.x kernels in arch_get_kernel.
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 06 Jun 2015 06:02:07 +0200
+
+base-installer (1.154) unstable; urgency=low
+
+  [ Updated translations ]
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 10 Apr 2015 13:29:28 +0200
+
+base-installer (1.153) unstable; urgency=low
+
+  [ Updated translations ]
+  * Danish (da.po) by Joe Hansen
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 07 Mar 2015 18:59:33 +0100
+
+base-installer (1.152) unstable; urgency=medium
+
+  [ Ben Hutchings ]
+  * Add 586 flavour to i386 kernel selection
+  * Filter out linux-image-*-dbg packages from kernel selection
+    (Closes: #762907)
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 02 Nov 2014 08:05:33 +0100
+
+base-installer (1.151) unstable; urgency=medium
+
+  * Team upload
+
+  [ Ian Campbell ]
+  * Default to MODULES=most for initramfs on armhf. (Related to #762634).
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 22 Oct 2014 08:30:34 +0200
+
+base-installer (1.150) unstable; urgency=low
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 20 Sep 2014 09:33:52 +0200
+
+base-installer (1.149) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Danish (da.po) by Joe Hansen
+  * Estonian (et.po) by Mattias Põldaru
+
+  [ Aurelien Jarno ]
+  * Remove s390 support.
+
+  [ Frederic Bonnard ]
+  * Add ppc64el support.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sat, 30 Aug 2014 00:05:48 +0200
+
+base-installer (1.148) unstable; urgency=medium
+
+  [ Aurelien Jarno ]
+  * Group Loongson 3A and 3B in the same loongson-3 subarchitecture.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sat, 12 Jul 2014 16:50:58 +0200
+
+base-installer (1.147) unstable; urgency=medium
+
+  [ Ian Campbell ]
+  * Add support for arm64, based loosely on 1.144ubuntu1.
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 12 Jul 2014 07:41:04 +0200
+
+base-installer (1.146) unstable; urgency=medium
+
+  [ Aurelien Jarno ]
+  * Always enable initrd on mips and mipsel.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Mon, 30 Jun 2014 23:32:03 +0200
+
+base-installer (1.145) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+
+ -- Cyril Brulebois <kibi@debian.org>  Fri, 14 Mar 2014 14:12:18 +0100
+
+base-installer (1.144ubuntu2) wily; urgency=medium
+
+  * library.sh: Properly handle the case where there is no
+    overlay_early_apt_pkg_install.
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Fri, 03 Jul 2015 22:15:26 -0400
+
 base-installer (1.144ubuntu1) trusty; urgency=medium
 
   [ Colin Watson ]

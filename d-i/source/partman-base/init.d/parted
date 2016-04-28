@@ -47,10 +47,13 @@ part_of_multipath() {
 		return 0
 	fi
 	# The block devices that make up the multipath:
-	# Output looks like \_ 4:0:0:1 sdc 8:32 ...
+	# Output looks like "(decoration-symbols) 4:0:0:1 sdc 8:32 ..."
+	# (decoration-symbols are not matched; they may change again, and the spaces differ for last device)
+	# (there is 1 or more spaces between fields if any disk has 4 letters; e.g., sdaa)
 	for mpdev in $(multipath -l | \
-		       grep '_ \([#0-9]\+:\)\{3\}[#0-9]\+ [hs]d[a-z]\+ [0-9]\+:[0-9]\+' | \
-		       cut -f4 -d' '); do
+		       grep -o '\([#0-9]\+:\)\{3\}[#0-9]\+ \+[hs]d[a-z]\+ \+[0-9]\+:[0-9]\+' | \
+		       sed 's/  / /' | \
+		       cut -f2 -d' '); do
 		if [ "$(readlink -f /dev/$mpdev)" = $1 ]; then
 			return 0
 		fi
@@ -87,11 +90,14 @@ if [ ! -f /var/run/parted_server.pid ]; then
 		device=$1
 		size=$2
 		model=$3
+		label=$4
 
-		# Skip mtd devices since they aren't supported by parted
-		if echo $device | grep -q '/dev/mtd'; then
-			continue
-		fi
+		# Skip mtd (not supported by parted) and mmcblk odities
+		case "${device#/dev/}" in
+			mtd* | mmcblk?rpmb | mmcblk?boot? )
+				continue
+				;;
+		esac
 
 		# Skip MD devices which are not active
 		if [ -e /proc/mdstat ]; then
@@ -129,6 +135,7 @@ if [ ! -f /var/run/parted_server.pid ]; then
 		printf "%s" "$device" >$dev/device
 		printf "%s" "$size" >$dev/size
 		printf "%s" "$model" >$dev/model
+		printf "%s" "$label" >$dev/label
 
 		# Set the sataraid flag for dmraid arrays.
 		if type dmraid >/dev/null 2>&1 && \

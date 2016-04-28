@@ -209,7 +209,7 @@ pv_allowed () {
 	if [ $lvm = no ]; then
 		local fs
 		open_dialog PARTITION_INFO $id
-		read_line x1 x2 x3 x4 fs x6 x7
+		read_line x1 x2 size x4 fs x6 x7
 		close_dialog
 		if [ "$fs" = free ]; then
 			# parted can't deal with VALID_FLAGS on free space
@@ -235,6 +235,12 @@ pv_allowed () {
 			done
 			close_dialog
 		fi
+	fi
+
+	# Don't list devices that are too small (less than 4MB),
+	# they're most likely alignment artifacts
+	if [ $size -lt 4194304 ]; then
+		lvm=no
 	fi
 
 	[ $lvm = yes ]
@@ -477,7 +483,8 @@ lv_create() {
 	lv="$2"
 	extents="$3"
 
-	log-output -t partman-lvm lvcreate -l "$extents" -n "$lv" $vg
+	# Do not ask if signatures should be wiped, to avoid hanging the installer (BTS #757818).
+	log-output -t partman-lvm lvcreate --wipesignatures n -l "$extents" -n "$lv" $vg
 	return $?
 }
 

@@ -11,6 +11,13 @@ if [ "$1" = "prepare" ]; then
             ubuntu-drivers autoinstall --package-list /run/ubuntu-drivers.autoinstall || \
 		logger -t ubiquity "ubuntu-drivers autoinstall failed with code: $?"
     fi
+    db_input high ubiquity/secureboot_key || true
+    db_get ubiquity/secureboot_key
+    if [ -n "$RET" ]; then
+        printf '%s\n%s\n' "$RET" "$RET" | mokutil --disable-validation >/dev/null || true
+    fi
+    # Always clear secureboot key.
+    db_set ubiquity/secureboot_key ''
 elif [ "$1" = "wireless" ]; then
     db_get ubiquity/online
     if [ "$RET" != true ]; then

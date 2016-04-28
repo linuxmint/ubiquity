@@ -161,14 +161,6 @@ get_ide_floppy_info() {
 	esac
 }
 
-get_rtc_info() {
-	# On i386, this gets loaded by hotplug through isapnp, but that
-	# doesn't work on amd64.
-	case $SUBARCH in
-		amd64/*) register-module rtc ;;
-	esac
-}
-
 # Manually load modules to enable things we can't detect.
 # XXX: This isn't the best way to do this; we should autodetect.
 # The order of these modules are important.
@@ -181,7 +173,6 @@ get_manual_hw_info() {
 		echo "ide-disk:Linux ATA DISK"
 		echo "ide-cd:Linux ATAPI CD-ROM"
 	fi
-	get_rtc_info
 }
 
 # Should be greater than the number of kernel modules we can reasonably
@@ -379,13 +370,6 @@ if ! is_not_loaded ohci1394 || ! is_not_loaded firewire-ohci; then
 	db_progress STEP $OTHER_STEPSIZE
 fi
 
-# Always load the printer driver on i386 and amd64; it's hard to autodetect.
-case $SUBARCH in
-	i386/*|amd64/*)
-		register-module lp
-		;;
-esac
-
 apply_pcmcia_resource_opts() {
 	local config_opts=/etc/pcmcia/config.opts
 	
@@ -522,8 +506,6 @@ case "$(udpkg --print-architecture)" in
 		# sparc v9 or v9b
 		if grep -q '^cpu.*: .*UltraSparc III' /proc/cpuinfo; then
 			apt-install libc6-sparcv9b || true
-		else
-			apt-install libc6-sparcv9 || true
 		fi
 	fi
 	;;

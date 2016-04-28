@@ -15,8 +15,13 @@ CC = gcc
 ifneq ($(DEB_BUILD_GNU_TYPE), $(DEB_HOST_GNU_TYPE))
 export CC=$(DEB_HOST_GNU_TYPE)-gcc
 endif
+CPPFLAGS =
 CFLAGS = -W -Wall -Os -g
 CFLAGS_ARCH = -DCPU_TEXT='"$(DEB_HOST_ARCH)"'
+
+# Use hardening flags too
+CFLAGS += `dpkg-buildflags --get CFLAGS`
+CPPFLAGS += `dpkg-buildflags --get CPPFLAGS`
 
 bindir=$(DESTDIR)/bin/
 hpdir=$(DESTDIR)/etc/hotplug.d
@@ -27,7 +32,6 @@ fidir=$(DESTDIR)/usr/lib/finish-install.d
 sharedir=$(DESTDIR)/usr/share/hw-detect/
 postbaseinstallerdir=$(DESTDIR)/usr/lib/post-base-installer.d/
 prepkgseldir=$(DESTDIR)/usr/lib/pre-pkgsel.d/
-usrbindir=$(DESTDIR)/usr/bin
 man1dir=$(DESTDIR)/usr/share/man/man1
 
 INSTALL=install
@@ -94,8 +98,8 @@ install-archdetect: archdetect
 	$(INSTALL) archdetect $(bindir)
 
 install-archdetect-deb: archdetect
-	$(INSTALL) -d $(usrbindir)
-	$(INSTALL) archdetect $(usrbindir)
+	$(INSTALL) -d $(bindir)
+	$(INSTALL) archdetect $(bindir)
 	$(INSTALL) -d $(man1dir)
 	$(INSTALL) archdetect.1 $(man1dir)
 
@@ -103,7 +107,7 @@ archdetect: archdetect.o
 	${CC} ${LDFLAGS} -o $@ $^ -ldebian-installer
 
 archdetect.o: %.o:%.c
-	$(CC) $(CFLAGS) $(CFLAGS_ARCH) -c $<
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(CFLAGS_ARCH) -c $<
 
 devnames-static.gz: devnames-static.txt
-	grep -v '^#' $< | gzip -9c > $@
+	grep -v '^#' $< | gzip -9cn > $@

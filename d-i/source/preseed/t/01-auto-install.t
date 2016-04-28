@@ -122,6 +122,61 @@ is(run_test('preseed/url'=>'ftp://foo/preseed.cfg',
    'ftp:// is kept'
   );
 
+is(run_test('preseed/url'=>'ftp://user:pass@10.11.12.13/foo/preseed.cfg',
+	    'netcfg/get_domain' => 'example.org',
+	   ),
+    'preseed/url=ftp://user:pass@10.11.12.13/foo/preseed.cfg',
+    'ftp with user/password, IPv4, and domain'
+  );
+
+is(run_test('preseed/url'=>'ftp://user:pass@10.11.12.13:8080/foo/preseed.cfg',
+	    'netcfg/get_domain' => 'example.org',
+	   ),
+    'preseed/url=ftp://user:pass@10.11.12.13:8080/foo/preseed.cfg',
+    'ftp with user/password, IPv4, and domain and port'
+  );
+
+is(run_test('preseed/url'=>'http://[fe80::5054:ff:fe23:8018]/foo/preseed.cfg',
+	    'netcfg/get_domain' => 'example.org',
+	   ),
+    'preseed/url=http://[fe80::5054:ff:fe23:8018]/foo/preseed.cfg',
+    'http with short IPv6 and domain'
+  );
+
+is(run_test('preseed/url'=>'http://[::1]/foo/preseed.cfg',
+	    'netcfg/get_domain' => 'example.org',
+	   ),
+    'preseed/url=http://[::1]/foo/preseed.cfg',
+    'http with simple IPv6 and domain'
+  );
+is(run_test('preseed/url'=>'http://[fd00:9:152:48:1822:ffff:162:199]/foo/preseed.cfg',
+	    'netcfg/get_domain' => 'example.org',
+	   ),
+    'preseed/url=http://[fd00:9:152:48:1822:ffff:162:199]/foo/preseed.cfg',
+    'http with IPv6 and domain'
+  );
+
+is(run_test('preseed/url'=>'http://[fd00:9:152:48:1822:ffff:162:199]:8080/foo/preseed.cfg',
+	    'netcfg/get_domain' => 'example.org',
+	   ),
+    'preseed/url=http://[fd00:9:152:48:1822:ffff:162:199]:8080/foo/preseed.cfg',
+    'http with IPv6, port, and domain'
+  );
+
+is(run_test('preseed/url'=>'http://user:pass@[fd00:9:152:48:1822:ffff:162:199]/foo/preseed.cfg',
+	    'netcfg/get_domain' => 'example.org',
+	   ),
+    'preseed/url=http://user:pass@[fd00:9:152:48:1822:ffff:162:199]/foo/preseed.cfg',
+    'http with user/password, IPv6 and domain'
+  );
+
+is(run_test('preseed/url'=>'http://user:pass@[fd00:9:152:48:1822:ffff:162:199]:8080/foo/preseed.cfg',
+	    'netcfg/get_domain' => 'example.org',
+	   ),
+    'preseed/url=http://user:pass@[fd00:9:152:48:1822:ffff:162:199]:8080/foo/preseed.cfg',
+    'http with user/password, IPv6, port, and domain'
+  );
+
 # XXX: Write some tests for auto-install/defaultroot
 
 # Clean-up:

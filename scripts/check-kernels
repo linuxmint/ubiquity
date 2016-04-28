@@ -55,11 +55,21 @@ esac
 
 # If base-installer asks for a signed kernel, try hard to lay our hands on
 # one.
+candidates="$(dpkg-query -f '${status} ${package}\n' \
+		-W linux-signed-\* 2>/dev/null | \
+		grep '^install ok installed ' | cut -d' ' -f4 | xargs)"
+
 for kernel in $preferred_kernels; do
 	case $kernel in
 	    linux-signed-*)
 		if [ "$(apt-cache search -n "^$kernel\$")" ]; then
-			install_new="${install_new:+$install_new }$kernel"
+		    for candidate in $candidates; do
+			case $candidate in
+			    $kernel)
+				install_new="${install_new:+$install_new }$kernel"
+				;;
+			esac
+		    done
 		fi
 		;;
 	esac

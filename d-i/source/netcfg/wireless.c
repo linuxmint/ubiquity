@@ -86,7 +86,7 @@ get_essid:
         goto get_essid;
     }
 
-    strdup(client->value);
+    interface->essid = strdup(client->value);
 
     memset(wconf.essid, 0, IW_ESSID_MAX_SIZE + 1);
     snprintf(wconf.essid, IW_ESSID_MAX_SIZE + 1, "%s", interface->essid);
@@ -121,7 +121,7 @@ int netcfg_wireless_show_essids(struct debconfclient *client, struct netcfg_inte
     int essid_list_len = 1;
 
     iw_get_basic_config (wfd, interface->name, &wconf);
-    interface_up(interface->name);
+    netcfg_interface_up(interface);
 
     if (iw_scan(wfd, interface->name, iw_get_kernel_we_version(),
                 &network_list) >= 0 ) {
@@ -205,7 +205,7 @@ int netcfg_wireless_show_essids(struct debconfclient *client, struct netcfg_inte
     }
 
     iw_set_basic_config(wfd, interface->name, &wconf);
-    interface_down(interface->name);
+    netcfg_interface_down(interface);
 
     di_info("Network chosen: %s. Proceeding to connect.", interface->essid);
 

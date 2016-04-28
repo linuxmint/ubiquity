@@ -22,7 +22,7 @@ def get_distribution():
         for line in f:
             distro = line[:max(line.find(' '), 0) or None]
             if distro:
-                if distro == 'Ubuntu-GNOME':
+                if distro == 'Ubuntu-GNOME' or distro == "Ubuntu-MATE":
                     return str(distro.replace('-', ' '))
                 else:
                     return str(distro)
@@ -33,7 +33,7 @@ def generate_config():
     distro_flavor = get_distribution()
     config = configparser.ConfigParser()
 
-    #CREATE STEP LANGUAGE CONFIG
+    # CREATE STEP LANGUAGE CONFIG
     config['stepLanguage'] = {}
     stepLanguage = config['stepLanguage']
     stepLanguage['release_notes_label'] = \
@@ -56,15 +56,16 @@ def generate_config():
         'The software is subject to license terms included with its ' \
         'documentation.'.format(distro_flavor)
     stepPrepare['prepare_download_updates'] = \
-        'Download updates while installing'
+        'Download updates while installing {}'.format(distro_flavor)
     stepPrepare['prepare_nonfree_software'] = \
-        'Install this third-party software'
+        'Install third-party software for graphics and Wi-Fi hardware, ' \
+        'Flash, MP3 and other media'
     stepPrepare['prepare_network_connection'] = \
         'is connected to the Internet'
     stepPrepare['prepare_sufficient_space'] = \
         'has at least 6.0 GB available drive space'
 
-    #CREATE STEP PART ASK CONFIG
+    # CREATE STEP PART ASK CONFIG
     config['stepPartAsk'] = {}
     stepPartAsk = config['stepPartAsk']
     stepPartAsk['page_title'] = \
@@ -73,7 +74,8 @@ def generate_config():
         'Erase disk and install {0}'.format(distro_flavor)
     stepPartAsk['use_device_desc'] = \
         '<span size="small"><span foreground="darkred">Warning:</span> ' \
-        'This will delete any files on the disk.</span>'
+        'This will delete all your programs, documents, photos, music, ' \
+        'and any other files in all operating systems.</span>'
     stepPartAsk['use_crypto'] = \
         'Encrypt the new {0} installation for security'.format(distro_flavor)
     stepPartAsk['use_crypto_desc'] = \
@@ -91,7 +93,7 @@ def generate_config():
         '<span size="small">You can create or resize partitions yourself, ' \
         'or choose multiple partitions for {0}.</span>'.format(distro_flavor)
 
-    #CREATE STEP PART CRYPTO CONFIG
+    # CREATE STEP PART CRYPTO CONFIG
     config['stepPartCrypto'] = {}
     stepPartCrypto = config['stepPartCrypto']
     stepPartCrypto["page_title"] = \
@@ -113,18 +115,18 @@ def generate_config():
         'Any files outside of {0} will not be encrypted.'.format(distro_flavor)
     stepPartCrypto["crypto_overwrite_space"] = 'Overwrite empty disk space'
 
-    #CREATE STEP LOCATION CONFIG
+    # CREATE STEP LOCATION CONFIG
     config['stepLocation'] = {}
     stepLocation = config['stepLocation']
     stepLocation["page_title"] = '<span size="xx-large">Where are you?</span>'
 
-    #CREATE STEP KEYBOARD CONFIG
+    # CREATE STEP KEYBOARD CONFIG
     config['stepKeyboardConf'] = {}
     stepKeyboardConf = config['stepKeyboardConf']
     stepKeyboardConf["page_title"] = \
         '<span size="xx-large">Keyboard layout</span>'
 
-    #CREATE STEP USER INFO CONFIG
+    # CREATE STEP USER INFO CONFIG
     config['stepUserInfo'] = {}
     stepUserInfo = config['stepUserInfo']
     stepUserInfo["page_title"] = '<span size="xx-large">Who are you?</span>'
@@ -136,6 +138,6 @@ def generate_config():
         'The name it uses when it talks to other computers.'
     stepUserInfo["login_encrypt"] = 'Require my password to log in'
 
-    #write config to tmp file
+    # write config to tmp file
     with open('/tmp/english_config.ini', 'w') as configfile:
         config.write(configfile)

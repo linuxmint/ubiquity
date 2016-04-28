@@ -1,0 +1,70 @@
+#!/usr/bin/perl
+
+#     make_encoding_functions -- dump a file with encoding functions
+#     Copyright © 2011 Anton Zinoviev <anton@lml.bas.bg>
+
+#     Copying and distribution of this file, with or without
+#     modification, are permitted in any medium without royalty
+#     provided the copyright notice and this notice are preserved.
+#     This file is offered as-is, without any warranty.
+
+use warnings 'all';
+use strict;
+
+sub debug {
+    if (1) {
+	print STDERR "@_";
+    }
+}
+
+if ($#ARGV < 1 || ! -d $ARGV[0]) {
+        print STDERR <<EOT;
+Usage:
+embed_encoding ACMDIR ENCODING...
+Dump a file with encoding functions
+
+ACMDIR      directory with encoding -> unicode translation maps
+ENCODING... The name of the encodings.  For each encoding
+            there must exist a file ACMDIR/ENCODING.acm
+EOT
+        exit 0;
+}
+
+my $acmdir = $ARGV[0];
+shift @ARGV;
+
+while ($#ARGV >= 0) {
+    my $name = $ARGV[0];
+    my $acm = "$acmdir/$name.acm";
+    $name =~ s/-//g;
+
+    my %u2c = ();
+
+    open (ACM, '<:utf8', $acm) or die "$0: $acm: $!\n";
+    while (<ACM>) {
+        s/\#.*//;
+        chomp;
+        next unless (/[^\s]/);
+        if (/^\s*0x([0-9a-fA-F]{1,2})\s+\'([^\']+)\'\s*$/) {
+            my $uni = ord ($2);
+            my $c = hex ($1);
+            if ($uni >= 128) {
+                $u2c{$uni} = $c;
+            }
+        } else {
+            die "$0: Syntax error in ACM file: $_\n";
+        }
+    }
+    close ACM;
+    print "to_$name () { case \"\$1\" in\n";
+    
+    for my $u (sort {$a <=> $b} (keys %u2c)) {
+        if ($u != $u2c{$u}) {
+            printf "%04x) echo 0x%02x ;;\n", $u, $u2c{$u};
+        }
+    }
+
+    print "00??) echo 0x\${1#00} ;;\n*) echo 0x3f ;;\nesac ; }\n\n";
+
+    shift @ARGV;
+}

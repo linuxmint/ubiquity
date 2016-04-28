@@ -4,7 +4,7 @@
 # This script runs autopilot
 #
 
-# Copyright © 2013 Canonical Ltd.
+# Copyright © 2013-2014 Canonical Ltd.
 # Author: Jean-baptiste Lallement <jean-baptiste.lallement@canonical.com>
 #
 # This program is free software; you can redistribute it and/or modify it under
@@ -61,20 +61,37 @@ ARTIFACTS="$TESTBASE /var/log/installer /var/log/syslog $HOME/.cache/upstart /va
 
 
 # Specific configurations for various DE
-case $SESSION in
-    ubuntu)    # Covers Ubuntu and Edubuntu
-        SESSION_LOG=$HOME/.cache/upstart/gnome-session.log
-        ;;
-    xubuntu)
-        SESSION_LOG=$HOME/.cache/upstart/startxfce4.log
-        ;;
-    Lubuntu)
-        SESSION_LOG=$HOME/.cache/lxsession/Lubuntu/run.log
-        ARTIFACTS="$ARTIFACTS $HOME/.cache/lxsession"
-        ;;
-    gnome)     # ubuntu-gnome
-        SESSION_LOG=$HOME/.cache/upstart/gnome-session.log
-esac
+if [ -n "${SESSION+1}" ]; then
+    case $SESSION in
+        ubuntu)    # Covers Ubuntu and Edubuntu
+            SESSION_LOG=$HOME/.cache/upstart/gnome-session.log
+            ;;
+        xubuntu)
+            SESSION_LOG=$HOME/.cache/upstart/startxfce4.log
+            ;;
+        Lubuntu)
+            SESSION_LOG=$HOME/.cache/lxsession/Lubuntu/run.log
+            ARTIFACTS="$ARTIFACTS $HOME/.cache/lxsession"
+            ;;
+    esac
+elif [ -n "${DESKTOP_SESSION+1}" ]; then
+    # These 2 don't seem to log apt stuff to syslog
+    # And there doesn't seem to be a user session log???
+    # So let's tail it and also include in the artifacts
+    case $DESKTOP_SESSION in
+        mate)    # Covers Ubuntu-mate
+            SESSION_LOG=/var/log/apt/term.log
+            ARTIFACTS="$ARTIFACTS /var/log/apt"
+            ;;
+        gnome) #ubuntu-gnome
+            SESSION_LOG=/var/log/apt/term.log
+            ARTIFACTS="$ARTIFACTS /var/log/apt"
+            ;;
+    esac
+else
+    echo "I: Unknown SESSION"
+    exit 1
+fi
 
 PACKAGES="bzr ssh python3-autopilot libautopilot-gtk python3-xlib \
     recordmydesktop"
@@ -90,9 +107,11 @@ on_exit() {
     if [ -n "$(ls /var/crash/)" ]; then
         export CRASH_DB_URL=https://daisy.ubuntu.com 
         export CRASH_DB_IDENTIFIER=$(echo ubiquity_autopilot_$(lsb_release -sc)_$(arch)|sha512sum|cut -d' ' -f1)
-        sudo -E whoopsie||true
-        sleep 3
-        [ -x "/usr/share/apport/whoopsie-upload-all" ] && echo "I: Uploading crash files" && sudo -E /usr/share/apport/whoopsie-upload-all -t 300
+        #sudo -E whoopsie||true
+        #sleep 3
+        #[ -x "/usr/share/apport/whoopsie-upload-all" ] && echo "I: Uploading crash files" && sudo -E /usr/share/apport/whoopsie-upload-all -t 300
+        echo "I: The following crash were found:"
+        ls -l /var/crash/ || true
         chmod og+r /var/crash/* 2>/dev/null || true
     fi
 
@@ -163,13 +182,15 @@ setup_tests() {
 
     [ -e "$flag" ] && return 0
 
-
     if [ $DEBUG -ne 0 ]; then
         # Put here everything you want to run in debug mode
         xterm &  # Easier to debug from a live session, and rarely broken
     fi
 
     sudo stty -F /dev/ttyS0 raw speed 115200
+
+    # Adjust the name of the release in any apt .list file
+    sudo find /etc/apt -name "*.list" -exec sed -i "s/RELEASE/$(lsb_release -sc)/" {} \;
     
     tail_logs $SESSION_LOG /var/log/syslog
     # Disable notifications and screensaver
@@ -251,15 +272,15 @@ run_tests() {
     #
     # $1: Spool directory
     spooldir=$1
+    apbin=autopilot3
     if [ ! -d $spooldir ]; then
         echo "E: '$spooldir is not a directory. Exiting!"
         exit 1
     fi
 
-    if ! which autopilot-py3 >/dev/null 2>&1; then
-        echo "E: autopilot is required to run autopilot tests"
+    if ! which $apbin >/dev/null 2>&1; then
+        echo "E: $apbin not found in path. It is required to run autopilot tests"
         echo "autopilot_installed (see autopilot.log for details): ERROR" >> $AP_SUMMARY
-        shutdown_host
         exit 1
     fi
     echo "autopilot_installed: PASS" >> $AP_SUMMARY
@@ -276,9 +297,9 @@ run_tests() {
     tail_logs /var/log/installer/debug
     for testfile in $(ls -d $spooldir/* 2>/dev/null); do
         testname=$(basename $testfile)
-        echo "I: Running autopilot run $testname $AP_OPTS -o $AP_RESULTS/$testname.xml"
+        echo "I: Running autopilot run $testname $AP_OPTS -f subunit -o $AP_RESULTS/$testname.subunit"
         aprc=0
-        timeout -s 9 -k 30 $TIMEOUT ./autopilot run $testname $AP_OPTS -f xml -o $AP_RESULTS/${testname}.xml||aprc=$?
+        timeout -s 9 -k 30 $TIMEOUT ./autopilot run $testname $AP_OPTS -f subunit -o $AP_RESULTS/${testname}.subunit||aprc=$?
         if [ $aprc -gt 0 ]; then
             echo "${testname}: FAIL" >> $AP_SUMMARY
         else

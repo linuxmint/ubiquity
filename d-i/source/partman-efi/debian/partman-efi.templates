@@ -6,7 +6,7 @@ _Description: In order to start your new system, the firmware on your Itanium sy
 Template: partman-efi/text/efi
 Type: text
 # :sl5:
-_Description: EFI boot partition
+_Description: EFI System Partition
 
 Template: partman-efi/no_efi
 Type: boolean
@@ -17,18 +17,18 @@ _Description: Go back to the menu and resume partitioning?
 Template: partman/method_long/efi
 Type: text
 # :sl5:
-_Description: EFI boot partition
+_Description: EFI System Partition
 
 Template: partman/method_short/efi
 Type: text
 # :sl5:
-# short variant of 'EFI boot partition'
+# short variant of 'EFI System Partition'
 # Up to 10 character positions
-_Description: EFIboot
+_Description: ESP
 
 #Template: partman/filesystem_long/efi
 #Type: text
-#_Description: EFI boot partition (FAT16)
+#_Description: EFI System Partition (FAT16)
 
 Template: partman/filesystem_short/efi
 Type: text
@@ -39,5 +39,21 @@ Template: partman-efi/too_small_efi
 Type: error
 # :sl5:
 _Description: EFI partition too small
- EFI boot partitions on this architecture cannot be created with a size less
- than 35 MB. Please make the EFI boot partition larger.
+ EFI System Partitions on this architecture cannot be created with a size
+ less than 35 MB. Please make the EFI System Partition larger.
+
+Template: partman-efi/non_efi_system
+Type: boolean
+# :sl5:
+_Description: Force UEFI installation?
+ This machine's firmware has started the installer in UEFI mode but
+ it looks like there may be existing operating systems already
+ installed using "BIOS compatibility mode". If you
+ continue to install Debian in UEFI mode, it might be difficult to
+ reboot the machine into any BIOS-mode operating systems later.
+ .
+ If you wish to install in UEFI mode and don't care about
+ keeping the ability to boot one of the existing systems, you have the
+ option to force that here. If you wish to keep the option to boot an
+ existing operating system, you should choose NOT to force UEFI
+ installation here.

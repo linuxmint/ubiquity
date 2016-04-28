@@ -49,6 +49,7 @@ from ubiquity.frontend.kde_components import ProgressDialog
 from ubiquity.frontend.kde_components.Breadcrumb import Breadcrumb
 from ubiquity.frontend.kde_components import qssutils
 from ubiquity.plugin import Plugin
+from ubiquity.qtwidgets import SquareSvgWidget
 import ubiquity.progressposition
 
 
@@ -58,16 +59,16 @@ PATH = '/usr/share/ubiquity'
 # Define locale path
 LOCALEDIR = "/usr/share/locale"
 
-#currently using for testing, will remove
+# currently using for testing, will remove
 UIDIR = os.path.join(PATH, 'qt')
 
 
 class UbiquityUI(QtGui.QMainWindow):
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
-        #app.ui MainWindow now hardcoded to 1000px wide for main
-        #content this will look bad on high res displays and should be
-        #defined by dpi not pixels
+        # app.ui MainWindow now hardcoded to 1000px wide for main
+        # content this will look bad on high res displays and should be
+        # defined by dpi not pixels
         uic.loadUi(os.path.join(UIDIR, "app.ui"), self)
 
         # QProcessManager sets a SIGCHLD handler without SA_RESTART; this
@@ -76,18 +77,23 @@ class UbiquityUI(QtGui.QMainWindow):
         # this to be restartable.
         signal.siginterrupt(signal.SIGCHLD, False)
 
-        distro_name = "Linux Mint"
+        distro_name = "Kubuntu"
         distro_release = ""
 
-        ## setup the release and codename
+        # # setup the release and codename
         with open("/etc/lsb-release", 'r') as fp:
             for line in fp:
                 if "DISTRIB_ID=" in line:
                     name = str.strip(line.split("=")[1], '\n')
-                if name != "LinuxMint":
+                    if name.startswith('"') and name.endswith('"'):
+                        name = name[1:-1]
+                    if name != "Ubuntu":
                         distro_name = name
                 elif "DISTRIB_RELEASE=" in line:
                     distro_release = str.strip(line.split("=")[1], '\n')
+                    if distro_release.startswith('"') and \
+                            distro_release.endswith('"'):
+                        distro_release = distro_release[1:-1]
 
         self.distro_name_label.setText(distro_name)
         self.distro_release_label.setText(distro_release)
@@ -160,20 +166,53 @@ class Wizard(BaseFrontend):
         # For above settings to apply automatically we need to indicate that we
         # are inside a full KDE session.
         os.environ["KDE_FULL_SESSION"] = "TRUE"
+        # We also need to indicate version as otherwise KDElibs3 compatibility
+        # might kick in such as in QIconLoader.cpp:QString fallbackTheme.
+        # http://goo.gl/6LkM7X
+        os.environ["KDE_SESSION_VERSION"] = "4"
+        # Pretty much all of the above but for Qt5
+        os.environ["QT_QPA_PLATFORMTHEME"] = "kde"
 
         self.app = QtGui.QApplication([])
         # The "hicolor" icon theme gets picked when Ubiquity is running as a
         # DM. This causes some icons to be missing. Hardcode the theme name to
         # prevent that.
-        QtGui.QIcon.setThemeName('oxygen')
+        QtGui.QIcon.setThemeName(self.getIconTheme())
+        self.app.setStyle(self.getWidgetTheme())
         self._apply_stylesheet()
 
         self.app.setWindowIcon(QtGui.QIcon.fromTheme("ubiquity-kde"))
-
         import dbus.mainloop.qt
         dbus.mainloop.qt.DBusQtMainLoop(set_as_default=True)
 
         self.ui = UbiquityUI()
+
+        # Branding logo is spaced from left and right to cause it to shrink
+        # an undefined amount. This reduces the risk of having the branding
+        # shrink the steps_widget and thus cause text to be cut off or.
+        # Above the branding there is also a spacer pushing down on the logo
+        # and up on the steps to make sure spacing between steps is not
+        # awkwardly huge.
+        self.icon_widget = SquareSvgWidget(self.ui)
+        distro = self.ui.distro_name_label.text()
+        logoDirectory = "/usr/share/ubiquity/qt/images/"
+        if os.path.isfile(logoDirectory + distro + ".svgz"):
+            self.icon_widget.load(logoDirectory + distro + ".svgz")
+        else:
+            self.icon_widget.load(logoDirectory + "branding.svgz")
+        branding_layout = QtGui.QHBoxLayout()
+        branding_layout.addItem(QtGui.QSpacerItem(1, 1,
+                                                  QtGui.QSizePolicy.Expanding,
+                                                  QtGui.QSizePolicy.Minimum))
+        branding_layout.addWidget(self.icon_widget)
+        branding_layout.addItem(QtGui.QSpacerItem(1, 1,
+                                                  QtGui.QSizePolicy.Expanding,
+                                                  QtGui.QSizePolicy.Minimum))
+        branding_spacer = QtGui.QSpacerItem(1, 1,
+                                            QtGui.QSizePolicy.Minimum,
+                                            QtGui.QSizePolicy.Expanding)
+        self.ui.sidebar_widget.layout().addItem(branding_spacer)
+        self.ui.sidebar_widget.layout().addItem(branding_layout)
 
         # initially the steps widget is not visible
         # it becomes visible once the first step becomes active
@@ -182,10 +221,10 @@ class Wizard(BaseFrontend):
 
         if 'UBIQUITY_GREETER' in os.environ:
             self.ui.setWindowFlags(
-                QtCore.Qt.Dialog
-                | QtCore.Qt.CustomizeWindowHint
-                | QtCore.Qt.WindowTitleHint
-                )
+                QtCore.Qt.Dialog |
+                QtCore.Qt.CustomizeWindowHint |
+                QtCore.Qt.WindowTitleHint
+            )
 
         self.ui.setWizard(self)
 
@@ -414,7 +453,7 @@ class Wizard(BaseFrontend):
         # Start the interface
         self.set_current_page(0)
 
-        if not 'UBIQUITY_AUTOMATIC' in os.environ:
+        if 'UBIQUITY_AUTOMATIC' not in os.environ:
             # Only show now so that the window does not show empty, then resize
             # itself and show content
             self.ui.show()
@@ -647,15 +686,15 @@ class Wizard(BaseFrontend):
             if not_current and p == current_page:
                 continue
             prefix = p.ui.get('plugin_prefix')
-            for w in p.widgets:
+            for w in p.widgets + p.optional_widgets:
                 for c in self.all_children(w):
                     widgets.append((c, prefix))
 
-        #if not just_current:
-        #for toplevel in self.toplevels:
-            #if toplevel.name != 'live_installer':
-                #for c in self.all_children(toplevel):
-                    #widgets.append((c, None))
+        # if not just_current:
+        # for toplevel in self.toplevels:
+            # if toplevel.name != 'live_installer':
+                # for c in self.all_children(toplevel):
+                    # widgets.append((c, None))
         self.translate_widgets(lang=lang, widgets=widgets, reget=reget)
         # Allow plugins to provide a hook for translation.
         for p in pages:
@@ -732,7 +771,7 @@ class Wizard(BaseFrontend):
     def translate_widget(self, widget, lang=None, prefix=None):
         if lang is None:
             lang = self.locale
-        #FIXME needs translations for Next, Back and Cancel
+        # FIXME needs translations for Next, Back and Cancel
         if not isinstance(widget, QtGui.QWidget):
             return
 
@@ -885,9 +924,9 @@ class Wizard(BaseFrontend):
         self.backup = False
         self.ui.show()
 
-        #set all the steps active
-        #each step will set its previous ones as inactive
-        #this handles the ability to go back
+        # set all the steps active
+        # each step will set its previous ones as inactive
+        # this handles the ability to go back
 
         is_install = False
         for page in self.pages:
@@ -960,7 +999,13 @@ class Wizard(BaseFrontend):
             # ShutdownConfirmNo, ShutdownTypeReboot, ShutdownModeForceNow
             ksmserver.logout(0, 1, 2)
         else:
-            misc.execute_root('reboot')
+            # don't let reboot race with the shutdown of X in ubiquity-dm;
+            # reboot might be too fast and X will stay around forever instead
+            # of moving to plymouth
+            misc.execute_root(
+                'sh', '-c',
+                "if ! service display-manager status; then killall Xorg; "
+                "while pidof X; do sleep 0.5; done; fi; reboot")
 
     def do_shutdown(self):
         """Callback for main program to actually shutdown the machine."""
@@ -975,7 +1020,13 @@ class Wizard(BaseFrontend):
             # ShutdownConfirmNo, ShutdownTypeReboot, ShutdownModeForceNow
             ksmserver.logout(0, 2, 2)
         else:
-            misc.execute_root('poweroff')
+            # don't let poweroff race with the shutdown of X in ubiquity-dm;
+            # poweroff might be too fast and X will stay around forever instead
+            # of moving to plymouth
+            misc.execute_root(
+                'sh', '-c',
+                "if ! service display-manager status; then killall Xorg; "
+                "while pidof X; do sleep 0.5; done; fi; poweroff")
 
     def quit(self):
         """Quit installer cleanly."""
@@ -1216,7 +1267,7 @@ class Wizard(BaseFrontend):
 
     def debconffilter_done(self, dbfilter):
         # processing events here prevents GUI from hanging until mouse moves
-        # (LP #556376)
+        # (LP # 556376)
         self.app.processEvents()
         if not dbfilter.status:
             self.find_next_step(dbfilter.__module__)
@@ -1382,3 +1433,17 @@ class Wizard(BaseFrontend):
     # returns the current wizard page
     def get_current_page(self):
         return self.stackLayout.indexOf(self.stackLayout.currentWidget())
+
+    # use breeze widgets if using Plasma 5
+    def getWidgetTheme(self):
+        if os.path.isfile("/usr/bin/plasmashell"):
+            return "breeze"
+        else:
+            return "Oxygen"
+
+    # use breeze icons if using Plasma 5
+    def getIconTheme(self):
+        if os.path.isfile("/usr/bin/plasmashell"):
+            return "breeze"
+        else:
+            return "oxygen"

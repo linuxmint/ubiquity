@@ -1,0 +1,93 @@
+#! /bin/sh -e
+
+. /usr/share/debconf/confmodule
+
+. /usr/share/grub-installer/functions.sh
+
+EXTRA_PATHS=""
+
+log () {
+	logger -t grub-installer "grub-efi-force-removable $@"
+}
+
+error () {
+	log "error: $@"
+}
+
+die () {
+	local template="$1"
+	shift
+
+	error "$@"
+	db_input critical "$template" || [ $? -eq 30 ]
+	db_go || true
+	exit 1
+}
+
+mountvirtfs () {
+	fstype="$1"
+	path="$2"
+	if grep -q "[[:space:]]$fstype\$" /proc/filesystems && \
+	   ! grep -q "^[^ ]\+ \+$path " /proc/mounts; then
+		mkdir -p "$path" || \
+			die grub-installer/mounterr "Error creating $path"
+		mount -t "$fstype" "$fstype" "$path" || \
+			die grub-installer/mounterr "Error mounting $path"
+		EXTRA_PATHS="$EXTRA_PATHS $path"
+		trap "umount $EXTRA_PATHS" HUP INT QUIT KILL PIPE TERM EXIT
+	fi
+}
+
+db_progress START 0 3 grub-installer/progress/title
+db_progress INFO grub-installer/progress/step_force_efi_removable
+
+# Should we also install grub-efi to the removable media path?
+# Ask the user
+log "Prompting user about removable media path"
+db_input high grub-installer/force-efi-extra-removable
+if ! db_go; then
+	# back up to menu
+	db_progress STOP
+	exit 10
+fi
+db_get grub-installer/force-efi-extra-removable
+if [ "$RET" != true ]; then
+	db_progress STOP
+	exit 0
+fi
+
+db_progress STEP 1
+db_progress INFO grub-installer/progress/step_mount_filesystems
+
+log "Mounting filesystems"
+# If we're installing grub-efi, it wants /sys mounted in the
+# target. Maybe /proc too?
+mountvirtfs proc /target/proc
+mountvirtfs sysfs /target/sys
+chroot /target mount /boot/efi || true
+EXTRA_PATHS="$EXTRA_PATHS /target/boot/efi"
+trap "umount $EXTRA_PATHS" HUP INT QUIT KILL PIPE TERM EXIT
+
+db_progress STEP 1
+db_progress INFO grub-installer/progress/step_install_loader
+# Do the installation now
+log "Running grub-install"
+if ! chroot /target grub-install --force-extra-removable; then
+	db_input critical grub-installer/grub-install-failed || true
+	db_go || true
+	db_progress STOP
+	exit 1
+fi
+
+db_progress STEP 1
+db_progress INFO grub-installer/progress/step_update_debconf_efi_removable
+# And add the debconf flag so the installed system will also do this in future
+log "Running debconf-set-selections in the chroot"
+chroot /target 'debconf-set-selections' <<EOF
+grub2/force_efi_extra_removable boolean true
+EOF
+
+db_progress STEP 1
+db_progress STOP
+
+# Don't need to clean up - the trap calls above will unmount filesystems for us

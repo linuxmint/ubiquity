@@ -1,0 +1,77 @@
+#!/bin/sh
+# startup logic of ubiquity-dm, shared between upstart job and systemd unit
+
+set -e
+test -x /usr/bin/ubiquity-dm || exit 0
+
+ubiquity=
+automatic=
+debug=
+ldtp=
+noninteractive=
+choose=
+frontend=
+for x in $(cat /proc/cmdline); do
+    case $x in
+	debug-ubiquity)
+	    debug="-d"
+	    ubiquity=1
+	    ;;
+	automatic-ubiquity)
+	    automatic="--automatic"
+	    ubiquity=1
+	    ;;
+	maybe-ubiquity)
+	    ubiquity=1
+	    choose="--greeter"
+	    ;;
+	ldtp-ubiquity)
+	    ubiquity=1
+	    ldtp="--ldtp"
+	    ;;
+	only-ubiquity)
+	    ubiquity=1
+	    ;;
+	noninteractive)
+	    ubiquity=1
+	    noninteractive=1
+	    ;;
+	ubiquity/frontend=*)
+	    frontend="${x#*=}"
+	    ;;
+    esac
+done
+[ "$ubiquity" ] || exit 0
+
+if [ -r /etc/default/locale ]; then
+    . /etc/default/locale
+    if [ -n "$LANG" ]; then
+	export LANG
+    fi
+    if [ -n "$LANGUAGE" ]; then
+	export LANGUAGE
+    fi
+fi
+
+[ -e /run/systemd/system ] || initctl emit starting-dm DM=ubiquity-dm
+
+# turn off console blanking for install process
+setterm -blank 0 -term linux > /dev/console || true
+
+if [ -n "$noninteractive" ]; then
+    plymouth quit || :
+    exec ubiquity noninteractive $debug
+else
+    if ! ubiquity-dm vt7 :0 ubuntu /usr/bin/ubiquity $debug $automatic $choose $ldtp --only $frontend; then
+	# has X crashed, or has ubiquity?
+	if [ "$automatic" ] && ! [ -f /var/log/installer/version ]; then
+	    # in case we crashed before the X startup sequence
+	    plymouth quit || :
+	    exec ubiquity noninteractive $debug
+	else
+	    # something more serious has happened, e.g. debconf locked?!
+	    exit 1
+	fi
+    fi
+fi
+exit 0

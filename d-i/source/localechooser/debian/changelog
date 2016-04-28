@@ -1,3 +1,175 @@
+localechooser (2.65ubuntu4) xenial; urgency=medium
+
+  * localechooser: Use grep -a to make sure grep sees our language list data
+    as ASCII and not random binary since it contains some glyphs for language
+    name translations. Fixes at least one crash in Ubiquity. (LP: #1551285)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 13 Apr 2016 10:04:25 -0400
+
+localechooser (2.65ubuntu3) wily; urgency=medium
+
+  * Re-drop fallbacks for Norwegian Bokmål and Nynorsk. Sorry! (LP: #1507985)
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Tue, 20 Oct 2015 15:12:20 +0100
+
+localechooser (2.65ubuntu2) wily; urgency=medium
+
+  * Properly handle Portugese and Chinese special-cases for LANG and LANGUAGE:
+    the format of languagelist has changed a bit so the cut commands need to
+    be updated accordingly. (LP: #1465530)
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Mon, 19 Oct 2015 11:07:05 +0100
+
+localechooser (2.65ubuntu1) wily; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Add a localechooser-data package containing lists useful for packages
+      that create automatic installation scripts.
+    - Always support English, unless preseeded otherwise.
+    - Simplify use of locale-gen using the new command-line argument
+      facility in Ubuntu's locales package.
+    - Add encoding field to languagelist file and use the full SUPPORTED
+      file rather than SUPPORTED-short.
+    - If the language question was already marked as seen and the answer
+      didn't change, then don't recalculate the locale.
+    - If OVERRIDE_SHOW_ALL_LANGUAGES is set in the environment, display all
+      languages regardless of frontend.
+    - Cancel any locale preseeding if the user changes the language.
+    - For cases where selecting a different location may imply a different
+      dialect of the language, i.e. Portuguese and Chinese, take care to set
+      LANG and LANGUAGE to something reflecting the language and LC_NUMERIC,
+      LC_TIME, LC_MONETARY, LC_PAPER, LC_NAME, LC_ADDRESS, LC_TELEPHONE,
+      LC_MEASUREMENT, and LC_IDENTIFICATION to something reflecting the
+      location.
+    - Create skeleton locale-langpack subdirectories for each language being
+      installed, so that accountsservice knows to offer the
+      incomplete-language-support prompt (LP: #1307983).
+  * Add Breaks for system-config-kickstart and casper due to change in the
+    languagelist file format.
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Wed, 27 May 2015 17:24:38 -0400
+
+localechooser (2.65) unstable; urgency=medium
+
+  [ Mathieu Trudel-Lapierre ]
+  * Fix typo in preseeded language code check.
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 15 May 2015 07:45:09 +0200
+
+localechooser (2.64) unstable; urgency=low
+
+  [ Updated translations ]
+  * Danish (da.po) by Joe Hansen
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 08 Mar 2015 11:37:00 +0100
+
+localechooser (2.63) unstable; urgency=high
+
+  * Team upload
+  * Revert previous commit. Closes: Bug#743348.
+
+ -- Samuel Thibault <sthibault@debian.org>  Wed, 02 Apr 2014 01:56:41 +0200
+
+localechooser (2.62) unstable; urgency=medium
+
+  [ Samuel Thibault ]
+  * Show complete English names in C locale. Closes: Bug#734690.
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 22 Mar 2014 19:17:40 +0100
+
+localechooser (2.61) unstable; urgency=low
+
+  * Add entry for Jamaican Creole English
+
+  [ Updated translations ]
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+
+ -- Cyril Brulebois <kibi@debian.org>  Wed, 12 Mar 2014 02:17:05 +0100
+
+localechooser (2.60) unstable; urgency=low
+
+  * Add entry for Chitwania Tharu
+
+  [ Updated translations ]
+  * Bosnian (bs.po) by Amila Valjevčić
+  * Hungarian (hu.po) by Judit Gyimesi
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 10 Dec 2013 08:07:05 +0100
+
+localechooser (2.59) unstable; urgency=low
+
+  [ Updated translations ]
+  * Tajik (tg.po) by Victor Ibragimov
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 09 Nov 2013 18:08:28 +0100
+
+localechooser (2.58) unstable; urgency=low
+
+  [ Updated translations ]
+  * Tajik (tg.po) by Victor Ibragimov
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 14 Sep 2013 15:24:22 +0200
+
+localechooser (2.57) unstable; urgency=low
+
+  * Activate Tajik in the text installer
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 19 Aug 2013 07:12:09 +0200
+
+localechooser (2.56) unstable; urgency=low
+
+  * Add entry for Tajik
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 15 Aug 2013 17:26:24 +0200
+
+localechooser (2.55) unstable; urgency=low
+
+  [ Dmitrijs Ledkovs ]
+  * Set debian source format to '3.0 (native)'.
+  * Bump debhelper compat level to 9.
+  * Set Vcs-* to canonical format.
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 13 Jul 2013 13:58:04 +0200
+
+localechooser (2.54) unstable; urgency=low
+
+  [ Samuel Thibault ]
+  * Fix hurd-i386 Mach TERM name.
+
+  [ Updated translations ]
+  * Croatian (hr.po) by Tomislav Krznar
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 12 May 2013 08:37:25 +0200
+
+localechooser (2.53) unstable; urgency=low
+
+  [ Steve Langasek ]
+  * languagelist: Use 'Bangla' as the preferred name for the language of
+    Bangladesh, for consistency with iso-codes; thanks to Gunnar Hjalmarsson
+    <gunnarhj@ubuntu.com> for the patch.  LP: #991002.
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 23 Mar 2013 08:48:28 +0100
+
+localechooser (2.52) unstable; urgency=low
+
+  * Fix default locale for Northern Sami (se_NO.UTF-8 no longer exists)
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 03 Mar 2013 15:48:11 +0100
+
+localechooser (2.51) unstable; urgency=low
+
+  * Rebuild to include latest translations of ISO-3166
+    (noticeably the name of "The State of Palestine")
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 03 Mar 2013 14:44:52 +0100
+
+localechooser (2.50) unstable; urgency=low
+
+  [ Updated translations ]
+  * German (de.po) by Holger Wansing
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 01 Jan 2013 09:19:44 +0100
+
 localechooser (2.49ubuntu5) trusty; urgency=medium
 
   * Create skeleton locale-langpack subdirectories for each language being

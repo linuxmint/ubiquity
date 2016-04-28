@@ -1,15 +1,20 @@
 #!/bin/sh
 
-# This script sets method "efi" for all fat16 partitions that have the boot
-# flag set.
+# This script sets method "efi" for all fat16/fat32 partitions that
+# have the bootable flag set.
+
+ARCH="$(archdetect)"
 
 # Give the kernel a chance to create /proc/efi if appropriate.
 modprobe efivars >/dev/null 2>&1 || true
 
-if [ -d /proc/efi ] || [ -d /sys/firmware/efi ]; then
+in_efi_mode() {
+    [ -d /proc/efi ] || [ -d /sys/firmware/efi ]
+}
+
+if in_efi_mode; then
 	> /var/lib/partman/efi
 else
-	ARCH="$(archdetect)"
 	case $ARCH in
 	    i386/mac|amd64/mac)
 		# Intel Macs have an EFI partition, regardless of
@@ -28,6 +33,10 @@ fi
 . /lib/partman/lib/base.sh
 
 gpt_efi_type=c12a7328-f81f-11d2-ba4b-00a0c93ec93b
+msdos_efi_type=0xef
+
+NUM_ESP=0
+NUM_NO=0
 
 for dev in /var/lib/partman/devices/*; do
 	[ -d "$dev" ] || continue
@@ -45,9 +54,16 @@ for dev in /var/lib/partman/devices/*; do
 		elif [ "$fs" = fat32 ] && echo "$name" |
                      grep -i "^EFI System Partition" >/dev/null; then
 			partitions="$partitions $id"
+		elif [ "$label_type" = msdos ] && \
+		     [ "$(blkid -o value -s PART_ENTRY_TYPE -p "$path" 2>/dev/null)" = "$msdos_efi_type" ]; then
+			partitions="$partitions $id"
 		elif [ "$label_type" = gpt ] && \
 		     [ "$(blkid -o value -s PART_ENTRY_TYPE -p "$path" 2>/dev/null)" = "$gpt_efi_type" ]; then
 			partitions="$partitions $id"
+		else
+			if [ "$fs" != "free" ]; then
+				NUM_NO=$(($NUM_NO + 1))
+			fi
 		fi
 	done
 	close_dialog
@@ -58,7 +74,10 @@ for dev in /var/lib/partman/devices/*; do
 	while { read_line flag; [ "$flag" ]; }; do
 		if [ "$flag" = boot ]; then
 			efi=yes
+			NUM_ESP=$(($NUM_ESP + 1))
 			# cannot break here
+		else
+			NUM_NO=$(($NUM_NO + 1))
 		fi
 	done
 	close_dialog
@@ -68,3 +87,25 @@ for dev in /var/lib/partman/devices/*; do
 	fi
 	done
 done
+
+log "Found $NUM_ESP ESPs, $NUM_NO non-ESPs"
+
+if in_efi_mode && [ $NUM_ESP = 0 ] && [ $NUM_NO -gt 0 ]; then
+	case $ARCH in
+		i386/*|amd64/*)
+			db_fget partman-efi/non_efi_system seen
+			if [ $RET = false ]; then
+				db_input critical partman-efi/non_efi_system || true
+				db_go || exit 1
+				db_fset partman-efi/non_efi_system seen true
+			fi
+			db_get partman-efi/non_efi_system
+			if [ "$RET" = false ]; then
+				log "User chose to ignore UEFI"
+				touch /var/lib/partman/ignore_uefi
+			else
+				log "User chose to continue in UEFI mode"
+			fi
+		;;
+	esac
+fi

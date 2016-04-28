@@ -23,12 +23,19 @@ if [ "$(id -u)" = 0 ]; then
 	rm -f /etc/udev/rules.d/70-persistent-cd.rules \
 	      /etc/udev/rules.d/70-persistent-net.rules
 
+	rm -f /etc/NetworkManager/system-connections/*
+
 	# Potentially sensitive.
 	rm -f /home/oem/.ssh/known_hosts
 
-	touch /var/lib/oem-config/run
+	cp -a /usr/lib/oem-config/oem-config.service /lib/systemd/system
+	cp -a /usr/lib/oem-config/oem-config.target /lib/systemd/system
+	/bin/systemctl enable oem-config.service
+	/bin/systemctl enable oem-config.target
+	/bin/systemctl set-default oem-config.target
 else
-	pkexec "$0" ${quiet:---quiet} "$@"
+	pkexec "$0" ${quiet:+--quiet} "$@"
+	exit 0
 fi
 
 if [ -z "$quiet" ]; then

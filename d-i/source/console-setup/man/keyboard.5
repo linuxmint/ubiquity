@@ -1,0 +1,281 @@
+.\"Copyright (C) 2011 Anton Zinoviev <anton@lml.bas.bg>
+.\"
+.\"Copying and distribution of this file, with or without
+.\"modification, are permitted in any medium without royalty provided
+.\"the copyright notice and this notice are preserved.  This file is
+.\"offered as-is, without any warranty.
+.\"
+.TH KEYBOARD 5 2011-03-17 console-setup "Console-setup User's Manual"
+.SH NAME
+keyboard \- keyboard configuration file
+.SH DESCRIPTION
+The
+.B keyboard
+file describes the properties of the keyboard. It is read by
+.BR setupcon (1)
+in order to configure the keyboard on the console.  In Debian systems
+the default keyboard layout is described in
+.I /etc/default/keyboard
+and it is shared between X and the console.
+.P
+The specification of the keyboard layout in the
+.B keyboard
+file is based on the
+.SM XKB
+options XkbModel, XkbLayout, XkbVariant and XkbOptions.
+Unfortunately, there is little documentation how to use them.  Description of all possible values for these options can be found in the file
+.IR xorg.lst .
+.P
+You might want to read \*(lqThe XKB Configuration Guide\*(rq by Kamil
+Toman and Ivan U. Pascal:
+.IP
+http://www.xfree86.org/current/XKB-Config.html
+.P
+Other possible readings are:
+.IP
+http://pascal.tsu.ru/en/xkb/
+.br
+http://www.charvolant.org/~doug/xkb/
+.PP
+The complete XKB-specification can be found on
+.IP
+http://xfree86.org/current/XKBproto.pdf
+.PP
+The file
+.B keyboard
+consists of variable settings in
+.SM POSIX
+format:
+.IP
+.IR VARIABLE = VALUE
+.PP
+Only one assignment is allowed per line.  Comments (starting with '#')
+are also allowed.
+
+.SH OPTIONS
+The following variables can be set.
+
+.TP
+.B XKBMODEL
+Specifies the
+.SM XKB
+keyboard model name.  Default: 
+.B pc105
+for most platforms.
+
+.TP
+.B XKBLAYOUT
+Specifies the
+.SM XKB
+keyboard layout name. This is usually the country or language type of
+the keyboard. Default:
+.B us
+for most platforms
+
+.TP
+.B XKBVARIANT
+Specifies the
+.SM XKB
+keyboard variant components. These can be used to further specify the
+keyboard layout details. Default: not set.
+
+.TP
+.B XKBOPTIONS
+Specifies the
+.SM XKB
+keyboard option components.  Options usually relate to the behavior
+of the special keys
+.nh
+.SM (<Shift>, <Control>, <Alt>, <CapsLock>, etc.)
+.hy
+Default: not set.
+
+.TP
+.B BACKSPACE
+Determines the behavior of 
+.nh
+.SM <BackSpace>
+.hy
+and
+.nh
+.SM <Delete>
+.hy
+keys on the console.  Allowed values:
+.BR "bs", " del " and " guess".
+In most cases you can specify
+.B guess
+here, in which case the current terminal settings and the kernel of
+your operating system will be used to determine the correct value.
+Value
+.B bs
+specifies VT100-conformant behavior:
+.nh
+.SM <BackSpace>
+.hy
+will generate
+.B ^H
+.SM (ASCII BS)
+and
+.nh
+.SM <Delete>
+.hy
+will generate
+.B ^?
+.SM (ASCII DEL).
+Value
+.B del
+specifies VT220-conformant behavior:
+.nh
+.SM <BackSpace>
+.hy
+will generate
+.B ^?
+.SM (ASCII DEL)
+and
+.nh
+.SM <Delete>
+.hy
+will generate a special function sequence.
+
+.TP
+.B KMAP
+Usually this variable will be unset but if you don't want to use a
+.SM XKB
+layout on the console, you can specify an alternative keymap here.
+Specify a file that is suitable as input for
+.BR loadkeys (1)
+on Linux or for
+.BR kbdcontrol (1)
+on FreeBSD.
+
+.SH FILES
+The standard location of the
+.B keyboard
+file is
+.IR /usr/local/etc/default/keyboard .
+Description of all available keyboard models, layouts, variants and
+options is available in
+.IR /usr/local/share/X11/xkb/rules/xorg.lst .
+In most cases, in 
+.IR /usr/share/keymaps/ " or " /usr/share/syscons/keymaps/
+you will find several keymaps that can be used with the variable
+.BR KMAP .
+
+.SH NOTES
+In Debian systems, changes in
+.I /etc/default/keyboard
+do not become immediately visible to X.  You should either reboot the
+system, or use
+.in +4n
+.nf
+
+udevadm trigger --subsystem-match=input --action=change
+
+.fi
+.in
+.SH BUGS
+When a triple-layout is used, i.e. a layout with three
+.SM XKB
+groups, then the group toggling happens in the following way: Group1
+\-> Group2 \-> Group1 \-> Group3.
+.P
+On FreeBSD triple- and quadruple-layouts are not supported (only the
+first and the second layout are taken into account).
+.P
+The option
+.B grp:shifts_toggle
+is not supported.
+
+.SH EXAMPLES
+
+The following configuration will give you the standard
+.SM US QWERTY
+layout
+.RB ( us ).
+The key
+.nh
+.SM <Menu>
+.hy
+will act as a compose key
+.RB ( compose:menu )
+and
+.nh
+.SM <CapsLock>
+.hy
+will act as third control key
+.RB ( ctrl:nocaps ).
+.in +4n
+.nf
+
+XKBLAYOUT=us
+XKBVARIANT=
+XKBOPTIONS=compose:menu,ctrl:nocaps
+
+.fi
+.in
+In the following configuration the right
+.nh
+.SM <Alt>
+.hy
+key
+.RB ( grp:toggle )
+will toggle between
+.SM US QWERTY
+layout
+.RB ( us )
+and Greek
+.RB ( gr )
+layout.  The option
+.B grp_led:scroll
+is ignored on the console but in X in means to use the ScrollLock
+keyboard led as indicator for the current layout (US or Greek).
+.in +4n
+.nf
+
+XKBLAYOUT=us,gr
+XKBVARIANT=
+XKBOPTIONS=grp:toggle,grp_led:scroll
+
+.fi
+.in
+In the following configuration the
+.nh
+.SM <Control>+<Shift>
+.hy
+key combination will toggle
+.RB ( grp:ctrl_shift_toggle )
+between French keyboard
+.RB ( fr )
+without dead keys
+.RB ( nodeadkeys )
+and British
+.RB ( gb )
+\*(lqDvorak\*(rq
+.RB ( dvorak )
+keyboard.  The right
+.nh
+.SM <Win>
+.hy
+key will be a compose-key
+.RB ( compose:rwin )
+and the right
+.nh
+.SM <Alt>
+.hy
+key will function as AltGr
+.RB ( lv3:lalt_switch ).
+.in +4n
+.nf
+
+XKBLAYOUT=fr,gb
+XKBVARIANT=nodeadkeys,dvorak
+XKBOPTIONS=grp:ctrl_shift_toggle,compose:rwin,lv3:ralt_switch
+
+.fi
+.in
+.SH SEE ALSO
+.BR setupcon (1),
+.BR ckbcomp (1),
+.BR console-setup (5),
+.BR loadkeys (1),
+.BR kbdcontrol (1)

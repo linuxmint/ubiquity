@@ -1,3 +1,7 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <parted/parted.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -256,48 +260,6 @@ timer_handler(PedTimer *timer, void *context)
 {
         assert(timer_started);
         oprintf("%.0f %s\n", 1000 * timer->frac, timer->state_name);
-}
-
-/* Like ped_file_system_create but automaticaly creates PedTimer */
-PedFileSystem *
-timered_file_system_create(PedGeometry *geom, PedFileSystemType *type)
-{
-        PedFileSystem *result;
-        PedTimer *timer;
-        start_timer();
-        timer = ped_timer_new(&timer_handler, NULL);
-        result = ped_file_system_create(geom, type, timer);
-        stop_timer();
-        ped_timer_destroy(timer);
-        return result;
-}
-
-/* Like ped_file_system_check but automaticaly creates PedTimer */
-int
-timered_file_system_check(PedFileSystem *fs)
-{
-        int result;
-        PedTimer *timer;
-        start_timer();
-        timer = ped_timer_new(&timer_handler, NULL);
-        result = ped_file_system_check(fs, timer);
-        stop_timer();
-        ped_timer_destroy(timer);
-        return result;
-}
-
-/* Like ped_file_system_copy but automaticaly creates PedTimer */
-PedFileSystem *
-timered_file_system_copy(PedFileSystem *fs, PedGeometry *geom)
-{
-        PedFileSystem *result;
-        PedTimer *timer;
-        start_timer();
-        timer = ped_timer_new(&timer_handler, NULL);
-        result = ped_file_system_copy(fs, geom, timer);
-        stop_timer();
-        ped_timer_destroy(timer);
-        return result;
 }
 
 /* Like ped_file_system_resize but automaticaly creates PedTimer */
@@ -940,14 +902,6 @@ resize_partition(PedDisk *disk, PedPartition *part,
                         ped_file_system_close(fs);
                 return false;
         }
-        log("try to check the file system for errors");
-        if (NULL != fs && !timered_file_system_check(fs)) {
-                /* TODO: inform the user. */
-                log("uncorrected errors");
-                ped_file_system_close(fs);
-                return false;
-        }
-        log("successfully checked");
         if (part->type & PED_PARTITION_LOGICAL)
                 maximize_extended_partition(disk);
         if (!ped_disk_set_partition_geom(disk, part, constraint, start, end))
@@ -1376,6 +1330,32 @@ command_dump()
         oprintf("OK\n");
 }
 
+/* Check whether we are running on a sunxi-based, freescale-based, or
+   AM33XX (beaglebone black) system. */
+int
+is_system_with_firmware_on_disk()
+{
+        int cpuinfo_handle;
+        int result = 0;
+        char buf[4096];
+        int length;
+
+        if ((cpuinfo_handle = open("/proc/cpuinfo", O_RDONLY)) != -1) {
+                length = read(cpuinfo_handle, buf, sizeof(buf)-1);
+                if (length > 0) {
+                        buf[length]='\0';
+                        if (strstr(buf, "Allwinner") != NULL)
+                                result = 1;
+                        else if (strstr(buf, "Freescale") != NULL)
+                                result = 1;
+                        else if (strstr(buf, "AM33XX") != NULL)
+                                result = 1;
+                }
+                close(cpuinfo_handle);
+        }
+        return result;
+}
+
 void
 command_commit()
 {
@@ -1383,6 +1363,20 @@ command_commit()
         if (dev == NULL)
                 critical_error("The device %s is not opened.", device_name);
         log("command_commit()");
+
+        /* The boot device on sunxi-based systems needs special handling.
+         * By default partman calls ped_disk_clobber when writing the
+         * partition table, but on sunxi-based systems this would overwrite
+         * the firmware area, resulting in an unbootable system (see
+         * bug #751704).
+         */
+        if (is_system_with_firmware_on_disk() && !strcmp(disk->dev->path, "/dev/mmcblk0")) {
+                disk->needs_clobber = 0;
+                log("Sunxi/Freescale/AM33XX detected. Disabling ped_disk_clobber" \
+                    "for the boot device %s to protect the firmware " \
+                    "area.", disk->dev->path);
+        }
+
         open_out();
         if (disk != NULL && named_is_changed(device_name))
                 ped_disk_commit(disk);
@@ -1805,7 +1799,7 @@ command_get_file_system()
                 if (fstype == NULL) {
                         oprintf("none\n");
                 } else {
-                        if (0 == strncmp(part->fs_type->name, "linux-swap", 10))
+                        if (0 == strncmp(fstype->name, "linux-swap", 10))
                                 oprintf("linux-swap\n");
                         else
                                 oprintf("%s\n", fstype->name);
@@ -1864,83 +1858,6 @@ command_change_file_system()
         }
         free(s_fstype);
         oprintf("OK\n");
-}
-
-void
-command_check_file_system()
-{
-        char *id;
-        PedPartition *part;
-        PedFileSystem *fs;
-        char *status;
-        scan_device_name();
-        if (dev == NULL)
-                critical_error("The device %s is not opened.", device_name);
-        open_out();
-        if (1 != iscanf("%as", &id))
-                critical_error("Expected partition id");
-        log("command_check_file_system(%s)", id);
-        part = partition_with_id(disk, id);
-        free(id);
-        fs = ped_file_system_open(&(part->geom));
-        if (NULL == fs)
-                status = "n/c";
-        else {
-                if (timered_file_system_check(fs))
-                        status = "good";
-                else
-                        status = "bad";
-                ped_file_system_close(fs);
-        }
-        oprintf("OK\n");
-        oprintf("%s\n", status);
-}
-
-void
-command_create_file_system()
-{
-        char *id;
-        PedPartition *part;
-        char *s_fstype;
-        PedFileSystemType *fstype;
-        PedFileSystem *fs;
-        scan_device_name();
-        if (dev == NULL)
-                critical_error("The device %s is not opened.", device_name);
-        change_named(device_name);
-        open_out();
-        if (2 != iscanf("%as %as", &id, &s_fstype))
-                critical_error("Expected partition id and file system");
-        log("command_create_file_system(%s,%s)", id, s_fstype);
-        part = partition_with_id(disk, id);
-        if (part == NULL)
-                critical_error("No such partition: %s", id);
-        free(id);
-
-        mangle_fstype_name(&s_fstype);
-
-        fstype = ped_file_system_type_get(s_fstype);
-        if (fstype == NULL)
-                critical_error("Bad file system type: %s", s_fstype);
-        ped_partition_set_system(part, fstype);
-        deactivate_exception_handler();
-        if ((fs = timered_file_system_create(&(part->geom), fstype)) != NULL) {
-                ped_file_system_close(fs);
-                /* If the partition is at the very start of the disk, then
-                 * we've already done all the committing we need to do, and
-                 * ped_disk_commit_to_dev will overwrite the partition
-                 * header.
-                 */
-                if (part->geom.start != 0)
-                        ped_disk_commit_to_dev(disk);
-        }
-        activate_exception_handler();
-        free(s_fstype);
-        oprintf("OK\n");
-        if (fs != NULL)
-                oprintf("OK\n");
-        else
-                oprintf("failed\n");
 }
 
 void
@@ -2280,46 +2197,6 @@ command_get_virtual_resize_range()
 }
 
 void
-command_copy_partition()
-{
-        char *srcid, *srcdiskid, *destid;
-        PedPartition *source, *destination;
-        PedDisk *srcdisk;
-        PedFileSystem *fs;
-        scan_device_name();
-        if (dev == NULL)
-                critical_error("The device %s is not opened.", device_name);
-        assert(disk != NULL);
-        log("command_copy_partition()");
-        change_named(device_name);
-        open_out();
-        if (3 != iscanf("%as %as %as", &destid, &srcdiskid, &srcid))
-                critical_error("Expected id device_identifier id");
-        if (!device_opened(srcdiskid))
-                critical_error("The device %s is not opened.", srcdiskid);
-        srcdisk = disk_named(srcdiskid);
-        if (srcdisk == NULL)
-                critical_error("The source device has label");
-        source = partition_with_id(srcdisk, srcid);
-        destination = partition_with_id(disk, destid);
-        if (source == NULL)
-                critical_error("No source partition %s", srcid);
-        if (destination == NULL)
-                critical_error("No destination partition %s", destid);
-        fs = ped_file_system_open(&(source->geom));
-        if (fs != NULL) {
-                /* TODO: is ped_file_system_check(fs, ...) necessary? */
-                if (timered_file_system_copy(fs, &(destination->geom)))
-                        ped_partition_set_system(destination, fs->type);
-                ped_file_system_close(fs);
-        }
-        oprintf("OK\n");
-        free(destid);
-        free(srcdiskid);
-        free(srcid);
-}
-
-void
 command_get_label_type()
 {
         log("command_get_label_type()");
@@ -2554,10 +2431,6 @@ main_loop()
                         command_get_file_system();
                 else if (!strcasecmp(str, "CHANGE_FILE_SYSTEM"))
                         command_change_file_system();
-                else if (!strcasecmp(str, "CHECK_FILE_SYSTEM"))
-                        command_check_file_system();
-                else if (!strcasecmp(str, "CREATE_FILE_SYSTEM"))
-                        command_create_file_system();
                 else if (!strcasecmp(str, "NEW_LABEL"))
                         command_new_label();
                 else if (!strcasecmp(str, "NEW_PARTITION"))
@@ -2573,8 +2446,6 @@ main_loop()
                         command_virtual_resize_partition();
                 else if (!strcasecmp(str, "GET_VIRTUAL_RESIZE_RANGE"))
                         command_get_virtual_resize_range();
-                else if (!strcasecmp(str, "COPY_PARTITION"))
-                        command_copy_partition();
                 else if (!strcasecmp(str, "GET_LABEL_TYPE"))
                         command_get_label_type();
                 else if (!strcasecmp(str, "IS_BUSY"))

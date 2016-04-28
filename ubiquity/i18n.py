@@ -274,9 +274,9 @@ def get_languages(current_language_index=-1, only_installable=False):
 
     if only_installable:
         from apt.cache import Cache
-        #workaround for an issue where euid != uid and the
-        #apt cache has not yet been loaded causing a SystemError
-        #when libapt-pkg tries to load the Cache the first time.
+        # workaround for an issue where euid != uid and the
+        # apt cache has not yet been loaded causing a SystemError
+        # when libapt-pkg tries to load the Cache the first time.
         with misc.raised_privileges():
             cache = Cache()
 
@@ -296,12 +296,12 @@ def get_languages(current_language_index=-1, only_installable=False):
         # NO-BREAK SPACE, and we don't care about the NBSP anyway, so strip
         # it.
         #   https://bugs.launchpad.net/bugs/1001542
-        #   (comment #5 and on)
+        #   (comment # 5 and on)
         trans = trans.strip(" \ufeff")
 
         if only_installable:
             pkg_name = 'language-pack-%s' % code
-            #special case these
+            # special case these
             if pkg_name.endswith('_CN'):
                 pkg_name = 'language-pack-zh-hans'
             elif pkg_name.endswith('_TW'):

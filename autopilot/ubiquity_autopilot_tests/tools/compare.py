@@ -55,8 +55,8 @@ class expectThat(object):
     def __repr__(self,):
         return 'expectThat(%s)' % repr(self.value)
 
-    #now som rich comparisons
-    #all we really need is just ==, != and is_unicode and a contains
+    # now som rich comparisons
+    # all we really need is just ==, != and is_unicode and a contains
     def __eq__(self, compareValue, msg=None):
         message = "Expected {0} but instead we got {1}".format(
             repr(compareValue), repr(self.value))

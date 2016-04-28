@@ -1,3 +1,283 @@
+netcfg (1.135ubuntu4) xenial; urgency=medium
+
+  * Add vlan support, based on YunQiang Su patch and Philipp Kern's
+    rewrite, with own additions. Closes: #433568
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Wed, 20 Apr 2016 13:17:04 +0100
+
+netcfg (1.135ubuntu3) xenial; urgency=medium
+
+  * On s390x ask the user if DHCP network autoconfiguration should be
+    proceeded or not. DHCP should be supported in KVM|MAAS|OpenStack
+    deployements, however at the same time most LPAR|z/VM deployments use
+    static network configuration on s390x. LP: #1567688
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Fri, 08 Apr 2016 07:53:27 +0100
+
+netcfg (1.135ubuntu2) xenial; urgency=medium
+
+  Cherrypick commits from debian netcfg master.
+
+  [ Hendrik Brueckner ]
+  * common/ipaddr: remove leading and trailing whitespaces
+  * static: trim user-specified values for IP and other addresses
+  * Closes: #818611, LP: #1541955
+
+  [ Dimitri John Ledkov ]
+  * Makefile: link with -lm to resolve undefined log and other functions
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Thu, 31 Mar 2016 13:55:14 +0100
+
+netcfg (1.135ubuntu1) xenial; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Set priority for get_domain to high for static configurations.
+    - Set priority for get_domain to medium for non-static configurations.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Set DHCP and DHCPv6 timeout to 30s.
+    - Use isc-dhcp-client-udeb on all architectures.
+    - Flush all addresses and routes before configuring interfaces
+      (LP: #848072)
+    - Don't copy /etc/resolv.conf to target if resolvconf is installed.  (We
+      already write resolvconf configuration to /etc/network/interfaces.)
+    - Add a post-base-install hook to detect resolvconf and copy
+      /run/resolvconf/resolv.conf to outside the target so that when /run is
+      bind-mounted DNS resolving continues to work. (LP: #926447)
+    - Apply patch from Alec Warner making netcfg respect
+      netcfg/dhcpv6_timeout and running dhclient in one-shot mode (-1).
+      (LP: #917905)
+    - Fix FTBFS by checking the return value of fgets and fscanf.
+    - Fix nm-conf to generate a valid NetworkManager static configuration
+      file.
+    - Always allow fe80::/64 for the default gateway. (LP: #1382295)
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Thu, 26 Nov 2015 15:51:04 -0500
+
+netcfg (1.135) unstable; urgency=medium
+
+  [ Philipp Kern ]
+  * ethtool-lite: read the kernel's carrier detection result from sysfs
+    on Linux (Closes: #591012)
+  * Default wireless_security_type to WPA. (Closes: #798373)
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 03 Nov 2015 14:03:53 +0100
+
+netcfg (1.134) unstable; urgency=medium
+
+  * Fix is_layer3_qeth on s390x to avoid bailing out if the network
+    driver is not qeth. (Closes: #798376)
+  * Link against libsubunit to resolve a FTBFS.
+
+ -- Philipp Kern <pkern@debian.org>  Mon, 17 Aug 2015 17:12:10 +0200
+
+netcfg (1.133) unstable; urgency=medium
+
+  [ Samuel Thibault ]
+  * Work around bug #769189: make isc-dhcp only try to release the lease once,
+    otherwise it loops in the ipv6 code.
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 01 Jul 2015 07:25:29 +0200
+
+netcfg (1.132) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Portuguese (Brazil) (pt_BR.po) by Adriano Rafael Gomes
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 25 Jun 2015 15:11:32 +0200
+
+netcfg (1.131) unstable; urgency=medium
+
+  * Kill the DHCP client on Linux again and keep it running on kFreeBSD.
+    This unbreaks network configuration on Linux when a DHCPv6 server is
+    present on the network segment. However it also means that the
+    DHCPv4 lease is no longer being refreshed (not a regression over
+    stable). (Closes: #768188)
+
+ -- Philipp Kern <pkern@debian.org>  Tue, 24 Mar 2015 21:48:00 +0100
+
+netcfg (1.130) unstable; urgency=medium
+
+  [ Colin Watson ]
+  * Don't build the compilation date and time into the binary.  This made
+    the build unreproducible.
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 14 Mar 2015 08:34:09 +0100
+
+netcfg (1.129) unstable; urgency=medium
+
+  [ Colin Watson ]
+  * Pacify GCC 5 misdetecting link_waits as uninitialised (closes: #778023).
+
+  [ Updated translations ]
+  * Danish (da.po) by Joe Hansen
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 08 Mar 2015 07:53:02 +0100
+
+netcfg (1.127ubuntu1) vivid; urgency=medium
+
+  [ Mathieu Trudel-Lapierre ]
+  * Resynchronise with Debian.  Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Set priority for get_domain to high for static configurations.
+    - Set priority for get_domain to medium for non-static configurations.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Set DHCP and DHCPv6 timeout to 30s.
+    - Use isc-dhcp-client-udeb on all architectures.
+    - Flush all addresses and routes before configuring interfaces
+      (LP: #848072)
+    - Don't copy /etc/resolv.conf to target if resolvconf is installed.  (We
+      already write resolvconf configuration to /etc/network/interfaces.)
+    - Add a post-base-install hook to detect resolvconf and copy
+      /run/resolvconf/resolv.conf to outside the target so that when /run is
+      bind-mounted DNS resolving continues to work. (LP: #926447)
+    - Apply patch from Alec Warner making netcfg respect
+      netcfg/dhcpv6_timeout and running dhclient in one-shot mode (-1).
+      (LP: #917905)
+    - Fix FTBFS by checking the return value of fgets and fscanf.
+    - Fix nm-conf to generate a valid NetworkManager static configuration
+      file.
+    - Always allow fe80::/64 for the default gateway. (LP: #1382295)
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Fri, 06 Mar 2015 10:36:15 -0500
+
+netcfg (1.128) UNRELEASED; urgency=medium
+
+  * Pacify GCC 5 misdetecting link_waits as uninitialised (closes: #778023).
+
+ -- Colin Watson <cjwatson@debian.org>  Fri, 06 Mar 2015 13:59:34 +0000
+
+netcfg (1.127) unstable; urgency=medium
+
+  * Add support for /etc/network/interfaces.d/ by adding a "source"
+    directive (Closes: #770078). It can be replaced with a
+    "source-directory" one during the next release cycle.
+
+ -- Cyril Brulebois <kibi@debian.org>  Sun, 04 Jan 2015 22:48:47 +0100
+
+netcfg (1.126) unstable; urgency=low
+
+  [ Updated translations ]
+  * Spanish (es.po) by Javier Fernández-Sanguino Peña
+  * Simplified Chinese (zh_CN.po) by YunQiang Su
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 07 Dec 2014 21:36:11 +0100
+
+netcfg (1.125) unstable; urgency=medium
+
+  * Re-upload without stray files.
+
+ -- Cyril Brulebois <kibi@debian.org>  Tue, 25 Nov 2014 11:35:43 +0100
+
+netcfg (1.124) unstable; urgency=low
+
+  [ Updated translations ]
+  * Galician (gl.po) by Jorge Barreiro
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 15 Nov 2014 07:47:55 +0100
+
+netcfg (1.123) unstable; urgency=medium
+
+  * Fix missing bounds check on nameserver array iteration, leading to a
+    crash when 4 (or more) nameservers are available (Closes: #768218).
+    Thanks, Kjell Braden, for the bug report, patch, and tests!
+
+ -- Cyril Brulebois <kibi@debian.org>  Thu, 06 Nov 2014 13:49:31 +0100
+
+netcfg (1.122) unstable; urgency=medium
+
+  * netcfg-static.c: call netcfg_interface_init() on struct
+    netcfg_interface before using it to avoid calling free() on a random
+    pointer.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Mon, 29 Sep 2014 07:02:57 +0200
+
+netcfg (1.121) unstable; urgency=low
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 20 Sep 2014 10:14:09 +0200
+
+netcfg (1.120) unstable; urgency=medium
+
+  [ Steven Chamberlain ]
+  * Do not kill_dhcp_client after setting the hostname and domain,
+    otherwise Linux udhcpc will stop renewing its lease, and on other
+    platforms dhclient will de-configure the network interface
+    (Closes: #757711, #757988)
+
+ -- Cyril Brulebois <kibi@debian.org>  Fri, 05 Sep 2014 23:40:24 +0200
+
+netcfg (1.119ubuntu2) utopic; urgency=medium
+
+  * Always allow fe80::/64 for the default gateway. (LP: #1382295)
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Mon, 20 Oct 2014 13:08:39 -0400
+
+netcfg (1.119ubuntu1) utopic; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Set priority for get_domain to high for static configurations.
+    - Set priority for get_domain to medium for non-static configurations.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Set DHCP and DHCPv6 timeout to 30s.
+    - Use isc-dhcp-client-udeb on all architectures.
+    - Flush all addresses and routes before configuring interfaces
+      (LP: #848072)
+    - Don't copy /etc/resolv.conf to target if resolvconf is installed.  (We
+      already write resolvconf configuration to /etc/network/interfaces.)
+    - Add a post-base-install hook to detect resolvconf and copy
+      /run/resolvconf/resolv.conf to outside the target so that when /run is
+      bind-mounted DNS resolving continues to work. (LP: #926447)
+    - Apply patch from Alec Warner making netcfg respect
+      netcfg/dhcpv6_timeout and running dhclient in one-shot mode (-1).
+      (LP: #917905)
+    - Fix FTBFS by checking the return value of fgets and fscanf.
+    - Fix nm-conf to generate a valid NetworkManager static configuration
+      file.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 28 Aug 2014 12:42:06 -0700
+
+netcfg (1.119) unstable; urgency=medium
+
+  [ Colin Watson ]
+  * Don't copy /etc/network/interfaces to /target if
+    netcfg/target_network_config=ifupdown; it's already been copied by the
+    base-installer hook earlier, and copying it again makes it hard to
+    modify /target/etc/network/interfaces in a preseed file (closes:
+    #709017, LP: #1361902).
+  * Fix BOOTIF detection to handle the newline at the end of a line read
+    from /proc/cmdline (LP: #1350302).
+
+  [ Updated translations ]
+  * Estonian (et.po) by Mattias Põldaru
+
+ -- Colin Watson <cjwatson@debian.org>  Thu, 28 Aug 2014 20:26:09 +0100
+
+netcfg (1.118) unstable; urgency=high
+
+  * Fix support for entering an ESSID manually, it was previously
+    getting ignored (Closes: #757478). Thanks to James Cowgill for the
+    report and the patch!
+
+ -- Cyril Brulebois <kibi@debian.org>  Sat, 09 Aug 2014 21:47:27 +0200
+
+netcfg (1.117) unstable; urgency=low
+
+  * Add lintian overrides for untranslatable debconf templates. I like
+    when packages are lintian-clean...
+
+  [ Updated translations ]
+  * Bosnian (bs.po) by Amila Valjevčić
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 11 May 2014 12:40:57 +0200
+
 netcfg (1.116ubuntu1) trusty; urgency=medium
 
   * Resynchronise with Debian.  Remaining changes:

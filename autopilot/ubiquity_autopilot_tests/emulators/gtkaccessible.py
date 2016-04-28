@@ -77,7 +77,7 @@ class GtkTreeViewAccessible(AutopilotGtkEmulatorBase):
             logger.debug(
                 "Searching for items beginning with '{0}'".format(startWith))
             for item in items:
-                if startWith in item.accessible_name[0:len(startWith)+1]:
+                if startWith in item.accessible_name[0:len(startWith) + 1]:
                     item_list.append(item)
             return item_list
         else:

@@ -31,10 +31,25 @@
   <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
   <triggers class="vector">
-    <com.redfin.hudson.UrlChangeTrigger>
-      <spec></spec>
-      <url>{{ cdimageurl }}/MD5SUMS</url>
-    </com.redfin.hudson.UrlChangeTrigger>
+    <org.jenkinsci.plugins.urltrigger.URLTrigger plugin="urltrigger@0.37">
+        <spec>*/15 * * * *</spec>
+        <entries>
+            <org.jenkinsci.plugins.urltrigger.URLTriggerEntry>
+                <url>{{ cdimageurl }}/MD5SUMS</url>
+                <proxyActivated>false</proxyActivated>
+                <checkStatus>false</checkStatus>
+                <statusCode>200</statusCode>
+                <timeout>300</timeout>
+                <checkETag>false</checkETag>
+                <checkLastModificationDate>false</checkLastModificationDate>
+                <inspectingContent>true</inspectingContent>
+                <contentTypes>
+                    <org.jenkinsci.plugins.urltrigger.content.SimpleContentType/>
+                </contentTypes>
+            </org.jenkinsci.plugins.urltrigger.URLTriggerEntry>
+        </entries>
+        <labelRestriction>false</labelRestriction>
+    </org.jenkinsci.plugins.urltrigger.URLTrigger>
   </triggers>
   <concurrentBuild>false</concurrentBuild>
   <builders>

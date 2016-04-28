@@ -8,8 +8,10 @@ property=$3
 
 case $property in
     formatable)
-	echo fat16
-	echo fat32
+	if search-path mkfs.fat || search-path mkdosfs; then
+		echo fat16
+		echo fat32
+	fi
 	;;
     existing)
 	[ -f $id/detected_filesystem ] || exit 0

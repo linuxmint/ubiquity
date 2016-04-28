@@ -1,0 +1,100 @@
+SETUPCON(1)               Console-setup User's Manual              SETUPCON(1)
+
+
+
+NAME
+       setupcon - sets up the font and the keyboard on the console
+
+
+SYNOPSIS
+       setupcon [OPTION]... [VARIANT]
+
+
+DESCRIPTION
+       setupcon  is a program for fast and easy setup of the font and the key-
+       board on the console.  Most of the time  you  invoke  setupcon  without
+       arguments.   The  keyboard configuration is specified in ~/.keyboard or
+       /usr/local/etc/default/keyboard.  The font configuration  is  specified
+       in  ~/.console-setup  or /usr/local/etc/default/console-setup.  Consult
+       keyboard(5) and console-setup(5)  for  instructions  how  to  configure
+       these two files.
+
+       If  you  have to switch often between different encodings, keyboards or
+       languages, you can prepare several alternative configuration files  for
+       setupcon.   Suppose  that  most of the time you will use Greek language
+       with Greek keyboard layout, but sometimes you need to  type  in  German
+       with  German  keyboard  layout.  In this situation you should customize
+       the main configuration files (keyboard and  console-setup)  for  Greek.
+       Create   also   alternative   configuration   files  for  German  named
+       keyboard.german and console-setup.german.  Then in order  to  configure
+       the  console  for  Greek  you will simply run the command with no argu-
+       ments: setupcon and in order to configure the console  for  German  you
+       will use setupcon german.
+
+
+
+OPTIONS
+       -v, --verbose
+              Be  more  verbose.    Use this option if something goes wrong or
+              while experimenting with the configuration files.
+
+
+       -k, --keyboard-only
+              Setup the keyboard only, do not setup the font.
+
+
+       -f, --font-only
+              Setup the font only, do not setup the keyboard.
+
+
+       --force
+              Do not check whether we are on the console.  Notice that you can
+              be  forced to hard-reboot your computer if you run setupcon with
+              this option and the screen is controlled by a X server.
+
+
+       --save This option can be useful if you want to use setupcon  early  in
+              the  boot process while /usr is not yet mounted and the required
+              data are not available.  This option will make setupcon copy the
+              required  files  in  /etc/console-setup/  in  order to make them
+              available before /usr is mounted.  If you use setupcon early  in
+              the  boot process, then you should run it with this option after
+              every change of the console configuration.
+
+
+       --save-only
+              The same as --save, but does not  setup  the  keyboard  and  the
+              font.   This  option  can  be useful if you want to save the re-
+              quired files while the screen is controlled by a X server.
+
+
+       -h, --help
+              Display usage information.
+
+
+       VARIANT
+              Specifies which configuration file to use.  By default the  con-
+              figuration  files  of  setupcon are named console-setup and key-
+              board but if you use e.g.  chukchi as VARIANT then the  configu-
+              ration files will be console-setup.chukchi and keyboard.chukchi.
+              In this way you can have easy access to several  different  con-
+              figurations  -  for example one for the Chukchi language and an-
+              other for the default configuration.
+
+
+FILES
+       ~/.console-setup
+       ~/.keyboard
+       /usr/local/etc/default/console-setup
+       /usr/local/etc/default/keyboard
+       /usr/local/etc/default/console-setup.VARIANT
+       /usr/local/etc/default/keyboard.VARIANT
+       /etc/console-setup/
+
+
+SEE ALSO
+       keyboard(5), console-setup(5)
+
+
+
+console-setup                     2011-03-17                       SETUPCON(1)

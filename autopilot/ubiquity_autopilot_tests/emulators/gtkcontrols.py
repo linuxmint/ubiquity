@@ -51,7 +51,7 @@ class GtkButton(AutopilotGtkEmulatorBase):
         So when calling this function if the sensitive property is 0 it will
         wait for 10 seconds for button to become sensitive before clicking
         """
-        #sometimes we may need to wait for the button to become clickable
+        # sometimes we may need to wait for the button to become clickable
         # so lets wait for it if we do
         logger.debug('Clicking "{0}" button'.format(self.name))
         if self.sensitive == 0:
@@ -106,16 +106,16 @@ class GtkToggleButton(AutopilotGtkEmulatorBase):
         to change after being clicked
 
         """
-        #get current state
+        # get current state
         new_val = 0
         if self.active == 0:
             new_val = 1
         logger.debug('Objects current state is "{0}", '
                      'the state after clicking should be "{1}"'
                      .format(self.active, new_val))
-        #now click it
+        # now click it
         self.pointing_device.click_object(self)
-        #now wait for state to change
+        # now wait for state to change
         self.active.wait_for(new_val)
         logger.debug('Object clicked, state change successful')
 
@@ -143,9 +143,9 @@ class GtkRadioButton(AutopilotGtkEmulatorBase):
         if self.active == 1:
             logger.debug('Object already selected. Returning')
             return
-        #now click it
+        # now click it
         self.pointing_device.click_object(self)
-        #now wait for state to change
+        # now wait for state to change
         self.active.wait_for(1)
         logger.debug(
             'Object clicked and and selected. Active state changed '
@@ -280,29 +280,29 @@ class GtkTreeView(AutopilotGtkEmulatorBase):
             >>> self.assertThat(item.accessible_name, Equals('/home'))
             >>> self.mouse.click(item)
         """
-        #first get accessible tree
+        # first get accessible tree
         treeview = self._get_gail_treeview()
         # Now each column header is a GtkButton, so we get the label from each
         # one and create a list
         tree_column_objects = treeview.select_many('GtkButtonAccessible')
         column_names = []
         for column in tree_column_objects:
-            #We are only interested in columns with headers. Blank columns
+            # We are only interested in columns with headers. Blank columns
             # seem to usually be used for spacing and contain no cells
             if column.accessible_name == '':
                 pass
             else:
-                #strip all non alpaha chars
+                # strip all non alpaha chars
                 name = re.sub(r'\W+', '', column.accessible_name)
                 column_names.append(name)
         # Create a named tuple using the column headers, which enables access
         # to the column by name
         Columns = namedtuple('Columns', column_names)
-        #generate a list of items
+        # generate a list of items
         tree_items = treeview.get_all_items()
         # lets create a temp list
         temp_list = []
-        #TODO: we actually don't really need this
+        # TODO: we actually don't really need this
         for item in tree_items:
             temp_list.append(item)
         # so we want to create a Columns tuple for each row in the table
@@ -315,7 +315,7 @@ class GtkTreeView(AutopilotGtkEmulatorBase):
             row = Columns(*temp_list[start:end])
             # create a new tuple adding the current row number
             # which we will use as dict key
-            row_list.append(('Row{0}'.format(i+1), row))
+            row_list.append(('Row{0}'.format(i + 1), row))
             # update our table dict
             table_dict.update(row_list)
             # remove the items we just added from the temp list
@@ -332,18 +332,14 @@ class GtkTreeView(AutopilotGtkEmulatorBase):
         Gets the GtkTreeViews corresponding GtkTreeViewAccessible object
         """
         logger.debug('Getting corresponding GtkTreeViewAccessible object')
-        # lets get a root instance
-        root = self.get_root_instance()
-        assert root is not None
         # As the treeview item is in the GAILWindow tree and not our current
         # tree We want to select the treeviewaccessible with the same
         # globalRect as us
-        logger.debug('Selecting GtkTreeViewAccessible with same globalRect')
-        treeviews = root.select_many('GtkTreeViewAccessible',
-                                     globalRect=self.globalRect)
+        logger.debug('Selecting GtkTreeViewAccessible with same globalRect,\
+                     or at least within close range')
         # if the treeviews are nested they could potentially have the
         # same globalRect so lets pick out the one thats visible
-        for treeview in treeviews:
+        for treeview in self._get_all_atktreeviews_within_range():
             if treeview.visible:
                 logger.debug('GtkTreeViewAccessible object found, '
                              'returning object.')
@@ -351,6 +347,40 @@ class GtkTreeView(AutopilotGtkEmulatorBase):
         raise ValueError(
             "No treeview visible with globalRect {0}".format(self.globalRect)
         )
+
+    # So this is a workaround for the ATK treeviews globalrect
+    # being slightly different compared to it's GtkTreeView counterpart.
+    def _get_all_atktreeviews_within_range(self, ):
+        # lets get a root instance
+        root = self.get_root_instance()
+        assert root is not None
+        treeviews = []
+        # This is going to be slow! but what more can we do? we can't put
+        # an in range arg on the select_many call :-(
+        for tree in root.select_many('GtkTreeViewAccessible'):
+            # There will be some tree's that don't have a globalRect property
+            # no idea why but we can just ignore them as we can be sure
+            # this isn't the one we want.
+            if "globalRect" not in tree.get_properties():
+                logger.debug("TreeView doesn't have globalRect property")
+                continue
+            # assume every treeview is in range unless we find out otherwise
+            in_range = True
+            i = 0
+            # Get a list of all ATK treeviews with globalRect within a
+            # 5px range of this GtkTreeView
+            # FIXME: is 5px too much?? It's unlikely more than one tree will
+            # be within this range anyway, as they would be overlaying each
+            # other.
+            # Even if they are only one will be visible (we hope!)
+            for r in self.globalRect:
+                if r not in range(tree.globalRect[i] - 5,
+                                  tree.globalRect[i] + 5):
+                    in_range = False
+                i += 1
+            if in_range:
+                treeviews.append(tree)
+        return treeviews
 
 
 class GtkComboBox(AutopilotGtkEmulatorBase):
@@ -380,7 +410,7 @@ class GtkComboBox(AutopilotGtkEmulatorBase):
 
         """
         logger.debug('Selecting "{0}" item'.format(labelText))
-        #get our gail combo to start
+        # get our gail combo to start
         combo = self._get_gail_combobox()
         # get total number of items in the combo
         items = combo.select_many('GtkMenuItemAccessible')
@@ -392,7 +422,7 @@ class GtkComboBox(AutopilotGtkEmulatorBase):
         else:
             self.kbd.press_and_release('Down')
 
-        #XXX: we should probably check the item is in the combo before
+        # XXX: we should probably check the item is in the combo before
         # cycling through.
         for item in items:
             if labelText == combo.accessible_name:
@@ -407,7 +437,7 @@ class GtkComboBox(AutopilotGtkEmulatorBase):
 
     def select_filesystem_format(self, fsFormat):
         logger.debug('Selecting "{0}" item'.format(fsFormat))
-        #get our gail combo to start
+        # get our gail combo to start
         combo = self._get_gail_combobox()
         # get total number of items in the combo
         items = combo.select_many('GtkMenuItemAccessible')

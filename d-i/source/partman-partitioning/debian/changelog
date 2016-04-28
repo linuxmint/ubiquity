@@ -1,3 +1,183 @@
+partman-partitioning (110ubuntu4) xenial; urgency=medium
+
+  [ Viktor Mihajlovski ]
+  * Revert to using msdos partitioning table on s390x as a fallback,
+    however use dasd partitioning table if advised to do so by
+    partman. LP: #1548411
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Mon, 29 Feb 2016 14:27:51 +0000
+
+partman-partitioning (110ubuntu3) xenial; urgency=medium
+
+  * Set s390x partitioning tables (parted label type) to dasd. LP:
+    #1534629, LP: #1527328, LP: #1537942.
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Tue, 09 Feb 2016 19:32:43 +0000
+
+partman-partitioning (110ubuntu1) xenial; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Add PATH, RAWMINSIZE, RAWPREFSIZE, and RAWMAXSIZE substitutions to
+      partman-partitioning/new_size in support of ubiquity's resize widget.
+    - Check that minimum filesystem sizes reported by tune2fs and ntfsresize
+      are between the minimum partition size and the current partition size;
+      if not, refuse to resize the partition at all.
+    - Save the swap size for ubiquity.
+    - On systems with only GPT disks, check that an EFI System Partition or
+      a BIOS Boot Partition exists, as appropriate.
+    - Detect "fsl" subarch for powerpc and set partition map to GPT.
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Tue, 22 Dec 2015 16:06:54 -0500
+
+partman-partitioning (110) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 10 Aug 2015 12:50:08 +0200
+
+partman-partitioning (109) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 12 Jul 2015 09:17:47 +0200
+
+partman-partitioning (108) unstable; urgency=low
+
+  * Drop cruft files from an unclean git copy:
+    - active_partition/copy/choices
+    - active_partition/copy/do_option
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 10 Mar 2015 18:37:07 +0100
+
+partman-partitioning (107) unstable; urgency=low
+
+  [ Updated translations ]
+  * Danish (da.po) by Joe Hansen
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 09 Mar 2015 06:56:31 +0100
+
+partman-partitioning (106ubuntu1) vivid; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Add PATH, RAWMINSIZE, RAWPREFSIZE, and RAWMAXSIZE substitutions to
+      partman-partitioning/new_size in support of ubiquity's resize widget.
+    - Check that minimum filesystem sizes reported by tune2fs and ntfsresize
+      are between the minimum partition size and the current partition size;
+      if not, refuse to resize the partition at all.
+    - Save the swap size for ubiquity.
+    - On systems with only GPT disks, check that an EFI System Partition or
+      a BIOS Boot Partition exists, as appropriate.
+    - Detect "fsl" subarch for powerpc and set partition map to GPT.
+  * Dropped changes:
+    - Make sure to wipe disk label on Sun disks before creating a new one.
+    - Use mac as the default disk label on ppc64.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 17 Nov 2014 13:52:43 +0000
+
+partman-partitioning (106) unstable; urgency=low
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 20 Sep 2014 14:27:01 +0200
+
+partman-partitioning (105) unstable; urgency=medium
+
+  [ Steven Chamberlain ]
+  * On kfreebsd, drop unsatisified dependency on ntfs-3g-udeb;
+    ntfs will remain unsupported in the installer for now.
+    (Closes: #760499)
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 05 Sep 2014 22:28:56 +0200
+
+partman-partitioning (104) unstable; urgency=medium
+
+  [ Colin Watson ]
+  * Restore sensible architecture sorting in default_disk_label.
+  * Depend on ntfs-3g-udeb rather than ntfsprogs-udeb.
+  * Cache calls to tune2fs and ntfsresize, to make navigating through the
+    resize UI a little faster.
+
+  [ Updated translations ]
+  * Estonian (et.po) by Mattias Põldaru
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 04 Sep 2014 07:46:37 +0200
+
+partman-partitioning (103) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Danish (da.po) by Joe Hansen.
+
+  [ Frederic Bonnard ]
+  * Add ppc64el support.  Closes: #752444.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sun, 17 Aug 2014 23:48:02 +0200
+
+partman-partitioning (102) unstable; urgency=medium
+
+  * Group Loongson 3A and 3B in the same loongson-3 subarchitecture.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sat, 12 Jul 2014 17:08:15 +0200
+
+partman-partitioning (101ubuntu1) utopic; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Make sure to wipe disk label on Sun disks before creating a new one.
+    - Depend on ntfs-3g-udeb as well as ntfsprogs-udeb.
+    - Add PATH, RAWMINSIZE, RAWPREFSIZE, and RAWMAXSIZE substitutions to
+      partman-partitioning/new_size in support of ubiquity's resize widget.
+    - Cache calls to tune2fs and ntfsresize, to make navigating through the
+      resize UI a little faster.
+    - Check that minimum filesystem sizes reported by tune2fs and ntfsresize
+      are between the minimum partition size and the current partition size;
+      if not, refuse to resize the partition at all.
+    - Use mac as the default disk label on ppc64.
+    - Save the swap size for ubiquity.
+    - On systems with only GPT disks, check that an EFI System Partition or
+      a BIOS Boot Partition exists, as appropriate.
+    - Detect "fsl" subarch for powerpc and set partition map to GPT.
+    - Use GPT as the default disk label on ppc64el.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 07 Jul 2014 11:14:42 +0100
+
+partman-partitioning (101) unstable; urgency=low
+
+  [ Phillip Susi ]
+  * Remove partition copy operation for libparted 3 transition (closes:
+    #738864).
+
+  [ Updated translations ]
+  * Amharic (am.po) by Tegegne Tefera
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Bosnian (bs.po) by Amila Valjevčić
+  * Danish (da.po) by Joe Hansen
+  * German (de.po) by Holger Wansing
+  * Greek, Modern (1453-) (el.po) by galaxico
+  * French (fr.po) by Christian Perrier
+  * Croatian (hr.po) by Tomislav Krznar
+  * Italian (it.po) by Milo Casagrande
+  * Japanese (ja.po) by Kenshi Muto
+  * Korean (ko.po) by Changwoo Ryu
+  * Bokmål, Norwegian (nb.po) by Hans Fredrik Nordhaug
+  * Polish (pl.po) by Michał Kułach
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Russian (ru.po) by Yuri Kozlov
+  * Slovak (sk.po) by Ivan Masár
+  * Thai (th.po) by Theppitak Karoonboonyananv
+  * Turkish (tr.po) by Mert Diriki
+  * Ukrainian (uk.po) by Anton Gladky
+
+ -- Colin Watson <cjwatson@debian.org>  Sun, 06 Jul 2014 23:18:28 +0100
+
+partman-partitioning (100) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Hungarian (hu.po) by Judit Gyimesi
+
+ -- Cyril Brulebois <kibi@debian.org>  Fri, 14 Mar 2014 18:48:35 +0100
+
 partman-partitioning (99ubuntu1) trusty; urgency=medium
 
   * Resynchronise with Debian (LP: #1263756).  Remaining changes:
@@ -2600,6 +2780,3 @@ partman-parted-partitioning (1) unstable; urgency=low
 
  -- Anton Zinoviev <zinoviev@debian.org>  Wed, 27 Aug 2003 07:03:28 +0200
 
-Local Variables:
-coding: utf-8
-End:

@@ -5,6 +5,7 @@ use strict;
 
 use File::Temp ();
 
+
 BEGIN {
     my $file;
     if ($ARGV[1]) {
@@ -15,8 +16,12 @@ BEGIN {
     do "$file";
 }
 
+my $freebsd = '';
 my $model = $ARGV[0];
-my $dir = 'keymaps';
+if ($model =~ s/^freebsd-//) {
+    $freebsd = '-freebsd -backspace del';
+}
+my $dir = $freebsd ? 'freebsd-keymaps' : 'linux-keymaps';
 
 my $xkbdir;
 if ($ARGV[2]) {
@@ -25,10 +30,20 @@ if ($ARGV[2]) {
     $xkbdir = "`pwd`/ckb";
 }
 
+my $supported;
+if ($ARGV[3]) {
+    $supported = " $ARGV[3] ";
+    $supported =~ s/ +/() /g;
+    $supported =~ s/\)\(\)/)/g;
+} else {
+    $supported = 0;
+}
+
+
 # Don't forget to update also the list in keyboard-configuration.config
-my $nonlatin = ' af am ara ben bd bg bt by deva ge gh gr guj guru \
+my $nonlatin = ' af am ara ben bd bg bt by deva et ge gh gr guj guru \
                  il in iq ir iku kan kh kz la lao lk kg ma mk mm mn mv mal \
-                 np ori pk ru scc sy syr tel th tj tam ua uz ';
+                 np ori pk ru scc sy syr tel th tj tam tib ua uig uz ';
 
 my %keymaps;
 
@@ -56,10 +71,18 @@ sub checkrename {
 sub read_temp_kmap {
     my $name = $_[0];
     open (KMAP, "$dir/$model-$name") or die  "$0: $dir/$model-$name: $!\n"; 
-    while (<KMAP>) {
-	if (/^keycode ([0-9]+) =.*/) {
-	    $keymaps{$name}[$1] = $_;
-	}
+    if ($freebsd) {
+        while (<KMAP>) {
+            if (/^ *([0-9]+) .*/) {
+                $keymaps{$name}[$1] = $_;
+            }
+        }
+    } else {
+        while (<KMAP>) {
+            if (/^keycode ([0-9]+) =.*/) {
+                $keymaps{$name}[$1] = $_;
+            }
+        }
     }
     close KMAP;
 }
@@ -75,35 +98,8 @@ for my $layout (values %KeyboardNames::layouts) {
 			 : (($layout eq 'me') ? 'me,me'
 			    : (($layout eq 'rs') ? 'rs,rs'
 			       : (($nonlatin =~ / $layout /)
-				  ? "us,$layout" : $layout))));
-    if (! -f "$dir/$model-$layout") {
-	if ($layout eq 'lt') {
-	    execute ("./ckbcomp -compact -I. -I${xkbdir} -rules xorg"
-		     ." -model $model"
-		     ." -layout $actual_layout -variant ,us"
-		     ." >$dir/$model-$layout.new");
-	} elsif ($layout eq 'me') {
-	    execute ("./ckbcomp -compact -I. -I${xkbdir} -rules xorg"
-		     ." -model $model"
-		     ." -layout $actual_layout -variant basic,"
-		     ." >$dir/$model-$layout.new");
-	} elsif ($layout eq 'rs') {
-	    execute ("./ckbcomp -compact -I. -I${xkbdir} -rules xorg"
-		     ." -model $model"
-		     ." -layout $actual_layout -variant latin,"
-		     ." >$dir/$model-$layout.new");
-	} else {
-	    execute ("./ckbcomp -compact -I. -I${xkbdir} -rules xorg"
-		     ." -model $model -layout $actual_layout"
-		     ." >$dir/$model-$layout.new");
-	}
-	die "$0: ckbcomp failed\n" if (! -f "$dir/$model-$layout.new");
-	checkrename "$dir/$model-$layout.new", "$dir/$model-$layout";
-    }
-    if (-f "$dir/$model-$layout") {
-	read_temp_kmap $layout;
-    }
-    for my $variant (values %{$KeyboardNames::variants{$layout}}) {
+			          ? "us,$layout" : $layout))));
+    for my $variant ('', values %{$KeyboardNames::variants{$layout}}) {
 	my $actual_variant;
 	if ($actual_layout eq 'lt,lt') {
 	    if ($variant eq 'us') {
@@ -136,8 +132,9 @@ for my $layout (values %KeyboardNames::layouts) {
 	} else {
 	    $actual_variant = $variant;
 	}
+        $actual_variant = "'$actual_variant'";
 	if (! -f "$dir/$model-$layout:$variant") {
-	    execute ("./ckbcomp -compact -I. -I${xkbdir} -rules xorg"
+	    execute ("./ckbcomp $freebsd -compact -I. -I${xkbdir} -rules xorg"
 		     ." -model $model"
 		     ." -layout $actual_layout -variant $actual_variant"
 		     ." >$dir/$model-$layout:$variant.new")
@@ -145,7 +142,9 @@ for my $layout (values %KeyboardNames::layouts) {
 	    checkrename "$dir/$model-$layout:$variant.new", "$dir/$model-$layout:$variant";
 	}
 	if (-f "$dir/$model-$layout:$variant") {
-	    read_temp_kmap "$layout:$variant";
+            if (!$supported || index($supported, " $layout($variant) ") ge 0) {
+                read_temp_kmap "$layout:$variant";
+            }
 	}
     }
 }
@@ -162,6 +161,11 @@ sub subtraction {
 	} elsif (defined $kmap2->[$k]) {
 	    # kmap1 not a superset of kmap2, so not eligible for reduction
 	    return 10000000;
+
+            # I don't think it will be a problem if one additional key
+            # is defined in kmap1, a key that would be otherwise
+            # undefined.  However, the size reduction when this code is
+            # removed, is not that big: 127Kb -> 117Kb. (Anton Zinoviev)
 	}
     }
     return $result;
@@ -193,19 +197,21 @@ while (keys %kmaps) {
     my $mink1 = '';
     my $mink2 = '';
     my $minsub = 10000000;
-    for $k1 (keys %kmaps, '') {
+    for $k1 (keys %kmaps) {
 	for $k2 (keys %kmaps) {
 	    next if ($k1 eq $k2);
-	    if ($k1 eq '') {
-		if ($mink1 eq '') {
-		    $mink1 = $k2;
-		}
-	    } elsif ($matrice{$k1}{$k2} < $minsub) {
+	    if ($matrice{$k1}{$k2} < $minsub) {
 		$mink1 = $k1;
 		$mink2 = $k2;
 		$minsub = $matrice{$k1}{$k2};
 	    }
 	}
+    }
+    if ($mink1 eq '') {
+        for $k2 (keys %kmaps) {
+            $mink1 = $k2;
+            last;
+        }
     }
     $reduce{$mink1} = $mink2;
     delete $kmaps{$mink1};
@@ -247,24 +253,36 @@ my %options = (
     'grp:alts_toggle' => [ 'ralt', 'lalt' ],
     'grp:ctrl_shift_toggle' => [ 'lshift', 'rshift', 'lctrl', 'rctrl' ],
     'grp:caps_toggle' => [ 'caps' ],
+    'grp:caps_switch' => [ 'caps' ],
     'grp:shift_caps_toggle' => [ 'caps' ],
+    'grp:shift_caps_switch' => [ 'caps' ],
+    'grp:win_menu_switch' => [ 'rwin', 'lwin', 'menu' ],
+    'grp:alt_caps_toggle' => [ 'caps' ],
     'grp:ctrl_alt_toggle' => [ 'lalt', 'ralt', 'lctrl', 'rctrl' ],
     'grp:alt_shift_toggle' => [ 'lalt', 'ralt', 'lshift', 'rshift' ],
+    'grp:alt_space_toggle' => [ 'empty' ],
     'grp:menu_toggle' => [ 'menu' ],
     'grp:lwin_toggle' => [ 'lwin' ],
     'grp:rwin_toggle' => [ 'rwin' ],
     'grp:lshift_toggle' => [ 'lshift' ],
     'grp:rshift_toggle' => [ 'rshift' ],
+    'grp:rctrl_switch' => [ 'rctrl' ],
     'grp:lctrl_toggle' => [ 'lctrl' ],
     'grp:rctrl_toggle' => [ 'rctrl' ],
     'grp:lalt_toggle' => [ 'lalt' ],
+    'grp:sclk_toggle' => [ 'sclk' ],
+    'grp:lctrl_rctrl_switch' => [ 'rctrl', 'lctrl' ],
     'lv3:switch' => [ 'rctrl' ],
+    'lv3:ralt_switch' => [ 'ralt' ],
+    'lv3:ralt_switch_multikey' => [ 'ralt' ],
+    'lv3:ralt_alt' => [ 'ralt' ],
+    'lv3:lalt_switch' => [ 'lalt' ],
+    'lv3:alt_switch' => [ 'lalt', 'ralt' ],
     'lv3:menu_switch' => [ 'menu' ],
     'lv3:win_switch' => [ 'lwin', 'rwin' ],
     'lv3:lwin_switch' => [ 'lwin' ],
     'lv3:rwin_switch' => [ 'rwin' ],
-    'lv3:ralt_switch' => [ 'ralt' ],
-    'lv3:alt_switch' => [ 'lalt', 'ralt' ],
+    'lv3:enter_switch' => [ 'empty' ],
     'ctrl:nocaps' => [ 'caps', 'lctrl' ],
     'ctrl:swapcaps' => [ 'caps', 'lctrl' ],
     'compose:ralt' => [ 'ralt' ],
@@ -309,7 +327,7 @@ for my $option (keys %options) {
 	$layout = $layout . "+eurosign($1)";
     }
     my $tmp = new File::Temp(TEMPLATE => 'kbdcompilerXXXXXX');
-    execute ("./ckbcomp -compact -I. -I${xkbdir}"
+    execute ("./ckbcomp $freebsd -compact -I. -I${xkbdir}"
 	     ." -keycodes '$keycodes' -symbols '$layout' >$tmp");
     if (! -f $tmp->filename) {
 	die "$0: ckbcomp failed\n" if (! -f $tmp->filename);

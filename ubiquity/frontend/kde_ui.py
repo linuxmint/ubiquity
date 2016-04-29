@@ -77,7 +77,7 @@ class UbiquityUI(QtGui.QMainWindow):
         # this to be restartable.
         signal.siginterrupt(signal.SIGCHLD, False)
 
-        distro_name = "Kubuntu"
+        distro_name = "Linux Mint"
         distro_release = ""
 
         # # setup the release and codename

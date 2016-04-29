@@ -438,3 +438,4 @@ class GrubDefaultTests(unittest.TestCase):
 
 if __name__ == '__main__':
     run_unittest(MiscTests, PrivilegeTests, GrubDefaultTests)
+    pass

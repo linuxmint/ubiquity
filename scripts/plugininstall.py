@@ -205,7 +205,7 @@ class Install(install_misc.InstallBase):
             pass
 
         self.next_region()
-        self.remove_unusable_kernels()
+        #self.remove_unusable_kernels()
 
         self.next_region(size=4)
         self.db.progress('INFO', 'ubiquity/install/hardware')

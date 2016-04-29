@@ -465,7 +465,7 @@ class Install(install_misc.InstallBase):
         except debconf.DebconfError:
             domain = ''
         if hostname == '':
-            hostname = 'ubuntu'
+            hostname = 'mint'
 
         with open(self.target_file('etc/hosts'), 'w') as hosts:
             print("127.0.0.1\tlocalhost", file=hosts)

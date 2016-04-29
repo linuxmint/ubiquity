@@ -91,7 +91,7 @@ class PageGtk(PageBase):
             builder.get_object('oem_id_vbox').show()
 
         self.release_notes_url = ''
-        self.update_installer = True
+        self.update_installer = False
         self.updating_installer = False
         self.release_notes_label = builder.get_object('release_notes_label')
         self.release_notes_found = False

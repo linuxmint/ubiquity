@@ -258,6 +258,9 @@ class PageKde(PreparePageBase):
                 "/usr/share/icons/oxygen/16x16/status/dialog-warning.png"))
             # TODO we should set these up and tear them down while on this
             # page.
+            self.prepare_download_updates.setVisible(False)
+            self.prepare_nonfree_software.setVisible(False)
+            self.prepare_foss_disclaimer.setVisible(False)
             try:
                 self.prepare_power_source = StateBox(self.page)
                 if upower.has_battery():

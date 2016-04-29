@@ -83,13 +83,7 @@ class UbiquityUI(QtGui.QMainWindow):
         # # setup the release and codename
         with open("/etc/lsb-release", 'r') as fp:
             for line in fp:
-                if "DISTRIB_ID=" in line:
-                    name = str.strip(line.split("=")[1], '\n')
-                    if name.startswith('"') and name.endswith('"'):
-                        name = name[1:-1]
-                    if name != "Ubuntu":
-                        distro_name = name
-                elif "DISTRIB_RELEASE=" in line:
+                if "DISTRIB_RELEASE=" in line:
                     distro_release = str.strip(line.split("=")[1], '\n')
                     if distro_release.startswith('"') and \
                             distro_release.endswith('"'):

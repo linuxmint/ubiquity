@@ -853,11 +853,11 @@ def install_size():
     if min_install_size:
         return min_install_size
 
-    # Fallback size to 5 GB
-    size = 5 * 1024 * 1024 * 1024
+    # Fallback size to 8 GB
+    size = 8 * 1024 * 1024 * 1024
 
-    # Maximal size to 8 GB
-    max_size = 8 * 1024 * 1024 * 1024
+    # Maximal size to 10 GB
+    max_size = 10 * 1024 * 1024 * 1024
 
     try:
         with open('/cdrom/casper/filesystem.size') as fp:
@@ -868,8 +868,8 @@ def install_size():
     # TODO substitute into the template for the state box.
     min_disk_size = size * 2  # fudge factor
 
-    # Set minimum size to 8GB if current minimum size is larger
-    # than 8GB and we still have an extra 20% of free space
+    # Set minimum size to 10GB if current minimum size is larger
+    # than 10GB and we still have an extra 20% of free space
     if min_disk_size > max_size and size * 1.2 < max_size:
         min_disk_size = max_size
 

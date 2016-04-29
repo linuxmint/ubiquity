@@ -353,7 +353,7 @@ class PageKde(PreparePageBase):
         for widget in widgets:
             text = widget.text()
             text = text.replace('${RELEASE}', release.name)
-            text = text.replace('Ubuntu', 'Linux Mint')
+            text = text.replace('Linux Mint', 'Linux Mint')
             widget.setText(text)
 
 

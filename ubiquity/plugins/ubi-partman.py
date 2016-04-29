@@ -2038,7 +2038,7 @@ class Page(plugin.Plugin):
                 self.thaw_choices('choose_partition')
 
     def calculate_reuse_option(self):
-        '''Takes the current Ubuntu version on disk and the release we're about
+        '''Takes the current Linux Mint version on disk and the release we're about
         to install as parameters.'''
 
         # TODO: verify that ubuntu is the same partition as one of the ones
@@ -2063,7 +2063,7 @@ class Page(plugin.Plugin):
                     return None
 
                 if current_version == new_version and final:
-                    # "Windows (or Mac, ...) and the current version of Ubuntu
+                    # "Windows (or Mac, ...) and the current version of Linux Mint
                     # are present" case
                     q = 'ubiquity/partitioner/ubuntu_reinstall'
                     self.db.subst(q, 'CURDISTRO', ubuntu)
@@ -2072,7 +2072,7 @@ class Page(plugin.Plugin):
                     return PartitioningOption(title, desc)
 
                 if current_version <= new_version:
-                    # "Windows (or Mac, ...) and an older version of Ubuntu are
+                    # "Windows (or Mac, ...) and an older version of Linux Mint are
                     # present" case
 
                     # Only allow reuse with newer install media
@@ -2124,10 +2124,10 @@ class Page(plugin.Plugin):
         '''
         There are six possibilities we have to consider:
         - Just Windows (or Mac, ...) is present
-        - An older version of Ubuntu is present
+        - An older version of Linux Mint is present
         - There are no operating systems present
-        - Windows (or Mac, ...) and an older version of Ubuntu are present
-        - Windows (or Mac, ...) and the current version of Ubuntu are present
+        - Windows (or Mac, ...) and an older version of Linux Mint are present
+        - Windows (or Mac, ...) and the current version of Linux Mint are present
         - There are multiple operating systems present
 
         We leave ordering and providing icons for each option to the frontend,
@@ -2181,7 +2181,7 @@ class Page(plugin.Plugin):
         elif os_count == 1:
             system = operating_systems[0]
             if len(ubuntu_systems) == 1:
-                # "An older version of Ubuntu is present" case
+                # "An older version of Linux Mint is present" case
                 if 'replace' in self.extra_options:
                     q = 'ubiquity/partitioner/ubuntu_format'
                     self.db.subst(q, 'CURDISTRO', system)
@@ -2200,7 +2200,7 @@ class Page(plugin.Plugin):
                 options['use_device'] = opt
 
                 if wubi_option:
-                    # We don't have a Wubi-like solution for Ubuntu yet (though
+                    # We don't have a Wubi-like solution for Linux Mint yet (though
                     # wubi_option is also a check for ntfs).
                     pass
                 elif resize_option:

@@ -219,10 +219,7 @@ class Install(install_misc.InstallBase):
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/installing')
 
-        if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
-            self.install_oem_extras()
-        else:
-            self.install_extras()
+        self.install_extras()
 
         # Configure zsys
         self.configure_zsys()
@@ -249,8 +246,8 @@ class Install(install_misc.InstallBase):
             self.remove_extras()
 
         self.next_region()
-        if 'UBIQUITY_OEM_USER_CONFIG' not in os.environ:
-            self.install_restricted_extras()
+
+        self.install_restricted_extras()
 
         try:
             self.copy_network_config()
@@ -1342,6 +1339,8 @@ class Install(install_misc.InstallBase):
         # instead.
         try:
             if self.db.get('oem-config/enable') == 'true':
+                oem_pkgs = ['oem-config-gtk']
+                self.do_install(oem_pkgs)
                 if os.path.isdir(self.target_file('home/oem')):
                     with open(self.target_file('home/oem/.hwdb'), 'w'):
                         pass

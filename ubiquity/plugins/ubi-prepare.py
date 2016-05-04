@@ -62,7 +62,7 @@ class PreparePageBase(plugin.PluginUI):
 
 
 class PageGtk(PreparePageBase):
-    restricted_package_name = 'ubuntu-restricted-addons'
+    restricted_package_name = 'mint-meta-codecs'
 
     def __init__(self, controller, *args, **kwargs):
         if self.is_automatic:
@@ -232,7 +232,7 @@ class PageGtk(PreparePageBase):
 
 class PageKde(PreparePageBase):
     plugin_breadcrumb = 'ubiquity/text/breadcrumb_prepare'
-    restricted_package_name = 'kubuntu-restricted-addons'
+    restricted_package_name = 'mint-meta-codecs-kde'
 
     def __init__(self, controller, *args, **kwargs):
         from ubiquity.qtwidgets import StateBox
@@ -259,7 +259,7 @@ class PageKde(PreparePageBase):
             # TODO we should set these up and tear them down while on this
             # page.
             self.prepare_download_updates.setVisible(False)
-            self.prepare_nonfree_software.setVisible(False)
+            # self.prepare_nonfree_software.setVisible(False)
             self.prepare_foss_disclaimer.setVisible(False)
             try:
                 self.prepare_power_source = StateBox(self.page)

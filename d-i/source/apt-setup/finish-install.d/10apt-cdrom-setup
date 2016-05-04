@@ -7,9 +7,8 @@ set -e
 db_get apt-setup/disable-cdrom-entries
 disable_cdrom_entries="$RET"
 
-# Always disable CD image in sources.list if any other sources are present
-if ([ -e /cdrom/.disk/base_installable ] || [ "$OVERRIDE_BASE_INSTALLABLE" ]) && \
-   grep -q "^deb \(ht\|f\)tp" /target/etc/apt/sources.list; then
+# Always disable CD image in sources.list
+if ([ -e /cdrom/.disk/base_installable ] || [ "$OVERRIDE_BASE_INSTALLABLE" ]); then
 	disable_cdrom_entries="true"
 fi
 

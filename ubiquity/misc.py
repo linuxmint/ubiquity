@@ -820,7 +820,7 @@ def has_connection():
     import dbus
     bus = dbus.SystemBus()
     manager = bus.get_object(NM, '/org/freedesktop/NetworkManager')
-    state = get_prop(manager, NM, 'state')
+    state = get_prop(manager, NM, 'State')
     return state == NM_STATE_CONNECTED_GLOBAL
 
 

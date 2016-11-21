@@ -142,8 +142,8 @@ class PageGtk(plugin.PluginUI):
             # United States (New York) (United States)
             # Might want to match the debconf format.
             name, loc = result
-            model.append([name, '', loc.human_country,
-                          str(loc.latitude), str(loc.longitude)])
+            if loc:
+                model.append([name, '', loc.human_country, str(loc.latitude), str(loc.longitude)])
 
     def geoname_timeout(self, user_data):
         text, model = user_data

@@ -282,6 +282,12 @@ class PageKde(PreparePageBase):
         self.plugin_widgets = self.page
 
     def show_insufficient_space_page(self, required, free):
+        from PyQt4 import QtGui
+        dialog = QtGui.QMessageBox(self.page)
+        dialog.setText(required)
+        dialog.setDetailedText(free)
+        dialog.exec_()
+        sys.exit(1)
         return
 
     def set_using_secureboot(self, secureboot):

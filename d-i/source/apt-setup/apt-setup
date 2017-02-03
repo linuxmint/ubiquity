@@ -89,7 +89,11 @@ for generator in $gendir/*; do
 
 	progress_advance
 done
-mv $ROOT/etc/apt/sources.list.new $ROOT/etc/apt/sources.list
+if [ -e $ROOT/etc/apt/sources.list.new ]; then
+	mv $ROOT/etc/apt/sources.list.new $ROOT/etc/apt/sources.list
+else
+	touch $ROOT/etc/apt/sources.list
+fi
 if [ -s $ROOT/etc/apt/apt.conf.new ]; then
 	mv $ROOT/etc/apt/apt.conf.new $ROOT/etc/apt/apt.conf
 else

@@ -14,8 +14,10 @@ fi
 
 # Comment out the cdrom entries and update APT's cache
 if [ "$disable_cdrom_entries" = "true" ]; then
-	logger -t finish-install "Disabling CDROM entries in sources.list"
-	sed -i "/^deb cdrom:/s/^/#/" /target/etc/apt/sources.list
+	if [ -e /target/etc/apt/sources.list ]; then
+		logger -t finish-install "Disabling CDROM entries in sources.list"
+		sed -i "/^deb cdrom:/s/^/#/" /target/etc/apt/sources.list
+	fi
 fi
 
 # Remove locale source

@@ -942,7 +942,7 @@ class Wizard(BaseFrontend):
         misc.regain_privileges_save()
         # FIXME shrink the window horizontally instead of locking the window
         # size.
-        self.live_installer.set_resizable(False)
+        self.live_installer.set_resizable(True)
 
         def expand(widget):
             if widget.get_property('expanded'):

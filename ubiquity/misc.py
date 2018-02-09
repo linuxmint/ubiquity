@@ -485,16 +485,12 @@ def get_release():
                 line = fp.readline()
                 if line:
                     line = line.split()
-                    if line[2] == 'LTS':
-                        line[1] += ' LTS'
-                    line[0] = line[0].replace('-', ' ')
-                    get_release.release_info = ReleaseInfo(
-                        name=line[0], version=line[1])
+                    get_release.release_info = ReleaseInfo(name=" ".join(line[0:2]), version=line[2])
         except Exception:
             syslog.syslog(syslog.LOG_ERR, 'Unable to determine the release.')
 
         if not get_release.release_info:
-            get_release.release_info = ReleaseInfo(name='Ubuntu', version='')
+            get_release.release_info = ReleaseInfo(name='Linux Mint', version='')
     return get_release.release_info
 
 

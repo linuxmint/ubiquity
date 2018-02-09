@@ -941,7 +941,7 @@ EOT
 		fi
 		
 		if [ "$MIRROR" = ports.ubuntu.com ]; then
-			# Awful Linux Mint-specific hack. *-security suites for ports
+			# Awful Ubuntu-specific hack. *-security suites for ports
 			# architectures aren't available on security.ubuntu.com, only on
 			# ports.ubuntu.com.
 			SECMIRROR="$MIRROR"
@@ -963,7 +963,8 @@ EOT
 			echo "deb $PROTOCOL://$overlay_host$overlay_directory $DISTRIBUTION $overlay_components" >> $APT_SOURCES
 		fi
 		if db_get apt-setup/local0/repository; then
-		    echo "$RET" >> $APT_SOURCES
+			repository="${RET#deb }"
+			echo "deb $repository" >> $APT_SOURCES
 		fi
 	fi
 }

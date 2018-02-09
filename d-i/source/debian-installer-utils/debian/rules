@@ -17,7 +17,7 @@ export DEB_CFLAGS_MAINT_APPEND := -Wall -W -Os -fomit-frame-pointer
 CFLAGS := $(shell dpkg-buildflags --get CPPFLAGS; dpkg-buildflags --get CFLAGS)
 LDFLAGS := $(shell dpkg-buildflags --get LDFLAGS)
 
-TERMNAMES = a/ansi d/dumb v/vt102
+TERMNAMES = a/ansi d/dumb s/screen
 
 ifeq ($(DEB_HOST_ARCH_OS),linux)
 TERMNAMES += l/linux
@@ -44,6 +44,7 @@ override_dh_auto_install:
 		cp -pL $$file debian/di-utils-terminfo/$$file; \
 		chmod 644 debian/di-utils-terminfo/$$file; \
 	done
+	tic vt102-di -o debian/di-utils-terminfo/lib/terminfo
 
 	mkdir -p debian/di-utils/bin
 	cp -pL list-devices-$(DEB_HOST_ARCH_OS) debian/di-utils/bin/list-devices

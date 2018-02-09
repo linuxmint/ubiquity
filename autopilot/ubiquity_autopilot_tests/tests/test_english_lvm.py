@@ -31,6 +31,8 @@ class EnglishLVMInstallTestCase(UbiquityAutopilotTestCase):
         self.assertThat(self.main_window.visible, Eventually(Equals(True)))
         self.welcome_page_tests(lang='English')
         self.go_to_next_page()
+        self.keyboard_layout_page_tests()
+        self.go_to_next_page()
         self.preparing_page_tests(updates=True)
         self.go_to_next_page()
         if flavor == 'Edubuntu':
@@ -41,8 +43,6 @@ class EnglishLVMInstallTestCase(UbiquityAutopilotTestCase):
         self.installation_type_page_tests(lvm=True)
         self.go_to_next_page(wait=True)
         self.location_page_tests()
-        self.go_to_next_page()
-        self.keyboard_layout_page_tests()
         self.go_to_next_page()
         self.user_info_page_tests('Autopilot', 'password')
         self.go_to_progress_page()

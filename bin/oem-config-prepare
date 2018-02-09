@@ -43,7 +43,9 @@ if [ -z "$quiet" ]; then
 	case $frontend in
 		gtk_ui)
 			if [ "$DISPLAY" ] && type zenity >/dev/null 2>&1; then
-				zenity --title oem-config-prepare --info --text \
+				# Drop privileges to the oem user so the dialog is not blocked
+				# by wayland
+				sudo -u oem zenity --title oem-config-prepare --info --text \
 					"$MESSAGE"
 				exit 0
 			fi

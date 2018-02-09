@@ -1,0 +1,10 @@
+echo Starting Ubuntu...
+setenv bootargs console=ttySAC0,115200 nosplash mem=2048M@0x80000000 mem=6144M@0x100000000
+sata init
+test -n "$kernel_addr_r" || setenv kernel_addr_r 0x80007000
+test -n "$ramdisk_addr_r" || setenv ramdisk_addr_r 0x81000000
+test -n "$fdt_addr_r" || setenv fdt_addr_r 0x82000000
+ext2load sata 0 $kernel_addr_r uImage
+ext2load sata 0 $ramdisk_addr_r uInitrd
+imi $ramdisk_addr_r || setenv ramdisk_addr_r -
+bootm $kernel_addr_r $ramdisk_addr_r

@@ -6,8 +6,8 @@ Helper program to draw a background image on each screen of the system.
 
 import sys
 
-from PyQt4.QtCore import Qt
-from PyQt4 import QtGui
+from PyQt5.QtCore import Qt
+from PyQt5 import QtGui, QtWidgets
 
 
 def die(msg):
@@ -16,7 +16,7 @@ def die(msg):
 
 
 def create_window(wallpaper, geometry):
-    win = QtGui.QWidget()
+    win = QtWidgets.QWidget()
 
     wallpaper = wallpaper.scaled(geometry.size(),
                                  Qt.KeepAspectRatioByExpanding,
@@ -36,7 +36,7 @@ def main():
         die('usage: {} <path/to/wallpaper.png>'.format(sys.argv[0]))
     path = sys.argv[1]
 
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     wallpaper = QtGui.QPixmap(path)
     if wallpaper.isNull():
         die('Failed to load {}'.format(path))

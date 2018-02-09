@@ -2,9 +2,9 @@ arch_get_kernel_flavour () {
 	CPU=`grep '^cpu[[:space:]]*:' "$CPUINFO" | head -n1 | cut -d: -f2 | sed 's/^ *//; s/[, ].*//' | tr A-Z a-z`
 	case "$CPU" in
 	    ppc970*|power3|power4*|power5*|power6*|power7*|power8*)
-		family=powerpc64 ;;
+		family=generic ;;
 	    cell|i-star|s-star|pa6t|rs64-*)
-		family=powerpc64 ;;
+		family=generic ;;
 	    e500mc)
 		echo powerpc-e500mc
 		return 0 ;;
@@ -18,7 +18,7 @@ arch_get_kernel_flavour () {
 	    powermac*|prep|chrp*|pasemi)
 		echo "$family" ;;
 	    ps3|cell)
-		echo powerpc64 ;;
+		echo generic ;;
 	    amiga)
 		echo apus ;;
 	    *)
@@ -35,7 +35,7 @@ arch_check_usable_kernel () {
 }
 
 arch_get_kernel () {
-	if [ "$1" = "powerpc64" ] || [ "$1" = "powerpc" ]; then
+	if [ "$1" = "powerpc" ]; then
 		SMP=-smp
 	else
 		SMP=

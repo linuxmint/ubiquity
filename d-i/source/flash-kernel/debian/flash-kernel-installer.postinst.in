@@ -1,0 +1,152 @@
+#!/bin/sh
+
+# This code is covered by the GNU General Public License (GPLv2 or higher)
+
+set -e
+
+FK_DIR="/usr/share/flash-kernel"
+
+. "${FK_CHECKOUT:-$FK_DIR}/functions"
+
+. /usr/share/debconf/confmodule
+
+log() {
+	logger -t flash-kernel-installer "$@"
+}
+
+error() {
+	log "error: $@"
+	db_progress STOP
+	exit 1
+}
+
+findfs () {
+	mount | grep "on /target${1%/} " | tail -n1 | cut -d' ' -f1
+}
+
+tac () {
+	sed '1!G;h;$!d'
+}
+
+# check if live-installer diverted update-initramfs, revert before we move on
+if [ -e /target/usr/sbin/update-initramfs.flash-kernel-diverted ];then
+		rm -f /target/usr/sbin/update-initramfs
+		in-target dpkg-divert --remove --local --rename /usr/sbin/update-initramfs
+fi
+
+get_machine
+
+if machine_uses_flash "$machine"; then
+	db_progress START 0 3 flash-kernel-installer/progress
+else
+	db_progress START 0 3 flash-kernel-installer/progress_disk
+fi
+db_progress INFO flash-kernel-installer/prepare
+
+# Stop fsck from prompting the user for input since most users don't
+# have a serial console.
+if [ -e /target/etc/default/rcS ]; then
+	sed -i -e "s/^FSCKFIX=no$/FSCKFIX=yes/" /target/etc/default/rcS || true
+fi
+if [ -e /target/etc/default/fsck ]; then
+	sed -i -e "s/^#FSCKFIX=no$/FSCKFIX=yes/" -e "s/^FSCKFIX=no$/FSCKFIX=yes/" /target/etc/default/fsck || true
+fi
+
+def_params="@DEFAULT_CMDLINE@"
+# reverse them so we prefix them in the right order
+rev_def_params="$(echo $def_params | tr ' ' '\n' | tac)"
+user_params=$(user-params) || true
+kopt_params="$user_params"
+for d_param in $rev_def_params; do
+	# Don't add redundant default params
+	if echo $kopt_params | tr ' ' '\n' | grep -q "^${d_param}$"; then
+		continue
+	else
+		kopt_params="$d_param${kopt_params:+ $kopt_params}"
+	fi
+done
+
+echo flash-kernel flash-kernel/linux_cmdline string $kopt_params | \
+	chroot /target debconf-set-selections
+
+if ! apt-install flash-kernel; then
+	error "apt-install flash-kernel failed"
+fi
+
+# Temporarily move flash-kernel out of the way so update-initramfs
+# won't call flash-kernel; otherwise we might call it twice.
+mv /target/usr/sbin/flash-kernel /target/tmp/flash-kernel.$$
+trap "mv /target/tmp/flash-kernel.$$ /target/usr/sbin/flash-kernel" EXIT HUP INT QUIT TERM
+
+db_progress STEP 1
+
+for package in $(get_machine_field "$machine" "Optional-Packages"); do
+	if ! apt-install "$package"; then
+		log "apt-install $package failed"
+	fi
+done
+for package in $(get_machine_field "$machine" "Required-Packages"); do
+	if ! apt-install "$package"; then
+		error "apt-install $package failed"
+	fi
+done
+
+case "$machine" in
+	"Linksys NSLU2")
+		# installing nslu2-utils will call update-initramfs -u
+		:
+	;;
+	*)
+		latest_version=$(in-target --pass-stdout sh -c 'linux-version list | linux-version sort | tail -n1')
+		mount -o bind /dev /target/dev
+		in-target update-initramfs -c -k $latest_version
+		umount /target/dev || true
+	;;
+esac
+
+if [ "$machine" = "HP Media Vault mv2120" ]; then
+	# The firmware loads /boot/uImage from the first partition
+	# but uImage will be in / if a separate boot partition is
+	# used.  In this case, create a /boot/boot -> /boot symlink.
+	# Note that a partman check will make sure that /boot (if
+	# it exists) or / (if there's no separate /boot) are on the
+	# first partition.
+	rootfs=$(findfs /)
+	bootfs=$(findfs /boot)
+	if [ "$rootfs" != "$bootfs" ]; then
+		if [ ! -e /target/boot/boot ]; then
+			ln -s . /target/boot/boot
+		fi
+	fi
+fi
+
+db_progress STEP 1
+if machine_uses_flash "$machine"; then
+	db_progress INFO flash-kernel-installer/flashing
+else
+	db_progress INFO flash-kernel-installer/generating_image
+fi
+
+trap - EXIT HUP INT QUIT TERM
+mv /target/tmp/flash-kernel.$$ /target/usr/sbin/flash-kernel
+
+# set ubuntu defaults
+if echo $(get_machine_field "$machine" "U-Boot-Script-Name") | grep -q "uEnvtxt"; then
+		export VOLID=$(blkid -o value -s UUID $(findfs /))
+		# hide the boot partition from udisks automounting
+		bootdev=$(get_machine_field "$machine" "Boot-Device")
+		[ -b $bootdev ] && in-target dosfslabel $bootdev "SERVICEV001"
+fi
+
+# We need the udev /dev which has the MTD devices
+mount -o bind /dev /target/dev
+if ! in-target flash-kernel; then
+	umount /target/dev || true
+	error "flash-kernel failed"
+fi
+umount /target/dev || true
+
+db_progress STEP 1
+db_progress STOP
+
+# vim:noexpandtab shiftwidth=8

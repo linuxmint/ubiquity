@@ -33,10 +33,10 @@ import ubiquity.tz
 
 NAME = 'timezone'
 # after partman for default install, but language for oem install
-AFTER = ['partman', 'language']
+AFTER = ['partman', 'console_setup']
 WEIGHT = 10
 
-_geoname_url = 'http://geoname-lookup.ubuntu.com/?query=%s&release=%s'
+_geoname_url = 'https://geoname-lookup.ubuntu.com/?query=%s&release=%s'
 
 
 class PageGtk(plugin.PluginUI):
@@ -143,7 +143,8 @@ class PageGtk(plugin.PluginUI):
             # Might want to match the debconf format.
             name, loc = result
             if loc:
-                model.append([name, '', loc.human_country, str(loc.latitude), str(loc.longitude)])
+                model.append([name, '', loc.human_country,
+                              str(loc.latitude), str(loc.longitude)])
 
     def geoname_timeout(self, user_data):
         text, model = user_data
@@ -250,7 +251,7 @@ class PageKde(plugin.PluginUI):
     def __init__(self, controller, *args, **kwargs):
         self.controller = controller
         try:
-            from PyQt4 import uic
+            from PyQt5 import uic
             from ubiquity.frontend.kde_components.Timezone import TimezoneMap
 
             self.page = uic.loadUi('/usr/share/ubiquity/qt/stepLocation.ui')
@@ -291,7 +292,7 @@ class PageKde(plugin.PluginUI):
         self.page.timezone_city_combo.clear()
 
         code = str(
-            self.page.timezone_zone_combo.itemData(regionIndex).toPyObject())
+            self.page.timezone_zone_combo.itemData(regionIndex))
         countries = self.controller.dbfilter.get_countries_for_region(code)
         if not countries:  # must have been a country code itself
             countries = [code]
@@ -332,7 +333,7 @@ class PageKde(plugin.PluginUI):
     # called when the city combo changes
     def cityChanged(self, cityindex):
         zone = str(
-            self.page.timezone_city_combo.itemData(cityindex).toPyObject())
+            self.page.timezone_city_combo.itemData(cityindex))
         self.tzmap.zoneChanged.disconnect(self.mapZoneChanged)
         self.tzmap.set_timezone(zone)
         self.tzmap.zoneChanged.connect(self.mapZoneChanged)
@@ -343,7 +344,7 @@ class PageKde(plugin.PluginUI):
         self.page.timezone_city_combo.blockSignals(True)
 
         for i in range(self.page.timezone_zone_combo.count()):
-            code = str(self.page.timezone_zone_combo.itemData(i).toPyObject())
+            code = str(self.page.timezone_zone_combo.itemData(i))
             countries = self.controller.dbfilter.get_countries_for_region(code)
             if not countries:  # must have been a country code itself
                 countries = [code]
@@ -353,7 +354,7 @@ class PageKde(plugin.PluginUI):
                 break
 
         for i in range(self.page.timezone_city_combo.count()):
-            code = str(self.page.timezone_city_combo.itemData(i).toPyObject())
+            code = str(self.page.timezone_city_combo.itemData(i))
             if zone == code:
                 self.page.timezone_city_combo.setCurrentIndex(i)
                 self.cityChanged(i)
@@ -430,7 +431,7 @@ class Page(plugin.Plugin):
             # Strip .UTF-8 from locale, icu doesn't parse it
             locale = os.environ['LANG'].rsplit('.', 1)[0]
             self.collator = icu.Collator.createInstance(icu.Locale(locale))
-        except:
+        except Exception:
             self.collator = None
         if self.is_automatic or self.automatic_page:
             if self.db.fget('time/zone', 'seen') == 'true':
@@ -493,7 +494,7 @@ class Page(plugin.Plugin):
         if self.collator:
             try:
                 return self.collator.getCollationKey(s[0]).getByteArray()
-            except:
+            except Exception:
                 pass
         return s[0]
 
@@ -662,7 +663,7 @@ class Page(plugin.Plugin):
         rv = []
         try:
             locs = self.tzdb.cc_to_locs[country_code]  # BV failed?
-        except:
+        except Exception:
             # Some countries in tzsetup don't exist in zone.tab...
             # Specifically BV (Bouvet Island) and
             # HM (Heard and McDonald Islands).  Both are uninhabited.

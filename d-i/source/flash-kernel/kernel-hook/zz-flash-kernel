@@ -40,7 +40,8 @@ _version="${version%\'}"
 # only call flash-kernel once on install, upgrade, removal or purge
 # XXX apparently kernel postinst doesn't always pass maintainer scripts
 # arguments
-case "$(basename "$(dirname "$self")")/$action" in
+export FK_KERNEL_HOOK_SCRIPT="$(basename "$(dirname "$self")")"
+case "$FK_KERNEL_HOOK_SCRIPT/$action" in
   postinst.d/configure|postinst.d/|postrm.d/remove|postrm.d/)
     exec flash-kernel "$abi"
   ;;

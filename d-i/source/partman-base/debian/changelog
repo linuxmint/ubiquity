@@ -1,3 +1,96 @@
+partman-base (192ubuntu1) bionic; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Ubiquity integration: If PARTMAN_NO_COMMIT is set, then exit rather
+      than running commit.d and finish.d scripts; add a partman-commit
+      script; dump extra information to /var/lib/partman/snoop if
+      PARTMAN_SNOOP is set; check for per-menu 'no_show_choices' file in
+      ask_user and don't reshow the menu if it exists.
+    - Don't skip over dmraid devices if the user chooses not to activate
+      them.
+    - If the only thing mounted on a disk is the installation medium and it
+      uses more or less the whole disk, then silently exclude that disk; if
+      the installation medium is mounted but doesn't use the whole disk,
+      issue a warning that partitioning may be difficult; if anything else
+      is mounted, offer to unmount it. partman/filter_mounted=false disables
+      this.
+    - debian/control: replace harddrive-detection Depends with the specific
+      disk-detect version needed (>= 1.95ubuntu4) to support multipath-tools
+      0.5.0. There are no other harddrive-detection providers yet anyway.
+    - Multipath support: 
+      - lib/base.sh: is_multipath_part(): Use 'p' (not '-part') as multipath
+        disk-partition separator.
+      - lib/base.sh: humandev(): Accept spaces in multipath WWID.
+      - init.d/parted: part_of_multipath(): Update grep expression for more
+        recent output of 'multipath -l'.
+      - lib/base.sh: drop the p separator for multipath partitions
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Thu, 27 Jul 2017 08:10:29 +0100
+
+partman-base (192) unstable; urgency=medium
+
+  [ Aurelien Jarno ]
+  * debian/isinstallable: drop support for unsupported mips platforms.
+
+  [ Karsten Merker ]
+  * For systems that are known to have their boot firmware on an mmcblk
+    device, protect the firmware area on all mmcblk devices (and not
+    only on mmcblk0) from being clobbered during guided partitioning
+    and add missing whitespace to the corresponding log output.
+    (Closes: #854822)
+
+ -- Cyril Brulebois <kibi@debian.org>  Mon, 26 Jun 2017 00:11:48 +0200
+
+partman-base (191) unstable; urgency=medium
+
+  [ Mathieu Trudel-Lapierre ]
+  * init.d/parted: part_of_multipath(): Update grep expression for more
+    recent output of 'multipath -l'.
+  * lib/base.sh: humandev(): Accept spaces in multipath WWID.
+
+  [ Cyril Brulebois ]
+  * Merge Mathieu's work, with apologies for the delay.
+
+ -- Cyril Brulebois <kibi@debian.org>  Fri, 10 Feb 2017 19:24:29 +0100
+
+partman-base (190) unstable; urgency=medium
+
+  [ Viktor Mihajlovski ]
+  * Add disk label type to device directory, such that
+    e.g. partman-partitioning can elect dasd partitioning table for dasd
+    drives.
+
+  [ Dimitri John Ledkov ]
+  * On s390[x], prevent using extended partitions on DASD drives that can
+    only hold 3 partitions. Parted doesn't have special knowledge about
+    that and claims that msdos partition table on DASD drives can hold
+    the usual maximum number of partitions types.
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 13 Nov 2016 07:45:31 +0100
+
+partman-base (189) unstable; urgency=medium
+
+  [ Colin Watson ]
+  * Use HTTPS for Vcs-* URLs, and link to cgit rather than gitweb.
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 07 Feb 2016 17:01:43 +0100
+
+partman-base (188) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Thai (th.po) by Theppitak Karoonboonyanan
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 02 Oct 2015 12:31:01 +0200
+
+partman-base (187ubuntu3) yakkety; urgency=medium
+
+  * On s390[x], Prevent using extended partitions on DASD drives that can
+    only hold 3 partitions. Parted doesn't have special knowledge about
+    that and claims that msdos partition table on DASD drives can hold
+    usual maximum number of partitions types. LP: #1595495.
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Thu, 23 Jun 2016 12:06:00 +0100
+
 partman-base (187ubuntu2) xenial; urgency=medium
 
   [ Viktor Mihajlovski ]
@@ -221,7 +314,7 @@ partman-base (177) unstable; urgency=medium
 partman-base (176) unstable; urgency=medium
 
   [ Colin Watson ]
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - Use the device's logical sector size throughout rather than
       PED_SECTOR_SIZE_DEFAULT (closes: #474698, LP: #1065281).
 
@@ -664,7 +757,7 @@ partman-base (155) unstable; urgency=low
 partman-base (154) unstable; urgency=low
 
   [ Colin Watson ]
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - Handle /dev/zram* the same way as /dev/ramzswap* (exclude from
       partitioning, and don't disable swap devices there).
   * Be more careful about printing translated visuals, in case a translation
@@ -712,13 +805,13 @@ partman-base (153ubuntu4) precise; urgency=low
 
 partman-base (153ubuntu3) precise; urgency=low
 
-  * Update Linux Mint-specific translations from Launchpad.
+  * Update Ubuntu-specific translations from Launchpad.
 
  -- Colin Watson <cjwatson@ubuntu.com>  Wed, 11 Apr 2012 12:38:01 +0100
 
 partman-base (153ubuntu2) precise; urgency=low
 
-  * Update Linux Mint-specific translations from Launchpad.
+  * Update Ubuntu-specific translations from Launchpad.
 
  -- Colin Watson <cjwatson@ubuntu.com>  Wed, 07 Mar 2012 23:47:53 +0000
 
@@ -1008,7 +1101,7 @@ partman-base (145ubuntu1) natty; urgency=low
 partman-base (145) unstable; urgency=low
 
   [ Colin Watson ]
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - Expand the small gap we leave at the end of the disk to avoid MD
       superblock ambiguity so that it correctly covers the region where
       ambiguity might arise.  The previous gap was insufficient on disks
@@ -1188,7 +1281,7 @@ partman-base (139ubuntu6) lucid; urgency=low
 
 partman-base (139ubuntu5) lucid; urgency=low
 
-  * Update Linux Mint-specific translations from Launchpad.
+  * Update Ubuntu-specific translations from Launchpad.
 
  -- Colin Watson <cjwatson@ubuntu.com>  Thu, 15 Apr 2010 00:43:54 +0100
 
@@ -1350,7 +1443,7 @@ partman-base (136) unstable; urgency=low
   * Upgrade to debhelper v7.
   * Fix typo in partman-command that broke commands such as "partman-command
     /dev/sda IS_CHANGED".
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - Call sed outside debconf_select's inner loop. In my benchmarks using
       two disks with eight partitions each, this reduces debconf_select's
       runtime on partman/choose_partition from 0.69 seconds to 0.07 seconds.
@@ -1589,7 +1682,7 @@ partman-base (131) unstable; urgency=low
 partman-base (130) unstable; urgency=low
 
   [ Colin Watson ]
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - Don't disable /dev/ramzswap* swap devices (thanks, John
       McCabe-Dansted; LP: #193552).
 
@@ -1613,7 +1706,7 @@ partman-base (129ubuntu8) karmic; urgency=low
 
 partman-base (129ubuntu7) jaunty; urgency=low
 
-  * Update Linux Mint-specific strings from Launchpad.
+  * Update Ubuntu-specific strings from Launchpad.
   * Ignore non-zero exit statuses from mapdevfs (LP: #357725).
 
  -- Colin Watson <cjwatson@ubuntu.com>  Thu, 09 Apr 2009 02:15:30 +0100
@@ -1685,7 +1778,7 @@ partman-base (129ubuntu1) jaunty; urgency=low
 partman-base (129) unstable; urgency=low
 
   [ Colin Watson ]
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - Disable backup while displaying device/partition locked errors; it
       makes no sense and it can cause us to exit without closing the FIFO to
       parted_server (closes: #505477, LP: #274219).
@@ -1851,7 +1944,7 @@ partman-base (126) unstable; urgency=low
 
   [ Giuseppe Iuculano ]
   * init.d/parted: Set the sataraid flag for dmraid arrays.
-    Patch based on work done by Luke Yelavich <themuso@ubuntu.com> in Linux Mint.
+    Patch based on work done by Luke Yelavich <themuso@ubuntu.com> in Ubuntu.
     The improved dmraid support requires parted (>= 1.8.8.git.2008.03.24-10).
 
   [ Updated translations ]
@@ -2322,7 +2415,7 @@ partman-base (113ubuntu1) hardy; urgency=low
       than running commit.d and finish.d scripts; add a partman-commit
       script; dump extra information to /var/lib/partman/snoop if
       PARTMAN_SNOOP is set.
-  * Set Vcs-Bzr for Linux Mint.
+  * Set Vcs-Bzr for Ubuntu.
 
  -- Colin Watson <cjwatson@ubuntu.com>  Thu, 06 Dec 2007 13:29:43 +0000
 
@@ -3452,7 +3545,7 @@ partman-base (75) unstable; urgency=low
 
 partman-base (74ubuntu2) dapper; urgency=low
 
-  * Backport from trunk (closes: Linux Mint #19635):
+  * Backport from trunk (closes: Ubuntu #19635):
     - Exclude CD/DVD drives from the output of parted_devices.
 
  -- Colin Watson <cjwatson@ubuntu.com>  Thu, 17 Nov 2005 20:06:31 +0000
@@ -3468,7 +3561,7 @@ partman-base (74) unstable; urgency=low
   * ped_disk_get_max_partition_geometry returns NULL if the partition's
     current geometry is invalid in some way. Deal with this in
     GET_RESIZE_RANGE and GET_VIRTUAL_RESIZE_RANGE by just claiming that the
-    partition cannot be enlarged (closes: Linux Mint #13250).
+    partition cannot be enlarged (closes: Ubuntu #13250).
   * Remove Standards-Version:, not applicable to udebs.
 
  -- Colin Watson <cjwatson@debian.org>  Thu, 27 Oct 2005 14:35:43 +0100
@@ -3542,7 +3635,7 @@ partman-base (70ubuntu2) breezy; urgency=low
   * ped_disk_get_max_partition_geometry returns NULL if the partition's
     current geometry is invalid in some way. Deal with this in
     GET_RESIZE_RANGE and GET_VIRTUAL_RESIZE_RANGE by just claiming that the
-    partition cannot be enlarged (closes: Linux Mint #13250).
+    partition cannot be enlarged (closes: Ubuntu #13250).
 
  -- Colin Watson <cjwatson@ubuntu.com>  Fri, 30 Sep 2005 15:22:17 +0100
 
@@ -5185,4 +5278,3 @@ partman (1) never-released; urgency=low
   * First version.
 
  -- Anton Zinoviev <zinoviev@debian.org>  Wed, 27 Aug 2003 07:03:28 +0200
-

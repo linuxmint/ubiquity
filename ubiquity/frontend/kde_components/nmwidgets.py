@@ -26,12 +26,12 @@ import syslog
 
 if __name__ == "__main__":
     # This is done by kde_ui.py. We need to do the same for our test main(),
-    # but it must be done *before* importing any PyQt4 module
+    # but it must be done *before* importing any PyQt5 module
     import sip
     sip.setapi('QVariant', 1)
 
-from PyQt4 import QtCore
-from PyQt4 import QtGui
+from PyQt5 import QtCore
+from PyQt5 import QtGui, QtWidgets
 
 from ubiquity import nm
 from ubiquity.nm import QueuedCaller, NetworkStore, NetworkManager
@@ -72,7 +72,7 @@ def draw_level_pix(wanted_level):
     pix = QtGui.QPixmap(ICON_SIZE, ICON_SIZE)
     pix.fill(QtCore.Qt.transparent)
     painter = QtGui.QPainter(pix)
-    color = QtGui.QApplication.palette().color(QtGui.QPalette.Text)
+    color = QtWidgets.QApplication.palette().color(QtGui.QPalette.Text)
     painter.translate(0, -2)
     painter.setPen(QtGui.QPen(color, 2))
     painter.setRenderHint(QtGui.QPainter.Antialiasing)
@@ -93,9 +93,13 @@ def draw_level_pix(wanted_level):
     painter.setCompositionMode(QtGui.QPainter.CompositionMode_Clear)
     painter.setBrush(QtCore.Qt.black)
     painter.drawPolygon(QtGui.QPolygon(
-        [center.x(), bottom, 0, middle, 0, bottom]))
+        [QtCore.QPoint(int(center.x()), bottom),
+         QtCore.QPoint(0, int(middle)),
+         QtCore.QPoint(0, bottom)]))
     painter.drawPolygon(QtGui.QPolygon(
-        [center.x(), bottom, right, middle, right, bottom]))
+        [QtCore.QPoint(int(center.x()), bottom),
+         QtCore.QPoint(right, int(middle)),
+         QtCore.QPoint(right, bottom)]))
     painter.translate(0, 2)
     painter.drawRect(0, pix.height() - 2, pix.width(), 2)
     painter.end()
@@ -185,8 +189,8 @@ class QtNetworkStore(QtGui.QStandardItemModel, NetworkStore):
         return None
 
     def _update_item_icon(self, item):
-        secure = item.data(QtNetworkStore.IsSecureRole).toBool()
-        strength, ok = item.data(QtNetworkStore.StrengthRole).toInt()
+        secure = item.data(QtNetworkStore.IsSecureRole)
+        strength = item.data(QtNetworkStore.StrengthRole)
         if strength < 30:
             icon = 0
         elif strength < 50:
@@ -220,9 +224,9 @@ class QtNetworkStore(QtGui.QStandardItemModel, NetworkStore):
         self._icons = [QtGui.QIcon(x) for x in pixes]
 
 
-class NetworkManagerTreeView(QtGui.QTreeView):
+class NetworkManagerTreeView(QtWidgets.QTreeView):
     def __init__(self, state_changed=None):
-        QtGui.QTreeView.__init__(self)
+        QtWidgets.QTreeView.__init__(self)
         model = QtNetworkStore(self)
 
         self.wifi_model = NetworkManager(model, QtQueuedCaller, state_changed)
@@ -231,13 +235,13 @@ class NetworkManagerTreeView(QtGui.QTreeView):
         self.setIconSize(QtCore.QSize(ICON_SIZE, ICON_SIZE))
 
     def rowsInserted(self, parent, start, end):
-        QtGui.QTreeView.rowsInserted(self, parent, start, end)
+        QtWidgets.QTreeView.rowsInserted(self, parent, start, end)
         if not parent.isValid():
             return
         self.setExpanded(parent, True)
 
     def showEvent(self, event):
-        QtGui.QTreeView.showEvent(self, event)
+        QtWidgets.QTreeView.showEvent(self, event)
         for row in range(self.model().rowCount()):
             index = self.model().index(row, 0)
             self.setExpanded(index, True)
@@ -261,45 +265,50 @@ class NetworkManagerTreeView(QtGui.QTreeView):
             return devid, None
 
         # AP row
-        ssid = index.data(QtNetworkStore.SsidRole).toString()
+        ssid = index.data(QtNetworkStore.SsidRole)
         devid = self.model().itemFromIndex(parent_index).id
 
         return devid, ssid
 
     def connect_to_selection(self, passphrase):
         devid, ssid = self._get_selected_row_ids()
-        self.wifi_model.connect_to_ap(devid, ssid, passphrase)
+        try:
+            self.wifi_model.connect_to_ap(devid, ssid, passphrase)
+        except Exception as e:
+            dialog = QtWidgets.QMessageBox()
+            dialog.setWindowTitle("Failed to connect to wireless network")
+            dialog.setText("{}".format(e))
+            dialog.exec_()
 
     def get_cached_passphrase(self):
         index = self.currentIndex()
-        secure = index.data(QtNetworkStore.IsSecureRole).toBool()
+        secure = index.data(QtNetworkStore.IsSecureRole)
         if not secure:
             return ''
-        ssid = index.data(QtNetworkStore.SsidRole).toString()
+        ssid = index.data(QtNetworkStore.SsidRole)
         return self.wifi_model.passphrases_cache.get(ssid, '')
 
     def is_row_a_secure_ap(self):
         current = self.currentIndex()
         if not current.parent().isValid():
             return False
-        return current.data(QtNetworkStore.IsSecureRole).toBool()
+        return current.data(QtNetworkStore.IsSecureRole)
 
     def get_state(self):
         return self.wifi_model.get_state()
 
 
-class ProgressIndicator(QtGui.QWidget):
+class ProgressIndicator(QtWidgets.QWidget):
     def __init__(self, parent=None):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
 
-        self.iconLabel = QtGui.QLabel()
+        self.iconLabel = QtWidgets.QLabel()
 
-        self.label = QtGui.QLabel()
+        self.label = QtWidgets.QLabel()
 
         self.spinner = Spinner()
 
-        layout = QtGui.QHBoxLayout(self)
-        layout.setMargin(0)
+        layout = QtWidgets.QHBoxLayout(self)
         layout.addStretch()
         layout.addWidget(self.spinner)
         layout.addWidget(self.iconLabel)
@@ -324,11 +333,11 @@ class ProgressIndicator(QtGui.QWidget):
         self.spinner.setRunning(visible)
 
 
-class NetworkManagerWidget(QtGui.QWidget):
+class NetworkManagerWidget(QtWidgets.QWidget):
     state_changed = QtCore.pyqtSignal(int)
 
     def __init__(self, parent=None):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.tr_dict = {
             'wireless_password_label': 'Password:',
             'wireless_display_password': 'Display Password',
@@ -338,16 +347,16 @@ class NetworkManagerWidget(QtGui.QWidget):
             'connected_label': 'Connected.',
         }
 
-        self.password_entry = QtGui.QLineEdit()
+        self.password_entry = QtWidgets.QLineEdit()
         self.password_entry.textChanged.connect(self._update_ui)
 
-        self.password_label = QtGui.QLabel()
+        self.password_label = QtWidgets.QLabel()
         self.password_label.setBuddy(self.password_entry)
 
-        self.display_password = QtGui.QCheckBox()
+        self.display_password = QtWidgets.QCheckBox()
         self.display_password.toggled.connect(self._update_password_entry)
 
-        self.connect_button = QtGui.QPushButton()
+        self.connect_button = QtWidgets.QPushButton()
         self.connect_button.clicked.connect(self._connect_to_ap)
         self.password_entry.returnPressed.connect(
             self.connect_button.animateClick)
@@ -355,7 +364,7 @@ class NetworkManagerWidget(QtGui.QWidget):
         self.progress_indicator = ProgressIndicator()
         self.progress_indicator.hide()
 
-        hlayout = QtGui.QHBoxLayout()
+        hlayout = QtWidgets.QHBoxLayout()
         hlayout.addWidget(self.password_label)
         hlayout.addWidget(self.password_entry)
         hlayout.addWidget(self.display_password)
@@ -365,8 +374,7 @@ class NetworkManagerWidget(QtGui.QWidget):
         self.view.selectionModel().currentChanged.connect(
             self._on_current_changed)
 
-        layout = QtGui.QVBoxLayout(self)
-        layout.setMargin(0)
+        layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.view)
         layout.addWidget(self.progress_indicator)
         layout.addLayout(hlayout)
@@ -377,9 +385,9 @@ class NetworkManagerWidget(QtGui.QWidget):
 
     def _update_password_entry(self):
         if self.display_password.isChecked():
-            self.password_entry.setEchoMode(QtGui.QLineEdit.Normal)
+            self.password_entry.setEchoMode(QtWidgets.QLineEdit.Normal)
         else:
-            self.password_entry.setEchoMode(QtGui.QLineEdit.Password)
+            self.password_entry.setEchoMode(QtWidgets.QLineEdit.Password)
 
     def get_state(self):
         return self.nm_state
@@ -471,7 +479,7 @@ class NetworkManagerWidget(QtGui.QWidget):
 
 def main():
     import sys
-    from PyQt4.QtGui import QApplication
+    from PyQt5.QtWidgets import QApplication
 
     from dbus.mainloop.glib import DBusGMainLoop
     DBusGMainLoop(set_as_default=True)

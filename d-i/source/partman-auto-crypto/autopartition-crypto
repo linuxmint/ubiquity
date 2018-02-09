@@ -32,6 +32,9 @@ for dev in $DEVICES/*; do
 
 		echo dm-crypt > $id/crypto_type
 		crypto_prepare_method "$dev/$id" dm-crypt || exit 1
+		if [ "$(debconf-get partman-auto-crypto/erase_disks)" = "false" ]; then
+			touch $id/skip_erase
+		fi
 		found=yes
 		break
 	done

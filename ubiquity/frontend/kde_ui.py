@@ -39,7 +39,7 @@ import traceback
 # kde gui specifics
 import sip
 sip.setapi("QVariant", 1)
-from PyQt4 import QtCore, QtGui, uic
+from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
 from ubiquity import filteredcommand, i18n, misc
 from ubiquity.components import partman_commit, install, plugininstall
@@ -63,9 +63,9 @@ LOCALEDIR = "/usr/share/locale"
 UIDIR = os.path.join(PATH, 'qt')
 
 
-class UbiquityUI(QtGui.QMainWindow):
+class UbiquityUI(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
-        QtGui.QMainWindow.__init__(self, parent)
+        QtWidgets.QMainWindow.__init__(self, parent)
         # app.ui MainWindow now hardcoded to 1000px wide for main
         # content this will look bad on high res displays and should be
         # defined by dpi not pixels
@@ -77,13 +77,19 @@ class UbiquityUI(QtGui.QMainWindow):
         # this to be restartable.
         signal.siginterrupt(signal.SIGCHLD, False)
 
-        distro_name = "Linux Mint"
+        distro_name = "Kubuntu"
         distro_release = ""
 
         # # setup the release and codename
         with open("/etc/lsb-release", 'r') as fp:
             for line in fp:
-                if "DISTRIB_RELEASE=" in line:
+                if "DISTRIB_ID=" in line:
+                    name = str.strip(line.split("=")[1], '\n')
+                    if name.startswith('"') and name.endswith('"'):
+                        name = name[1:-1]
+                    if name != "Ubuntu":
+                        distro_name = name
+                elif "DISTRIB_RELEASE=" in line:
                     distro_release = str.strip(line.split("=")[1], '\n')
                     if distro_release.startswith('"') and \
                             distro_release.endswith('"'):
@@ -167,7 +173,11 @@ class Wizard(BaseFrontend):
         # Pretty much all of the above but for Qt5
         os.environ["QT_QPA_PLATFORMTHEME"] = "kde"
 
-        self.app = QtGui.QApplication([])
+        # Qt5 now sigabrts by default if it finds itself running as setuid.
+        # Let's not do that here, we kind of really do need more privileges...
+        QtCore.QCoreApplication.setSetuidAllowed(True)
+
+        self.app = QtWidgets.QApplication([])
         # The "hicolor" icon theme gets picked when Ubiquity is running as a
         # DM. This causes some icons to be missing. Hardcode the theme name to
         # prevent that.
@@ -176,8 +186,8 @@ class Wizard(BaseFrontend):
         self._apply_stylesheet()
 
         self.app.setWindowIcon(QtGui.QIcon.fromTheme("ubiquity-kde"))
-        import dbus.mainloop.qt
-        dbus.mainloop.qt.DBusQtMainLoop(set_as_default=True)
+        import dbus.mainloop.pyqt5
+        dbus.mainloop.pyqt5.DBusQtMainLoop(set_as_default=True)
 
         self.ui = UbiquityUI()
 
@@ -194,17 +204,20 @@ class Wizard(BaseFrontend):
             self.icon_widget.load(logoDirectory + distro + ".svgz")
         else:
             self.icon_widget.load(logoDirectory + "branding.svgz")
-        branding_layout = QtGui.QHBoxLayout()
-        branding_layout.addItem(QtGui.QSpacerItem(1, 1,
-                                                  QtGui.QSizePolicy.Expanding,
-                                                  QtGui.QSizePolicy.Minimum))
+        branding_layout = QtWidgets.QHBoxLayout()
+        branding_layout.addItem(
+            QtWidgets.QSpacerItem(1, 1,
+                                  QtWidgets.QSizePolicy.Expanding,
+                                  QtWidgets.QSizePolicy.Minimum))
         branding_layout.addWidget(self.icon_widget)
-        branding_layout.addItem(QtGui.QSpacerItem(1, 1,
-                                                  QtGui.QSizePolicy.Expanding,
-                                                  QtGui.QSizePolicy.Minimum))
-        branding_spacer = QtGui.QSpacerItem(1, 1,
-                                            QtGui.QSizePolicy.Minimum,
-                                            QtGui.QSizePolicy.Expanding)
+        branding_layout.addItem(
+            QtWidgets.QSpacerItem(1, 1,
+                                  QtWidgets.QSizePolicy.Expanding,
+                                  QtWidgets.QSizePolicy.Minimum))
+        branding_spacer = QtWidgets.QSpacerItem(1, 1,
+                                                QtWidgets.QSizePolicy.Minimum,
+                                                QtWidgets.QSizePolicy.Expanding
+                                                )
         self.ui.sidebar_widget.layout().addItem(branding_spacer)
         self.ui.sidebar_widget.layout().addItem(branding_layout)
 
@@ -222,7 +235,7 @@ class Wizard(BaseFrontend):
 
         self.ui.setWizard(self)
 
-        self.stackLayout = QtGui.QStackedLayout(self.ui.content_widget)
+        self.stackLayout = QtWidgets.QStackedLayout(self.ui.content_widget)
 
         self.pages = []
         self.pagesindex = 0
@@ -354,7 +367,7 @@ class Wizard(BaseFrontend):
 
     def _apply_stylesheet(self):
         qss = qssutils.load("style.qss",
-                            ltr=QtGui.QApplication.isLeftToRight())
+                            ltr=QtWidgets.QApplication.isLeftToRight())
         self.app.setStyleSheet(qss)
 
     def excepthook(self, exctype, excvalue, exctb):
@@ -378,28 +391,25 @@ class Wizard(BaseFrontend):
         if os.path.exists('/usr/share/apport/apport-qt'):
             self.previous_excepthook(exctype, excvalue, exctb)
         else:
-            dialog = QtGui.QDialog(self.ui)
+            dialog = QtWidgets.QDialog(self.ui)
             uic.loadUi("%s/crashdialog.ui" % UIDIR, dialog)
             dialog.crash_detail.setText(tbtext)
             dialog.exec_()
             sys.exit(1)
 
     def network_change(self, online=False):
-        from PyQt4.QtCore import QTimer, SIGNAL
+        from PyQt5.QtCore import QTimer
         if not online:
             self.set_online_state(False)
             return
         QTimer.singleShot(300, self.check_returncode)
         self.timer = QTimer(self.ui)
-        self.timer.connect(
-            self.timer, SIGNAL("timeout()"), self.check_returncode)
+        self.timer.timeout.connect(self.check_returncode)
         self.timer.start(300)
 
     def check_returncode(self, *args):
-        from PyQt4.QtCore import SIGNAL
         if not BaseFrontend.check_returncode(self, args):
-            self.timer.disconnect(
-                self.timer, SIGNAL("timeout()"), self.check_returncode)
+            self.timer.timeout.disconnect(self.check_returncode)
 
     def set_online_state(self, state):
         for p in self.pages:
@@ -423,7 +433,7 @@ class Wizard(BaseFrontend):
         if os.getuid() != 0:
             title = ('This installer must be run with administrative '
                      'privileges, and cannot continue without them.')
-            QtGui.QMessageBox.critical(self.ui, "Must be root", title)
+            QtWidgets.QMessageBox.critical(self.ui, "Must be root", title)
             sys.exit(1)
 
         self.disable_volume_manager()
@@ -536,18 +546,18 @@ class Wizard(BaseFrontend):
                         'ubiquity/finished_restart_only')
                 quitText = quitText.replace(
                     '${RELEASE}', misc.get_release().name)
-                messageBox = QtGui.QMessageBox(
-                    QtGui.QMessageBox.Question, titleText,
-                    quitText, QtGui.QMessageBox.NoButton, self.ui)
+                messageBox = QtWidgets.QMessageBox(
+                    QtWidgets.QMessageBox.Question, titleText,
+                    quitText, QtWidgets.QMessageBox.NoButton, self.ui)
                 messageBox.addButton(
-                    rebootButtonText, QtGui.QMessageBox.AcceptRole)
+                    rebootButtonText, QtWidgets.QMessageBox.AcceptRole)
                 if self.show_shutdown_button:
                     messageBox.addButton(shutdownButtonText,
-                                         QtGui.QMessageBox.AcceptRole)
+                                         QtWidgets.QMessageBox.AcceptRole)
                 if ('UBIQUITY_ONLY' not in os.environ and
                         'UBIQUITY_GREETER' not in os.environ):
                     messageBox.addButton(
-                        quitButtonText, QtGui.QMessageBox.RejectRole)
+                        quitButtonText, QtWidgets.QMessageBox.RejectRole)
                 messageBox.setWindowFlags(messageBox.windowFlags() |
                                           QtCore.Qt.WindowStaysOnTopHint)
                 quitAnswer = messageBox.exec_()
@@ -585,27 +595,11 @@ class Wizard(BaseFrontend):
         # the slideshow does not start (but it starts if one runs
         # UBIQUITY_TEST_SLIDESHOW=1 ubiquity !). Creating it from the code
         # works. I have no idea why.
-        from PyQt4.QtWebKit import QWebView
-        from PyQt4.QtWebKit import QWebPage
+        from PyQt5.QtWebKitWidgets import QWebView
 
         webView = QWebView()
         webView.setMinimumSize(700, 420)
         webView.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
-
-# Make it transparent, see
-# http://ariya.blogspot.com/2009/04/transparent-qwebview-and-qwebpage.html
-
-        palette = webView.palette()
-        palette.setBrush(QtGui.QPalette.Base, QtCore.Qt.transparent)
-        page = webView.page()
-        page.setPalette(palette)
-        webView.setAttribute(QtCore.Qt.WA_OpaquePaintEvent, False)
-
-        page.setLinkDelegationPolicy(QWebPage.DelegateExternalLinks)
-        page.mainFrame().setScrollBarPolicy(
-            QtCore.Qt.Horizontal, QtCore.Qt.ScrollBarAlwaysOff)
-        page.mainFrame().setScrollBarPolicy(
-            QtCore.Qt.Vertical, QtCore.Qt.ScrollBarAlwaysOff)
         return webView
 
     def start_slideshow(self):
@@ -614,7 +608,7 @@ class Wizard(BaseFrontend):
                                                                self.locale)
         slideshow_main = os.path.join(slideshow_dir, 'slides', 'index.html')
         if not os.path.exists(slideshow_main) or self.hide_slideshow:
-            placeHolder = QtGui.QWidget()
+            placeHolder = QtWidgets.QWidget()
             self.stackLayout.addWidget(placeHolder)
             self.stackLayout.setCurrentWidget(placeHolder)
             return
@@ -766,7 +760,7 @@ class Wizard(BaseFrontend):
         if lang is None:
             lang = self.locale
         # FIXME needs translations for Next, Back and Cancel
-        if not isinstance(widget, QtGui.QWidget):
+        if not isinstance(widget, QtWidgets.QWidget):
             return
 
         name = str(widget.objectName())
@@ -779,7 +773,7 @@ class Wizard(BaseFrontend):
         if text is None:
             return
 
-        if isinstance(widget, (QtGui.QLabel, Breadcrumb)):
+        if isinstance(widget, (QtWidgets.QLabel, Breadcrumb)):
             if name == 'select_language_label' and self.oem_user_config:
                 text = self.get_string(
                     'select_language_oem_user_label', lang, prefix)
@@ -798,10 +792,10 @@ class Wizard(BaseFrontend):
             else:
                 widget.setText(text)
 
-        elif isinstance(widget, QtGui.QAbstractButton):
+        elif isinstance(widget, QtWidgets.QAbstractButton):
             widget.setText(text.replace('_', '&', 1))
 
-        elif (isinstance(widget, QtGui.QWidget) and
+        elif (isinstance(widget, QtWidgets.QWidget) and
               str(name) == "UbiquityUIBase"):
             if self.custom_title:
                 text = self.custom_title
@@ -856,16 +850,16 @@ class Wizard(BaseFrontend):
         # FIXME QMessageBox seems to have lost the ability to set custom
         # labels so for now we have to get by with these not-entirely
         # meaningful stock labels
-        answer = QtGui.QMessageBox.warning(
+        answer = QtWidgets.QMessageBox.warning(
             self.ui, '%s crashed' % self.dbfilter_status[0], text,
-            QtGui.QMessageBox.Retry,
-            QtGui.QMessageBox.Ignore,
-            QtGui.QMessageBox.Close)
+            QtWidgets.QMessageBox.Retry |
+            QtWidgets.QMessageBox.Ignore |
+            QtWidgets.QMessageBox.Close)
         self.dbfilter_status = None
         syslog.syslog('dbfilter_handle_status: answer %d' % answer)
-        if answer == QtGui.QMessageBox.Ignore:
+        if answer == QtWidgets.QMessageBox.Ignore:
             return True
-        elif answer == QtGui.QMessageBox.Close:
+        elif answer == QtWidgets.QMessageBox.Close:
             self.quit()
         else:
             step = self.step_name(self.get_current_page())
@@ -886,7 +880,7 @@ class Wizard(BaseFrontend):
             return 0
 
     def update_back_button(self):
-        if QtGui.QApplication.isRightToLeft():
+        if QtWidgets.QApplication.isRightToLeft():
             icon = "go-next"
         else:
             icon = "go-previous"
@@ -901,7 +895,7 @@ class Wizard(BaseFrontend):
             icon = "dialog-ok-apply"
         else:
             text = self.get_string('next')
-            if QtGui.QApplication.isRightToLeft():
+            if QtWidgets.QApplication.isRightToLeft():
                 icon = "go-previous"
             else:
                 icon = "go-next"
@@ -1043,18 +1037,18 @@ class Wizard(BaseFrontend):
         abortTitle = self.get_string("warning_dialog")
         yes = self.get_string('yes', prefix='ubiquity/imported')
         no = self.get_string('no', prefix='ubiquity/imported')
-        messageBox = QtGui.QMessageBox()
+        messageBox = QtWidgets.QMessageBox()
         messageBox.setWindowTitle(abortTitle)
         messageBox.setText(warning_dialog_label)
         messageBox.setStandardButtons(
-            QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
-        messageBox.setDefaultButton(QtGui.QMessageBox.Yes)
-        messageBox.button(QtGui.QMessageBox.Yes).setText(
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+        messageBox.setDefaultButton(QtWidgets.QMessageBox.Yes)
+        messageBox.button(QtWidgets.QMessageBox.Yes).setText(
             yes.replace('_', '&', 1))
-        messageBox.button(QtGui.QMessageBox.No).setText(
+        messageBox.button(QtWidgets.QMessageBox.No).setText(
             no.replace('_', '&', 1))
         response = messageBox.exec_()
-        if response == QtGui.QMessageBox.Yes:
+        if response == QtWidgets.QMessageBox.Yes:
             self.current_page = None
             self.quit()
             return True
@@ -1272,7 +1266,7 @@ class Wizard(BaseFrontend):
             # result.
             # TODO: We may want to call return_to_partitioning after the crash
             # dialog instead.
-            dialog = QtGui.QDialog(self.ui)
+            dialog = QtWidgets.QDialog(self.ui)
             uic.loadUi("%s/crashdialog.ui" % UIDIR, dialog)
             dialog.exec_()
             sys.exit(1)
@@ -1369,7 +1363,8 @@ class Wizard(BaseFrontend):
         saved_busy_cursor = self.busy_cursor
         self.set_busy_cursor(False)
         # TODO: cancel button as well if capb backup
-        QtGui.QMessageBox.warning(self.ui, title, msg, QtGui.QMessageBox.Ok)
+        QtWidgets.QMessageBox.warning(
+            self.ui, title, msg, QtWidgets.QMessageBox.Ok)
         self.set_busy_cursor(saved_busy_cursor)
         if fatal:
             self.return_to_partitioning()
@@ -1382,8 +1377,9 @@ class Wizard(BaseFrontend):
         saved_busy_cursor = self.busy_cursor
         self.set_busy_cursor(False)
         buttons = {}
-        messageBox = QtGui.QMessageBox(QtGui.QMessageBox.Question, title, msg,
-                                       QtGui.QMessageBox.NoButton, self.ui)
+        messageBox = QtWidgets.QMessageBox(
+            QtWidgets.QMessageBox.Question, title, msg,
+            QtWidgets.QMessageBox.NoButton, self.ui)
         for option in options:
             if use_templates:
                 text = self.get_string(option)
@@ -1396,10 +1392,10 @@ class Wizard(BaseFrontend):
             # KDE convention is to have it first.
             if option == options[-1]:
                 button = messageBox.addButton(
-                    text, QtGui.QMessageBox.AcceptRole)
+                    text, QtWidgets.QMessageBox.AcceptRole)
             else:
                 button = messageBox.addButton(
-                    text, QtGui.QMessageBox.RejectRole)
+                    text, QtWidgets.QMessageBox.RejectRole)
             buttons[button] = option
 
         response = messageBox.exec_()

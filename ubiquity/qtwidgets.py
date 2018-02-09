@@ -3,8 +3,8 @@ from __future__ import print_function
 import sys
 import os.path
 
-from PyQt4.QtGui import QWidget, QHBoxLayout, QLabel, QSizePolicy
-from PyQt4.QtSvg import QSvgWidget
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QSizePolicy
+from PyQt5.QtSvg import QSvgWidget
 
 
 class SquareSvgWidget(QSvgWidget):

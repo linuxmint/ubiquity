@@ -1,3 +1,1363 @@
+flash-kernel (3.90ubuntu1) bionic; urgency=medium
+
+  [ Balint Reczey ]
+  *  Merge with Debian (LP: #1743771)
+     - remaining changes:
+       - add "quiet splash" as default options to omap bootscr
+       - re-add support for the FLASH_KERNEL_SKIP env variable, so the image
+         build infrastructure has a chance to skip the automated flash-kernel
+         run during image builds.
+       - bootscr.highbank: allow more space to load larger kernels
+       - Add support for Calxeda Highbank (with bootscr.highbank different from
+         Debian's version)
+       - Re-add support for Marvell ArmadaXP
+       - Fix armadaxp kernel load address
+       - use umount -l in the cleanup function, else we fail while finishing up
+         with the script
+       - add DB entry for "OMAP3 Beagle Board" (funnily thats missing)
+       - add Panda to the list of supported board in the README file
+       - debian/control: Re-add omap and omap4 to the flash-kernel-installer
+         XB-Subarchitecture field. These appear to have been lost somewhere
+         along the way.
+       - Also add omap and omap4 to flash-kernel-installer.isinstallable.
+       - add a diversion for update-initramfs to live-installers
+         post-base-installer.d to avoid update-initramfs runs before
+         flash-kernel is configured
+       - add a check for the diverted update-initramfs to
+         flash-kernel-installer, so it gets reverted before we try to call
+         update-initramfs
+       - make post-base-installer.d/01flash-kernel-diversion actually an
+         executable shell script
+       - switch omap3 and omap4 to uEnv.txt/preEnv.txt (the former holds all
+         active boot commands, the latter holds the kernel commandline only)
+       - enable UUID detection of the currently used root device
+       - if uEnv.txt is defined in the db for an arch, generate preEnv.txt from
+         UBOOT_DEFAULTS and UUID detection data
+       - switch omap3 and omap4 from Bootloader-sets-root: no to yes, we now
+         generate a root=UUID= line on the fly for arches using
+         uEnv.txt/preEnv.txt
+       - introduce bootscript/uEnvtxt.omap
+       - do not move the original uEnvtxt.omap to the target, use a copy instead
+       - initramfs-tools/hooks/flash_kernel_set_root:
+         - make sure that if we dont want to override the bootloader root=
+           option by setting "Bootloader-sets-root: yes", we actually dont do it
+         - Also check for FLASH_KERNEL_SKIP to avoid setting up the root
+           parameter in case flash-kernel will not be used
+         - this is a slightly different approach to fix the bug than
+           the patch attached to the bug.
+       - hide the boot device from udisk's automounting after installation
+         on all systems using uEnv.txt to configure u-boot
+       - make sure we only rename the bootrom partition so udisks hides it,
+         when using mkdosfs for setting the label like we did in jasper (where
+         we cached the contents before doing this) MLO and u-boot.bin are gone
+       - make sure that /dev is bind mounted in /target when running
+         update-initramfs from flash-kernel-installer, else we do not find the
+         boot media (this is only a workaround, actual fixing of
+         the netinst environment is needed to fix this properly)
+       - add support for the grouper architecture
+       - make sure blkid only gives us the UUID and not any other metadata like
+         labels or filesystem
+       - drop the "|| true" from the initramfs building code, if we fail here we
+         actually dont want to attempt to flash that
+       - Do not run flash-kernel inside an LXC container
+       - Accept "generic" as a valid kernel flavor on highbank
+       - Add support for Calxeda ECX-2000 to the machine DB
+       - Add generic-lpae to the XB-Subarchitecture list in debian/control
+       - Update the Highbank entry in DB to use its device-tree model name
+       - Fix the testsuite to work with the new DT model support and add
+         a new test to specifically try to use a DT instead of cpuinfo.
+       - And now fix the quoting error exposed by the fixed testsuite.
+       - debian/flash-kernel-installer.isinstallable: add arm*/generic-lpae
+       - Fix typo in dtb_kver test that made it break all non-dtb platforms.
+       - Add support for EXYNOS5440-based platforms
+       - Added support for HP ProLiant m800 Server Cartridge
+       - Filter the selection of 'latest' usable kernel through the
+         whitelist.
+       - Do not fail if there are no specified Kernel-Flavors for this machine.
+         - HP Moonshot Cartridges: Use $baudrate from u-boot environment as
+           serial console speed
+         - HP Moonshot Cartridges: Enable hardware flow control as required by
+           the HP moonshot chassis
+         - Enable U-Boot environment support for X-Gene platforms
+         - Use filesystem agnostic "load" command instead of assuming ext4
+         - Add support for HP ProLiant m800 cartridges
+         - Set required boot arguments for HP ProLiant m800 cartridges
+       - Allow us to find DTBs in both the old flat layout and the new vendor
+         subdirectory layout, so we keep backward compatibility
+       - Wandboard: Use /dev/disk/by-path/platform-2198000.usdhc-part1
+         instead of the hardcoded mmcblk1p1, this should make things work on
+         boards with just a single microSD card in.
+       - make the package postinst respect FLASH_KERNEL_SKIP
+       - Call systemd-detect-virt instead of the Ubuntu specific
+         running-in-container wrapper.
+       - Extend support for the RPi2 to actually install the kernel/initramfs
+         on the fat partition, and provide a uboot boot script based on the one
+         used for Snappy images.
+       - Extend functions to support generating uboot.env images, as an
+         alternative to boot.scr and uEnv.txt, and use this for RPi2 as well.
+       - Adjust the uboot.env.rpi2 to use the one Paolo Pisati has tested,
+         instead of trying to base on the Snappy one, which is failing to boot.
+       - Adjust the size of uboot.env based on empirical results on the rpi2.
+
+     - dropped changes, merged in Debian:
+       - make sure the call to abootimg -i does not make the script fail
+         (checking non bootimg devices makes it return 1 even though there
+         is no error, this in turn makes teh whole script fail since we run
+         with "set -e")
+       - determine the latest installer kernel version in the target rootfs
+         instead of assuming the version is the same as the running kernel
+       - flash-plugin-installer: make installable on armhf/generic for highbank
+       - Also update XB-Subarchitecture to use "generic" instead of 'highbank"
+       - Extending Android specific options to cover the Ubuntu Touch use cases
+         (flashing to a specific device and support skipping initrd)
+       - Enabling support for mako (Nexus 4)
+       - Fix get_kfile_suffix() function to deal with flavours with dashes.
+       - Apply patch from Paolo Pisati for appended DTB support
+       - Add basic support for WandBoard Quad.
+       - flash-kernel-installer: make installable on armhf/exynos5
+       - Add support for APM X-Gene
+       - Add support for installing dtb files in boot partition; activate this
+         for APM X-Gene boards
+       - Add support for HP ProLiant m400 Server Cartridges
+       - Update APM X-Gene config to match upstream device tree filename/model
+       - Add a bootscript specific to X-Gene Mustang boards since they need to
+         pull their dtb from the OS.
+       - db/all.db: add dummy entries as noops when running on VMs
+       - Add U-Boot environment configuration support
+       - Cherry pick from Debian: Succeed but do nothing when run on an
+         unknown machine which was booted via EFI.
+       - Add support for the Raspberry Pi2; thanks to Paolo Pisati
+       - Cherry-pick fixes from Debian to support copying kernel/initrd to
+         destination.
+       - Add Raspberry Pi 3 support
+       - Add support for gzip-compressed kernel images
+       - Adjust rpi2/3 dtb address from 0x100 to 0x02000000
+       - Add support for QCT APQ8064 CDP; thanks Alfonso Sanchez-Beato.
+       - Check /proc/device-tree/model before /proc/cpuinfo
+
+     - dropped obsoleted changes:
+       - add very very ugly temporary workaround to make quantal A3 arm server
+         installs possible (yes, i suck)
+       - re-add a diversion for update-initramfs to live-installers
+         post-base-installer.d to avoid update-initramfs runs before
+         flash-kernel is configured
+       - re-add a check for the diverted update-initramfs to
+         flash-kernel-installer, so it gets reverted before we try to call
+         update-initramfs
+       - drop teh super ugly hack that added a /var/lib/flash-kernel/configured
+         file to actually check if flash-kernel is configured
+       - sigh, not only drop the creation of /var/lib/flash-kernel/configured
+         but also the check for its existance, else we will always exit 0
+       - make post-base-installer.d/01flash-kernel-diversion executable
+       - flash-kernel-installer.postinst: now that we have a diversion in place
+         there isnt a pre-existing initrd, instead of calling
+         update-initramfs -u we better call update-initramfs -c -k all to create
+         one from scratch
+       - seemingly -k all doesnt want to work with -c, use -k $(uname -r) for
+         now
+       - enable generation of a /etc/default/flash-kernel file from
+         flash-kernel-installer holding a UBOOT_DEFAULTS variable with distro
+         default settings (ro quiet splash)
+       - make /etc/default/flash-kernel a proper conffile
+       - Added support for user defined uboot environment variables
+  * Update tests with new fields: Android-Skip-Initrd, Bootloader-sets-root,
+    DTB-Kernel-Version
+  * Migrate default /etc/default/flash-kernel content to new default without asking via debconf
+  * Look for dtbs in /lib/firmware/$kvers/device-tree/ in find_dtb_file()
+
+  [ Alex McWhirter ]
+  * Support Raspberry Pi 2 Model B Rev 1.2
+
+ -- Balint Reczey <rbalint@ubuntu.com>  Fri, 26 Jan 2018 22:05:44 +0100
+
+flash-kernel (3.90) unstable; urgency=medium
+
+  [ Andreas Henriksson ]
+  * Make ubootenv.d work on Wandboard (Closes: #884375).
+  * Warn when ubootenv.d snippet will be ignored (Closes: #884376).
+
+  [ Vagrant Cascadian ]
+  * Add option to allow "any" in Kernel-Flavors (Closes: #883547).
+
+  [ Ian Campbell ]
+  * Fix local shadow of $dtb_name in handle_dtb (Closes: #870430).
+  * Reduce scope of $dtb in handle_dtb.
+
+  [ Christian Perrier ]
+  * Remove Loic, Hector and Ian from Uploaders. Thanks for your work
+  * Add Vagrant and Karsten in Uploaders.
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 08 Jan 2018 06:54:35 +0100
+
+flash-kernel (3.89) unstable; urgency=medium
+
+  * Team upload.
+
+  [ Karsten Merker ]
+  * Applied a patch from Sunil Mohan Adapa <sunil@medhas.org> supporting
+    the installation of 32bit kernels on the Raspberry Pi 3.
+    (Closes: #886225).
+
+ -- Karsten Merker <merker@debian.org>  Wed, 03 Jan 2018 21:47:45 +0100
+
+flash-kernel (3.88) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Lithuanian (lt.po) by Rimas Kudelis
+  * Norwegian Nynorsk (nn.po) by Allan Nordhøy
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 30 Nov 2017 06:26:18 +0100
+
+flash-kernel (3.87) unstable; urgency=medium
+
+  * Team upload.
+
+  [ Karsten Merker ]
+  * Apply a patch from Heinrich Schuchardt <xypron.glpk@gmx.de> adding
+    machine db entries for
+    - Marvell Armada 8040 DB board
+    - Marvell 8040 MACHIATOBin
+    (Closes: #878570).
+
+ -- Karsten Merker <merker@debian.org>  Sun, 15 Oct 2017 21:39:03 +0200
+
+flash-kernel (3.86) unstable; urgency=medium
+
+  [ Vagrant Cascadian ]
+  * Add entry for SolidRun HummingBoard Solo/DualLite.
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 10 Oct 2017 06:36:22 +0200
+
+flash-kernel (3.85) unstable; urgency=medium
+
+  * Team upload.
+
+  [ Ian Campbell ]
+  * Correct typo, FK_PROC_DRMODEL should be FK_PROC_DTMODEL.
+
+  [ Karsten Merker ]
+  * Add machine db entries for two sunxi-based systems that are (at
+    least partially) supported in kernel 4.13 and u-boot v2017.09:
+    - FriendlyArm NanoPi M1 Plus
+    - Olimex A20-OLinuXino-LIME2-eMMC
+
+ -- Karsten Merker <merker@debian.org>  Wed, 04 Oct 2017 21:44:02 +0200
+
+flash-kernel (3.84) unstable; urgency=medium
+
+  [ James Valleroy ]
+  * Add a machine db entry for the Raspberry Pi 3 Model B
+   (Closes: #869488).
+
+  [ Vagrant Cascadian ]
+  * Add a machine db entry for the Firefly-RK3399.
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 25 Jul 2017 06:58:47 +0200
+
+flash-kernel (3.83) unstable; urgency=medium
+
+  [ Karsten Merker ]
+  * Applied a patch from Eva Ramon <debian@empanadilla.net> adding
+    a machine db entry for the Radxa Rock 2 Square (Closes: #868166).
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 17 Jul 2017 05:53:17 +0200
+
+flash-kernel (3.82) unstable; urgency=medium
+
+  [ Karsten Merker ]
+  * Add machine db entries for various sunxi-based systems that are (at
+    least partially) supported in kernel 4.12 and u-boot v2017.07-rc3:
+    - Banana Pi BPI-M2-Plus
+    - FriendlyArm NanoPi M1
+    - FriendlyARM NanoPi NEO Air
+    - Lichee Pi Zero
+    - NextThing C.H.I.P. Pro
+    - Xunlong Orange Pi Zero
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 06 Jul 2017 09:49:37 +0200
+
+flash-kernel (3.81) unstable; urgency=medium
+
+  [ Karsten Merker ]
+  * Applied a patch from Matthias Fritzsche <txt.file@txtfile.eu> adding
+    a machine db entry for the BeagleBone Green (Closes: #866822).
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 04 Jul 2017 11:54:45 +0200
+
+flash-kernel (3.80) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Simplified Chinese (zh_CN.po) by Yangfl
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 26 Jun 2017 10:46:53 +0200
+
+flash-kernel (3.79) unstable; urgency=medium
+
+  [ Roger Shimizu ]
+  * Update db entry of Buffalo Linkstation LiveV3 (LS-CHL),
+    because DTS is supported since debian kernel 4.9.10-1.
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 19 Apr 2017 06:52:13 +0200
+
+flash-kernel (3.78) unstable; urgency=medium
+
+  [ Vagrant Cascadian ]
+  * Update Orange Pi Plus db entry to also support "Xunlong Orange Pi Plus
+    / Plus 2" which is used in recent kernel versions.
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 13 Apr 2017 08:36:37 +0200
+
+flash-kernel (3.77) unstable; urgency=medium
+
+  [ Martin Michlmayr ]
+  * Add machine db entry for NETGEAR ReadyNAS Duo v2.  Thanks to Scott
+    Barker (Closes: #855960)
+  * Add machine db entry for Hardkernel ODROID-C2.  Thanks Heinrich
+    Schuchardt (Closes: #845818).
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 22 Mar 2017 06:52:54 +0100
+
+flash-kernel (3.76) unstable; urgency=medium
+
+  [ Marc Kleine-Budde ]
+  * Add machine db entry for TI OMAP4 PandaBoard-ES (Closes: #857205).
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 16 Mar 2017 05:48:21 +0100
+
+flash-kernel (3.75) unstable; urgency=medium
+
+  [ Vagrant Cascadian ]
+  * Add machine db entry for Pine64+.
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 18 Jan 2017 07:00:43 +0100
+
+flash-kernel (3.74) unstable; urgency=medium
+
+  [ Martin Michlmayr ]
+  * Add machine db entry for Marvell ESPRESSOBin.
+  * Only create DTB boot file on kernels that require DTB (Closes:
+    #789886)
+  * Improve error message when DTB is missing by showing the search
+    path for DTB (Closes: #836679)
+
+  [ Heinrich Schuchardt ]
+  * Call mkimage with correct architecture (Closes: #845779)
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 11 Jan 2017 05:48:07 +0100
+
+flash-kernel (3.73) unstable; urgency=medium
+
+  [ Martin Michlmayr ]
+  * Restore support for DTBs with absolute paths.
+
+  [ Uwe Kleine-König ]
+  * Add machine db entry for Netgear ReadyNAS 104 (Closes: #806926)
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 20 Dec 2016 06:29:56 +0100
+
+flash-kernel (3.72) unstable; urgency=medium
+
+  * Team upload.
+
+  [ Karsten Merker ]
+  * Add machine db entries for various sunxi-based systems that are
+    (at least partially) supported in kernel 4.9 and u-boot v2016.11:
+    - Empire Electronix M712 tablet
+    - FriendlyARM NanoPi NEO
+    - INet-D978 Rev 02
+    - iNet Q972 tablet
+    - Xunlong Orange Pi Lite
+    - Xunlong Orange Pi PC Plus
+    - Xunlong Orange Pi Plus 2E
+
+ -- Karsten Merker <merker@debian.org>  Thu, 01 Dec 2016 21:03:53 +0100
+
+flash-kernel (3.71) unstable; urgency=medium
+
+  [ Vagrant Cascadian ]
+  * Add machine db entry for USB armory board.
+  * Update Cubieboard4 machine db entry to generate a boot script(in
+    addition to legacy uImage/uInitrd), as Cubieboard4 is now supported in
+    mainline u-boot.
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 13 Nov 2016 07:46:00 +0100
+
+flash-kernel (3.70) unstable; urgency=medium
+
+  [ Karsten Merker ]
+  * Add machine db entries for various sunxi-based systems that are
+    (at least partially) supported in kernel 4.8 and u-boot v2016.09:
+    - Allwinner R16 EVB (Parrot)
+    - INet-86DZ Rev 01
+    - Polaroid MID2407PXE03 tablet
+  * Add a machine db entry for the Olimex A33-OLinuXino (supported
+    in u-boot v2016.09 and in linux-next-20160923).
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 27 Sep 2016 07:02:51 +0200
+
+flash-kernel (3.69) unstable; urgency=medium
+
+  [ Vagrant Cascadian ]
+  * Add support for root device being set using PARTUUID.
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 21 Sep 2016 07:53:46 +0200
+
+flash-kernel (3.68) unstable; urgency=medium
+
+  [ Karsten Merker ]
+  * Add machine db entries for various sunxi-based systems that are
+    (at least partially) supported in kernel 4.7 and u-boot v2016.07:
+    - Colorfly E708 Q1 tablet
+    - Difrnce DIT4350
+    - Dserve DSRV9703C
+    - Polaroid MID2809PXE04 tablet
+    - Xunlong Orange Pi One
+    - Xunlong Orange Pi PC
+    - Xunlong Orange Pi 2
+  * Fix the DTB-ID for generic Allwinner-A13-based Q8-form-factor tablets.
+
+  [ Martin Michlmayr ]
+  * Handle DTBs in vendor subdirectories (as found on arm64 kernels).
+  * Add uboot-generic boot script for arm64: based on the armhf version
+    but with booti.
+  * Produce an error when the DTB cannot be found. (Closes: #833097)
+  * Add a machine db entry for NVIDIA Jetson TX1 Developer Kit.
+  * Add a machine db entry for DragonBoard 410c.
+  * Fix typos in README.
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 08 Aug 2016 07:33:38 +0200
+
+flash-kernel (3.67) unstable; urgency=medium
+
+  [ Vagrant Cascadian ]
+  * Add a machine db entry and boot script for Odroid-U3.
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 20 Jun 2016 08:20:31 +0200
+
+flash-kernel (3.66) unstable; urgency=medium
+
+  [ Karsten Merker ]
+  * Add machine db entries for various sunxi-based systems that are
+    (at least partially) supported in kernel 4.6 and u-boot v2016.05:
+    - Allwinner A83T H8Homlet Proto Dev Board v2.0
+    - Cubietech Cubietruck Plus
+    - ICnova-A20 SWAC
+    - iNet-9F Rev 03
+    - Itead Ibox A20
+    - Sinlinx SinA31s Development Board
+    - A10s-Wobo i5
+    - Yones TopTech BS1078 v2 Tablet
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 07 May 2016 08:48:55 +0200
+
+flash-kernel (3.65) unstable; urgency=medium
+
+  [ Vagrant Cascadian ]
+  * Add a machine db entry for Odroid XU4.
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 01 May 2016 08:09:09 +0200
+
+flash-kernel (3.64) unstable; urgency=medium
+
+  [ Roger Shimizu ]
+  * Fix script issue specific on a few linkstation devices.
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 21 Apr 2016 07:01:33 +0200
+
+flash-kernel (3.63) unstable; urgency=medium
+
+  [ Roger Shimizu ]
+  * Update machine db entry for "Buffalo/Revogear Kurobox Pro" to add DTB
+    support from kernel 4.5.1
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 16 Apr 2016 09:29:29 +0200
+
+flash-kernel (3.62) unstable; urgency=medium
+
+  [ Roger Shimizu ]
+  * Add <kvers> param to scripts under dtb-probe.
+  * Fix a few cases prevent script "dtb-probe/kirkwood-linkstation" from
+    running properly.
+
+  [ Vagrant Cascadian ]
+  * Add a machine db entry for Raspberry Pi 2 Model B.
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 05 Apr 2016 09:37:42 +0200
+
+flash-kernel (3.61) unstable; urgency=medium
+
+  [ Roger Shimizu ]
+  * Add myself to debian/copyright
+  * Add script dtb-probe/kirkwood-linkstation, based on
+    dtb-probe/kirkwood-qnap, to support smooth upgrade/downgrade of kernel,
+    since there's a split/rename for device tree file of a few Buffalo
+    Linkstation devices.
+  * Make use of above script to determine DTB file for listed devices:
+    - Buffalo Linkstation LS-VL
+    - Buffalo Linkstation LS-WSXL
+    - Buffalo Linkstation LS-WVL
+    - Buffalo Linkstation LS-WVL/VL
+    - Buffalo Linkstation LS-WXL
+    - Buffalo Linkstation LS-WXL/WSXL
+  * Update "DTB-Append-From" field for "Buffalo Linkstation Pro/Live",
+    since the patch of device tree is backported to sid (4.4) kernel.
+  * Update machine ID for "Buffalo Linkstation Mini (LS-WSGL)"
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 25 Mar 2016 06:46:48 +0100
+
+flash-kernel (3.60) unstable; urgency=medium
+
+  [ Karsten Merker ]
+  * Add machine db entries for various sunxi-based systems
+    - Allwinner GT90H Quad Core Tablet (v4)
+    - Auxtek t003 A10s hdmi tv-stick
+    - Empire Electronix D709 tablet
+    - iNet-1
+    - INet-98V Rev 02
+    - NextThing C.H.I.P.
+    - Point of View Protab2-IPS9
+    - Q8 A13 Tablet
+    - Q8 A23 Tablet
+    - Q8 A33 Tablet
+    - Sinovoip BPI-M2
+    - Wits Pro A20 DKT
+    - Xunlong Orange Pi Plus
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 01 Mar 2016 06:46:32 +0100
+
+flash-kernel (3.59) unstable; urgency=medium
+
+  [ Uwe Kleine-König ]
+  * use nandwrite when writing to nand flash. (Closes: #813995)
+
+  [ Martin Michlmayr ]
+  * Require --force when invoked by hand with a specific version which is not
+    the latest. (Closes: 807708)
+
+  [ Ian Campbell ]
+  * Support $LINUX_KERNEL_CMDLINE_DEFAULTS via /etc/defaults/flash-kernel. This
+    will be prepended to the ${bootargs} and can therefore be overridden by the
+    firmware configuration. Suggested as part of #813023.
+  * Fix debug logging intended to help with #781742.
+
+  [ Vagrant Cascadian ]
+  * Update db entry for Firefly-RK3288 to allow armmp-lpae.
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 22 Feb 2016 18:52:43 +0100
+
+flash-kernel (3.58) unstable; urgency=medium
+
+  [ Martin Michlmayr ]
+  * Add entries for Wandboard i.MX6 Dual Lite Board rev B1 and Quad
+    Board rev B1.  Thanks Heinrich Schuchardt. (Closes: #813893)
+  * Ensure FK_ETC_MACHINE isn't used when testing get_machine.
+    (Closes: #814710).
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 16 Feb 2016 07:01:25 +0100
+
+flash-kernel (3.57) unstable; urgency=medium
+
+  [ Colin Watson ]
+  * Use HTTPS for Vcs-Git URL.
+
+  [ Roger Shimizu ]
+  * Fix the install location for etc/README.dtbs
+  * Update kernel address for Buffalo Linkstation devices machine db.
+    (Closes: #810828)
+  * Update a few Buffalo Linkstation entries in machine db
+      The following device will be converted to DT in kernel 4.6:
+        - Buffalo Linkstation Pro/Live (LS-GL)
+      The following device will be supported by DT in kernel 4.6:
+        - Buffalo Linkstation LS-QVL (DT will be supported in kernel 4.6)
+      The following devicies' DT will be renamed in kernel 4.6:
+        - Buffalo Linkstation LS-VL
+        - Buffalo Linkstation LS-WSXL
+        - Buffalo Linkstation LS-WVL
+        - Buffalo Linkstation LS-WXL
+  * Update support status of Buffalo Linkstation devices in README
+
+  [ Martin Michlmayr ]
+  * Add Kernel-Flavors for Lamobo R1.  Thanks to Heinrich Schuchardt.
+    (Closes: #813927)
+  * Add new marvell kernel flavour as alternative for orion5x and
+    kirkwood.
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 12 Feb 2016 20:14:21 +0100
+
+flash-kernel (3.56) unstable; urgency=medium
+
+  [ Martin Michlmayr ]
+  * QNAP TS-109/TS-209 and TS-409: change the kernel address to be after
+    the ramdisk so the uncompressed kernel doesn't overwrite the ramdisk.
+    (Closes: #809476)
+
+  [ Vagrant Cascadian ]
+  * Update Cubieboard4 entry to generate uImage and uInitrd loadable by
+    the vendor u-boot, which doesn't support boot scripts.
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 28 Jan 2016 07:16:20 +0100
+
+flash-kernel (3.55) unstable; urgency=medium
+
+  [ Vagrant Cascadian ]
+  * Add a machine db entry for BeagleBoard-X15.
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 26 Jan 2016 09:15:32 +0100
+
+flash-kernel (3.54) unstable; urgency=medium
+
+  [ Martin Michlmayr ]
+  * Add test_db test suite to README.
+  * Remove lpae as kernel flavour from DB-MV784MP-GP since armmp-lpae
+    is listed already.
+  * Add support for Seagate NAS (2 and 4 bay) and Seagate Personal
+    Cloud (1 and 2 bay).
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 05 Jan 2016 06:51:38 +0100
+
+flash-kernel (3.53) unstable; urgency=medium
+
+  [ Vagrant Cascadian ]
+  * Add a machine db entry for Firefly-RK3288.
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 29 Dec 2015 09:30:38 +0100
+
+flash-kernel (3.52) unstable; urgency=medium
+
+  [ Eric Cooper ]
+  * Correctly test endianess on NSLU2 (Closes: #804359)
+  * Add option to avoid creation of .bak files (Closes: #803115)
+
+  [ Ian Campbell ]
+  * Succeed but do nothing when run on an unknown machine which was booted via
+    EFI. Based on a patch from Newell Jensen. (Closes: #806171)
+  * Use /dev/mtdN when flashing, rather than needlessly going through the
+    mtdblock layer (which is problematic on some platforms/kernels).
+    (Closes: #794265)
+  * Keep a backup copy of any files written to either a filesystem mounted via
+    Boot-Device or directly to a flash device under /var/backups/flash-kernel.
+    This makes files which are not normally visible via the regular filesystem
+    available e.g. for convenient backing up (Closes: #736503)
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 30 Nov 2015 06:57:43 +0100
+
+flash-kernel (3.51) unstable; urgency=medium
+
+  [ Vagrant Cascadian ]
+  * Fix typo with distro_bootpart handling in u-boot generic bootscript.
+  * Fix syntax errors when testing for empty variables in uboot-generic,
+    cubox-i, and wandboard bootscripts. Thanks to Rick Thomas for the
+    report (Closes: #805856).
+  * Add a machine db entry for Kosagi Novena Dual/Quad.
+  * Add a machine db entry for Lamobo R1.
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 24 Nov 2015 12:27:57 +0100
+
+flash-kernel (3.50) unstable; urgency=medium
+
+  [ Ian Campbell ]
+  * Only remove directories which exist.
+
+  [ Karsten Merker ]
+  * Add a machine db entry for the Iomega Iconnect.
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 17 Nov 2015 07:11:13 +0100
+
+flash-kernel (3.49) unstable; urgency=medium
+
+  [ Vagrant Cascadian ]
+  * Consistently use "setenv" in boot scripts, as some u-boot variants do
+    not support using "=" for variable assignment.
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 12 Nov 2015 07:14:35 +0100
+
+flash-kernel (3.48) unstable; urgency=medium
+
+  [ Vagrant Cascadian ]
+  * Update beaglebone, sunxi and u-boot generic boot scripts to support
+    distro_bootpart variable added in u-boot mainline.
+  * Update wandboard and cubox-i boot scripts to improve distro_bootcmd
+    support.
+
+  [ Ian Campbell ]
+  * Avoid waiting for Ctrl-C if any debconf frontend is in use, not just
+    non-interactive. (Closes: #791794)
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 07 Nov 2015 09:42:29 +0100
+
+flash-kernel (3.47) unstable; urgency=medium
+
+  [ Roger Shimizu ]
+  Various machine db updates for Buffalo Linkstation systems (Closes: #802578):
+  * Re-order machine db entries for "Buffalo Linkstation" series
+    - move up entry: Buffalo Linkstation LS-XHL
+  * Add machine db entries for a few Buffalo Linkstation systems
+    newly getting DT supported since Linux 4.3:
+    - orion5x: LS-WTGL
+    - kirkwood: LS-WVL/VL
+    - kirkwood: LS-WXL/WSXL
+  * Update machine db entries for Buffalo Linkstation system converting
+    to DT since Linux 4.3:
+    - orion5x: LS-WSGL
+
+  [ Karsten Merker ]
+  * Add machine db entries for a number of sunxi-based systems:
+    - Cubietech Cubieboard4
+    - Ippo Q8H Quad Core Tablet (v1.2)
+    - Iteaduino Plus A10
+    - MSI Primo81 tablet
+    - Olimex A20-Olimex-SOM-EVB
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 27 Oct 2015 06:58:56 +0100
+
+flash-kernel (3.46) unstable; urgency=medium
+
+  [ Karsten Merker ]
+  * Add machine db entries for various sunxi-based systems which are
+    (at least partially) supported in linux-image-4.2.0:
+    - Allwinner A23 Evaluation Board
+    - Allwinner GA10H Quad Core Tablet (v1.1)
+    - Auxtek t004 A10s hdmi tv-stick
+    - ET Q8 Quad Core Tablet (v1.6)
+    - Gemei G9 Tablet
+    - Jesurun Q5
+    - LinkSprite pcDuino3 Nano
+    - Mele A1000G Quad top set box
+    - Mele I7 Quad top set box
+    - mk808c
+    - Orange Pi
+    - Orange Pi Mini
+    - Sinlinx SinA33
+    - Utoo P66
+    - Wexler TAB7200
+  * Change Vcs-Browser entry to use cgit instead of gitweb on alioth.
+  * Disable the use of modprobe and udevadm in the mtdblock() function
+    while running the testsuite.
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 14 Sep 2015 07:03:46 +0200
+
+flash-kernel (3.45) unstable; urgency=medium
+
+  [ Karsten Merker ]
+  * Add machine db entries for various sunxi-based systems which are
+    (at least partially) supported in linux-image-4.0.0-2:
+    - Allwinner A31 APP4 EVB1 Evaluation Board
+    - BA10 tvbox
+    - Chuwi V7 CW0825
+    - CSQ CS908 top set box
+    - HAOYU Electronics Marsboard A10
+    - HSG H702
+    - Hyundai A7HD
+    - I12 / Q5 / QT840A A20 tvbox
+    - Ippo Q8H Dual Core Tablet (v1.2)
+    - Ippo Q8H Dual Core Tablet (v5)
+    - Mele M3
+    - Mele M9 top set box
+    - Merrii A20 Hummingbird
+    - Merrii A31 Hummingbird
+    - Merrii A80 Optimus Board
+    - MK802
+    - MK802ii
+    - MK802-A10s
+    - R7 A10s hdmi tv-stick
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 24 Jul 2015 06:46:37 +0200
+
+flash-kernel (3.44) unstable; urgency=medium
+
+  [ Ian Campbell ]
+  * Add support for "Udoo i.MX6 Quad Board" using entry from Michael
+    Fladischer. Also add a similar entry for "Udoo i.MX6 Dual-lite Board" based
+    on that but with the appropriate dtb. (Closes: #789192)
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 09 Jul 2015 07:00:12 +0200
+
+flash-kernel (3.43) unstable; urgency=medium
+
+  [ Ian Campbell ]
+  * Combine i.MX53 QSB and LOCO board entries, they are the same thing and the
+    LOCO variant was missing DTB information. (Closes: #788782)
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 16 Jun 2015 06:56:47 +0200
+
+flash-kernel (3.42) unstable; urgency=medium
+
+  * Only install bootscripts relevant to the arch.
+  * Use correct variable name in bootscr.sunxi (Closes: #788221)
+  * Avoid use of && and || for control flow in boot scripts, the precedence is
+    not as expected.
+  * Change Vcs-Browser entry from http to https.
+
+ -- Ian Campbell <ijc@debian.org>  Wed, 10 Jun 2015 22:19:28 +0100
+
+flash-kernel (3.41) unstable; urgency=medium
+
+  * Improvements to generic u-boot boot script, based on a patch from Vagrant
+    Cascadian (Closes: #783074):
+    - If ${console} is set then add "console=${console}" to the bootargs.
+    - Boot the kernel using the versioned filenames in preference to the
+      generic symlinks.
+    - Log which kernel (if known) and device we are booting from.
+    - Workaround lack of baudrate included with console on various iMX
+      system.
+  * Install dtbs into /boot/dtbs/$kvers. Based on a patch from Vagrant
+    Cascadian. Retain links at /boot/dtb and /boot/dtb-$kvers (Closes: #783073)
+  * Switch boot scripts using $kvers to boot a specific kernel (rather than via
+    the vmlinuz symlink) to prefer ${fk_kvers} if set in the environment,
+    allowing a rudimentary ability to select which kernel to boot.
+
+ -- Ian Campbell <ijc@debian.org>  Sun, 07 Jun 2015 12:29:42 +0100
+
+flash-kernel (3.40) unstable; urgency=medium
+
+  * Fix regression in bootscr.beaglebone (syntax error, woops).
+
+ -- Cyril Brulebois <kibi@debian.org>  Tue, 26 May 2015 04:20:44 +0200
+
+flash-kernel (3.39) unstable; urgency=medium
+
+  * Add support for distro_bootcmd when using u-boot >= 2015.04+dfsg1-1
+    by adjusting bootscr.beaglebone: use results from distro_bootcmd and
+    use previous settings as a fallback (Closes: #786367). Thanks,
+    Vagrant Cascadian!
+
+ -- Cyril Brulebois <kibi@debian.org>  Mon, 25 May 2015 11:51:38 +0200
+
+flash-kernel (3.38) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Portuguese (Brazil) (pt_BR.po) by Adriano Rafael Gomes
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 18 May 2015 17:29:38 +0200
+
+flash-kernel (3.37) unstable; urgency=medium
+
+  * Upload changes from 3.30~exp.1..3.36~exp.1 to unstable.
+  * Improvements to support for PlatHome OpenBlocks AX3-4 board
+    (Closes: #783323):
+    - Allow armmp-lpae kernel flavour.
+    - Remove Boot-Device option since this platform can boot from /boot.
+  * Handle Boot-Kernel-Image even if none of Dtb-Append, Machine-Id or
+    U-Boot-Kernel-Address are specified. Patch from David Lechner.
+    (Closes: #783278)
+  * Log some debug if either the kernel or the initrd is missing. Intended to
+    help debug one aspect of #781742.
+
+ -- Ian Campbell <ijc@debian.org>  Fri, 08 May 2015 19:24:06 +0100
+
+flash-kernel (3.36) unstable; urgency=medium
+
+  [ Vagrant Cascadian ]
+  * Add entries for SolidRun HummingBoard DL/Solo and SolidRun
+    HummingBoard Dual/Quad. (Closes: #783769)
+
+  [ Christian Perrier ]
+  * Update standards to 3.9.6 (checked)
+  * No longer hardcode the path to /bin/true, which will no longer
+    trigger a lintian warning and doesn't seem to be needed
+    anyway
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 01 May 2015 09:02:39 +0200
+
+flash-kernel (3.36~exp.1) experimental; urgency=medium
+
+  * Team upload.
+  * Merge up changes from 3.35
+
+ -- Karsten Merker <merker@debian.org>  Tue, 07 Apr 2015 14:24:50 +0200
+
+flash-kernel (3.35) unstable; urgency=medium
+
+  * Team upload.
+
+  [ Karsten Merker ]
+  * Pass the u-boot console variable to the kernel in bootscr.cubox-i
+    and bootscr.wandboard. (Closes: #782016)
+  * Add a machine db entry for the Wandboard Dual Lite / Solo,
+    supplied by Vagrant Cascadian.
+
+ -- Karsten Merker <merker@debian.org>  Tue, 07 Apr 2015 00:19:59 +0200
+
+flash-kernel (3.35~exp.1) experimental; urgency=medium
+
+  * Merge up changes from 3.34
+
+ -- Ian Campbell <ijc@debian.org>  Thu, 26 Mar 2015 21:41:38 +0000
+
+flash-kernel (3.34) unstable; urgency=medium
+
+  * Update u-boot-tools to Recommends. In practice it is needed on most systems
+    but having it installed only by flash-kernel-installer means it is missed
+    in manual configurations. (Closes: #780994)
+
+ -- Ian Campbell <ijc@debian.org>  Thu, 26 Mar 2015 21:37:16 +0000
+
+flash-kernel (3.34~exp.1) experimental; urgency=medium
+
+  * Merge up changes from 3.33
+
+ -- Ian Campbell <ijc@debian.org>  Thu, 05 Mar 2015 07:00:54 +0000
+
+flash-kernel (3.33) unstable; urgency=medium
+
+  [ Karsten Merker ]
+  * Add a machine db entry for the LeMaker Banana Pro.
+
+ -- Ian Campbell <ijc@debian.org>  Thu, 05 Mar 2015 06:56:34 +0000
+
+flash-kernel (3.33~exp.1) experimental; urgency=medium
+
+  * Merge up changes from 3.32.
+
+ -- Ian Campbell <ijc@debian.org>  Tue, 10 Feb 2015 07:27:30 +0000
+
+flash-kernel (3.32) unstable; urgency=medium
+
+  [ Karsten Merker ]
+  * Add a machine db entry for the Olimex A20-OLinuXino-LIME2.
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 09 Feb 2015 07:00:27 +0100
+
+flash-kernel (3.31~exp.1) experimental; urgency=medium
+
+  * Merge up changes from 3.30.
+  * Add support for Nvidia Jetson TK1.
+  * Allow DTB-Id to be an absolute file name.
+    (Based on a patch from Uwe Kleine-Koenig, Closes: #767744)
+  * Search for DTB files in /etc/flash-kernel/dtbs before the kernel, allowing
+    local overrides.
+  * Install bootscripts under /etc/flash-kernel/dtbs and treat as conffiles,
+    allowing for local modifications.
+
+ -- Ian Campbell <ijc@debian.org>  Tue, 30 Dec 2014 15:35:59 +0000
+
+flash-kernel (3.30) unstable; urgency=medium
+
+  [ Ian Campbell ]
+  * Support for TI OMAP5 uEVM board (Patch from Chen Baozi, Closes: #773255)
+  * Support for alternative machine name for BeagleBone Black. The old name was
+    ambiguous with the original BeagleBone (often called "White"), detect if
+    booting on a BeagleBone white and print an error since the DTB will be
+    wrong. We don't currently support the White. (Closes: #773890)
+  * Ensure mtdblock driver is loaded before accessing /dev/mtdblock*.
+    (Closes: #773991)
+
+  [ Karsten Merker ]
+  * Add a machine db entry for the LinkSprite pcDuino3
+
+ -- Ian Campbell <ijc@debian.org>  Tue, 30 Dec 2014 15:31:42 +0000
+
+flash-kernel (3.30~exp.1) experimental; urgency=medium
+
+  * Append a DTB to all platforms using the kirkwood flavour from v3.17-rc1
+    onwards since all board file support has been removed from the kernel.
+  * Autodetect correct DTB for kirkwood based QNAP devices.
+  * Upstate to standards version 3.9.6. No changes required.
+  * This is the same as 3.29~exp.1 which was uploaded to unstable and then
+    superseded.
+
+ -- Ian Campbell <ijc@debian.org>  Sat, 13 Dec 2014 11:25:20 +0000
+
+flash-kernel (3.29) unstable; urgency=medium
+
+  * Correct Content-Transfer-Encoding in zn_CH.po.
+  * No other changes vs 3.28, this supersedes the brown paper bag upload of
+    3.29~exp.1 to unstable.
+
+ -- Ian Campbell <ijc@debian.org>  Sat, 13 Dec 2014 11:19:47 +0000
+
+flash-kernel (3.28) unstable; urgency=medium
+
+  [ Ian Campbell ]
+  * Support for Olimex A20-OLinuXino-LIME. Patch from Christian Kastner.
+    (Closes: #764968)
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 13 Oct 2014 11:08:45 +0200
+
+flash-kernel (3.27) unstable; urgency=medium
+
+  [ Ian Campbell ]
+  * Install initrd with correct name (uInitrd) on Xgene so that the filename
+    boot.scr are consistent.
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 11 Oct 2014 07:41:43 +0200
+
+flash-kernel (3.26) unstable; urgency=medium
+
+  [ Ian Campbell ]
+  * Install a symlink to the latest dtb in /boot/dtb and keep a backup of the
+    actual file.
+  * Add a generic u-boot boot.scr using the upstream config_distro_bootcmd.h
+    infrastructure.
+  * Add support for the Arndale board.
+  * Install uImage and uRamdisk to /boot on Xgene platform and load dtb from
+    the correct path.
+
+  [ Karsten Merker ]
+  * Add support for the LeMaker Banana Pi.
+  * bootscr.sunxi: If the u-boot environment variable ${console} is set,
+    pass its contents as console device to the kernel.
+
+ -- Ian Campbell <ijc@debian.org>  Mon, 06 Oct 2014 11:50:59 +0100
+
+flash-kernel (3.25) unstable; urgency=medium
+
+  * Log some clues on how to fix overly large initramfs (Closes: #760215).
+  * Improved mtd partition size checks.
+  * Switch Uploaders to use my @debian.org address.
+
+ -- Ian Campbell <ijc@debian.org>  Sat, 06 Sep 2014 09:38:44 +0100
+
+flash-kernel (3.24) unstable; urgency=medium
+
+  [ Karsten Merker ]
+  * Modify bootscript/bootscr.sunxi to work with the new default environment
+    and bootcmd handling introduced by mainline u-boot v2014.10 as well as
+    with the old environment still used by u-boot-sunxi.
+  * Avoid "file not found" messages while iterating over the possible
+    locations for kernel images in bootscr.sunxi.
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 04 Sep 2014 08:14:39 +0200
+
+flash-kernel (3.23) unstable; urgency=medium
+
+  * Avoid stalling install when debconf frontend is noninteractive. Patch from
+    David Lechner. (Closes: #753059)
+  * Append command line options from
+    /etc/default/flash-kernel:LINUX_KERNEL_CMDLINE to ${bootargs} rather than
+    replacing it entirely. (Closes: #751816)
+
+ -- Ian Campbell <ijc@hellion.org.uk>  Sat, 12 Jul 2014 16:39:40 +0100
+
+flash-kernel (3.22) unstable; urgency=medium
+
+  [ Ian Campbell ]
+  * Add support for BeagleBone (black). Patch from Vagrant Cascadian.
+    (Closes: #751353)
+  * Add support for Wandboard i.MX6 Quad Board. Patch from Vagrant Cascadian.
+    (Closes: #751340)
+  * Add support for D-Link DNS-320 NAS (Rev A1). Stanza from Bastien ROUCARIES.
+    (Closes: #724891)
+  * Document Mtd-Kernel and Mtd-Initrd in README.
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 19 Jun 2014 06:54:26 +0200
+
+flash-kernel (3.21) unstable; urgency=medium
+
+  [ Ian Campbell ]
+  * Bootloader-Sets-Incorrect-Root machine db entry is now optional and
+    defaults to no.
+  * Purge debconf database on purge. Patch from Vagrant Cascadian.
+    (Closes: #751066)
+  * Add support for SolidRun Cubox-i Dual/Quad. Patch from Vagrant Cascadian.
+    (Closes: #750953)
+  * Document FK_MACHINE in the manpage. (Closes: #751012)
+  * Document /etc/flash-kernel/machine and the database files in the manpage.
+  * Add kernel command line configuration support to sunxi bootscript. 
+
+  [ Karsten Merker ]
+  * Add machine db entries for various sunxi-based systems
+    - Cubietech Cubieboard
+    - Cubietech Cubieboard2
+    - INet-97F Rev 02
+    - LinkSprite pcDuino
+    - Mele A1000
+    - Miniand Hackberry
+    - Olimex A10-OLinuXino-LIME
+    - Olimex A10s-Olinuxino Micro
+    - Olimex A13-Olinuxino
+    - Olimex A13-Olinuxino Micro
+    - Olimex A20-Olinuxino Micro
+    - PineRiver Mini X-Plus
+    - WITS A31 Colombus Evaluation Board
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 12 Jun 2014 07:31:02 +0200
+
+flash-kernel (3.20) unstable; urgency=medium
+
+  [ dann frazier ]
+  * Add kernel commandline configuration support
+  * Add support for prepending arbitrary u-boot commands to a bootscript
+  * Add arm64 support
+  * Add support for APM X-Gene Mustang boards
+  * Add support for Calxeda Highbank
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 06 Jun 2014 06:49:31 +0200
+
+flash-kernel (3.19) unstable; urgency=low
+
+  * Support kernel flavours with a hyphen in (e.g. armmp-lpae).
+  * Allow armmp-lpae kernel and add u-boot-tools on cubietruck.
+  * Run installer udeb on arm*/generic subarch iff the machine is listed in the
+    db.
+  * Copy dtb to /boot when directly invoked as well.
+
+ -- Ian Campbell <ijc@hellion.org.uk>  Fri, 16 May 2014 19:31:43 +0100
+
+flash-kernel (3.18) unstable; urgency=medium
+
+  [ Ian Campbell ]
+  * Add --force option to install a specific kernel version. 
+  * Add support for the Cubietruck.
+  * Copy the dtb (if any) to /boot/dtb-$kversion in kernel postinst hook.
+  * Allow use of the kernel version in boot scripts.
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 14 May 2014 06:52:17 +0200
+
+flash-kernel (3.17) unstable; urgency=medium
+
+  * Accept kernels with an additional "+" suffix (Closes: #743796)
+  * Add myself to Uploaders
+
+ -- Ian Campbell <ijc@hellion.org.uk>  Fri, 11 Apr 2014 17:26:53 +0100
+
+flash-kernel (3.16) unstable; urgency=low
+
+  [ Steve McIntyre ]
+  * Add support for the Marvell Armada XP GP Board, booting via DTB.
+    (Closes: #743222)
+
+  [ Christian Perrier ]
+  * Updated Standards to 3.9.5 (checked)
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 02 Apr 2014 09:27:40 +0200
+
+flash-kernel (3.15) unstable; urgency=low
+
+  [ Ian Campbell ]
+  * Handle machine name difference for DT based DockStar (Closes: #741692)
+  * Do not mark uInitrd as compressed. The kernel can decompress the initramfs
+    itself as needed. (Closes: #618029)
+  * Add support for Globalscale Mirabox. From Jasmin Schnatterbeck.
+    (Closes: #739976).
+  * Handle removal of highest kernel version (Closes: #735093). Patch from
+    Karsten Merker.
+  * Add armmp to the Kernel-Flavors for all mx5 platforms.
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 24 Mar 2014 09:42:02 +0100
+
+flash-kernel (3.14) unstable; urgency=low
+
+  [ Ian Campbell ]
+  * Append DTB on "Seagate FreeAgent DockStar" from v3.12 onwards.
+  * Add support for Buffalo Linkstation LS-XHL (Closes: #740786).
+
+ -- Cyril Brulebois <kibi@debian.org>  Fri, 14 Mar 2014 15:11:45 +0100
+
+flash-kernel (3.13) unstable; urgency=low
+
+  [ Ian Campbell ]
+  * Correctly handle probing for android boot partition (Closes: #683329).
+  * Rename Bootloader-Sets-Root to Bootloader-Sets-Incorrect-Root which better
+    reflects its usage.
+  * Forcibly override root only if Bootloader-Sets-Incorrect-Root is yes,
+    rather than when it is not no. Avoids overridding root on unknown platforms
+    (Closes: #718761).
+  * Transition additinal kirkwood systems to DT from v3.12 onwards. Board
+    support for these was removed in that release:
+    - Globalscale Technologies eSATA SheevaPlug
+    - LaCie Internet Space v2
+    - LaCie Network Space v2
+  * Consistently install DTB file next to uImage where the latter is on a
+    filesystem rather than partition.
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 23 Jan 2014 08:26:59 +0100
+
+flash-kernel (3.12) unstable; urgency=medium
+
+  * Append a DTB on Sheevaplug from kernel version 3.12 onwards. Based on a
+    patch by Marc Kleine-Budde. (Closes: #731345).
+  * Append a DTB on Guruplug from kernel version 3.12 onwards. Based on a patch
+    from William Boughton. (Closes: #734769).
+  * Allow multiple Machine names per stanza in the db.
+  * Correct check for debconf, avoiding hang on error when running in Debian
+    Installer. (Closes: #721485).
+  * Add support for "Buffalo Linkstation LS-CHLv2" (Closes: #734130).
+  * Add support for "Plat'Home OpenBlocksA6" (Closes: #725754).
+
+ -- Ian Campbell <ijc@hellion.org.uk>  Sun, 12 Jan 2014 15:15:49 +0000
+
+flash-kernel (3.11) unstable; urgency=low
+
+  [ Updated translations ]
+  * Tajik (tg.po) by Victor Ibragimov
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 07 Sep 2013 07:34:26 +0200
+
+flash-kernel (3.10) unstable; urgency=low
+
+  [ Ian Campbell ]
+  * Honour FK_MACHINE in get_machine, to allow initramfs hooks etc to
+    work inside a chroot. Also support reading the machine from
+    /etc/flash-kernel/machine.
+  * Add capability to read /etc/flash-kernel/db to override db entries.
+    Closes: #680900
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 26 Aug 2013 07:07:36 +0200
+
+flash-kernel (3.9) unstable; urgency=low
+
+  [ Nobuhiro Iwamatsu ]
+  * support kernel entry point setup of mkimage
+  * support PlatHome OpenBlocks AX3-4 board
+
+  [ Updated translations ]
+  * Tajik (tg.po) by Victor Ibragimov
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 23 Aug 2013 08:53:01 +0200
+
+flash-kernel (3.8) unstable; urgency=low
+
+  [ Dmitrijs Ledkovs ]
+  * Set debian source format to '3.0 (native)'.
+  * Bump debhelper compat level to 9.
+  * Set Vcs-* to canonical format.
+
+  [ Cyril Brulebois ]
+  * Fix test_db testsuite to be LC_COLLATE-independent, by calling sort -u
+    on both the $expected and $fields variables. Closes: #711759
+
+  [ Christian Perrier ]
+  * Update Standards to 3.9.4 (checked)
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 19 Jul 2013 09:16:54 +0200
+
+flash-kernel (3.7) unstable; urgency=low
+
+  [ Wouter Verhelst ]
+  * Remove $SELF from uploaders.
+
+  [ Martin Michlmayr ]
+  * The machine database is case-sensitive so ensure that all instances
+    of "Required-Packages" are capitalized correctly.  Closes: #693839
+
+  [ Loïc Minier ]
+  * Add test_db testsuite for the database; currently only checking for
+    unknown fields.
+  * Rename Bootloader-sets-root field to Bootloader-Sets-Root for consistency
+    in CamelCasing.
+
+ -- Loïc Minier <lool@debian.org>  Thu, 06 Jun 2013 16:17:51 +0200
+
+flash-kernel (3.6) unstable; urgency=low
+
+  [ Roger Leigh ]
+  * flash-kernel-installer postinst: Update FSCKFIX in
+    /etc/default/fsck as well as /etc/default/rcS for backward
+    compatibility.  The purpose is to use /etc/default/fsck for
+    new installations. Closes: #694928
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 12 May 2013 17:51:08 +0200
+
+flash-kernel (3.5) unstable; urgency=low
+
+  * Revert "Move u-boot-tools to Depends so that the mkimage program
+    is available." as there have been some objections. Reopens: #693839
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 02 Jan 2013 22:29:11 +0100
+
+flash-kernel (3.4) unstable; urgency=low
+
+  * Move u-boot-tools to Depends so that the mkimage program
+    is available. This will allow installing the kernel on Linkstation
+    Pro/Live. Closes: #693839
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 02 Jan 2013 22:16:38 +0100
+
+flash-kernel (3.3) unstable; urgency=low
+
+  * Replace XC-Package-Type by Package-Type
+  * Add myself to Uploaders
+
+  [ Updated translations ]
+  * Lithuanian (lt.po) by Rimas Kudelis
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 23 Sep 2012 08:18:09 +0200
+
+flash-kernel (3.2) unstable; urgency=low
+
+  [ Ian Campbell ]
+  * Use get_machine in flash-kernel-installer udeb. Fixes flash-kernel at
+    install time on Dreamplug failure to install u-boot-tools.
+
+ -- Hector Oron <zumbi@debian.org>  Fri, 27 Jul 2012 17:04:05 +0200
+
+flash-kernel (3.1) unstable; urgency=low
+
+  * Release into unstable.
+
+ -- Hector Oron <zumbi@debian.org>  Sun, 08 Jul 2012 03:03:57 +0200
+
+flash-kernel (3.1~exp.1) experimental; urgency=low
+
+  [ Ian Campbell ]
+  * Add support for FDT based devices using /proc/device-tree/model for
+    detection.
+  * Add support for installing a DTB file into the boot partition.
+  * Add support for appending a DTB to the kernel.
+  * Add support for DreamPlug. (Closes: #667681)
+
+  [ Hector Oron ]
+  * Update Standards-Version to 3.9.3 
+  * Set Boot-Device for Dreamplug to /dev/sda1. 
+
+  [ Updated translations ]
+  * Galician (gl.po) by Jorge Barreiro
+  * Croatian (hr.po) by Tomislav Krznar
+
+ -- Hector Oron <zumbi@debian.org>  Sun, 08 Jul 2012 02:00:54 +0200
+
+flash-kernel (3.0) unstable; urgency=low
+
+  [ Aurelien Jarno ]
+  * Drop old arm and armeb architectures from the control file.
+
+  [ Updated translations ]
+  * Tibetan (bo.po) by Tennom
+  * Welsh (cy.po) by Dafydd Tomos
+  * Basque (eu.po) by Piarres Beobide
+  * Lithuanian (lt.po) by Rimas Kudelis
+  * Latvian (lv.po) by Rūdolfs Mazurs
+  * Macedonian (mk.po) by Arangel Angov
+  * Panjabi (pa.po) by A S Alam
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sun, 17 Jun 2012 17:38:47 +0200
+
+flash-kernel (3.0~rc.5) unstable; urgency=low
+
+  * Add support for FK_MACHINE and FK_PROC_CPUINFO.
+    - Makes it possible to pass machine name for use under chrooted setups.
+      Setting FK_MACHINE to none avoids flash-kernel run.
+      Thanks Johannes Schauer for patch.
+  * Add support for LaCie Kirkwood NASes.
+    Thanks Simon Guinot for patch. (Closes: #670938)
+
+ -- Hector Oron <zumbi@debian.org>  Sun, 11 Mar 2012 16:02:39 +0100
+
+flash-kernel (3.0~rc.4ubuntu66) artful; urgency=medium
+
+  * Add support for QCT APQ8064 CDP; thanks Alfonso Sanchez-Beato.
+
+ -- Loïc Minier <loic.minier@ubuntu.com>  Fri, 01 Sep 2017 14:46:52 +0200
+
+flash-kernel (3.0~rc.4ubuntu65) zesty; urgency=medium
+
+  * Adjust rpi2/3 dtb address from 0x100 to 0x02000000 (LP: #1636838)
+
+ -- Paolo Pisati <paolo.pisati@canonical.com>  Wed, 09 Nov 2016 15:41:50 +0200
+
+flash-kernel (3.0~rc.4ubuntu64) yakkety; urgency=medium
+
+  * Add support for gzip-compressed kernel images (LP: #1384955)
+
+ -- dann frazier <dannf@ubuntu.com>  Thu, 25 Aug 2016 12:39:19 -0600
+
+flash-kernel (3.0~rc.4ubuntu63) yakkety; urgency=medium
+
+  * Add Raspberry Pi 3 support (LP: #1578505)
+
+ -- Ryan Finnie <ryan@finnie.org>  Thu, 05 May 2016 06:04:00 +0000
+
 flash-kernel (3.0~rc.4ubuntu62) xenial; urgency=medium
 
   * Adjust the size of uboot.env based on empirical results on the rpi2.
@@ -32,7 +1392,7 @@ flash-kernel (3.0~rc.4ubuntu59) xenial; urgency=medium
 
 flash-kernel (3.0~rc.4ubuntu58) xenial; urgency=medium
 
-  * Call systemd-detect-virt instead of the Linux Mint specific
+  * Call systemd-detect-virt instead of the Ubuntu specific
     running-in-container wrapper. (LP: #1539016)
 
  -- Martin Pitt <martin.pitt@ubuntu.com>  Thu, 28 Jan 2016 14:22:57 +0100
@@ -201,7 +1561,7 @@ flash-kernel (3.0~rc.4ubuntu35) saucy; urgency=low
 
 flash-kernel (3.0~rc.4ubuntu34) saucy; urgency=low
 
-  * Extending Android specific options to cover the Linux Mint Touch use cases
+  * Extending Android specific options to cover the Ubuntu Touch use cases
     (flashing to a specific device and support skipping initrd)
   * Enabling support for mako (Nexus 4)
 

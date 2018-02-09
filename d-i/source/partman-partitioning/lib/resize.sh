@@ -19,14 +19,11 @@ get_real_device () {
 		num=$(sed 's/^[^0-9]*\([0-9]*\)[^0-9].*/\1/' $backupdev/$oldid/view)
 		bdev=$(cat $backupdev/device)
 		case $bdev in
-		    */disc)
-			bdev=${bdev%/disc}/part$num
-			;;
-		    /dev/[hsv]d[a-z]|/dev/xvd[a-z])
-			bdev=$bdev$num
-			;;
-		    /dev/cciss/c[0-9]d[0-9]|/dev/cciss/c[0-9]d[0-9][0-9]|/dev/ida/c[0-9]d[0-9]|/dev/ida/c[0-9]d[0-9][0-9]|/dev/mmcblk[0-9])
+		    /dev/*[0-9])
 			bdev=${bdev}p$num
+			;;
+		    /dev/*)
+			bdev=$bdev$num
 			;;
 		    *)
 			log "get_real_device: strange device name $bdev"

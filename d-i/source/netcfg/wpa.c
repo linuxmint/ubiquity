@@ -261,29 +261,29 @@ int poll_wpa_supplicant(struct debconfclient *client)
                  CMD_PROGRESSCANCELLED)
              goto stop;
 
-             if (debconf_progress_step(client, 1) == CMD_PROGRESSCANCELLED)
+         if (debconf_progress_step(client, 1) == CMD_PROGRESSCANCELLED)
+             goto stop;
+
+         sleep(1);
+
+         if ((seconds_slept <= wpa_timeout) && (seconds_slept % 5) == 0) {
+             if (!wpa_status()) {
+                 debconf_progress_set(client, wpa_timeout);
+                 debconf_progress_info(client, "netcfg/wpa_success_note");
+                 state = 0;
+                 sleep(2);
                  goto stop;
-
-             sleep(1);
-
-             if ((seconds_slept <= wpa_timeout) && (seconds_slept % 5) == 0) {
-                 if (!wpa_status()) {
-                     debconf_progress_set(client, wpa_timeout);
-                     debconf_progress_info(client, "netcfg/wpa_success_note");
-                     state = 0;
-                     sleep(2);
-                     goto stop;
-                 }
              }
-             if (seconds_slept == wpa_timeout) {
-                 debconf_progress_stop(client);
-                 debconf_capb(client, "backup");
-                 debconf_capb(client, "");
-                 debconf_input(client, "critical", "netcfg/wpa_supplicant_failed");
-                 debconf_go(client);
-                 debconf_capb(client, "backup");
-                 return 1;
-             }
+         }
+         if (seconds_slept == wpa_timeout) {
+             debconf_progress_stop(client);
+             debconf_capb(client, "backup");
+             debconf_capb(client, "");
+             debconf_input(client, "critical", "netcfg/wpa_supplicant_failed");
+             debconf_go(client);
+             debconf_capb(client, "backup");
+             return 1;
+         }
     }
     stop:
         debconf_progress_stop(client);

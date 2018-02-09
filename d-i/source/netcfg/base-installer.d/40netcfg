@@ -1,11 +1,11 @@
 #!/bin/sh -e
 # Copy all relevant networking-related files to /target.
 
-if [ ! -f /etc/network/interfaces ]; then
+if [ ! -f /etc/network/interfaces ] && [ ! -f /etc/netplan/*.yaml ]; then
 	netcfg write_loopback
 fi
 
-for file in /etc/network/interfaces /etc/networks /etc/hostname /etc/hosts; do
+for file in /etc/network/interfaces /etc/networks /etc/hostname /etc/hosts /etc/netplan/*.yaml; do
 	if [ -f "$file" ]; then
 		mkdir /target/$(dirname $file) -p
 		cp $file /target/$file

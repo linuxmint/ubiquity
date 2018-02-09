@@ -38,6 +38,10 @@ device_name () {
 	echo "/dev/$name"
 }
 
+is_lvm() {
+	grep -qs ^LVM- "$1/dm/uuid"
+}
+
 is_sataraid () {
 	grep -qs ^DMRAID- "$1/dm/uuid"
 }
@@ -57,6 +61,12 @@ if type dmraid >/dev/null 2>&1; then
 else
 	raiddevs=
 fi
+if type pvs >/dev/null 2>&1; then
+	lvm_pvs="$(pvs -S pv_in_use=1 -o pv_name --no-headings || true)"
+else
+	lvm_pvs=
+fi
+
 
 # cloned-and-hacked from partman-base/init.d/parted
 part_of_sataraid () {
@@ -69,17 +79,37 @@ part_of_sataraid () {
 	return 1
 }
 
+part_of_lvmvg () {
+	local pvdev
+	for pvdev in $lvm_pvs; do
+		if [ "$pvdev" = "$1" ]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
 syspaths=
 scan_partition=false
 case $TYPE in
     partition)
 	for x in /sys/block/*/*[0-9]; do
 		[ -d "$x" ] || continue
+		name="$(device_name "$x")"
+		if part_of_lvmvg "$name"; then
+			continue
+		fi
 		syspaths="${syspaths:+$syspaths }$x"
 	done
 	for x in /sys/block/dm-*; do
 		[ -d "$x" ] || continue
-		(is_sataraid "$x" && is_sataraid_partition "$x") || continue
+		if is_lvm "$x"; then
+			: # Keep LVM logical volumes
+		elif is_sataraid "$x" && is_sataraid_partition "$x"; then
+			: # Keep dmraid partitions
+		else
+			continue  # Skip unknown entries
+		fi
 		syspaths="${syspaths:+$syspaths }$x"
 	done
 	TYPE=disk
@@ -100,10 +130,16 @@ case $TYPE in
 			if is_sataraid "$x" && is_sataraid_partition "$x"; then
 				continue
 			fi
+			if is_lvm "$x"; then
+				continue
+			fi
 			;;
 		    *)
 			name="$(device_name "$x")"
 			if part_of_sataraid "$name"; then
+				continue
+			fi
+			if part_of_lvmvg "$name"; then
 				continue
 			fi
 			;;
@@ -141,8 +177,11 @@ for x in $syspaths; do
 			match=:
 			;;
 		    /block/dm-*)
-			# for now, we only understand dmraid
+			# for now, we only understand dmraid and LVM
 			if is_sataraid "/sys$devpath"; then
+				match=:
+			fi
+			if is_lvm "/sys$devpath"; then
 				match=:
 			fi
 			;;

@@ -90,7 +90,7 @@ load_module() {
 	echo 0 > /proc/sys/kernel/printk
 
 	devs="$(snapshot_devs)"
-	if log-output -t hw-detect modprobe -v "$module"; then
+	if log-output -t hw-detect modprobe -v -b "$module"; then
 		olddevs="$devs"
 		devs="$(snapshot_devs)"
 		newdevs="$(compare_devs "$olddevs" "$devs")"
@@ -109,7 +109,7 @@ load_module() {
 		log "Error loading '$module'"
 		if [ "$module" != floppy ] && [ "$module" != ide-floppy ] && \
 		   [ "$module" != ide-cd ] && [ "$module" != ide-generic ]; then
-			db_subst hw-detect/modprobe_error CMD_LINE_PARAM "modprobe -v $module"
+			db_subst hw-detect/modprobe_error CMD_LINE_PARAM "modprobe -v -b $module"
 			db_input medium hw-detect/modprobe_error || [ $? -eq 30 ]
 			db_go
 		fi
@@ -489,6 +489,11 @@ fi
 # Install eject?
 if [ -n "$(list-devices cd; list-devices maybe-usb-floppy)" ]; then
 	apt-install eject || true
+fi
+
+# Install opeal-prd for OpenPOWER machines LP: #1555904
+if [ -d /sys/firmware/devicetree/base/ibm,opal/diagnostics ]; then
+	apt-install opal-prd || true
 fi
 
 # Install optimised libc based on CPU type

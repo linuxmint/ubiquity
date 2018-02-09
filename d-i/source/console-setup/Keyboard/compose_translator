@@ -19,7 +19,7 @@
 
 use warnings 'all';
 use strict;
-use encoding 'utf8';
+use utf8;
 binmode STDOUT, ':bytes';
 
 sub debug {
@@ -2124,7 +2124,7 @@ while (<>) {
     $compose{$sequence} = $result;
 }
 
-my @sequences = keys %compose;
+my @sequences = sort keys %compose;
 
 my %lc_compose;
 my %lc_sequences;
@@ -2149,7 +2149,7 @@ foreach my $sequence (@sequences) {
     }
 }
 
-foreach my $lcase (keys %lc_compose) {
+foreach my $lcase (sort keys %lc_compose) {
     next if ($lc_compose{$lcase} eq 'DISAGREEMENT');
     foreach my $sequence (@{$lc_sequences{$lcase}}) {
 	delete $compose{$sequence};
@@ -2159,7 +2159,7 @@ foreach my $lcase (keys %lc_compose) {
 
 my %output;
 my %original_sequences;
-foreach my $sequence (keys %compose) {
+foreach my $sequence (sort keys %compose) {
     my @k = split ' ', $sequence;
     for my $i (0 .. $#k) {
 	if (defined $xkbsym_table{$k[$i]}) {

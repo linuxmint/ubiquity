@@ -48,47 +48,9 @@ default_disk_label () {
 		    *)
 			echo UNKNOWN;;
 		esac;;
-	    mips)
-		case "$sub" in
-		    4kc-malta | 5kc-malta)
-			# MIPS Malta
-			echo msdos;;
-		    octeon)
-			# Cavium Octeon
-			echo msdos;;
-		    r4k-ip22 | r5k-ip22 | r8k-ip26 | r10k-ip28)
-			# Indy
-			echo dvh;;
-		    r10k-ip27 | r12k-ip27)
-			# Origin
-			echo dvh;;
-		    r5k-ip32 | r10k-ip32 | r12k-ip32)
-			# O2
-			echo dvh;;
-		    sb1-bcm91250a | sb1a-bcm91480b)
-			# Broadcom SB1 evaluation boards
-			echo msdos;;
-		    *)
-			echo UNKNOWN;;
-		esac;;
-	    mipsel)
-		case "$sub" in
-		    4kc-malta | 5kc-malta)
-			# MIPS Malta
-			echo msdos;;
-		    sb1-bcm91250a | sb1a-bcm91480b)
-			# Broadcom SB1 evaluation boards
-			echo msdos;;
-		    cobalt)
-			echo msdos;;
-		    bcm947xx)
-			echo msdos;;
-		    loongson-2e | loongson-2f | loongson-3)
-			echo msdos;;
-		    *)
-			echo UNKNOWN;;
-		esac;;
-	    powerpc)
+	    mips|mipsel|mips64el)
+		echo msdos;;
+	    powerpc|ppc64)
 		case "$sub" in
 		    apus)
 			echo amiga;;
@@ -122,6 +84,13 @@ default_disk_label () {
 	    s390|s390x)
 		if [ -e ./label ]; then
 		    disklabel=$(cat label)
+		fi
+		# FBA devices have parted label dasd, but should not use dasd
+		# partition table. Maybe FBA|ECKD type should be exposed by
+		# partman-base and/or parted. LP: #1650300
+		device=$(sed 's|.*/||' ./device)
+		if grep -q "(FBA ).*$device" /proc/dasd/devices; then
+		    disklabel=msdos
 		fi
 		if [ "$disklabel" != dasd ]; then
 		    disklabel=msdos

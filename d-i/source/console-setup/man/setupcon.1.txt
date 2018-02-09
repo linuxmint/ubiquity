@@ -25,7 +25,7 @@ DESCRIPTION
        with Greek keyboard layout, but sometimes you need to  type  in  German
        with  German  keyboard  layout.  In this situation you should customize
        the main configuration files (keyboard and  console-setup)  for  Greek.
-       Create   also   alternative   configuration   files  for  German  named
+       Also,   create   alternative   configuration  files  for  German  named
        keyboard.german and console-setup.german.  Then in order  to  configure
        the  console  for  Greek  you will simply run the command with no argu-
        ments: setupcon and in order to configure the console  for  German  you
@@ -34,17 +34,39 @@ DESCRIPTION
 
 
 OPTIONS
+       VARIANT
+              Specifies which configuration file to use.  With no variant, the
+              configuration files of setupcon are named console-setup and key-
+              board.   On  the other hand, if you use e.g.  chukchi as VARIANT
+              then the configuration files are console-setup.chukchi and  key-
+              board.chukchi.   In this way you can have easy access to several
+              different configurations - for example one for the Chukchi  lan-
+              guage and another for the default configuration.
+
+
        -v, --verbose
               Be  more  verbose.    Use this option if something goes wrong or
               while experimenting with the configuration files.
 
 
        -k, --keyboard-only
-              Setup the keyboard only, do not setup the font.
+              Setup the keyboard only, do not setup the font or the  terminal.
+              On Linux it is enough to do this configuration only once.
 
 
        -f, --font-only
-              Setup the font only, do not setup the keyboard.
+              Setup  the font only, do not setup the keyboard or the terminal.
+              On Linux this configuration should be repeated each time  a  new
+              console  driver  is activated (for example when the frame buffer
+              becomes active).
+
+
+       -t, --terminal-only
+              Setup the terminal only, do not setup the keyboard or the font.
+
+
+       --current-tty
+              Setup the only the current virtual terminal.
 
 
        --force
@@ -63,23 +85,28 @@ OPTIONS
 
 
        --save-only
-              The same as --save, but does not  setup  the  keyboard  and  the
-              font.   This  option  can  be useful if you want to save the re-
-              quired files while the screen is controlled by a X server.
+              The same as --save, but does not setup  anything.   This  option
+              can  be  useful if you want to save the required files while the
+              screen is controlled by a X server.
+
+
+       --save-keyboard FILE
+              For use by initrd builders.  Do not configure anything.  Save an
+              usable keyboard layout in FILE.
+
+
+       --setup-dir DIR
+              For use by initrd builders.  Do not configure anything.  Arrange
+              in the directory DIR everything necessary in order to  configure
+              the console.  The file DIR/morefiles lists all binaries the ini-
+              trd builder has to install in the initrd image.  All other files
+              in  DIR  have to be copied unchanged in the initrd.  In order to
+              configure the console one has to run the  script  DIR/bin/setup-
+              con.
 
 
        -h, --help
               Display usage information.
-
-
-       VARIANT
-              Specifies which configuration file to use.  By default the  con-
-              figuration  files  of  setupcon are named console-setup and key-
-              board but if you use e.g.  chukchi as VARIANT then the  configu-
-              ration files will be console-setup.chukchi and keyboard.chukchi.
-              In this way you can have easy access to several  different  con-
-              figurations  -  for example one for the Chukchi language and an-
-              other for the default configuration.
 
 
 FILES

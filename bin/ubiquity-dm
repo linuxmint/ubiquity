@@ -99,6 +99,60 @@ class MissingProgramError(EnvironmentError):
     pass
 
 
+class SignalWatcher:
+    def __init__(self, owner, program,
+                 interface, object_path,
+                 signal, expected):
+        self.owner = owner
+        self.program = program
+        self.connection = None
+        self.interface = interface
+        self.object_path = object_path
+        self.signal = signal
+        self.expected = expected
+        self.processes = []
+
+        from gi.repository import GLib, Gio
+        owner.drop_privileges()
+        self.loop = GLib.MainLoop()
+        Gio.bus_get(Gio.BusType.SESSION, None,
+                    self.on_got_bus, None)
+
+    def signal_timeout(self, user_data):
+        log("SignalWatcher: signal timed out, continuing with ubiquity-dm")
+        self.loop.quit()
+
+    def on_got_bus(self, source, result, user_data):
+        try:
+            from gi.repository import GLib, Gio
+            self.connection = Gio.bus_get_finish(result)
+            self.connection.signal_subscribe(None, self.interface,
+                                             self.signal,
+                                             self.object_path, None,
+                                             Gio.DBusSignalFlags.NONE,
+                                             self.on_signal, None)
+            self.processes.append(subprocess.Popen(
+                                  [self.program],
+                                  stdin=None, stdout=logfile, stderr=logfile))
+            self.owner.regain_privileges()
+            GLib.timeout_add_seconds(5, self.signal_timeout, None)
+        except Exception:
+            log("failed to ensure xsettings plugin was started:")
+            log(traceback.format_exc())
+            self.loop.quit()
+
+    def on_signal(self, connection, sender, path, interface, signal, params,
+                  user_data):
+        (plugin, ) = params
+        # log ('on_signal: got %s' % plugin)
+        if plugin == "xsettings":
+                self.loop.quit()
+
+    def run(self):
+        self.loop.run()
+        return self.processes
+
+
 class DM:
     def __init__(self, vt, display, default_username):
         self.auth = PAM.pam()
@@ -166,10 +220,13 @@ class DM:
 
     def drop_privileges(self):
         os.setgroups(self.groups)
-        os.setgid(self.gid)
-        os.setegid(self.gid)
-        os.setuid(self.uid)
-        os.seteuid(self.uid)
+        os.setresgid(self.gid, self.gid, 0)
+        os.setresuid(self.uid, self.uid, 0)
+
+    def regain_privileges(self):
+        os.setresuid(0, 0, 0)
+        os.setresgid(0, 0, 0)
+        os.setgroups([])
 
     def server_preexec(self):
         signal.signal(signal.SIGUSR1, signal.SIG_IGN)
@@ -314,8 +371,6 @@ EndSection
         # Give ubiquity a UID and GID that it can drop privileges to.
         os.environ['PKEXEC_UID'] = str(self.uid)
         os.environ['GVFS_DISABLE_FUSE'] = '1'
-        # Overlay scrollbars are now a gtk module
-        os.environ['GTK_MODULES'] = 'overlay-scrollbar'
 
         log('pam_open_session')
         self.pam_open_session()
@@ -366,7 +421,12 @@ EndSection
             visual_a11y = 'access=v' in proc_cmdline
 
             background_image = None
-            for background in ('/usr/share/backgrounds/linuxmint/default_background.jpg'):
+            for background in (
+                    '/usr/share/xfce4/backdrops/xubuntu-wallpaper.png',
+                    '/usr/share/backgrounds/'
+                    'ubuntustudio/ubuntustudio-default.png',
+                    '/usr/share/lubuntu/wallpapers/'
+                    'lubuntu-default-wallpaper.png'):
                 exists = os.access(background, os.R_OK)
                 if exists:
                     background_image = background
@@ -432,13 +492,34 @@ EndSection
                             ('org.mate.background', 'picture-filename',
                              "''"))
 
-                if osextras.find_on_path('gnome-shell'):
+                if (osextras.find_on_path('gnome-shell') or
+                        osextras.find_on_path('budgie-wm')):
                     gsettings_keys.append(
                         ('org.gnome.settings-daemon.plugins.background',
                          'active', 'false'))
                     gsettings_keys.remove(
                         ('org.gnome.desktop.wm.preferences', 'num-workspaces',
                          '1'))
+                    os.environ['XDG_SESSION_TYPE'] = 'x11'
+
+                if (osextras.find_on_path('gnome-shell')):
+                    # set this environment variable since we have
+                    # session-specific GSettings overrides for Ubuntu/Shell,
+                    # like the theme.
+                    os.environ['XDG_CURRENT_DESKTOP'] = 'ubuntu:GNOME'
+                    if (osextras.find_on_path(
+                            'dbus-update-activation-environment')):
+                        subprocess.Popen(
+                            ['dbus-update-activation-environment',
+                             '--verbose', '--systemd', 'XDG_CURRENT_DESKTOP'],
+                            stdin=null, stdout=logfile, stderr=logfile,
+                            preexec_fn=self.drop_privileges)
+
+                if (osextras.find_on_path('budgie-wm')):
+                    gsettings_keys.append(
+                        ('org.gnome.desktop.interface', 'icon-theme',
+                         "'ubuntu-mono-dark'"))
+                    os.environ['XDG_CURRENT_DESKTOP'] = 'Budgie'
 
                 for gs_schema, gs_key, gs_value in gsettings_keys:
                     subprocess.call(
@@ -446,24 +527,39 @@ EndSection
                         stdin=null, stdout=logfile, stderr=logfile,
                         preexec_fn=self.drop_privileges)
 
-                csd = '/usr/bin/cinnamon-settings-daemon'
-                gsd = '/usr/lib/gnome-settings-daemon/gnome-settings-daemon'
                 msd = '/usr/bin/mate-settings-daemon'
+                usd = '/usr/lib/unity-settings-daemon/unity-settings-daemon'
+                gsd = ['/usr/lib/gnome-settings-daemon/gsd-a11y-keyboard',
+                       '/usr/lib/gnome-settings-daemon/gsd-a11y-settings',
+                       '/usr/lib/gnome-settings-daemon/gsd-clipboard',
+                       '/usr/lib/gnome-settings-daemon/gsd-media-keys',
+                       '/usr/lib/gnome-settings-daemon/gsd-power',
+                       '/usr/lib/gnome-settings-daemon/gsd-xsettings']
 
-                if osextras.find_on_path(csd):
-                    extras.append(subprocess.Popen(
-                        [csd], stdin=null, stdout=logfile, stderr=logfile,
-                        preexec_fn=self.drop_privileges))
-
-                elif osextras.find_on_path(gsd):
-                    extras.append(subprocess.Popen(
-                        [gsd], stdin=null, stdout=logfile, stderr=logfile,
-                        preexec_fn=self.drop_privileges))
-
-                elif osextras.find_on_path(msd):
+                if osextras.find_on_path(msd):
                     extras.append(subprocess.Popen(
                         [msd], stdin=null, stdout=logfile, stderr=logfile,
                         preexec_fn=self.drop_privileges))
+
+                elif (osextras.find_on_path(usd)):
+                    # Wait until xsettings plugin is activated
+                    xsettings = SignalWatcher(self, usd,
+                                              "org.gnome.SettingsDaemon",
+                                              "/org/gnome/SettingsDaemon",
+                                              "PluginActivated",
+                                              "xsettings")
+                    # the SignalWatcher will run until the signal is seen...
+                    extras.extend(xsettings.run())
+                    # At this point we're sure the usd xsettings plugin is
+                    # available, we can continue setting up the session.
+
+                elif os.path.isdir("/usr/lib/gnome-settings-daemon"):
+                    for gsdbinary in gsd:
+                        if osextras.find_on_path(gsdbinary):
+                            extras.append(subprocess.Popen(
+                                [gsdbinary],
+                                stdin=null, stdout=logfile, stderr=logfile,
+                                preexec_fn=self.drop_privileges))
 
                 elif background_image and osextras.find_on_path('feh'):
                     subprocess.call(
@@ -480,10 +576,15 @@ EndSection
                         [launcher, '--launch-immediately'],
                         stdin=null, stdout=logfile, stderr=logfile,
                         preexec_fn=self.drop_privileges))
-                    os.environ['GTK_MODULES'] += os.pathsep + 'gail'
+                    try:
+                        os.environ['GTK_MODULES'] += os.pathsep + 'gail'
+                    except KeyError:
+                        os.environ['GTK_MODULES'] = 'gail'
 
             if osextras.find_on_path('gnome-shell'):
                 wm_cmd = ['gnome-shell', '--sm-disable', '--mode=ubiquity']
+            elif osextras.find_on_path('budgie-wm'):
+                wm_cmd = ['budgie-wm', '--sm-disable']
             elif osextras.find_on_path('marco'):
                 wm_cmd = ['marco', '--sm-disable']
             elif osextras.find_on_path('metacity'):
@@ -502,8 +603,9 @@ EndSection
             else:
                 raise MissingProgramError(
                     'No window manager found (tried '
-                    'marco, metacity, xfwm4, matchbox-window-manager, '
-                    'openbox-lubuntu, openbox, compiz)')
+                    'gnome-shell, budgie-wm, marco, metacity, xfwm4, '
+                    'matchbox-window-manager, openbox-lubuntu, '
+                    'openbox, compiz)')
 
             wm = subprocess.Popen(
                 wm_cmd, stdin=null, stdout=logfile, stderr=logfile,
@@ -526,7 +628,7 @@ EndSection
                     stdin=null, stdout=logfile, stderr=logfile,
                     preexec_fn=self.drop_privileges))
 
-            if os.path.exists('/usr/lib/ubiquity/panel') and not os.path.exists('/usr/bin/cinnamon'):
+            if os.path.exists('/usr/lib/ubiquity/panel'):
                 if ("openbox-lubuntu" not in wm_cmd and
                         "openbox" not in wm_cmd and
                         "gnome-shell" not in wm_cmd):
@@ -782,6 +884,7 @@ def main():
         log('Failed with an exception:')
         log(traceback.format_exc())
         return 1
+
 
 if __name__ == '__main__':
     sys.exit(main())

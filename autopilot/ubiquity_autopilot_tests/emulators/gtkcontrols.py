@@ -16,9 +16,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 from autopilot.input import Pointer, Mouse, Keyboard
-from ubiquity_autopilot_tests.emulators import AutopilotGtkEmulatorBase
+from ubiquity_autopilot_tests.emulators import (
+    AutopilotGtkEmulatorBase,
+    gtkaccessible,
+)
 from ubiquity_autopilot_tests.tools.compare import expectThat
-from ubiquity_autopilot_tests.emulators import gtkaccessible
 import logging
 import re
 from collections import namedtuple
@@ -357,7 +359,7 @@ class GtkTreeView(AutopilotGtkEmulatorBase):
         treeviews = []
         # This is going to be slow! but what more can we do? we can't put
         # an in range arg on the select_many call :-(
-        for tree in root.select_many('GtkTreeViewAccessible'):
+        for tree in root.select_many(gtkaccessible.GtkTreeViewAccessible):
             # There will be some tree's that don't have a globalRect property
             # no idea why but we can just ignore them as we can be sure
             # this isn't the one we want.

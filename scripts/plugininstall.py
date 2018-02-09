@@ -21,16 +21,14 @@
 
 from __future__ import print_function
 
-import fcntl
 import gzip
+import io
 import os
 import platform
 import pwd
 import re
 import shutil
-import socket
 import stat
-import struct
 import subprocess
 import sys
 import syslog
@@ -47,15 +45,6 @@ from ubiquity import install_misc, misc, osextras, plugin_manager
 from ubiquity.components import apt_setup, check_kernels, hw_detect
 
 
-INTERFACES_TEXT = """\
-# This file describes the network interfaces available on your system
-# and how to activate them. For more information, see interfaces(5).
-
-# The loopback network interface
-auto lo
-iface lo inet loopback"""
-
-
 HOSTS_TEXT = """\
 
 # The following lines are desirable for IPv6 capable hosts
@@ -64,12 +53,6 @@ fe00::0 ip6-localnet
 ff00::0 ip6-mcastprefix
 ff02::1 ip6-allnodes
 ff02::2 ip6-allrouters"""
-
-
-IFTAB_TEXT = """\
-# This file assigns persistent names to network interfaces.
-# See iftab(5) for syntax.
-"""
 
 
 def cleanup_after(func):
@@ -82,7 +65,7 @@ def cleanup_after(func):
                 self.db.progress('STOP')
             except (KeyboardInterrupt, SystemExit):
                 raise
-            except:
+            except Exception:
                 pass
     return wrapper
 
@@ -105,7 +88,10 @@ class Install(install_misc.InstallBase):
     def __init__(self):
         install_misc.InstallBase.__init__(self)
 
-        self.db = debconf.Debconf()
+        self.db = debconf.Debconf(
+            read=io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8'),
+            write=io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8'))
+
         self.kernel_version = platform.release()
 
         # Get langpacks from install
@@ -218,7 +204,7 @@ class Install(install_misc.InstallBase):
             pass
 
         self.next_region()
-        #self.remove_unusable_kernels()
+        self.remove_unusable_kernels()
 
         self.next_region(size=4)
         self.db.progress('INFO', 'ubiquity/install/hardware')
@@ -231,7 +217,10 @@ class Install(install_misc.InstallBase):
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/installing')
 
-        self.install_extras()
+        if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
+            self.install_oem_extras()
+        else:
+            self.install_extras()
 
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/bootloader')
@@ -249,23 +238,23 @@ class Install(install_misc.InstallBase):
             self.remove_extras()
 
         self.next_region()
+        if 'UBIQUITY_OEM_USER_CONFIG' not in os.environ:
+            self.install_restricted_extras()
 
-        self.install_restricted_extras()
-
-        # self.db.progress('INFO', 'ubiquity/install/apt_clone_restore')
-        # try:
-        #     self.apt_clone_restore()
-        # except:
-        #     syslog.syslog(
-        #         syslog.LOG_WARNING,
-        #         'Could not restore packages from the previous install:')
-        #     for line in traceback.format_exc().split('\n'):
-        #         syslog.syslog(syslog.LOG_WARNING, line)
-        #     self.db.input('critical', 'ubiquity/install/broken_apt_clone')
-        #     self.db.go()
+        self.db.progress('INFO', 'ubiquity/install/apt_clone_restore')
+        try:
+            self.apt_clone_restore()
+        except Exception:
+            syslog.syslog(
+                syslog.LOG_WARNING,
+                'Could not restore packages from the previous install:')
+            for line in traceback.format_exc().split('\n'):
+                syslog.syslog(syslog.LOG_WARNING, line)
+            self.db.input('critical', 'ubiquity/install/broken_apt_clone')
+            self.db.go()
         try:
             self.copy_network_config()
-        except:
+        except Exception:
             syslog.syslog(
                 syslog.LOG_WARNING,
                 'Could not copy the network configuration:')
@@ -275,7 +264,7 @@ class Install(install_misc.InstallBase):
             self.db.go()
         try:
             self.copy_bluetooth_config()
-        except:
+        except Exception:
             syslog.syslog(
                 syslog.LOG_WARNING,
                 'Could not copy the bluetooth configuration:')
@@ -285,14 +274,14 @@ class Install(install_misc.InstallBase):
             self.db.go()
         try:
             self.recache_apparmor()
-        except:
+        except Exception:
             syslog.syslog(
                 syslog.LOG_WARNING, 'Could not create an Apparmor cache:')
             for line in traceback.format_exc().split('\n'):
                 syslog.syslog(syslog.LOG_WARNING, line)
         try:
             self.copy_wallpaper_cache()
-        except:
+        except Exception:
             syslog.syslog(
                 syslog.LOG_WARNING, 'Could not copy wallpaper cache:')
             for line in traceback.format_exc().split('\n'):
@@ -326,7 +315,7 @@ class Install(install_misc.InstallBase):
     def configure_python(self):
         """Byte-compile Python modules.
 
-        To save space, Linux Mint excludes .pyc files from the live filesystem.
+        To save space, Ubuntu excludes .pyc files from the live filesystem.
         Recreate them now to restore the appearance of a system installed
         from .debs.
         """
@@ -446,12 +435,6 @@ class Install(install_misc.InstallBase):
                         os.symlink(linkto, targetpath)
                     else:
                         shutil.copy2(path, targetpath)
-        else:
-            if not os.path.exists('/etc/network/interfaces'):
-                # Make sure there's at least something here so that ifupdown
-                # doesn't get upset at boot.
-                with open('/etc/network/interfaces', 'w') as interfaces:
-                    print(INTERFACES_TEXT, file=interfaces)
 
         try:
             hostname = self.db.get('netcfg/get_hostname')
@@ -462,7 +445,7 @@ class Install(install_misc.InstallBase):
         except debconf.DebconfError:
             domain = ''
         if hostname == '':
-            hostname = 'mint'
+            hostname = 'ubuntu'
 
         with open(self.target_file('etc/hosts'), 'w') as hosts:
             print("127.0.0.1\tlocalhost", file=hosts)
@@ -487,50 +470,6 @@ class Install(install_misc.InstallBase):
             if self.target != '/':
                 shutil.copy2(
                     persistent_net, self.target_file(persistent_net[1:]))
-        else:
-            # TODO cjwatson 2006-03-30: from <bits/ioctls.h>; ugh, but no
-            # binding available
-            SIOCGIFHWADDR = 0x8927
-            # <net/if_arp.h>
-            ARPHRD_ETHER = 1
-
-            if_names = {}
-            sock = socket.socket(socket.SOCK_DGRAM)
-            interfaces = install_misc.get_all_interfaces()
-            for i in range(len(interfaces)):
-                if_names[interfaces[i]] = struct.unpack(
-                    'H6s', fcntl.ioctl(
-                        sock.fileno(), SIOCGIFHWADDR,
-                        struct.pack('256s', interfaces[i].encode()))[16:24])
-            sock.close()
-
-            with open(self.target_file('etc/iftab'), 'w') as iftab:
-                print(IFTAB_TEXT, file=iftab)
-
-                for i in range(len(interfaces)):
-                    dup = False
-
-                    if_name = if_names[interfaces[i]]
-                    if if_name is None or if_name[0] != ARPHRD_ETHER:
-                        continue
-
-                    for j in range(len(interfaces)):
-                        if i == j or if_names[interfaces[j]] is None:
-                            continue
-                        if if_name[1] != if_names[interfaces[j]][1]:
-                            continue
-
-                        if if_names[interfaces[j]][0] == ARPHRD_ETHER:
-                            dup = True
-
-                    if dup:
-                        continue
-
-                    line = (interfaces[i] + " mac " +
-                            ':'.join(['%02x' % if_name[1][c]
-                                      for c in range(6)]))
-                    line += " arp %d" % if_name[0]
-                    print(line, file=iftab)
 
     def run_plugin(self, plugin):
         """Run a single install plugin."""
@@ -813,7 +752,7 @@ class Install(install_misc.InstallBase):
         try:
             if remove_kernels:
                 install_misc.record_removed(remove_kernels, recursive=True)
-        except:
+        except Exception:
             self.db.progress('STOP')
             raise
         self.db.progress('SET', 5)
@@ -1235,22 +1174,22 @@ class Install(install_misc.InstallBase):
     def install_extras(self):
         """Try to install packages requested by installer components."""
         # We only ever install these packages from the CD.
-        # sources_list = self.target_file('etc/apt/sources.list')
-        # os.rename(sources_list, "%s.apt-setup" % sources_list)
-        # with open("%s.apt-setup" % sources_list) as old_sources:
-        #     with open(sources_list, 'w') as new_sources:
-        #         found_cdrom = False
-        #         for line in old_sources:
-        #             if 'cdrom:' in line:
-        #                 print(line, end="", file=new_sources)
-        #                 found_cdrom = True
-        # if not found_cdrom:
-        #     os.rename("%s.apt-setup" % sources_list, sources_list)
+        sources_list = self.target_file('etc/apt/sources.list')
+        os.rename(sources_list, "%s.apt-setup" % sources_list)
+        with open("%s.apt-setup" % sources_list) as old_sources:
+            with open(sources_list, 'w') as new_sources:
+                found_cdrom = False
+                for line in old_sources:
+                    if 'cdrom:' in line:
+                        print(line, end="", file=new_sources)
+                        found_cdrom = True
+        if not found_cdrom:
+            os.rename("%s.apt-setup" % sources_list, sources_list)
 
-        # self.do_install(install_misc.query_recorded_installed())
+        self.do_install(install_misc.query_recorded_installed())
 
-        # if found_cdrom:
-        #     os.rename("%s.apt-setup" % sources_list, sources_list)
+        if found_cdrom:
+            os.rename("%s.apt-setup" % sources_list, sources_list)
 
         # TODO cjwatson 2007-08-09: python reimplementation of
         # oem-config/finish-install.d/07oem-config-user. This really needs
@@ -1258,8 +1197,6 @@ class Install(install_misc.InstallBase):
         # instead.
         try:
             if self.db.get('oem-config/enable') == 'true':
-                oem_pkgs = ['oem-config-gtk']
-                self.do_install(oem_pkgs)
                 if os.path.isdir(self.target_file('home/oem')):
                     with open(self.target_file('home/oem/.hwdb'), 'w'):
                         pass
@@ -1279,6 +1216,13 @@ class Install(install_misc.InstallBase):
                                 '-o', 'oem', '-g', 'oem',
                                 '/%s' % desktop_file,
                                 '/home/oem/Desktop/%s' % desktop_base)
+                            install_misc.chrex(
+                                self.target,
+                                'sudo', '-i', '-u', 'oem',
+                                'dbus-run-session', '--',
+                                'gio', 'set',
+                                '/home/oem/Desktop/%s' % desktop_base,
+                                'metadata::trusted', 'true')
                             break
 
                 # Carry the locale setting over to the installed system.
@@ -1614,14 +1558,13 @@ class Install(install_misc.InstallBase):
 
         # We don't use the copy_network_config casper user trick as it's not
         # ubuntu in install mode.
-        # try:
-        #     casper_user = pwd.getpwuid(999).pw_name
-        # except KeyError:
-        #     # We're on a weird system where the casper user isn't uid 999
-        #     # just stop there
-        #     return
+        try:
+            casper_user = pwd.getpwuid(999).pw_name
+        except KeyError:
+            # We're on a weird system where the casper user isn't uid 999
+            # just stop there
+            return
 
-        casper_user = "mint"
         casper_user_home = os.path.expanduser('~%s' % casper_user)
         casper_user_wallpaper_cache_dir = os.path.join(casper_user_home,
                                                        '.cache', 'wallpaper')

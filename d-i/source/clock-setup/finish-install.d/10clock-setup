@@ -99,23 +99,19 @@ utcfile=/target/etc/default/rcS
 
 db_get clock-setup/utc
 if [ "$RET" = true ]; then
-	sed -i -e 's:^UTC="no":UTC="yes":' -e 's:^UTC=no:UTC=yes:' $utcfile
+	if [ -e "$utcfile" ]; then
+		sed -i -e 's:^UTC="no":UTC="yes":' -e 's:^UTC=no:UTC=yes:' $utcfile
+	fi
 	if [ -e /target/etc/adjtime ]; then
 		sed -i -e 's:^LOCAL$:UTC:' /target/etc/adjtime
 	fi
 	OPT="--utc"
 else
-	sed -i -e 's:^UTC="yes":UTC="no":' -e 's:^UTC=yes:UTC=no:' $utcfile
+	if [ -e "$utcfile" ]; then
+		sed -i -e 's:^UTC="yes":UTC="no":' -e 's:^UTC=yes:UTC=no:' $utcfile
+	fi
 	if [ -e /target/etc/adjtime ]; then
 		sed -i -e 's:^UTC$:LOCAL:' /target/etc/adjtime
-	fi
-	if [ "$(udpkg --print-os)" = linux ]; then
-		cat >/target/etc/e2fsck.conf <<EOF
-[options]
-# This setting is needed when the RTC is set to local time and e2fsck
-# is used in the initramfs (see Debian bug #767040).
-broken_system_clock=1
-EOF
 	fi
 	OPT="--localtime"
 fi

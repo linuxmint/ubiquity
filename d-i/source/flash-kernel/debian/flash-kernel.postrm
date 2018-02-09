@@ -1,0 +1,25 @@
+#!/bin/sh
+
+set -e
+
+case "$1" in
+	purge)
+		rm -f /etc/default/flash-kernel
+
+		if which ucf >/dev/null ; then
+			ucf --purge /etc/default/flash-kernel
+		fi
+		if which ucfr >/dev/null ; then
+			ucfr --purge flash-kernel \
+				/etc/default/flash-kernel || true
+		fi
+		;;
+	remove|upgrade|failed-upgrade|abort-upgrade|abort-install)
+		;;
+	*)
+		echo "postrm called with unknown argument \`$1'" >&2
+		exit 1
+		;;
+esac
+
+#DEBHELPER#

@@ -230,7 +230,7 @@ class _Database(object):
         # one with the same md5sum and make a reference to it
         try:
             return self.tz_to_loc[tz]
-        except:
+        except Exception:
             try:
                 zone_path = os.path.join('/usr/share/zoneinfo', tz)
                 with open(zone_path, 'rb') as tz_file:

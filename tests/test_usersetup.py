@@ -91,6 +91,7 @@ class UserSetupTests(unittest.TestCase):
     def test_unicode(self):
         # i18n needs to be imported to register ascii_transliterate
         from ubiquity import i18n
+        assert i18n  # silence, pyflakes
 
         self.gtk.controller.get_string = mock_get_string
         heart = '♥'

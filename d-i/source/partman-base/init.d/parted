@@ -49,10 +49,8 @@ part_of_multipath() {
 	# The block devices that make up the multipath:
 	# Output looks like "(decoration-symbols) 4:0:0:1 sdc 8:32 ..."
 	# (decoration-symbols are not matched; they may change again, and the spaces differ for last device)
-	# (there is 1 or more spaces between fields if any disk has 4 letters; e.g., sdaa)
 	for mpdev in $(multipath -l | \
-		       grep -o '\([#0-9]\+:\)\{3\}[#0-9]\+ \+[hs]d[a-z]\+ \+[0-9]\+:[0-9]\+' | \
-		       sed 's/  / /' | \
+		       grep -o '\([#0-9]\+:\)\{3\}[#0-9]\+ [hs]d[a-z]\+ [0-9]\+:[0-9]\+' | \
 		       cut -f2 -d' '); do
 		if [ "$(readlink -f /dev/$mpdev)" = $1 ]; then
 			return 0

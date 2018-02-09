@@ -5,8 +5,9 @@ from __future__ import print_function
 import subprocess
 import sys
 
-from PyQt4.QtCore import Qt, QRectF
-from PyQt4.QtGui import QWidget, QFont, QPainter, QPen, QPainterPath, QColor
+from PyQt5.QtCore import Qt, QRectF
+from PyQt5.QtGui import QFont, QPainter, QPen, QPainterPath, QColor
+from PyQt5.QtWidgets import QWidget
 
 IMG_DIR = "/usr/share/ubiquity/qt/images"
 
@@ -273,7 +274,7 @@ class Keyboard(QWidget):
 
 ## testing
 if __name__ == "__main__":
-    from PyQt4.QtGui import QApplication, QVBoxLayout
+    from PyQt5.QtWidgets import QApplication, QVBoxLayout
 
     IMG_DIR = "../../../gui/qt/images"
 

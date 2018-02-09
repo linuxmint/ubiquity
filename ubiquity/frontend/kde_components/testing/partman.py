@@ -3,14 +3,14 @@
 import os
 import sys
 
-from PyQt4 import QtGui
+from PyQt5 import QtWidgets
 
 from ubiquity.frontend.kde_components.PartMan import PartMan
 
 
 if __name__ == "__main__":
 
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Oxygen")
 
     PartMan._uidir = '../../../../gui/qt'

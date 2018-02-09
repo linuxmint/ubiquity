@@ -1,0 +1,42 @@
+#!/bin/sh
+# most bootloaders that read the filesysm do support /boot on
+# btrfs. Some are known not to work, e.g. zipl on s390x. Detect and
+# warn.
+
+. /lib/partman/lib/base.sh
+
+ARCH="$(archdetect)"
+case $ARCH in
+    s390x/*)
+        ;;
+    *)
+        exit 0
+        ;;
+esac
+
+get_btrfs_root_boot () {
+	(for i in /lib/partman/fstab.d/*; do
+		[ -x "$i" ] || continue
+		$i
+	done) |
+	while read fs mp type options dump pass; do
+		if [ "$mp" = / ]; then
+			echo root_type=$type
+		elif [ "$mp" = /boot ]; then
+			echo boot_type=$type
+		fi
+	done
+}
+eval "$(get_btrfs_root_boot)"
+
+if [ "$boot_type" = btrfs ]; then
+	db_input critical partman-btrfs/btrfs_boot || true
+	db_go || exit 1
+	exit 1
+fi
+
+if [ "$boot_type" = "" ] && [ "$root_type" = btrfs ]; then
+	db_input critical partman-btrfs/btrfs_root || true
+	db_go || exit 1
+	exit 1
+fi

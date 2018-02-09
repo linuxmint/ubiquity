@@ -75,7 +75,7 @@ module_probe() {
 	local olddevs=""
 	local newdev=""
 	
-	if ! log-output -t disk-detect modprobe -v "$module"; then
+	if ! log-output -t disk-detect modprobe -v -b "$module"; then
 		# Prompt the user for parameters for the module.
 		local template="hw-detect/retry_params"
 		local question="$template/$module"
@@ -88,9 +88,9 @@ module_probe() {
 		local params="$RET"
 
 		if [ -n "$params" ]; then
-			if ! log-output -t disk-detect modprobe -v "$module" $params; then
+			if ! log-output -t disk-detect modprobe -v -b "$module" $params; then
 				db_unregister "$question"
-				db_subst hw-detect/modprobe_error CMD_LINE_PARAM "modprobe -v $module $params"
+				db_subst hw-detect/modprobe_error CMD_LINE_PARAM "modprobe -v -b $module $params"
 				db_input critical hw-detect/modprobe_error || [ $? -eq 30 ]
 				db_go
 				false
@@ -228,7 +228,7 @@ if anna-install mdadm-udeb; then
 	mkdir -p /dev/md
 	depmod -a >/dev/null 2>&1
 	for mod in dm-mod md-mod linear multipath raid0 raid1 raid456 raid5 raid6 raid10; do
-		modprobe $mod >/dev/null 2>&1 || true
+		modprobe -b $mod >/dev/null 2>&1 || true
 	done
 	if mdadm --examine --scan | grep -q container ; then
 		logger -t disk-detect "MDADM container(s) detected. (Intel/DDF RAID)"
@@ -294,8 +294,9 @@ if [ "$RET" = true ]; then
 		if ! dmsetup targets | cut -d' ' -f1 | grep -q '^multipath$'; then
 			module_probe dm-multipath || true
 		fi
-		# No way to check whether this is loaded already?
-		log-output -t disk-detect modprobe -v dm-round-robin || true
+		log-output -t disk-detect modprobe -v -b dm-round-robin || true
+		log-output -t disk-detect modprobe -v -b dm-service-time || true
+		log-output -t disk-detect modprobe -v -b dm-queue-length || true
 
 		# ensure multipath and sg3 udev rules are run before we probe.
 		if [ -x /bin/udevadm ]; then

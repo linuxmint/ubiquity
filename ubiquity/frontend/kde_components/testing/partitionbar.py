@@ -2,17 +2,17 @@
 
 import sys
 
-from PyQt4 import QtGui
+from PyQt5 import QtWidgets
 
 from ubiquity.frontend.kde_components.PartitionBar import PartitionsBar
 
 
 if __name__ == "__main__":
-    app = QtGui.QApplication(sys.argv)
-    QtGui.QApplication.setStyle("Oxygen")
+    app = QtWidgets.QApplication(sys.argv)
+    QtWidgets.QApplication.setStyle("Oxygen")
 
-    wid = QtGui.QWidget()
-    layout = QtGui.QVBoxLayout(wid)
+    wid = QtWidgets.QWidget()
+    layout = QtWidgets.QVBoxLayout(wid)
 
     pb1 = PartitionsBar(wid)
     layout.addWidget(pb1)
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     pb2.addPartition("/dev/sdb2", 20000, "ext3")
     pb2.addPartition("/dev/sdb3", 30000, "fat32")
     pb2.addPartition("/dev/sdb4", 50000, "ntfs")
-    pb2.setResizePartition('/dev/sdb2', 5000, 15000, 20000, 'Linux Mint')
+    pb2.setResizePartition('/dev/sdb2', 5000, 15000, 20000, 'Kubuntu')
 
     pb2 = PartitionsBar(wid)
     layout.addWidget(pb2)

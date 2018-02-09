@@ -2,8 +2,8 @@
 
 import os
 
-from PyQt4 import uic
-from PyQt4 import QtGui
+from PyQt5 import uic
+from PyQt5 import QtGui, QtWidgets
 
 from ubiquity import i18n, misc
 from ubiquity.frontend.kde_components.PartitionBar import PartitionsBar
@@ -20,14 +20,14 @@ def get_string(name, lang=None, prefix=None):
 
 
 def addBars(parent, before_bar, after_bar):
-    frame = QtGui.QWidget(parent)
-    frame.setLayout(QtGui.QVBoxLayout())
+    frame = QtWidgets.QWidget(parent)
+    frame.setLayout(QtWidgets.QVBoxLayout())
     frame.layout().setSpacing(0)
 
-    frame.layout().addWidget(QtGui.QLabel(
+    frame.layout().addWidget(QtWidgets.QLabel(
         get_string('ubiquity/text/partition_layout_before')))
     frame.layout().addWidget(before_bar)
-    frame.layout().addWidget(QtGui.QLabel(
+    frame.layout().addWidget(QtWidgets.QLabel(
         get_string('ubiquity/text/partition_layout_after')))
     frame.layout().addWidget(after_bar)
 
@@ -35,17 +35,17 @@ def addBars(parent, before_bar, after_bar):
     return frame
 
 
-class PartAuto(QtGui.QWidget):
+class PartAuto(QtWidgets.QWidget):
 
     def __init__(self, controller):
-        QtGui.QWidget.__init__(self)
+        QtWidgets.QWidget.__init__(self)
         self.controller = controller
 
         uic.loadUi(os.path.join(_uidir, 'stepPartAuto.ui'), self)
 
         self.diskLayout = None
 
-        self.autopartition_buttongroup = QtGui.QButtonGroup(self)
+        self.autopartition_buttongroup = QtWidgets.QButtonGroup(self)
         self.autopartition_buttongroup.buttonClicked[int].connect(
             self.on_button_toggled)
         self.part_auto_disk_box.currentIndexChanged[int].connect(
@@ -81,12 +81,12 @@ class PartAuto(QtGui.QWidget):
 
         # remove any previous autopartition selections
         for child in self.autopart_selection_frame.children():
-            if isinstance(child, QtGui.QWidget):
+            if isinstance(child, QtWidgets.QWidget):
                 child.setParent(None)
                 del child
 
         for child in self.barsFrame.children():
-            if isinstance(child, QtGui.QWidget):
+            if isinstance(child, QtWidgets.QWidget):
                 self.barsFrame.layout().removeWidget(child)
                 child.setParent(None)
                 del child
@@ -95,7 +95,7 @@ class PartAuto(QtGui.QWidget):
 
         bId = 0
         if 'resize' in extra_options:
-            button = QtGui.QRadioButton(
+            button = QtWidgets.QRadioButton(
                 self.resizeChoice, self.autopart_selection_frame)
             self.autopart_selection_frame.layout().addWidget(button)
             self.autopartition_buttongroup.addButton(button, bId)
@@ -112,8 +112,8 @@ class PartAuto(QtGui.QWidget):
                 for text, path in extra_options['use_device'][1].items():
                     path = path[0]
                     if path.rsplit('/', 1)[1] == disk_id:
-                        bar_frame = QtGui.QFrame()
-                        bar_frame.setLayout(QtGui.QVBoxLayout())
+                        bar_frame = QtWidgets.QFrame()
+                        bar_frame.setLayout(QtWidgets.QVBoxLayout())
                         bar_frame.setVisible(False)
                         bar_frame.layout().setSpacing(0)
                         self.barsFrame.layout().addWidget(bar_frame)
@@ -140,7 +140,7 @@ class PartAuto(QtGui.QWidget):
         # TODO biggest_free_choice
 
         # Use entire disk.
-        button = QtGui.QRadioButton(
+        button = QtWidgets.QRadioButton(
             self.useDeviceChoice, self.autopart_selection_frame)
         self.autopartitionTexts.append(self.useDeviceChoice)
         self.autopart_selection_frame.layout().addWidget(button)
@@ -151,8 +151,8 @@ class PartAuto(QtGui.QWidget):
         disks = []
         for text, path in extra_options['use_device'][1].items():
             path = path[0]
-            bar_frame = QtGui.QFrame()
-            bar_frame.setLayout(QtGui.QVBoxLayout())
+            bar_frame = QtWidgets.QFrame()
+            bar_frame.setLayout(QtWidgets.QVBoxLayout())
             bar_frame.setVisible(False)
             bar_frame.layout().setSpacing(0)
             self.barsFrame.layout().addWidget(bar_frame)
@@ -176,7 +176,7 @@ class PartAuto(QtGui.QWidget):
         self.disks.append(disks)
 
         # LVM
-        button = QtGui.QRadioButton(
+        button = QtWidgets.QRadioButton(
             self.lvm_choice, self.autopart_selection_frame)
         self.autopartitionTexts.append(self.lvm_choice)
         self.autopart_selection_frame.layout().addWidget(button)
@@ -187,7 +187,7 @@ class PartAuto(QtGui.QWidget):
         self.disks.append(disks)
 
         # Crypto
-        button = QtGui.QRadioButton(
+        button = QtWidgets.QRadioButton(
             self.crypto_choice, self.autopart_selection_frame)
         self.autopartitionTexts.append(self.crypto_choice)
         self.autopart_selection_frame.layout().addWidget(button)
@@ -198,23 +198,23 @@ class PartAuto(QtGui.QWidget):
         # add use entire disk options to combobox again
         self.disks.append(disks)
 
-        box = QtGui.QHBoxLayout()
+        box = QtWidgets.QHBoxLayout()
         box.addStretch()
         self.autopart_selection_frame.layout().addLayout(box)
 
-        self.passwordIcon = QtGui.QLabel()
+        self.passwordIcon = QtWidgets.QLabel()
         self.passwordIcon.setPixmap(QtGui.QPixmap(
             "/usr/share/icons/oxygen/16x16/status/dialog-password.png"))
         box.addWidget(self.passwordIcon)
-        self.password = QtGui.QLineEdit()
-        self.password.setEchoMode(QtGui.QLineEdit.Password)
+        self.password = QtWidgets.QLineEdit()
+        self.password.setEchoMode(QtWidgets.QLineEdit.Password)
         self.password.textChanged.connect(self.verify_password)
         box.addWidget(self.password)
-        self.verified_password = QtGui.QLineEdit()
-        self.verified_password.setEchoMode(QtGui.QLineEdit.Password)
+        self.verified_password = QtWidgets.QLineEdit()
+        self.verified_password.setEchoMode(QtWidgets.QLineEdit.Password)
         self.verified_password.textChanged.connect(self.verify_password)
         box.addWidget(self.verified_password)
-        self.badPassword = QtGui.QLabel()
+        self.badPassword = QtWidgets.QLabel()
         self.badPassword.setPixmap(QtGui.QPixmap(
             "/usr/share/icons/oxygen/16x16/status/dialog-warning.png"))
         self.badPassword.hide()
@@ -222,7 +222,7 @@ class PartAuto(QtGui.QWidget):
 
         # Manual partitioning.
 
-        button = QtGui.QRadioButton(
+        button = QtWidgets.QRadioButton(
             manual_choice, self.autopart_selection_frame)
         self.autopartitionTexts.append(manual_choice)
         self.autopart_selection_frame.layout().addWidget(button)

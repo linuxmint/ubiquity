@@ -22,13 +22,17 @@ adjtimefile=/etc/adjtime
 db_get clock-setup/utc
 for root in $roots; do
 	if [ "$RET" = true ]; then
-		sed -i -e 's:^UTC="no":UTC="yes":' -e 's:^UTC=no:UTC=yes:' $root$utcfile
+		if [ -e "$root$utcfile" ]; then
+			sed -i -e 's:^UTC="no":UTC="yes":' -e 's:^UTC=no:UTC=yes:' $root$utcfile
+		fi
 		if [ -e "$root$adjtimefile" ]; then
 			sed -i -e 's:^LOCAL:UTC:' $root$adjtimefile
 		fi
 		UTC='--utc'
 	else
-		sed -i -e 's:^UTC="yes":UTC="no":' -e 's:^UTC=yes:UTC=no:' $root$utcfile
+		if [ -e "$root$utcfile" ]; then
+			sed -i -e 's:^UTC="yes":UTC="no":' -e 's:^UTC=yes:UTC=no:' $root$utcfile
+		fi
 		if [ -e "$root$adjtimefile" ]; then
 			sed -i -e 's:^UTC:LOCAL:' $root$adjtimefile
 		fi

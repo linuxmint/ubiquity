@@ -62,7 +62,7 @@ class PreparePageBase(plugin.PluginUI):
 
 
 class PageGtk(PreparePageBase):
-    restricted_package_name = 'mint-meta-codecs'
+    restricted_package_name = 'ubuntu-restricted-addons'
 
     def __init__(self, controller, *args, **kwargs):
         if self.is_automatic:
@@ -124,7 +124,9 @@ class PageGtk(PreparePageBase):
     def set_using_secureboot(self, secureboot):
         self.using_secureboot = secureboot
         self.secureboot_box.set_visible(secureboot)
+        self.disable_secureboot.set_active(True)
         self.on_nonfree_toggled(None)
+        self.info_loop(None)
 
     def enable_download_updates(self, val):
         if (val):
@@ -174,6 +176,7 @@ class PageGtk(PreparePageBase):
     def on_nonfree_toggled(self, widget):
         enabled = self.get_use_nonfree()
         self.secureboot_box.set_sensitive(enabled)
+        self.info_loop(None)
 
     def on_secureboot_toggled(self, widget):
         enabled = self.get_disable_secureboot()
@@ -181,6 +184,11 @@ class PageGtk(PreparePageBase):
         self.info_loop(None)
 
     def info_loop(self, unused_widget):
+        if not self.get_use_nonfree() \
+                or not self.password_grid.get_sensitive():
+            self.controller.allow_go_forward(True)
+            return True
+
         complete = False
         passw = self.password.get_text()
         vpassw = self.verified_password.get_text()
@@ -195,7 +203,10 @@ class PageGtk(PreparePageBase):
             self.password_strength.set_current_page(
                 self.password_strength_pages['too_short'])
 
-        if passw != vpassw or (passw and len(passw) < 8):
+        if len(passw) == 0 or len(vpassw) == 0:
+            self.password_match.set_current_page(
+                self.password_match_pages['empty'])
+        elif passw != vpassw or (passw and len(passw) < 8):
             self.password_match.set_current_page(
                 self.password_match_pages['empty'])
             if len(passw) >= 8 and (not passw.startswith(vpassw) or
@@ -232,7 +243,7 @@ class PageGtk(PreparePageBase):
 
 class PageKde(PreparePageBase):
     plugin_breadcrumb = 'ubiquity/text/breadcrumb_prepare'
-    restricted_package_name = 'mint-meta-codecs-kde'
+    restricted_package_name = 'kubuntu-restricted-addons'
 
     def __init__(self, controller, *args, **kwargs):
         from ubiquity.qtwidgets import StateBox
@@ -241,8 +252,8 @@ class PageKde(PreparePageBase):
             return
         self.controller = controller
         try:
-            from PyQt4 import uic
-            from PyQt4 import QtGui
+            from PyQt5 import uic
+            from PyQt5 import QtGui
             self.page = uic.loadUi('/usr/share/ubiquity/qt/stepPrepare.ui')
             self.prepare_download_updates = self.page.prepare_download_updates
             self.prepare_nonfree_software = self.page.prepare_nonfree_software
@@ -258,9 +269,6 @@ class PageKde(PreparePageBase):
                 "/usr/share/icons/oxygen/16x16/status/dialog-warning.png"))
             # TODO we should set these up and tear them down while on this
             # page.
-            self.prepare_download_updates.setVisible(False)
-            # self.prepare_nonfree_software.setVisible(False)
-            self.prepare_foss_disclaimer.setVisible(False)
             try:
                 self.prepare_power_source = StateBox(self.page)
                 if upower.has_battery():
@@ -282,11 +290,10 @@ class PageKde(PreparePageBase):
         self.plugin_widgets = self.page
 
     def show_insufficient_space_page(self, required, free):
-        from PyQt4 import QtGui
-        dialog = QtGui.QMessageBox(self.page)
-        dialog.setText(required)
-        dialog.setDetailedText(free)
-        dialog.exec_()
+        from PyQt5 import QtWidgets
+        QtWidgets.QMessageBox.critical(self.page,
+                                       free,
+                                       required)
         sys.exit(1)
         return
 
@@ -327,7 +334,7 @@ class PageKde(PreparePageBase):
         self.prepare_download_updates.setChecked(val)
 
     def get_download_updates(self):
-        from PyQt4.QtCore import Qt
+        from PyQt5.QtCore import Qt
         return self.prepare_download_updates.checkState() == Qt.Checked
 
     def set_allow_nonfree(self, allow):
@@ -344,7 +351,7 @@ class PageKde(PreparePageBase):
             self.set_allow_nonfree(False)
 
     def get_use_nonfree(self):
-        from PyQt4.QtCore import Qt
+        from PyQt5.QtCore import Qt
         return self.prepare_nonfree_software.checkState() == Qt.Checked
 
     def plugin_translate(self, lang):
@@ -359,7 +366,7 @@ class PageKde(PreparePageBase):
         for widget in widgets:
             text = widget.text()
             text = text.replace('${RELEASE}', release.name)
-            text = text.replace('Linux Mint', 'Linux Mint')
+            text = text.replace('Ubuntu', 'Kubuntu')
             widget.setText(text)
 
 

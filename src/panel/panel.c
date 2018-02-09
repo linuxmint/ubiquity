@@ -290,11 +290,14 @@ on_draw(GtkWidget *widget, cairo_t *cr, gpointer userdata) {
 		pixbuf = gdk_pixbuf_new_from_file("/usr/share/themes/Greybird/ubiquity-panel-bg.png", NULL);
 	}
 	if (!pixbuf) {
+		pixbuf = gdk_pixbuf_new_from_file("/usr/share/budgie-desktop/ubiquity-panel-bg.png", NULL);
+	}
+	if (!pixbuf) {
 		pixbuf = gdk_pixbuf_new_from_file("/usr/share/ubiquity/pixmaps/panel.png", NULL);
 	}
 	if (pixbuf) {
 		gdk_cairo_set_source_pixbuf(cr, pixbuf, 0, 0);
-		cairo_pattern_set_extend(cairo_get_source(cr), CAIRO_EXTEND_REPEAT);
+		cairo_pattern_set_extend(cairo_get_source(cr), CAIRO_EXTEND_PAD);
 		cairo_paint(cr);
 		g_object_unref(pixbuf);
 	} else {

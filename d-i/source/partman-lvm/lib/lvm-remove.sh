@@ -102,16 +102,25 @@ device_remove_lvm() {
 	for vg in $vgs; do
 		# Remove LVs from the VG
 		for lv in $(vg_list_lvs $vg); do
-			lv_delete $vg $lv
+			if ! lv_delete $vg $lv; then
+				db_subst partman-lvm/lvdelete_error VG $vg
+				db_subst partman-lvm/lvdelete_error LV $lv
+				db_input critical partman-lvm/lvdelete_error
+				db_go || true
+				return 2
+			fi
 		done
 
 		# Remove the VG
-		vg_delete $vg
+		if ! vg_delete $vg; then
+			return 2
+		fi
 	done
 	# Remove the PVs and unlock the devices
 	for pv in $pvs; do
-		pv_delete $pv
-		partman_unlock_unit $pv
+		if pv_delete $pv; then
+			partman_unlock_unit $pv
+		fi
 	done
 
 	# Make sure that parted has no stale LVM info

@@ -43,10 +43,10 @@ if [ -z "$RET" ]; then
 	if $NM_IS_INSTALLED; then
 		db_set netcfg/target_network_config $CONFIG_NM
 	else
-		if [ "$NETCFG_CONNECTION_TYPE" = "wired" ]; then
-			db_set netcfg/target_network_config $CONFIG_INTERFACES
-		else # wireless
+		if [ "$NETCFG_CONNECTION_TYPE" = "wireless" ]; then
 			db_set netcfg/target_network_config $CONFIG_LOOPBACK
+		else # vlan/wired
+			db_set netcfg/target_network_config $CONFIG_INTERFACES
 		fi
 	fi
 fi
@@ -58,6 +58,14 @@ case $RET in
 	# Copy NM config file. First make sure the directory exists
 	mkdir -p /target/$FILE_PATH_NM_CONFIG
 	cp /$FILE_PATH_NM_CONFIG/* /target/$FILE_PATH_NM_CONFIG/
+
+	# Write netplan config file to hand over management to NM
+	cat <<EOF > /target/etc/netplan/01-network-manager-all.yaml
+# Let NetworkManager manage all devices on this system
+network:
+  version: 2
+  renderer: NetworkManager
+EOF
 
 	# Rewrite /etc/network/interfaces to contain only loopback
 	netcfg write_loopback

@@ -35,7 +35,7 @@ WEIGHT = 10
 try:
     import lsb_release
     _ver = lsb_release.get_distro_information()['RELEASE']
-except:
+except Exception:
     _ver = '12.04'
 _wget_url = 'http://changelogs.ubuntu.com/ubiquity/%s-update-available' % _ver
 
@@ -91,7 +91,7 @@ class PageGtk(PageBase):
             builder.get_object('oem_id_vbox').show()
 
         self.release_notes_url = ''
-        self.update_installer = False
+        self.update_installer = True
         self.updating_installer = False
         self.release_notes_label = builder.get_object('release_notes_label')
         self.release_notes_found = False
@@ -106,7 +106,7 @@ class PageGtk(PageBase):
                 self.release_notes_found = True
             except (KeyboardInterrupt, SystemExit):
                 raise
-            except:
+            except Exception:
                 pass
         self.install_ubuntu = builder.get_object('install_ubuntu')
         self.try_ubuntu = builder.get_object('try_ubuntu')
@@ -249,7 +249,7 @@ class PageGtk(PageBase):
         release = misc.get_release()
         install_medium = misc.get_install_medium()
         install_medium = i18n.get_string(install_medium, lang)
-        # Set the release name (Linux Mint 10.04) and medium (USB or CD) where
+        # Set the release name (Ubuntu 10.04) and medium (USB or CD) where
         # necessary.
         w = self.try_install_text_label
         text = i18n.get_string(Gtk.Buildable.get_name(w), lang)
@@ -394,8 +394,9 @@ class PageKde(PageBase):
             self.only = False
 
         try:
-            from PyQt4 import uic
-            from PyQt4.QtGui import QWidget, QPixmap, QIcon
+            from PyQt5 import uic
+            from PyQt5.QtGui import QPixmap, QIcon
+            from PyQt5.QtWidgets import QWidget
             self.page = uic.loadUi('/usr/share/ubiquity/qt/stepLanguage.ui')
             self.combobox = self.page.language_combobox
             # Tell layout that all items are of uniform sizes
@@ -435,7 +436,7 @@ class PageKde(PageBase):
                 self.release_notes_found = True
             except (KeyboardInterrupt, SystemExit):
                 raise
-            except:
+            except Exception:
                 pass
 
             if self.release_notes_url:
@@ -495,8 +496,8 @@ class PageKde(PageBase):
             self.updating_installer = False
 
     def openURL(self, url):
-        from PyQt4.QtGui import QDesktopServices
-        from PyQt4.QtCore import QUrl
+        from PyQt5.QtGui import QDesktopServices
+        from PyQt5.QtCore import QUrl
         import shutil
         import os
 
@@ -556,7 +557,7 @@ class PageKde(PageBase):
                 text = widget.text()
                 text = text.replace('${RELEASE}', release.name)
                 text = text.replace('${MEDIUM}', install_medium)
-                text = text.replace('Linux Mint', 'Linux Mint')
+                text = text.replace('Ubuntu', 'Kubuntu')
                 widget.setText(text)
 
         self.update_release_notes_label()
@@ -565,21 +566,19 @@ class PageKde(PageBase):
         self.widgetHidden = []
 
     def plugin_set_online_state(self, state):
-        from PyQt4.QtCore import QTimer, SIGNAL
+        from PyQt5.QtCore import QTimer
         if self.page.release_notes_label:
             if state:
                 self.page.release_notes_label.show()
                 QTimer.singleShot(300, self.check_returncode)
                 self.timer = QTimer(self.page)
-                self.timer.connect(
-                    self.timer, SIGNAL("timeout()"), self.check_returncode)
+                self.timer.timeout.connect(self.check_returncode)
                 self.timer.start(300)
             else:
                 self.page.release_notes_label.hide()
 
     def check_returncode(self, *args):
         import subprocess
-        from PyQt4.QtCore import SIGNAL
         if self.wget_retcode is not None or self.wget_proc is None:
             self.wget_proc = subprocess.Popen(
                 ['wget', '-q', _wget_url, '--timeout=15', '--tries=1',
@@ -593,8 +592,7 @@ class PageKde(PageBase):
             else:
                 self.update_installer = False
             self.update_release_notes_label()
-            self.timer.disconnect(
-                self.timer, SIGNAL("timeout()"), self.check_returncode)
+            self.timer.timeout.disconnect(self.check_returncode)
 
     def update_release_notes_label(self):
         lang = self.selected_language()

@@ -240,6 +240,8 @@ is_wholedisk_mdraid () {
 		case "$d" in
 			dm-*|md*)
 				;;
+			*/nvme*)
+				;;
 			*p[0-9]|*p[0-9][0-9])
 				ret=1
 				break

@@ -22,6 +22,7 @@ fi
 if [ -x /lib/userdevfs/update-dev ]; then
        /lib/userdevfs/update-dev
 elif type udevadm >/dev/null 2>&1; then
+	udevadm control --reload
 	if $TRIGGER; then
 		udevadm trigger --action=add --subsystem-nomatch=sound --subsystem-nomatch=power_supply
 	fi

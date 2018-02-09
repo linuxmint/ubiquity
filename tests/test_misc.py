@@ -16,7 +16,7 @@ from ubiquity import misc
 _proc_swaps = [
     'Filename\t\t\t\tType\t\tSize\tUsed\tPriority',
     '/dev/sda5                               partition\t1046524\t56160\t-1']
-_disk_info = ('Linux Mint-Server 10.04.1 LTS _Lucid Lynx_ '
+_disk_info = ('Ubuntu-Server 10.04.1 LTS _Lucid Lynx_ '
               '- Release i386 (20100816.2)')
 _proc_mounts = [
     'rootfs / rootfs rw 0 0',
@@ -100,14 +100,14 @@ class MiscTests(unittest.TestCase):
         mock_open.return_value = magic
         magic.readline.return_value = _disk_info
         release = misc.get_release()
-        self.assertEqual(release.name, 'Linux Mint Server')
+        self.assertEqual(release.name, 'Ubuntu Server')
         self.assertEqual(release.version, '10.04.1 LTS')
 
     @mock.patch('builtins.open')
     def test_get_release_fail(self, mock_open):
         mock_open.side_effect = Exception('Pow!')
         release = misc.get_release()
-        self.assertEqual(release.name, 'Linux Mint')
+        self.assertEqual(release.name, 'Ubuntu')
         self.assertEqual(release.version, '')
 
     # @mock.patch('os.path.exists')
@@ -186,19 +186,6 @@ class MiscTests(unittest.TestCase):
             mock_set_list.call_args[0][0], 'org.gnome.libgnomekbd.keyboard')
         self.assertEqual(mock_set_list.call_args[0][1], 'layouts')
         self.assertIn('se\tdvorak', mock_set_list.call_args[0][2])
-
-    @mock.patch('ubiquity.gsettings.set_list')
-    @mock.patch('ubiquity.misc.execute')
-    def test_set_indicator_keymaps_ta(self, mock_execute, mock_set_list):
-        misc.set_indicator_keymaps('ta')
-        self.assertEqual(mock_execute.call_count, 1)
-        self.assertEqual(mock_execute.call_args[0][0], 'setxkbmap')
-        self.assertEqual(mock_set_list.call_count, 1)
-        self.assertEqual(
-            mock_set_list.call_args[0][0], 'org.gnome.libgnomekbd.keyboard')
-        self.assertEqual(mock_set_list.call_args[0][1], 'layouts')
-        self.assertEqual('in\ttam', mock_set_list.call_args[0][2][0])
-        self.assertEqual(len(mock_set_list.call_args[0][2]), 4)
 
     @mock.patch('ubiquity.gsettings.set_list')
     @mock.patch('ubiquity.misc.execute')
@@ -438,4 +425,3 @@ class GrubDefaultTests(unittest.TestCase):
 
 if __name__ == '__main__':
     run_unittest(MiscTests, PrivilegeTests, GrubDefaultTests)
-    pass

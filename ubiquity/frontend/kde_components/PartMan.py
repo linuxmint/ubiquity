@@ -2,8 +2,8 @@
 
 import os
 
-from PyQt4 import uic
-from PyQt4 import QtGui
+from PyQt5 import uic
+from PyQt5 import QtWidgets
 
 from ubiquity.frontend.kde_components.PartitionBar import PartitionsBar
 from ubiquity.frontend.kde_components.PartitionModel import PartitionModel
@@ -18,10 +18,10 @@ PARTITION_PLACE_BEGINNING = 0
 PARTITION_PLACE_END = 1
 
 
-class PartMan(QtGui.QWidget):
+class PartMan(QtWidgets.QWidget):
 
     def __init__(self, controller):
-        QtGui.QWidget.__init__(self)
+        QtWidgets.QWidget.__init__(self)
         self.ctrlr = controller
 
         self.edit_use_method_names = {}
@@ -53,7 +53,7 @@ class PartMan(QtGui.QWidget):
         self.partition_tree_model.clear()
 
         for child in self.part_advanced_bar_frame.children():
-            if isinstance(child, QtGui.QWidget):
+            if isinstance(child, QtWidgets.QWidget):
                 child.setParent(None)
                 del child
 
@@ -143,7 +143,7 @@ class PartMan(QtGui.QWidget):
         # lazy initialization
         dialog = self.create_dialog
         if not dialog:
-            self.create_dialog = QtGui.QDialog(self)
+            self.create_dialog = QtWidgets.QDialog(self)
             dialog = self.create_dialog
             uic.loadUi("%s/partition_create_dialog.ui" % _uidir, dialog)
             dialog.partition_create_use_combo.currentIndexChanged[int].connect(
@@ -198,7 +198,7 @@ class PartMan(QtGui.QWidget):
             dialog.partition_create_mount_combo.addItem(mp)
         dialog.partition_create_mount_combo.clearEditText()
 
-        if dialog.exec_() == QtGui.QDialog.Accepted:
+        if dialog.exec_() == QtWidgets.QDialog.Accepted:
             if partition['parted']['type'] == 'primary':
                 prilog = PARTITION_TYPE_PRIMARY
             elif partition['parted']['type'] == 'logical':
@@ -254,7 +254,7 @@ class PartMan(QtGui.QWidget):
         # lazy loading
         dialog = self.edit_dialog
         if not dialog:
-            self.edit_dialog = QtGui.QDialog(self)
+            self.edit_dialog = QtWidgets.QDialog(self)
             dialog = self.edit_dialog
             uic.loadUi("%s/partition_edit_dialog.ui" % _uidir, dialog)
             dialog.partition_edit_use_combo.currentIndexChanged[int].connect(
@@ -334,7 +334,7 @@ class PartMan(QtGui.QWidget):
                 dialog.partition_edit_mount_combo.setCurrentIndex(
                     dialog.partition_edit_mount_combo.count() - 1)
 
-        if (dialog.exec_() == QtGui.QDialog.Accepted):
+        if (dialog.exec_() == QtWidgets.QDialog.Accepted):
             size = None
             if current_size is not None:
                 size = str(dialog.partition_edit_size_spinbutton.value())

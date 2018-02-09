@@ -1,0 +1,57 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+file="$1"
+
+chroot=
+if [ "$ROOT" ]; then
+	chroot=chroot
+fi
+
+i=0
+while db_get "apt-setup/local$i/repository" && [ "$RET" ]; do
+	repository="${RET#deb }"
+	comment=
+	if db_get "apt-setup/local$i/comment"; then
+		comment="$RET"
+	fi
+	key=
+	if db_get "apt-setup/local$i/key"; then
+		key="$RET"
+	fi
+	echo >> $file
+	if [ -n "$comment" ]; then
+		echo "## $comment" >> $file
+	fi
+	echo "deb $repository" >> $file
+	# if true, add a line for deb-src
+	if db_get "apt-setup/local$i/source" && [ "$RET" = true ]; then
+		echo "deb-src $repository" >> $file
+	fi
+	if [ -n "$key" ]; then
+		# fetch the key
+		while :; do
+			if fetch-url "$key" "$ROOT/tmp/key$i.pub"; then
+				# add it to the keyring
+				$chroot $ROOT apt-key add "/tmp/key$i.pub"
+				rm -f "$ROOT/tmp/key$i.pub"
+				break
+			else
+				db_subst apt-setup/local/key-error MIRROR "${repository%% *}"
+				db_subst apt-setup/local/key-error URL "$key"
+				db_set apt-setup/local/key-error Retry
+				db_input critical apt-setup/local/key-error || true
+				db_go || exit 10
+				db_get apt-setup/local/key-error
+				if [ "$RET" = Ignore ]; then
+					break
+				fi
+			fi
+		done
+	fi
+	i="$(($i + 1))"
+done
+
+exit 0

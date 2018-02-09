@@ -364,7 +364,7 @@ class DebconfInstallProgress(InstallProgress):
                         os._exit(0)
             except (KeyboardInterrupt, SystemExit):
                 pass  # we're going to exit anyway
-            except:
+            except Exception:
                 for line in traceback.format_exc().split('\n'):
                     syslog.syslog(syslog.LOG_WARNING, line)
             os._exit(0)
@@ -489,7 +489,7 @@ def is_secure_boot():
         if len(secureboot) > 0:
             return (int(secureboot) == 1)
         return False
-    except:
+    except Exception:
         return False
 
 

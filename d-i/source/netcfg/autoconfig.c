@@ -354,7 +354,7 @@ static int netcfg_dhcpv6(struct debconfclient *client, struct netcfg_interface *
 			ns_idx++;
 		} else if (!strncmp("NTP server[", l, 11) && ntp_idx < NETCFG_NTPSERVERS_MAX) {
 			p = strstr(l, "] ") + 2;
-			strncpy(interface->ntp_servers[ns_idx++], p, sizeof(interface->ntp_servers[ntp_idx]));
+                       strncpy(interface->ntp_servers[ntp_idx], p, sizeof(interface->ntp_servers[ntp_idx]));
 			ntp_idx++;
 		} else if (!strncmp("Domain search list[0] ", l, 21)) {
 			p = strstr(l, "] ") + 2;

@@ -460,7 +460,7 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         get_release = mock.patch('ubiquity.misc.get_release')
         get_release.start()
         self.addCleanup(get_release.stop)
-        self.release = misc.ReleaseInfo('Linux Mint', '11.04')
+        self.release = misc.ReleaseInfo('Ubuntu', '11.04')
         misc.get_release.return_value = self.release
 
         # Don't cache descriptions.
@@ -535,9 +535,9 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         self.assertIn('manual', options)
         self.assertCountEqual(self.manual, options['manual'])
 
-    # 'This computer currently has Linux Mint 10.04 on it.'
+    # 'This computer currently has Ubuntu 10.04 on it.'
     def test_older_ubuntu_only(self):
-        operating_system = 'Linux Mint 10.04'
+        operating_system = 'Ubuntu 10.04'
         operating_version = '10.04'
 
         def side_effect(*args, **kwargs):
@@ -593,9 +593,9 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         self.assertIn('reuse', options)
         self.assertCountEqual(reuse, options['reuse'])
 
-    # 'This computer currently has Linux Mint 12.04 on it.'
+    # 'This computer currently has Ubuntu 12.04 on it.'
     def test_same_ubuntu_only(self):
-        operating_system = 'Linux Mint 12.04'
+        operating_system = 'Ubuntu 12.04'
         operating_version = '12.04'
 
         def side_effect(*args, **kwargs):
@@ -648,9 +648,9 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
 
         self.assertNotIn('reuse', options)
 
-    # 'This computer currently has Linux Mint 90.10 on it.'
+    # 'This computer currently has Ubuntu 90.10 on it.'
     def test_newer_ubuntu_only(self):
-        operating_system = 'Linux Mint 90.10'
+        operating_system = 'Ubuntu 90.10'
         operating_version = '90.10'
 
         def side_effect(*args, **kwargs):
@@ -705,7 +705,7 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
 
     # 'This computer currently has multiple operating systems on it.'
     def test_multiple_operating_systems(self):
-        operating_systems = ['Linux Mint 10.04', 'Windows XP', 'Mac OSX']
+        operating_systems = ['Ubuntu 10.04', 'Windows XP', 'Mac OSX']
 
         def side_effect(*args, **kwargs):
             return operating_systems.pop()

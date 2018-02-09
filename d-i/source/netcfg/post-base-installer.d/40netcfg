@@ -5,3 +5,9 @@ if [ -L /target/etc/resolv.conf ] && [ -f /target/run/resolvconf/resolv.conf ]; 
 	mkdir -p /run/resolvconf
 	cp /target/run/resolvconf/resolv.conf /run/resolvconf/resolv.conf
 fi
+
+# Make sure resolved will still work with bind-mounted /run
+if [ -L /target/etc/resolv.conf ] && [ -f /target/run/systemd/resolve/stub-resolv.conf ]; then
+	mkdir -p /run/systemd/resolve/
+	cp /target/run/systemd/resolve/stub-resolv.conf /run/systemd/resolve/stub-resolv.conf
+fi

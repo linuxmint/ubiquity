@@ -1,20 +1,22 @@
 Source: console-setup
 Section: utils
 Priority: optional
-Maintainer: Linux Mint Installer Team <ubuntu-installer@lists.ubuntu.com>
+Maintainer: Ubuntu Installer Team <ubuntu-installer@lists.ubuntu.com>
 XSBC-Original-Maintainer: Debian Install System Team <debian-boot@lists.debian.org>
 Uploaders: Anton Zinoviev <zinoviev@debian.org>, Christian Perrier <bubulle@debian.org>
-Build-Depends-Indep: xkb-data (>= 1.6), xkb-data-i18n, keymapper (>= 0.5.3-7), sharutils, locales
-Build-Depends: perl, debhelper (>= 9), po-debconf, libxml-parser-perl, bdfresize, liblocale-gettext-perl
+Build-Depends-Indep: xkb-data (>= 1.6), xkb-data-i18n, keymapper (>= 0.5.3-7), locales-all, sharutils
+Build-Depends: perl, debhelper (>= 9), po-debconf, libxml-parser-perl, bdfresize, liblocale-gettext-perl, dh-systemd
 Standards-Version: 3.9.1
-XS-Debian-Vcs-Browser: http://anonscm.debian.org/gitweb/?p=d-i/console-setup.git
-XS-Debian-Vcs-Git: git://anonscm.debian.org/d-i/console-setup.git
+XS-Debian-Vcs-Browser: https://anonscm.debian.org/cgit/d-i/console-setup.git
+XS-Debian-Vcs-Git: https://anonscm.debian.org/git/d-i/console-setup.git
 Vcs-Bzr: http://bazaar.launchpad.net/~ubuntu-core-dev/console-setup/ubuntu
 
 Package: keyboard-configuration
 Section: utils
 Architecture: all
-Depends: debconf (>= 1.5.34), ${misc:Depends}, liblocale-gettext-perl, initscripts
+Multi-Arch: foreign
+Depends: ${misc:Depends}, liblocale-gettext-perl
+Pre-Depends: debconf (>= 1.5.34)
 Breaks: console-setup (<< 1.71), console-setup-mini (<< 1.47)
 Replaces: console-setup (<< 1.47), console-setup-mini (<< 1.47)
 Description: system-wide keyboard preferences
@@ -26,7 +28,9 @@ Description: system-wide keyboard preferences
 Package: console-setup
 Section: utils
 Architecture: all
-Depends: debconf (>= 1.5.34), console-setup-linux, xkb-data (>= 0.9), keyboard-configuration (= ${source:Version}), initramfs-tools (>= 0.85eubuntu12) | linux-initramfs-tool, ${misc:Depends}
+Multi-Arch: foreign
+Pre-Depends: debconf (>= 1.5.34)
+Depends: console-setup-linux | console-setup-freebsd | hurd, xkb-data (>= 0.9), keyboard-configuration (= ${source:Version}), ${misc:Depends}
 Suggests: lsb-base (>= 3.0-6), locales
 Conflicts: console-setup-mini
 Breaks: lsb-core (<< 2.0-6), lsb (<< 2.0-6), lsb-base (<< 3.0-6)
@@ -47,8 +51,9 @@ Package: console-setup-mini
 Section: utils
 Priority: extra
 Architecture: all
+Multi-Arch: foreign
 Recommends: kbd | console-tools
-Depends: console-setup-linux, debconf (>= 0.5) | debconf-2.0, keyboard-configuration (= ${source:Version}), ${misc:Depends}
+Depends: console-setup-linux | console-setup-freebsd, debconf (>= 0.5) | debconf-2.0, keyboard-configuration (= ${source:Version}), ${misc:Depends}
 Suggests: lsb-base (>= 3.0-6)
 Conflicts: console-setup
 Breaks: lsb-core (<< 2.0-6), lsb (<< 2.0-6), lsb-base (<< 3.0-6)
@@ -67,10 +72,12 @@ Package: console-setup-linux
 Section: utils
 Priority: optional
 Architecture: all
-Depends: kbd (>= 1.15-1ubuntu3), keyboard-configuration (= ${source:Version}), ${misc:Depends}
+Multi-Arch: foreign
+Depends: kbd (>= 0.99-12) | console-tools (>= 1:0.2.3-16), keyboard-configuration (= ${source:Version}), ${misc:Depends}, init-system-helpers (>= 1.29~) | initscripts
 Suggests: console-setup
-Breaks: console-terminus, console-cyrillic (<= 0.9-11), console-setup (<< 1.71)
-Replaces: console-terminus, console-setup (<< 1.71)
+Conflicts: console-setup-freebsd
+Breaks: console-terminus, console-cyrillic (<= 0.9-11), console-setup (<< 1.71), keyboard-configuration (<< 1.138)
+Replaces: console-terminus, console-setup (<< 1.71), keyboard-configuration (<< 1.138)
 Provides: console-terminus
 Description: Linux specific part of console-setup
  This package includes fonts in psf format and definitions of various
@@ -80,6 +87,7 @@ Package: bdf2psf
 Section: utils
 Priority: optional
 Architecture: all
+Multi-Arch: foreign
 Depends: perl, ${misc:Depends}
 Description: font converter to generate console fonts from BDF source fonts
  This package provides a command-line converter that can be used in
@@ -105,6 +113,7 @@ Priority: extra
 Depends: archdetect, cdebconf-udeb, kbd-udeb | kbdcontrol-udeb | hurd-udeb, cdebconf-newt-detect-keys, ${misc:Depends}
 Provides: keyboard-setup
 Architecture: all
+Multi-Arch: foreign
 Description: Configure the keyboard
  Keyboard configurator for Debian Installer based on console-setup
 Package-Type: udeb
@@ -116,6 +125,7 @@ Section: debian-installer
 Priority: extra
 Depends: ${misc:Depends}
 Architecture: all
+Multi-Arch: foreign
 Description: encoded Linux keyboard layouts for Amiga keyboards
 Package-Type: udeb
 
@@ -125,6 +135,7 @@ Section: debian-installer
 Priority: extra
 Depends: ${misc:Depends}
 Architecture: all
+Multi-Arch: foreign
 Description: encoded Linux keyboard layouts for Atari TT keyboards
 Package-Type: udeb
 
@@ -134,6 +145,7 @@ Section: debian-installer
 Priority: extra
 Depends: ${misc:Depends}
 Architecture: all
+Multi-Arch: foreign
 Description: encoded Linux keyboard layouts for old-style Macintosh keyboards
 Package-Type: udeb
 
@@ -143,6 +155,7 @@ Section: debian-installer
 Priority: extra
 Depends: ${misc:Depends}
 Architecture: all
+Multi-Arch: foreign
 Description: encoded Linux keyboard layouts for PC keyboards
 Package-Type: udeb
 
@@ -152,6 +165,7 @@ Section: debian-installer
 Priority: extra
 Depends: ${misc:Depends}
 Architecture: all
+Multi-Arch: foreign
 Description: encoded Linux keyboard layouts for Sun4 keyboards
 Package-Type: udeb
 
@@ -161,6 +175,7 @@ Section: debian-installer
 Priority: extra
 Depends: ${misc:Depends}
 Architecture: all
+Multi-Arch: foreign
 Description: encoded Linux keyboard layouts for Sun5 keyboards
 Package-Type: udeb
 
@@ -170,6 +185,7 @@ Section: debian-installer
 Priority: extra
 Depends: ${misc:Depends}
 Architecture: all
+Multi-Arch: foreign
 Description: encoded FreeBSD keyboard layouts for PC keyboards
 Package-Type: udeb
 
@@ -178,6 +194,7 @@ Section: debian-installer
 Priority: extra
 Depends: ${misc:Depends}, kbd-udeb
 Architecture: all
+Multi-Arch: foreign
 Description: Linux console fonts for Debian Installer
 Package-Type: udeb
 
@@ -186,6 +203,7 @@ Section: debian-installer
 Priority: extra
 Depends: ${misc:Depends}
 Architecture: all
+Multi-Arch: foreign
 Description: FreeBSD console fonts for Debian Installer
 Package-Type: udeb
 
@@ -194,6 +212,7 @@ Section: debian-installer
 Priority: extra
 Depends: ${misc:Depends}
 Architecture: all
+Multi-Arch: foreign
 Description: Linux 8-bit charmaps for console-setup-udeb
 Package-Type: udeb
 
@@ -202,6 +221,7 @@ Section: debian-installer
 Priority: extra
 Depends: ${misc:Depends}
 Architecture: all
+Multi-Arch: foreign
 Description: FreeBSD 8-bit charmaps for console-setup-udeb
 Package-Type: udeb
 

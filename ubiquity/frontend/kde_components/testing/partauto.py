@@ -5,13 +5,13 @@ from __future__ import print_function
 import os
 import sys
 
-from PyQt4 import QtGui
+from PyQt5 import QtWidgets
 
 from ubiquity.frontend.kde_components.PartAuto import PartAuto
 
 
 if __name__ == "__main__":
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
 
     PartAuto._uidir = '../../../../gui/qt'
 

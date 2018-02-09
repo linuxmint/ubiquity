@@ -22,7 +22,7 @@ def get_distribution():
         for line in f:
             distro = line[:max(line.find(' '), 0) or None]
             if distro:
-                if distro == 'Linux Mint-GNOME' or distro == "Linux Mint-MATE":
+                if distro == 'Ubuntu-GNOME' or distro == "Ubuntu-MATE":
                     return str(distro.replace('-', ' '))
                 else:
                     return str(distro)
@@ -59,7 +59,7 @@ def generate_config():
         'Download updates while installing {}'.format(distro_flavor)
     stepPrepare['prepare_nonfree_software'] = \
         'Install third-party software for graphics and Wi-Fi hardware, ' \
-        'Flash, MP3 and other media'
+        'MP3 and other media'
     stepPrepare['prepare_network_connection'] = \
         'is connected to the Internet'
     stepPrepare['prepare_sufficient_space'] = \

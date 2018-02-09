@@ -256,18 +256,24 @@ class Wizard(BaseFrontend):
         # Make a thin Progress bar
         provider = Gtk.CssProvider()
         provider.load_from_data(b'''\
-            .inline-toolbar.toolbar {
+            toolbar {
                 background: @theme_bg_color;
                 border-color: transparent;
                 border-width: 0px;
                 padding: 0px;
             }
-            GtkProgressBar {
-              -GtkProgressBar-min-horizontal-bar-height : 10;
-              -GtkProgressBar-min-horizontal-bar-width : 10;
+            progressbar trough {
+              min-height: 10px;
+              min-width: 11px;
+              border: none;
             }
-            GtkPaned {
-                -GtkPaned-handle-size: 10;
+            progressbar progress {
+              min-height: 10px;
+              border-radius: 4px;
+              border: none;
+            }
+            paned separator {
+                min-width: 10px;
             }
             ''')
         Gtk.StyleContext.add_provider_for_screen(
@@ -352,15 +358,16 @@ class Wizard(BaseFrontend):
             try:
                 subprocess.Popen(['a11y-profile-manager-indicator',
                                   '-i'], preexec_fn=misc.drop_all_privileges)
-                if osextras.find_on_path('canberra-gtk-play'):
-                    subprocess.Popen(
-                        ['canberra-gtk-play', '--id=system-ready'],
-                        preexec_fn=misc.drop_all_privileges)
-            except:
+            except Exception:
                 print("Unable to set up accessibility profile support",
                       file=sys.stderr)
             self.live_installer.connect(
                 'key-press-event', self.a11y_profile_keys)
+
+        if osextras.find_on_path('canberra-gtk-play'):
+            subprocess.Popen(
+                ['canberra-gtk-play', '--id=system-ready'],
+                preexec_fn=misc.drop_all_privileges)
 
     def all_children(self, parent):
         if isinstance(parent, Gtk.Container):
@@ -503,7 +510,7 @@ class Wizard(BaseFrontend):
                 os.rename('%s.new' % thunar_volmanrc, thunar_volmanrc)
             except (KeyboardInterrupt, SystemExit):
                 raise
-            except:
+            except Exception:
                 pass
         return previous
 
@@ -922,7 +929,7 @@ class Wizard(BaseFrontend):
                          'install_details_expander']:
             box = self.builder.get_object(eventbox)
             style = box.get_style_context()
-            style.add_class('ubiquity-menubar')
+            style.add_class('menubar')
 
         # TODO lazy load
         import gi
@@ -1002,7 +1009,7 @@ class Wizard(BaseFrontend):
                 cfg.read(os.path.join(self.slideshow, 'slideshow.conf'))
                 config_width = int(cfg.get('Slideshow', 'width'))
                 config_height = int(cfg.get('Slideshow', 'height'))
-            except:
+            except Exception:
                 config_width = 752
                 config_height = 442
             self.webkit_scrolled_window.set_size_request(
@@ -1461,9 +1468,6 @@ class Wizard(BaseFrontend):
         self.quit_main_loop()
 
     # Callbacks
-    def dialog_hide_on_delete(self, widget, event, data=None):
-        widget.hide()
-        return True
 
     def on_quit_clicked(self, unused_widget):
         self.warning_dialog.set_transient_for(
@@ -1776,9 +1780,9 @@ class Wizard(BaseFrontend):
             self.grub_new_device_entry.set_sensitive(True)
 
     def bootloader_dialog(self, current_device):
-        l = self.skip_label.get_label()
-        l = l.replace('${RELEASE}', misc.get_release().name)
-        self.skip_label.set_label(l)
+        ret = self.skip_label.get_label()
+        ret = ret.replace('${RELEASE}', misc.get_release().name)
+        self.skip_label.set_label(ret)
         self.grub_new_device_entry.get_child().set_text(current_device)
         self.grub_new_device_entry.get_child().grab_focus()
         response = self.bootloader_fail_dialog.run()

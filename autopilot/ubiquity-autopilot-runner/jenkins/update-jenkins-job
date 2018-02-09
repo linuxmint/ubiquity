@@ -32,7 +32,7 @@ import argparse
 import yaml
 import urllib2
 from textwrap import dedent
-from pprint import pprint, pformat
+from pprint import pformat
 
 BASEDIR = os.path.dirname(__file__)
 DEFAULT_CREDENTIALS = os.path.expanduser('~/.jenkins.credentials')
@@ -81,7 +81,7 @@ def load_job_parameters(path):
         raise IOError("'{}' is not a valid file".format(path))
 
     logging.debug("Loading parameters from '{}'".format(path))
-    cfg = yaml.safe_load(file(path, 'r'))
+    cfg = yaml.safe_load(open(path, 'r'))
     return False if not cfg else cfg
 
 
@@ -111,7 +111,7 @@ def load_jenkins_credentials(path, instance=DEFAULT_INSTANCE):
 
     logging.debug("Loading credentials from '{}' for instance '{}'".format(
         path, instance))
-    cred = yaml.safe_load(file(path, 'r'))
+    cred = yaml.safe_load(open(path, 'r'))
     return False if not instance in cred else cred[instance]
 
 

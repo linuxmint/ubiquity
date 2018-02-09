@@ -335,7 +335,7 @@ while check_missing && ask_load_firmware; do
 		if ! nic_is_configured $module; then
 			log "removing and loading kernel module $module"
 			modprobe -r $module || true
-			modprobe $module || true
+			modprobe -b $module || true
 		fi
 	done
 done

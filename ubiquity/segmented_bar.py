@@ -529,4 +529,5 @@ class SegmentedBar(Gtk.DrawingArea):
             else:
                 self.subtitle = ''
 
+
 GObject.type_register(SegmentedBar)

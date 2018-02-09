@@ -126,7 +126,7 @@ module_probe() {
 
 	devs="$(snapshot_devs)"
 
-	if ! log-output -t ethdetect modprobe -v "$module"; then
+	if ! log-output -t ethdetect modprobe -v -b "$module"; then
 		# Prompt the user for parameters for the module.
 		local template="hw-detect/retry_params"
 		local question="$template/$module"
@@ -139,9 +139,9 @@ module_probe() {
 		local params="$RET"
 
 		if [ -n "$params" ]; then
-			if ! log-output -t ethdetect modprobe -v "$module" $params; then
+			if ! log-output -t ethdetect modprobe -v -b "$module" $params; then
 				db_unregister "$question"
-				db_subst hw-detect/modprobe_error CMD_LINE_PARAM "modprobe -v $module $params"
+				db_subst hw-detect/modprobe_error CMD_LINE_PARAM "modprobe -v -b $module $params"
 				db_input critical hw-detect/modprobe_error || [ $? -eq 30 ]
 				db_go
 				false

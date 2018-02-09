@@ -33,7 +33,7 @@ LIBS=-ldebconfclient -ldebian-installer
 STRIP=strip
 
 # Derivative distributions may want to change these.
-#MIRRORLISTURL=http://anonscm.debian.org/viewvc/webwml/webwml/english/mirror/Mirrors.masterlist?revision=HEAD
+#MIRRORLISTURL=https://anonscm.debian.org/git/mirror/mirror-masterlist.git/plain/Mirrors.masterlist
 MASTERLIST=Mirrors.masterlist.ubuntu
 
 ifdef DEBUG

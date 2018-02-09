@@ -2,10 +2,13 @@
 #define _NETCFG_H_
 
 #define INTERFACES_FILE "/etc/network/interfaces"
+#define NETPLAN_YAML    "/etc/netplan/01-netcfg.yaml"
 #define HOSTS_FILE      "/etc/hosts"
 #define HOSTNAME_FILE   "/etc/hostname"
 #define NETWORKS_FILE   "/etc/networks"
 #define RESOLV_FILE     "/etc/resolv.conf"
+#define RESOLVCONF_FILE "/run/resolvconf/resolv.conf"
+#define RESOLVED_FILE   "/run/systemd/resolve/stub-resolv.conf"
 #define DHCLIENT_CONF   "/etc/dhclient.conf"
 #define DOMAIN_FILE     "/tmp/domain_name"
 #define NTP_SERVER_FILE "/tmp/dhcp-ntp-servers"
@@ -200,6 +203,8 @@ extern int netcfg_activate_dhcp(struct debconfclient *client, struct netcfg_inte
 extern int nameserver_count (const struct netcfg_interface *interface);
 
 extern int read_resolv_conf_nameservers (char *resolv_conf_file, struct netcfg_interface *interface);
+extern int is_resolvconf_used();
+extern int is_resolved_used();
 
 extern void sigchld_handler (int sig __attribute__ ((unused)));
 
@@ -265,7 +270,7 @@ extern int nc_v6_interface_configured(const struct netcfg_interface *interface, 
 extern int nc_v6_get_config_flags(struct debconfclient *client, struct netcfg_interface *interface);
 
 /* write_interfaces.c */
-extern int netcfg_write_interface(const struct netcfg_interface *interface);
+extern int netcfg_write_interface(struct debconfclient *client, const struct netcfg_interface *interface, const char *domain);
 
 /* rdnssd.c */
 extern int start_rdnssd(struct debconfclient *client);

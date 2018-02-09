@@ -1,40 +1,40 @@
 # -*- coding: utf-8 -*-
 
-from PyQt4 import QtGui
+from PyQt5 import QtWidgets
 
 
-class ProgressDialog(QtGui.QDialog):
+class ProgressDialog(QtWidgets.QDialog):
     def __init__(self, min, max, parent=None):
-        QtGui.QDialog.__init__(self, parent)
+        QtWidgets.QDialog.__init__(self, parent)
 
         # self.setWindowFlags(Qt.SplashScreen | Qt.FramelessWindowHint)
         # self.setWindowFlags(
         #     Qt.SplashScreen | Qt.WindowStaysOnTopHint | Qt.WindowTitleHint)
         # self.setWindowFlags(Qt.WindowTitleHint | Qt.WindowCloseButtonHint)
 
-        self.progressLabel = QtGui.QLabel()
+        self.progressLabel = QtWidgets.QLabel()
 
-        self.progressBar = QtGui.QProgressBar()
+        self.progressBar = QtWidgets.QProgressBar()
         self.progressBar.setMinimum(min)
         self.setMaximum(max)
 
-        self.cancelButton = QtGui.QPushButton()
+        self.cancelButton = QtWidgets.QPushButton()
         self.cancelButton.clicked.connect(self.reject)
 
-        progressWidget = QtGui.QWidget()
-        progressWidget.setLayout(QtGui.QHBoxLayout())
+        progressWidget = QtWidgets.QWidget()
+        progressWidget.setLayout(QtWidgets.QHBoxLayout())
         progressWidget.layout().setContentsMargins(0, 0, 0, 0)
         progressWidget.layout().addWidget(self.progressBar)
         progressWidget.layout().addWidget(self.cancelButton)
 
-        self.extraFrame = QtGui.QFrame()
-        self.extraFrame.setFrameStyle(QtGui.QFrame.StyledPanel)
-        self.extraFrame.setFrameShadow(QtGui.QFrame.Sunken)
-        self.extraFrame.setLayout(QtGui.QVBoxLayout())
+        self.extraFrame = QtWidgets.QFrame()
+        self.extraFrame.setFrameStyle(QtWidgets.QFrame.StyledPanel)
+        self.extraFrame.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.extraFrame.setLayout(QtWidgets.QVBoxLayout())
         self.extraFrame.layout().setContentsMargins(0, 0, 0, 0)
         self.extraFrame.setVisible(False)
 
-        self.setLayout(QtGui.QVBoxLayout())
+        self.setLayout(QtWidgets.QVBoxLayout())
         self.layout().addWidget(self.progressLabel)
         self.layout().addWidget(progressWidget)
         self.layout().addWidget(self.extraFrame)

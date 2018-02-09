@@ -5,7 +5,7 @@ from __future__ import print_function
 import datetime
 import math
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 import ubiquity.tz
 
@@ -18,12 +18,12 @@ class City:
         self.pixmap = pixmap
 
 
-class TimezoneMap(QtGui.QWidget):
+class TimezoneMap(QtWidgets.QWidget):
 
     zoneChanged = QtCore.pyqtSignal(object, object)
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         # currently active city
         self.selected_city = None
         self.selected_zone = None
@@ -36,9 +36,9 @@ class TimezoneMap(QtGui.QWidget):
         self.pixmap = QtGui.QPixmap("%s/bg.png" % self.imagePath)
         self.setMinimumSize(self.pixmap.size() / 2)
         self.setMaximumSize(self.pixmap.size())
-        policy = QtGui.QSizePolicy(
-            QtGui.QSizePolicy.Preferred,
-            QtGui.QSizePolicy.Preferred)
+        policy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred,
+            QtWidgets.QSizePolicy.Preferred)
         policy.setHeightForWidth(True)
         self.setSizePolicy(policy)
 

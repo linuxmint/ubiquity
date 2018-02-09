@@ -22,7 +22,7 @@
 # with Ubiquity; if not, write to the Free Software Foundation, Inc., 51
 # Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ubiquity.misc import find_in_os_prober, format_size
 
@@ -58,7 +58,7 @@ class Partition:
         self.name = '%s (%s)' % (name, fs)
 
 
-class PartitionsBar(QtGui.QWidget):
+class PartitionsBar(QtWidgets.QWidget):
     InfoColor = '#333333'
 
     # signals
@@ -66,7 +66,7 @@ class PartitionsBar(QtGui.QWidget):
 
     def __init__(self, parent=None, controller=None):
         """ a widget to graphically show disk partitions. """
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.controller = controller
         self.partitions = []
         self.bar_height = 20  # should be a multiple of 2
@@ -76,7 +76,7 @@ class PartitionsBar(QtGui.QWidget):
         self.setMinimumWidth(500)
         sizePolicy = self.sizePolicy()
         sizePolicy.setVerticalStretch(10)
-        sizePolicy.setVerticalPolicy(QtGui.QSizePolicy.Fixed)
+        sizePolicy.setVerticalPolicy(QtWidgets.QSizePolicy.Fixed)
         self.setSizePolicy(sizePolicy)
 
         self.resize_loc = 0
@@ -250,7 +250,7 @@ class PartitionsBar(QtGui.QWidget):
         if part.next is None or part.next.index != -1:
             # if our resize partition is at the end or the next one is not
             # free space
-            p = Partition('Linux Mint', new_size, 'auto')
+            p = Partition('Kubuntu', new_size, 'auto')
             p.next = part.next
             part.next = p
 

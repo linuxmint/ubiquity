@@ -680,8 +680,15 @@ int netcfg_get_static(struct debconfclient *client, struct netcfg_interface *ifa
                 }
                 netcfg_write_common(iface->ipaddress, hostname, domain);
                 netcfg_write_loopback();
-                netcfg_write_interface(iface);
-                netcfg_write_resolvconf_options(domain, iface);
+                netcfg_write_interface(client, iface, domain);
+
+                debconf_get(client,"netcfg/do_not_use_netplan");
+                /* If this undocumented debconf key is set to true, skip netplan
+                 * and fallback to /e/n/i as before. Otherwise we're done.
+                 */
+                if (!empty_str(client->value) && strcmp(client->value, "true") == 0) {
+                    netcfg_write_resolvconf_options(domain, iface);
+                }
                 netcfg_write_resolv(domain, iface);
             }
             return 0;

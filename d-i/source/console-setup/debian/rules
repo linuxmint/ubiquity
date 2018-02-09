@@ -1,33 +1,32 @@
 #!/usr/bin/make -f
 
-SHELL = /bin/bash
+include Makefile
 
 ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
-  NUMJOBS = $(patsubst parallel=%,%,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+  NUMJOBS := $(patsubst parallel=%,%,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
   MAKEFLAGS += -j$(NUMJOBS)
 endif
 
-xkbdir = /usr/share/X11/xkb
-export xkbdir
-pre = debian/preprocessor
+xkbdir := /usr/share/X11/xkb
 
-manprocessor = sed \
+pre := debian/preprocessor
+manprocessor := sed \
 	-e 's|^\([.a-zA-Z][a-zA-Z]*\) /usr/local/etc|\1 /etc|' \
 	-e 's|^\([.a-zA-Z][a-zA-Z]*\) /usr/local|\1 /usr|'
 
 # One font per fontset supported by d-i in text console
-udeb-fonts = CyrAsia-Fixed16 CyrSlav-TerminusBold16 Greek-VGA16 \
+udeb-fonts := CyrAsia-Fixed16 CyrSlav-TerminusBold16 Greek-VGA16 \
 Lat15-TerminusBold16 Lat2-TerminusBold16 Lat38-VGA16 Lat7-TerminusBold16
 # These are not properly supported by d-i in text console
 # Armenian-Fixed16 CyrKoi-TerminusBold16 Georgian-Fixed16 Hebrew-VGA16	Lao-Fixed16  Thai-Fixed16
 
 # These are Linux-only
-udeb-fonts-big = Uni1-VGA16 Uni2-VGA16 Uni3-Fixed16
+udeb-fonts-big := Uni1-VGA16 Uni2-VGA16 Uni3-Fixed16
 # These are not properly supported by d-i in text console
 # Arabic-VGA16 Ethiopian-Goha16 Vietnamese-Fixed16
 
 # One fontset per charmap
-udeb-scm = $(addprefix Fonts/, ARMSCII-8_Armenian.scm			\
+udeb-scm := $(addprefix Fonts/, ARMSCII-8_Armenian.scm			\
 CP1251_CyrSlav.scm CP1255_Hebrew.scm GEORGIAN-ACADEMY_Georgian.scm	\
 GEORGIAN-PS_Georgian.scm IBM1133_Lao.scm ISO-8859-1_Lat15.scm		\
 ISO-8859-2_Lat2.scm ISO-8859-3_Lat38.scm ISO-8859-4_Lat7.scm		\
@@ -41,52 +40,90 @@ udeb-fonts-linux = $(addprefix Fonts/, $(addsuffix .psf.gz, \
 			$(udeb-fonts)))
 udeb-fonts-freebsd = $(addprefix Fonts/, $(addsuffix .fnt, $(udeb-fonts)))
 
-main_build:
-	rm Keyboard/KeyboardNames.pl
-	$(MAKE) build-all xkbdir=$(xkbdir)
-	touch main_build
-
-debian/kbdnames.gz: main_build
+debian/kbdnames.gz: $./Keyboard/KeyboardNames.pl
 	( cd Keyboard \
-	&& ./kbdnames-maker KeyboardNames.pl \
-		| grep -v '^C[*]' | grep -v '[*]model[*]' | sort | gzip -9 ) >$@
+	&& ./kbdnames-maker ./KeyboardNames.pl \
+		| grep -v '^C[*]' | grep -v '[*]model[*]' | sort | gzip -9n ) >$@
 
-build: build-arch build-indep
-build-arch: build-stamp
-build-indep: build-stamp
-build-stamp: main_build debian/kbdnames.gz
+build: debian/kbdnames.gz
 
-.PHONY : clean
-clean:
+clean : maintainer-clean
 	dh_testdir
+	-rm -f *.ekmap *.ekbd *.ekmap.gz *.ekbd.gz
+	debconf-updatepo
 	$(MAKE) maintainer-clean
-	-rm -f build main_build
+	-rm -f build main_build building_debian
 	-rm -f debian/kbdnames.gz
 	-rm -f debian/*~
 	dh_clean
-	cp COPYRIGHT debian/copyright
+	rm -f debian/copyright
+	cp -f COPYRIGHT debian/copyright
 
-.PHONY : install
-install: install-linux install-freebsd install-main install-bdf2psf install-linux-udeb install-freebsd-udeb install-udeb
+.PHONY : deb-udeb-install
+deb-udeb-install: deb-install-linux deb-install-freebsd deb-install-main deb-install-bdf2psf udeb-install-linux udeb-install-freebsd udeb-install
 
-.PHONY : install-linux
-install-linux: build
+.PHONY : deb-install-linux
+deb-install-linux: build
 	dh_testdir
 	dh_testroot
 	dh_prep -p console-setup-linux
 	$(MAKE) etcdir=debian/console-setup-linux/etc \
 		prefix=debian/console-setup-linux/usr install-common-linux
+	dh_install -p console-setup-linux \
+		init/90-console-setup.rules lib/udev/rules.d/
+	dh_install -p console-setup-linux \
+		init/keyboard-setup.sh lib/console-setup/
+	dh_install -p console-setup-linux \
+		init/console-setup.sh lib/console-setup/
+	dh_systemd_enable -p console-setup-linux \
+		--name keyboard-setup
+	dh_systemd_enable -p console-setup-linux \
+		--name console-setup
+	dh_systemd_enable -p console-setup-linux \
+		--name setvtrgb
+	dh_installinit -p console-setup-linux \
+		--no-start --name keyboard-setup.sh
+	dh_installinit -p console-setup-linux \
+		--no-start --name console-setup.sh
+	dh_installinit -p console-setup-linux \
+		--no-start --name setvtrgb
+	dh_systemd_start -p console-setup-linux \
+		--no-start --name keyboard-setup
+	dh_systemd_start -p console-setup-linux \
+		--no-start --name console-setup
+	dh_systemd_start -p console-setup-linux \
+		--no-start --name setvtrgb
+	sed -i 's/RUNLEVEL/2 3 4 5/' \
+		debian/console-setup-linux/etc/init.d/console-setup.sh
 
-.PHONY : install-freebsd
-install-freebsd: build
+.PHONY : deb-install-freebsd
+deb-install-freebsd: build
 	dh_testdir
 	dh_testroot
 	dh_prep -p console-setup-freebsd
 	$(MAKE) etcdir=debian/console-setup-freebsd/etc \
 		prefix=debian/console-setup-freebsd/usr install-common-freebsd
+	dh_install -p console-setup-freebsd \
+		init/keyboard-setup.sh lib/console-setup/
+	dh_install -p console-setup-freebsd \
+		init/console-setup.sh lib/console-setup/
+	dh_systemd_enable -p console-setup-freebsd \
+		--name keyboard-setup
+	dh_systemd_enable -p console-setup-freebsd \
+		--name console-setup
+	dh_installinit -p console-setup-freebsd \
+		--no-start --name keyboard-setup.sh
+	dh_installinit -p console-setup-freebsd \
+		--no-start --name console-setup.sh
+	dh_systemd_start -p console-setup-freebsd \
+		--no-start --name keyboard-setup
+	dh_systemd_start -p console-setup-freebsd \
+		--no-start --name console-setup
+	sed -i 's/RUNLEVEL/S/' \
+		debian/console-setup-freebsd/etc/init.d/console-setup.sh
 
-.PHONY : install-main
-install-main: build
+.PHONY : deb-install-main
+deb-install-main: build
 	dh_testdir
 	dh_testroot
 	dh_prep -pkeyboard-configuration
@@ -98,11 +135,7 @@ install-main: build
 		prefix=debian/console-setup/usr install-ckbcomp
 	dh_install -pconsole-setup Keyboard/pc105.tree \
 		usr/share/console-setup
-	dh_installinit -pconsole-setup \
-		--no-start --name console-font
 ifneq (,$(filter console-setup-linux, $(shell dh_listpackages)))
-	dh_installinit -pconsole-setup-linux \
-		--no-start --name setvtrgb
 	install -m 644 debian/vtrgb debian/console-setup-linux/etc/console-setup/
 	install -m 644 debian/vtrgb.vga debian/console-setup-linux/etc/console-setup/
 endif
@@ -112,7 +145,8 @@ endif
 		prefix=debian/console-setup-mini/usr install-ckbcomp-mini
 	$(pre) --mini debian/console-setup-mini/bin/setupcon
 	$(pre) --mini debian/console-setup-mini/usr/bin/ckbcomp-mini
-	ls debian/console-setup*/usr/share/man/*/* \
+	ls debian/console-setup/usr/share/man/*/* \
+	   debian/console-setup-mini/usr/share/man/*/* \
 		| xargs -n 1 $(manprocessor) -i
 	install -d debian/keyboard-configuration/usr/share/console-setup/
 	mv debian/console-setup/etc/default/keyboard \
@@ -132,9 +166,6 @@ endif
 		usr/share/console-setup/
 	dh_link -pkeyboard-configuration usr/share/X11/xkb/rules/xorg.lst \
 		usr/share/doc/keyboard-configuration/xorg.lst
-	# no upstart job for keyboard-setup
-	dh_installinit -pkeyboard-configuration \
-		--no-start --name console-setup -- start 49 S .
 	install -d debian/keyboard-configuration/usr/share/initramfs-tools/hooks \
 		debian/keyboard-configuration/usr/share/initramfs-tools/scripts/init-top \
 		debian/keyboard-configuration/usr/share/initramfs-tools/scripts/panic
@@ -149,12 +180,11 @@ endif
 	install -d debian/keyboard-configuration/usr/share/apport/package-hooks
 	install -m644 debian/console-setup.apport \
 		debian/keyboard-configuration/usr/share/apport/package-hooks/source_console-setup.py
-	dh_install -pkeyboard-configuration console-setup-tty lib/udev
-	dh_installudev -pkeyboard-configuration --priority=85
+	dh_installinit -pconsole-setup \
+		--no-start --name console-font
 
-
-.PHONY : install-bdf2psf
-install-bdf2psf: build
+.PHONY : deb-install-bdf2psf
+deb-install-bdf2psf: build
 	dh_testdir
 	dh_testroot
 	dh_prep -pbdf2psf
@@ -164,8 +194,8 @@ install-bdf2psf: build
 	dh_installman -pbdf2psf man/bdf2psf.1
 	dh_installdocs -pbdf2psf debian/README.fontsets
 
-.PHONY : install-linux-udeb
-install-linux-udeb: build
+.PHONY : udeb-install-linux
+udeb-install-linux: build
 	dh_testdir
 	dh_testroot
 # console-setup-linux-charmaps-udeb
@@ -183,8 +213,8 @@ install-linux-udeb: build
 	dh_install -p console-setup-linux-fonts-udeb debian/font-switch \
 		/usr/share/console-setup
 
-.PHONY : install-freebsd-udeb
-install-freebsd-udeb: build
+.PHONY : udeb-install-freebsd
+udeb-install-freebsd: build
 	dh_testdir
 	dh_testroot
 # console-setup-freebsd-charmaps-udeb
@@ -203,8 +233,8 @@ install-freebsd-udeb: build
 	dh_install -p console-setup-freebsd-fonts-udeb $(udeb-scm) \
 		usr/share/syscons/scrnmaps/
 
-.PHONY : install-udeb
-install-udeb: build
+.PHONY : udeb-install
+udeb-install: build
 	dh_testdir
 	dh_testroot
 	dh_prep -p console-setup-amiga-ekmap
@@ -236,30 +266,31 @@ install-udeb: build
 	dh_installdirs -p console-setup-udeb usr/lib/base-installer.d
 	install -m0755 debian/console-setup-udeb.base-installer \
 		debian/console-setup-udeb/usr/lib/base-installer.d/20console-setup
+	$(pre) --udeb debian/console-setup-udeb/usr/lib/base-installer.d/20console-setup
 	install -m 644 debian/vtrgb debian/console-setup-udeb/etc/
 	install -m 644 debian/vtrgb.vga debian/console-setup-udeb/etc/
-	$(pre) --udeb debian/console-setup-udeb/usr/lib/base-installer.d/20console-setup
 # console-setup-*-ekmap
 	dh_movefiles -p console-setup-amiga-ekmap --sourcedir=debian/console-setup-udeb usr/share/console-setup/amiga.ekmap.gz
-	cat Keyboard/amiga.ekmap.gz >debian/console-setup-amiga-ekmap/usr/share/console-setup/amiga.ekmap.gz
+	#cat amiga.ekmap.gz >debian/console-setup-amiga-ekmap/usr/share/console-setup/amiga.ekmap.gz
 	dh_movefiles -p console-setup-ataritt-ekmap --sourcedir=debian/console-setup-udeb usr/share/console-setup/ataritt.ekmap.gz
-	cat Keyboard/ataritt.ekmap.gz >debian/console-setup-ataritt-ekmap/usr/share/console-setup/ataritt.ekmap.gz
+	#cat ataritt.ekmap.gz >debian/console-setup-ataritt-ekmap/usr/share/console-setup/ataritt.ekmap.gz
 	dh_movefiles -p console-setup-macintoshold-ekmap --sourcedir=debian/console-setup-udeb usr/share/console-setup/macintosh_old.ekmap.gz
-	cat Keyboard/macintosh_old.ekmap.gz >debian/console-setup-macintoshold-ekmap/usr/share/console-setup/macintosh_old.ekmap.gz
+	#cat macintosh_old.ekmap.gz >debian/console-setup-macintoshold-ekmap/usr/share/console-setup/macintosh_old.ekmap.gz
 	dh_movefiles -p console-setup-pc-ekmap --sourcedir=debian/console-setup-udeb usr/share/console-setup/pc105.ekmap.gz
-	cat Keyboard/pc105.ekmap.gz >debian/console-setup-pc-ekmap/usr/share/console-setup/pc105.ekmap.gz
+	#cat pc105.ekmap.gz >debian/console-setup-pc-ekmap/usr/share/console-setup/pc105.ekmap.gz
 	dh_install -pconsole-setup-pc-ekmap Keyboard/pc105.tree \
 		usr/share/console-setup-mini
 	dh_movefiles -p console-setup-sun4-ekmap --sourcedir=debian/console-setup-udeb usr/share/console-setup/sun4.ekmap.gz
-	cat Keyboard/sun4.ekmap.gz >debian/console-setup-sun4-ekmap/usr/share/console-setup/sun4.ekmap.gz
+	#cat sun4.ekmap.gz >debian/console-setup-sun4-ekmap/usr/share/console-setup/sun4.ekmap.gz
 	dh_movefiles -p console-setup-sun5-ekmap --sourcedir=debian/console-setup-udeb usr/share/console-setup/sun5.ekmap.gz
-	cat Keyboard/sun5.ekmap.gz >debian/console-setup-sun5-ekmap/usr/share/console-setup/sun5.ekmap.gz
+	#cat sun5.ekmap.gz >debian/console-setup-sun5-ekmap/usr/share/console-setup/sun5.ekmap.gz
+# console-setup-pc-ekbd
 	dh_movefiles -p console-setup-pc-ekbd --sourcedir=debian/console-setup-udeb usr/share/console-setup/pc105.ekbd.gz
-	cat Keyboard/pc105.ekbd.gz >debian/console-setup-pc-ekbd/usr/share/console-setup/pc105.ekbd.gz
+	#cat pc105.ekbd.gz >debian/console-setup-pc-ekbd/usr/share/console-setup/pc105.ekbd.gz
 
 # Build architecture-independent files here.
 .PHONY : binary-indep
-binary-indep: build install
+binary-indep: build deb-udeb-install
 	dh_testdir
 	dh_testroot
 	dh_installdebconf
@@ -289,8 +320,11 @@ binary-indep: build install
 
 # Build architecture-dependent files here.
 .PHONY : binary-arch
-binary-arch : build install
+binary-arch : build deb-udeb-install
 # We have nothing to do by default.
 
 .PHONY : binary
 binary : binary-indep binary-arch
+
+.PHONY : build-arch build-indep build-stamp
+build-arch build-indep build-stamp : build

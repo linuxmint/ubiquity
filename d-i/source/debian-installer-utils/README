@@ -51,10 +51,14 @@ debconf-get: Prints out the value of a debconf question.
 
 debconf-set: Sets a debconf question to a value.
 
-fetch-url:   fetch-url [-c|-r] <url> <file>
-Grabs the url and puts it in the file.  It uses methods for each protocol
-that it finds in /usr/lib/fetch-url/ (this allows for new protocols
-to be added).  It returns 0 on success, 1 on failure.
+fetch-url:   fetch-url [-c|-r] <url> <file> [checksum]
+Grabs the url and puts it in the file. If the optional checksum is
+specified, check that it matches and if not, return an error.
+It uses methods for each protocol that it finds in /usr/lib/fetch-url/
+(this allows for new protocols to be added).  It returns 0 on success,
+non-zero otherwise, although the return codes depend on the error from
+the underlying methods, so specific values should not be relied upon
+at present.
 The options modify its behaviour thus (for those methods where they
 make sense -- ftp & http currently -- otherwise they're ignored):
 

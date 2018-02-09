@@ -43,7 +43,7 @@ configuration files
 .nh
 .RI ( keyboard " and " console-setup )
 .hy
-for Greek.  Create also alternative configuration files for German
+for Greek.  Also, create alternative configuration files for German
 named
 .nh
 .IR keyboard.german " and " console-setup.german .
@@ -60,17 +60,46 @@ and in order to configure the console for German you will use
 .SH OPTIONS
 
 .TP
+.IR VARIANT
+Specifies which configuration file to use.  With no variant,
+the configuration files of
+.B setupcon
+are named
+.IR console-setup " and " keyboard .
+On the other hand, if you use e.g.
+.I chukchi
+as
+.I VARIANT
+then the configuration files are
+.IR console-setup.chukchi " and " keyboard.chukchi .
+In this way you can have easy access to several different
+configurations \- for example one for the Chukchi language and another
+for the default configuration.
+
+.TP
 .BR -v ,\  --verbose
 Be more verbose.   Use this option if something goes wrong or while
 experimenting with the configuration files.
 
 .TP
 .BR -k ,\  --keyboard-only
-Setup the keyboard only, do not setup the font.
+Setup the keyboard only, do not setup the font or the terminal.  On
+Linux it is enough to do this configuration only once.
 
 .TP
 .BR -f ,\  --font-only
-Setup the font only, do not setup the keyboard.
+Setup the font only, do not setup the keyboard or the terminal.  On
+Linux this configuration should be repeated each time a new console
+driver is activated (for example when the frame buffer becomes
+active).
+
+.TP
+.BR -t ,\  --terminal-only
+Setup the terminal only, do not setup the keyboard or the font.
+
+.TP
+.BR --current-tty
+Setup the only the current virtual terminal.
 
 .TP
 .BR --force
@@ -101,30 +130,32 @@ after every change of the console configuration.
 .BR --save-only
 The same as
 .IR --save ,
-but does not setup the keyboard and the font.  This option can be
-useful if you want to save the required files while the screen is
-controlled by a X server.
+but does not setup anything.  This option can be useful if you want to
+save the required files while the screen is controlled by a X server.
+
+.TP
+.BI --save-keyboard\  FILE
+For use by initrd builders.  Do not configure anything.  Save an
+usable keyboard layout in
+.IR FILE .
+
+.TP
+.BI --setup-dir\  DIR
+For use by initrd builders.  Do not configure anything.  Arrange in
+the directory
+.I DIR
+everything necessary in order to configure the console.  The file
+.IR DIR/morefiles
+lists all binaries the initrd builder has to install in the initrd
+image.  All other files in
+.I DIR
+have to be copied unchanged in the initrd.  In order to configure the
+console one has to run the script
+.IR DIR/bin/setupcon .
 
 .TP
 .BR -h ,\  --help
 Display usage information.
-
-.TP
-.IR VARIANT
-Specifies which configuration file to use.  By default the
-configuration files of
-.B setupcon
-are named
-.IR console-setup " and " keyboard
-but if you use e.g.
-.I chukchi
-as
-.I VARIANT
-then the configuration files will be
-.IR console-setup.chukchi " and " keyboard.chukchi .
-In this way you can have easy access to several different
-configurations \- for example one for the Chukchi language and another
-for the default configuration.
 
 .SH FILES
 .I ~/.console-setup

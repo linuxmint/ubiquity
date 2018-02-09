@@ -11,17 +11,6 @@ keyboard_present () {
 	    ;;
     esac
 
-    [ -f /proc/bus/input/devices ] || return 0
-    kbdpattern="AT Set \|AT Translated Set\|AT Raw Set"
-    kbdpattern="$kbdpattern\|Atari Keyboard"
-    kbdpattern="$kbdpattern\|Amiga Keyboard"
-    kbdpattern="$kbdpattern\|HIL keyboard"
-    kbdpattern="$kbdpattern\|ADB keyboard"
-    kbdpattern="$kbdpattern\|Sun Type"
-    if grep -i "$kbdpattern" /proc/bus/input/devices >/dev/null; then
-	return 0
-    fi
-
     [ -d /sys/bus/usb/devices ] || return 0
     for d in /sys/bus/usb/devices/*:*; do
 	[ -d "$d" ] || continue
@@ -34,6 +23,23 @@ keyboard_present () {
 		;;
 	esac
     done
+
+    # For Bluetooth keyboards one has to check the class of the device
+    # -- it has to be 0x000540 or 0x002540.  I don't how to make the
+    # required test, so instead we test (unreliably) for a string
+    # bluetooth.*keyboard in /proc/bus/input/devices.
+
+    [ -f /proc/bus/input/devices ] || return 0
+    kbdpattern="AT Set \|AT Translated Set\|AT Raw Set"
+    kbdpattern="$kbdpattern\|Atari Keyboard"
+    kbdpattern="$kbdpattern\|Amiga Keyboard"
+    kbdpattern="$kbdpattern\|HIL keyboard"
+    kbdpattern="$kbdpattern\|ADB keyboard"
+    kbdpattern="$kbdpattern\|Sun Type"
+    kbdpattern="$kbdpattern\|bluetooth.*keyboard"
+    if grep -i "$kbdpattern" /proc/bus/input/devices >/dev/null; then
+	return 0
+    fi
 
     return 1
 }

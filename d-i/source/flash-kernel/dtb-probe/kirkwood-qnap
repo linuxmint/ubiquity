@@ -1,0 +1,239 @@
+#!/bin/sh
+
+# Copyright (C) 2014  Ian Campbell <ijc@debian.org>
+
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301,
+# USA.
+
+# This script attempts to determine the correct device tree blob to
+# use on kirkwood based QNAP devices, which varies according to the
+# SoC used either MV88F6281 or MV88F6282.
+#
+# This is made more complicated because we need to be able to
+# determine which DTB to use even if we are running under a kernel
+# using the older board-file mechanism (in order to support upgrades).
+#
+# The SoC ID is exposed via the SoC bus driver and via the PCI device ID of the
+# PCI host bridge. However on older board file based kernels neither of these
+# are reliably available (SoC ID is only available with multiplatform MVEBU
+# kernels, not the kirkwood kernels even when running DTB and is only availavle
+# from v3.16 onwards meanwhile older PCI host drivers didn't create the host
+# bridge if no devices were present).  Therefore we try the following in order:
+#
+#   * soc bus id in sysfs.
+#   * PCI devid of host bridge
+#   * Ethernet PHY IDs
+#
+# Possible values for /proc/cpuinfo:Hardware:
+# - QNAP TS-119/TS-219
+# - QNAP TS-41x
+#
+# Possible values for /proc/device-tree/model:
+# - QNAP TS219 family
+# - QNAP TS419 family
+#   (NB: TS-119 uses TS-219 DTB)
+#
+# Example SoC bus fields:
+# $ cat /sys/bus/soc/devices/soc0/family
+# Marvell
+# $ cat /sys/bus/soc/devices/soc0/soc_id
+# 6281
+# $ cat /sys/bus/soc/devices/soc0/revision
+# 2
+#
+# Example PCI device ids:
+#
+# Example PHY IDs: (6281 have ID 8 and 0 while 6282 have 0 and 1)
+# $ ls /sys/bus/mdio_bus/devices/
+# 0:00  0:08
+# $ ls /sys/bus/mdio_bus/devices/
+# 0:00  0:01
+# $  ls /sys/bus/mdio_bus/devices/
+# 0:08
+
+# System      | Board File                     | Device Tree (kirkwood or mvebu)
+# ------------+--------------------------------+--------------------------------
+# TS-119      |                                |
+# ------------+--------------------------------+--------------------------------
+# TS-219 6281 | N (MV88F6281-A1 @ 3.2[0])      |
+# TS-219 6282 |                                |
+# ------------+--------------------------------+--------------------------------
+# TS-419 6281 | Y (MV88F6281-A0 @ 3.14)        |
+# TS-419 6282 | Y (MV88F6282-Rev-A1 @ 3.2)     |
+# ------------+--------------------------------+--------------------------------
+#
+# [0] No visible PCI bus.
+
+# My systems: qnap:    TS-419P??? MV88F6281-A0
+#             celaeno: TS-419???  MV88F6282-Rev-A1
+#             armitage:TS-219???  MV88F6281-A1
+
+set -e
+
+FK_DIR="/usr/share/flash-kernel"
+
+. "${FK_CHECKOUT:-$FK_DIR}/functions"
+
+info=0
+if [ "x$1" = "x--info" ] ; then
+    info=1
+    [ -n "$2" ] && kvers=$2
+elif [ "x$2" = "x--info" ] ; then
+    info=1
+    kvers=$1
+elif [ -n "$1" ]; then
+    kvers=$1
+fi
+
+last_result=
+success() {
+    local what=$1
+    local res=$2
+
+    if [ $info -gt 0 ] ; then
+        echo "kirkwood-qnap: success: $what => $res" >&2
+        if [ -n "$last_result" -a "x$res" != "x$last_result" ] ; then
+            echo "kirkwood-qnap: result mismatch" >&2
+        fi
+        last_result=$res
+    else
+        echo $res
+        exit 0
+    fi
+}
+
+if [ $info -gt 0 ] ; then
+  (
+    /bin/echo -e "Kernel:\t\t$(uname -a)"
+    /bin/echo -e -n "cpuinfo:\t" ; grep ^Hardware /proc/cpuinfo
+    /bin/echo -e -n "dt model:\t"
+    if [ -e /proc/device-tree/model ] ; then
+        cat /proc/device-tree/model
+        /bin/echo
+    else
+        /bin/echo "n/a"
+    fi
+    /bin/echo
+
+    /bin/echo "PCI devices:"
+    lspci -n
+    /bin/echo
+
+    /bin/echo "PHY devices (/sys/bus/mdio_bus/devices/):"
+    ls /sys/bus/mdio_bus/devices/
+    /bin/echo
+
+    /bin/echo -ne "Soc Bus:\t"
+    if [ -e "/sys/bus/soc/devices/soc0" ] ; then
+	/bin/echo
+	ls /sys/bus/soc/devices/soc0
+    else
+	/bin/echo "n/a"
+    fi
+    /bin/echo
+  ) >&2
+fi
+
+get_machine
+if [ -z "$machine" -a $info -gt 0 ] ; then
+   machine=`get_machine`
+fi
+echo "kirkwood-qnap: machine: $machine" >&2
+
+case $machine in
+"QNAP TS-119/TS-219"|"QNAP TS219 family")
+    dtb_0x6281="kirkwood-ts219-6281.dtb"
+    dtb_0x6282="kirkwood-ts219-6282.dtb"
+    ;;
+"QNAP TS-41x"|"QNAP TS419 family")
+    dtb_0x6281="kirkwood-ts419-6281.dtb"
+    dtb_0x6282="kirkwood-ts419-6282.dtb"
+    ;;
+*)
+    error "Unknown machine $machine"
+    ;;
+esac
+
+if [ -e "/sys/bus/soc/devices/soc0/soc_id" ] ; then
+    case $(cat /sys/bus/soc/devices/soc0/soc_id) in
+    6281) success "SoC ID" $dtb_0x6281;;
+    6282) success "SoC ID" $dtb_0x6282;;
+    esac
+fi
+for device in /sys/bus/pci/devices/* ; do
+    if [ ! -e "$device" ] ; then
+        continue
+    fi
+    if [ ! -e "$device/class" -o   \
+         ! -e "$device/vendor" -o  \
+         ! -e "$device/device" ] ; then
+        echo "$device is missing sysfs entries" >&2
+        continue
+    fi
+
+    class=$(cat $device/class)
+    # Host/PCI bride 0x60000 or PCI/PCI bride 0x60400
+    if [ x$class != x0x060000 ] && [ x$class != x0x060400 ] ; then
+        echo "$device is not a PCI bridge ($class)" >&2
+        continue
+    fi
+
+    vid=$(cat $device/vendor)
+    if [ x$vid != x0x11ab ] ; then
+        echo "$device vendor is not Marvell ($vid)" >&2
+        continue
+    fi
+
+    did=$(cat $device/device)
+    case $did in
+    0x6281) success "PCI" ${dtb_0x6281}; break;;
+    0x6282) success "PCI" ${dtb_0x6282}; break;;
+    *) echo "$device is not a known Marvell device ($did)" >&2 ;;
+    esac
+done
+
+have_phy() {
+    local phy=$1
+    test -e "/sys/bus/mdio_bus/devices/0:$phy" -o \
+         -e "/sys/bus/mdio_bus/devices/orion-mdio-mii:$phy" -o \
+         -e "/sys/bus/mdio_bus/devices/f1072004.mdio-bu:$phy"
+}
+
+case $machine in
+"QNAP TS-119/TS-219"|"QNAP TS219 family")
+    # TS-219???  MV88F6281-A1    # ls /sys/bus/mdio_bus/devices/ => 0:08@
+    if have_phy 08; then
+        success "PHY" "$dtb_0x6281"
+    elif have_phy 00; then
+        success "PHY" "$dtb_0x6282"
+    fi
+    ;;
+"QNAP TS-41x"|"QNAP TS419 family")
+    # TS-419P??? MV88F6281-A0    # ls /sys/bus/mdio_bus/devices/ => 0:00@  0:08@
+    # TS-419???  MV88F6282-Rev-A1# ls /sys/bus/mdio_bus/devices/ => 0:00@  0:01@
+    if have_phy 08 && have_phy 00; then
+        success "PHY" "$dtb_0x6281"
+    elif have_phy 00 && have_phy 01; then
+        success "PHY" "$dtb_0x6282"
+    fi
+    ;;
+esac
+
+if [ $info -gt 0 ] ; then
+    exit 0
+fi
+
+echo "kirkwood-qnap: Unable to determine $machine variant " >&2
+exit 1

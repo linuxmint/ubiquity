@@ -14,4 +14,19 @@ if [ -n "$dhcp_url" ]; then
 	preseed_location "$dhcp_url"
 fi
 preseed preseed/url
+
+CURRENT_HOSTNAME=`/bin/hostname`
+if db_get netcfg/hostname && [ "$RET" ]; then
+	if ! echo "$RET" | grep -qw 'ubuntu'; then
+		# default hostname is ubuntu; if that's what we have in the
+		# netcfg/hostname template, then netcfg will already have
+		# done the right thing.
+		NETCFG_HOSTNAME="$RET"
+		/bin/sed -i "s/$CURRENT_HOSTNAME/$NETCFG_HOSTNAME/" /etc/hostname
+		/bin/sed -i "s/\b${CURRENT_HOSTNAME}\b/${NETCFG_HOSTNAME}/g" /etc/hosts
+		/bin/hostname "$NETCFG_HOSTNAME"
+		/usr/bin/logger -t netcfg "d-i netcfg/hostname $NETCFG_HOSTNAME took precedence"
+	fi
+fi
+
 preseed_command preseed/early_command

@@ -1,0 +1,109 @@
+#!/bin/sh
+
+. /lib/partman/lib/base.sh
+
+swap_partition () {
+    local swaps dev num id size type fs path name method
+    local startdir="$(pwd)"
+    swaps=''
+    for dev in $DEVICES/*; do
+	[ -d $dev ] || continue
+	cd $dev
+	open_dialog PARTITIONS
+	while { read_line num id size type fs path name; [ "$id" ]; }; do
+	    [ $fs != free ] || continue
+	    [ -f "$id/method" ] || continue
+	    method=$(cat $id/method)
+	    if [ "$method" = swap ]; then
+		    swaps="$swaps $path"
+	    fi
+	done
+	close_dialog
+    done
+    if [ -n "$swaps" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+enable_swap () {
+    # do swapon only when we will be able to swapoff afterwards
+    [ -f /proc/swaps ] || return 0
+    if ! grep -q "^$(readlink -f /target/swapfile) " /proc/swaps; then
+	    swapon /target/swapfile 2>/dev/null || true
+    fi
+}
+
+# Check target filesystem, might not support swapfiles...
+# Also check if fallocate can be used
+rootfstype=$(cat /proc/self/mountinfo | grep '/target' | cut -d\  -f8)
+fallocatesupport=false
+case $rootfstype in
+    ext4)
+        fallocatesupport=true
+        ;;
+    btrfs|zfs)
+        # No support for swapfiles
+        return 0
+        ;;
+esac
+
+# No need for swapfile, if a swap partition is created/available
+if swap_partition; then
+    return 0
+fi
+
+# No new swapfile... if there is one already, e.g. reuse/reinstall recipes
+if [ -f /target/swapfile ]; then
+    enable_swap
+    return 0
+fi
+
+
+db_input medium partman-swapfile/size || true
+db_input medium partman-swapfile/percentage || true
+db_go || true
+db_get partman-swapfile/size
+max_size=$RET
+db_get partman-swapfile/percentage
+max_percent=$RET
+
+# Get available space
+available=$(busybox df -P /target/ | sed 1d | while read fs size used available usep mounted on; do
+	echo $available
+done)
+
+# 5% or cap limit
+size=$((available/100))
+size=$((size*$max_percent))
+limit=$((1024*$max_size))
+if [ $size -gt $limit ]
+then
+    size=$limit
+fi
+
+# No swapfile if limits are 0MB or 0%
+if [ $size = 0 ]
+then
+    return 0
+fi
+
+db_progress START 0 5 partman/text/formatting
+db_progress INFO partman-swapfile/progress_swap_formatting
+db_progress SET 1
+if type fallocate >/dev/null 2>&1 && $fallocatesupport; then
+    log-output -t partman-swapfile --pass-stdout fallocate -l ${size}KiB /target/swapfile
+else
+    log-output -t partman-swapfile --pass-stdout dd if=/dev/zero of=/target/swapfile bs=1024 count=$size
+fi
+db_progress SET 2
+chmod 600 /target/swapfile
+db_progress SET 3
+log-output -t partman-swapfile --pass-stdout mkswap /target/swapfile >/dev/null
+sync
+db_progress SET 4
+enable_swap
+db_progress STOP
+
+return 0

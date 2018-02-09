@@ -5,7 +5,7 @@ Generates rtl versions of images by mirroring them
 """
 import glob
 
-from PyQt4.QtGui import QImage
+from PyQt5.QtGui import QImage
 
 def main():
     for src in glob.glob("*_ltr.png"):

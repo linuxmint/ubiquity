@@ -21,15 +21,15 @@
 # with Ubiquity; if not, write to the Free Software Foundation, Inc., 51
 # Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class Spinner(QtGui.QLabel):
+class Spinner(QtWidgets.QLabel):
     """
     Home-made spinner widget, because we can't use kdelibs classes
     """
     def __init__(self, parent=None):
-        QtGui.QLabel.__init__(self, parent)
+        QtWidgets.QLabel.__init__(self, parent)
         size = 22
         self.setFixedSize(size, size)
 

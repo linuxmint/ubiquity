@@ -125,11 +125,19 @@ int main(int argc, char *argv[])
     else
         debconf_set(client, "netcfg/use_autoconfig", "true");
 
+    /* Don't ask use_autoconfig question on s390x when
+     * disable_autoconfig was preseeded */
+    debconf_fget(client, "netcfg/disable_autoconfig", "seen");
+    if (!strcmp(client->value, "true"))
+        debconf_fset(client, "netcfg/use_autoconfig", "seen", "true");
+
     /* also support disable_dhcp for compatibility */
     debconf_get(client, "netcfg/disable_dhcp");
 
-    if (!strcmp(client->value, "true"))
+    if (!strcmp(client->value, "true")) {
         debconf_set(client, "netcfg/use_autoconfig", "false");
+        debconf_fset(client, "netcfg/use_autoconfig", "seen", "true");
+    }
 
     for (;;) {
         switch(state) {

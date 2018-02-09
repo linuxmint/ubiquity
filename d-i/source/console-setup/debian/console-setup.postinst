@@ -5,6 +5,7 @@ set -e
 # Source debconf library.
 . /usr/share/debconf/confmodule
 
+CONFIGDIR=/etc/console-setup
 CONFIGFILE=/etc/default/console-setup
 
 # turn around bug in dpkg (#17624)
@@ -123,22 +124,26 @@ EOF
     db_set console-setup/store_defaults_in_debconf_db true
 fi
 
+# The second setupcon may start background processes inheriting file
+# descriptors from debconf.
+db_stop
+
+# We redirect the output so that postinst does not block when ScrollLock is on
 # This works even if we are not on the console
-setupcon --save-only || true
+setupcon --save-only >/dev/null 2>/dev/null || true
 if type plymouth >/dev/null && plymouth --ping; then
     # setting the keymap breaks with plymouth in raw mode, and setting the
     # font will currently also break if on vgacon
     :
-elif [ -d /lib/debian-installer ] || \
-     expr "$(fgconsole 2>/dev/null || true)" : '[1-6]$' >/dev/null; then
-    setupcon --force
+elif [ -d /lib/debian-installer ]; then
+    setupcon --force >/dev/null 2>/dev/null || true
 else
-    # setting the font corrupts X
-    setupcon --force -k
-    cat >&2 <<EOF
+    if ! setupcon >/dev/null 2>/dev/null; then
+        cat >&2 <<EOF
 Your console font configuration will be updated the next time your system
 boots. If you want to update it now, run 'setupcon' from a virtual console.
 EOF
+    fi
 fi
 
 #DEBHELPER#

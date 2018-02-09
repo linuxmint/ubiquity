@@ -297,6 +297,35 @@ devices_to_ids()
 	echo "$ids"
 }
 
+# Split a device name into a disk device name and a partition number, if
+# possible.
+split_device () {
+	disk=
+	part=
+	case $1 in
+		/dev/[vhs]d[a-z]*|/dev/fio[a-z]*)
+			disk="$(echo "$1" | sed 's,\(/dev/[a-z]\+\).*,\1,')"
+			part="$(echo "$1" | sed 's,/dev/[a-z]\+\(.*\),\1,')"
+			;;
+		/dev/*/c*d*)
+			disk="$(echo "$1" | sed 's,\(/dev/.*/c[0-9]\+d[0-9]\+\).*,\1,')"
+			part="$(echo "$1" | sed 's,/dev/.*/c[0-9]\+d[0-9]\+p\([0-9]\+\),\1,')"
+			[ "$part" != "$1" ] || part=
+			;;
+		/dev/mmcblk*)
+			disk="$(echo "$1" | sed 's,\(/dev/mmcblk[0-9]\+\).*,\1,')"
+			part="$(echo "$1" | sed 's,/dev/mmcblk[0-9]\+p\([0-9]\+\),\1,')"
+			[ "$part" != "$1" ] || part=
+			;;
+		/dev/nvme*n*)
+			disk="$(echo "$1" | sed 's,\(/dev/nvme[0-9]\+n[0-9]\+\).*,\1,')"
+			part="$(echo "$1" | sed 's,/dev/nvme[0-9]\+n[0-9]\+p\([0-9]\+\),\1,')"
+			[ "$part" != "$1" ] || part=
+			;;
+	esac
+	echo "$disk $part"
+}
+
 rootfs=$(findfs /)
 bootfs=$(findfs /boot)
 [ -n "$bootfs" ] || bootfs="$rootfs"
@@ -486,18 +515,6 @@ case $ARCH in
 	grub_package="grub-pc"
 esac
 
-case "$frtype:$bootfstype:$bootfslabel:$grub_package" in
-    *:*:*:grub-yeeloong | lvm:*:*:* | *:*:gpt:* | *:ufs:*:* | *:zfs:*:* | *:btrfs:*:* )
-	# grub-legacy is not an option in these configurations
-	;;
-    *:*:*:grub-pc)
-	db_get grub-installer/grub2_instead_of_grub_legacy
-	if [ "$RET" = false ]; then
-		grub_package="grub"
-	fi
-	;;
-esac
-
 case $ARCH:$grub_package in
     ppc64el/*:grub-ieee1275)
 	# By default, use the first PReP partition found (prep-bootdev).
@@ -508,7 +525,9 @@ case $ARCH:$grub_package in
 	wipe_bootdevs=""
 	wipe_bootdev="$(/usr/lib/grub-installer/prep-bootdev)"
 	for prep_p in $(/usr/lib/grub-installer/prep-bootdev -l); do
-		if [ "${prep_p%[0-9]*}" = "${disc_offered%[0-9]*}" ]; then
+		prep_dev=$(split_device $prep_p)
+		offered=$(split_device $disc_offered)
+		if [ "${prep_dev%% *}" = "${offered%% *}" ]; then
 			wipe_bootdev=$prep_p
 			break
 		fi
@@ -516,7 +535,7 @@ case $ARCH:$grub_package in
 		if echo $disc_offered | grep -q '/dev/md[0-9]\+'; then
 			if mdadm --detail --verbose $disc_offered \
 			     | sed -n 's:.*\(/dev/.*[^0-9]\)[0-9]\+$:\1:p' \
-			     | grep "${prep_p%[0-9]*}"; then
+			     | grep "${prep_dev%% *}"; then
 				wipe_bootdevs="$wipe_bootdevs $prep_p"
 			fi
 		fi
@@ -609,30 +628,20 @@ db_progress INFO grub-installer/progress/step_install
 # we need to purge them first to support users who try grub2 and then switch
 # to grub legacy, or vice-versa
 case "$grub_package" in
-    grub)
-	log-output -t grub-installer $chroot $ROOT dpkg -P grub-pc-bin grub-pc grub-efi grub-efi-amd64-bin grub-efi-amd64 grub-efi-amd64-signed grub-efi-ia32-bin grub-efi-ia32 grub-gfxpayload-lists
-	;;
     grub-pc)
-	log-output -t grub-installer $chroot $ROOT dpkg -P grub grub-legacy grub-efi grub-efi-amd64-bin grub-efi-amd64 grub-efi-amd64-signed grub-efi-ia32-bin grub-efi-ia32
+	log-output -t grub-installer $chroot $ROOT dpkg -P grub-efi grub-efi-amd64-bin grub-efi-amd64 grub-efi-amd64-signed grub-efi-ia32-bin grub-efi-ia32
 	;;
     grub-efi)
-	log-output -t grub-installer $chroot $ROOT dpkg -P grub grub-legacy grub-pc-bin grub-pc grub-gfxpayload-lists grub-efi-amd64-signed
+	log-output -t grub-installer $chroot $ROOT dpkg -P grub-pc-bin grub-pc grub-gfxpayload-lists grub-efi-amd64-signed
 	;;
     grub-efi-amd64-signed)
-	log-output -t grub-installer $chroot $ROOT dpkg -P grub grub-legacy grub-pc-bin grub-pc grub-gfxpayload-lists
+	log-output -t grub-installer $chroot $ROOT dpkg -P grub-pc-bin grub-pc grub-gfxpayload-lists
 	;;
 esac
 
 exit_code=0
 inst_package=$grub_package
 case "$grub_package" in
-    grub)
-	if apt-install --no-recommends grub-legacy ; then
-		inst_package=grub-legacy
-	else
-		apt-install $grub_package || exit_code=$? 
-	fi
-	;;
    *)
 	# Will pull in os-prober based on global setting for Recommends
 	apt-install $grub_package || exit_code=$? 
@@ -1134,35 +1143,6 @@ else
 	fi
 
 fi
-
-# Split a device name into a disk device name and a partition number, if
-# possible.
-split_device () {
-	disk=
-	part=
-	case $1 in
-		/dev/[vhs]d[a-z]*|/dev/fio[a-z]*)
-			disk="$(echo "$1" | sed 's,\(/dev/[a-z]\+\).*,\1,')"
-			part="$(echo "$1" | sed 's,/dev/[a-z]\+\(.*\),\1,')"
-			;;
-		/dev/*/c*d*)
-			disk="$(echo "$1" | sed 's,\(/dev/.*/c[0-9]\+d[0-9]\+\).*,\1,')"
-			part="$(echo "$1" | sed 's,/dev/.*/c[0-9]\+d[0-9]\+p\([0-9]\+\),\1,')"
-			[ "$part" != "$1" ] || part=
-			;;
-		/dev/mmcblk*)
-			disk="$(echo "$1" | sed 's,\(/dev/mmcblk[0-9]\+\).*,\1,')"
-			part="$(echo "$1" | sed 's,/dev/mmcblk[0-9]\+p\([0-9]\+\),\1,')"
-			[ "$part" != "$1" ] || part=
-			;;
-		/dev/nvme*n*p*)
-			disk="$(echo "$1" | sed 's,\(/dev/nvme[0-9]\+n[0-9]\+\).*,\1,')"
-			part="$(echo "$1" | sed 's,/dev/nvme[0-9]\+n[0-9]\+p\([0-9]\+\),\1,')"
-			[ "$part" != "$1" ] || part=
-			;;
-	esac
-	echo "$disk $part"
-}
 
 make_device_map () {
 	# If you're preseeding (hd0) et al, stop - preseed OS device names

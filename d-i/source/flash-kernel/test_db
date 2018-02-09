@@ -1,0 +1,38 @@
+#!/bin/dash
+
+# Copyright (C) 2013  Loïc Minier <lool@dooz.org>
+
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301,
+# USA.
+
+. ./testlib
+
+MACHINE_DB="$(cat "${FK_CHECKOUT:-$FK_DIR}/db/"*.db)"
+
+test_no_unknown_fields() {
+    local expected='Android-Boot-Device Android-Skip-Initrd Boot-Device Boot-DTB-Path Boot-Initrd-Path Boot-Kernel-Path Bootloader-Sets-Incorrect-Root Bootloader-sets-root Boot-Multi-Path Boot-Script-Path DTB-Append DTB-Append-From DTB-Id DTB-Kernel-Version Kernel-Flavors Machine Machine-Id Method Mtd-Initrd Mtd-Kernel Optional-Packages Required-Packages U-Boot-Initrd-Address U-Boot-Kernel-Address U-Boot-Kernel-Entry-Point U-Boot-Multi-Address U-Boot-Script-Address U-Boot-Script-Name'
+    expected="$(echo "$expected" | sed 's/ /\n/g' | sort -u | xargs)"
+    local fields="$(echo "$MACHINE_DB" | sed -n '/^[^#]*:/s/:.*//p' | sort -u | xargs)"
+    if [ "$fields" != "$expected" ]; then
+        return 1
+    fi
+    return 0
+}
+add_test test_no_unknown_fields
+
+
+test_main
+
+# vim:syntax=sh

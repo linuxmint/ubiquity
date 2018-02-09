@@ -62,14 +62,14 @@ close IN;
 # This is useful if you have a mirror hierarchy using wildcard DNS.
 # Use a C-style for loop because we may modify $id in the middle of it.
 for (my $id = 0; $id < @data; $id++) {
-	if ($data[$id]->{site} =~ /\${CC}/) {
+	if ($data[$id]->{site} =~ /\$\{CC}/) {
 		my @expanded;
 		foreach my $cc (sort keys %iso3166) {
 			my %entry = %{$data[$id]};
 			for my $field (keys %entry) {
-				$entry{$field} =~ s/\${CC}/lc($cc)/eg;
-				$entry{$field} =~ s/\${UCC}/uc($cc)/eg;
-				$entry{$field} =~ s/\${CNAME}/$iso3166{$cc}/g;
+				$entry{$field} =~ s/\$\{CC}/lc($cc)/eg;
+				$entry{$field} =~ s/\$\{UCC}/uc($cc)/eg;
+				$entry{$field} =~ s/\$\{CNAME}/$iso3166{$cc}/g;
 			}
 			push @expanded, \%entry;
 		}
@@ -128,7 +128,7 @@ if ($type =~ /(.*)list/) {
 	foreach my $id (0..$#data) {
 		my $cc;
 		if (exists $data[$id]->{type} and $data[$id]->{type} =~ /geodns/i) {
-			$cc='GB'; # location of Linux Mint master archive
+			$cc='GB'; # location of Ubuntu master archive
 		}
 		else {
 			$cc=$data[$id]->{country};

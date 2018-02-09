@@ -24,3 +24,5 @@ override_dh_installdebconf:
 	# Sort mirror countries (including translations)
 	# MUST be after dh_installdebconf
 	./sort-templates
+	# Make sure templates are not obviously broken (#834383):
+	[ ! -d debian/choose-mirror-bin/DEBIAN ] || grep -qs '^Template:' debian/choose-mirror-bin/DEBIAN/templates

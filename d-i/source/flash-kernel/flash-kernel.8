@@ -3,7 +3,7 @@
 .SH NAME
 flash-kernel \- put kernel and initramfs in boot location
 .SH SYNOPSIS
-.B flash-kernel [--supported] [kvers]
+.B flash-kernel [--supported] [--force] [kvers]
 .SH DESCRIPTION
 flash-kernel is a script which will put the kernel and initramfs in
 the boot location of embedded devices that don't load the kernel and
@@ -13,7 +13,12 @@ require a special boot image on the disk.
 .P
 Optionally, it can be passed a version of the kernel to flash; only
 the highest version will be flashed and other versions will be
-ignored.  Kernel and initrd are read from /boot.
+ignored unless the \-\-force option is used. Kernel and initrd are
+read from /boot.
+.P
+Note that when the \-\-force the kernel can be overwritten with the current
+version whenever a package is installed which changes the kernel, initramfs
+etc. Therefore this is only really useful for one-off testing.
 .P
 Prior to flashing the kernel, a check is performed to verify that
 the subarchitectures of the machine and the image to be flashed
@@ -22,5 +27,32 @@ subarchitecture.
 .P
 If the \-\-supported option is used, flash\-kernel will test to see if
 the hardware is supported, and return a true or false value.
+.SH ENVIRONMENT VARIABLES
+
+.IP FK_MACHINE
+Specify a specific machine, overriding the autodetection, also see the
+description of
+.B /etc/flash\-kernel/machine
+below. Can be set to `none' to disable flash\-kernel. This can be used
+when installing flash\-kernel into a chroot, for example while
+preparing a filesystem image.
+.B WARNING: Take great care when running flash\-kernel in a chroot, since the
+.B choice of machine may cause host filesystem partitions to be mounted and 
+.B modified.
+
+.SH FILES
+.TP
+.B /usr/share/flash-kernel/db/all.db
+The database of machines which flash\-kernel knows about. See
+.B /usr/share/doc/flash-kernel/README.gz
+For information on the database fields.
+.TP
+.B /etc/flash\-kernel/db
+Local overrides to the database of machines
+.TP
+.B /etc/flash\-kernel/machine
+If present this can be used to override the machine autodetection. The
+contents must be a string which matches an entry in the database. Or
+`none' to disable flash\-kernel.
 .SH AUTHOR
 Martin Michlmayr <tbm@cyrius.com>

@@ -21,9 +21,9 @@
 # with Ubiquity; if not, write to the Free Software Foundation, Inc., 51
 # Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-from PyQt4 import QtGui
-from PyQt4 import QtCore
-from PyQt4.QtCore import Qt
+from PyQt5 import QtWidgets
+from PyQt5 import QtCore
+from PyQt5.QtCore import Qt
 
 from ubiquity.frontend.kde_components import qssutils
 
@@ -34,7 +34,7 @@ __all__ = ["Breadcrumb"]
 # QFrame should be enough, but right now (Trusty) if I change Breadcrumb to
 # inherit from QFrame then _mainLabel is not given enough vertical space and
 # its text gets cropped at the bottom.
-class Breadcrumb(QtGui.QLabel):
+class Breadcrumb(QtWidgets.QLabel):
     TODO = 0
     CURRENT = 1
     DONE = 2
@@ -43,16 +43,16 @@ class Breadcrumb(QtGui.QLabel):
         super(Breadcrumb, self).__init__(parent)
         self.setProperty("isBreadcrumb", True)
 
-        self._tickLabel = QtGui.QLabel()
+        self._tickLabel = QtWidgets.QLabel()
         fm = self._tickLabel.fontMetrics()
         self._tickLabel.setFixedWidth(fm.width(" M "))
         self._tickLabel.setAlignment(Qt.AlignTop | Qt.AlignRight)
 
-        self._mainLabel = QtGui.QLabel()
+        self._mainLabel = QtWidgets.QLabel()
         self._mainLabel.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         self._mainLabel.setWordWrap(True)
 
-        layout = QtGui.QHBoxLayout(self)
+        layout = QtWidgets.QHBoxLayout(self)
         layout.addWidget(self._tickLabel)
         layout.addWidget(self._mainLabel)
 
@@ -78,7 +78,7 @@ class Breadcrumb(QtGui.QLabel):
 
     def _updateFromState(self):
         _initDicts()
-        if QtGui.QApplication.isLeftToRight():
+        if QtWidgets.QApplication.isLeftToRight():
             tickDict = _TICK_DICT_LTR
             qssDict = _QSS_DICT_LTR
         else:

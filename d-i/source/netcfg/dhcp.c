@@ -344,12 +344,11 @@ int poll_dhcp_client (struct debconfclient *client)
 
 int ask_dhcp_options (struct debconfclient *client, const char *if_name)
 {
-    if (is_wireless_iface(if_name)) {
-        debconf_metaget(client, "netcfg/internal-wifireconf", "description");
-        debconf_subst(client, "netcfg/dhcp_options", "wifireconf", client->value);
-    }
+    if (is_wireless_iface(if_name))
+        debconf_metaget(client, "netcfg/internal-wifireconf", "Choices");
     else /* blank from last time */
-        debconf_subst(client, "netcfg/dhcp_options", "wifireconf", "");
+        debconf_metaget(client, "netcfg/internal-nowifi", "Choices");
+    debconf_subst(client, "netcfg/dhcp_options", "choices", client->value);
 
     /* critical, we don't want to enter a loop */
     debconf_input(client, "critical", "netcfg/dhcp_options");
@@ -612,7 +611,7 @@ int netcfg_activate_dhcp (struct debconfclient *client, struct netcfg_interface 
                 di_debug("Network config complete");
                 netcfg_write_common("", hostname, domain);
                 netcfg_write_loopback();
-                netcfg_write_interface(interface);
+                netcfg_write_interface(client, interface, domain);
                 netcfg_write_resolv(domain, interface);
 #if !defined(__FreeBSD_kernel__)
                 kill_dhcp_client();
@@ -711,14 +710,15 @@ int netcfg_dhcp(struct debconfclient *client, struct netcfg_interface *interface
     if (!have_domain && (d = fopen(DOMAIN_FILE, "r")) != NULL) {
         di_debug("Reading domain name returned via DHCP");
         domain[0] = '\0';
-        if (fgets(domain, sizeof(domain), d) != NULL)
+        while (fgets(domain, sizeof(domain), d) != NULL) {
             rtrim(domain);
+            di_debug("DHCP domain name is '%s'", domain);
+            if (!empty_str(domain)) {
+                have_domain = 1;
+            }
+        }
         fclose(d);
         unlink(DOMAIN_FILE);
-        di_debug("DHCP domain name is '%s'", domain);
-        if (!empty_str(domain)) {
-            have_domain = 1;
-        }
     }
 
     /*
@@ -731,8 +731,9 @@ int netcfg_dhcp(struct debconfclient *client, struct netcfg_interface *interface
         
         di_debug("Reading NTP servers from DHCP info");
         
-        if (fgets(ntpservers, DHCP_OPTION_LEN, d) != NULL)
+        while (fgets(ntpservers, DHCP_OPTION_LEN, d) != NULL) {
             rtrim(ntpservers);
+        }
         fclose(d);
         unlink(NTP_SERVER_FILE);
 

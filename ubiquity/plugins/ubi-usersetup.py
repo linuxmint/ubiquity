@@ -35,7 +35,7 @@ from ubiquity import misc, plugin, validation
 
 
 NAME = 'usersetup'
-AFTER = 'console_setup'
+AFTER = 'timezone'
 WEIGHT = 10
 
 
@@ -445,8 +445,8 @@ class PageKde(PageBase):
         PageBase.__init__(self, *args, **kwargs)
         self.controller = controller
 
-        from PyQt4 import uic
-        from PyQt4.QtGui import QPixmap
+        from PyQt5 import uic
+        from PyQt5.QtGui import QPixmap
 
         self.plugin_widgets = uic.loadUi(
             '/usr/share/ubiquity/qt/stepUserSetup.ui')

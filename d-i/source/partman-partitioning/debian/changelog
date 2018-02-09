@@ -1,3 +1,146 @@
+partman-partitioning (120ubuntu1) bionic; urgency=low
+
+  * Merge from Debian unstable.  Remaining changes:
+    - DASD-FBA drives should still use msdos partition table, and not dasd
+      one.
+    - Add PATH, RAWMINSIZE, RAWPREFSIZE, and RAWMAXSIZE substitutions to
+      partman-partitioning/new_size in support of ubiquity's resize widget.
+    - Check that minimum filesystem sizes reported by tune2fs and ntfsresize
+      are between the minimum partition size and the current partition size;
+      if not, refuse to resize the partition at all.
+    - Save the swap size for ubiquity.
+    - On systems with only GPT disks, check that an EFI System Partition or
+      a BIOS Boot Partition exists, as appropriate.
+    - Detect "fsl" subarch for powerpc and set partition map to GPT.
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Wed, 17 Jan 2018 11:17:38 +0000
+
+partman-partitioning (120) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Icelandic (is.po) by Sveinn í Felli
+  * Panjabi (pa.po) by Aman ALam
+  * Serbian (sr.po) by Filipovic Dragan
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 15 Jan 2018 06:55:03 +0100
+
+partman-partitioning (119) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Esperanto (eo.po) by Felipe Castro
+  * Lithuanian (lt.po) by Rimas Kudelis
+  * Swedish (sv.po) by Anders Jonsson
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 03 Dec 2017 18:40:53 +0100
+
+partman-partitioning (118) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Greek (el.po) by Sotirios Vrachas
+  * Norwegian Nynorsk (nn.po) by Allan Nordhøy
+  * Swedish (sv.po) by Anders Jonsson
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 26 Nov 2017 19:22:10 +0100
+
+partman-partitioning (117) unstable; urgency=medium
+
+  [ John Paul Adrian Glaubitz ]
+  * Use disk labels for powerpc on ppc64 as well.
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 24 Sep 2017 07:52:29 +0200
+
+partman-partitioning (116) unstable; urgency=medium
+
+  [ Cyril Brulebois ]
+  * Make get_real_device() both simpler and more generic by mimicking
+    the linux kernel's disk_name function, thanks to Ben Hutchings
+    (See: #820818).
+
+  [ Updated translations ]
+  * Simplified Chinese (zh_CN.po) by Yangfl
+
+ -- Cyril Brulebois <kibi@debian.org>  Sat, 24 Jun 2017 20:04:19 +0200
+
+partman-partitioning (115) unstable; urgency=medium
+
+  * Fix resizing an NVMe device, by making sure the “pN” (where N is the
+    partition number) is included in the path of the device to be
+    resized (Closes: #820818).
+
+ -- Cyril Brulebois <kibi@debian.org>  Thu, 09 Mar 2017 19:43:52 +0100
+
+partman-partitioning (114ubuntu2) zesty; urgency=medium
+
+  * DASD-FBA drives should still use msdos partition table, and not dasd
+    one. LP: #1650300
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Thu, 12 Jan 2017 12:36:28 +0000
+
+partman-partitioning (114ubuntu1) zesty; urgency=low
+
+  [ Ubuntu Merge-o-Matic ]
+  * Merge from Debian unstable.  Remaining changes:
+    - Add PATH, RAWMINSIZE, RAWPREFSIZE, and RAWMAXSIZE substitutions to
+      partman-partitioning/new_size in support of ubiquity's resize widget.
+    - Check that minimum filesystem sizes reported by tune2fs and ntfsresize
+      are between the minimum partition size and the current partition size;
+      if not, refuse to resize the partition at all.
+    - Save the swap size for ubiquity.
+    - On systems with only GPT disks, check that an EFI System Partition or
+      a BIOS Boot Partition exists, as appropriate.
+    - Detect "fsl" subarch for powerpc and set partition map to GPT.
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Tue, 06 Dec 2016 14:18:27 +0100
+
+partman-partitioning (114) unstable; urgency=medium
+
+  [ Viktor Mihajlovski ]
+  * In case a disk is identified as type=dasd, make sure to preserve
+    this in the disk label. (Closes: #815916)
+    Requires partman-base 190.
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 16 Nov 2016 06:47:57 +0100
+
+partman-partitioning (113) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Turkish (tr.po) by Mert Dirik
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 15 Aug 2016 10:42:14 +0200
+
+partman-partitioning (112ubuntu1) yakkety; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Add PATH, RAWMINSIZE, RAWPREFSIZE, and RAWMAXSIZE substitutions to
+      partman-partitioning/new_size in support of ubiquity's resize widget.
+    - Check that minimum filesystem sizes reported by tune2fs and ntfsresize
+      are between the minimum partition size and the current partition size;
+      if not, refuse to resize the partition at all.
+    - Save the swap size for ubiquity.
+    - On systems with only GPT disks, check that an EFI System Partition or
+      a BIOS Boot Partition exists, as appropriate.
+    - Detect "fsl" subarch for powerpc and set partition map to GPT.
+    - On s390x use msdos partition table by default, unless partman
+      advises dasd.
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Fri, 12 Aug 2016 09:52:51 +0100
+
+partman-partitioning (112) unstable; urgency=medium
+
+  [ Aurelien Jarno ]
+  [ Aurelien Jarno]
+  * Default to msdos partition label on mips, mipsel and mips64el. We
+    don't support hardware requiring other partition labels anymore.
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 23 May 2016 15:18:46 +0200
+
+partman-partitioning (111) unstable; urgency=medium
+
+  [ Colin Watson ]
+  * Use HTTPS for Vcs-* URLs, and link to cgit rather than gitweb.
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 07 Feb 2016 18:31:43 +0100
+
 partman-partitioning (110ubuntu4) xenial; urgency=medium
 
   [ Viktor Mihajlovski ]
@@ -271,7 +414,7 @@ partman-partitioning (91) unstable; urgency=low
 partman-partitioning (90) unstable; urgency=low
 
   [ Colin Watson ]
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - Support archdetect being anywhere on PATH.
 
  -- Christian Perrier <bubulle@debian.org>  Wed, 26 Dec 2012 07:56:50 +0100
@@ -371,7 +514,7 @@ partman-partitioning (86) unstable; urgency=low
 
 partman-partitioning (85ubuntu2) precise; urgency=low
 
-  * Update Linux Mint-specific translations from Launchpad.
+  * Update Ubuntu-specific translations from Launchpad.
 
  -- Colin Watson <cjwatson@ubuntu.com>  Wed, 11 Apr 2012 16:07:03 +0100
 
@@ -732,7 +875,7 @@ partman-partitioning (74) unstable; urgency=low
 partman-partitioning (73) unstable; urgency=low
 
   [ Colin Watson ]
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - When creating a new partition, default to logical if a primary
       partition already exists, since there are stricter constraints on
       primary partitions and the only real reasons for them are Microsoft
@@ -945,7 +1088,7 @@ partman-partitioning (66ubuntu1) karmic; urgency=low
 partman-partitioning (66) unstable; urgency=low
 
   [ Colin Watson ]
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - get_real_device: Add support for /dev/vd*, /dev/xvd*, /dev/cciss/*,
       /dev/ida/*, and /dev/mmcblk* (LP: #282756).
     - When resizing a non-virtual partition, update it after committing
@@ -987,7 +1130,7 @@ partman-partitioning (65ubuntu1) jaunty; urgency=low
 partman-partitioning (65) unstable; urgency=low
 
   [ Colin Watson ]
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - Exit straight away if a called script is killed by a signal.
     - Add lpia support to default_disk_label (Emmet Hikory).
     - Add ext4 support.
@@ -1075,7 +1218,7 @@ partman-partitioning (64) unstable; urgency=low
   * free_space/new/do_option: remove check for sataraid when setting options
     for partitions; Serial ATA RAID (dmraid) partitions are now treated like
     any other partition.
-    Patch based on work done by Luke Yelavich <themuso@ubuntu.com> in Linux Mint.
+    Patch based on work done by Luke Yelavich <themuso@ubuntu.com> in Ubuntu.
 
   [ Updated translations ]
   * Bengali (bn.po) by Mahay Alam Khan (মাহে আলম খান)
@@ -1488,7 +1631,7 @@ partman-partitioning (53ubuntu1) hardy; urgency=low
   * Resynchronise with Debian. Remaining changes:
     - Make sure to wipe disk label on Sun disks before creating a new one.
     - Depend on ntfs-3g-udeb as well as ntfsprogs-udeb.
-  * Set Vcs-Bzr for Linux Mint.
+  * Set Vcs-Bzr for Ubuntu.
 
  -- Colin Watson <cjwatson@ubuntu.com>  Thu, 06 Dec 2007 13:37:35 +0000
 

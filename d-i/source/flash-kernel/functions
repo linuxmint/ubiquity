@@ -1,7 +1,8 @@
-# Copyright (C) 2006  Joey Hess  <joeyh@debian.org>
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011  Martin Michlmayr <tbm@cyrius.com>
+# Copyright (C) 2006  Joey Hess
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2016  Martin Michlmayr <tbm@cyrius.com>
 # Copyright (C) 2011  Loïc Minier <lool@dooz.org>
 # Copyright (C) 2011  Julian Andres Klode <jak@debian.org>
+# Copyright (C) 2013-2016  Ian Campbell <ijc@debian.org>
 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -18,12 +19,19 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301,
 # USA.
 
-BOOTSCRIPTS_DIR="${FK_CHECKOUT:-$FK_DIR}/bootscript"
-MACHINE_DB="$(cat "${FK_CHECKOUT:-$FK_DIR}/db/"*.db)"
-PROC_CPUINFO="/proc/cpuinfo"
+BOOTSCRIPTS_DIR="${FK_CHECKOUT:-/etc/flash-kernel}/bootscript"
+FK_ETC_MACHINE="${FK_ETC_MACHINE:-/etc/flash-kernel/machine}"
+PROC_CPUINFO="${FK_PROC_CPUINFO:-/proc/cpuinfo}"
+PROC_DTMODEL="${FK_PROC_DTMODEL:-/proc/device-tree/model}"
 PROC_MTD="/proc/mtd"
-PROC_DT="/proc/device-tree/model"
 
+read_machine_db() {
+	if [ -f "${FK_ETC_DB:-/etc/flash-kernel/db}" ]; then
+		cat "${FK_ETC_DB:-/etc/flash-kernel/db}"
+	fi
+	cat "${FK_CHECKOUT:-$FK_DIR}/db/"*.db
+}
+MACHINE_DB="$(read_machine_db)"
 
 error() {
 	echo "$@" >&2
@@ -33,7 +41,25 @@ error() {
 mtdblock() {
 	local mtdname="$1"
 
-	sed -rn "s,^mtd([^:]*).*\"$mtdname\"\$,/dev/mtdblock\\1,p" "$PROC_MTD"
+	local dev=`sed -rn "s,^mtd([^:]*).*\"$mtdname\"\$,/dev/mtdblock\\1,p" "$PROC_MTD"`
+
+	# The mtdblock() function gets also called by the testsuite during
+	# the package build; don't run modprobe and udevadm then.  Invasive
+	# actions like loading modules and calling into udev should not
+	# happen at build time and they are not necessary for the testsuite.
+	if [ -z "${FK_TESTSUITE_RUNNING}" ]; then
+		modprobe -q mtdblock && udevadm settle --exit-if-exists=$dev || :
+	fi
+
+	echo $dev
+}
+
+mtdchar() {
+	local mtdname="$1"
+
+	local dev=`sed -rn "s,^mtd([^:]*).*\"$mtdname\"\$,/dev/mtd\\1,p" "$PROC_MTD"`
+
+	echo $dev
 }
 
 check_block_dev() {
@@ -41,6 +67,14 @@ check_block_dev() {
 
 	if [ ! -b "$dev" ]; then
 		error "$dev is not a block device"
+	fi
+}
+
+check_char_dev() {
+	local dev="$1"
+
+	if [ ! -c "$dev" ]; then
+		error "$dev is not a character device"
 	fi
 }
 
@@ -52,17 +86,17 @@ mtdsize() {
 }
 
 check_kflavors() {
-	local kfile_suffix="$1"
-	shift
-
-	if [ -z "$kfile_suffix" ]; then
+	local kvers="$1"
+	local kflavor="$2"
+	if [ "$kflavor" = "any" ]; then
 		return 0
 	fi
-	for kflavor; do
-		if [ "$kfile_suffix" = "$kflavor" ]; then
-			return 0
-		fi
-	done
+	# count flavor+ as valid
+	kvers=${kvers%%+}
+	if [ "${kvers}" != "${kvers%%$kflavor}" ]; then
+		# kernel version ended with flavor
+		return 0
+	fi
 	return 1
 }
 
@@ -70,9 +104,22 @@ check_mtd_size() {
 	local mtd_name="$1"
 	local required_size="$2"
 	local actual_size="$3"
+	local what="$4"
 
 	if [ $required_size -gt $actual_size ]; then
-		error "Not enough space in MTD $mtd_name (need $required_size but is actually $actual_size)."
+		case $what in
+		initrd)
+			(
+				echo
+				echo "The initial ramdisk is too large. This is often due to the unnecessary inclusion"
+				echo "of all kernel modules in the image. To fix this set MODULES=dep in one or both"
+				echo "/etc/initramfs-tools/conf.d/driver-policy (if it exists) and"
+				echo "/etc/initramfs-tools/initramfs.conf and then run 'update-initramfs -u -k $kvers'"
+				echo
+			) >&2
+		;;
+		esac
+		error "Not enough space for $what in MTD '$mtd_name' (need $required_size but is actually $actual_size)."
 	fi
 }
 
@@ -97,20 +144,29 @@ get_root_uuid() {
 }
 
 get_cpuinfo_hardware() {
-	if [ -f "$PROC_DT" ]; then
-		cat "$PROC_DT"
+	grep "^Hardware" "$PROC_CPUINFO" | sed 's/Hardware\s*:\s*//'
+}
+get_dt_model() {
+	cat "$PROC_DTMODEL"
+}
+get_machine() {
+	if [ -n "$FK_MACHINE" ]; then
+		[ "x$FK_MACHINE" = "xnone" ] && exit 0
+		machine="$FK_MACHINE"
+	elif [ -f "$FK_ETC_MACHINE" ]; then
+		machine="$(cat "$FK_ETC_MACHINE")"
+	elif [ -f "$PROC_DTMODEL" ]; then
+		machine="$(get_dt_model)"
 	else
-		grep "^Hardware" "$PROC_CPUINFO" | sed 's/Hardware\s*:\s*//'
+		machine="$(get_cpuinfo_hardware)"
 	fi
 }
 
 get_kfile_suffix() {
 	local kfile="$1"
-	local full_version=${kfile#*-}
-	local flavour_abi=${full_version#*-}
-	local flavour=${flavour_abi#*-}
+	local tail="${2:+-$2}"
 
-	echo "$flavour"
+	echo "$kfile" | sed -e "s/.*-\([^-]*$tail\)/\\1/"
 }
 
 # this is case-sensitive and doesn't support fields spanning multiple lines
@@ -121,27 +177,92 @@ get_machine_field() {
 	local field
 	local value
 
+	# State machine is:
+	# machine: 	Looking for "Machine:"
+	# gotmachine: 	Seen matching "Machine:", possibly consumning other
+	#		alternative (non-matching) "Machine:"s waiting for
+	#		non-"Machine:" field.
+	# fields:	seen non-"Machine:" field.
+
 	echo "$MACHINE_DB" | {
 		while read field value; do
 			if [ "$state" = "machine" ] &&
 				[ "$field" = "Machine:" ] &&
 				[ "$value" = "$machine" ]; then
-				state="fields"
+				state="gotmachine"
 			fi
-			if [ "$state" = "fields" ]; then
+			if [ "$state" = "fields" ] || [ "$state" = "gotmachine" ]; then
 				case "$field" in
 					"${field_name}:")
 						echo "$value"
 						return 0
 					;;
+					Machine:)
+						if [ "$state" != "gotmachine" ]; then
+							echo "DB syntax invalid, got $field $value, expected regular Field" >&2
+							return 1
+						fi
+					;;
 					"")
 						state="machine"
+					;;
+					*)
+						state="fields"
 					;;
 				esac
 			fi
 		done
 		return 1
 	}
+}
+
+get_mkimage_architecture() {
+	kfile_suffix=$(get_kfile_suffix "$1" "")
+	case "$kfile_suffix" in
+		"arm64") echo "arm64";;
+		*) echo "arm";;
+	esac
+}
+
+get_dtb_name() {
+	local field="$(get_machine_field "$machine" "DTB-Id")" || :
+	case "$field" in
+	!*)
+		local dir
+		local dtb_script
+		dtb_script_name=${field#!}
+		for dir in /etc/flash-kernel/dtb-probe \
+		           /usr/share/flash-kernel/dtb-probe ; do
+			if [ -e "$dir/$dtb_script_name" ]; then
+				dtb_script="$dir/$dtb_script_name"
+				break
+			fi
+		done
+
+		if [ "x$dtb_script" = "x" ]; then
+			error "dtb-probe $dtb_script_name not found"
+		fi
+
+		dtb_name=$($dtb_script $kvers)
+		if [ $? -ne 0 ] || [ "x$dtb_name" = "x" ]; then
+			error "dtb-probe $dtb_script failed"
+		fi
+		;;
+	/*)
+		dtb_name="$field"
+		;;
+	*)
+		# DTBs on arm64 are stored in subdirs for each vendor; strip
+		# the dir away (in case someone specified it, although it's
+		# not needed).
+		# The DTB will be stored in /boot/dtbs/$kvers/ without
+		# additional subdirs.
+		dtb_name=$(basename "$field")
+		;;
+	esac
+	if [ -n "$dtb_name" ] ; then
+		echo "Using DTB: $dtb_name" >&2
+	fi
 }
 
 machine_uses_flash() {
@@ -205,19 +326,77 @@ append_dtb() {
 	local dtb="$2"
 	local output="$3"
 
+	echo "flash-kernel: appending $dtb to kernel" >&2
+
 	{
 		cat "$kernel"
 		cat "$dtb"
 	} >"$output"
 }
 
+write_mtd() {
+	local input_file="$1"
+	local output_mtd="$2"
+	local base_mtd=$(basename $output_mtd)
+	local mtd_backup_dir=$(get_mtd_backup_dir)
+	local tmpfile
+
+	if [ "x$input_file" = "x-" ] ; then
+		tmpfile=$(mktemp -t "$self.$base_mtd.XXXXXX") || error "Failed"
+		cat > $tmpfile
+		input_file="$tmpfile"
+	fi
+
+	# Keep a copy in a convenient place for backups etc
+	if [ -n "${mtd_backup_dir}" ] ; then
+		local backup="${mtd_backup_dir}/${base_mtd}"
+		#echo "Saving new $output_mtd in ${backup}."
+		mkdir -p "${mtd_backup_dir}"
+		cp "$input_file" "${backup}"
+	fi
+
+	# Can't really flashcp to /dev/mtd<N> when testing
+	if [ -z "${FK_TESTSUITE_RUNNING}" ]; then
+		local flashtype=$(cat /sys/class/mtd/$base_mtd/type)
+		case "$flashtype" in
+		nand|mlc-nand)
+			flash_erase "$output_mtd" 0 0
+			nandwrite -p "$output_mtd" "$input_file"
+			;;
+		nor)
+			flashcp "$input_file" "$output_mtd"
+			;;
+		*)
+			error "unsupported flash type"
+			;;
+		esac
+	else
+		cp "$input_file" "$output_mtd"
+	fi
+
+	if [ "$tmpfile" ] ; then
+		rm -f "$tmpfile"
+	fi
+}
+
 flash_kernel() {
 	local input_file="$1"
 	local output_mtd="$2"
 	local machine_id="$3"
+	local use
 
-	printf "Flashing kernel... " >&2
-	gen_kernel "$input_file" "$output_mtd" "$machine_id" || error "failed."
+	if [ -n "$kmtdsize" ]; then
+		kreqsize=$(stat -c '%s' "$input_file")
+		if [ -n "$machine_id" ]; then
+			kreqsize=$(($kreqsize + 8))
+		fi
+	        check_mtd_size "$mtd_kernel" $kreqsize $kmtdsize kernel
+		use=" (using $kreqsize/$kmtdsize bytes)"
+	fi
+
+	printf "Flashing kernel$use... " >&2
+	gen_kernel "$input_file" "$tmpdir/flash_kernel.raw" "$machine_id" || error "failed."
+	write_mtd "$tmpdir/flash_kernel.raw" "$output_mtd" || error "failed."
 	echo "done." >&2
 }
 
@@ -225,25 +404,56 @@ flash_initrd() {
 	local input_file="$1"
 	local output_mtd="$2"
 	local pad="$3"
+	local use
 
-	printf "Flashing initramfs... " >&2
+	if [ -n "$imtdsize" ]; then
+		use=" (using $ireqsize/$imtdsize bytes)"
+	fi
+
+	printf "Flashing initramfs$use... " >&2
 	{
 		cat "$input_file"
 		if [ "$pad" -gt 0 ]; then
 			dd if=/dev/zero bs="$pad" count=1 2>/dev/null
 		fi
-	} >"$output_mtd" || error "failed."
+	} | write_mtd "-" "$output_mtd" || error "failed."
 	echo "done." >&2
+}
+
+compress_type() {
+    local file="$1"
+    magic="$(od -x -N2 $file | head -1 | cut -d' ' -f2)"
+    case $magic in
+	8b1f)
+	    echo "gzip"
+	    ;;
+	*)
+	    echo "none"
+	    ;;
+    esac
+}
+
+get_kernel_cmdline() {
+        . /etc/default/flash-kernel
+	echo "$LINUX_KERNEL_CMDLINE"
+}
+get_kernel_cmdline_defaults() {
+        . /etc/default/flash-kernel
+	echo "$LINUX_KERNEL_CMDLINE_DEFAULTS"
 }
 
 mkimage_kernel() {
 	local kaddr="$1"
-	local kdesc="$2"
-	local kdata="$3"
-	local uimage="$4"
+	local epoint="$2"
+	local kdesc="$3"
+	local kdata="$4"
+	local uimage="$5"
+	local comp
+
+	comp="$(compress_type $kdata)"
 
 	printf "Generating kernel u-boot image... " >&2
-	mkimage -A arm -O linux -T kernel -C none -a "$kaddr" -e "$kaddr" \
+	mkimage -A "$mkarch" -O linux -T kernel -C $comp -a "$kaddr" -e "$epoint" \
 		-n "$kdesc" -d "$kdata" "$uimage" >&2 1>/dev/null
 	echo "done." >&2
 }
@@ -255,7 +465,7 @@ mkimage_initrd() {
 	local uinitrd="$4"
 
 	printf "Generating initramfs u-boot image... " >&2
-	mkimage -A arm -O linux -T ramdisk -C gzip -a "$iaddr" -e "$iaddr" \
+	mkimage -A "$mkarch" -O linux -T ramdisk -C none -a "$iaddr" -e "$iaddr" \
 		-n "$idesc" -d "$idata" "$uinitrd" >&2 1>/dev/null
 	echo "done." >&2
 }
@@ -265,18 +475,26 @@ mkimage_script() {
 	local sdesc="$2"
 	local sdata="$3"
 	local script="$4"
+
 	local tdata="$tmpdir/$(basename $sdata)"
 
 	local ubootenv="$(mktemp --tmpdir=$tmpdir)"
 	gen_ubootenv > $ubootenv
 
-	printf "Generating boot script u-boot image... " >&2
-	sed -e "/@@UBOOT_ENV_EXTRA@@/{
-		s/@@UBOOT_ENV_EXTRA@@//g
-		r $ubootenv
-		}" < $sdata > $tdata
+	if [ "$(stat --printf='%s' $ubootenv)" -gt 0 ] && \
+		! grep -q '@@UBOOT_ENV_EXTRA@@' "$sdata" ; then
+			echo "WARNING: ubootenv.d snippet used, but $sdata has no @@UBOOT_ENV_EXTRA@@ marker. Snippet will be ignored." >&2
+	fi
 
-	mkimage -A arm -O linux -T script -C none -a "$saddr" -e "$saddr" \
+	printf "Generating boot script u-boot image... " >&2
+	sed -e "s/@@KERNEL_VERSION@@/$kvers/g" \
+            -e "s!@@LINUX_KERNEL_CMDLINE@@!$(get_kernel_cmdline)!g" \
+            -e "s!@@LINUX_KERNEL_CMDLINE_DEFAULTS@@!$(get_kernel_cmdline_defaults)!g" \
+            -e "/@@UBOOT_ENV_EXTRA@@/{
+                  s/@@UBOOT_ENV_EXTRA@@//g
+                  r $ubootenv
+                }" < $sdata > $tdata
+	mkimage -A "$mkarch" -O linux -T script -C none -a "$saddr" -e "$saddr" \
 		-n "$sdesc" -d "$tdata" "$script" >&2 1>/dev/null
 	echo "done." >&2
 }
@@ -289,7 +507,7 @@ mkimage_multi() {
 	local umulti="$5"
 
 	printf "Generating u-boot image..." >&2
-	mkimage -A arm -O linux -T multi -C none -a "$maddr" -e "$maddr" \
+	mkimage -A "$mkarch" -O linux -T multi -C none -a "$maddr" -e "$maddr" \
 		-n "$mdesc" -d "$kdata:$idata" "$umulti" >&2 1>/dev/null
 	echo "done." >&2
 }
@@ -303,15 +521,49 @@ mkimage_env() {
 	printf "Generating u-boot environment image... " >&2
 	mkenvimage -r -s "$esize" -o "$escript" "$edata"
 	echo "done." >&2
+
+
+}
+
+# Return a nonempty string *unless* NO_CREATE_DOT_BAK_FILES is set.
+get_dot_bak_preference() {
+	. /etc/default/flash-kernel
+	case $(echo "$NO_CREATE_DOT_BAK_FILES" | tr '[:upper:]' '[:lower:]') in
+	    true|yes|1) ;;
+	    *) echo yes ;;
+	esac
+}
+
+# Return a nonempty string *unless* MTD_BACKUP_DIR is "none".
+get_mtd_backup_dir() {
+	. /etc/default/flash-kernel
+	case "${MTD_BACKUP_DIR:=/var/backups/flash-kernel}" in
+	    none) echo "";;
+	    *) echo "${MTD_BACKUP_DIR}";;
+	esac
 }
 
 backup_and_install() {
 	local source="$1"
 	local dest="$2"
-
+	local do_dot_bak=$(get_dot_bak_preference)
+	local mtd_backup_dir=$(get_mtd_backup_dir)
 	if [ -e "$dest" ]; then
-		echo "Taking backup of $(basename "$dest")." >&2
-		mv "$dest" "$dest.bak"
+		if [ -n "$do_dot_bak" ]; then
+			echo "Taking backup of $(basename "$dest")." >&2
+			mv "$dest" "$dest.bak"
+		else
+			echo "Skipping backup of $(basename "$dest")." >&2
+		fi
+	fi
+	# If we are installing to a filesystem which is not normally mounted
+	# then take a second copy in /var/backups, where they can e.g. be
+	# backed up.
+	if [ -n "$boot_mnt_dir" ] && [ -n "$mtd_backup_dir" ] ; then
+		local bak="$mtd_backup_dir/"$(basename "$dest")
+		#echo "Saving $boot_device:"$(basename "$source")" in $bak"
+		mkdir -p "$mtd_backup_dir"
+		cp "$source" "$bak"
 	fi
 	echo "Installing new $(basename "$dest")." >&2
 	mv "$source" "$dest"
@@ -326,7 +578,7 @@ sercomm_header() {
 }
 
 nslu2_swap() {
-	if [ "$little_endian" ]; then
+	if [ "$little_endian" -eq 1 ]; then
 		devio "<<$1" "xp $,4"
 	else
 		cat "$1"
@@ -338,6 +590,10 @@ abootimg_get_image_size() {
 	local abootimg="$1"
 
 	echo "$abootimg" | sed -rn 's/^\* image size = ([0-9]+) bytes.*/\1/p'
+}
+
+dtb_append_required() {
+	linux-version compare "$kvers" ge "$dtb_append_from"
 }
 
 # XXX needs testsuite coverage
@@ -379,12 +635,91 @@ include_only_flavors() {
 	done
 }
 
+find_dtb_file() {
+	local dtb path
+	case "$dtb_name" in
+	/*)
+		dtb="$dtb_name"
+		if [ ! -f "$dtb" ]; then
+			error "Couldn't find $dtb"
+		fi
+		;;
+	*)
+		dtb=
+		paths="/etc/flash-kernel/dtbs /usr/lib/linux-image-$kvers /lib/firmware/$kvers/device-tree/"
+                for path in $paths; do
+			dtb=$(find $path -name $dtb_name 2>/dev/null | head -n 1)
+			[ -z "$dtb" ] || break
+		done
+		if [ ! -f "$dtb" ]; then
+			error "Couldn't find DTB $dtb_name on the following paths: $paths"
+		fi
+		;;
+	esac
+	echo $dtb
+}
+
+handle_dtb() {
+	if [ "x$dtb_name" = "x" ]; then
+		return
+	fi
+
+	local dtb_name=$(basename "$dtb_name")
+	if [ "x$FK_KERNEL_HOOK_SCRIPT" = "xpostrm.d" ] ; then
+		rm -f "/boot/dtbs/$kvers/$dtb_name"
+
+		# This was the old name we installed under. We
+		# currently include it as an alternative symlink.
+		rm -f "/boot/dtb-$kvers"
+
+		if [ -L /boot/dtb ] ; then
+			# Remove if it points to the current kernel
+			# version, both old (dtb-$kvers) and new
+			# (dtbs/...) names
+			case $(readlink /boot/dtb) in
+				"dtb-$kvers") rm -f /boot/dtb ;;
+				"dtbs/$kvers/$dtb_name") rm -f /boot/dtb ;;
+			esac
+		fi
+
+		if [ -d /boot/dtbs/$kvers ] ; then
+			rmdir --ignore-fail-on-non-empty /boot/dtbs/$kvers
+		fi
+		if [ -d /boot/dtbs ] ; then
+			rmdir --ignore-fail-on-non-empty /boot/dtbs
+		fi
+	else
+		local dtb=$(find_dtb_file)
+		echo "Installing $dtb into /boot/dtbs/$kvers/$dtb_name" >&2
+		mkdir -p /boot/dtbs/$kvers/
+		cp "$dtb" "/boot/dtbs/$kvers/$dtb_name.new"
+		backup_and_install \
+			"/boot/dtbs/$kvers/$dtb_name.new" \
+			"/boot/dtbs/$kvers/$dtb_name"
+
+		# Historically we installed the dtb as
+		# dtb-$kvers, keep it around as an alternative
+		# for now. Useful for platforms which do not
+		# set ${fdtfile}
+		ln -nfs "dtbs/$kvers/$dtb_name" "/boot/dtb-$kvers"
+
+		# This can be used along with the unversioned
+		# vmlinuz+initrd.gz e.g. as a fallback option
+		ln -nfs "dtbs/$kvers/$dtb_name" "/boot/dtb"
+	fi
+}
+
 main() {
+force="no"
+if [ "x$1" = "x--force" ]; then
+	force="yes"
+	shift
+fi
 if [ "x$1" = "x--machine" ]; then
 	machine="$2"
 	shift 2
 else
-	machine="$(get_cpuinfo_hardware)"
+	get_machine
 fi
 
 if [ "x$1" = "x--supported" ]; then
@@ -394,18 +729,57 @@ if [ "x$1" = "x--supported" ]; then
 	exit 1
 fi
 
+# $FK_KERNEL_HOOK_SCRIPT is set when main() is called from
+# /etc/kernel/* to be able to differentiate between being called
+# upon kernel installation or kernel removal
+
 # kernel + initrd installation/upgrade mode, with optional version
 
 kvers="$1"
 
+get_dtb_name
+
+# Install/remove any DTB from postinst, regardless of version
+if [ -n "$kvers" ] ; then
+	handle_dtb
+fi
+
 # if get_machine_field returns non-zero, then all flavors are allowed
 kflavors="$(get_machine_field "$machine" "Kernel-Flavors")" || :
 latest_version=$(linux-version list | include_only_flavors $kflavors | linux-version sort | tail -1)
-if [ -n "$kvers" ] && [ "$kvers" != "$latest_version" ]; then
-	echo "Ignoring old or unknown version $kvers (latest is $latest_version)" >&2
-	exit 0
+
+if [ -n "$kvers" ] && [ "$FK_KERNEL_HOOK_SCRIPT" = "postrm.d" ]; then
+	echo "flash-kernel: Kernel ${kvers} has been removed." >&2
+	if $(linux-version compare "$kvers" lt "$latest_version"); then
+		echo "flash-kernel: A higher version (${latest_version}) is still installed, no reflashing required." >&2
+		exit 0
+	else
+		if [ -n "${latest_version}" ]; then
+			echo "flash-kernel: Flashing the remaining highest-versioned kernel (${latest_version})." >&2
+		else
+			echo "flash-kernel: WARNING: No other kernel packages found!" >&2
+			echo "flash-kernel: The system might be unbootable." >&2
+			echo "flash-kernel: Please install a kernel package before rebooting the system." >&2
+			exit 0
+		fi
+	fi
 fi
-kvers="$latest_version"
+
+if [ "$kvers" != "$latest_version" ] && [ "x$force" = "xyes" ]; then
+	echo "flash-kernel: forcing install of ${kvers} instead of ${latest_version}." >&2
+	echo "flash-kernel: WARNING: Installing any new kernel package might override this." >&2
+else
+	if [ -n "$kvers" ] && [ "$kvers" != "$latest_version" ]; then
+		echo "Ignoring old or unknown version $kvers (latest is $latest_version)" >&2
+		if [ "$FK_KERNEL_HOOK_SCRIPT" = "postinst.d" ]; then
+			exit 0
+		fi
+		echo "Use --force if you want version $kvers." >&2
+	fi
+	kvers="$latest_version"
+	# Make sure we install the DTB for $latest_version
+	handle_dtb
+fi
 
 # accumulate multiple calls in a trigger to only run flash-kernel once; the
 # trigger will just call flash-kernel again with FLASH_KERNEL_NOTRIGGER set to
@@ -429,7 +803,18 @@ desc="kernel $kvers"
 idesc="ramdisk $kvers"
 
 if [ ! -e $kfile ] || [ ! -e $ifile ]; then
-	error "Can't find $kfile or $ifile"
+	# installation-report #781742 included:
+	#     Can't find /boot/vmlinuz-[...] or /boot/initrd.img-[...]
+	#
+	# It's unclear how this can have happened or what state the
+	# system was in, so log some additional information in the
+	# hopes of catching it in the act next time.
+	(
+		set -x
+		ls -l $kfile*
+		ls -l $ifile*
+	) >> /tmp/flash-kernel-no-kernel-error.log 2>&1
+	error "Can't find $kfile or $ifile (see /tmp/flash-kernel-no-kernel-error.log)"
 fi
 kfilesize=$(stat -c '%s' "$kfile")
 ifilesize=$(stat -c '%s' "$ifile")
@@ -437,7 +822,6 @@ ifilesize=$(stat -c '%s' "$ifile")
 if [ -L "$kfile" ]; then
 	kfile=$(readlink -e "$kfile")
 fi
-kfile_suffix=$(get_kfile_suffix "$kfile")
 
 if ! check_supported "$machine"; then
 	# do nothing if an unsupported platform is booted from EFI
@@ -448,22 +832,31 @@ if ! check_supported "$machine"; then
 	error "Unsupported platform."
 fi
 
-if [ -n "$kflavors" ]; then
-	if ! check_kflavors "$kfile_suffix" $kflavors; then
-		echo "Kernel suffix $kfile_suffix does not match any of the expected flavors ($kflavors), therefore not writing it to flash." >&2
-		exit 0
+kfile_suffix=""
+for kflavor in ${kflavors:-"any"} ; do
+	if check_kflavors "$kvers" "$kflavor" ; then
+		kfile_suffix="$kflavor"
+		break
 	fi
+done
+
+if [ -z "$kfile_suffix" ]; then
+	echo "Kernel $kfile does not match any of the expected flavors ($kflavors), therefore not writing it to flash." >&2
+	exit 0
 fi
 
 echo "flash-kernel: installing version $kvers" >&2
 
+mkarch="$(get_mkimage_architecture $kvers)"
 machine_id="$(get_machine_field "$machine" "Machine-Id")" || :
 method="$(get_machine_field "$machine" "Method")" || method="generic"
 mtd_kernel="$(get_machine_field "$machine" "Mtd-Kernel")" || :
 mtd_initrd="$(get_machine_field "$machine" "Mtd-Initrd")" || :
-dtb_name="$(get_machine_field "$machine" "DTB-Id")" || :
 dtb_kver="$(get_machine_field "$machine" "DTB-Kernel-Version")" || :
+dtb_append="$(get_machine_field "$machine" "DTB-Append")" || :
+dtb_append_from="$(get_machine_field "$machine" "DTB-Append-From")" || :
 ukaddr="$(get_machine_field "$machine" "U-Boot-Kernel-Address")" || :
+ukepoint="$(get_machine_field "$machine" "U-Boot-Kernel-Entry-Point")" || :
 uiaddr="$(get_machine_field "$machine" "U-Boot-Initrd-Address")" || :
 umaddr="$(get_machine_field "$machine" "U-Boot-Multi-Address")" || :
 usaddr="$(get_machine_field "$machine" "U-Boot-Script-Address")" || :
@@ -475,10 +868,18 @@ boot_device="$(get_machine_field "$machine" "Boot-Device")" || :
 boot_kernel_path="$(get_machine_field "$machine" "Boot-Kernel-Path")" || :
 boot_initrd_path="$(get_machine_field "$machine" "Boot-Initrd-Path")" || :
 boot_script_path="$(get_machine_field "$machine" "Boot-Script-Path")" || :
-boot_dtb_path="$(get_machine_field "$machine" "Boot-Dtb-Path")" || :
+boot_dtb_path="$(get_machine_field "$machine" "Boot-DTB-Path")" || :
 boot_multi_path="$(get_machine_field "$machine" "Boot-Multi-Path")" || :
 android_boot_device="$(get_machine_field "$machine" "Android-Boot-Device")" || :
 android_skip_initrd="$(get_machine_field "$machine" "Android-Skip-Initrd")" || :
+
+if [ -n "$dtb_append_from" ]; then
+    if dtb_append_required; then
+	dtb_append="yes"
+    else
+	dtb_append="no"
+    fi
+fi
 
 if [ -n "$mtd_kernel" ] || [ -n "$mtd_initrd" ]; then
 	if [ ! -e "$PROC_MTD" ]; then
@@ -486,36 +887,28 @@ if [ -n "$mtd_kernel" ] || [ -n "$mtd_initrd" ]; then
 	fi
 fi
 if [ -n "$mtd_kernel" ]; then
-	kmtd=$(mtdblock "$mtd_kernel")
+	kmtd=$(mtdchar "$mtd_kernel")
 	if [ -z "$kmtd" ]; then
 		error "Cannot find mtd partition '$mtd_kernel'"
 	fi
-	check_block_dev "$kmtd"
+	check_char_dev "$kmtd"
 	kmtdsize=$(mtdsize "$mtd_kernel")
 	kreqsize=$kfilesize
-	# setting the machine id prepends 8 bytes in front of the kernel
-	if [ -n "$machine_id" ]; then
-		kreqsize=$(($kreqsize + 8))
-	fi
-	# encapsulating in an U-Boot image grows the size by 64 bytes
-	if [ -n "$ukaddr" ]; then
-		kreqsize=$(($kreqsize + 64))
-	fi
-	check_mtd_size "$mtd_kernel" $kreqsize $kmtdsize
+	check_mtd_size "$mtd_kernel" $kreqsize $kmtdsize kernel
 fi
 if [ -n "$mtd_initrd" ]; then
-	imtd=$(mtdblock "$mtd_initrd")
+	imtd=$(mtdchar "$mtd_initrd")
 	if [ -z "$imtd" ]; then
 		error "Cannot find mtd partition '$mtd_initrd'"
 	fi
-	check_block_dev "$imtd"
+	check_char_dev "$imtd"
 	imtdsize=$(mtdsize "$mtd_initrd")
 	ireqsize=$ifilesize
 	# encapsulating in an U-Boot image grows the size by 64 bytes
 	if [ -n "$uiaddr" ]; then
 		ireqsize=$(($ireqsize + 64))
 	fi
-	check_mtd_size "$mtd_initrd" $ireqsize $imtdsize
+	check_mtd_size "$mtd_initrd" $ireqsize $imtdsize initrd
 fi
 
 tmpdir=""
@@ -539,7 +932,9 @@ case "$method" in
 		else
 			largest_size="-1"
 			for p in "$android_boot_device"*[0-9]; do
-				abootimg="$(LC_ALL=C abootimg -i "$p" 2>/dev/null || true)"
+				if ! abootimg="$(LC_ALL=C abootimg -i "$p" 2>/dev/null)"; then
+					continue
+				fi
 				image_size="$(abootimg_get_image_size "$abootimg")"
 				if [ -n "$image_size" ] &&
 					[ "$image_size" -gt "$largest_size" ]; then
@@ -555,7 +950,11 @@ case "$method" in
 	"generic")
 		kernel="$kfile"
 		initrd="$ifile"
-		if [ -n "$machine_id" ]; then
+		if [ "$dtb_append" = "yes" ]; then
+			dtb=$(find_dtb_file)
+			append_dtb "$kernel" "$dtb" "$tmpdir/kernel"
+			kernel="$tmpdir/kernel"
+		elif [ -n "$machine_id" ]; then
 			gen_kernel "$kernel" "$tmpdir/kernel" "$machine_id"
 			kernel="$tmpdir/kernel"
 		fi
@@ -571,8 +970,13 @@ case "$method" in
 			fi
 		fi
 		if [ -n "$ukaddr" ]; then
-			mkimage_kernel "$ukaddr" "$desc" "$kernel" \
-				"$tmpdir/uImage"
+			if [ -n "$ukepoint" ]; then
+				mkimage_kernel "$ukaddr" "$ukepoint" "$desc" "$kernel" \
+					"$tmpdir/uImage"
+			else
+				mkimage_kernel "$ukaddr" "$ukaddr" "$desc" "$kernel" \
+					"$tmpdir/uImage"
+			fi
 			kernel="$tmpdir/uImage"
 			rm -f "$tmpdir/kernel"
 		fi
@@ -583,6 +987,7 @@ case "$method" in
 		fi
 		if [ -n "$boot_device" ]; then
 			check_block_dev "$boot_device"
+			echo "Will use $boot_device as boot device." >&2
 			# don't use $tmpdir/boot as to not nuke it accidentally
 			# if umount fails
 			boot_mnt_dir="$(mktemp -dt "$self.XXXXXXXX")"
@@ -606,7 +1011,7 @@ case "$method" in
 				cp "$dtb" "$tmpdir/$dtb_name"
 				dtb_path="$boot_mnt_dir/$boot_dtb_path"
 				backup_and_install "$tmpdir/$dtb_name" "$dtb_path"
-			fi				
+			fi
 		fi
 		if [ -n "$boot_multi_path" ]; then
 			backup_and_install "$tmpdir/uImage" "$boot_multi_path"
@@ -662,12 +1067,19 @@ case "$method" in
 					env_script="$tmpdir/preEnv.txt"
 
 					[ -e /etc/default/flash-kernel ] && . /etc/default/flash-kernel
-					echo "bootargs=$UBOOT_DEFAULTS root=UUID=$VOLID" > $env_script
+					echo "bootargs=ro $(LINUX_KERNEL_CMDLINE) root=UUID=$VOLID" > $env_script
 
 					backup_and_install "$env_script" "$boot_script_env"
 					backup_and_install "$boot_script" "$boot_script_path"
 				;;
 			esac
+		fi
+		if [ -n "$boot_dtb_path" ] && [ "$dtb_append" != "no" ]; then
+			boot_dtb_path="$boot_mnt_dir/$boot_dtb_path"
+			boot_dtb=$(find_dtb_file)
+			dtb="$tmpdir/dtb"
+			cp "$boot_dtb" "$dtb"
+			backup_and_install "$dtb" "$boot_dtb_path"
 		fi
 	;;
 	"symlink")
@@ -706,9 +1118,9 @@ case "$method" in
 			error "Cannot find mtd partition '$mtd_fis'"
 		fi
 		check_mtd_size "$mtd_kernel" $(($kfilesize + 16 + 16)) \
-			$kmtdsize
+			$kmtdsize kernel
 		check_mtd_size "$mtd_initrd" $(($ifilesize + 16)) \
-			$imtdsize
+			$imtdsize initrd
 		# The following devio magic parses the FIS directory to
 		# obtain the size, offset and name of each partition.  This
 		# used used to obtain the offset of the Kernel partition.

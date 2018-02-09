@@ -89,17 +89,16 @@ elif keyboard_present; then
     if [ "$DISPLAY" ] && which setxkbmap >/dev/null; then
 	setxkbmap -option '' -model "$model" "$layout" "$variant" "$options" || true
 	# setting the font corrupts X
+	# setting up the keyboard breaks wayland
 	if type setupcon >/dev/null 2>&1; then
 	    setupcon --save-only
-	    setupcon --force -k
 	    cat >&2 <<EOF
 Your console font configuration will be updated the next time your system
 boots. If you want to update it now, run 'setupcon' from a virtual console.
 EOF
-	fi
-    else
+	fi    else
 	case "`uname`" in
-	    *GNU*)
+	    GNU)
 		[ ! -f /var/run/hurd-console.pid ] || kill `cat /var/run/hurd-console.pid`
 		;;
 	    *)
@@ -109,6 +108,13 @@ EOF
 		;;
 	esac
     fi
+fi
+
+if ! [ -d /lib/debian-installer.d ]; then
+    dpkg-maintscript-helper rm_conffile \
+                            /etc/init.d/keyboard-setup 1.138~ -- "$@"
+    dpkg-maintscript-helper rm_conffile \
+                            /etc/init.d/console-setup 1.138~ -- "$@"
 fi
 
 #DEBHELPER#

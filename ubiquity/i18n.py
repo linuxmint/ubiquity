@@ -262,6 +262,7 @@ def ascii_transliterate(exc):
     else:
         return '', exc.start + 1
 
+
 codecs.register_error('ascii_transliterate', ascii_transliterate)
 
 
@@ -335,7 +336,7 @@ def get_languages(current_language_index=-1, only_installable=False):
         # custom sorting).  This at least gives us common sorting rules,
         # like stripping accents.
         collator = icu.Collator.createInstance(icu.Locale('C'))
-    except:
+    except Exception:
         collator = None
 
     def compare_choice(x):
@@ -344,7 +345,7 @@ def get_languages(current_language_index=-1, only_installable=False):
         if collator:
             try:
                 return collator.getCollationKey(x).getByteArray()
-            except:
+            except Exception:
                 pass
         # Else sort by unicode code point, which isn't ideal either,
         # but also has the virtue of sorting like-glyphs together

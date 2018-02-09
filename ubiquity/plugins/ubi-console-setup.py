@@ -27,7 +27,7 @@ from ubiquity import keyboard_names, misc, osextras, plugin
 
 
 NAME = 'console_setup'
-AFTER = 'timezone'
+AFTER = 'language'
 WEIGHT = 10
 
 
@@ -75,12 +75,12 @@ class PageGtk(plugin.PluginUI):
 
     @plugin.only_this_page
     def calculate_result(self, w, keymap):
-        l = self.controller.dbfilter.get_locale()
+        ret = self.controller.dbfilter.get_locale()
         keymap = keymap.split(':')
         if len(keymap) == 1:
             keymap.append('')
-        layout = keyboard_names.layout_human(l, keymap[0])
-        variant = keyboard_names.variant_human(l, keymap[0], keymap[1])
+        layout = keyboard_names.layout_human(ret, keymap[0])
+        variant = keyboard_names.variant_human(ret, keymap[0], keymap[1])
         self.set_keyboard(layout)
         self.controller.dbfilter.change_layout(layout)
         self.controller.dbfilter.apply_keyboard(layout, variant)
@@ -166,7 +166,7 @@ class PageGtk(plugin.PluginUI):
                     # Try a default, usually working locale
                     locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
                 choices.sort(key=lambda c: locale.strxfrm(c.encode('utf-8')))
-            except:
+            except Exception:
                 # Let's avoid crashing when we get a bad locale
                 choices.sort()
 
@@ -262,8 +262,8 @@ class PageKde(plugin.PluginUI):
         self.default_keyboard_variant = None
 
         try:
-            from PyQt4 import uic
-            from PyQt4.QtGui import QVBoxLayout
+            from PyQt5 import uic
+            from PyQt5.QtWidgets import QVBoxLayout
             from ubiquity.frontend.kde_components.Keyboard import Keyboard
 
             self.page = uic.loadUi(
@@ -445,14 +445,15 @@ class Page(plugin.Plugin):
 
         # Roughly taken from console-setup's config.proto:
         di_locale = self.db.get('debian-installer/locale')
-        l = di_locale.rsplit('.', 1)[0]
-        if not keyboard_names.has_language(l):
-            self.debug("No keyboard layout translations for locale '%s'" % l)
-            l = l.rsplit('_', 1)[0]
-        if not keyboard_names.has_language(l):
-            self.debug("No keyboard layout translations for locale '%s'" % l)
-            l = 'C'
-        self._locale = l
+        ret = di_locale.rsplit('.', 1)[0]
+        if not keyboard_names.has_language(ret):
+            self.debug("No keyboard layout translations for locale '%s'" % ret)
+            ret = ret.rsplit('_', 1)[0]
+        if not keyboard_names.has_language(ret):
+            self.debug("No keyboard layout translations for locale '%s'" % ret)
+            # TODO should this be C.UTF-8?!
+            ret = 'C'
+        self._locale = ret
 
         self.has_variants = False
 
@@ -476,6 +477,8 @@ class Page(plugin.Plugin):
             'OVERRIDE_USE_DEBCONF_LOCALE': '1',
             'LC_ALL': di_locale,
             'PATH': '/usr/lib/ubiquity/console-setup:' + os.environ['PATH'],
+            'DPKG_MAINTSCRIPT_NAME': 'postinst',
+            'DPKG_MAINTSCRIPT_PACKAGE': 'keyboard-configuration',
         }
         return command, questions, environ
 
@@ -674,20 +677,20 @@ class Page(plugin.Plugin):
     def apply_keyboard(self, layout_name, variant_name):
         model = self.db.get('keyboard-configuration/modelcode')
 
-        l = self.get_locale()
+        ret = self.get_locale()
         try:
-            layout = keyboard_names.layout_id(l, layout_name)
+            layout = keyboard_names.layout_id(ret, layout_name)
         except KeyError:
             self.debug("Unknown keyboard layout '%s'" % layout_name)
             return
 
-        if not keyboard_names.has_variants(l, layout):
+        if not keyboard_names.has_variants(ret, layout):
             self.debug("No known variants for layout '%s'" % layout)
             variant = ''
         else:
             try:
                 variant = keyboard_names.variant_id(
-                    l, layout, variant_name)
+                    ret, layout, variant_name)
             except KeyError:
                 self.debug("Unknown keyboard variant '%s' for layout '%s'" %
                            (variant_name, layout_name))

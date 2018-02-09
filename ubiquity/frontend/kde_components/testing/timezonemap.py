@@ -2,13 +2,13 @@
 
 import sys
 
-from PyQt4 import QtGui, uic
+from PyQt5 import QtWidgets, uic
 from ubiquity.frontend.kde_components.Timezone import TimezoneMap
 
 
 if __name__ == "__main__":
-    app = QtGui.QApplication(sys.argv)
-    QtGui.QApplication.setStyle("Oxygen")
+    app = QtWidgets.QApplication(sys.argv)
+    QtWidgets.QApplication.setStyle("Oxygen")
     qss = open("/usr/share/ubiquity/qt/style.qss").read()
     app.setStyleSheet(qss)
 

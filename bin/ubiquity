@@ -3,7 +3,7 @@
 '''
 Installer
 
-This is a installer program for a Linux Mint or Metadistros Live system.
+This is a installer program for a Ubuntu or Metadistros Live system.
 This is the main program, but there are also a couple of libraries to
 help it to work, such as the frontend.
 The way it works is simple. It detects the frontend to use, then
@@ -43,6 +43,12 @@ lock = None
 
 def force_utf8_locale():
     """We must have a UTF-8 locale.  Try to get one."""
+
+    # apt now follows LC_NUMERIC; we must make sure it's set appropriately
+    # so that debconf-apt-progress and uses of python-apt will be able to
+    # parse pmstatus messages. (LP: #1611010)
+    os.environ["LC_NUMERIC"] = "C.UTF-8"
+
     if locale.getpreferredencoding() != "UTF-8":
         try:
             os.environ["LC_ALL"] = "C.UTF-8"
@@ -66,9 +72,9 @@ def disable_autologin():
     import traceback
 
     # Reverse actions of user-setup-apply.
-    for name in ('/etc/gdm/custom.conf', '/etc/kde4/kdm/kdmrc',
+    for name in ('/etc/gdm3/custom.conf', '/etc/kde4/kdm/kdmrc',
                  '/etc/lxdm/lxdm.conf', '/etc/xdg/lubuntu/lxdm/lxdm.conf',
-                 '/etc/lightdm/lightdm.conf', '/etc/mdm/mdm.conf'):
+                 '/etc/lightdm/lightdm.conf'):
         if os.path.exists('%s.oem' % name):
             try:
                 os.rename('%s.oem' % name, name)
@@ -271,7 +277,7 @@ def install(frontend=None, query=False):
         import traceback
         try:
             apply_keyboard()
-        except:
+        except Exception:
             traceback.print_exc()
     copy_debconf()
     unmount_target()

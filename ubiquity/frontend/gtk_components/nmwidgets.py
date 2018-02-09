@@ -1,11 +1,10 @@
-import string
-
 from dbus.mainloop.glib import DBusGMainLoop
 DBusGMainLoop(set_as_default=True)
 
 from gi.repository import Gtk, GObject, GLib
+from gi.repository import NM, NMA
 
-from ubiquity.nm import QueuedCaller, NetworkStore, NetworkManager
+from ubiquity.nm import decode_ssid, QueuedCaller, NetworkStore, NetworkManager
 
 
 class GLibQueuedCaller(QueuedCaller):
@@ -92,9 +91,8 @@ class GtkNetworkStore(NetworkStore, Gtk.TreeStore):
 class NetworkManagerTreeView(Gtk.TreeView):
     __gtype_name__ = 'NetworkManagerTreeView'
 
-    def __init__(self, password_entry=None, state_changed=None):
+    def __init__(self, state_changed=None):
         Gtk.TreeView.__init__(self)
-        self.password_entry = password_entry
         self.configure_icons()
         model = GtkNetworkStore()
         model.set_sort_column_id(0, Gtk.SortType.ASCENDING)
@@ -102,6 +100,10 @@ class NetworkManagerTreeView(Gtk.TreeView):
         self.wifi_model = NetworkManager(model,
                                          GLibQueuedCaller,
                                          state_changed)
+
+        self.nm_client = None
+        self.nm_connection = None
+
         self.set_model(model)
 
         ssid_column = Gtk.TreeViewColumn('')
@@ -157,22 +159,26 @@ class NetworkManagerTreeView(Gtk.TreeView):
                 self.expand_row(path, False)
             i = model.iter_next(i)
 
+    def row_activated(self, unused, path, column):
+        self.connect_to_selection()
+
     def get_state(self):
         return self.wifi_model.get_state()
 
     def disconnect_from_ap(self):
-        self.wifi_model.disconnect_from_ap()
+        if self.nm_connection:
+            if not self.nm_client:
+                self.nm_client = NM.Client.new()
 
-    def row_activated(self, unused, path, column):
-        passphrase = None
-        if self.password_entry:
-            passphrase = self.password_entry.get_text()
-        self.connect_to_selection(passphrase)
+            self.nm_client.deactivate_connection(self.nm_connection)
+            self.nm_connection = None
+        else:
+            self.wifi_model.disconnect_from_ap()
 
     def configure_icons(self):
         it = Gtk.IconTheme()
         default = Gtk.IconTheme.get_default()
-        default = default.load_icon(Gtk.STOCK_MISSING_IMAGE, 22, 0)
+        default = default.load_icon("image-missing", 22, 0)
         it.set_custom_theme('ubuntu-mono-light')
         self.icons = []
         for n in ['nm-signal-00',
@@ -220,13 +226,6 @@ class NetworkManagerTreeView(Gtk.TreeView):
         else:
             cell.set_property('text', ssid)
 
-    def get_passphrase(self, ssid):
-        try:
-            cached = self.wifi_model.passphrases_cache[ssid]
-        except KeyError:
-            return ''
-        return cached
-
     def is_row_an_ap(self):
         model, iterator = self.get_selection().get_selected()
         if iterator is None:
@@ -244,12 +243,73 @@ class NetworkManagerTreeView(Gtk.TreeView):
         else:
             return False
 
-    def connect_to_selection(self, passphrase):
+    def find_ap(self, device, ssid):
+        for ap in device.get_access_points():
+            ap_ssid = ap.get_ssid()
+            if ap_ssid and decode_ssid(ap_ssid.get_data()) == ssid:
+                return ap
+        return None
+
+    def connect_cb(self, client, result, user_data):
+        self.nm_connection = client.add_and_activate_connection_finish(result)
+
+    def connect_dialog_cb(self, dialog, response):
+        if response == Gtk.ResponseType.OK:
+            connection, device, ap = dialog.get_connection()
+
+            if not self.nm_client:
+                self.nm_client = NM.Client.new()
+
+            self.nm_client.add_and_activate_connection_async(
+                connection, device, None, None, self.connect_cb, None
+            )
+        dialog.hide()
+
+    def connect_to_selection(self):
         model, iterator = self.get_selection().get_selected()
-        ssid = model[iterator][0]
+        if iterator is None:
+            return
         parent = model.iter_parent(iterator)
         if parent:
-            self.wifi_model.connect_to_ap(model[parent][0], ssid, passphrase)
+            try:
+                devid = model[parent][0]
+                ssid = model[iterator][0]
+                if model[iterator][1]:
+                    if not self.nm_client:
+                        self.nm_client = NM.Client.new()
+
+                    device = self.nm_client.get_device_by_path(devid)
+                    ap = self.find_ap(device, ssid)
+
+                    connection = NM.SimpleConnection()
+                    connection.add_setting(NM.SettingConnection(
+                        uuid=NM.utils_uuid_generate()
+                    ))
+                    connection.add_setting(NM.SettingWireless(
+                        ssid=ap.get_property("ssid")
+                    ))
+
+                    dialog = NMA.WifiDialog.new(
+                        self.nm_client,
+                        connection,
+                        device,
+                        ap,
+                        False
+                    )
+                    dialog.connect("response", self.connect_dialog_cb)
+                    dialog.run()
+                else:
+                    self.wifi_model.connect_to_ap(devid, ssid)
+            except Exception as e:
+                dialog = Gtk.MessageDialog(
+                    None, Gtk.DialogFlags.MODAL,
+                    Gtk.MessageType.ERROR, Gtk.ButtonsType.CLOSE,
+                    "Failed to connect to wireless network"
+                )
+                dialog.format_secondary_text("{}".format(e))
+                dialog.run()
+                dialog.hide()
+
 
 GObject.type_register(NetworkManagerTreeView)
 
@@ -261,43 +321,22 @@ class NetworkManagerWidget(Gtk.Box):
             GObject.SignalFlags.RUN_FIRST, GObject.TYPE_NONE,
             (GObject.TYPE_UINT,)),
         'selection_changed': (
-            GObject.SignalFlags.RUN_FIRST, GObject.TYPE_NONE, ()),
-        'pw_validated': (
-            GObject.SignalFlags.RUN_FIRST, GObject.TYPE_NONE,
-            (GObject.TYPE_BOOLEAN,))}
+            GObject.SignalFlags.RUN_FIRST, GObject.TYPE_NONE, ())}
 
     def __init__(self):
         Gtk.Box.__init__(self)
         self.set_orientation(Gtk.Orientation.VERTICAL)
         self.set_spacing(12)
-        self.password_entry = Gtk.Entry()
-        self.view = NetworkManagerTreeView(self.password_entry,
-                                           self.state_changed)
+        self.view = NetworkManagerTreeView(self.state_changed)
         scrolled_window = Gtk.ScrolledWindow()
         scrolled_window.set_policy(
             Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scrolled_window.set_shadow_type(Gtk.ShadowType.IN)
         scrolled_window.add(self.view)
         self.pack_start(scrolled_window, True, True, 0)
-        self.hbox = Gtk.Box(spacing=6)
-        self.pack_start(self.hbox, False, True, 0)
-        self.password_label = Gtk.Label(label='Password:')
-        self.password_entry.set_visibility(False)
-        self.password_entry.connect('activate', self.connect_to_ap)
-        self.password_entry.connect('changed', self.password_entry_changed)
-        self.display_password = Gtk.CheckButton(label='Display password')
-        self.display_password.connect('toggled', self.display_password_toggled)
-        self.hbox.pack_start(self.password_label, False, True, 0)
-        self.hbox.pack_start(self.password_entry, True, True, 0)
-        self.hbox.pack_start(self.display_password, False, True, 0)
-        self.hbox.set_sensitive(False)
         self.selection = self.view.get_selection()
         self.selection.connect('changed', self.changed)
         self.show_all()
-
-    def translate(self, password_label_text, display_password_text):
-        self.password_label.set_label(password_label_text)
-        self.display_password.set_label(display_password_text)
 
     def get_state(self):
         return self.view.get_state()
@@ -314,49 +353,18 @@ class NetworkManagerWidget(Gtk.Box):
     def state_changed(self, state):
         self.emit('connection', state)
 
-    def password_is_valid(self):
-        passphrase = self.password_entry.get_text()
-        if len(passphrase) >= 8 and len(passphrase) < 64:
-            return True
-        if len(passphrase) == 64:
-            for c in passphrase:
-                if c not in string.hexdigits:
-                    return False
-            return True
-        else:
-            return False
-
     def connect_to_ap(self, *args):
-        if self.password_is_valid():
-            passphrase = self.password_entry.get_text()
-            self.view.connect_to_selection(passphrase)
+        self.view.connect_to_selection()
 
     def disconnect_from_ap(self):
         self.view.disconnect_from_ap()
-
-    def password_entry_changed(self, *args):
-        self.emit('pw_validated', self.password_is_valid())
-
-    def display_password_toggled(self, *args):
-        self.password_entry.set_visibility(self.display_password.get_active())
 
     def changed(self, selection):
         iterator = selection.get_selected()[1]
         if not iterator:
             return
-        row = selection.get_tree_view().get_model()[iterator]
-        secure = row[1]
-        ssid = row[0]
-        if secure:
-            self.hbox.set_sensitive(True)
-            passphrase = self.view.get_passphrase(ssid)
-            self.password_entry.set_text(passphrase)
-            self.emit('pw_validated', False)
-        else:
-            self.hbox.set_sensitive(False)
-            self.password_entry.set_text('')
-            self.emit('pw_validated', True)
         self.emit('selection_changed')
+
 
 GObject.type_register(NetworkManagerWidget)
 

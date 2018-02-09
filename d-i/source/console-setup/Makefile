@@ -1,38 +1,28 @@
-prefix = /usr/local
+maindir ?= $(shell pwd)
+kbddir := $(maindir)/Keyboard
+fntdir := $(maindir)/Fonts
+include rules.mk
+include Keyboard/Makefile
+include Fonts/Makefile
+
+# The following two shortcuts will be redefined, so they can not be
+# used in recipes and target specific variables.
+. := $(maindir)
+~ := main
+
+prefix := /usr/local
 # etcdir must be either /etc or
-etcdir = $(prefix)/etc
-bootprefix = $(patsubst %/usr,%/,$(prefix:%/=%))
-mandir = $(prefix)/share/man
+etcdir := $(prefix)/etc
+bootprefix := $(patsubst %/usr,%/,$(prefix:%/=%))
+mandir := $(prefix)/share/man
 
-SHELL = /bin/sh
+acmfiles := $(wildcard $./acm/*.acm)
 
-all: build-all
+gzipped_acmfiles := $(addsuffix .gz, $(acmfiles))
 
-acmfiles = $(wildcard acm/*.acm)
+gzipped-acmfiles : $(gzipped_acmfiles)
 
-gziped_acmfiles = $(addsuffix .gz, $(acmfiles))
-
-gziped_acmfiles : $(gziped_acmfiles)
-
-%.gz : %
-	gzip -9 <$< >$@
-
-build-common: gziped_acmfiles
-	cd Keyboard && $(MAKE) build
-
-build-linux: build-common
-	cd Fonts && $(MAKE) build-linux
-
-build-freebsd: build-common
-	cd Fonts && $(MAKE) build-freebsd
-
-build-mini-linux: build-linux build-common
-	cd Keyboard && $(MAKE) build-mini-linux
-
-build-mini-freebsd: build-freebsd build-common
-	cd Keyboard && $(MAKE) build-mini-freebsd
-
-build-all: build-linux build-freebsd build-mini-linux build-mini-freebsd
+build-common: gzipped-acmfiles
 
 .PHONY: install-common
 install-common: build-common
@@ -83,7 +73,7 @@ install-ckbcomp:
 	install -m 644 man/ckbcomp.1 $(mandir)/man1/
 
 .PHONY : install-ckbcomp-mini
-install-ckbcomp-mini:
+install-ckbcomp-mini: build-mini-linux build-mini-freebsd
 	install -d $(prefix)/share/console-setup/
 	-install -m 644 Keyboard/*.ekmap.gz $(prefix)/share/console-setup/
 	-install -m 644 Keyboard/*.ekbd.gz $(prefix)/share/console-setup/
@@ -102,14 +92,12 @@ install-linux: install-common install-common-linux install-ckbcomp
 install-freebsd: install-common install-common-freebsd install-ckbcomp
 
 .PHONY : install-mini-linux
-install-mini-linux: install-common install-common-linux build-mini-linux
-	$(MAKE) install-ckbcomp-mini
+install-mini-linux: install-common install-common-linux install-ckbcomp-mini
 
 .PHONY : install-mini-freebsd
-install-mini-freebsd: install-common install-common-freebsd build-mini-freebsd
-	$(MAKE) install-ckbcomp-mini
+install-mini-freebsd: install-common install-common-freebsd install-ckbcomp-mini
 
-common-uninstall:
+common-uninstall: | build-linux build-mini-linux build-freebsd build-mini-freebsd
 	-for font in Fonts/*.psf.gz; do \
 		rm $(prefix)/share/consolefonts/$${font##*/}; \
 	done
@@ -134,34 +122,29 @@ common-uninstall:
 	-rm $(bootprefix)/bin/setupcon
 
 .PHONY: uninstall-linux
-uninstall-linux: build-linux
-	$(MAKE) common-uninstall
+uninstall-linux: build-linux common-uninstall
 
 .PHONY: uninstall-mini-linux
-uninstall-mini-linux: build-mini-linux
-	$(MAKE) common-uninstall
+uninstall-mini-linux: build-mini-linux common-uninstall
 
 .PHONY: uninstall-freebsd
-uninstall-freebsd: build-freebsd
-	$(MAKE) common-uninstall
+uninstall-freebsd: build-freebsd common-uninstall
+
+.PHONY: uninstall-mini-freebsd
+uninstall-mini-freebsd: build-mini-freebsd common-uninstall
 
 %.txt : %
 	groff -mandoc -Tascii $< | col -bx >$@
 
-txtmanpages = man/bdf2psf.1.txt man/console-setup.5.txt		\
-	man/setupcon.1.txt man/ckbcomp.1.txt man/keyboard.5.txt
+txtmanpages := $./man/bdf2psf.1.txt $./man/console-setup.5.txt		\
+	$./man/setupcon.1.txt $./man/ckbcomp.1.txt $./man/keyboard.5.txt
 
-.PHONY: clean
-clean:
-	cd Fonts && $(MAKE) clean
-	cd Keyboard && $(MAKE) clean
-	-rm -f acm/*.acm.gz
-	-rm -f *~
-	-rm -f build
+clean .PHONY : $~clean
+$~clean:
+	-rm -f $(maindir)/acm/*.acm.gz
+	-rm -f $(maindir)/*~
 
-.PHONY: maintainer-clean
-maintainer-clean: clean
+maintainer-clean .PHONY : $~maintainer-clean
+$~maintainer-clean: $~clean
 	-rm -f $(txtmanpages)
 	$(MAKE) $(txtmanpages)
-	cd Fonts && $(MAKE) maintainer-clean
-	cd Keyboard && $(MAKE) maintainer-clean

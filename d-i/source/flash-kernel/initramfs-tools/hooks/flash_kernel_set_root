@@ -26,7 +26,15 @@ pause_error() {
 
 	#exit 1 # won't work; initramfs-tools ignores hook script exit code
 	echo "" >&2
-	if [ "$DEBIAN_FRONTEND" = "noninteractive" ] ; then
+
+	# Script is called from update-initramfs which in turn can be
+	# called manually by the admin from the CLI or via various
+	# postinst and trigger hooks or from the installer.
+	#
+	# If debconf appears to be running then it is important that
+	# we do not block on stdin since this would hang the
+	# installer.
+	if [ "$DEBIAN_HAS_FRONTEND" ] || [ "$DEBIAN_FRONTEND" ]; then
 		echo "Unable to abort; system will probably be broken!" >&2
 	else
 		echo "Press Ctrl-C to abort build, or Enter to continue" >&2
@@ -47,7 +55,7 @@ FK_DIR="/usr/share/flash-kernel"
 
 . /usr/share/initramfs-tools/hook-functions
 
-machine="$(get_cpuinfo_hardware)"
+get_machine
 
 # Should we override the root device or merely provide a default root
 # device?
@@ -74,7 +82,7 @@ if [ -n "$rootdev" ]; then
 	fi
 fi
 
-# Translate LABEL and UUID entries into a proper device name.
+# Translate LABEL, UUID, and PARTUUID entries into a proper device name.
 if echo "$rootdev" | grep -q "="; then
 	a=$(echo "$rootdev" | cut -d "=" -f 1)
 	b=$(echo "$rootdev" | cut -d "=" -f 2- | sed -e 's/^"\(.*\)"$/\1/')
@@ -93,6 +101,12 @@ if echo "$rootdev" | grep -q "="; then
 				echo "UUID $b doesn't exist in /dev/disk/by-uuid" >&2
 			fi
 		;;
+		PARTUUID)
+			rootdev=/dev/disk/by-partuuid/$b
+			if [ ! -e $rootdev ]; then
+				echo "UUID $b doesn't exist in /dev/disk/by-uuid" >&2
+			fi
+		;;
 		*)
 			echo "/etc/fstab parse error; cannot recognize root $rootdev" >&2
 			rootdev=/dev/sda2
@@ -101,14 +115,37 @@ if echo "$rootdev" | grep -q "="; then
 	esac
 fi
 
-if [ ! -e "$rootdev" ]; then
-	echo "Warning: root device $rootdev does not exist" >&2
-	pause_error
+get_machine
+
+# Should we override the root device or merely provide a default root
+# device?
+blsir="$(get_machine_field "$machine" "Bootloader-Sets-Incorrect-Root")"
+if [ -z "$blsir" ] ; then
+	blsir="$(get_machine_field "$machine" "Bootloader-Sets-Root")"
+	if [ -n "$blsir" ] ; then
+		echo "WARNING: flash-kernel configuration contains deprecated" >&2
+		echo "WARNING: \"Bootloader-Sets-Root\" option please update to" >&2
+		echo "WARNING: use \"Bootloader-Sets-Incorrect-Root\" instead." >&2
+	fi
 fi
 
-# The boot loader doesn't pass root= on the command line, so
-# provide a default.
-install -d $DESTDIR/conf/conf.d
-echo "ROOT=\"$rootdev\"" > $DESTDIR/conf/conf.d/default_root
+if [ ! -e "$rootdev" ]; then
+	echo "Warning: root device $rootdev does not exist" >&2
+	if [ "$blsir" = "yes" ]; then
+		pause_error
+	fi
+fi
+
+if [ "$blsir" = "yes" ]; then
+	# The boot loader passes a bogus root= (e.g. root=/dev/ram), so
+	# override the command line parameter.
+	install -d $DESTDIR/conf
+	echo "ROOT=\"$rootdev\"" >> $DESTDIR/conf/param.conf
+else
+	# The boot loader may or may not pass root= on the command line, so
+	# provide a default.
+	install -d $DESTDIR/conf/conf.d
+	echo "ROOT=\"$rootdev\"" > $DESTDIR/conf/conf.d/default_root
+fi
 
 # vim:noexpandtab shiftwidth=8

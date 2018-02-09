@@ -425,7 +425,7 @@ class PageKde(PageBase):
             init_big_button(self.page.try_ubuntu, 'try.png')
 
             self.release_notes_url = ''
-            self.update_installer = True
+            self.update_installer = False
             self.updating_installer = False
             if self.controller.oem_config or auto_update.already_updated():
                 self.update_installer = False

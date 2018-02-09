@@ -62,7 +62,7 @@ class PreparePageBase(plugin.PluginUI):
 
 
 class PageGtk(PreparePageBase):
-    restricted_package_name = 'ubuntu-restricted-addons'
+    restricted_package_name = 'mint-meta-codecs'
 
     def __init__(self, controller, *args, **kwargs):
         if self.is_automatic:

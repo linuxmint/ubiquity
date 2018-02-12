@@ -1,0 +1,16 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+if ! db_get mirror/codename || [ -z "$RET" ]; then
+   db_get cdrom/codename
+fi
+codename="$RET"
+
+cat >> /target/etc/apt/sources.list.d/locale.list <<EOF
+deb http://live.linuxmint.com $codename main
+deb-src http://live.linuxmint.com $codename main
+EOF
+
+exit 0

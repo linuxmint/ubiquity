@@ -539,11 +539,25 @@ EndSection
                        '/usr/libexec/gsd-media-keys',
                        '/usr/libexec/gsd-power',
                        '/usr/libexec/gsd-xsettings']
+                csd = ['/usr/bin/csd-a11y-keyboard',
+                       '/usr/bin/csd-a11y-settings',
+                       '/usr/bin/csd-clipboard',
+                       '/usr/bin/csd-media-keys',
+                       '/usr/bin/csd-power',
+                       '/usr/bin/csd-xsettings']
 
                 if osextras.find_on_path(msd):
                     extras.append(subprocess.Popen(
                         [msd], stdin=null, stdout=logfile, stderr=logfile,
                         preexec_fn=self.drop_privileges))
+
+                elif osextras.find_on_path(csd[0]):
+                    for csdbinary in csd:
+                        if osextras.find_on_path(csdbinary):
+                            extras.append(subprocess.Popen(
+                                [csdbinary],
+                                stdin=null, stdout=logfile, stderr=logfile,
+                                preexec_fn=self.drop_privileges))
 
                 elif (osextras.find_on_path(usd)):
                     # Wait until xsettings plugin is activated

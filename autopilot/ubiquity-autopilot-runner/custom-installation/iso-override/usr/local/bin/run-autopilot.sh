@@ -63,7 +63,7 @@ ARTIFACTS="$TESTBASE /var/log/installer /var/log/syslog $HOME/.cache/upstart /va
 # Specific configurations for various DE
 if [ -n "${SESSION+1}" ]; then
     case $SESSION in
-        ubuntu)    # Covers Ubuntu and Edubuntu
+        ubuntu)    # Covers Linux Mint and Edubuntu
             SESSION_LOG=$HOME/.cache/upstart/gnome-session.log
             ;;
         xubuntu)
@@ -79,7 +79,7 @@ elif [ -n "${DESKTOP_SESSION+1}" ]; then
     # And there doesn't seem to be a user session log???
     # So let's tail it and also include in the artifacts
     case $DESKTOP_SESSION in
-        mate)    # Covers Ubuntu-mate
+        mate)    # Covers Linux Mint-mate
             SESSION_LOG=/var/log/apt/term.log
             ARTIFACTS="$ARTIFACTS /var/log/apt"
             ;;

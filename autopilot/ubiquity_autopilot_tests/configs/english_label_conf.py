@@ -22,7 +22,7 @@ def get_distribution():
         for line in f:
             distro = line[:max(line.find(' '), 0) or None]
             if distro:
-                if distro == 'Ubuntu-GNOME' or distro == "Ubuntu-MATE":
+                if distro == 'Linux Mint-GNOME' or distro == "Linux Mint-MATE":
                     return str(distro.replace('-', ' '))
                 else:
                     return str(distro)

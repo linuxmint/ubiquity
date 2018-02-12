@@ -146,7 +146,7 @@ def raise_privileges(func):
 @raise_privileges
 def grub_options():
     """ Generates a list of suitable targets for grub-installer
-        @return empty list or a list of ['/dev/sda1','Ubuntu Hardy 8.04'] """
+        @return empty list or a list of ['/dev/sda1','Linux Mint Hardy 8.04'] """
     from ubiquity.parted_server import PartedServer
 
     ret = []
@@ -438,7 +438,7 @@ def os_prober():
             res = res.split(':')
             # launchpad bug #1265192, fix os-prober Windows EFI path
             res[0] = re.match(r'[/\w\d]+', res[0]).group()
-            if res[2] == 'Ubuntu':
+            if res[2] == 'Linux Mint':
                 version = [v for v in re.findall('[0-9.]*', res[1]) if v][0]
                 # Get rid of the superfluous (development version) (11.04)
                 text = re.sub('\s*\(.*\).*', '', res[1])
@@ -519,7 +519,7 @@ def get_release_name():
                 "Unable to determine the distribution name from "
                 "/cdrom/.disk/info")
         if not get_release_name.release_name:
-            get_release_name.release_name = 'Ubuntu'
+            get_release_name.release_name = 'Linux Mint'
     return get_release_name.release_name
 
 

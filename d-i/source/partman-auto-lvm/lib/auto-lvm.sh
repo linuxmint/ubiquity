@@ -289,7 +289,7 @@ auto_lvm_perform() {
 		if [ "$defvgname" ]; then
 			db_set partman-auto-lvm/new_vg_name $defvgname-vg
 		else
-			db_set partman-auto-lvm/new_vg_name Ubuntu
+			db_set partman-auto-lvm/new_vg_name Mint
 		fi
 	fi
 

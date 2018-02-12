@@ -247,17 +247,17 @@ class Install(install_misc.InstallBase):
         if 'UBIQUITY_OEM_USER_CONFIG' not in os.environ:
             self.install_restricted_extras()
 
-        self.db.progress('INFO', 'ubiquity/install/apt_clone_restore')
-        try:
-            self.apt_clone_restore()
-        except Exception:
-            syslog.syslog(
-                syslog.LOG_WARNING,
-                'Could not restore packages from the previous install:')
-            for line in traceback.format_exc().split('\n'):
-                syslog.syslog(syslog.LOG_WARNING, line)
-            self.db.input('critical', 'ubiquity/install/broken_apt_clone')
-            self.db.go()
+        # self.db.progress('INFO', 'ubiquity/install/apt_clone_restore')
+        # try:
+        #     self.apt_clone_restore()
+        # except Exception:
+        #     syslog.syslog(
+        #         syslog.LOG_WARNING,
+        #         'Could not restore packages from the previous install:')
+        #     for line in traceback.format_exc().split('\n'):
+        #         syslog.syslog(syslog.LOG_WARNING, line)
+        #     self.db.input('critical', 'ubiquity/install/broken_apt_clone')
+        #     self.db.go()
         try:
             self.copy_network_config()
         except Exception:

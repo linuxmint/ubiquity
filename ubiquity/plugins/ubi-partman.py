@@ -166,7 +166,7 @@ class PageGtk(PageBase):
         self.resize_max_size = None
         self.resize_pref_size = None
         self.resize_path = ''
-        self.auto_colors = ['3465a4', '73d216', 'f57900']
+        self.auto_colors = ['0d95bc', '9ab87c', 'ebcb38', 'f36f13', 'c13018', '063951']
         self.extra_options = {}
 
         self.partition_mount_combo.get_child().set_activates_default(True)

@@ -766,7 +766,7 @@ class Install(install_misc.InstallBase):
                         continue
                     if not os.path.exists(words[0]):
                         continue
-                    if words[0].startswith('/dev/ramzswap'):
+                    if words[0].startswith('/dev/zram'):
                         continue
                     size = int(words[2])
                     if size > biggest_size:

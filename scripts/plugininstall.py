@@ -284,6 +284,9 @@ class Install(install_misc.InstallBase):
                 syslog.syslog(syslog.LOG_WARNING, line)
         self.copy_dcd()
 
+        # Fix Grub title
+        install_misc.chrex(self.target, '/usr/share/ubuntu-system-adjustments/systemd/adjust-grub-title')
+
         self.db.progress('SET', self.count)
         self.db.progress('INFO', 'ubiquity/install/log_files')
         self.copy_logs()

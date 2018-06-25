@@ -338,13 +338,13 @@ class PageGtk(PageBase):
         if self.release_notes_label:
             if self.release_notes_found and self.update_installer:
                 text = i18n.get_string('release_notes_label', lang)
-                self.release_notes_label.set_markup(text)
+                self.release_notes_label.set_markup('')
             elif self.release_notes_found:
                 text = i18n.get_string('release_notes_only', lang)
-                self.release_notes_label.set_markup(text)
+                self.release_notes_label.set_markup('')
             elif self.update_installer:
                 text = i18n.get_string('update_installer_only', lang)
-                self.release_notes_label.set_markup(text)
+                self.release_notes_label.set_markup('')
             else:
                 self.release_notes_label.set_markup('')
 

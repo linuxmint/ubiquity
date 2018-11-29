@@ -291,6 +291,11 @@ class Install(install_misc.InstallBase):
                 syslog.syslog(syslog.LOG_WARNING, line)
         self.copy_dcd()
 
+        # Fix /etc/crypttab
+        crypttab_file = self.target_file("etc/crypttab")
+        if os.path.exists(crypttab_file):
+            os.system("sed -i 's@/target/@/@g' %s" % crypttab_file)
+
         # Fix Grub title
         install_misc.chrex(self.target, '/usr/share/ubuntu-system-adjustments/systemd/adjust-grub-title')
 

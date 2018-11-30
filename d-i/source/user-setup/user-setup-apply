@@ -149,7 +149,7 @@ if [ "$RET" = true ] && ! is_system_user; then
 		done
 		apt-install ecryptfs-utils 2>/dev/null
 		apt-install cryptsetup 2>/dev/null
-		
+
 		umountproc=false
 		umountsys=false
 		umountdev=false
@@ -202,11 +202,16 @@ if [ "$RET" = true ] && ! is_system_user; then
 	fi
 
 	umountsys=false
+    umountproc=false
 	if [ -n "$ENCRYPT_HOME_OPT" ]; then
 		if [ ! -e $ROOT/sys/kernel ]; then
 			$log $chroot $ROOT mount -t sysfs sysfs /sys
 			umountsys=:
 		fi
+        if [ ! -e $ROOT/proc/cmdline ]; then
+            $log $chroot $ROOT mount -t proc proc /proc
+            umountproc=:
+        fi
 		mkdir -p $ROOT/dev/shm
 		$log $chroot $ROOT mount -t tmpfs tmpfs /dev/shm
 	fi
@@ -224,6 +229,9 @@ if [ "$RET" = true ] && ! is_system_user; then
 	if [ -n "$ENCRYPT_HOME_OPT" ]; then
 		if $umountsys; then
 			$log $chroot $ROOT umount /sys
+		fi
+		if $umountproc; then
+			$log $chroot $ROOT umount /proc
 		fi
 		$log $chroot $ROOT umount /dev/shm
 	fi
@@ -252,7 +260,7 @@ if [ "$RET" = true ] && ! is_system_user; then
 		for group in $RET; do
 			$log $chroot $ROOT adduser "$USER" $group >/dev/null 2>&1 || true
 		done
- 
+
  		# Configure desktop auto-login if instructed by preseeding
  		db_get passwd/auto-login
  		if [ "$RET" = true ]; then
@@ -279,7 +287,7 @@ AutomaticLogin=$USER\n"
 					sed -i "s/\[daemon\]/\[daemon\]\n$AutologinParameters/" $GDMCustomFile
 				fi
 			fi
-	 
+
 			if $chroot $ROOT [ -f /etc/kde4/kdm/kdmrc ]; then
 				# Configure KDM autologin
 				$log $chroot $ROOT sed -i$BACKUP -r \

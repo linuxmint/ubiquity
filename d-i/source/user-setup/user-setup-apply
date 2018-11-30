@@ -202,16 +202,16 @@ if [ "$RET" = true ] && ! is_system_user; then
 	fi
 
 	umountsys=false
-    umountproc=false
+	umountproc=false
 	if [ -n "$ENCRYPT_HOME_OPT" ]; then
 		if [ ! -e $ROOT/sys/kernel ]; then
 			$log $chroot $ROOT mount -t sysfs sysfs /sys
 			umountsys=:
 		fi
-        if [ ! -e $ROOT/proc/cmdline ]; then
-            $log $chroot $ROOT mount -t proc proc /proc
-            umountproc=:
-        fi
+		if [ ! -e $ROOT/proc/cmdline ]; then
+			$log $chroot $ROOT mount -t proc proc /proc
+			umountproc=:
+		fi
 		mkdir -p $ROOT/dev/shm
 		$log $chroot $ROOT mount -t tmpfs tmpfs /dev/shm
 	fi

@@ -98,7 +98,7 @@ grub_serial_console() {
 	if [ -z "$speed" ]; then
 		speed="9600"
 	fi
-	case "$parity" in
+	case "$parity" in 
 		n) parity="--parity=no" ;;
 		e) parity="--parity=even" ;;
 		o) parity="--parity=odd" ;;
@@ -644,7 +644,7 @@ inst_package=$grub_package
 case "$grub_package" in
    *)
 	# Will pull in os-prober based on global setting for Recommends
-	apt-install $grub_package || exit_code=$?
+	apt-install $grub_package || exit_code=$? 
 	case $grub_package in
 	    *-signed)
 		apt-install shim-signed || true
@@ -716,11 +716,11 @@ if [ -s /tmp/os-probed ]; then
 		else
 			supported_os_list="$title"
 		fi
-
+		
 		IFS="$newline"
 	done
 	IFS="$OLDIFS"
-
+	
 	if [ -z "$OVERRIDE_UNSUPPORTED_OS" ] && [ -n "$unsupported_os_list" ]; then
 		# Unsupported OS, jump straight to manual boot device question.
 		state=2
@@ -1294,7 +1294,7 @@ if [ "$grub_version" = "grub" ] ; then
 					db_progress STOP
 					exit 10
 				fi
-
+				
 				db_get grub-installer/password-again
 				if [ "$password" = "$RET" ]; then
 					break
@@ -1333,7 +1333,7 @@ if [ "$grub_version" = "grub" ] ; then
 		# contains a password.
 		chmod o-r $ROOT/boot/grub/$menu_file
 		rm -f /tmp/menu.lst.password
-	fi
+	fi 
 fi
 
 # Add user parameters to menu.lst; some options are only added to the
@@ -1445,7 +1445,7 @@ if [ "$serial" ] ; then
 		update_grub # propagate to grub.cfg
 		;;
 	esac
-fi
+fi 
 
 # Generate menu.lst additions for other OSes
 tmpfile=/tmp/menu.lst.extras

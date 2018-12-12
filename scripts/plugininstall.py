@@ -101,6 +101,12 @@ class Install(install_misc.InstallBase):
                 for line in langpacks:
                     self.langpacks.append(line.strip())
 
+        # Add fcitx recommends
+        if "fcitx" in self.langpacks:
+            for name in ["fcitx-config-gtk", "fcitx-config-gtk2"]:
+                if name not in self.langpacks:
+                    self.langpacks.append(name)
+
         # Load plugins
         modules = plugin_manager.load_plugins()
         modules = plugin_manager.order_plugins(modules)

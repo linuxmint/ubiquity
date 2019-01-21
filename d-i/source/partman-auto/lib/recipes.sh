@@ -39,6 +39,19 @@ find_method () {
 	echo "$found"
 }
 
+cap_ram () {
+    local ram
+    ram="$1"
+    db_get partman-auto/cap-ram
+    # test that return string is all numbers, otherwise do not cap
+    if [ $(expr "x$RET" : "x[0-9]*$") -gt 1 ]; then
+	if [ $ram -gt "$RET" ]; then
+	    ram=$RET
+	fi
+    fi
+    echo "$ram"
+}
+
 unnamed=0
 
 decode_recipe () {
@@ -63,6 +76,7 @@ decode_recipe () {
 		ram=$(grep ^MemTotal: /proc/meminfo | { read x y z; echo $y; })000
 	fi
 	ram=$(convert_to_megabytes $ram)
+	ram=$(cap_ram $ram)
 	name="Unnamed.${unnamed}"
 	scheme=''
 	line=''

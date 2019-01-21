@@ -17,6 +17,17 @@ cleanup () {
 }
 trap cleanup EXIT HUP INT QUIT TERM
 
+# In case we're booting from EFI mode and there's no existing ESP present,
+# do not offer reusing existing partitions as we won't be able to boot into
+# them.
+efi_count_path="/var/lib/partman/efi_esp_count"
+if [ -e /var/lib/partman/efi ] && [ -f $efi_count_path ]; then
+	esp_count=$(cat $efi_count_path)
+	if [ "$esp_count" = 0 ]; then
+		exit 0
+	fi
+fi
+
 reuse=
 disks=
 if db_get partman-auto/disk; then

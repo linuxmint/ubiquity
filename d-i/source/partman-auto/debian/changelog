@@ -1,3 +1,24 @@
+partman-auto (134ubuntu8.1) bionic; urgency=medium
+
+  * recipes-amd64-efi/*: remove the restriction of the ESP partition that only
+    allowed it being created when the partition table was GPT. This basically
+    fixes cases where the ESP wasn't created if the previous installation was
+    in BIOS legacy mode. (LP: #1766945)
+  * automatically_partition/reuse/choices: do not offer reusing of a partition
+    in EFI mode if there is no ESP present. Only works when a newer
+    partman-efi is available.
+
+ -- Łukasz 'sil2100' Zemczak <lukasz.zemczak@ubuntu.com>  Fri, 22 Jun 2018 16:57:39 +0200
+
+partman-auto (134ubuntu8) bionic; urgency=medium
+
+  * Introduce partman-auto/cap-ram, to allow capping RAM size as used for
+    swap partition calculations. This allows us to effectively cap the
+    swap partitions size to maximum of 2*CAP. Default is set to 1024, thus
+    capping swap partitions to 2GB maximum. LP: #1351267
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Fri, 23 Feb 2018 13:53:15 +0000
+
 partman-auto (134ubuntu7) artful; urgency=medium
 
   * Bump minimum and maximum sizes for /boot partitions on default, x86, and 

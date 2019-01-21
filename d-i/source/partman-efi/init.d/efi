@@ -89,23 +89,3 @@ for dev in /var/lib/partman/devices/*; do
 done
 
 log "Found $NUM_ESP ESPs, $NUM_NO non-ESPs"
-
-if in_efi_mode && [ $NUM_ESP = 0 ] && [ $NUM_NO -gt 0 ]; then
-	case $ARCH in
-		i386/*|amd64/*)
-			db_fget partman-efi/non_efi_system seen
-			if [ $RET = false ]; then
-				db_input critical partman-efi/non_efi_system || true
-				db_go || exit 1
-				db_fset partman-efi/non_efi_system seen true
-			fi
-			db_get partman-efi/non_efi_system
-			if [ "$RET" = false ]; then
-				log "User chose to ignore UEFI"
-				touch /var/lib/partman/ignore_uefi
-			else
-				log "User chose to continue in UEFI mode"
-			fi
-		;;
-	esac
-fi

@@ -921,7 +921,7 @@ class Install(install_misc.InstallBase):
 
         inst_boot = self.db.get('ubiquity/install_bootloader')
         if inst_boot == 'true' and 'UBIQUITY_NO_BOOTLOADER' not in os.environ:
-            binds = ("/proc", "/sys", "/dev", "/run")
+            binds = ("/proc", "/sys", "/dev", "/run", "/sys/firmware/efi/efivars")
             for bind in binds:
                 misc.execute('mount', '--bind', bind, self.target + bind)
 

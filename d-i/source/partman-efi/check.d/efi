@@ -4,10 +4,6 @@ if [ -f /var/lib/partman/ignore_uefi ]; then
 	exit 0
 fi
 
-if [ -f /var/lib/partman/ignore_uefi ]; then
-	exit 0
-fi
-
 . /lib/partman/lib/base.sh
 
 have_efi=no
@@ -41,11 +37,7 @@ for dev in $DEVICES/*; do
 	done
 done
 
-# On Intel Macs, it isn't entirely clear that you have to have an EFI system
-# partition; see http://refit.sourceforge.net/myths/ for further details. In
-# the meantime, we only force an EFI system partition on ia64.
 if [ -e /var/lib/partman/efi ] && \
-   [ "$(udpkg --print-architecture)" = ia64 ] && \
    [ "$have_efi" = no ]; then
 	db_input critical partman-efi/no_efi || true
 	db_go || exit 1

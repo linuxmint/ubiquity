@@ -581,7 +581,7 @@ class PageGtk(PageBase):
                     '/usr/share/ubiquity')
                 icon.logo.set_from_file(os.path.join(
                     PATH, 'pixmaps', 'windows_square.png'))
-            elif 'buntu' in title.lower():
+            elif 'linux mint' in title.lower():
                 icon.set_property('icon-name', 'distributor-logo')
             else:
                 icon.set_property('icon-name', 'block-device')
@@ -2192,7 +2192,7 @@ class Page(plugin.Plugin):
                     if not system.startswith('Windows Recovery'):
                         operating_systems.append(system)
         ubuntu_systems = [x for x in operating_systems
-                          if x.lower().find('buntu') != -1]
+                          if x.lower().find('linux mint') != -1]
         return (operating_systems, ubuntu_systems)
 
     def calculate_autopartitioning_options(self, operating_systems,

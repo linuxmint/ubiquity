@@ -60,11 +60,8 @@ trap 'rm -f $tempfiles >/dev/null 2>&1' 0
 trap "exit 2" 1 2 3 13 15
 tempfile () {
     if \
-        TMPFILE=`mktemp /tmp/tmpkbd.XXXXXX 2>/dev/null` \
-            || TMPFILE=`mktemp /run/tmpkbd.XXXXXX 2>/dev/null` \
-            || TMPFILE=`mktemp /dev/.tmpkbd.XXXXXX 2>/dev/null` \
-            || TMPFILE=`mktemp /lib/init/rw/tmpkbd.XXXXXX 2>/dev/null` \
-            || TMPFILE=`mktemp 2>/dev/null`
+        TMPFILE=`mktemp /run/tmpkbd.XXXXXX 2>/dev/null` \
+            || TMPFILE=`mktemp /tmp/tmpkbd.XXXXXX 2>/dev/null`
     then
         tempfiles="$tempfiles $TMPFILE"
         return 0
@@ -738,7 +735,7 @@ then
 fi
 [ -n "$XKBMODEL" -o -z "$savekbdfile" ] || exit 1
 
-# Backwards-compatibility with Linux Mint-specific preseeding
+# Backwards-compatibility with Ubuntu-specific preseeding
 if [ "$XKBMODEL" = SKIP ]; then
     XKBMODEL=
 fi

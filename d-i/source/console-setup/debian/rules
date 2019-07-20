@@ -56,11 +56,10 @@ clean : maintainer-clean
 	-rm -f debian/kbdnames.gz
 	-rm -f debian/*~
 	dh_clean
-	rm -f debian/copyright
-	cp -f COPYRIGHT debian/copyright
+	ln -sf debian/copyright COPYRIGHT
 
 .PHONY : deb-udeb-install
-deb-udeb-install: deb-install-linux deb-install-freebsd deb-install-main deb-install-bdf2psf udeb-install-linux udeb-install-freebsd udeb-install
+deb-udeb-install: deb-install-linux deb-install-main deb-install-bdf2psf udeb-install-linux udeb-install
 
 .PHONY : deb-install-linux
 deb-install-linux: build
@@ -297,7 +296,6 @@ binary-indep: build deb-udeb-install
 	dh_installdocs -pkeyboard-configuration \
 		FAQ copyright.fonts copyright.xkb
 	dh_installdocs -p console-setup-linux --link-doc=keyboard-configuration
-	dh_installdocs -pconsole-setup-freebsd --link-doc=keyboard-configuration
 	dh_installdocs -p console-setup-mini --link-doc=keyboard-configuration
 	dh_installdocs -p console-setup --link-doc=keyboard-configuration
 	dh_lintian

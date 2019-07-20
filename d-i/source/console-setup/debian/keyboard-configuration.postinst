@@ -79,35 +79,42 @@ if [ "$1" = "configure" -a ! -L "$CONFIGFILE" ]; then
     db_set keyboard-configuration/store_defaults_in_debconf_db true
 fi
 
-if type plymouth >/dev/null && plymouth --ping; then
-    # setting the keymap breaks with plymouth in raw mode, and setting the
-    # font will currently also break if on vgacon
-    if type setupcon >/dev/null 2>&1; then
-	setupcon --save-only
-    fi
-elif keyboard_present; then
+if [ -d /lib/debian-installer ];
+then
     if [ "$DISPLAY" ] && which setxkbmap >/dev/null; then
 	setxkbmap -option '' -model "$model" "$layout" "$variant" "$options" || true
 	# setting the font corrupts X
 	# setting up the keyboard breaks wayland
 	if type setupcon >/dev/null 2>&1; then
-	    setupcon --save-only
+	    # We redirect the output so that postinst does not block when ScrollLock is on
+	    setupcon --save-only >/dev/null 2>/dev/null || true
 	    cat >&2 <<EOF
 Your console font configuration will be updated the next time your system
 boots. If you want to update it now, run 'setupcon' from a virtual console.
 EOF
-	fi    else
+	fi
+    else
 	case "`uname`" in
 	    GNU)
 		[ ! -f /var/run/hurd-console.pid ] || kill `cat /var/run/hurd-console.pid`
 		;;
 	    *)
 		if type setupcon >/dev/null 2>&1; then
-		    setupcon --force --save
+		    setupcon --force --save >/dev/null 2>/dev/null || true
 		fi
 		;;
 	esac
     fi
+else
+    # Setting the keymap breaks plymouth in raw mode, and setting the
+    # font will currently also break if on vgacon.
+    # Setting the font also corrupts X and postinst may be running with
+    # stripped environment thus we can't even detect X easily.
+    setupcon --save-only >/dev/null 2>/dev/null || true
+    cat >&2 <<EOF
+Your console font configuration will be updated the next time your system
+boots. If you want to update it now, run 'setupcon' from a virtual console.
+EOF
 fi
 
 if ! [ -d /lib/debian-installer.d ]; then

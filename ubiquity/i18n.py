@@ -27,6 +27,8 @@ import re
 import subprocess
 import sys
 
+import gettext
+
 from ubiquity import im_switch, misc
 
 
@@ -221,6 +223,9 @@ def map_widget_name(prefix, name):
 
 def get_string(name, lang, prefix=None):
     """Get the translation of a single string."""
+    if name.startswith("mint:"):
+        name = name.replace("mint:", "")
+        return gettext.dgettext("mintubiquity", name)
     question = map_widget_name(prefix, name)
     translations = get_translations()
     if question not in translations:

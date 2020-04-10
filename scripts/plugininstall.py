@@ -1158,17 +1158,17 @@ class Install(install_misc.InstallBase):
     def install_extras(self):
         """Try to install packages requested by installer components."""
         # We only ever install these packages from the CD.
-        sources_list = self.target_file('etc/apt/sources.list')
-        os.rename(sources_list, "%s.apt-setup" % sources_list)
-        with open("%s.apt-setup" % sources_list) as old_sources:
-            with open(sources_list, 'w') as new_sources:
-                found_cdrom = False
-                for line in old_sources:
-                    if 'cdrom:' in line:
-                        print(line, end="", file=new_sources)
-                        found_cdrom = True
-        if not found_cdrom:
-            os.rename("%s.apt-setup" % sources_list, sources_list)
+        # sources_list = self.target_file('etc/apt/sources.list')
+        # os.rename(sources_list, "%s.apt-setup" % sources_list)
+        # with open("%s.apt-setup" % sources_list) as old_sources:
+        #     with open(sources_list, 'w') as new_sources:
+        #         found_cdrom = False
+        #         for line in old_sources:
+        #             if 'cdrom:' in line:
+        #                 print(line, end="", file=new_sources)
+        #                 found_cdrom = True
+        # if not found_cdrom:
+        #     os.rename("%s.apt-setup" % sources_list, sources_list)
 
         # this will install free & non-free things, but not things
         # that have multiarch Depends or Recommends. Instead, those
@@ -1213,8 +1213,8 @@ class Install(install_misc.InstallBase):
             except FileNotFoundError:
                 pass
 
-        if found_cdrom:
-            os.rename("%s.apt-setup" % sources_list, sources_list)
+        # if found_cdrom:
+        #     os.rename("%s.apt-setup" % sources_list, sources_list)
 
         # TODO cjwatson 2007-08-09: python reimplementation of
         # oem-config/finish-install.d/07oem-config-user. This really needs

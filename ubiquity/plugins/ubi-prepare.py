@@ -565,7 +565,7 @@ class Page(plugin.Plugin):
         return biggest
 
     def ok_handler(self):
-        download_updates = self.ui.get_download_updates()
+        download_updates = False
         minimal_install = self.ui.get_minimal_install()
         use_nonfree = self.ui.get_use_nonfree()
         secureboot_key = self.ui.get_secureboot_key()

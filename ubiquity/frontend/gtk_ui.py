@@ -311,7 +311,7 @@ class Wizard(BaseFrontend):
             }
             progressbar progress {
               min-height: 10px;
-              border-radius: 4px;
+              border-radius: 2px;
               border: none;
             }
             paned separator {

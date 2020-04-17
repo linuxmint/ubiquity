@@ -117,6 +117,18 @@ class PageBase(plugin.PluginUI):
         """Returns true if the user should be automatically logged in."""
         raise NotImplementedError('get_auto_login')
 
+    def set_encrypt_home(self, value):
+        """Set whether the home directory should be encrypted."""
+        raise NotImplementedError('set_encrypt_home')
+
+    def set_force_encrypt_home(self, value):
+        """Forces whether the home directory should be encrypted."""
+        raise NotImplementedError('set_force_encrypt_home')
+
+    def get_encrypt_home(self):
+        """Returns true if the home directory should be encrypted."""
+        raise NotImplementedError('get_encrypt_home')
+
     def username_error(self, msg):
         """The selected username was bad."""
         raise NotImplementedError('username_error')
@@ -174,6 +186,7 @@ class PageGtk(PageBase):
         self.password = builder.get_object('password')
         self.verified_password = builder.get_object('verified_password')
         self.login_auto = builder.get_object('login_auto')
+        self.login_encrypt = builder.get_object('login_encrypt')
         self.login_pass = builder.get_object('login_pass')
         self.username_error_label = builder.get_object('username_error_label')
         self.hostname_error_label = builder.get_object('hostname_error_label')
@@ -247,6 +260,15 @@ class PageGtk(PageBase):
 
     def get_auto_login(self):
         return self.login_auto.get_active()
+
+    def set_encrypt_home(self, value):
+        self.login_encrypt.set_active(value)
+
+    def set_force_encrypt_home(self, value):
+        self.login_vbox.set_sensitive(not value)
+
+    def get_encrypt_home(self):
+        return self.login_encrypt.get_active()
 
     def username_error(self, msg):
         self.username_ok.hide()
@@ -407,6 +429,14 @@ class PageGtk(PageBase):
         else:
             self.resolver_ok = False
 
+    def on_authentication_toggled(self, w):
+        if w == self.login_auto and w.get_active():
+            self.login_encrypt.set_active(False)
+        elif w == self.login_encrypt and w.get_active():
+            # TODO why is this so slow to activate the login_pass radio button
+            # when checking encrypted home?
+            self.login_pass.set_active(True)
+
 
 class PageKde(PageBase):
     plugin_breadcrumb = 'ubiquity/text/breadcrumb_user'
@@ -434,6 +464,7 @@ class PageKde(PageBase):
             self.page.username.setEnabled(False)
             self.page.login_pass.hide()
             self.page.login_auto.hide()
+            self.page.login_encrypt.hide()
             self.username_edited = True
             self.hostname_edited = True
 
@@ -457,6 +488,8 @@ class PageKde(PageBase):
         # self.page.password.textChanged[str].connect(self.on_password_changed)
         # self.page.verified_password.textChanged[str].connect(
         #    self.on_verified_password_changed)
+        self.page.login_pass.clicked[bool].connect(self.on_login_pass_clicked)
+        self.page.login_auto.clicked[bool].connect(self.on_login_auto_clicked)
 
         self.page.password_debug_warning_label.setVisible(
             'UBIQUITY_DEBUG' in os.environ)
@@ -514,6 +547,24 @@ class PageKde(PageBase):
 
     def get_auto_login(self):
         return self.page.login_auto.isChecked()
+
+    def on_login_pass_clicked(self, checked):
+        self.page.login_encrypt.setEnabled(checked)
+
+    def on_login_auto_clicked(self, checked):
+        self.page.login_encrypt.setChecked(not(checked))
+        self.page.login_encrypt.setEnabled(not(checked))
+
+    def set_encrypt_home(self, value):
+        self.page.login_encrypt.setChecked(value)
+
+    def set_force_encrypt_home(self, value):
+        self.page.login_encrypt.setDisabled(value)
+        self.page.login_auto.setDisabled(value)
+        self.page.login_pass.setDisabled(value)
+
+    def get_encrypt_home(self):
+        return self.page.login_encrypt.isChecked()
 
     def username_error(self, msg):
         self.page.username_error_reason.setText(msg)
@@ -600,6 +651,15 @@ class PageNoninteractive(PageBase):
     def get_auto_login(self):
         return self.auto_login
 
+    def set_encrypt_home(self, value):
+        self.encrypt_home = value
+
+    def set_force_encrypt_home(self, value):
+        self.set_encrypt_home(value)
+
+    def get_encrypt_home(self):
+        return self.encrypt_home
+
     def username_error(self, msg):
         """The selected username was bad."""
         print('\nusername error: %s' % msg, file=self.console)
@@ -663,6 +723,14 @@ class Page(plugin.Plugin):
                 self.ui.set_auto_login(auto_login == 'true')
             except debconf.DebconfError:
                 pass
+            try:
+                encrypt_home = self.db.get('user-setup/force-encrypt-home')
+                if not encrypt_home:
+                    encrypt_home = self.db.get('user-setup/encrypt-home')
+                self.ui.set_encrypt_home(encrypt_home == 'true')
+                self.ui.set_force_encrypt_home(encrypt_home == 'true')
+            except debconf.DebconfError:
+                pass
         try:
             empty = self.db.get('user-setup/allow-password-empty') == 'true'
         except debconf.DebconfError:
@@ -712,6 +780,7 @@ class Page(plugin.Plugin):
         password = self.ui.get_password()
         password_confirm = self.ui.get_verified_password()
         auto_login = self.ui.get_auto_login()
+        encrypt_home = self.ui.get_encrypt_home()
 
         self.preseed('passwd/user-fullname', fullname)
         self.preseed('passwd/username', username)
@@ -723,7 +792,7 @@ class Page(plugin.Plugin):
         else:
             self.preseed('passwd/user-uid', '')
         self.preseed_bool('passwd/auto-login', auto_login)
-        self.preseed_bool('user-setup/encrypt-home', False)
+        self.preseed_bool('user-setup/encrypt-home', encrypt_home)
 
         hostname = self.ui.get_hostname()
 

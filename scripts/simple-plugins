@@ -20,6 +20,9 @@ if [ "$1" = "prepare" ]; then
     ubuntu-drivers install $FREEONLY $NOOEM --package-list /run/ubuntu-drivers.autoinstall || \
         logger -t ubiquity "ubuntu-drivers install failed with code: $?"
 
+
+    bump-virtualbox-resolution
+
     db_input high ubiquity/secureboot_key || true
     db_get ubiquity/secureboot_key
     if [ -n "$RET" ]; then

@@ -23,6 +23,8 @@ import subprocess
 import sys
 import syslog
 
+import gettext
+
 from ubiquity import i18n, misc, osextras, plugin, upower
 from ubiquity.install_misc import (archdetect, is_secure_boot,
                                    minimal_install_rlist_path)
@@ -39,7 +41,7 @@ OEM = False
 # need the dbfilter for that get.
 
 class PreparePageBase(plugin.PluginUI):
-    plugin_title = 'ubiquity/text/prepare_heading_label'
+    plugin_title = 'mint:Drivers and codecs'
     download_updates = True
     download_updates_enabled = True
 
@@ -79,7 +81,7 @@ class PreparePageBase(plugin.PluginUI):
 
 
 class PageGtk(PreparePageBase):
-    restricted_package_name = 'ubuntu-restricted-addons'
+    restricted_package_name = 'mint-meta-codecs'
 
     def __init__(self, controller, *args, **kwargs):
         self.controller = controller

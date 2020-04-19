@@ -2,4 +2,4 @@
 
 import gettext
 
-_("")
+_("Drivers and codecs")

@@ -2,4 +2,5 @@
 
 import gettext
 
-_("Drivers and codecs")
+_("Multimedia codecs")
+_("Encrypt my home folder")

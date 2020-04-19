@@ -158,6 +158,8 @@ class PageBase(plugin.PluginUI):
     def set_allow_password_empty(self, empty):
         self.allow_password_empty = empty
 
+    def plugin_translate(self, lang):
+        return
 
 class PageGtk(PageBase):
     plugin_title = 'ubiquity/text/userinfo_heading_label'
@@ -234,6 +236,9 @@ class PageGtk(PageBase):
 
         self.resolver_ok = True
         self.plugin_widgets = self.page
+
+    def plugin_translate(self, lang):
+        self.login_encrypt.set_label(i18n.get_string('mint:Encrypt my home folder', lang))
 
     # Functions called by the Page.
 

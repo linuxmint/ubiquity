@@ -329,7 +329,7 @@ static int get_release(struct release_t *release, const char *name) {
 		 * out if there's no network connection), let's just assume
 		 * that the CD will be sufficient to get a basic system up,
 		 * setting codename = suite.  Note that this is an
-		 * Ubuntu-specific change since (a) Debian netinst CDs etc.
+		 * Linux Mint-specific change since (a) Debian netinst CDs etc.
 		 * may not be able to install a complete system from the
 		 * network and (b) codename != suite in Debian.
 		 *

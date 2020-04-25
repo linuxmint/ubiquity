@@ -17,13 +17,22 @@ manprocessor := sed \
 # One font per fontset supported by d-i in text console
 udeb-fonts := CyrAsia-Fixed16 CyrSlav-TerminusBold16 Greek-VGA16 \
 Lat15-TerminusBold16 Lat2-TerminusBold16 Lat38-VGA16 Lat7-TerminusBold16
-# These are not properly supported by d-i in text console
-# Armenian-Fixed16 CyrKoi-TerminusBold16 Georgian-Fixed16 Hebrew-VGA16	Lao-Fixed16  Thai-Fixed16
-
 # These are Linux-only
-udeb-fonts-big := Uni1-VGA16 Uni2-VGA16 Uni3-Fixed16
-# These are not properly supported by d-i in text console
-# Arabic-VGA16 Ethiopian-Goha16 Vietnamese-Fixed16
+udeb-fonts-big :=
+
+# These are not properly supported by d-i in text console, but
+# included for completeness for speakup & brltty screen reading
+udeb-fonts += Armenian-Fixed16 Georgian-Fixed16 Hebrew-VGA16 Lao-Fixed16 Thai-Fixed16
+udeb-fonts-big += Arabic-VGA16 Ethiopian-Goha16 Vietnamese-Fixed16
+
+# These are needed for proper text screen reading by speakup and brltty
+udeb-fonts-big += FullCyrAsia-Fixed16 FullCyrSlav-TerminusBold16 FullGreek-VGA16
+
+# This is not useful (KOI8-R encoding)
+# CyrKoi-TerminusBold16
+
+# These are not useful (convered by fonts above)
+# Uni1-VGA16 Uni2-VGA16 Uni3-Fixed16
 
 # One fontset per charmap
 udeb-scm := $(addprefix Fonts/, ARMSCII-8_Armenian.scm			\
@@ -37,7 +46,7 @@ ISO-8859-15_Lat15.scm ISO-8859-16_Lat2.scm KOI8-R_CyrKoi.scm		\
 KOI8-U_CyrKoi.scm TIS-620_Thai.scm)
 
 udeb-fonts-linux = $(addprefix Fonts/, $(addsuffix .psf.gz, \
-			$(udeb-fonts)))
+			$(udeb-fonts) $(udeb-fonts-big)))
 udeb-fonts-freebsd = $(addprefix Fonts/, $(addsuffix .fnt, $(udeb-fonts)))
 
 debian/kbdnames.gz: $./Keyboard/KeyboardNames.pl
@@ -56,11 +65,10 @@ clean : maintainer-clean
 	-rm -f debian/kbdnames.gz
 	-rm -f debian/*~
 	dh_clean
-	rm -f debian/copyright
-	cp -f COPYRIGHT debian/copyright
+	ln -sf debian/copyright COPYRIGHT
 
 .PHONY : deb-udeb-install
-deb-udeb-install: deb-install-linux deb-install-freebsd deb-install-main deb-install-bdf2psf udeb-install-linux udeb-install-freebsd udeb-install
+deb-udeb-install: deb-install-linux deb-install-main deb-install-bdf2psf udeb-install-linux udeb-install
 
 .PHONY : deb-install-linux
 deb-install-linux: build
@@ -180,8 +188,6 @@ endif
 	install -d debian/keyboard-configuration/usr/share/apport/package-hooks
 	install -m644 debian/console-setup.apport \
 		debian/keyboard-configuration/usr/share/apport/package-hooks/source_console-setup.py
-	dh_installinit -pconsole-setup \
-		--no-start --name console-font
 
 .PHONY : deb-install-bdf2psf
 deb-install-bdf2psf: build
@@ -297,7 +303,6 @@ binary-indep: build deb-udeb-install
 	dh_installdocs -pkeyboard-configuration \
 		FAQ copyright.fonts copyright.xkb
 	dh_installdocs -p console-setup-linux --link-doc=keyboard-configuration
-	dh_installdocs -pconsole-setup-freebsd --link-doc=keyboard-configuration
 	dh_installdocs -p console-setup-mini --link-doc=keyboard-configuration
 	dh_installdocs -p console-setup --link-doc=keyboard-configuration
 	dh_lintian

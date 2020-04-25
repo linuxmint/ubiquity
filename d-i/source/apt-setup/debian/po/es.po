@@ -17,7 +17,7 @@
 # Enrique Matias Sanchez (aka Quique) <cronopios@gmail.com>, 2005
 # Rubén Porras Campo <nahoo@inicia.es>, 2005
 # Omar Campagne <ocampagne@gmail.com>, 2010
-# Javier Fernández-Sanguino <jfs@debian.org>, 2003-2012
+# Javier Fernández-Sanguino <jfs@debian.org>, 2003-2012, 2014-2017
 #
 # Equipo de traducción al español, por favor lean antes de traducir
 # los siguientes documentos:
@@ -58,9 +58,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: debian-installer\n"
 "Report-Msgid-Bugs-To: apt-setup@packages.debian.org\n"
-"POT-Creation-Date: 2015-01-11 23:02+0000\n"
-"PO-Revision-Date: 2013-10-07 19:13+0200\n"
-"Last-Translator: Javier Fernández-Sanguino <jfs@debian.org>\n"
+"POT-Creation-Date: 2017-10-23 22:02+0000\n"
+"PO-Revision-Date: 2017-01-27 00:21+0100\n"
+"Last-Translator: Javier Fernández-Sanguino Peña <jfs@debian.org>\n"
 "Language-Team:  Debian Spanish <debian-l10n-spanish@lists.debian.org>\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
@@ -113,12 +113,19 @@ msgstr "Analizando el repositorio de actualizaciones de seguridad..."
 msgid "Scanning the release updates repository..."
 msgstr "Analizando el repositorio de actualizaciones de la distribución..."
 
+#. Type: text
+#. Description
+#. :sl2:
+#: ../apt-setup-udeb.templates:7001
+msgid "Scanning the backports repository..."
+msgstr "Analizando el repositorio de programas migrados..."
+
 #. Type: select
 #. Choices
 #. :sl2:
 #. These are choices of actions so this is, at least in English,
 #. an infinitive form
-#: ../apt-setup-udeb.templates:7001 ../apt-mirror-setup.templates:4001
+#: ../apt-setup-udeb.templates:8001 ../apt-mirror-setup.templates:4001
 msgid "Retry"
 msgstr "Reintentar"
 
@@ -127,13 +134,13 @@ msgstr "Reintentar"
 #. :sl2:
 #. These are choices of actions so this is, at least in English,
 #. an infinitive form
-#: ../apt-setup-udeb.templates:7001 ../apt-mirror-setup.templates:4001
+#: ../apt-setup-udeb.templates:8001 ../apt-mirror-setup.templates:4001
 msgid "Ignore"
 msgstr "Ignorar"
 
 #. Type: select
 #. Description
-#: ../apt-setup-udeb.templates:7002
+#: ../apt-setup-udeb.templates:8002
 msgid "Downloading local repository key failed:"
 msgstr "Falló la descarga de la clave local del repositorio:"
 
@@ -141,7 +148,7 @@ msgstr "Falló la descarga de la clave local del repositorio:"
 #. Description
 #. You should end this with a colon. A non-translatable variable
 #. follows with the mirror URL
-#: ../apt-setup-udeb.templates:7002
+#: ../apt-setup-udeb.templates:8002
 msgid ""
 "The installer failed to download the public key used to sign the local "
 "repository at ${MIRROR}:"
@@ -151,7 +158,7 @@ msgstr ""
 
 #. Type: select
 #. Description
-#: ../apt-setup-udeb.templates:7002
+#: ../apt-setup-udeb.templates:8002
 msgid ""
 "This may be a problem with your network, or with the server hosting this "
 "key. You can choose to retry the download, or ignore the problem and "
@@ -197,14 +204,7 @@ msgstr ""
 #. Translators: the *entire* string should be under 55 columns
 #. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
 #. :sl1:
-#. Type: multiselect
-#. Choices
-#. SEC_HOST, and PARTNER_HOST are host names (e.g.
-#. security.ubuntu.com)
-#. Translators: the *entire* string should be under 55 columns
-#. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
-#. :sl2:
-#: ../apt-setup-udeb.templates:11001 ../apt-setup-udeb.templates:12001
+#: ../apt-setup-udeb.templates:11001
 msgid "security updates (from ${SEC_HOST})"
 msgstr "actualizaciones de seguridad (de ${SEC_HOST})"
 
@@ -219,12 +219,19 @@ msgid "release updates"
 msgstr "actualizaciones de la distribución:"
 
 #. Type: multiselect
-#. Description
+#. Choices
+#. SEC_HOST is a host name (e.g. security.debian.org)
+#. Translators: the *entire* string should be under 55 columns
+#. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
 #. :sl1:
+#: ../apt-setup-udeb.templates:11001
+msgid "backported software"
+msgstr "programas migrados a nuevas versiones"
+
 #. Type: multiselect
 #. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:11002 ../apt-setup-udeb.templates:12002
+#. :sl1:
+#: ../apt-setup-udeb.templates:11002
 msgid "Services to use:"
 msgstr "Servicios a utilizar:"
 
@@ -242,10 +249,7 @@ msgstr ""
 #. Type: multiselect
 #. Description
 #. :sl1:
-#. Type: multiselect
-#. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:11002 ../apt-setup-udeb.templates:12002
+#: ../apt-setup-udeb.templates:11002
 msgid ""
 "Security updates help to keep your system secured against attacks. Enabling "
 "this service is strongly recommended."
@@ -270,37 +274,46 @@ msgstr ""
 "servicio sólo está disponible para las distribuciones estable y «oldstable»."
 
 #. Type: multiselect
-#. Choices
-#. SEC_HOST, and PARTNER_HOST are host names (e.g.
-#. security.ubuntu.com)
-#. Translators: the *entire* string should be under 55 columns
-#. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
-#. :sl2:
+#. Description
+#. :sl1:
+#: ../apt-setup-udeb.templates:11002
+msgid ""
+"Backported software are adapted from the development version to work with "
+"this release. Although this software has not gone through such complete "
+"testing as that contained in the release, it includes newer versions of some "
+"applications which may provide useful features. Enabling backports here does "
+"not cause any of them to be installed by default; it only allows you to "
+"manually select backports to use."
+msgstr ""
+"Los programas migrados son versiones de programas migrados a versiones más "
+"recientes utilizando la rama de desarrollo para que funcionen en esta "
+"publicación. Estos programas incluyen versiones más nuevas de aplicaciones "
+"que pueden ofrecer funcionalidades interesantes aunque no han pasado pruebas "
+"tan completas como los que contiene esta publicación. No se instalarán por "
+"omisión ninguno de los programas si vd. activa este tipo de programas, tan "
+"sólo podrá seleccionar manualmente que programas migrados desea utilizar."
+
+#. Type: boolean
+#. Description
+#. :sl3:
 #: ../apt-setup-udeb.templates:12001
-#, fuzzy
-msgid "partner archive (from ${PARTNER_HOST}))"
-msgstr "actualizaciones de seguridad (de ${SEC_HOST})"
+msgid "Enable source repositories in APT?"
+msgstr "¿Desea activar los repositorios de fuentes en APT?"
 
-#. Type: multiselect
+#. Type: boolean
 #. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:12002
-#, fuzzy
+#. :sl3:
+#: ../apt-setup-udeb.templates:12001
 msgid ""
-"Linux Mint has some additional services that provide updates to releases and add-"
-"on packages."
+"By default source repositories are listed in /etc/apt/sources.list (with "
+"appropriate \"deb-src\" lines) so that \"apt-get source\" works. However, if "
+"you don't need this feature, you can disable those entries and save some "
+"bandwidth during \"apt-get update\" operations."
 msgstr ""
-"Debian tiene dos servicios que ofrece actualizaciones a una versión "
-"publicada: seguridad y volátil."
-
-#. Type: multiselect
-#. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:12002
-msgid ""
-"The partner archive contains software provided by Canonical's partners as a "
-"service to Linux Mint users."
-msgstr ""
+"Por omisión los repositorios de fuentes se listan en «/etc/apt/sources."
+"list» (sin las líneas \"deb-src\") para que pueda utilizar «apt-get source». "
+"Si no necesita esta funcionalidad puede deshabilitar estas entradas para "
+"ahorrar ancho de banda en las operaciones «apt-get update»."
 
 #. Type: text
 #. Description
@@ -593,7 +606,7 @@ msgstr ""
 #. :sl1:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates:2001
 #: ../apt-mirror-setup.templates-ubuntu:1001
@@ -627,19 +640,19 @@ msgstr ""
 #. :sl1:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates:3001
 #: ../apt-mirror-setup.templates-ubuntu:2001
@@ -714,7 +727,7 @@ msgstr "No se seleccionó ninguna réplica en red."
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:1001
 msgid "Use restricted software?"
@@ -722,7 +735,7 @@ msgstr "¿Utilizar programas restringidos?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:1001
 msgid ""
@@ -739,7 +752,7 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:2001
 msgid "Use software from the \"universe\" component?"
@@ -747,7 +760,7 @@ msgstr "¿Utilizar programas del componente \"universe\"?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:2001
 msgid ""
@@ -762,7 +775,7 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:3001
 msgid "Use software from the \"multiverse\" component?"
@@ -770,7 +783,7 @@ msgstr "¿Utilizar programas del componente «multiverse»?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:3001
 msgid ""
@@ -789,7 +802,7 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:4001
 msgid "Use software from the \"partner\" repository?"
@@ -797,22 +810,22 @@ msgstr "¿Utilizar programas del repositorio \"partner\"?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:4001
 msgid ""
 "Some additional software is available from Canonical's \"partner\" "
-"repository. This software is not part of Linux Mint, but is offered by Canonical "
-"and the respective vendors as a service to Linux Mint users."
+"repository. This software is not part of Ubuntu, but is offered by Canonical "
+"and the respective vendors as a service to Ubuntu users."
 msgstr ""
 "Puede obtener más programas del repositorio de los \"partner\" de Canonical. "
-"Estos programas no son parte de Linux Mint pero se ofrece por parte de Canonical "
+"Estos programas no son parte de Ubuntu pero se ofrece por parte de Canonical "
 "y de los respectivos fabricantes de programas como un servicio a los "
-"usuarios de Linux Mint."
+"usuarios de Ubuntu."
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:5001
 msgid "Use backported software?"
@@ -820,7 +833,7 @@ msgstr "¿Utilizar programas migrados a versiones nuevas?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:5001
 msgid ""
@@ -835,25 +848,35 @@ msgstr ""
 "funcionalidades interesantes aunque no han pasado pruebas tan completas como "
 "los que contiene esta versión."
 
-#~ msgid "Scanning the backports repository..."
-#~ msgstr "Analizando el repositorio de programas migrados..."
+#. Type: multiselect
+#. Choices
+#. SEC_HOST, and PARTNER_HOST are host names (e.g.
+#. security.ubuntu.com)
+#. Translators: the *entire* string should be under 55 columns
+#. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
+#. :sl2:
+#: ../apt-setup-udeb.templates:12001
+#, fuzzy
+msgid "partner archive (from ${PARTNER_HOST}))"
+msgstr "actualizaciones de seguridad (de ${SEC_HOST})"
 
-#~ msgid "backported software"
-#~ msgstr "programas migrados a nuevas versiones"
+#. Type: multiselect
+#. Description
+#. :sl2:
+#: ../apt-setup-udeb.templates:12002
+#, fuzzy
+msgid ""
+"Ubuntu has some additional services that provide updates to releases and add-"
+"on packages."
+msgstr ""
+"Debian tiene dos servicios que ofrece actualizaciones a una versión "
+"publicada: seguridad y volátil."
 
-#~ msgid ""
-#~ "Backported software are adapted from the development version to work with "
-#~ "this release. Although this software has not gone through such complete "
-#~ "testing as that contained in the release, it includes newer versions of "
-#~ "some applications which may provide useful features. Enabling backports "
-#~ "here does not cause any of them to be installed by default; it only "
-#~ "allows you to manually select backports to use."
-#~ msgstr ""
-#~ "Los programas migrados son versiones de programas migrados a versiones "
-#~ "más recientes utilizando la rama de desarrollo para que funcionen en esta "
-#~ "publicación. Estos programas incluyen versiones más nuevas de "
-#~ "aplicaciones que pueden ofrecer funcionalidades interesantes aunque no "
-#~ "han pasado pruebas tan completas como los que contiene esta publicación. "
-#~ "No se instalarán por omisión ninguno de los programas si vd. activa este "
-#~ "tipo de programas, tan sólo podrá seleccionar manualmente que programas "
-#~ "migrados desea utilizar."
+#. Type: multiselect
+#. Description
+#. :sl2:
+#: ../apt-setup-udeb.templates:12002
+msgid ""
+"The partner archive contains software provided by Canonical's partners as a "
+"service to Ubuntu users."
+msgstr ""

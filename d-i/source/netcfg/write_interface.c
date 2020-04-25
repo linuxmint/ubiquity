@@ -170,15 +170,16 @@ static int nc_wi_netplan_write_nameservers(const struct netcfg_interface *interf
 {
 	int i;
 
-	if (empty_str(domain))
+	if (empty_str(domain) && empty_str(interface->nameservers[0]))
 		return 1;
 
 	fprintf(fd, "      nameservers:\n");
-	fprintf(fd, "          search: [ %s ]\n", domain);
+	if (!empty_str(domain))
+		fprintf(fd, "          search: [ %s ]\n", domain);
 	fprintf(fd, "          addresses:\n");
 	for (i = 0; i < NETCFG_NAMESERVERS_MAX; i++) {
 		if (!empty_str(interface->nameservers[i])) {
-			fprintf(fd, "              - %s\n", interface->nameservers[i]);
+			fprintf(fd, "              - \"%s\"\n", interface->nameservers[i]);
 		}
 	}
 
@@ -230,9 +231,9 @@ static int nc_wi_static_ipv6(const struct netcfg_interface *interface, FILE *fd)
 
 static int nc_wi_netplan_static_ipv6(const struct netcfg_interface *interface, FILE *fd, const char *domain)
 {
-	fprintf(fd, "      addresses: [ %s/%i ]\n", interface->ipaddress, interface->masklen);
+	fprintf(fd, "      addresses: [ \"%s/%i\" ]\n", interface->ipaddress, interface->masklen);
 	if (!empty_str(interface->gateway))
-		fprintf(fd, "      gateway6: %s\n", interface->gateway);
+		fprintf(fd, "      gateway6: \"%s\"\n", interface->gateway);
 
 	return nc_wi_netplan_write_nameservers(interface, fd, domain);
 }
@@ -389,6 +390,7 @@ int netcfg_write_interface(struct debconfclient *client, const struct netcfg_int
 	} else {
 		use_netplan = 0;
 		config_file_path = INTERFACES_FILE;
+		di_exec_shell_log("apt-install ifupdown");
 	}
 
 	di_warning("Using %s", config_file_path);

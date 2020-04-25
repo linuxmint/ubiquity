@@ -1,3 +1,48 @@
+grub-installer (1.128ubuntu14) eoan; urgency=medium
+
+  * When running on a ZFS filesystem udevadm returns an error
+    which can be ignored. (LP: #1847228)
+  * On zfs 0.8 cache is in /etc, do not attempt to copy it from
+    /boot/zfs when it doesn't exist.
+
+ -- Jean-Baptiste Lallement <jean-baptiste.lallement@canonical.com>  Tue, 08 Oct 2019 11:24:14 +0200
+
+grub-installer (1.128ubuntu13) eoan; urgency=medium
+
+  [ Cherrypick 1.165 Colin Watson ]
+  * On Linux, mount/unmount /run to work around #918590. LP: #1838525
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Wed, 25 Sep 2019 16:51:02 +0100
+
+grub-installer (1.128ubuntu12) cosmic; urgency=medium
+
+  [ Hans van den Bogert ]
+  * Fix support for installation on NVMe with RAID1 (LP: #1771845)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 06 Jul 2018 13:16:28 -0400
+
+grub-installer (1.128ubuntu11) cosmic; urgency=medium
+
+  * grub-installer: actually also do not purge grub-gfxpayload-lists as it's
+    yet another dependency of grub-pc.
+
+ -- Łukasz 'sil2100' Zemczak <lukasz.zemczak@ubuntu.com>  Wed, 27 Jun 2018 16:03:38 +0200
+
+grub-installer (1.128ubuntu10) cosmic; urgency=medium
+
+  * grub-installer: do not purge grub-pc-bin as well as it's a dependency of
+    grub-pc.
+
+ -- Łukasz 'sil2100' Zemczak <lukasz.zemczak@ubuntu.com>  Mon, 25 Jun 2018 18:28:07 +0200
+
+grub-installer (1.128ubuntu9) cosmic; urgency=medium
+
+  * grub-installer: install grub-pc for EFI setups and make sure we're
+    not purging it earlier in case it got installed. It's needed to make sure
+    the right maintainer scripts are run and the ESP populated. (LP: #1775743)
+
+ -- Łukasz 'sil2100' Zemczak <lukasz.zemczak@ubuntu.com>  Tue, 19 Jun 2018 10:25:14 +0200
+
 grub-installer (1.128ubuntu8) zesty; urgency=medium
 
   * Fix a typo in PReP bootdev selection code; we should not skip over a valid
@@ -980,7 +1025,7 @@ grub-installer (1.69) unstable; urgency=low
 
 grub-installer (1.68ubuntu5) precise; urgency=low
 
-  * Update Linux Mint-specific translations from Launchpad.
+  * Update Ubuntu-specific translations from Launchpad.
 
  -- Colin Watson <cjwatson@ubuntu.com>  Wed, 11 Apr 2012 11:43:22 +0100
 
@@ -1457,7 +1502,7 @@ grub-installer (1.57ubuntu1) natty; urgency=low
 
 grub-installer (1.57) unstable; urgency=low
 
-  * Merge changes from Linux Mint by Evan Dandrea and myself:
+  * Merge changes from Ubuntu by Evan Dandrea and myself:
     - Set a sensible default boot device, so that we aren't installing GRUB
       to installation media which may be removed later.  The disk containing
       /cdrom is very unlikely to be a sensible default.  If we had to fall
@@ -1668,7 +1713,7 @@ grub-installer (1.53) unstable; urgency=low
 
 grub-installer (1.52) unstable; urgency=low
 
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - Resolve symlinks in default boot device.
 
   [ Updated translations ]
@@ -1681,7 +1726,7 @@ grub-installer (1.52) unstable; urgency=low
 
 grub-installer (1.51) unstable; urgency=low
 
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - Use grub-probe to convert device names rather than relying on
       device.map.
     - Use an appropriate OS device name rather than (hd0) if possible.
@@ -1751,7 +1796,7 @@ grub-installer (1.49ubuntu11) lucid; urgency=low
 
 grub-installer (1.49ubuntu10) lucid; urgency=low
 
-  * Historically, Linux Mint's default behaviour in the absence of command-line
+  * Historically, Ubuntu's default behaviour in the absence of command-line
     arguments to the installer has been to pass 'splash' to the installed
     system so that it gets a splash screen (and similarly 'quiet').  There's
     some argument that this behaviour should require passing 'splash' to the
@@ -1766,13 +1811,13 @@ grub-installer (1.49ubuntu9) lucid; urgency=low
 
   * Ask grub-installer/only_debian at high priority again (LP: #47135).
     Originally, in Warty, we ensured that this question wouldn't be visible
-    by default to support simple installations of Linux Mint with as few
+    by default to support simple installations of Ubuntu with as few
     questions as possible.  However, since then, we wrote Ubiquity, which
     has taken over responsibility for the simple installation case, and it's
     become clear that automatically installing GRUB to the first disk's MBR
     is inadequate for many more complex situations.  Ironically, Ubiquity
     makes this option easily accessible from the "Advanced" dialog box, but
-    Linux Mint's d-i required a special boot parameter to display it.
+    Ubuntu's d-i required a special boot parameter to display it.
   * Update grub-installer/bootdev text to avoid GRUB device naming that
     changed between GRUB Legacy and GRUB 2, and to use libata-style device
     naming since that is more accurate for most people (LP: #391775)
@@ -1888,7 +1933,7 @@ grub-installer (1.49ubuntu1) lucid; urgency=low
 
 grub-installer (1.49) unstable; urgency=low
 
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - Preseed grub-pc/install_devices based on grub-installer/bootdev.
       (Closes: 556738)
 
@@ -1980,7 +2025,7 @@ grub-installer (1.46) unstable; urgency=low
   * grub_write_divider is specific to GRUB Legacy; don't call it for GRUB 2.
 
   [ Felix Zielcke ]
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - Explicitly install os-prober when using GRUB 2, since it does a better
       job than the otheros script.
 
@@ -2184,8 +2229,8 @@ grub-installer (1.42) unstable; urgency=low
 grub-installer (1.41) unstable; urgency=low
 
   [ Colin Watson ]
-  * Merge from Linux Mint:
-    - Add support for Linux Mint's lpia architecture ("Low-Power Intel
+  * Merge from Ubuntu:
+    - Add support for Ubuntu's lpia architecture ("Low-Power Intel
       Architecture").
   * Upgrade to debhelper v7.
 
@@ -2311,7 +2356,7 @@ grub-installer (1.39ubuntu1) karmic; urgency=low
 
 grub-installer (1.39) unstable; urgency=low
 
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - Use rootnoverify rather than root when chain-loading Microsoft
       operating systems using GRUB Legacy, since we may not be able to mount
       the partition (LP: #10661). From my reading of its code, this doesn't
@@ -2464,7 +2509,7 @@ grub-installer (1.37ubuntu1) karmic; urgency=low
 grub-installer (1.37) unstable; urgency=low
 
   [ Colin Watson ]
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - Check dmraid's exit code rather than parsing its output.
     - cciss and ida logical drive numbers may go up to 15, not just 9.
     - Only check for the boot partition being on dmraid if the user allowed
@@ -3041,7 +3086,7 @@ grub-installer (1.27ubuntu1) hardy; urgency=low
       normal grub installation.
     - Only support grub-installer/grub2_instead_of_grub_legacy by preseeding
       for now.
-  * Adjust Vcs-* headers for Linux Mint.
+  * Adjust Vcs-* headers for Ubuntu.
 
  -- Colin Watson <cjwatson@ubuntu.com>  Mon, 26 Nov 2007 14:45:05 +0000
 
@@ -3763,7 +3808,7 @@ grub-installer (1.10) unstable; urgency=low
 grub-installer (1.09ubuntu2) breezy; urgency=low
 
   * Remove splash boot parameter unless debian-installer/framebuffer=true
-    (Linux Mint #13977).
+    (Ubuntu #13977).
 
  -- Colin Watson <cjwatson@ubuntu.com>  Mon,  5 Sep 2005 14:08:09 +0100
 
@@ -3910,7 +3955,7 @@ grub-installer (1.06ubuntu2) hoary; urgency=low
 grub-installer (1.06ubuntu1) hoary; urgency=low
 
   * Resynchronise with Debian (thanks, Scott James Remnant).
-  * Update Linux Mint branding.
+  * Update Ubuntu branding.
 
  -- Colin Watson <cjwatson@canonical.com>  Fri, 29 Oct 2004 12:02:35 +0100
 
@@ -4150,7 +4195,7 @@ grub-installer (0.50ubuntu6) warty; urgency=low
 grub-installer (0.50ubuntu5) warty; urgency=low
 
   * Show the grub menu and raise the menu timeout if other operating systems
-    are installed (closes: Linux Mint #993).
+    are installed (closes: Ubuntu #993).
 
  -- Colin Watson <cjwatson@canonical.com>  Mon, 11 Oct 2004 17:55:28 +0100
 
@@ -4165,7 +4210,7 @@ grub-installer (0.50ubuntu4) warty; urgency=low
 grub-installer (0.50ubuntu3) warty; urgency=low
 
   * Tollef Fog Heen
-    - Linux Mint branding.
+    - Ubuntu branding.
   * Colin Watson
     - Update most translations.
 

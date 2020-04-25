@@ -60,11 +60,8 @@ trap 'rm -f $tempfiles >/dev/null 2>&1' 0
 trap "exit 2" 1 2 3 13 15
 tempfile () {
     if \
-        TMPFILE=`mktemp /tmp/tmpkbd.XXXXXX 2>/dev/null` \
-            || TMPFILE=`mktemp /run/tmpkbd.XXXXXX 2>/dev/null` \
-            || TMPFILE=`mktemp /dev/.tmpkbd.XXXXXX 2>/dev/null` \
-            || TMPFILE=`mktemp /lib/init/rw/tmpkbd.XXXXXX 2>/dev/null` \
-            || TMPFILE=`mktemp 2>/dev/null`
+        TMPFILE=`mktemp /run/tmpkbd.XXXXXX 2>/dev/null` \
+            || TMPFILE=`mktemp /tmp/tmpkbd.XXXXXX 2>/dev/null`
     then
         tempfiles="$tempfiles $TMPFILE"
         return 0
@@ -228,7 +225,7 @@ run () {
 # Example: findfile share/consolefonts Uni3-*.psf.gz
 # Result: /usr/share/consolefonts/Uni3-Fixed13.psf.gz
 findfile () {
-    local x
+    local f
     case "$2" in
         /*)
             if [ -f "$2" ]; then
@@ -237,16 +234,20 @@ findfile () {
             fi
             ;;
     esac
-    x=`(ls "$installdir"/$1/$2 \
-           /usr/local/$1/$2 \
-	   /usr/$1/$2 \
-           /etc/console-setup/cached_$2 \
-           /etc/console-setup/$2 \
-           "$installdir"/etc/console-setup/cached_$2 \
-           "$installdir"/etc/console-setup/$2) 2>/dev/null`
-    x=`echo $x`
-    [ "${x%% *}" ] || report Unable to find "$2".
-    echo "${x%% *}"
+    for f in "$installdir"/$1/$2 \
+                          /usr/local/$1/$2 \
+                          /usr/$1/$2 \
+                          /etc/console-setup/cached_$2 \
+                          /etc/console-setup/$2 \
+                          "$installdir"/etc/console-setup/cached_$2 \
+                          "$installdir"/etc/console-setup/$2
+    do
+        if [ -f "$f" ]; then
+            echo "$f"
+            return 0
+        fi
+    done
+    report Unable to find "$2".
 }
 
 # Return code 0: we are on the console; 1: we are not on the console
@@ -738,7 +739,7 @@ then
 fi
 [ -n "$XKBMODEL" -o -z "$savekbdfile" ] || exit 1
 
-# Backwards-compatibility with Linux Mint-specific preseeding
+# Backwards-compatibility with Ubuntu-specific preseeding
 if [ "$XKBMODEL" = SKIP ]; then
     XKBMODEL=
 fi

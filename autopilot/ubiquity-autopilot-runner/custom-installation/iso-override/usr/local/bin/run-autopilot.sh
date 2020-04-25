@@ -31,7 +31,7 @@ fi
 echo $$>${LOCKFILE}
 
 # The following variables can be overridden with a configuration file
-TSBRANCH=lp:ubiquity
+TSBRANCH=https://git.launchpad.net/ubiquity
 EXTRAPACKAGES=""
 ARTIFACTS=""
 AP_OPTS="-v"
@@ -63,7 +63,7 @@ ARTIFACTS="$TESTBASE /var/log/installer /var/log/syslog $HOME/.cache/upstart /va
 # Specific configurations for various DE
 if [ -n "${SESSION+1}" ]; then
     case $SESSION in
-        ubuntu)    # Covers Linux Mint and Edubuntu
+        ubuntu)    # Covers Ubuntu and Edubuntu
             SESSION_LOG=$HOME/.cache/upstart/gnome-session.log
             ;;
         xubuntu)
@@ -79,7 +79,7 @@ elif [ -n "${DESKTOP_SESSION+1}" ]; then
     # And there doesn't seem to be a user session log???
     # So let's tail it and also include in the artifacts
     case $DESKTOP_SESSION in
-        mate)    # Covers Linux Mint-mate
+        mate)    # Covers Ubuntu-mate
             SESSION_LOG=/var/log/apt/term.log
             ARTIFACTS="$ARTIFACTS /var/log/apt"
             ;;
@@ -97,7 +97,7 @@ else
     exit 1
 fi
 
-PACKAGES="bzr ssh python3-autopilot libautopilot-gtk python3-xlib \
+PACKAGES="git ssh python3-autopilot libautopilot-gtk python3-xlib \
     recordmydesktop"
 
 export DEBIAN_FRONTEND=noninteractive
@@ -212,8 +212,6 @@ setup_tests() {
     echo "I: Installating additional packages"
     retry_cmd 3 30 sudo apt-get update
     retry_cmd 3 30 sudo apt-get install -yq $PACKAGES $EXTRAPACKAGES
-    echo "I: Purging ubiquity-slideshow"
-    sudo apt-get autoremove --purge -y $(dpkg -l "ubiquity-slideshow-*"|awk '/^ii/ {print $2}')||true
 
     if [ -n "$SHAREDVOL" ]; then
         echo "I: Mounting $SHAREDVOL on $TSEXPORT"
@@ -222,7 +220,7 @@ setup_tests() {
         sudo chmod 777 $TSEXPORT
     else
         echo "I: Branch $TSBRANCH"
-        bzr export $TSEXPORT $TSBRANCH
+        git clone --depth 1 $TSBRANCH $TSEXPORT
     fi
 
     if [ -e "$AP_TESTSUITES" ]; then
@@ -233,7 +231,6 @@ setup_tests() {
 Image Id:      $(cat /cdrom/.disk/info)
 Ubiquity:      $(dpkg-query -f '${Version}' -W ubiquity)
 Test branch:   ${TSBRANCH}
-Test revno:    $(bzr revno $TSBRANCH)
 EOF
     
     cat<<EOF

@@ -5,22 +5,41 @@ LANGUAGE="$1"
 FONT_RECORD=/var/run/console-setup.font
 
 case "$LANGUAGE" in
-	ku|kk|ky)		CODESET=CyrAsia ;;
-	be|bg|br|mk|ru|sr|uk)	CODESET=CyrSlav ;;
+	ar|fa|ps|ur)		CODESET=Arabic ;;
+	hy)			CODESET=Armenian ;;
+	ab|av|az|ba|chm|ce|cv|ik|kaa|kk|ku|kum|kv|ky|lez|mn|os|sah|sel|tg|tk|tt|tyv|uz)
+				CODESET=CyrAsia ;;
+	be|bg|mk|ru|sr|uk)	CODESET=CyrSlav ;;
+	am|byn|gez|ti|tig)	CODESET=Ethiopian ;;
+	ka)			CODESET=Georgian ;;
 	el)			CODESET=Greek ;;
+	he|iw|yi)		CODESET=Hebrew ;;
+	lo)			CODESET=Lao ;;
 	ast|et|sq|tr|xh)	CODESET=Lat15 ;;
-	bs|cs|hr|hu|pl|ro|sk|sl)	CODESET=Lat2 ;;
-	cy|eo)			CODESET=Lat38 ;;
-	lv|lt)			CODESET=Lat7 ;;
+	bs|cs|hr|hu|pl|ro|sk|sl|dsb|hsb)
+				CODESET=Lat2 ;;
+	cy|eo|ga|mt|ny)		CODESET=Lat38 ;;
+	lt|lv|mh|mi)		CODESET=Lat7 ;;
+	th)			CODESET=Thai ;;
+	vi)			CODESET=Vietnamese ;;
 
-	*) # Languages which are fine with default VGA font
+	*) # Languages which are fine with default VGA CP437 font
 		[ -r $FONT_RECORD ] || exit 0
 		# Need to switch back to Lat15
 		CODESET=Lat15
 		;;
 esac
 
-FONT="`eval echo /usr/share/consolefonts/$CODESET*`"
+FONT=
+if lsmod | grep -q speakup ; then
+	# Try to load full font for the screen reader
+	FONT="`eval echo /usr/share/consolefonts/Full$CODESET*`"
+fi
+
+if [ ! -r "$FONT" ]
+then
+	FONT="`eval echo /usr/share/consolefonts/$CODESET*`"
+fi
 
 if [ -r "$FONT" ]
 then

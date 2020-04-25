@@ -63,11 +63,7 @@ class PartitionModel(QtCore.QAbstractItemModel):
     def setData(self, index, value, role):
         item = index.internalPointer()
         if role == QtCore.Qt.CheckStateRole and index.column() == 3:
-            item.partman_column_format_toggled(value.toBool())
-        self.emit(
-            QtCore.SIGNAL(
-                "dataChanged(const QModelIndex&, const QModelIndex&)"),
-            index, index)
+            item.partman_column_format_toggled(value)
         return True
 
     def flags(self, index):

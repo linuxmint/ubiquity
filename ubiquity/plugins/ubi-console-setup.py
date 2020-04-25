@@ -288,17 +288,17 @@ class PageKde(plugin.PluginUI):
         layout = self.get_keyboard()
         lang = self.controller.dbfilter.get_locale()
         if layout is not None:
-                # skip updating keyboard if not using display
-                if self.keyboardDisplay:
-                    try:
-                        ly = keyboard_names.layout_id(lang, misc.utf8(layout))
-                    except KeyError:
-                        ly = keyboard_names.layout_id('C', misc.utf8(layout))
-                    self.keyboardDisplay.setLayout(ly)
+            # skip updating keyboard if not using display
+            if self.keyboardDisplay:
+                try:
+                    ly = keyboard_names.layout_id(lang, misc.utf8(layout))
+                except KeyError:
+                    ly = keyboard_names.layout_id('C', misc.utf8(layout))
+                self.keyboardDisplay.setLayout(ly)
 
-                    # no variants, force update by setting none
-                    # if not keyboard_names.has_variants(l, ly):
-                    #    self.keyboardDisplay.setVariant(None)
+                # no variants, force update by setting none
+                # if not keyboard_names.has_variants(l, ly):
+                #    self.keyboardDisplay.setVariant(None)
 
                 self.current_layout = layout
                 self.controller.dbfilter.change_layout(layout)

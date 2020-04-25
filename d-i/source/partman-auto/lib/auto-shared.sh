@@ -271,9 +271,6 @@ get_auto_disks() {
 			fi
 		fi
 
-		# Skip installer disk
-		$(mount | grep -qF "$device on /cdrom ") && continue
-
 		# Skip device mapper devices (/dev/mapper/),
 		# except for dmraid or multipath devices
 		if echo $device | grep -q "^/dev/mapper/"; then

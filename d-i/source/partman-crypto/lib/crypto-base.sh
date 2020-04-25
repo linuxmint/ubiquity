@@ -154,7 +154,7 @@ swap_is_safe () {
 
 	for swap in $(cat /proc/swaps); do
 		case $swap in
-		    Filename*)
+		    Filename*|/dev/zram*)
 			continue
 			;;
 		    /dev/mapper/*)
@@ -219,11 +219,26 @@ setup_luks () {
 	# xts modes needs double the key size
 	[ "${iv%xts-*}" = "${iv}" ] || size="$(($size * 2))"
 
-	log-output -t partman-crypto \
-	/sbin/cryptsetup -c $cipher-$iv -h $hash -s $size luksFormat $device $pass
-	if [ $? -ne 0 ]; then
-		log "luksFormat failed"
-		return 2
+	zkey_available=0
+	if [ -x /usr/bin/zkey ] ; then
+		log-output -t partman-crypto zkey generate --name $mapping --xts --volumes $device:$mapping --volume-type luks2 --sector-size 4096
+		if [ $? -eq 0 ]; then
+			log-output -t partman-crypto zkey cryptsetup --run --volumes $device --batch-mode --key-file $pass
+			if [ $? -eq 0 ]; then
+				zkey_available=1
+			fi
+		fi
+		if [ $zkey_available -eq 0 ]; then
+			log "zkey generate and cryptsetup failed, assuming not available."
+		fi
+	fi
+
+	if [ $zkey_available -eq 0 ]; then
+		log-output -t partman-crypto /sbin/cryptsetup -c $cipher-$iv -h $hash -s $size luksFormat $device $pass
+		if [ $? -ne 0 ]; then
+			log "luksFormat failed"
+			return 2
+		fi
 	fi
 
 	log-output -t partman-crypto \

@@ -1,0 +1,27 @@
+HOME                    = /var/lib/shim-signed/mok
+RANDFILE                = /var/lib/shim-signed/mok/.rnd
+
+[ req ]
+distinguished_name      = req_distinguished_name
+x509_extensions         = v3_ca
+string_mask             = utf8only
+
+[ req_distinguished_name ]
+
+[ v3_ca ]
+subjectKeyIdentifier    = hash
+authorityKeyIdentifier  = keyid:always,issuer
+basicConstraints        = critical,CA:FALSE
+
+# We use extended key usage information to limit what this auto-generated
+# key can be used for.
+#
+# codeSigning:  specifies that this key is used to sign code.
+#
+# 1.3.6.1.4.1.2312.16.1.2:  defines this key as used for module signing
+#                           only. See https://lkml.org/lkml/2015/8/26/741.
+#
+extendedKeyUsage        = codeSigning,1.3.6.1.4.1.2312.16.1.2
+
+nsComment               = "OpenSSL Generated Certificate"
+

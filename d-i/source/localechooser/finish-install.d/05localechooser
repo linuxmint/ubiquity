@@ -11,13 +11,13 @@ LOCALE="$RET"
 
 # Set locale to C if it has not yet been set
 # This can happen during e.g. s390 installs where localechooser is not run
-[ -z "$LOCALE" ] && LOCALE="C"
+[ -z "$LOCALE" ] && LOCALE="C.UTF-8"
 
 LANGUAGE=${LOCALE%%_*}
 
 # Install specific packages depending on selected language
 
-if [ "$LOCALE" != "C" ] ; then
+if [ "$LOCALE" != "C" ] && [ "$LOCALE" != "C.UTF-8" ]; then
 	# Other language specific packages
 	case "$LANGUAGE" in
 	    ar|he|fa)

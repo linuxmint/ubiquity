@@ -15,14 +15,14 @@
 #   Krunoslav Gernhard, 2004
 #   Vladimir Vuksan <vuksan@veus.hr>, 2000.
 #   Vlatko Kosturjak, 2001
-# Tomislav Krznar <tomislav.krznar@gmail.com>, 2012, 2013.
+# Tomislav Krznar <tomislav.krznar@gmail.com>, 2012, 2013, 2014, 2015.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: Debian-installer 1st-stage master file HR\n"
 "Report-Msgid-Bugs-To: apt-setup@packages.debian.org\n"
-"POT-Creation-Date: 2015-01-11 23:02+0000\n"
-"PO-Revision-Date: 2013-10-01 16:53+0200\n"
+"POT-Creation-Date: 2017-10-23 22:02+0000\n"
+"PO-Revision-Date: 2015-12-12 12:11+0100\n"
 "Last-Translator: Tomislav Krznar <tomislav.krznar@gmail.com>\n"
 "Language-Team: Croatian <lokalizacija@linux.hr>\n"
 "Language: hr\n"
@@ -78,12 +78,19 @@ msgstr "Pretražujem repozitorij sigurnosnih osvježenja..."
 msgid "Scanning the release updates repository..."
 msgstr "Pretražujem repozitorij nadogradnji izdanja (release)..."
 
+#. Type: text
+#. Description
+#. :sl2:
+#: ../apt-setup-udeb.templates:7001
+msgid "Scanning the backports repository..."
+msgstr "Pretražujem repozitorij \"backported\" programa..."
+
 #. Type: select
 #. Choices
 #. :sl2:
 #. These are choices of actions so this is, at least in English,
 #. an infinitive form
-#: ../apt-setup-udeb.templates:7001 ../apt-mirror-setup.templates:4001
+#: ../apt-setup-udeb.templates:8001 ../apt-mirror-setup.templates:4001
 msgid "Retry"
 msgstr "Pokušati ponovo"
 
@@ -92,13 +99,13 @@ msgstr "Pokušati ponovo"
 #. :sl2:
 #. These are choices of actions so this is, at least in English,
 #. an infinitive form
-#: ../apt-setup-udeb.templates:7001 ../apt-mirror-setup.templates:4001
+#: ../apt-setup-udeb.templates:8001 ../apt-mirror-setup.templates:4001
 msgid "Ignore"
 msgstr "Zanemari"
 
 #. Type: select
 #. Description
-#: ../apt-setup-udeb.templates:7002
+#: ../apt-setup-udeb.templates:8002
 msgid "Downloading local repository key failed:"
 msgstr "Preuzimanje ključa lokalnog repozitorija nije uspjelo:"
 
@@ -106,7 +113,7 @@ msgstr "Preuzimanje ključa lokalnog repozitorija nije uspjelo:"
 #. Description
 #. You should end this with a colon. A non-translatable variable
 #. follows with the mirror URL
-#: ../apt-setup-udeb.templates:7002
+#: ../apt-setup-udeb.templates:8002
 msgid ""
 "The installer failed to download the public key used to sign the local "
 "repository at ${MIRROR}:"
@@ -116,7 +123,7 @@ msgstr ""
 
 #. Type: select
 #. Description
-#: ../apt-setup-udeb.templates:7002
+#: ../apt-setup-udeb.templates:8002
 msgid ""
 "This may be a problem with your network, or with the server hosting this "
 "key. You can choose to retry the download, or ignore the problem and "
@@ -160,14 +167,7 @@ msgstr ""
 #. Translators: the *entire* string should be under 55 columns
 #. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
 #. :sl1:
-#. Type: multiselect
-#. Choices
-#. SEC_HOST, and PARTNER_HOST are host names (e.g.
-#. security.ubuntu.com)
-#. Translators: the *entire* string should be under 55 columns
-#. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
-#. :sl2:
-#: ../apt-setup-udeb.templates:11001 ../apt-setup-udeb.templates:12001
+#: ../apt-setup-udeb.templates:11001
 msgid "security updates (from ${SEC_HOST})"
 msgstr "sigurnosne nadogradnje (sa ${SEC_HOST})"
 
@@ -182,12 +182,19 @@ msgid "release updates"
 msgstr "nadogradnje izdanja (release)"
 
 #. Type: multiselect
-#. Description
+#. Choices
+#. SEC_HOST is a host name (e.g. security.debian.org)
+#. Translators: the *entire* string should be under 55 columns
+#. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
 #. :sl1:
+#: ../apt-setup-udeb.templates:11001
+msgid "backported software"
+msgstr "\"backported\" programi"
+
 #. Type: multiselect
 #. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:11002 ../apt-setup-udeb.templates:12002
+#. :sl1:
+#: ../apt-setup-udeb.templates:11002
 msgid "Services to use:"
 msgstr "Usluge za koristiti:"
 
@@ -205,10 +212,7 @@ msgstr ""
 #. Type: multiselect
 #. Description
 #. :sl1:
-#. Type: multiselect
-#. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:11002 ../apt-setup-udeb.templates:12002
+#: ../apt-setup-udeb.templates:11002
 msgid ""
 "Security updates help to keep your system secured against attacks. Enabling "
 "this service is strongly recommended."
@@ -232,37 +236,45 @@ msgstr ""
 "program. Ova usluga je dostupna samo za izdanja 'stable' i 'oldstable'."
 
 #. Type: multiselect
-#. Choices
-#. SEC_HOST, and PARTNER_HOST are host names (e.g.
-#. security.ubuntu.com)
-#. Translators: the *entire* string should be under 55 columns
-#. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
-#. :sl2:
+#. Description
+#. :sl1:
+#: ../apt-setup-udeb.templates:11002
+msgid ""
+"Backported software are adapted from the development version to work with "
+"this release. Although this software has not gone through such complete "
+"testing as that contained in the release, it includes newer versions of some "
+"applications which may provide useful features. Enabling backports here does "
+"not cause any of them to be installed by default; it only allows you to "
+"manually select backports to use."
+msgstr ""
+"Neki programi su 'backported' (\"vraćeni-prebačeni\") iz razvojnog stabla da "
+"bi radili s ovim izdanjem. Iako ovi programi nisu prošli kroz potpuno "
+"testiranje kao oni koji su dio izdanja, tu su novije verzije nekih programa "
+"koje mogu pružiti korisne mogućnosti. Njihovo omogućavanje ne uzrokuje "
+"njihovu automatsku instalaciju, nego vam daje mogućnost ručnog odabira "
+"programa koje želite koristiti."
+
+#. Type: boolean
+#. Description
+#. :sl3:
 #: ../apt-setup-udeb.templates:12001
-#, fuzzy
-msgid "partner archive (from ${PARTNER_HOST}))"
-msgstr "sigurnosne nadogradnje (sa ${SEC_HOST})"
+msgid "Enable source repositories in APT?"
+msgstr "Omogućiti repozitorije izvornog koda u APT-u?"
 
-#. Type: multiselect
+#. Type: boolean
 #. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:12002
-#, fuzzy
+#. :sl3:
+#: ../apt-setup-udeb.templates:12001
 msgid ""
-"Linux Mint has some additional services that provide updates to releases and add-"
-"on packages."
+"By default source repositories are listed in /etc/apt/sources.list (with "
+"appropriate \"deb-src\" lines) so that \"apt-get source\" works. However, if "
+"you don't need this feature, you can disable those entries and save some "
+"bandwidth during \"apt-get update\" operations."
 msgstr ""
-"Debian ima dvije usluge koje pružaju nadogradnje za izdanja: security "
-"(sigurnosne) i volatile (nestalne)."
-
-#. Type: multiselect
-#. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:12002
-msgid ""
-"The partner archive contains software provided by Canonical's partners as a "
-"service to Linux Mint users."
-msgstr ""
+"Uobičejeno su repozitoriji izvornog koda ispisani u /etc/apt/sources.list "
+"(uz odgovarajuće \"deb-src\" retke) tako da \"apt-get source\" radi. "
+"Međutim, ako ne trebate ovu značajku, možete onemogućiti navedene stavke i "
+"uštediti na mrežnom prometu prilikom operacija \"apt-get update\"."
 
 #. Type: text
 #. Description
@@ -547,7 +559,7 @@ msgstr ""
 #. :sl1:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates:2001
 #: ../apt-mirror-setup.templates-ubuntu:1001
@@ -580,19 +592,19 @@ msgstr ""
 #. :sl1:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates:3001
 #: ../apt-mirror-setup.templates-ubuntu:2001
@@ -665,7 +677,7 @@ msgstr "Mrežni zrcalni poslužitelj nije izabran."
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:1001
 msgid "Use restricted software?"
@@ -673,7 +685,7 @@ msgstr "Koristiti softver s ograničenjima?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:1001
 msgid ""
@@ -690,7 +702,7 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:2001
 msgid "Use software from the \"universe\" component?"
@@ -698,7 +710,7 @@ msgstr "Koristiti programe iz \"universe\" dijela?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:2001
 msgid ""
@@ -712,7 +724,7 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:3001
 msgid "Use software from the \"multiverse\" component?"
@@ -720,7 +732,7 @@ msgstr "Koristi programe iz \"multiverse\" dijela?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:3001
 msgid ""
@@ -738,7 +750,7 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:4001
 msgid "Use software from the \"partner\" repository?"
@@ -746,21 +758,21 @@ msgstr "Koristiti programe iz \"partner\" dijela?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:4001
 msgid ""
 "Some additional software is available from Canonical's \"partner\" "
-"repository. This software is not part of Linux Mint, but is offered by Canonical "
-"and the respective vendors as a service to Linux Mint users."
+"repository. This software is not part of Ubuntu, but is offered by Canonical "
+"and the respective vendors as a service to Ubuntu users."
 msgstr ""
 "Neki dodatni softver je dostupan iz Canonicalovog \"partner\" repozitorija. "
-"Ovaj softver nije dio Linux Minta, ali ga Canonical i ostali nude kao uslugu "
-"korisnicima Linux Minta."
+"Ovaj softver nije dio Ubuntua, ali ga Canonical i ostali nude kao uslugu "
+"korisnicima Ubuntua."
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:5001
 msgid "Use backported software?"
@@ -768,7 +780,7 @@ msgstr "Koristi programe koji su 'backported'?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:5001
 msgid ""
@@ -782,23 +794,35 @@ msgstr ""
 "testiranje kao oni koji su dio izdanja, tu su novije verzije nekih programa "
 "koje mogu pružiti korisne mogućnosti."
 
-#~ msgid "Scanning the backports repository..."
-#~ msgstr "Pretražujem repozitorij \"backported\" programa..."
+#. Type: multiselect
+#. Choices
+#. SEC_HOST, and PARTNER_HOST are host names (e.g.
+#. security.ubuntu.com)
+#. Translators: the *entire* string should be under 55 columns
+#. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
+#. :sl2:
+#: ../apt-setup-udeb.templates:12001
+#, fuzzy
+msgid "partner archive (from ${PARTNER_HOST}))"
+msgstr "sigurnosne nadogradnje (sa ${SEC_HOST})"
 
-#~ msgid "backported software"
-#~ msgstr "\"backported\" programi"
+#. Type: multiselect
+#. Description
+#. :sl2:
+#: ../apt-setup-udeb.templates:12002
+#, fuzzy
+msgid ""
+"Ubuntu has some additional services that provide updates to releases and add-"
+"on packages."
+msgstr ""
+"Debian ima dvije usluge koje pružaju nadogradnje za izdanja: security "
+"(sigurnosne) i volatile (nestalne)."
 
-#~ msgid ""
-#~ "Backported software are adapted from the development version to work with "
-#~ "this release. Although this software has not gone through such complete "
-#~ "testing as that contained in the release, it includes newer versions of "
-#~ "some applications which may provide useful features. Enabling backports "
-#~ "here does not cause any of them to be installed by default; it only "
-#~ "allows you to manually select backports to use."
-#~ msgstr ""
-#~ "Neki programi su 'backported' (\"vraćeni-prebačeni\") iz razvojnog stabla "
-#~ "da bi radili s ovim izdanjem. Iako ovi programi nisu prošli kroz potpuno "
-#~ "testiranje kao oni koji su dio izdanja, tu su novije verzije nekih "
-#~ "programa koje mogu pružiti korisne mogućnosti. Njihovo omogućavanje ne "
-#~ "uzrokuje njihovu automatsku instalaciju, nego vam daje mogućnost ručnog "
-#~ "odabira programa koje želite koristiti."
+#. Type: multiselect
+#. Description
+#. :sl2:
+#: ../apt-setup-udeb.templates:12002
+msgid ""
+"The partner archive contains software provided by Canonical's partners as a "
+"service to Ubuntu users."
+msgstr ""

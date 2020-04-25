@@ -36,7 +36,7 @@ def get_prop(obj, iface, prop):
 def get_vendor_and_model(udi):
     vendor = ''
     model = ''
-    cmd = ['/sbin/udevadm', 'info', '--path=%s' % udi, '--query=property']
+    cmd = ['udevadm', 'info', '--path=%s' % udi, '--query=property']
     with open('/dev/null', 'w') as devnull:
         out = subprocess.Popen(
             cmd, stdout=subprocess.PIPE, stderr=devnull,

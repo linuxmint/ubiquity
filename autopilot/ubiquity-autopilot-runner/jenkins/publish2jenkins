@@ -55,7 +55,7 @@ for cfg in $CONFIG_DIR/*cfg; do
 
     # Test cases
     rc=0
-    testcases=$(python -c "import yaml; print(' '.join(yaml.safe_load(file('${cfg}', 'r'))['testcases']))" 2>/dev/null) || rc=$?
+    testcases=$(python3 -c "import yaml; print(' '.join(yaml.safe_load(file('${cfg}', 'r'))['testcases']))" 2>/dev/null) || rc=$?
     if [ $rc -gt 0 -o -z "$testcases" ]; then
         echo "E: Failed to parse '$cfg'. Skipping!"
         continue

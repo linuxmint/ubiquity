@@ -21,6 +21,7 @@
 # I don't recommend attempting to use these outside Ubiquity.
 
 from __future__ import print_function
+from ubiquity import misc
 
 import fcntl
 import os
@@ -210,6 +211,8 @@ class PartedServer(object):
                  p_fs, p_path, p_name) = self.read_line(7)
                 if p_id == '':
                     break
+                if misc.is_bitlocker_partition_encrypted(p_path):
+                    p_fs = 'BitLocker'
                 partitions.append((p_num, p_id, p_size, p_type,
                                    p_fs, p_path, p_name))
         finally:

@@ -123,6 +123,34 @@ EOF
 	fi
 }
 
+iscsi_ibft_probe() {
+
+	if is_not_loaded iscsi_ibft; then
+		depmod -a >/dev/null 2>&1 || true
+		module_probe iscsi_ibft || true
+	fi
+
+	if ! log-output -t disk-detect iscsistart -f; then
+		logger -t disk-detect "Error: iBFT information not found"
+		return 1
+	fi
+
+	if ! log-output -t disk-detect iscsistart -N; then
+		logger -t disk-detect "Error: iBFT network configuration failed"
+		return 1
+	fi
+
+	if ! log-output -t disk-detect iscsistart -b; then
+		logger -t disk-detect "Error: iBFT login failed"
+		return 1
+	fi
+
+	# Done
+	update-dev --settle
+	logger -t disk-detect "iBFT disk detection finished."
+	return 0
+}
+
 # Load SCSI device handlers before SCSI low-level device drivers.
 # (attached on SCSI scan; handle some I/O errors more gracefully)
 depmod -a >/dev/null 2>&1
@@ -154,6 +182,12 @@ if db_fget partman-iscsi/login/address seen && [ "$RET" = true ] && \
 	db_capb backup
 	iscsi_login
 	db_capb
+fi
+
+# Activate support for iSCSI iBFT
+db_get disk-detect/ibft/enable
+if [ "$RET" = true ]; then
+	iscsi_ibft_probe || true
 fi
 
 while ! disk_found; do

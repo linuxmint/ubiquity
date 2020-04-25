@@ -113,7 +113,7 @@ class Install(install_misc.InstallBase):
             # We don't later wait() on this pid by design.  There's no
             # sense waiting for updates to finish downloading when they can
             # quite easily finish downloading them once inside the new
-            # Linux Mint system.
+            # Ubuntu system.
             # TODO can we incorporate the bytes copied / bytes total into
             # the main progress bar?
             # TODO log to /var/log/installer/debug
@@ -246,6 +246,14 @@ class Install(install_misc.InstallBase):
         else:
             difference = set()
 
+        # Add minimal installation package list if selected
+        if self.db.get('ubiquity/minimal_install') == 'true':
+            if os.path.exists(install_misc.minimal_install_rlist_path):
+                pkgs = set()
+                with open(install_misc.minimal_install_rlist_path) as m_file:
+                    pkgs = {line.strip().split(':')[0] for line in m_file}
+                difference |= pkgs
+
         cache = Cache()
 
         use_restricted = True
@@ -257,7 +265,8 @@ class Install(install_misc.InstallBase):
         if not use_restricted:
             for pkg in cache.keys():
                 if (cache[pkg].is_installed and
-                        cache[pkg].section.startswith('restricted/')):
+                        cache[pkg].candidate.section.startswith(
+                            'restricted/')):
                     difference.add(pkg)
 
         # Keep packages we explicitly installed.
@@ -268,15 +277,20 @@ class Install(install_misc.InstallBase):
         # at file copy time, we should figure out why grub still fails when
         # apt-install-direct is present during configure_bootloader (code
         # removed).
-        if arch in ('amd64', 'i386'):
+        if arch in ('amd64', 'arm64', 'i386'):
+            # We now want grub-pc to be left installed for both EFI and legacy
+            # since it makes sure that the right maintainer scripts are run.
+            keep.add('grub-pc')
             if subarch == 'efi':
                 keep.add('grub-efi')
                 keep.add('grub-efi-amd64')
+                keep.add('grub-efi-arm64')
                 keep.add('grub-efi-amd64-signed')
+                keep.add('grub-efi-arm64-signed')
+                keep.add('flash-kernel')
+                keep.add('aarch64-laptops-support')
                 keep.add('shim-signed')
                 keep.add('mokutil')
-                keep.add('fwupdate-signed')
-                install_misc.record_installed(['fwupdate-signed'])
                 try:
                     altmeta = self.db.get(
                         'base-installer/kernel/altmeta')
@@ -287,14 +301,6 @@ class Install(install_misc.InstallBase):
                 keep.add('linux-signed-generic%s' % altmeta)
             else:
                 keep.add('grub')
-                keep.add('grub-pc')
-        elif (arch in ('armel', 'armhf') and
-              subarch in ('omap', 'omap4', 'mx5')):
-            keep.add('flash-kernel')
-            keep.add('u-boot-tools')
-        elif arch == 'powerpc':
-            keep.add('yaboot')
-            keep.add('hfsutils')
 
         # Even adding ubiquity as a depends to oem-config-{gtk,kde} doesn't
         # appear to force ubiquity and libdebian-installer4 to copy all of
@@ -361,7 +367,7 @@ class Install(install_misc.InstallBase):
             with open(fs_size) as total_size_fp:
                 total_size = int(total_size_fp.readline())
         else:
-            # Fallback in case an Linux Mint derivative forgets to put
+            # Fallback in case an Ubuntu derivative forgets to put
             # /casper/filesystem.size on the CD, or to account for things
             # like CD->USB transformation tools that don't copy this file.
             # This is slower than just reading the size from a file, but
@@ -430,6 +436,7 @@ class Install(install_misc.InstallBase):
 
                 # Is the path blacklisted?
                 if (not stat.S_ISDIR(st.st_mode) and
+                        '/' in relpath and
                         '/%s' % relpath in self.blacklist):
                     if debug:
                         syslog.syslog('Not copying %s' % relpath)

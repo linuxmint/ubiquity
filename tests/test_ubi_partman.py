@@ -208,8 +208,8 @@ class TestPage(TestPageBase):
         self.assertEqual(no_detected, head)
 
 
-@unittest.skipUnless(os.environ['DEB_HOST_ARCH'] in ('amd64', 'i386'),
-                     'GRUB-related tests are only relevant on x86')
+@unittest.skipUnless(os.environ['DEB_HOST_ARCH'] in ('amd64', 'arm64', 'i386'),
+                     'GRUB-related tests are only relevant on EFI')
 class TestPageGrub(TestPageBase):
     def test_maybe_update_dont_install(self):
         self.page.install_bootloader = False
@@ -460,7 +460,7 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         get_release = mock.patch('ubiquity.misc.get_release')
         get_release.start()
         self.addCleanup(get_release.stop)
-        self.release = misc.ReleaseInfo('Linux Mint', '11.04')
+        self.release = misc.ReleaseInfo('Ubuntu', '11.04')
         misc.get_release.return_value = self.release
 
         # Don't cache descriptions.
@@ -535,9 +535,9 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         self.assertIn('manual', options)
         self.assertCountEqual(self.manual, options['manual'])
 
-    # 'This computer currently has Linux Mint 10.04 on it.'
+    # 'This computer currently has Ubuntu 10.04 on it.'
     def test_older_ubuntu_only(self):
-        operating_system = 'Linux Mint 10.04'
+        operating_system = 'Ubuntu 10.04'
         operating_version = '10.04'
 
         def side_effect(*args, **kwargs):
@@ -568,14 +568,6 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         desc = self.page.extended_description(question)
         use_device = ubi_partman.PartitioningOption(title, desc)
 
-        question = 'ubiquity/partitioner/ubuntu_upgrade'
-        question_has_variables(question, ['CURDISTRO', 'VER'])
-        self.page.db.subst(question, 'CURDISTRO', operating_system)
-        self.page.db.subst(question, 'VER', self.release.version)
-        title = self.page.description(question)
-        desc = self.page.extended_description(question)
-        reuse = ubi_partman.PartitioningOption(title, desc)
-
         operating_systems, ubuntu_systems = \
             self.page.calculate_operating_systems(layout)
         options = self.page.calculate_autopartitioning_options(
@@ -590,12 +582,9 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
         self.assertIn('manual', options)
         self.assertCountEqual(self.manual, options['manual'])
 
-        self.assertIn('reuse', options)
-        self.assertCountEqual(reuse, options['reuse'])
-
-    # 'This computer currently has Linux Mint 12.04 on it.'
+    # 'This computer currently has Ubuntu 12.04 on it.'
     def test_same_ubuntu_only(self):
-        operating_system = 'Linux Mint 12.04'
+        operating_system = 'Ubuntu 12.04'
         operating_version = '12.04'
 
         def side_effect(*args, **kwargs):
@@ -648,9 +637,9 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
 
         self.assertNotIn('reuse', options)
 
-    # 'This computer currently has Linux Mint 90.10 on it.'
+    # 'This computer currently has Ubuntu 90.10 on it.'
     def test_newer_ubuntu_only(self):
-        operating_system = 'Linux Mint 90.10'
+        operating_system = 'Ubuntu 90.10'
         operating_version = '90.10'
 
         def side_effect(*args, **kwargs):
@@ -705,7 +694,7 @@ class TestCalculateAutopartitioningOptions(unittest.TestCase):
 
     # 'This computer currently has multiple operating systems on it.'
     def test_multiple_operating_systems(self):
-        operating_systems = ['Linux Mint 10.04', 'Windows XP', 'Mac OSX']
+        operating_systems = ['Ubuntu 10.04', 'Windows XP', 'Mac OSX']
 
         def side_effect(*args, **kwargs):
             return operating_systems.pop()
@@ -783,8 +772,9 @@ class TestPageGtk(unittest.TestCase):
                      '/dev/vda1', '/dev/vda2', '/dev/vdb1'),
                     ('Virtio Block Device (108 GB)',
                      'Virtio Block Device (801 GB)')))
-    @unittest.skipUnless(os.environ['DEB_HOST_ARCH'] in ('amd64', 'i386'),
-                         'GRUB-related tests are only relevant on x86')
+    @unittest.skipUnless(os.environ['DEB_HOST_ARCH'] in (
+        'amd64', 'arm64', 'i386'),
+        'GRUB-related tests are only relevant on EFI')
     def test_boot_loader_installation_combobox(self):
         self.gtk.set_grub_options('/dev/vda', {
             '/dev/vda': True,

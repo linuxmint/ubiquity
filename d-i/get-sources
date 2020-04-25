@@ -43,6 +43,7 @@ APT_GET="apt-get --assume-yes \
 	-o Dir::Etc::sourcelist=`pwd`/$LIST \
 	-o Dir::Etc::sourceparts=#clear \
 	-o Dir::State=`pwd`/$APTDIR/state \
+	-o Dir::State::status=`pwd`/$APTDIR/state/status \
 	-o Debug::NoLocking=true \
 	-o Dir::Cache=`pwd`/$APTDIR/cache \
 	-o Acquire::Retries=3"
@@ -104,6 +105,11 @@ if [ -n "$PACKAGES" ]; then (
 # needed; we just need a couple of scripts from it.
 for subdir in .svn Fonts Keyboard/acm Keyboard/ckb Keyboard/locale; do
 	rm -rf "$SOURCEDIR/console-setup/$subdir"
+done
+
+# We don't need binary blobs from shim-signed.
+for subdir in MicCorUEFCA2011_2011-06-27.crt shimx64.efi.signed; do
+	rm -rf "$SOURCEDIR/shim-signed/$subdir"
 done
 
 # Add a warning to budding hackers.

@@ -50,7 +50,7 @@ def set_groups_for_uid(uid):
 def drop_all_privileges():
     # gconf needs both the UID and effective UID set.
     global _dropped_privileges
-    uid = os.environ.get('PKEXEC_UID')
+    uid = os.environ.get('PKEXEC_UID', os.environ.get('SUDO_UID'))
     gid = None
     if uid is not None:
         uid = int(uid)
@@ -71,7 +71,7 @@ def drop_privileges():
     global _dropped_privileges
     assert _dropped_privileges is not None
     if _dropped_privileges == 0:
-        uid = os.environ.get('PKEXEC_UID')
+        uid = os.environ.get('PKEXEC_UID', os.environ.get('SUDO_UID'))
         gid = None
         if uid is not None:
             uid = int(uid)
@@ -100,7 +100,7 @@ def drop_privileges_save():
     # At the moment, we only know how to handle this when effective
     # privileges were already dropped.
     assert _dropped_privileges is not None and _dropped_privileges > 0
-    uid = os.environ.get('PKEXEC_UID')
+    uid = os.environ.get('PKEXEC_UID', os.environ.get('SUDO_UID'))
     gid = None
     if uid is not None:
         uid = int(uid)
@@ -116,9 +116,15 @@ def drop_privileges_save():
 def regain_privileges_save():
     """Recover our real UID/GID after calling drop_privileges_save."""
     assert _dropped_privileges is not None and _dropped_privileges > 0
+    # We need to call os.setresuid and os.setresgid twice to avoid
+    # permission issues when calling os.setgroups (see LP: #646827).
+    _, euid, _ = os.getresuid()
+    _, egid, _ = os.getresgid()
     os.setresuid(0, 0, 0)
     os.setresgid(0, 0, 0)
     os.setgroups([])
+    os.setresgid(-1, egid, -1)
+    os.setresuid(-1, euid, -1)
 
 
 @contextlib.contextmanager
@@ -146,7 +152,7 @@ def raise_privileges(func):
 @raise_privileges
 def grub_options():
     """ Generates a list of suitable targets for grub-installer
-        @return empty list or a list of ['/dev/sda1','Linux Mint Hardy 8.04'] """
+        @return empty list or a list of ['/dev/sda1','Ubuntu Hardy 8.04'] """
     from ubiquity.parted_server import PartedServer
 
     ret = []
@@ -306,6 +312,24 @@ def partition_to_disk(partition):
     return udevadm_disk.get('DEVNAME', partition)
 
 
+@raise_privileges
+def is_bitlocker_partition_encrypted(devpath):
+    """Check if partition is BitLocker encryption."""
+    subp = subprocess.Popen(
+        ['blkid', '--match-tag', 'TYPE', devpath],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        universal_newlines=True)
+    result = subp.communicate()[0].split()
+    if result:
+        for line in result:
+            if devpath in line:
+                continue
+            name, value = line.split('=', 1)
+            if 'TYPE' in name and 'BitLocker' in value[1:-1]:
+                return True
+    return False
+
+
 def is_boot_device_removable(boot=None):
     if boot:
         return is_removable(boot)
@@ -438,10 +462,10 @@ def os_prober():
             res = res.split(':')
             # launchpad bug #1265192, fix os-prober Windows EFI path
             res[0] = re.match(r'[/\w\d]+', res[0]).group()
-            if res[2] == 'Linux Mint':
+            if res[2] == 'Ubuntu':
                 version = [v for v in re.findall('[0-9.]*', res[1]) if v][0]
                 # Get rid of the superfluous (development version) (11.04)
-                text = re.sub('\s*\(.*\).*', '', res[1])
+                text = re.sub(r'\s*\(.*\).*', '', res[1])
                 _os_prober_oslist[res[0]] = text
                 _os_prober_osvers[res[0]] = version
             else:
@@ -485,12 +509,16 @@ def get_release():
                 line = fp.readline()
                 if line:
                     line = line.split()
-                    get_release.release_info = ReleaseInfo(name=" ".join(line[0:2]), version=line[2])
+                    if line[2] == 'LTS':
+                        line[1] += ' LTS'
+                    line[0] = line[0].replace('-', ' ')
+                    get_release.release_info = ReleaseInfo(
+                        name=line[0], version=line[1])
         except Exception:
             syslog.syslog(syslog.LOG_ERR, 'Unable to determine the release.')
 
         if not get_release.release_info:
-            get_release.release_info = ReleaseInfo(name='Linux Mint', version='')
+            get_release.release_info = ReleaseInfo(name='Ubuntu', version='')
     return get_release.release_info
 
 
@@ -519,7 +547,7 @@ def get_release_name():
                 "Unable to determine the distribution name from "
                 "/cdrom/.disk/info")
         if not get_release_name.release_name:
-            get_release_name.release_name = 'Linux Mint'
+            get_release_name.release_name = 'Ubuntu'
     return get_release_name.release_name
 
 
@@ -637,7 +665,7 @@ def dmimodel():
             model = proc.communicate()[0]
         if 'apple' in manufacturer:
             # MacBook4,1 - strip the 4,1
-            model = re.sub('[^a-zA-Z\s]', '', model)
+            model = re.sub(r'[^a-zA-Z\s]', '', model)
         # Replace each gap of non-alphanumeric characters with a dash.
         # Ensure the resulting string does not begin or end with a dash.
         model = re.sub('[^a-zA-Z0-9]+', '-', model).rstrip('-').lstrip('-')
@@ -853,11 +881,11 @@ def install_size():
     if min_install_size:
         return min_install_size
 
-    # Fallback size to 8 GB
-    size = 8 * 1024 * 1024 * 1024
+    # Fallback size to 5 GB
+    size = 5 * 1024 * 1024 * 1024
 
-    # Maximal size to 10 GB
-    max_size = 10 * 1024 * 1024 * 1024
+    # Maximal size to 8 GB
+    max_size = 8 * 1024 * 1024 * 1024
 
     try:
         with open('/cdrom/casper/filesystem.size') as fp:
@@ -868,8 +896,8 @@ def install_size():
     # TODO substitute into the template for the state box.
     min_disk_size = size * 2  # fudge factor
 
-    # Set minimum size to 10GB if current minimum size is larger
-    # than 10GB and we still have an extra 20% of free space
+    # Set minimum size to 8GB if current minimum size is larger
+    # than 8GB and we still have an extra 20% of free space
     if min_disk_size > max_size and size * 1.2 < max_size:
         min_disk_size = max_size
 
@@ -877,5 +905,10 @@ def install_size():
 
 
 min_install_size = None
+
+
+def launch_uri(uri):
+    subprocess.Popen(['sensible-browser', uri], close_fds=True,
+                     preexec_fn=drop_all_privileges)
 
 # vim:ai:et:sts=4:tw=80:sw=4:

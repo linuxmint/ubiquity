@@ -1,0 +1,23 @@
+Source: shim-signed
+Section: utils
+Priority: optional
+Maintainer: Steve Langasek <steve.langasek@ubuntu.com>
+Build-Depends: debhelper (>= 9), dh-exec, shim, sbsigntool (>= 0.6-0ubuntu4), po-debconf
+Standards-Version: 3.9.4
+Vcs-Git: https://git.launchpad.net/~ubuntu-core-dev/shim/+git/shim-signed
+Vcs-Browser: https://git.launchpad.net/~ubuntu-core-dev/shim/+git/shim-signed
+
+Package: shim-signed
+Architecture: amd64 arm64
+Depends: ${misc:Depends}, shim (= ${shim:Version}), grub-efi-amd64-signed | grub-efi-arm64-signed, grub2-common (>= 2.04-1ubuntu24), mokutil (>= 0.3.0+1538710437.fb6250f-0ubuntu2), sbsigntool
+Recommends: secureboot-db
+Built-Using: shim (= ${shim:Version})
+Description: Secure Boot chain-loading bootloader (Microsoft-signed binary)
+ This package provides a minimalist boot loader which allows verifying
+ signatures of other UEFI binaries against either the Secure Boot DB/DBX or
+ against a built-in signature database.  Its purpose is to allow a small,
+ infrequently-changing binary to be signed by the UEFI CA, while allowing
+ an OS distributor to revision their main bootloader independently of the CA.
+ .
+ This package contains the version of the bootloader binary signed by the
+ Microsoft UEFI CA.

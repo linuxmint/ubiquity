@@ -44,6 +44,11 @@ import debconf
 from ubiquity import misc, osextras
 from ubiquity.casper import get_casper
 
+minimal_install_rlist_path = os.path.join(
+    '/cdrom',
+    get_casper('LIVE_MEDIA_PATH', 'casper').lstrip('/'),
+    'filesystem.manifest-minimal-remove')
+
 
 def debconf_disconnect():
     """Disconnect from debconf. This is only to be used as a subprocess
@@ -106,7 +111,7 @@ def get_all_interfaces():
         ifs_file.readline()
 
         for line in ifs_file:
-            name = re.match('(.*?(?::\d+)?):', line.strip()).group(1)
+            name = re.match(r'(.*?(?::\d+)?):', line.strip()).group(1)
             if name == 'lo':
                 continue
             ifs.append(name)
@@ -521,8 +526,9 @@ def broken_packages(cache):
 
 def mark_install(cache, pkg):
     cachedpkg = get_cache_pkg(cache, pkg)
-    if (cachedpkg is not None and
-            (not cachedpkg.is_installed or cachedpkg.is_upgradable)):
+    if cachedpkg is None:
+        return
+    if not cachedpkg.is_installed or cachedpkg.is_upgradable:
         apt_error = False
         try:
             cachedpkg.mark_install()
@@ -543,6 +549,8 @@ def mark_install(cache, pkg):
                 cache.clear()
                 raise InstallStepError(
                     "Unable to install '%s' due to conflicts." % pkg)
+    else:
+        cachedpkg.mark_auto(False)
 
 
 def expand_dependencies_simple(cache, keep, to_remove, recommends=True):
@@ -1101,6 +1109,15 @@ class InstallBase:
             to_install = [
                 pkg for pkg in to_install
                 if get_cache_pkg(cache, pkg).is_installed]
+
+        # filter out langpacks matching unwanted application names
+        # in manual install
+        if self.db.get('ubiquity/minimal_install') == 'true':
+            if os.path.exists(minimal_install_rlist_path):
+                rm = set()
+                with open(minimal_install_rlist_path) as m_file:
+                    rm = {line.strip().split(':')[0] for line in m_file}
+                to_install = list(set(to_install) - rm)
 
         del cache
         record_installed(to_install)

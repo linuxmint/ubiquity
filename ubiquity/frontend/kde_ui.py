@@ -41,7 +41,7 @@ import sip
 sip.setapi("QVariant", 1)
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
-from ubiquity import filteredcommand, i18n, misc
+from ubiquity import filteredcommand, i18n, misc, telemetry
 from ubiquity.components import partman_commit, install, plugininstall
 import ubiquity.frontend.base
 from ubiquity.frontend.base import BaseFrontend
@@ -87,7 +87,7 @@ class UbiquityUI(QtWidgets.QMainWindow):
                     name = str.strip(line.split("=")[1], '\n')
                     if name.startswith('"') and name.endswith('"'):
                         name = name[1:-1]
-                    if name != "Linux Mint":
+                    if name != "Ubuntu":
                         distro_name = name
                 elif "DISTRIB_RELEASE=" in line:
                     distro_release = str.strip(line.split("=")[1], '\n')
@@ -177,7 +177,10 @@ class Wizard(BaseFrontend):
         # Let's not do that here, we kind of really do need more privileges...
         QtCore.QCoreApplication.setSetuidAllowed(True)
 
-        self.app = QtWidgets.QApplication([])
+        # NB: This *must* have at least one string in argv. Quoting the Qt docs
+        #   > In addition, argc must be greater than zero and argv must contain
+        #   > at least one valid character string.
+        self.app = QtWidgets.QApplication(sys.argv)
         # The "hicolor" icon theme gets picked when Ubiquity is running as a
         # DM. This causes some icons to be missing. Hardcode the theme name to
         # prevent that.
@@ -302,6 +305,9 @@ class Wizard(BaseFrontend):
         self.previous_partitioning_page = self.step_index("stepPartAuto")
         self.installing = False
         self.installing_no_return = False
+        self.partitioned = False
+        self.timezone_set = False
+        self.ubuntu_drivers = None
         self.returncode = 0
         self.backup = False
         self.history = []
@@ -454,6 +460,9 @@ class Wizard(BaseFrontend):
                 self.get_string('ubiquity/install/title'))
             self.refresh()
 
+        telemetry.get().set_installer_type('KDE')
+        telemetry.get().set_is_oem(self.oem_config)
+
         # Start the interface
         self.set_current_page(0)
 
@@ -529,6 +538,8 @@ class Wizard(BaseFrontend):
             self.start_slideshow()
             self.run_main_loop()
 
+            telemetry.get().done(self.db)
+
             quitText = '<qt>%s</qt>' % self.get_string("finished_label")
             rebootButtonText = self.get_string("reboot_button")
             shutdownButtonText = self.get_string("shutdown_button")
@@ -603,6 +614,7 @@ class Wizard(BaseFrontend):
         return webView
 
     def start_slideshow(self):
+        telemetry.get().add_stage('user_done')
         slideshow_dir = '/usr/share/ubiquity-slideshow'
         slideshow_locale = self.slideshow_get_available_locale(slideshow_dir,
                                                                self.locale)
@@ -939,7 +951,8 @@ class Wizard(BaseFrontend):
 
         if self.pagesindex == 0:
             self.allow_go_backward(False)
-        elif self.pages[self.pagesindex - 1].module.NAME == 'partman':
+        elif 'partman' in [page.module.NAME for page in
+                           self.pages[:self.pagesindex - 1]]:
             # We're past partitioning.  Unless the install fails, there is no
             # going back.
             self.allow_go_backward(False)
@@ -1121,6 +1134,7 @@ class Wizard(BaseFrontend):
         self.ui.content_widget.show()
         self.current_page = newPageID
         name = self.step_name(newPageID)
+        telemetry.get().add_stage(name)
         syslog.syslog('switched to page %s' % name)
         if 'UBIQUITY_GREETER' in os.environ:
             if name == 'language':
@@ -1276,6 +1290,29 @@ class Wizard(BaseFrontend):
         else:
             return False
 
+    def maybe_start_installing(self):
+        if not (self.partitioned and self.timezone_set):
+            syslog.syslog(
+                'Not installing yet, partitioned: %s, timezone_set %s' %
+                (self.partitioned, self.timezone_set))
+            return
+
+        syslog.syslog('Starting the installation')
+
+        from ubiquity.debconfcommunicator import DebconfCommunicator
+        if self.parallel_db is not None:
+            self.parallel_db.shutdown()
+        env = os.environ.copy()
+        # debconf-apt-progress, start_debconf()
+        env['DEBCONF_DB_REPLACE'] = 'configdb'
+        env['DEBCONF_DB_OVERRIDE'] = 'Pipe{infd:none outfd:none}'
+        self.parallel_db = DebconfCommunicator('ubiquity',
+                                               cloexec=True,
+                                               env=env)
+        # Start the actual install
+        dbfilter = install.Install(self, db=self.parallel_db)
+        dbfilter.start(auto_process=True)
+
     def find_next_step(self, finished_step):
         # TODO need to handle the case where debconffilters launched from
         # here crash.  Factor code out of dbfilter_handle_status.
@@ -1291,6 +1328,7 @@ class Wizard(BaseFrontend):
         elif finished_step == 'ubi-partman':
             # Flush changes to the database so that when the parallel db
             # starts, it does so with the most recent changes.
+            telemetry.get().add_stage(telemetry.START_INSTALL_STAGE_TAG)
             self.stop_debconf()
             self.start_debconf()
             self._show_progress_bar(True)
@@ -1308,11 +1346,19 @@ class Wizard(BaseFrontend):
             dbfilter = partman_commit.PartmanCommit(self, db=self.parallel_db)
             dbfilter.start(auto_process=True)
 
-        # FIXME OH DEAR LORD.  Use isinstance.
-        elif finished_step == 'ubiquity.components.partman_commit':
-            dbfilter = install.Install(self, db=self.parallel_db)
-            dbfilter.start(auto_process=True)
+        elif finished_step == 'ubi-timezone':
+            self.timezone_set = True
+            # Flush changes to the database so that when the parallel db
+            # starts, it does so with the most recent changes.
+            self.stop_debconf()
+            self.start_debconf()
+            self.maybe_start_installing()
 
+        elif finished_step == 'ubiquity.components.partman_commit':
+            self.partitioned = True
+            self.maybe_start_installing()
+
+        # FIXME OH DEAR LORD.  Use isinstance.
         elif finished_step == 'ubiquity.components.install':
             self.finished_installing = True
             if self.finished_pages:

@@ -249,7 +249,7 @@ class PageGtk(PageBase):
         release = misc.get_release()
         install_medium = misc.get_install_medium()
         install_medium = i18n.get_string(install_medium, lang)
-        # Set the release name (Linux Mint 10.04) and medium (USB or CD) where
+        # Set the release name (Ubuntu 10.04) and medium (USB or CD) where
         # necessary.
         w = self.try_install_text_label
         text = i18n.get_string(Gtk.Buildable.get_name(w), lang)
@@ -338,13 +338,13 @@ class PageGtk(PageBase):
         if self.release_notes_label:
             if self.release_notes_found and self.update_installer:
                 text = i18n.get_string('release_notes_label', lang)
-                self.release_notes_label.set_markup('')
+                self.release_notes_label.set_markup(text)
             elif self.release_notes_found:
                 text = i18n.get_string('release_notes_only', lang)
-                self.release_notes_label.set_markup('')
+                self.release_notes_label.set_markup(text)
             elif self.update_installer:
                 text = i18n.get_string('update_installer_only', lang)
-                self.release_notes_label.set_markup('')
+                self.release_notes_label.set_markup(text)
             else:
                 self.release_notes_label.set_markup('')
 
@@ -373,10 +373,8 @@ class PageGtk(PageBase):
                     self.release_notes_label.hide()
             self.updating_installer = False
         elif uri == 'release-notes':
-            import subprocess
             uri = self.release_notes_url.replace('${LANG}', lang)
-            subprocess.Popen(['sensible-browser', uri], close_fds=True,
-                             preexec_fn=misc.drop_all_privileges)
+            misc.launch_uri(uri)
         return True
 
 
@@ -425,7 +423,7 @@ class PageKde(PageBase):
             init_big_button(self.page.try_ubuntu, 'try.png')
 
             self.release_notes_url = ''
-            self.update_installer = False
+            self.update_installer = True
             self.updating_installer = False
             if self.controller.oem_config or auto_update.already_updated():
                 self.update_installer = False
@@ -557,7 +555,7 @@ class PageKde(PageBase):
                 text = widget.text()
                 text = text.replace('${RELEASE}', release.name)
                 text = text.replace('${MEDIUM}', install_medium)
-                text = text.replace('Linux Mint', 'Kubuntu')
+                text = text.replace('Ubuntu', 'Kubuntu')
                 widget.setText(text)
 
         self.update_release_notes_label()

@@ -1,0 +1,421 @@
+shim-signed (1.40.3) focal; urgency=medium
+
+  * Depend on the correct version of grub-signed (LP: #1871895)
+
+ -- Julian Andres Klode <juliank@ubuntu.com>  Thu, 09 Apr 2020 20:48:31 +0200
+
+shim-signed (1.40.2) focal; urgency=medium
+
+  * Install grub to multiple ESPs (LP: #1871821)
+
+ -- Julian Andres Klode <juliank@ubuntu.com>  Thu, 09 Apr 2020 13:05:53 +0200
+
+shim-signed (1.40.1) focal; urgency=medium
+
+  * Pass --timeout -1 to mokutil in a separate mokutil run (LP: #1869187),
+    thanks to Aleksander Miera for the patch.
+
+ -- Julian Andres Klode <juliank@ubuntu.com>  Thu, 09 Apr 2020 09:57:51 +0200
+
+shim-signed (1.40) focal; urgency=medium
+
+  * Pass --timeout -1 to mokutil so that users don't end up with broken
+    systems by missing MokManager on reboot after install.  LP: #1856422.
+  * Add a versioned dependency on the mokutil that introduces --timeout.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Sat, 14 Dec 2019 20:26:42 -0800
+
+shim-signed (1.39) disco; urgency=medium
+
+  * debian/source_shim-signed.py: Correct EFI architecture name for arm64.
+  * Parameterize code to remove hardcoded x86-isms.
+  * Add arm64 support.
+
+ -- dann frazier <dannf@ubuntu.com>  Wed, 14 Nov 2018 11:13:42 -0700
+
+shim-signed (1.38) cosmic; urgency=medium
+
+  * Don't fail non-interactive upgrade of nvidia module and module removals
+    (LP: #1726803)
+
+ -- Balint Reczey <rbalint@ubuntu.com>  Thu, 11 Oct 2018 18:12:37 +0200
+
+shim-signed (1.37) cosmic; urgency=medium
+
+  * Update to the signed 15+1533136590.3beb971-0ubuntu1 binary from Microsoft.
+  * debian/real-po: replace debian/po to make sure things are translatable
+    via Launchpad.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 29 Aug 2018 15:43:41 -0400
+
+shim-signed (1.36) cosmic; urgency=medium
+
+  * debian/shim-signed.postinst: use --auto-nvram with grub-install in case
+    we're installing on a NVRAM-unavailable platform.
+  * debian/control: bump the dependency for grub2-common to make sure
+    grub-install supports --auto-nvram.
+  * debian/control: switch the grub-efi-amd64-bin dependency to
+    grub-efi-amd64-signed.
+
+ -- Łukasz 'sil2100' Zemczak <lukasz.zemczak@ubuntu.com>  Wed, 06 Jun 2018 20:25:57 +0200
+
+shim-signed (1.35) cosmic; urgency=medium
+
+  * update-secureboot-policy: fix quoting for key/again password handling to
+    mokutil. (LP: #1770579)
+  * update-secureboot-policy: don't allow backtracking at the "main" question
+    for whether to enroll a new MOK. (LP: #1767091)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 31 May 2018 17:46:46 -0400
+
+shim-signed (1.34.9) bionic; urgency=medium
+
+  * debian/shim-signed.postinst: check for MOK existence rather than ignoring
+    failures in the trigger. (LP: #1766627)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 24 Apr 2018 13:24:24 -0400
+
+shim-signed (1.34.8) bionic; urgency=medium
+
+  * debian/shim-signed.postinst: shim-signed's trigger to enroll a new MOK
+    should not fail the upgrade if there was no MOK to enroll. (LP: #1766627)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 24 Apr 2018 12:31:25 -0400
+
+shim-signed (1.34.7) bionic; urgency=medium
+
+  * debian/shim-signed.postinst: it's not guaranteed that all linux-image
+    packages currently installed have dkms modules built for them.
+    Gracefully handle any failures in the path for signing existing dkms
+    modules on upgrade due to absent modules.  LP: #1766391.
+  * Add a dependency on sbsigntool for kmodsign, which we use directly.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Mon, 23 Apr 2018 21:47:50 -0700
+
+shim-signed (1.34.6) bionic; urgency=medium
+
+  * debian/shim-signed.postinst: bump lower version for batch-signing module
+    to 1.34.6, to make sure everything is properly signed if people got one
+    of the previous shim-signed packages.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 23 Apr 2018 19:52:19 -0400
+
+shim-signed (1.34.5) bionic; urgency=medium
+
+  * Don't try to save new dkms list if we're still dealing with password
+    validation for enrollment. (LP: #1766312)
+  * Specify kernel version when installing/uninstalling modules while doing
+    batch signing on upgrade.
+  * Do a better job at finding kernel modules from DKMS if they are in sub-
+    directories.
+  * Don't prompt if DKMS is installed but there are no DKMS-built modules
+    installed. (LP: #1766261)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 23 Apr 2018 15:29:44 -0400
+
+shim-signed (1.34.4) bionic; urgency=medium
+
+  * Handle the case that there are no kernel modules available for a given
+    dkms package.  This probably indicates there is a problem with the dkms
+    module's installation, but that should not cause this package's
+    installation to fail.  LP: #1765954.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Sat, 21 Apr 2018 10:13:41 -0700
+
+shim-signed (1.34.3) bionic; urgency=medium
+
+  * Only take the first 31 bytes of the hostname.  LP: #1765905.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Sat, 21 Apr 2018 01:14:12 -0700
+
+shim-signed (1.34.2) bionic; urgency=medium
+
+  * Handle the case of multiple .kos per dkms module and .kos whose name
+    does not match the dkms package name.  LP: #1765647.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Sat, 21 Apr 2018 01:01:56 -0700
+
+shim-signed (1.34.1) bionic; urgency=medium
+
+  * update-secureboot-policy: don't skip creating a MOK if Secure Boot is not
+    enabled in firmware, but do guard against prompting users on a system that
+    doesn't have efivars mounted or where SB is disabled. (LP: #1765515)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 19 Apr 2018 17:56:50 -0400
+
+shim-signed (1.34) bionic; urgency=medium
+
+  * update-secureboot-policy: (LP: #1748983)
+    - Factor out validate_password() and clear_passwords() for reuse.
+    - Add --new-key option to generate a self-signed MOK.
+    - Add --enroll-key option to allow enrolling a new MOK in shim.
+    - Drop --enable and --disable options; users should call mokutil directly
+      instead.
+  * debian/shim-signed.postinst:
+    - When triggered, explicitly try to enroll the available MOK.
+  * debian/shim-signed.install, openssl.cnf: Install some default configuration
+    for creating our self-signed key.
+  * debian/shim-signed.dirs: make sure we have a directory where to put a MOK.
+  * debian/templates: update templates for update-secureboot-policy changes.
+  * debian/control: add versioned Breaks: for dkms.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 18 Apr 2018 22:35:46 -0400
+
+shim-signed (1.33.1) bionic; urgency=medium
+
+  * Update to the signed 13-0ubuntu2 binary from Microsoft. (LP: #1708245)
+  * Stop generating and install BOOT.CSV, shim will do that by itself now.
+  * Add Vcs-* fields.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 21 Dec 2017 14:33:37 -0500
+
+shim-signed (1.32) artful; urgency=medium
+
+  * Handle cleanup of /var/lib/shim-signed on package purge.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Fri, 23 Jun 2017 22:30:42 -0700
+
+shim-signed (1.31) artful; urgency=medium
+
+  * Fix regression in postinst when /var/lib/dkms does not exist.
+    LP: #1700195.
+  * Sort the list of dkms modules when recording.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Fri, 23 Jun 2017 22:13:40 -0700
+
+shim-signed (1.30) artful; urgency=medium
+
+  * update-secureboot-policy: track the installed DKMS modules so we can skip
+    failing unattended upgrades if they hasn't changed (ie. if no new DKMS
+    modules have been installed, just honour the user's previous decision to
+    not disable shim validation). (LP: #1695578)
+  * update-secureboot-policy: allow re-enabling shim validation when no DKMS
+    packages are installed. (LP: #1673904)
+  * debian/source_shim-signed.py: add the textual representation of SecureBoot
+    and MokSBStateRT EFI variables rather than just adding the files directly;
+    also, make sure we include the relevant EFI bits from kernel log.
+    (LP: #1680279)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 23 Jun 2017 14:37:21 -0400
+
+shim-signed (1.29) artful; urgency=medium
+
+  * Makefile: Generate BOOT$arch.CSV, for use with fallback.
+  * debian/rules: make sure we can do per-arch EFI files.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 26 Apr 2017 21:36:57 -0400
+
+shim-signed (1.28) zesty; urgency=medium
+
+  * Adjust apport hook to include key files that tell us about the system's
+    current SB state.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Wed, 05 Apr 2017 15:14:49 -0700
+
+shim-signed (1.27) zesty; urgency=medium
+
+  [ Steve Langasek ]
+  * Update to the signed 0.9+1474479173.6c180c6-1ubuntu1 binary from
+    Microsoft.
+  * update-secureboot-policy:
+    - detect when we have no debconf prompting and error out instead of ending
+      up in an infinite loop.  LP: #1673817.
+    - refactor to make the code easier to follow.
+    - remove a confusing boolean that would always re-prompt on a request to
+      --enable, but not on a request to --disable.
+
+  [ Mathieu Trudel-Lapierre ]
+  * update-secureboot-policy:
+    - some more fixes to properly handle non-interactive mode. (LP: #1673817)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 21 Mar 2017 14:28:46 -0400
+
+shim-signed (1.23) zesty; urgency=medium
+
+  * debian/control: bump the Depends on grub2-common since that's needed to
+    install with the new updated EFI binaries filenames.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 21 Oct 2016 13:31:05 -0400
+
+shim-signed (1.22) yakkety; urgency=medium
+
+  * Update to the signed 0.9+1474479173.6c180c6-0ubuntu1 binary from Microsoft.
+  * Update paths now that the shim binary has been renamed to include the
+    target architecture.
+  * debian/shim-signed.postinst: clean up old MokManager.efi from EFI/ubuntu;
+    since it's being replaced by mm$arch.efi.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 13 Oct 2016 13:49:17 -0400
+
+shim-signed (1.21.3) vivid; urgency=medium
+
+  * No-change rebuild for shim 0.9+1465500757.14a5905.is.0.8-0ubuntu3.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 06 Oct 2016 19:20:36 -0400
+
+shim-signed (1.21.2) vivid; urgency=medium
+
+  * Revert to signed shim from 0.8-0ubuntu2. (LP: #1624096)
+    - shim.efi.signed originally built from shim 0.8-0ubuntu2 in wily. 
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 03 Oct 2016 17:17:54 -0400
+
+shim-signed (1.20) yakkety; urgency=medium
+
+  * Update to the signed 0.9+1465500757.14a5905-0ubuntu1 binary from Microsoft.
+    (LP: #1581299)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 08 Aug 2016 11:14:21 -0400
+
+shim-signed (1.19) yakkety; urgency=medium
+
+  * update-secureboot-policy:
+    - Add a --help option, document other options. (LP: #1604936)
+    - Rework prompting to display our Secure Boot warning and explanation
+      text more prominently, rather than forcing graphical users to hit
+      "Help" to see the full explanation for why we ask about disabling
+      Secure Boot. (LP: #1595611)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 02 Aug 2016 11:01:50 -0400
+
+shim-signed (1.18) yakkety; urgency=medium
+
+  * update-secureboot-policy:  If /proc/sys/kernel/moksbstate_disabled is
+    present, prefer this unconditionally over MokSBStateRT.  LP: #1604873.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Wed, 20 Jul 2016 08:31:17 -0700
+
+shim-signed (1.17) yakkety; urgency=medium
+
+  * update-secureboot-policy: rework setting capabilities to stop having
+    the backup capability while showing an error message; which won't affect
+    the Dialog debconf frontend but otherwise made the GTK frontend confusing.
+  * update-secureboot-policy: all debconf prompts should be at priority
+    critical: there is no good default to pick, we must prompt the user.
+  * debian/templates: make the password inputs be standard inputs; this is an
+    unfortunate workaround to aptdaemon not having access to the debconf
+    password database on desktop; since the frontend runs as an unprivileged
+    user. See bug LP#1599981 (LP: #1599051)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 07 Jul 2016 16:58:45 -0400
+
+shim-signed (1.16) yakkety; urgency=medium
+
+  * debian/shim-signed.postinst: call for the trigger on update of shim-signed.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 28 Jun 2016 17:34:23 -0400
+
+shim-signed (1.15) yakkety; urgency=medium
+
+  * update-secureboot-policy: validate the state of MokSBStateRT against what
+    the kernel believes it to be via /proc/sys/kernel/moksbstate_disabled,
+    in case we have the kernel which knows about shim's validation policy but
+    an old shim that doesn't export MokSBStateRT.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 17 Jun 2016 16:47:40 +0300
+
+shim-signed (1.14) yakkety; urgency=medium
+
+  * update-secureboot-policy:
+    - Make it easier for users to really re-enable Secure Boot via an --enable
+      option.
+    - Don't prompt for action if there are no DKMS packages installed, as per
+      checking if there are any subdirectories in /var/lib/dkms.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 07 Jun 2016 16:09:53 -0400
+
+shim-signed (1.13) yakkety; urgency=medium
+
+  * update-secureboot-policy: have a trigger-ready script available to deal
+    with the necessity to change Secure Boot policy on a system.
+  * debian/shim-signed.templates: ship the necessary templates for secureboot.
+  * debian/shim-signed.postinst: Run our trigger script to update Secure Boot
+    policy when necessary at the end of installs, without calling dpkg-trigger
+    again.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 16 May 2016 15:29:27 -0400
+
+shim-signed (1.12) xenial; urgency=medium
+
+  * debian/control: add Depends on mokutil, to ship a way for users to
+    control shim features, such as enrolling new keys.
+
+ -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Wed, 16 Dec 2015 10:19:23 -0500
+
+shim-signed (1.11) wily; urgency=medium
+
+  * Add in an apport package hook for shim-signed and shim. (LP: #1490030)
+
+ -- Brian Murray <brian@ubuntu.com>  Fri, 11 Sep 2015 15:04:31 -0700
+
+shim-signed (1.10) wily; urgency=medium
+
+  * Add a versioned dependency on grub2-common, so that partial upgrades from
+    Ubuntu 12.04 don't break due to a lack of --target option to grub-install.
+    LP: #1474203.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Tue, 14 Jul 2015 10:46:41 -0700
+
+shim-signed (1.9) wily; urgency=medium
+
+  * Update to the signed 0.8-0ubuntu2 binary from Microsoft.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Sun, 07 Jun 2015 19:27:35 +0000
+
+shim-signed (1.8) utopic; urgency=medium
+
+  * Update to the signed 0.7-0ubuntu4 binary from Microsoft.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Tue, 21 Oct 2014 18:23:15 -0400
+
+shim-signed (1.6) trusty; urgency=low
+
+  * Also add a build-dependency on grub2-common, to ensure that our
+    grub-install is the correct one - since grub-efi-amd64-bin is
+    coinstallable with grub1.  LP: #1259558.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Tue, 10 Dec 2013 09:10:23 -0800
+
+shim-signed (1.5) trusty; urgency=low
+
+  * Pass --target=x86_64-efi to grub-install from the postinst and depend on
+    grub-efi-amd64-bin, so that package upgrades will do the right thing
+    even if the system has been rebooted under BIOS.  LP: #1246910.
+  * Kubuntu sets GRUB_DISTRIBUTOR to a different value which doesn't match
+    the path under /boot/efi; fix this up so shim-signed upgrades properly
+    on Kubuntu systems.  LP: #1242417.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Thu, 31 Oct 2013 17:06:21 -0700
+
+shim-signed (1.4) trusty; urgency=low
+
+  * Add a dependency on shim, so that we can pull in MokManager for use.    
+  * Update to the signed 0.4-0ubuntu4 binary from Microsoft.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Wed, 30 Oct 2013 15:04:23 -0700
+
+shim-signed (1.3) saucy; urgency=low
+
+  * Build-depend on sbsigntool (>= 0.6-0ubuntu4) and check the integrity of
+    our signed binary at build time.
+  * Update to the signed 0.4-0ubuntu3 binary from Microsoft.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Sat, 07 Sep 2013 22:09:22 +0000
+
+shim-signed (1.2) raring; urgency=low
+
+  * Recommend secureboot-db (LP: #1087843).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 16 Feb 2013 00:02:00 +0000
+
+shim-signed (1.1) quantal-proposed; urgency=low
+
+  * Rev shim-signed for updated shim.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Fri, 12 Oct 2012 01:42:07 +0000
+
+shim-signed (1.0) quantal; urgency=low
+
+  * Initial release, based on grub2-signed package.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Tue, 09 Oct 2012 15:48:37 -0700

@@ -45,7 +45,6 @@ build-stamp:
 
 check:
 	# Sanity-check before upload.
-	./check-docker.py
 	find -name debian -prune -o -name \*.py -print | xargs py3compile
 	find -type f \( -name \*.pyc -o -name \*.pyo \) -print0 | xargs -0r rm -f
 	find -name __pycache__ -print0 | xargs -0r rm -rf
@@ -54,8 +53,8 @@ check:
 		sh -n $$x; \
 	done
 	# Check the syntax of any Python scripts.
-	#./tests/run-pyflakes
-	#./tests/run-pep8
+	./tests/run-pyflakes
+	./tests/run-pep8
 
 pychecker:
 	./run-pychecker
@@ -94,6 +93,17 @@ endif
 	dh_installmenu
 
 	$(MAKE) install DESTDIR=`pwd`/debian/tmp
+	# Would probably be better to do this in the upstream buildsystem
+
+	# help.ubuntu.com/rst
+	qrencode -m 0 -s 5 -t PNG -l H -o debian/tmp/usr/share/ubiquity/pixmaps/qr-help-ubuntu-com-rst-input.png "https://help.ubuntu.com/rst"
+	convert debian/tmp/usr/share/ubiquity/pixmaps/qr-help-ubuntu-com-rst-input.png -transparent white debian/tmp/usr/share/ubiquity/pixmaps/qr-help-ubuntu-com-rst.png
+	rm debian/tmp/usr/share/ubiquity/pixmaps/qr-help-ubuntu-com-rst-input.png
+
+	# help.ubuntu.com/bitlocker
+	qrencode -m 0 -s 5 -t PNG -l H -o debian/tmp/usr/share/ubiquity/pixmaps/qr-help-ubuntu-com-bitlocker-input.png "https://help.ubuntu.com/bitlocker"
+	convert debian/tmp/usr/share/ubiquity/pixmaps/qr-help-ubuntu-com-bitlocker-input.png -transparent white debian/tmp/usr/share/ubiquity/pixmaps/qr-help-ubuntu-com-bitlocker.png
+	rm debian/tmp/usr/share/ubiquity/pixmaps/qr-help-ubuntu-com-bitlocker-input.png
 
 	$(MAKE) -C d-i install
 
@@ -202,25 +212,24 @@ endif
 		d-i/source/debian-installer-utils/post-base-installer.d/10register-module \
 		> debian/oem-config/usr/lib/ubiquity/debian-installer-utils/register-module.post-base-installer-oem
 	chmod +x debian/oem-config/usr/lib/ubiquity/debian-installer-utils/register-module.post-base-installer-oem
-ifneq (,$(filter armel armhf,$(DEB_HOST_ARCH)))
-	install d-i/source/flash-kernel/debian/flash-kernel-installer.postinst \
-		debian/ubiquity/usr/lib/ubiquity/flash-kernel/flash-kernel-installer
-endif
-ifeq ($(DEB_HOST_ARCH),powerpc)
-	install d-i/source/yaboot-installer/debian/postinst \
-		debian/ubiquity/usr/lib/ubiquity/yaboot-installer/yaboot-installer
+ifeq ($(DEB_HOST_ARCH),amd64)
+	install d-i/source/shim-signed/openssl.cnf \
+		debian/ubiquity/usr/lib/ubiquity/shim-signed/openssl.cnf
+	sed 's,/usr/lib/shim/mok/openssl.cnf,/usr/lib/ubiquity/shim-signed/openssl.cnf,g' \
+		d-i/source/shim-signed/update-secureboot-policy \
+		> debian/ubiquity/usr/lib/ubiquity/shim-signed/update-secureboot-policy
+	chmod +x debian/ubiquity/usr/lib/ubiquity/shim-signed/update-secureboot-policy
 endif
 
 	touch install-stamp
 
 tests: install-stamp
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
-#	CODE=0; env -i LANG=C.UTF-8 ./tests/run --xvfb-log debian/xvfb.log || CODE=$$?; \
-#	echo "xauth/Xrdb output:"; \
-#	cat debian/xvfb.log; \
-#	rm -f debian/xvfb.log; \
-#	exit $$CODE
-	echo "no tests"
+	CODE=0; env -i LANG=C.UTF-8 ./tests/run --xvfb-log debian/xvfb.log || CODE=$$?; \
+	echo "xauth/Xrdb output:"; \
+	cat debian/xvfb.log; \
+	rm -f debian/xvfb.log; \
+	exit $$CODE
 endif
 
 BINARY_INDEP_OPTIONS := -i
@@ -264,7 +273,7 @@ endif
 
 # Build architecture-dependent files here.
 binary-arch: DH_OPTIONS=$(BINARY_ARCH_OPTIONS)
-binary-arch: install-stamp
+binary-arch: tests install-stamp
 	dh_testdir
 	dh_testroot
 	dh_installchangelogs
@@ -301,4 +310,4 @@ binary-arch: install-stamp
 	NO_PNG_PKG_MANGLE=1 dh_builddeb -- -Zxz
 
 binary: binary-indep binary-arch
-.PHONY: build clean binary-indep binary-arch binary install
+.PHONY: build clean binary-indep binary-arch binary install tests

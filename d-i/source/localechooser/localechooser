@@ -218,7 +218,7 @@ do_preseed() {
 # Those we install here are those required immediately
 # Otherwise we will install them in finish-install
 install_lang_specific() {
-	if [ "$DEFAULT_LOCALE" != C ]; then
+	if [ "$DEFAULT_LOCALE" != C ] && [ "$DEFAULT_LOCALE" != C.UTF-8 ]; then
 		case "$LANGUAGE" in
 		    ar|el|fa|he|ja|ko|ku|tr|vi|wo|zh*)
 			# We need a complete font for later steps
@@ -444,7 +444,7 @@ validate_supportedlocales() {
 		if echo ", $choices, " | grep -q ", $locale, "; then
 			new="${new:+$new, }$locale"
 		fi
-		if [ "$locale" = C ] || [ "$locale" = en_US.UTF-8 ]; then
+		if [ "$locale" = C ] || [ "$locale" = C.UTF-8 ] || [ "$locale" = en_US.UTF-8 ]; then
 			english=1
 		fi
 	done
@@ -538,7 +538,7 @@ while :; do
 			set_debconf_language $INITIAL_LANGUAGE
 
 			db_get $tpl_languagelist
-			if [ "$RET" != C ]; then
+			if [ "$RET" != C ] && [ "$RET" != C.UTF-8 ]; then
 				current_language=$(get_current_language)
 				if [ "$current_language" ]; then
 					db_set $tpl_languagelist $current_language
@@ -638,7 +638,7 @@ while :; do
 		# As we may unregister the question for shortlists, the value for the
 		# shortlist template is also saved with the language specific question
 		use_lang=""
-		if [ "$DEFAULT_LOCALE" != C ]; then
+		if [ "$DEFAULT_LOCALE" != C ] && [ "$DEFAULT_LOCALE" != C.UTF-8 ]; then
 			if grep -q "^$FIRST_LANG" $SHORTLISTS; then
 				use_lang=$FIRST_LANG
 			elif grep -q "^$LANGUAGE" $SHORTLISTS; then
@@ -814,7 +814,7 @@ while :; do
 			LOCALE=$RET
 			log "Preseeded $tpl_di_locale = '$LOCALE'"
 		else
-			if [ "$DEFAULT_LOCALE" = C ]; then
+			if [ "$DEFAULT_LOCALE" = C ] || [ "$DEFAULT_LOCALE" = C.UTF-8 ]; then
 				LOCALE=$DEFAULT_LOCALE
 			else
 				LOCALE="$(get_default_locale)"
@@ -907,7 +907,7 @@ while :; do
 		else
 			extra_lang=${LANGUAGE%%_*}_$COUNTRYCODE
 		fi
-		if [ "$LOCALE" != C ] && \
+		if [ "$LOCALE" != C ] && [ "$LOCALE" != C.UTF-8 ] && \
 		   [ "$LANGUAGE" ] && [ "$COUNTRYCODE" ] && \
 		   [ "$COUNTRYCODE" != "$DEFAULT_COUNTRY" ] && \
 		   ! echo ":$LANGUAGELIST:" | grep -q ":$extra_lang:" && \

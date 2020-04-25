@@ -1,1 +1,1 @@
-SUBDIRS = mockresolver panel wallpaper
+SUBDIRS = mockresolver panel

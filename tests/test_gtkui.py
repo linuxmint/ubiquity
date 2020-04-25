@@ -106,6 +106,8 @@ class TestFrontend(unittest.TestCase):
                 'cancelbutton2', 'okbutton2', 'okbutton3',
                 'partition_dialog_okbutton', 'cancelbutton3',
                 'grub_fail_okbutton',
+                'advanced_features_cancelbutton',
+                'advanced_features_okbutton',
                 # These are calculated and set as the partitioning options are
                 # being calculated.
                 'reuse_partition_desc', 'reuse_partition',
@@ -113,6 +115,7 @@ class TestFrontend(unittest.TestCase):
                 'resize_use_free_desc', 'resize_use_free',
                 'use_device_desc', 'use_device', 'part_ask_heading',
                 'custom_partitioning_desc', 'custom_partitioning',
+                'advanced_features_selected',
                 # Pulled straight from debconf when the installation medium is
                 # already mounted.
                 'part_advanced_warning_message',
@@ -135,7 +138,7 @@ class TestFrontend(unittest.TestCase):
                 'label_global_error',
                 'warning_password_label', 'label1', 'secureboot_label',
                 # secure boot
-                'disable_secureboot', 'prepare_foss_disclaimer_license',
+                'disable_secureboot', 'prepare_foss_disclaimer',
                 'label_free_space', 'label_required_space',
                 'label_download_updates',
             ]
@@ -143,7 +146,7 @@ class TestFrontend(unittest.TestCase):
                 ['dpkg-architecture', '-qDEB_HOST_ARCH'],
                 stdout=subprocess.PIPE,
                 universal_newlines=True).communicate()[0].strip()
-            if deb_host_arch not in ('amd64', 'i386'):
+            if deb_host_arch not in ('amd64', 'arm64', 'i386'):
                 # grub-installer not available, but this template won't be
                 # displayed anyway.
                 whitelist.append('grub_device_label')

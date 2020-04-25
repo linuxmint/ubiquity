@@ -22,7 +22,7 @@ def get_distribution():
         for line in f:
             distro = line[:max(line.find(' '), 0) or None]
             if distro:
-                if distro == 'Linux Mint-GNOME' or distro == "Linux Mint-MATE":
+                if distro == 'Ubuntu-GNOME' or distro == "Ubuntu-MATE":
                     return str(distro.replace('-', ' '))
                 else:
                     return str(distro)
@@ -45,7 +45,7 @@ def generate_config():
     config['stepPrepare'] = {}
     stepPrepare = config['stepPrepare']
     stepPrepare['page_title'] = \
-        '<span size="xx-large">Preparing to install {0}</span>'\
+        '<span size="xx-large">Updates and other software</span>'\
         .format(distro_flavor)
     stepPrepare['prepare_best_results'] = \
         'For best results, please ensure that this computer:'
@@ -58,8 +58,8 @@ def generate_config():
     stepPrepare['prepare_download_updates'] = \
         'Download updates while installing {}'.format(distro_flavor)
     stepPrepare['prepare_nonfree_software'] = \
-        'Install third-party software for graphics and Wi-Fi hardware, ' \
-        'MP3 and other media'
+        'Install third-party software for graphics ' \
+        'and Wi-Fi hardware and additional media formats'
     stepPrepare['prepare_network_connection'] = \
         'is connected to the Internet'
     stepPrepare['prepare_sufficient_space'] = \
@@ -136,7 +136,6 @@ def generate_config():
     stepUserInfo["verified_password_label"] = 'Confirm your password:'
     stepUserInfo["hostname_extra_label"] = \
         'The name it uses when it talks to other computers.'
-    stepUserInfo["login_encrypt"] = 'Require my password to log in'
 
     # write config to tmp file
     with open('/tmp/english_config.ini', 'w') as configfile:

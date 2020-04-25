@@ -14,6 +14,7 @@ PACKAGES += $(shell cat $(LISTDIR)/$(DEB_HOST_ARCH))
 endif
 # We don't need to build console-setup.
 PACKAGES := $(filter-out console-setup,$(PACKAGES))
+PACKAGES := $(filter-out shim-signed,$(PACKAGES))
 
 update:
 	@perl -MDpkg::Deps -e1 >/dev/null 2>&1 || { \

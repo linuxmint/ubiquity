@@ -1,0 +1,299 @@
+#!/bin/sh
+set -e
+
+if  test $# = 0                                                 \
+    && test x"$SHIM_NOTRIGGER" = x                              \
+ && test x"$DPKG_MAINTSCRIPT_PACKAGE" != x                      \
+ && dpkg-trigger --check-supported 2>/dev/null
+then
+        if dpkg-trigger --no-await shim-secureboot-policy; then
+                if test x"$SHIM_TRIGGER_DEBUG" != x; then
+                        echo "shim: wrapper deferring policy update (trigger activated)"
+                fi
+                exit 0
+        fi
+fi
+
+if [ "$(id -u)" -ne 0 ]; then
+	echo "$0: Permission denied"
+	exit 1
+fi
+
+do_enroll=0
+do_toggle=0
+
+efivars=/sys/firmware/efi/efivars
+secureboot_var=SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c
+moksbstatert_var=MokSBStateRT-605dab50-e046-4300-abb6-3dd810dd8b23
+
+SB_KEY="/var/lib/shim-signed/mok/MOK.der"
+SB_PRIV="/var/lib/shim-signed/mok/MOK.priv"
+
+OLD_DKMS_LIST="/var/lib/shim-signed/dkms-list"
+NEW_DKMS_LIST="${OLD_DKMS_LIST}.new"
+
+touch $OLD_DKMS_LIST
+
+dkms_list=$(find /var/lib/dkms -maxdepth 1 -type d -print 2>/dev/null \
+            | LC_ALL=C sort)
+dkms_modules=$(echo "$dkms_list" | wc -l)
+
+. /usr/share/debconf/confmodule
+
+update_dkms_list()
+{
+    echo "$dkms_list" > $NEW_DKMS_LIST
+}
+
+save_dkms_list()
+{
+    mv "$NEW_DKMS_LIST" "$OLD_DKMS_LIST"
+}
+
+clear_new_dkms_list()
+{
+    rm "$NEW_DKMS_LIST"
+}
+
+new_dkms_module()
+{
+    # handle nvidia module specially because it changed path
+    if ! grep -q "/var/lib/dkms/nvidia" "$OLD_DKMS_LIST" && grep -q "/var/lib/dkms/nvidia" "$NEW_DKMS_LIST" ; then
+        # nvidia module is newly added
+        return 0
+    fi
+
+    # return 0 if there is any other new module
+    env LC_ALL=C comm -1 -3 $OLD_DKMS_LIST $NEW_DKMS_LIST | grep -q -v "/var/lib/dkms/nvidia"
+}
+
+show_dkms_list_changes()
+{
+    diff -u $OLD_DKMS_LIST $NEW_DKMS_LIST >&2
+}
+
+validate_password()
+{
+    db_capb
+    if [ "$key" != "$again" ]; then
+        db_fset shim/error/secureboot_key_mismatch seen false
+        db_input critical shim/error/secureboot_key_mismatch || true
+        STATE=$(($STATE - 2))
+    else
+        length=$((`echo "$key" | wc -c` - 1))
+        if [ $length -lt 8 ] || [ $length -gt 16 ]; then
+            db_fset shim/error/bad_secureboot_key seen false
+            db_input critical shim/error/bad_secureboot_key || true
+            STATE=$(($STATE - 2))
+        elif [ $length -ne 0 ]; then
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
+clear_passwords()
+{
+    # Always clear secureboot key.
+    db_set shim/secureboot_key ''
+    db_fset shim/secureboot_key seen false
+    db_set shim/secureboot_key_again ''
+    db_fset shim/secureboot_key_again seen false
+}
+
+toggle_validation()
+{
+    local key="$1"
+    local again="$2"
+
+    echo "Enabling shim validation."
+    printf '%s\n%s\n' "$key" "$again" | mokutil --enable-validation >/dev/null || true
+    mokutil --timeout -1 >/dev/null || true
+}
+
+enroll_mok()
+{
+    local key="$1"
+    local again="$2"
+
+    echo "Adding '$SB_KEY' to shim:"
+    printf '%s\n%s\n' "$key" "$again" | mokutil --import "$SB_KEY" >/dev/null || true
+    mokutil --timeout -1 >/dev/null || true
+}
+
+do_it()
+{
+    STATE=1
+    db_settitle shim/title/secureboot
+    while true; do
+        case "$STATE" in
+        1)
+            db_capb
+            db_fset shim/secureboot_explanation seen false
+            db_input critical shim/secureboot_explanation || true
+            ;;
+        2)
+            if [ "$do_toggle" -eq 1 ]; then
+                # Force no backtracking here; otherwise the GNOME backend
+                # might allow it due to displaying the explanation just before.
+                # Fixes LP: #1767091
+                db_capb
+                # Allow the user to skip toggling Secure Boot.
+                db_fset shim/enable_secureboot seen false
+                db_input critical shim/enable_secureboot || true
+                db_go
+
+                db_get shim/enable_secureboot
+                if [ "$RET" = "false" ]; then
+                    break
+                fi
+            fi
+            ;;
+        3)
+
+            db_input critical shim/secureboot_key || true
+            seen_key=$RET
+            db_input critical shim/secureboot_key_again || true
+            ;;
+        4)
+            db_get shim/secureboot_key
+            key="$RET"
+            db_get shim/secureboot_key_again
+            again="$RET"
+
+            if [ -z "$key$again" ] && echo "$seen_key" | grep -q ^30; then
+                echo "Running in non-interactive mode, doing nothing." >&2
+
+                if new_dkms_module; then
+                    show_dkms_list_changes
+                    clear_new_dkms_list
+                    exit 1
+                else
+                    exit 0
+                fi
+            fi
+
+            if validate_password; then
+                if [ $do_toggle -eq 1 ]; then
+                    toggle_validation "$key" "$again"
+                fi
+                if [ $do_enroll -eq 1 ]; then
+                    enroll_mok "$key" "$again"
+                fi
+                save_dkms_list
+            fi
+
+            clear_passwords
+            ;;
+        *)
+            break
+            ;;
+        esac
+
+        if db_go; then
+            STATE=$(($STATE + 1))
+        else
+            STATE=$(($STATE - 1))
+        fi
+        db_capb backup
+    done
+    db_capb
+}
+
+validate_actions() {
+    # Validate any queued actions before we go try to do them.
+    local moksbstatert=0
+
+    if ! [ -d $efivars ]; then
+        echo "$efivars not found, aborting." >&2
+        exit 0
+    fi
+
+    if ! [ -f $efivars/$secureboot_var ] \
+        || [ "$(od -An -t u1 $efivars/$secureboot_var | awk '{ print $NF }')" -ne 1 ]
+    then
+        echo "Secure Boot not enabled on this system." >&2
+        exit 0
+    fi
+
+    if [ $dkms_modules -lt 2 ]; then
+        echo "No DKMS modules installed." >&2
+        exit 0
+    fi
+
+    if [ -f /proc/sys/kernel/moksbstate_disabled ]; then
+        moksbstatert=$(cat /proc/sys/kernel/moksbstate_disabled 2>/dev/null || echo 0)
+    elif [ -f $efivars/$moksbstatert_var ]; then
+        # MokSBStateRT set to 1 means validation is disabled
+        moksbstatert=$(od -An -t u1 $efivars/$moksbstatert_var | \
+                       awk '{ print $NF; }')
+    fi
+
+    # We were asked to enroll a key. This only makes sense if validation
+    # is enabled.
+    if [ $do_enroll -eq 1 ] && [ $moksbstatert -eq 1 ]; then
+        do_toggle=1
+    fi
+}
+
+create_mok()
+{
+    if [ -e "$SB_KEY" ]; then
+        return
+    fi
+
+    echo "Generating a new Secure Boot signing key:"
+    openssl req -config /usr/lib/shim/mok/openssl.cnf \
+        -subj "/CN=`hostname -s | cut -b1-31` Secure Boot Module Signature key" \
+        -new -x509 -newkey rsa:2048 \
+        -nodes -days 36500 -outform DER \
+        -keyout "$SB_PRIV" \
+        -out "$SB_KEY"
+}
+
+update_dkms_list
+
+case "$1" in
+'--enable'|'--disable')
+    echo "Please run mokutil directly to change shim validation behavior."
+    exit 0
+    ;;
+
+'--new-key')
+    create_mok
+    exit 0
+    ;;
+
+'--enroll-key')
+    if [ -e "$SB_KEY" ]; then
+        if mokutil --test-key "$SB_KEY" | \
+                grep -qc 'is not'; then
+            do_enroll=1
+        fi
+    else
+        echo "No MOK found."
+        exit 1
+    fi
+    ;;
+
+*)
+    echo "update-secureboot-policy: toggle UEFI Secure Boot in shim"
+    echo
+    echo "\t--new-key\tCreate a new MOK."
+    echo "\t--enroll-key\tEnroll the new MOK for this system in shim."
+    echo "\t--help\t\tThis help text."
+    exit 0
+
+esac
+
+validate_actions
+
+if [ $(($do_toggle + $do_enroll)) -lt 1 ]; then
+    echo "Nothing to do."
+    exit 0
+fi
+
+do_it
+
+exit 0

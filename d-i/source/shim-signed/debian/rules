@@ -1,0 +1,27 @@
+#! /usr/bin/make -f
+
+VERSION := $(shell LC_ALL=C dpkg-parsechangelog | grep ^Version: | cut -d ' ' -f 2)
+SHIM_VERSION := $(shell dpkg-query -f '$${Version}\n' -W shim)
+
+ifeq ($(DEB_TARGET_ARCH),amd64)
+export EFI_ARCH := X64
+endif
+ifeq ($(DEB_TARGET_ARCH),arm64)
+export EFI_ARCH := AA64
+endif
+export SHIM_BASE = shim$(shell echo $(EFI_ARCH) | tr A-Z a-z).efi
+
+%:
+	dh $@
+
+docdir := debian/shim-signed/usr/share/doc/shim-signed
+
+override_dh_installchangelogs:
+	dh_installchangelogs
+	# Quieten lintian, which otherwise gets confused by our odd version
+	# number.
+	ln $(docdir)/changelog $(docdir)/changelog.Debian
+
+override_dh_gencontrol:
+	dh_gencontrol -- -v$(VERSION)+$(SHIM_VERSION) \
+		-Vshim:Version=$(SHIM_VERSION)

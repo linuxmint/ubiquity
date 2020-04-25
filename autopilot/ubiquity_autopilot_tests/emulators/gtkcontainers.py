@@ -270,32 +270,6 @@ class GtkBox(GtkContainers):
         else:
             return False
 
-    def encrypt_home_dir(self, encrypt=None):
-        """ Check the login_encrypt box """
-        chk_encrypt = self.select_single(BuilderName='login_encrypt')
-        active = chk_encrypt.active
-
-        if encrypt is None:
-            # Switch checkbox and ensure it switched
-            self.pointing_device.click_object(chk_encrypt)
-            expectThat(chk_encrypt.active).equals(
-                not active,
-                msg='encrypt home checkbox state did not change. Current '
-                'state: {0}'.format(chk_encrypt.active))
-        elif encrypt and not active:
-            self.pointing_device.click_object(chk_encrypt)
-            expectThat(chk_encrypt.active).equals(
-                True,
-                msg='encrypt home checkbox not active and should be.')
-        elif not encrypt and active:
-            self.pointing_device.click_object(chk_encrypt)
-            expectThat(chk_encrypt.active).equals(
-                False,
-                msg='encrypt home checkbox active and should not be.')
-        else:
-            raise ValueError("Invalid value for 'encrypt' parameter: {}"
-                             .format(encrypt))
-
 
 class GtkAlignment(GtkContainers):
     """ Emulator class for a GtkAlignment instance """

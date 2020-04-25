@@ -146,7 +146,7 @@ class SignalWatcher:
         (plugin, ) = params
         # log ('on_signal: got %s' % plugin)
         if plugin == "xsettings":
-                self.loop.quit()
+            self.loop.quit()
 
     def run(self):
         self.loop.run()
@@ -243,21 +243,21 @@ class DM:
                     preexec_fn=self.drop_privileges)
 
     def pam_open_session(self):
-            self.auth.start('su')
-            self.auth.set_item(PAM.PAM_USER, self.username)
-            self.auth.set_item(PAM.PAM_CONV, _pam_conv)
-            self.auth.putenv('XDG_SESSION_CLASS=greeter')
-            self.auth.putenv('XDG_SEAT=seat0')
-            # at the time pam_open_session is called self.vt is the
-            # correct vt: either the one originally passed as cmd line
-            # arg or as determined by active_vt()
-            #
-            # self.vt is of the form str("vt10")
-            self.auth.putenv('XDG_VTNR=%s' % self.vt[2:])
-            self.auth.authenticate()
-            self.auth.open_session()
-            os.environ.update(
-                [i.split('=', 1) for i in self.auth.getenvlist()])
+        self.auth.start('su')
+        self.auth.set_item(PAM.PAM_USER, self.username)
+        self.auth.set_item(PAM.PAM_CONV, _pam_conv)
+        self.auth.putenv('XDG_SESSION_CLASS=greeter')
+        self.auth.putenv('XDG_SEAT=seat0')
+        # at the time pam_open_session is called self.vt is the
+        # correct vt: either the one originally passed as cmd line
+        # arg or as determined by active_vt()
+        #
+        # self.vt is of the form str("vt10")
+        self.auth.putenv('XDG_VTNR=%s' % self.vt[2:])
+        self.auth.authenticate()
+        self.auth.open_session()
+        os.environ.update(
+            [i.split('=', 1) for i in self.auth.getenvlist()])
 
     def pam_close_session(self):
         if self.auth:
@@ -421,7 +421,12 @@ EndSection
             visual_a11y = 'access=v' in proc_cmdline
 
             background_image = None
-            for background in ('/usr/share/backgrounds/linuxmint/default_background.jpg'):
+            for background in (
+                    '/usr/share/xfce4/backdrops/xubuntu-wallpaper.png',
+                    '/usr/share/backgrounds/'
+                    'ubuntustudio/ubuntustudio-default.png',
+                    '/usr/share/lubuntu/wallpapers/'
+                    'lubuntu-default-wallpaper.png'):
                 exists = os.access(background, os.R_OK)
                 if exists:
                     background_image = background
@@ -499,14 +504,15 @@ EndSection
 
                 if (osextras.find_on_path('gnome-shell')):
                     # set this environment variable since we have
-                    # session-specific GSettings overrides for Linux Mint/Shell,
+                    # session-specific GSettings overrides for Ubuntu/Shell,
                     # like the theme.
                     os.environ['XDG_CURRENT_DESKTOP'] = 'ubuntu:GNOME'
                     if (osextras.find_on_path(
                             'dbus-update-activation-environment')):
                         subprocess.Popen(
                             ['dbus-update-activation-environment',
-                             '--verbose', '--systemd', 'XDG_CURRENT_DESKTOP'],
+                             '--verbose', '--systemd', 'XDG_CURRENT_DESKTOP',
+                             'DISPLAY'],
                             stdin=null, stdout=logfile, stderr=logfile,
                             preexec_fn=self.drop_privileges)
 
@@ -524,31 +530,17 @@ EndSection
 
                 msd = '/usr/bin/mate-settings-daemon'
                 usd = '/usr/lib/unity-settings-daemon/unity-settings-daemon'
-                csd = ['/usr/bin/csd-a11y-keyboard',
-                       '/usr/bin/csd-a11y-settings',
-                       '/usr/bin/csd-clipboard',
-                       '/usr/bin/csd-media-keys',
-                       '/usr/bin/csd-power',
-                       '/usr/bin/csd-xsettings']
-                gsd = ['/usr/lib/gnome-settings-daemon/gsd-a11y-keyboard',
-                       '/usr/lib/gnome-settings-daemon/gsd-a11y-settings',
-                       '/usr/lib/gnome-settings-daemon/gsd-clipboard',
-                       '/usr/lib/gnome-settings-daemon/gsd-media-keys',
-                       '/usr/lib/gnome-settings-daemon/gsd-power',
-                       '/usr/lib/gnome-settings-daemon/gsd-xsettings']
+                gsd = ['/usr/libexec/gsd-a11y-keyboard',
+                       '/usr/libexec/gsd-a11y-settings',
+                       '/usr/libexec/gsd-clipboard',
+                       '/usr/libexec/gsd-media-keys',
+                       '/usr/libexec/gsd-power',
+                       '/usr/libexec/gsd-xsettings']
 
                 if osextras.find_on_path(msd):
                     extras.append(subprocess.Popen(
                         [msd], stdin=null, stdout=logfile, stderr=logfile,
                         preexec_fn=self.drop_privileges))
-
-                elif osextras.find_on_path(csd[0]):
-                    for csdbinary in csd:
-                        if osextras.find_on_path(csdbinary):
-                            extras.append(subprocess.Popen(
-                                [csdbinary],
-                                stdin=null, stdout=logfile, stderr=logfile,
-                                preexec_fn=self.drop_privileges))
 
                 elif (osextras.find_on_path(usd)):
                     # Wait until xsettings plugin is activated
@@ -562,9 +554,10 @@ EndSection
                     # At this point we're sure the usd xsettings plugin is
                     # available, we can continue setting up the session.
 
-                elif os.path.isdir("/usr/lib/gnome-settings-daemon"):
+                elif (osextras.find_on_path('gnome-shell') or
+                        osextras.find_on_path('budgie-wm')):
                     for gsdbinary in gsd:
-                        if osextras.find_on_path(gsdbinary):
+                        if os.path.exists(gsdbinary):
                             extras.append(subprocess.Popen(
                                 [gsdbinary],
                                 stdin=null, stdout=logfile, stderr=logfile,
@@ -637,10 +630,11 @@ EndSection
                     stdin=null, stdout=logfile, stderr=logfile,
                     preexec_fn=self.drop_privileges))
 
-            if os.path.exists('/usr/lib/ubiquity/panel') and not os.path.exists('/usr/bin/cinnamon'):
+            if os.path.exists('/usr/lib/ubiquity/panel'):
                 if ("openbox-lubuntu" not in wm_cmd and
                         "openbox" not in wm_cmd and
-                        "gnome-shell" not in wm_cmd):
+                        "gnome-shell" not in wm_cmd and
+                        "xfwm4" not in wm_cmd):
                     multiarchdir = os.path.split(
                         sysconfig.get_config_var('multiarchsubdir'))[-1]
                     indicators = list(filter(os.path.isfile, [
@@ -671,7 +665,8 @@ EndSection
                     stdin=null, stdout=logfile, stderr=logfile,
                     preexec_fn=self.drop_privileges))
 
-            if osextras.find_on_path('ibus-daemon'):
+            if (osextras.find_on_path('ibus-daemon') and
+                    "gnome-shell" not in wm_cmd):
                 extras.append(subprocess.Popen(
                     ['ibus-daemon'],
                     stdin=null, stdout=logfile, stderr=logfile,
@@ -708,7 +703,7 @@ EndSection
             if 'access=v1' not in proc_cmdline:
                 log('paint background')
                 path = \
-                    '/usr/share/wallpapers/Next/contents/images/2560x1600.png'
+                    '/usr/share/wallpapers/Next/contents/images/2560x1600.jpg'
                 extras.append(subprocess.Popen(
                     ['ubiquity-qtsetbg', path],
                     stdin=null, stdout=logfile, stderr=logfile,

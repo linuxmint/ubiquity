@@ -18,8 +18,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: debian-installer\n"
 "Report-Msgid-Bugs-To: apt-setup@packages.debian.org\n"
-"POT-Creation-Date: 2015-01-11 23:02+0000\n"
-"PO-Revision-Date: 2013-08-23 16:44+0200\n"
+"POT-Creation-Date: 2017-10-23 22:02+0000\n"
+"PO-Revision-Date: 2015-12-19 17:25+0100\n"
 "Last-Translator:  Miroslav Kure <kurem@debian.cz>\n"
 "Language-Team:  Czech <provoz@debian.cz>\n"
 "Language: cs\n"
@@ -57,28 +57,35 @@ msgstr "Spouští se ${SCRIPT}..."
 #. :sl2:
 #: ../apt-setup-udeb.templates:4001
 msgid "Scanning local repositories..."
-msgstr "Prohledávají se lokální archivy..."
+msgstr "Prohledávají se lokální repositáře..."
 
 #. Type: text
 #. Description
 #. :sl2:
 #: ../apt-setup-udeb.templates:5001
 msgid "Scanning the security updates repository..."
-msgstr "Prohledává se archiv s bezpečnostními aktualizacemi..."
+msgstr "Prohledává se repositář s bezpečnostními aktualizacemi..."
 
 #. Type: text
 #. Description
 #. :sl2:
 #: ../apt-setup-udeb.templates:6001
 msgid "Scanning the release updates repository..."
-msgstr "Prohledává se archiv s aktualizacemi vydání..."
+msgstr "Prohledává se repositář s aktualizacemi vydání..."
+
+#. Type: text
+#. Description
+#. :sl2:
+#: ../apt-setup-udeb.templates:7001
+msgid "Scanning the backports repository..."
+msgstr "Prohledává se repositář se zpětně přeneseným softwarem..."
 
 #. Type: select
 #. Choices
 #. :sl2:
 #. These are choices of actions so this is, at least in English,
 #. an infinitive form
-#: ../apt-setup-udeb.templates:7001 ../apt-mirror-setup.templates:4001
+#: ../apt-setup-udeb.templates:8001 ../apt-mirror-setup.templates:4001
 msgid "Retry"
 msgstr "Opakovat"
 
@@ -87,31 +94,31 @@ msgstr "Opakovat"
 #. :sl2:
 #. These are choices of actions so this is, at least in English,
 #. an infinitive form
-#: ../apt-setup-udeb.templates:7001 ../apt-mirror-setup.templates:4001
+#: ../apt-setup-udeb.templates:8001 ../apt-mirror-setup.templates:4001
 msgid "Ignore"
 msgstr "Ignorovat"
 
 #. Type: select
 #. Description
-#: ../apt-setup-udeb.templates:7002
+#: ../apt-setup-udeb.templates:8002
 msgid "Downloading local repository key failed:"
-msgstr "Stažení klíče lokálního archivu selhalo:"
+msgstr "Stažení klíče lokálního repositáře selhalo:"
 
 #. Type: select
 #. Description
 #. You should end this with a colon. A non-translatable variable
 #. follows with the mirror URL
-#: ../apt-setup-udeb.templates:7002
+#: ../apt-setup-udeb.templates:8002
 msgid ""
 "The installer failed to download the public key used to sign the local "
 "repository at ${MIRROR}:"
 msgstr ""
 "Instalačnímu programu se nepodařilo stáhnout veřejnou část klíče použitého "
-"pro podepsání lokálního archivu ${MIRROR}:"
+"pro podepsání lokálního repositáře ${MIRROR}:"
 
 #. Type: select
 #. Description
-#: ../apt-setup-udeb.templates:7002
+#: ../apt-setup-udeb.templates:8002
 msgid ""
 "This may be a problem with your network, or with the server hosting this "
 "key. You can choose to retry the download, or ignore the problem and "
@@ -119,14 +126,14 @@ msgid ""
 msgstr ""
 "Chyba může být v připojení k síti, nebo na straně serveru s klíčem. Můžete "
 "zkusit stažení opakovat, nebo problém ignorovat a pokračovat bez balíků z "
-"tohoto archivu."
+"tohoto repositáře."
 
 #. Type: error
 #. Description
 #. :sl2:
 #: ../apt-setup-udeb.templates:10001
 msgid "Cannot access repository"
-msgstr "Nelze se připojit k archivu"
+msgstr "Nelze se připojit k repositáři"
 
 #. Type: error
 #. Description
@@ -136,8 +143,8 @@ msgid ""
 "The repository on ${HOST} couldn't be accessed, so its updates will not be "
 "made available to you at this time. You should investigate this later."
 msgstr ""
-"Nelze se připojit k archivu na ${HOST}, což znamená, že aktualizace balíků "
-"nyní nebudou dostupné. Situaci byste měli později prověřit."
+"Nelze se připojit k repositáři na ${HOST}, což znamená, že aktualizace "
+"balíků nyní nebudou dostupné. Situaci byste měli později prověřit."
 
 #. Type: error
 #. Description
@@ -156,14 +163,7 @@ msgstr ""
 #. Translators: the *entire* string should be under 55 columns
 #. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
 #. :sl1:
-#. Type: multiselect
-#. Choices
-#. SEC_HOST, and PARTNER_HOST are host names (e.g.
-#. security.ubuntu.com)
-#. Translators: the *entire* string should be under 55 columns
-#. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
-#. :sl2:
-#: ../apt-setup-udeb.templates:11001 ../apt-setup-udeb.templates:12001
+#: ../apt-setup-udeb.templates:11001
 msgid "security updates (from ${SEC_HOST})"
 msgstr "bezpečnostní opravy (z ${SEC_HOST})"
 
@@ -178,12 +178,19 @@ msgid "release updates"
 msgstr "aktualizace vydání"
 
 #. Type: multiselect
-#. Description
+#. Choices
+#. SEC_HOST is a host name (e.g. security.debian.org)
+#. Translators: the *entire* string should be under 55 columns
+#. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
 #. :sl1:
+#: ../apt-setup-udeb.templates:11001
+msgid "backported software"
+msgstr "zpětně přenesený software"
+
 #. Type: multiselect
 #. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:11002 ../apt-setup-udeb.templates:12002
+#. :sl1:
+#: ../apt-setup-udeb.templates:11002
 msgid "Services to use:"
 msgstr "Používat služby:"
 
@@ -201,10 +208,7 @@ msgstr ""
 #. Type: multiselect
 #. Description
 #. :sl1:
-#. Type: multiselect
-#. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:11002 ../apt-setup-udeb.templates:12002
+#: ../apt-setup-udeb.templates:11002
 msgid ""
 "Security updates help to keep your system secured against attacks. Enabling "
 "this service is strongly recommended."
@@ -228,37 +232,46 @@ msgstr ""
 "předchozí stabilní vydání."
 
 #. Type: multiselect
-#. Choices
-#. SEC_HOST, and PARTNER_HOST are host names (e.g.
-#. security.ubuntu.com)
-#. Translators: the *entire* string should be under 55 columns
-#. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
-#. :sl2:
+#. Description
+#. :sl1:
+#: ../apt-setup-udeb.templates:11002
+msgid ""
+"Backported software are adapted from the development version to work with "
+"this release. Although this software has not gone through such complete "
+"testing as that contained in the release, it includes newer versions of some "
+"applications which may provide useful features. Enabling backports here does "
+"not cause any of them to be installed by default; it only allows you to "
+"manually select backports to use."
+msgstr ""
+"Zpětně přenesený software byl převzat z vývojové větve a upraven tak, aby "
+"pracoval v této verzi distribuce. Přestože tento software neprošel stejně "
+"důkladným testováním jako ostatní balíky, obsahuje novější verze některých "
+"aplikací, které mohou obsahovat nové užitečné vlastnosti. Povolení této "
+"možnosti neznamená, že se zpětně přenesený software začne instalovat "
+"automaticky - pouze vám později umožní ručně zvolit, který přenesený "
+"software chcete používat."
+
+#. Type: boolean
+#. Description
+#. :sl3:
 #: ../apt-setup-udeb.templates:12001
-#, fuzzy
-msgid "partner archive (from ${PARTNER_HOST}))"
-msgstr "bezpečnostní opravy (z ${SEC_HOST})"
+msgid "Enable source repositories in APT?"
+msgstr "Povolit v APT repositáře se zdroji?"
 
-#. Type: multiselect
+#. Type: boolean
 #. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:12002
-#, fuzzy
+#. :sl3:
+#: ../apt-setup-udeb.templates:12001
 msgid ""
-"Linux Mint has some additional services that provide updates to releases and add-"
-"on packages."
+"By default source repositories are listed in /etc/apt/sources.list (with "
+"appropriate \"deb-src\" lines) so that \"apt-get source\" works. However, if "
+"you don't need this feature, you can disable those entries and save some "
+"bandwidth during \"apt-get update\" operations."
 msgstr ""
-"Debian má dvě služby, které poskytují aktualizované balíky: bezpečnostní "
-"opravy a rychlé aktualizace."
-
-#. Type: multiselect
-#. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:12002
-msgid ""
-"The partner archive contains software provided by Canonical's partners as a "
-"service to Linux Mint users."
-msgstr ""
+"Ve výchozím nastavení jsou v /etc/apt/sources.list uvedeny repositáře se "
+"zdroji (řádky začínající „deb-src“), aby fungoval „apt-get source“. Pokud "
+"tuto možnost nepotřebujete, můžete tyto repositáře zakázat a ušetřit tak čas "
+"a kapacitu linky při „apt-get update“."
 
 #. Type: text
 #. Description
@@ -542,7 +555,7 @@ msgstr ""
 #. :sl1:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates:2001
 #: ../apt-mirror-setup.templates-ubuntu:1001
@@ -576,19 +589,19 @@ msgstr ""
 #. :sl1:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates:3001
 #: ../apt-mirror-setup.templates-ubuntu:2001
@@ -661,7 +674,7 @@ msgstr "Nebylo vybráno žádné síťové zrcadlo."
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:1001
 msgid "Use restricted software?"
@@ -669,7 +682,7 @@ msgstr "Používat omezený software?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:1001
 msgid ""
@@ -685,7 +698,7 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:2001
 msgid "Use software from the \"universe\" component?"
@@ -693,7 +706,7 @@ msgstr "Používat software z archivu „universe“?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:2001
 msgid ""
@@ -707,7 +720,7 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:3001
 msgid "Use software from the \"multiverse\" component?"
@@ -715,7 +728,7 @@ msgstr "Používat software z archivu „multiverse“?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:3001
 msgid ""
@@ -733,29 +746,29 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:4001
 msgid "Use software from the \"partner\" repository?"
-msgstr "Používat software z archivu „partner“?"
+msgstr "Používat software z repositáře „partner“?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:4001
 msgid ""
 "Some additional software is available from Canonical's \"partner\" "
-"repository. This software is not part of Linux Mint, but is offered by Canonical "
-"and the respective vendors as a service to Linux Mint users."
+"repository. This software is not part of Ubuntu, but is offered by Canonical "
+"and the respective vendors as a service to Ubuntu users."
 msgstr ""
-"Některý software je dostupný z partnerského archivu firmy Canonical. Tento "
-"software není součástí Linux Mint, ale je poskytován Canonicalem a příslušnými "
-"partnery jako služba uživatelům Linux Mint."
+"Některý software je dostupný z partnerského repositáře firmy Canonical. "
+"Tento software není součástí Ubuntu, ale je poskytován Canonicalem a "
+"příslušnými partnery jako služba uživatelům Ubuntu."
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:5001
 msgid "Use backported software?"
@@ -763,7 +776,7 @@ msgstr "Používat zpětně přenesený software?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:5001
 msgid ""
@@ -777,24 +790,35 @@ msgstr ""
 "testováním jako ostatní balíky, obsahuje novější verze některých aplikací, "
 "které mohou obsahovat nové užitečné vlastnosti."
 
-#~ msgid "Scanning the backports repository..."
-#~ msgstr "Prohledává se archiv se zpětně přeneseným softwarem..."
+#. Type: multiselect
+#. Choices
+#. SEC_HOST, and PARTNER_HOST are host names (e.g.
+#. security.ubuntu.com)
+#. Translators: the *entire* string should be under 55 columns
+#. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
+#. :sl2:
+#: ../apt-setup-udeb.templates:12001
+#, fuzzy
+msgid "partner archive (from ${PARTNER_HOST}))"
+msgstr "bezpečnostní opravy (z ${SEC_HOST})"
 
-#~ msgid "backported software"
-#~ msgstr "zpětně přenesený software"
+#. Type: multiselect
+#. Description
+#. :sl2:
+#: ../apt-setup-udeb.templates:12002
+#, fuzzy
+msgid ""
+"Ubuntu has some additional services that provide updates to releases and add-"
+"on packages."
+msgstr ""
+"Debian má dvě služby, které poskytují aktualizované balíky: bezpečnostní "
+"opravy a rychlé aktualizace."
 
-#~ msgid ""
-#~ "Backported software are adapted from the development version to work with "
-#~ "this release. Although this software has not gone through such complete "
-#~ "testing as that contained in the release, it includes newer versions of "
-#~ "some applications which may provide useful features. Enabling backports "
-#~ "here does not cause any of them to be installed by default; it only "
-#~ "allows you to manually select backports to use."
-#~ msgstr ""
-#~ "Zpětně přenesený software byl převzat z vývojové větve a upraven tak, aby "
-#~ "pracoval v této verzi distribuce. Přestože tento software neprošel stejně "
-#~ "důkladným testováním jako ostatní balíky, obsahuje novější verze "
-#~ "některých aplikací, které mohou obsahovat nové užitečné vlastnosti. "
-#~ "Povolení této možnosti neznamená, že se zpětně přenesený software začne "
-#~ "instalovat automaticky - pouze vám později umožní ručně zvolit, který "
-#~ "přenesený software chcete používat."
+#. Type: multiselect
+#. Description
+#. :sl2:
+#: ../apt-setup-udeb.templates:12002
+msgid ""
+"The partner archive contains software provided by Canonical's partners as a "
+"service to Ubuntu users."
+msgstr ""

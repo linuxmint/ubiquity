@@ -5,7 +5,7 @@ keyboard_present () {
 
     kern=`uname -r`
     case "$kern" in
-	1*|2.0*|2.1*|2.2*|2.3*|2.4*|2.5*)
+	2.0*|2.1*|2.2*|2.3*|2.4*|2.5*)
 	    # can't check keyboard presence
 	    return 0; 
 	    ;;

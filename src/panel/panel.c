@@ -30,7 +30,6 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <libindicator/indicator-ng.h>
-#include <libido/libido.h>
 
 #define ENTRY_DATA_NAME "indicator-custom-entry-data"
 
@@ -323,7 +322,6 @@ main(int argc, char* argv[]) {
 	/* Disable global menus */
 	g_unsetenv ("UBUNTU_MENUPROXY");
 	gtk_init(&argc, &argv);
-	ido_init ();
 	screen = gdk_screen_get_default();
 	win = gtk_window_new (GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_default_size (GTK_WINDOW (win), -1, 28);

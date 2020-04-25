@@ -25,7 +25,8 @@ import signal
 
 import debconf
 
-from ubiquity import misc, osextras, parted_server, plugin, validation
+from ubiquity import (misc, osextras, parted_server, plugin,
+                      telemetry, validation)
 from ubiquity.install_misc import archdetect
 
 
@@ -131,9 +132,12 @@ class PageGtk(PageBase):
         builder.connect_signals(self)
 
         self.page_ask = builder.get_object('stepPartAsk')
+        self.page_bitlocker = builder.get_object('stepBitlocker')
         self.page_auto = builder.get_object('stepPartAuto')
         self.page_advanced = builder.get_object('stepPartAdvanced')
         self.page_crypto = builder.get_object('stepPartCrypto')
+        self.bitlocker_label = builder.get_object('label_using_bitlocker')
+        self.bitlocker_label.connect('activate-link', self.on_link_clicked)
 
         # Get all objects + add internal child(s)
         all_widgets = builder.get_object_ids()
@@ -162,13 +166,13 @@ class PageGtk(PageBase):
         self.resize_max_size = None
         self.resize_pref_size = None
         self.resize_path = ''
-        self.auto_colors = ['0d95bc', '9ab87c', 'ebcb38', 'f36f13', 'c13018', '063951']
+        self.auto_colors = ['3465a4', '73d216', 'f57900']
         self.extra_options = {}
 
         self.partition_mount_combo.get_child().set_activates_default(True)
 
         self.plugin_optional_widgets = [self.page_auto, self.page_advanced,
-                                        self.page_crypto]
+                                        self.page_crypto, self.page_bitlocker]
         self.current_page = self.page_ask
 
         # Set some parameters that do not change between runs of the plugin
@@ -205,6 +209,9 @@ class PageGtk(PageBase):
 
         # Define a list to save grub imformation
         self.grub_options = []
+
+    def on_link_clicked(self, widget, uri):
+        misc.launch_uri(uri)
 
     def update_branded_strings(self):
         release = misc.get_release()
@@ -284,18 +291,76 @@ class PageGtk(PageBase):
                                       width, height)
             widget.show()
 
+    def on_advanced_features_clicked(self, widget):
+        from gi.repository import Gtk
+
+        # Save current state of advanced features
+        selected = None
+        crypto_selected = self.use_crypto.get_active()
+        for w in (self.advanced_features_radio_none,
+                  self.use_lvm, self.use_zfs):
+            if w.get_active():
+                selected = w
+                break
+
+        # Only show zfs when available
+        zpool_exists = os.path.exists('/sbin/zpool')
+        self.use_zfs.set_visible(zpool_exists)
+
+        dlg = self.advanced_features_dialog
+        dlg.show()
+        response = dlg.run()
+        dlg.hide()
+
+        if response == Gtk.ResponseType.OK:
+            label = ""
+            if self.advanced_features_radio_none.get_active():
+                label = self.controller.get_string('advanced_features_none_selected')
+            elif self.use_lvm.get_active():
+                label = self.controller.get_string('advanced_features_lvm_selected')
+                if self.use_crypto.get_active():
+                    label = self.controller.get_string('advanced_features_crypto_selected')
+            elif self.use_zfs.get_active():
+                label = self.controller.get_string('advanced_features_zfs_selected')
+            self.advanced_features_desc.set_text(label)
+        else:
+            # Restore previous selection
+            if selected:
+                selected.set_active(True)
+            self.use_crypto.set_active(crypto_selected)
+
+    def should_show_bitlocker_page(self):
+        return ('bitlocker' in self.extra_options or
+                os.environ.get('SHOW_BITLOCKER_UI', '0') == '1')
+
     def plugin_on_next_clicked(self):
         reuse = self.reuse_partition.get_active()
         replace = self.replace_partition.get_active()
         resize = self.resize_use_free.get_active()
         custom = self.custom_partitioning.get_active()
-        use_device = self.use_device.get_active()
+        use_zfs = self.use_zfs.get_active()
+        # ZFS is installed on entire drive.
+        use_device = self.use_device.get_active() or use_zfs
         biggest_free = 'biggest_free' in self.extra_options
         crypto = self.use_crypto.get_active()
         disks = self.extra_options.get('use_device', [])
         if disks:
             disks = disks[1]
         one_disk = len(disks) == 1
+
+        if self.current_page == self.page_bitlocker:
+            self.controller._wizard.do_reboot()
+            return True
+
+        if resize and self.should_show_bitlocker_page():
+            title = self.controller.get_string('ubiquity/text/bitlocker_header')
+            self.set_page_title(title)
+            self.current_page = self.page_bitlocker
+            self.controller.go_to_page(self.current_page)
+            self.controller.toggle_next_button('restart_button', suggested=True)
+            self.plugin_is_restart = True
+            self.plugin_is_install = False
+            return True
 
         if custom:
             self.set_page_title(self.custom_partitioning.get_label())
@@ -320,7 +385,9 @@ class PageGtk(PageBase):
         # Currently we support crypto only in use_disk
         # TODO dmitrij.ledkov 2012-07-25 no way to go back and return
         # to here? This needs to be addressed in the design document.
-        if crypto and use_device and self.current_page == self.page_ask:
+        if (crypto and use_device and
+                self.current_page == self.page_ask and
+                not use_zfs):
             self.show_crypto_page()
             self.plugin_is_install = one_disk
             return True
@@ -375,7 +442,9 @@ class PageGtk(PageBase):
         return False
 
     def plugin_on_back_clicked(self):
-        if self.current_page in [self.page_auto, self.page_crypto]:
+        if self.current_page in [self.page_auto,
+                                 self.page_bitlocker,
+                                 self.page_crypto]:
             title = self.controller.get_string(self.plugin_title)
             self.controller._wizard.page_title.set_markup(
                 '<span size="xx-large">%s</span>' % title)
@@ -447,7 +516,7 @@ class PageGtk(PageBase):
         elif (self.resize_use_free.get_active() and
                 'biggest_free' in self.extra_options):
             return True
-        elif (self.use_device.get_active() and
+        elif ((self.use_device.get_active() or self.use_zfs.get_active()) and
               len(self.extra_options['use_device'][1]) == 1):
             return True
         else:
@@ -466,10 +535,20 @@ class PageGtk(PageBase):
                 self.controller.toggle_next_button()
             self.plugin_is_install = about_to_install
 
-        # Supporting crypto and lvm in new installs only for now
+        # Advanced features in new installs only for now
         use_device = self.use_device.get_active()
-        self.use_lvm.set_sensitive(use_device)
-        self.use_crypto.set_sensitive(use_device)
+        self.advanced_features_button.set_sensitive(use_device)
+        self.advanced_features_selected.set_sensitive(use_device)
+
+    def advanced_features_option_changed(self, widget):
+        if not widget.get_active():
+            return
+
+        use_lvm = self.use_lvm.get_active()
+        if not use_lvm:
+            self.use_crypto.set_active(False)
+        self.use_crypto.set_sensitive(use_lvm)
+        self.use_crypto_desc.set_sensitive(use_lvm)
 
     def initialize_resize_mode(self):
         disk_id = self.get_current_disk_partman_id()
@@ -502,7 +581,7 @@ class PageGtk(PageBase):
                     '/usr/share/ubiquity')
                 icon.logo.set_from_file(os.path.join(
                     PATH, 'pixmaps', 'windows_square.png'))
-            elif 'linux mint' in title.lower():
+            elif 'buntu' in title.lower():
                 icon.set_property('icon-name', 'distributor-logo')
             else:
                 icon.set_property('icon-name', 'block-device')
@@ -651,19 +730,23 @@ class PageGtk(PageBase):
         ticked = False
         for option, name in option_to_widget:
             opt_widget = getattr(self, name)
-            opt_desc = getattr(self, name + '_desc')
+            opt_desc = getattr(self, name + '_desc', None)
 
             if option in options:
                 opt_widget.show()
-                opt_desc.show()
                 opt_widget.set_label(options[option].title)
-                opt_desc.set_markup(fmt % options[option].desc)
+
+                if opt_desc:
+                    opt_desc.show()
+                    opt_desc.set_markup(fmt % options[option].desc)
+
                 if not ticked and opt_widget.get_sensitive():
                     opt_widget.set_active(True)
                     ticked = True
             else:
                 opt_widget.hide()
-                opt_desc.hide()
+                if opt_desc:
+                    opt_desc.hide()
 
         # Process the default selection
         self.part_ask_option_changed(None)
@@ -673,42 +756,48 @@ class PageGtk(PageBase):
 
     def get_autopartition_choice(self):
         if self.reuse_partition.get_active():
-            return self.extra_options['reuse'][0][0], None
+            return self.extra_options['reuse'][0][0], None, 'reuse_partition'
 
         if self.replace_partition.get_active():
-            return self.extra_options['replace'][0], None
+            return (self.extra_options['replace'][0], None,
+                    'reinstall_partition')
 
         elif self.custom_partitioning.get_active():
-            return self.extra_options['manual'], None
+            return self.extra_options['manual'], None, 'manual'
 
         elif self.resize_use_free.get_active():
             if 'biggest_free' in self.extra_options:
                 choice = self.extra_options['biggest_free'][0]
-                return choice, None
+                return choice, None, 'resize_use_free'
             else:
                 disk_id = self.get_current_disk_partman_id()
                 choice = self.extra_options['resize'][disk_id][0]
-                return choice, '%s B' % self.resizewidget.get_size()
+                return (choice, '%s B' % self.resizewidget.get_size(),
+                        'resize_use_free')
 
-        elif self.use_device.get_active():
+        elif self.use_device.get_active() or self.use_zfs.get_active():
             def choose_recipe():
                 # TODO dmitrij.ledkov 2012-07-23: RAID recipe?
 
                 have_lvm = 'some_device_lvm' in self.extra_options
-                want_lvm = self.use_lvm.get_active()
+                want_lvm = (self.use_lvm.get_active() and
+                            not self.use_zfs.get_active())
 
                 have_crypto = 'some_device_crypto' in self.extra_options
-                want_crypto = self.use_crypto.get_active()
+                want_crypto = (self.use_crypto.get_active() and
+                               not self.use_zfs.get_active())
 
                 if not ((want_crypto and have_crypto) or
                         (want_lvm and have_lvm)):
-                    return self.extra_options['use_device'][0]
+                    return self.extra_options['use_device'][0], 'use_device'
 
                 if want_crypto:
-                    return self.extra_options['some_device_crypto']
+                    return (self.extra_options['some_device_crypto'],
+                            'use_crypto')
 
                 if want_lvm:
-                    return self.extra_options['some_device_lvm']
+                    return (self.extra_options['some_device_lvm'],
+                            'use_lvm')
 
                 # Something went horribly wrong, we should have returned
                 # earlier
@@ -717,9 +806,9 @@ class PageGtk(PageBase):
             i = self.part_auto_select_drive.get_active_iter()
             m = self.part_auto_select_drive.get_model()
             disk = m.get_value(i, 0)
-            choice = choose_recipe()
+            choice, method = choose_recipe()
             # Is the encoding necessary?
-            return choice, misc.utf8(disk, errors='replace')
+            return choice, misc.utf8(disk, errors='replace'), method
 
         else:
             raise AssertionError("Couldn't get autopartition choice")
@@ -987,7 +1076,7 @@ class PageGtk(PageBase):
                 # Bad things happen if the current size is out of bounds.
                 min_size_mb = min(min_size_mb, cur_size_mb)
                 max_size_mb = max(cur_size_mb, max_size_mb)
-        if max_size_mb is not 0:
+        if max_size_mb != 0:
             self.partition_size_spinbutton.set_adjustment(
                 Gtk.Adjustment(value=max_size_mb, upper=max_size_mb,
                                step_increment=1, page_increment=100))
@@ -1639,7 +1728,7 @@ class Page(plugin.Plugin):
         if (self.db.get('ubiquity/install_bootloader') == 'true' and
                 'UBIQUITY_NO_BOOTLOADER' not in os.environ):
             arch, subarch = archdetect()
-            if arch in ('amd64', 'i386'):
+            if arch in ('amd64', 'arm64', 'i386'):
                 self.install_bootloader = True
                 self.ui.show_bootloader_options()
 
@@ -2039,7 +2128,7 @@ class Page(plugin.Plugin):
                 self.thaw_choices('choose_partition')
 
     def calculate_reuse_option(self):
-        '''Takes the current Linux Mint version on disk and the release we're about
+        '''Takes the current Ubuntu version on disk and the release we're about
         to install as parameters.'''
 
         # TODO: verify that ubuntu is the same partition as one of the ones
@@ -2053,7 +2142,7 @@ class Page(plugin.Plugin):
                 final = current_version in ubuntu
                 try:
                     new_version = re.split(
-                        ".*([0-9]{2}\.[0-9]{2}).*", release.version)
+                        r".*([0-9]{2}\.[0-9]{2}).*", release.version)
 
                     if current_version == '' or len(new_version) < 2:
                         return None
@@ -2064,7 +2153,7 @@ class Page(plugin.Plugin):
                     return None
 
                 if current_version == new_version and final:
-                    # "Windows (or Mac, ...) and the current version of Linux Mint
+                    # "Windows (or Mac, ...) and the current version of Ubuntu
                     # are present" case
                     q = 'ubiquity/partitioner/ubuntu_reinstall'
                     self.db.subst(q, 'CURDISTRO', ubuntu)
@@ -2072,20 +2161,6 @@ class Page(plugin.Plugin):
                     desc = self.extended_description(q)
                     return PartitioningOption(title, desc)
 
-                if current_version <= new_version:
-                    # "Windows (or Mac, ...) and an older version of Linux Mint are
-                    # present" case
-
-                    # Only allow reuse with newer install media
-                    # also block reuse when invalid version number or codename
-
-                    q = 'ubiquity/partitioner/ubuntu_upgrade'
-                    self.db.subst(q, 'CURDISTRO', ubuntu)
-                    self.db.subst(
-                        q, 'VER', "%s %s" % (release.name, release.version))
-                    title = self.description(q)
-                    desc = self.extended_description(q)
-                    return PartitioningOption(title, desc)
         return None
 
     def calculate_autopartitioning_heading(self, operating_systems,
@@ -2117,7 +2192,7 @@ class Page(plugin.Plugin):
                     if not system.startswith('Windows Recovery'):
                         operating_systems.append(system)
         ubuntu_systems = [x for x in operating_systems
-                          if x.lower().find('linux mint') != -1]
+                          if x.lower().find('buntu') != -1]
         return (operating_systems, ubuntu_systems)
 
     def calculate_autopartitioning_options(self, operating_systems,
@@ -2125,10 +2200,10 @@ class Page(plugin.Plugin):
         '''
         There are six possibilities we have to consider:
         - Just Windows (or Mac, ...) is present
-        - An older version of Linux Mint is present
+        - An older version of Ubuntu is present
         - There are no operating systems present
-        - Windows (or Mac, ...) and an older version of Linux Mint are present
-        - Windows (or Mac, ...) and the current version of Linux Mint are present
+        - Windows (or Mac, ...) and an older version of Ubuntu are present
+        - Windows (or Mac, ...) and the current version of Ubuntu are present
         - There are multiple operating systems present
 
         We leave ordering and providing icons for each option to the frontend,
@@ -2148,11 +2223,12 @@ class Page(plugin.Plugin):
             pass
         elif ('resize' in self.extra_options and
               'biggest_free' in self.extra_options):
-                self.debug('Partman: dropping resize option.')
-                del self.extra_options['resize']
+            self.debug('Partman: dropping resize option.')
+            del self.extra_options['resize']
 
         resize_option = ('resize' in self.extra_options or
                          'biggest_free' in self.extra_options)
+        bitlocker = 'bitlocker' in self.extra_options
 
         # Irrespective of os_counts
         # We always have the manual partitioner, and it always has the same
@@ -2182,7 +2258,7 @@ class Page(plugin.Plugin):
         elif os_count == 1:
             system = operating_systems[0]
             if len(ubuntu_systems) == 1:
-                # "An older version of Linux Mint is present" case
+                # "An older version of Ubuntu is present" case
                 if 'replace' in self.extra_options:
                     q = 'ubiquity/partitioner/ubuntu_format'
                     self.db.subst(q, 'CURDISTRO', system)
@@ -2201,7 +2277,7 @@ class Page(plugin.Plugin):
                 options['use_device'] = opt
 
                 if wubi_option:
-                    # We don't have a Wubi-like solution for Linux Mint yet (though
+                    # We don't have a Wubi-like solution for Ubuntu yet (though
                     # wubi_option is also a check for ntfs).
                     pass
                 elif resize_option:
@@ -2229,8 +2305,8 @@ class Page(plugin.Plugin):
                 opt = PartitioningOption(title, desc)
                 options['use_device'] = opt
 
-                if wubi_option or resize_option:
-                    if resize_option:
+                if wubi_option or resize_option or bitlocker:
+                    if resize_option or bitlocker:
                         q = 'ubiquity/partitioner/single_os_resize'
                     else:
                         q = 'ubiquity/partitioner/ubuntu_inside'
@@ -2276,7 +2352,7 @@ class Page(plugin.Plugin):
 
             if wubi_option:
                 pass
-            elif resize_option:
+            elif resize_option or bitlocker:
                 q = 'ubiquity/partitioner/multiple_os_resize'
                 self.db.subst(q, 'DISTRO', release.name)
                 title = self.description(q)
@@ -2378,6 +2454,9 @@ class Page(plugin.Plugin):
 
                         if partition[4] == 'ntfs':
                             ntfs_partitions.append(partition[5])
+
+                        if partition[4] == 'BitLocker':
+                            self.extra_options['bitlocker'] = True
 
                     layout[disk] = ret
                     if try_for_wubi and partition_table_full:
@@ -3166,9 +3245,15 @@ class Page(plugin.Plugin):
                 raise AssertionError("Arrived at %s unexpectedly" % question)
 
         elif question.startswith('partman/confirm'):
+            description = self.extended_description(question)
+
+            if hasattr(self.ui, "use_zfs"):
+                if (self.ui.use_zfs.get_active() and self.ui.use_device.get_active()):
+                    description = self.update_zfs_description(self.extended_description(question))
+
             response = self.frontend.question_dialog(
                 self.description(question),
-                self.extended_description(question),
+                description,
                 ('ubiquity/text/go_back', 'ubiquity/text/continue'))
             if response == 'ubiquity/text/continue':
                 self.db.set('ubiquity/partman-confirm', question[8:])
@@ -3244,15 +3329,64 @@ class Page(plugin.Plugin):
 
         return plugin.Plugin.run(self, priority, question)
 
+    def update_zfs_description(self, description):
+        """Update the description in the partman dialog to display custom
+           messages"""
+
+        disks = re.findall(r"\(([^)]+)\)", description)
+        device = ""
+        if disks:
+            device = "/dev/" + disks[0]
+
+        misc.execute_root('/usr/share/ubiquity/zsys-setup', 'layout', device)
+
+        zsys_layout = '/tmp/zsys-setup/layout'
+        lines = description.splitlines()
+        # Remove the last line of the output from partman which corresponds to
+        # the ext4 partition
+        del(lines[-1])
+
+        if not os.path.exists(zsys_layout):
+            return description
+
+        with open(zsys_layout, 'r') as f:
+            layout = f.readlines()
+
+        partlabel = misc.utf8(self.db.metaget('ubiquity/text/partman_confirm_zfs', 'extended_description'),
+                              errors='replace')
+        for line in layout:
+            if not line.startswith("part:"):
+                continue
+
+            line = line.strip()
+            (t, f, u, p) = line.split(':')
+
+            lines.append("    " + partlabel % {
+                'partid': os.path.basename(p),
+                'parttype': f,
+                'partusage': u})
+
+        return "\n".join(lines)
+
     def ok_handler(self):
         if self.install_bootloader and not self.is_bootdev_preseeded():
             self.preseed('grub-installer/bootdev', self.ui.get_grub_choice())
 
         if self.current_question.endswith('automatically_partition'):
-            (autopartition_choice, self.extra_choice) = \
+            (autopartition_choice, self.extra_choice, method) = \
                 self.ui.get_autopartition_choice()
             self.preseed_as_c(self.current_question, autopartition_choice,
                               seen=False)
+            telemetry_method = method
+            try:
+                if self.ui.use_zfs.get_active() and method == 'use_device':
+                    telemetry_method = "use_zfs"
+            except AttributeError:  # zfs not implemented on this frontend
+                pass
+
+            self.db.set('ubiquity/use_zfs',
+                        'true' if telemetry_method == 'use_zfs' else 'false')
+            telemetry.get().set_partition_method(telemetry_method)
             # Don't exit partman yet.
         else:
             self.finish_partitioning = True

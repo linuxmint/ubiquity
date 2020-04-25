@@ -1,23 +1,119 @@
 Source: ubiquity
 Section: admin
 Priority: optional
-Maintainer: Linux Mint Installer Team <ubuntu-installer@lists.ubuntu.com>
-Uploaders: Colin Watson <cjwatson@ubuntu.com>, Evan Dandrea <ev@ubuntu.com>
-Build-Depends: adwaita-icon-theme, apt, autopoint, bf-utf-source, check, dash, dctrl-tools, debconf-utils, debhelper (>= 9), devio, dh-autoreconf, dh-di (>= 3), dh-systemd, dpkg-dev (>= 1.15.7), gir1.2-nma-1.0, gir1.2-soup-2.4, gir1.2-timezonemap-1.0, gir1.2-webkit2-4.0, gir1.2-xkl-1.0, gobject-introspection, imagemagick, intltool (>= 0.40.0), intltool-debian (>= 0.30+20040212), iso-codes, isoquery, keymapper (>= 0.5.3-7), libbogl-dev, libcairo2-dev, libdebconfclient0-dev (>= 0.68), libdebian-installer4-dev (>= 0.76), libgirepository1.0-dev, libglib2.0-dev, libgtk-3-dev (>= 3.20), libido3-0.1-dev, libindicator3-dev, libiw-dev (>= 27+28pre9), liblocale-gettext-perl, libparted-dev (>= 2.2), librsvg2-bin, libsubunit-dev, linux-base (>= 3.2), locales, pep8, pkg-config, po-debconf (>= 1.0), pyflakes3 (>= 0.7.2), python-gi-dev, python-scour, python3-all (>= 3.1), python3-apt (>= 0.7.100.3~), python3-cairo, python3-dbus, python3-debconf, python3-gi, python3-gi-cairo, python3-icu (>= 1.0), python3-mock (>= 0.7.0), python3-pam, rename, tzdata, ubuntu-artwork, udev, wget, xkb-data (>= 0.9), xkb-data-i18n, xvfb, gawk
+Maintainer: Ubuntu Installer Team <ubuntu-installer@lists.ubuntu.com>
+Uploaders: Colin Watson <cjwatson@ubuntu.com>,
+           Evan Dandrea <ev@ubuntu.com>
+Build-Depends: adwaita-icon-theme,
+               apt,
+               autopoint,
+               bf-utf-source,
+               check,
+               dctrl-tools,
+               debconf-utils,
+               debhelper (>= 9),
+               dh-autoreconf,
+               dh-di (>= 3),
+               dh-python,
+               dh-systemd,
+               dpkg-dev (>= 1.15.7),
+               gir1.2-nma-1.0,
+               gir1.2-soup-2.4,
+               gir1.2-timezonemap-1.0,
+               gir1.2-webkit2-4.0,
+               gir1.2-xkl-1.0,
+               gobject-introspection,
+               imagemagick,
+               intltool (>= 0.40.0),
+               intltool-debian (>= 0.30+20040212),
+               iso-codes,
+               isoquery,
+               keymapper (>= 0.5.3-7),
+               libblkid-dev,
+               libbogl-dev,
+               libcairo2-dev,
+               libdebconfclient0-dev (>= 0.68),
+               libdebian-installer4-dev (>= 0.76),
+               libgirepository1.0-dev,
+               libglib2.0-dev,
+               libgtk-3-dev (>= 3.20),
+               libindicator3-dev,
+               libiw-dev (>= 27+28pre9),
+               liblocale-gettext-perl,
+               libparted-dev (>= 2.2),
+               librsvg2-bin,
+               libsubunit-dev,
+               locales,
+               pep8,
+               pkg-config,
+               po-debconf (>= 1.0),
+               pyflakes3 (>= 0.7.2),
+               python-gi-dev,
+               python3-all (>= 3.1),
+               python3-apt (>= 0.7.100.3~),
+               python3-cairo,
+               python3-dbus,
+               python3-debconf,
+               python3-gi,
+               python3-gi-cairo,
+               python3-icu (>= 1.0),
+               python3-mock (>= 0.7.0),
+               python3-pam,
+               qrencode,
+               rename,
+               scour,
+               tzdata,
+               ubuntu-artwork,
+               udev,
+               wget,
+               xkb-data (>= 0.9),
+               xvfb
 Standards-Version: 3.9.4
 X-Python3-Version: >= 3.1
 XS-Testsuite: autopkgtest
-Vcs-Bzr: http://bazaar.launchpad.net/~ubuntu-installer/ubiquity/trunk
+Vcs-Git: https://git.launchpad.net/ubiquity
+Vcs-Browser: https://code.launchpad.net/~ubuntu-installer/ubiquity/+git/ubiquity/+ref/master
 
 Package: ubiquity
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, ${python3:Depends}, python3-debconf, ubiquity-frontend-${mangled-version}, ubiquity-artwork-${mangled-version}, laptop-detect, lsb-release, ubiquity-casper, python3-apt (>= 0.7.100.3~), ${console-setup-depends}, iso-codes, passwd, adduser, os-prober, rdate, ntfs-3g (>= 1:2011.1.15AR.4+2011.4.12-1) [any-alpha any-amd64 any-i386], ecryptfs-utils, cryptsetup, policykit-1, python3-icu (>= 1.0), python3-pam, language-selector-common (>= 0.4.16), archdetect-deb, dpkg-repack, apt-clone, wget, grub-common [any-amd64 any-i386], dbus-x11, sbsigntool [amd64]
-Recommends: grub-pc [any-amd64 any-i386] | grub [any-amd64 any-i386] | grub-efi [any-amd64 any-i386], flash-kernel [armel armhf], u-boot-tools [armel armhf], yaboot [powerpc], hfsutils [powerpc], dmraid, btrfs-tools, ubuntu-drivers-common, lvm2
-Conflicts: ubuntu-express, espresso, espresso-utils, espresso-locale, espresso-keyboard-setup, espresso-kbd-chooser, espresso-timezone, user-setup (<< 0.05ubuntu6), partman, espresso-grub, espresso-yaboot
-Replaces: ubuntu-express, espresso, espresso-utils, espresso-locale, espresso-keyboard-setup, espresso-kbd-chooser, espresso-timezone, user-setup (<< 0.05ubuntu6), partman, espresso-grub, espresso-yaboot, ubiquity-frontend-gtk (<< 2.3.8)
-Description: Linux Mint live CD installer
+Depends: adduser,
+         apt-clone,
+         archdetect-deb,
+         cryptsetup,
+         dbus-x11,
+         dpkg-repack,
+         grub-common [any-amd64 any-i386 arm64],
+         iso-codes,
+         language-selector-common (>= 0.4.16),
+         laptop-detect,
+         lsb-release,
+         ntfs-3g (>= 1:2011.1.15AR.4+2011.4.12-1) [any-alpha any-amd64 any-i386 any-arm64],
+         os-prober,
+         passwd,
+         policykit-1,
+         python3-apt (>= 0.7.100.3~),
+         python3-debconf,
+         python3-icu (>= 1.0),
+         python3-pam,
+         rdate,
+         sbsigntool [amd64],
+         ubiquity-artwork-${mangled-version},
+         ubiquity-casper,
+         ubiquity-frontend-${mangled-version},
+         wget,
+         dctrl-tools,
+         ${console-setup-depends},
+         ${misc:Depends},
+         ${python3:Depends},
+         ${shlibs:Depends}
+Recommends: btrfs-progs,
+            dmraid,
+            grub-pc [any-amd64 any-i386] | grub [any-amd64 any-i386] | grub-efi-amd64 [any-amd64] | grub-efi-arm64 [arm64] | grub-efi-ia32 [any-i386],
+            lvm2,
+            ubuntu-drivers-common (>= 0.6.3)
+Description: Ubuntu live CD installer
  This is a simple live CD installer designed to integrate well with Debian-
- and Linux Mint-based systems, and to reuse code from d-i for ease of
+ and Ubuntu-based systems, and to reuse code from d-i for ease of
  maintenance.
  .
  Installing this package on a normal system is unlikely to be useful.
@@ -25,38 +121,64 @@ Description: Linux Mint live CD installer
 Package: ubiquity-ubuntu-artwork
 Architecture: all
 Depends: ${misc:Depends}
-Conflicts: ubuntu-express-ubuntu-artwork, ubuntu-express-ubuntu-doc, espresso-ubuntu-artwork, espresso-ubuntu-doc, ubiquity-ubuntu-doc
-Replaces: ubuntu-express-ubuntu-artwork, ubuntu-express-ubuntu-doc, espresso-ubuntu-artwork, espresso-ubuntu-doc, ubiquity-ubuntu-doc, ubiquity (<< 1.13.0)
 Provides: ubiquity-artwork-${mangled-version}
-Description: Linux Mint artwork for Ubiquity live installer
- This package provides Linux Mint-themed user interface artwork, help files, and
+Description: Ubuntu artwork for Ubiquity live installer
+ This package provides Ubuntu-themed user interface artwork, help files, and
  user interface text for the Ubiquity live CD installer.
 
-#Package: ubiquity-guadalinex-artwork
-#Architecture: all
-#Depends: ${misc:Depends}
-#Conflicts: ubuntu-express-guadalinex-artwork, ubuntu-express-guadalinex-doc, espresso-guadalinex-artwork, espresso-guadalinex-doc, ubiquity-guadalinex-doc
-#Replaces: ubuntu-express-guadalinex-artwork, ubuntu-express-guadalinex-doc, espresso-guadalinex-artwork, espresso-guadalinex-doc, ubiquity-guadalinex-doc
-#Provides: ubiquity-artwork-${mangled-version}
-#Description: Guadalinex artwork for Ubiquity live installer
-# This package provides Guadalinex-themed user interface artwork, help
-# files, and user interface text for the Ubiquity live CD installer.
-
 Package: ubiquity-frontend-gtk
-Architecture: amd64 arm64 armhf i386 powerpc ppc64el
+Architecture: amd64 arm64 armhf i386 ppc64el
 Pre-Depends: ${misc:Pre-Depends}
-Depends: ${shlibs:Depends}, ${misc:Depends}, ${python3:Depends}, ubiquity (= ${binary:Version}), python3-dbus, gir1.2-gtk-3.0 (>= 3.20), gir1.2-nma-1.0, gir1.2-pango-1.0, gir1.2-soup-2.4, gir1.2-vte-2.91, gir1.2-webkit2-4.0, iso-codes, metacity | marco | xfwm4 | matchbox-window-manager | lubuntu-default-settings | openbox | gnome-shell | budgie-core, gir1.2-xkl-1.0, gir1.2-timezonemap-1.0, python3-gi, python3-cairo, python3-gi-cairo, gir1.2-appindicator3-0.1, busybox-static | busybox
+Depends: busybox-static | busybox,
+         gir1.2-gtk-3.0 (>= 3.20),
+         gir1.2-nma-1.0,
+         gir1.2-pango-1.0,
+         gir1.2-soup-2.4,
+         gir1.2-timezonemap-1.0,
+         gir1.2-vte-2.91,
+         gir1.2-webkit2-4.0,
+         gir1.2-xkl-1.0,
+         iso-codes,
+         metacity | marco | xfwm4 | matchbox-window-manager | lubuntu-default-settings | openbox | gnome-shell | budgie-core,
+         python3-cairo,
+         python3-dbus,
+         python3-gi,
+         python3-gi-cairo,
+         sensible-utils,
+         ubiquity (= ${binary:Version}),
+         ${misc:Depends},
+         ${python3:Depends},
+         ${shlibs:Depends}
 Suggests: gnome-control-center | feh
-Conflicts: ubuntu-express-frontend-gtk, espresso-frontend-gtk, ubiquity (<< 2.4.3)
-Replaces: ubuntu-express-frontend-gtk, espresso-frontend-gtk, ubiquity (<< 2.4.3)
-Provides: ubiquity-frontend-${mangled-version}, indicator-renderer
+Provides: ubiquity-frontend-${mangled-version}
 Description: GTK+ frontend for Ubiquity live installer
  This package provides a GTK+-based user interface frontend for the Ubiquity
  live CD installer.
 
+Package: ubiquity-frontend-gtk-panel
+Architecture: amd64 arm64 armhf i386 ppc64el
+Depends: ubiquity-frontend-gtk (= ${binary:Version}),
+         ${misc:Depends},
+         ${shlibs:Depends}
+Breaks: ubiquity-frontend-gtk (<< 19.10.1~)
+Replaces: ubiquity-frontend-gtk (<< 19.10.1~)
+Provides: indicator-renderer
+Description: GTK+ frontend panel implementation for ubiquity-dm UI
+ This package suplements ubiquity-dm GTK+ with a panel that renders
+ indicators for the Ubiquity live CD installer.
+
 Package: ubiquity-frontend-kde
 Architecture: all
-Depends: ${misc:Depends}, ${python3:Depends}, ubiquity (= ${binary:Version}), python3-pyqt5, kde-window-manager | kwin, xauth, python3-dbus, python3-dbus.mainloop.pyqt5, python3-pyqt5.qtwebkit, python3-pyqt5.qtsvg
+Depends: kde-window-manager | kwin,
+         python3-dbus,
+         python3-dbus.mainloop.pyqt5,
+         python3-pyqt5,
+         python3-pyqt5.qtsvg,
+         python3-pyqt5.qtwebkit,
+         ubiquity (= ${binary:Version}),
+         xauth,
+         ${misc:Depends},
+         ${python3:Depends}
 Provides: ubiquity-frontend-${mangled-version}
 Description: KDE frontend for Ubiquity live installer
  This package provides a KDE-based user interface frontend for the Ubiquity
@@ -64,7 +186,12 @@ Description: KDE frontend for Ubiquity live installer
 
 Package: ubiquity-frontend-debconf
 Architecture: any
-Depends: ${misc:Depends}, ${python3:Depends}, ubiquity (= ${binary:Version}), debconf (>= 1.5.24ubuntu2) | cdebconf, bogl-bterm (>= 0.1.18-2ubuntu4), tasksel
+Depends: bogl-bterm (>= 0.1.18-2ubuntu4),
+         debconf (>= 1.5.24ubuntu2) | cdebconf,
+         tasksel,
+         ubiquity (= ${binary:Version}),
+         ${misc:Depends},
+         ${python3:Depends}
 Provides: ubiquity-frontend-${mangled-version}
 Description: debconf frontend for the Ubiquity live installer
  This package provides a debconf-based user interface frontend for the
@@ -72,9 +199,10 @@ Description: debconf frontend for the Ubiquity live installer
 
 Package: oem-config
 Architecture: all
-Depends: ${misc:Depends}, ubiquity (= ${binary:Version}), oem-config-frontend-${mangled-version}, procps
-Conflicts: oem-config-keyboard, oem-config-locale, oem-config-timezone
-Replaces: oem-config-keyboard, oem-config-locale, oem-config-timezone, oem-config-gtk (<< 1.54.13), oem-config-kde (<< 1.54.13)
+Depends: oem-config-frontend-${mangled-version},
+         procps,
+         ubiquity (= ${binary:Version}),
+         ${misc:Depends}
 Description: Perform end-user configuration after initial OEM installation
  The oem-config script re-asks a number of questions that are normally asked
  during installation, and reconfigures the system accordingly. This allows a
@@ -84,8 +212,11 @@ Description: Perform end-user configuration after initial OEM installation
 
 Package: oem-config-gtk
 Architecture: all
-Depends: ${misc:Depends}, oem-config (= ${source:Version}), ubiquity-frontend-gtk (= ${source:Version}), python3-aptdaemon.gtk3widgets, aptdaemon
-Replaces: oem-config (<< 1.0)
+Depends: aptdaemon,
+         oem-config (= ${source:Version}),
+         python3-aptdaemon.gtk3widgets,
+         ubiquity-frontend-gtk (= ${source:Version}),
+         ${misc:Depends}
 Provides: oem-config-frontend-${mangled-version}
 Description: GTK+ frontend for end-user post-OEM-install configuration
  The oem-config script re-asks a number of questions that are normally asked
@@ -98,8 +229,9 @@ Description: GTK+ frontend for end-user post-OEM-install configuration
 
 Package: oem-config-kde
 Architecture: all
-Depends: ${misc:Depends}, oem-config (= ${source:Version}), ubiquity-frontend-kde (= ${source:Version})
-Replaces: oem-config (<< 1.0)
+Depends: oem-config (= ${source:Version}),
+         ubiquity-frontend-kde (= ${source:Version}),
+         ${misc:Depends}
 Provides: oem-config-frontend-${mangled-version}
 Description: KDE frontend for end-user post-OEM-install configuration
  The oem-config script re-asks a number of questions that are normally asked
@@ -112,7 +244,9 @@ Description: KDE frontend for end-user post-OEM-install configuration
 
 Package: oem-config-debconf
 Architecture: all
-Depends: ${misc:Depends}, oem-config (= ${source:Version}), ubiquity-frontend-debconf (= ${source:Version})
+Depends: oem-config (= ${source:Version}),
+         ubiquity-frontend-debconf (= ${source:Version}),
+         ${misc:Depends}
 Provides: oem-config-frontend-${mangled-version}
 Description: debconf frontend for end-user post-OEM-install configuration
  The oem-config script re-asks a number of questions that are normally asked
@@ -129,20 +263,25 @@ Package-Type: udeb
 Section: debian-installer
 Priority: standard
 Architecture: all
-Depends: cdebconf-udeb (>= 0.75), main-menu (>= 1.03)
+Depends: cdebconf-udeb (>= 0.75),
+         main-menu (>= 1.03)
 Description: enter OEM mode if requested
 
 Package: oem-config-udeb
 Package-Type: udeb
 Section: debian-installer
 Architecture: all
-Depends: oem-config-check, cdebconf-udeb
+Depends: cdebconf-udeb,
+         oem-config-check
 XB-Installer-Menu-Item: 2350
 Description: Prepare for OEM configuration
 
 Package: oem-config-remaster
 Architecture: all
-Depends: ${misc:Depends}, genisoimage, gnupg, apt-utils
+Depends: apt-utils,
+         genisoimage,
+         gnupg,
+         ${misc:Depends}
 Description: Remaster a CD with additional oem-config functionality
  This script remasters a CD with additional packages and optional oem-config
  preseed data.

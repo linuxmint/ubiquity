@@ -33,7 +33,7 @@ import textwrap
 
 import debconf
 
-from ubiquity import i18n
+from ubiquity import misc, i18n, telemetry
 from ubiquity.components import install, plugininstall
 from ubiquity.frontend.base import BaseFrontend, Controller
 from ubiquity.plugin import Plugin
@@ -87,12 +87,22 @@ class Wizard(BaseFrontend):
         if 'DEBIAN_HAS_FRONTEND' not in os.environ:
             BaseFrontend.stop_debconf(self)
 
+    def do_reboot(self):
+        misc.execute_root("reboot")
+
+    def do_shutdown(self):
+        misc.execute_root("poweroff")
+
     def run(self):
         if os.getuid() != 0:
             print(textwrap.fill(
                 'This program must be run with administrative privileges, and '
                 'cannot continue without them.'), file=sys.stderr)
             sys.exit(1)
+
+        telemetry.get().set_installer_type('DebConf')
+        telemetry.get().set_is_oem(self.oem_config)
+        telemetry.get().add_stage(telemetry.START_INSTALL_STAGE_TAG)
 
         self.pagesindex = 0
         self.pageslen = 0
@@ -152,6 +162,7 @@ class Wizard(BaseFrontend):
                             "Install failed with exit code %s; see "
                             "/var/log/syslog" % ret)
 
+            telemetry.get().done(self.db)
             return 0
         else:
             return 10

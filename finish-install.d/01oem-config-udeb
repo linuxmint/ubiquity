@@ -28,3 +28,6 @@ chroot /target debconf-set-selections <<EOF || true
 oem-config debian-installer/locale select $LOCALE
 oem-config debian-installer/framebuffer boolean $FRAMEBUFFER
 EOF
+# Disable ubiquity.service in the installed system as it conflicts with
+# getty@tty1.service which we want to run.
+chroot /target systemctl mask ubiquity.service

@@ -43,7 +43,7 @@ OEM = False
 # need the dbfilter for that get.
 
 class PreparePageBase(plugin.PluginUI):
-    plugin_title = 'mint:Drivers and codecs'
+    plugin_title = 'mint:Multimedia codecs'
     download_updates = True
     download_updates_enabled = True
 
@@ -211,6 +211,9 @@ class PageGtk(PreparePageBase):
     def plugin_translate(self, lang):
         PreparePageBase.plugin_translate(self, lang)
         release = misc.get_release()
+
+        self.prepare_nonfree_software.set_label(dgettext("mintreport", "Install multimedia codecs"))
+        self.prepare_foss_disclaimer.set_label(dgettext("mintreport", "Multimedia codecs are required to play some video formats and to properly render some websites."))
 
         from gi.repository import Gtk
         for widget in [self.prepare_download_updates,

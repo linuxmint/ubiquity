@@ -232,8 +232,8 @@ class PageGtk(PreparePageBase):
 
         release = misc.get_release()
 
-        self.prepare_nonfree_software.set_label(dgettext("mintreport", "Install multimedia codecs"))
-        self.prepare_foss_disclaimer.set_label(dgettext("mintreport", "Multimedia codecs are required to play some video formats and to properly render some websites."))
+        self.prepare_nonfree_software.set_label(gettext.dgettext("mintreport", "Install multimedia codecs"))
+        self.prepare_foss_disclaimer.set_label(gettext.dgettext("mintreport", "Multimedia codecs are required to play some video formats and to properly render some websites."))
 
         from gi.repository import Gtk
         for widget in [self.prepare_download_updates,

@@ -388,29 +388,6 @@ autologin-user-timeout=0"
 			$log $chroot $ROOT update-gconf-defaults || true
 		fi
 	fi
-	if [ -z "$OVERRIDE_ALREADY_ENCRYPTED_SWAP" ] && \
-	   [ -n "$ENCRYPT_HOME_OPT" ] && [ -e $ROOT/etc/crypttab ]; then
-		# Zero out all encrypted swap partitions.  It is assumed that
-		# passwords are not used beyond this point in the install.
-		# cryptswap0 /dev/sda5 /dev/urandom swap,cipher=aes-cbc-essiv:sha256
-		# Ideally we would set up a new progress bar here, but we're
-		# inside finish-install's and cdebconf doesn't support nested
-		# progress bars.
-		db_progress INFO user-setup/progress/wipe-swap
-		while read name device source options; do
-			if echo "$options" | grep -q "swap"; then
-				if swapoff $device; then
-					if [ ! -b $device ]; then
-						ONE_MEG=$((1024*1024))
-						size=$(($(stat -c %s ${device})/${ONE_MEG}))
-						dd if=/dev/zero of=$device bs=${ONE_MEG} count=$size 2>/dev/null || true
-					else
-						dd if=/dev/zero of=$device bs=16M 2>/dev/null || true
-					fi
-				fi
-			fi
-		done < $ROOT/etc/crypttab
-	fi
 
 else
 	# Just in case, clear any preseeded user password from the database

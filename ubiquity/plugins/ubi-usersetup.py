@@ -849,8 +849,7 @@ class Page(plugin.Plugin):
             # TODO: It would be neater to use a wrapper script.
             command = [
                 'sh', '-c',
-                '/usr/lib/ubiquity/user-setup/user-setup-ask /target && '
-                '/usr/share/ubiquity/user-setup-encrypted-swap',
+                '/usr/lib/ubiquity/user-setup/user-setup-ask /target',
             ]
             return command, questions
 
@@ -934,8 +933,6 @@ class Install(plugin.InstallPlugin):
             command = [
                 '/usr/lib/ubiquity/user-setup/user-setup-apply', '/target']
             environ = {}
-            if os.path.exists('/var/lib/ubiquity/encrypted-swap'):
-                environ['OVERRIDE_ALREADY_ENCRYPTED_SWAP'] = '1'
         return command, [], environ
 
     def error(self, priority, question):

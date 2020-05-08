@@ -31,7 +31,7 @@ import re
 
 import debconf
 
-from ubiquity import misc, plugin, validation
+from ubiquity import misc, plugin, validation, i18n
 
 
 NAME = 'usersetup'

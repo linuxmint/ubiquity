@@ -231,8 +231,7 @@ class PageGtk(PageBase):
             self.hostname_edited = True
             self.login_vbox.hide()
             # The UserSetup component takes care of preseeding passwd/user-uid.
-            misc.execute_root('apt-install', 'oem-config-gtk',
-                                             'oem-config-slideshow-ubuntu')
+            misc.execute_root('apt-install', 'oem-config-gtk')
 
         self.resolver_ok = True
         self.plugin_widgets = self.page

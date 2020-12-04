@@ -371,7 +371,18 @@ def grub_default(boot=None):
 
     devices = grub_device_map()
     target = None
-    if devices:
+
+    if boot is not None:
+        for device in devices:
+            try:
+                candidate = os.path.realpath(device.split('\t')[1])
+            except (IndexError, OSError):
+                pass
+            if candidate == boot:
+                target = candidate
+                break
+
+    if target is None and devices:
         try:
             target = os.path.realpath(devices[0].split('\t')[1])
         except (IndexError, OSError):

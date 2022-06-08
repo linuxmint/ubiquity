@@ -32,7 +32,7 @@ BINDIR=$(dirname $(readlink -f $0))
 DISKSIZE=12G
 RAMSIZE=2048
 VCPU=2
-REQUIREDPKGS="bsdtar qemu-system-x86 bzr xz-utils cpio"
+REQUIREDPKGS="bsdtar qemu-system-x86 bzr git xz-utils cpio"
 SHAREDDIR=""
 OVERRIDEDIR=""
 WORKSPACE="${WORKSPACE:-/tmp/ubiquity.tests}"
@@ -86,7 +86,7 @@ Usage: $(basename $0) [OPTIONS...] <iso file>
     Prepares a system from an ISO and run autopilot tests for ubiquity
 
 Arguments:
-    <iso file>      Path to a valid Linux Mint Desktop ISO 
+    <iso file>      Path to a valid Ubuntu Desktop ISO
 Options:
     -h, --help      This help
     -d, --debug     Enable debug mode
@@ -128,7 +128,7 @@ check_prerequisites() {
         fi
     done
 
-    QEMUCMD=$(which qemu-system-x86_64||true) 
+    QEMUCMD=$(which qemu-system-x86_64||true)
     if [ -z "$QEMUCMD" ]; then
         echo "E: qemu is required and not installed on this system (run sudo apt-get install qemu). Exiting!"
         RC=1
@@ -140,7 +140,7 @@ check_prerequisites() {
 }
 
 extract_kernel() {
-    # Extract kernel and initrd 
+    # Extract kernel and initrd
     #
     # Extract kernel and initrd from an ISO image
     #
@@ -163,7 +163,7 @@ extract_kernel() {
         exit
     fi
 
-    files="casper/initrd.lz casper/$(basename $KERNEL)"
+    files="casper/initrd casper/$(basename $KERNEL)"
     echo "I: extracting files from $src: $files"
     bsdtar xf $src -C $dst $files
     ret=$?
@@ -175,7 +175,7 @@ extract_kernel() {
 }
 
 create_disk_image() {
-    # Create a disk image 
+    # Create a disk image
     #
     # Args:
     #   $1: Path of the disk image to create
@@ -205,30 +205,31 @@ prepare_initrd() {
     #   Nothing
     workdir=$1/initrd
     initrd=$2
-    initrdlz=${initrd}.lz
     usercustomdir=$3
     customdir=${BINDIR}/custom-installation
 
     echo "I: Preparing initrd"
-    if [ ! -f "$initrdlz" ]; then
-        echo "E: file '$(basename $initrdlz)' not found. Aborting!"
+    if [ ! -f "$initrd" ]; then
+        echo "E: file '$(basename $initrd)' not found. Aborting!"
         RC=1
-        exit 
+        exit
     fi
     mkdir -p $workdir
 
     (
-        cd $workdir
-        xzcat $initrdlz|cpio --quiet -ivd 2>/dev/null
+        cd $1
+        unmkinitramfs $initrd $workdir
         echo "I: Copying overrides"
-        cp -af $customdir $workdir/
-        [ -d "$usercustomdir" ] && cp -af "$usercustomdir" $workdir/
-        mkdir -p $workdir/custom-installation/iso-override/var/local/autopilot
-        echo "$TESTNAME" > $workdir/custom-installation/iso-override/var/local/autopilot/testsuites
-        [ -f "$TESTCONFIG" ] && cp $TESTCONFIG $workdir/custom-installation/iso-override/var/local/autopilot/config
+        maindir=$workdir/main
+        cd $maindir
+        cp -af $customdir $maindir/
+        [ -d "$usercustomdir" ] && cp -af "$usercustomdir" $maindir/
+        mkdir -p $maindir/custom-installation/iso-override/var/local/autopilot
+        echo "$TESTNAME" > $maindir/custom-installation/iso-override/var/local/autopilot/testsuites
+        [ -f "$TESTCONFIG" ] && cp $TESTCONFIG $maindir/custom-installation/iso-override/var/local/autopilot/config
         if [ -n "$SHAREDDIR" ]; then
-            echo >> $workdir/custom-installation/iso-override/var/local/autopilot/config
-            echo "SHAREDVOL=ubiquity" >> $workdir/custom-installation/iso-override/var/local/autopilot/config
+            echo >> $maindir/custom-installation/iso-override/var/local/autopilot/config
+            echo "SHAREDVOL=ubiquity" >> $maindir/custom-installation/iso-override/var/local/autopilot/config
         fi
         echo "I: Repacking initrd"
         [ -f "$initrd" ] && rm -f $initrd

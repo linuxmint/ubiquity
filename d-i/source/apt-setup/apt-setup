@@ -55,7 +55,7 @@ for generator in $gendir/*; do
 		db_progress INFO apt-setup/progress/fallback || true
 	fi
 	
-	tmp=$($chroot $ROOT tempfile)
+	tmp=$($chroot $ROOT mktemp)
 
 	code=0
 	$generator $ROOT$tmp || code=$?
@@ -89,11 +89,7 @@ for generator in $gendir/*; do
 
 	progress_advance
 done
-if [ -e $ROOT/etc/apt/sources.list.new ]; then
-	mv $ROOT/etc/apt/sources.list.new $ROOT/etc/apt/sources.list
-else
-	touch $ROOT/etc/apt/sources.list
-fi
+mv $ROOT/etc/apt/sources.list.new $ROOT/etc/apt/sources.list
 if [ -s $ROOT/etc/apt/apt.conf.new ]; then
 	mv $ROOT/etc/apt/apt.conf.new $ROOT/etc/apt/apt.conf
 else

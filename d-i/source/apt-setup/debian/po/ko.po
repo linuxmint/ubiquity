@@ -7,7 +7,7 @@
 # Copyright (C) 2003,2004,2005,2008 Software in the Public Interest, Inc.
 # This file is distributed under the same license as debian-installer.
 #
-# Changwoo Ryu <cwryu@debian.org>, 2010, 2011, 2012, 2014.
+# Changwoo Ryu <cwryu@debian.org>, 2010-2012, 2014-2015, 2017-2018, 2020.
 #
 # Translations from iso-codes:
 # Copyright (C)
@@ -27,8 +27,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: debian-installer\n"
 "Report-Msgid-Bugs-To: apt-setup@packages.debian.org\n"
-"POT-Creation-Date: 2015-01-11 23:02+0000\n"
-"PO-Revision-Date: 2014-03-16 15:04+0900\n"
+"POT-Creation-Date: 2019-11-02 22:41+0100\n"
+"PO-Revision-Date: 2020-04-21 05:24+0900\n"
 "Last-Translator: Changwoo Ryu <cwryu@debian.org>\n"
 "Language-Team:  Korean <debian-l10n-korean@lists.debian.org>\n"
 "Language: ko\n"
@@ -82,12 +82,19 @@ msgstr "보안 업데이트 저장소를 검사하는 중입니다..."
 msgid "Scanning the release updates repository..."
 msgstr "릴리스 업데이트 저장소를 읽는 중입니다..."
 
+#. Type: text
+#. Description
+#. :sl2:
+#: ../apt-setup-udeb.templates:7001
+msgid "Scanning the backports repository..."
+msgstr "백포팅 저장소를 읽는 중입니다..."
+
 #. Type: select
 #. Choices
 #. :sl2:
 #. These are choices of actions so this is, at least in English,
 #. an infinitive form
-#: ../apt-setup-udeb.templates:7001 ../apt-mirror-setup.templates:4001
+#: ../apt-setup-udeb.templates:8001 ../apt-mirror-setup.templates:4001
 msgid "Retry"
 msgstr "다시 시도"
 
@@ -96,13 +103,13 @@ msgstr "다시 시도"
 #. :sl2:
 #. These are choices of actions so this is, at least in English,
 #. an infinitive form
-#: ../apt-setup-udeb.templates:7001 ../apt-mirror-setup.templates:4001
+#: ../apt-setup-udeb.templates:8001 ../apt-mirror-setup.templates:4001
 msgid "Ignore"
 msgstr "무시"
 
 #. Type: select
 #. Description
-#: ../apt-setup-udeb.templates:7002
+#: ../apt-setup-udeb.templates:8002
 msgid "Downloading local repository key failed:"
 msgstr "로컬 저장소 키 다운로드가 실패했습니다:"
 
@@ -110,7 +117,8 @@ msgstr "로컬 저장소 키 다운로드가 실패했습니다:"
 #. Description
 #. You should end this with a colon. A non-translatable variable
 #. follows with the mirror URL
-#: ../apt-setup-udeb.templates:7002
+#. :sl2:
+#: ../apt-setup-udeb.templates:8002
 msgid ""
 "The installer failed to download the public key used to sign the local "
 "repository at ${MIRROR}:"
@@ -120,7 +128,7 @@ msgstr ""
 
 #. Type: select
 #. Description
-#: ../apt-setup-udeb.templates:7002
+#: ../apt-setup-udeb.templates:8002
 msgid ""
 "This may be a problem with your network, or with the server hosting this "
 "key. You can choose to retry the download, or ignore the problem and "
@@ -146,7 +154,7 @@ msgid ""
 "made available to you at this time. You should investigate this later."
 msgstr ""
 "${HOST}에 있는 저장소에 접근할 수 없기 때문에 해당 업데이트를 적용할 수 없습"
-"니다. 나중에 이 문제를 검토하시기 바랍니다."
+"니다. 나중에 이 문제를 검토하십시오."
 
 #. Type: error
 #. Description
@@ -164,14 +172,7 @@ msgstr ""
 #. Translators: the *entire* string should be under 55 columns
 #. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
 #. :sl1:
-#. Type: multiselect
-#. Choices
-#. SEC_HOST, and PARTNER_HOST are host names (e.g.
-#. security.ubuntu.com)
-#. Translators: the *entire* string should be under 55 columns
-#. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
-#. :sl2:
-#: ../apt-setup-udeb.templates:11001 ../apt-setup-udeb.templates:12001
+#: ../apt-setup-udeb.templates:11001
 msgid "security updates (from ${SEC_HOST})"
 msgstr "보안 업데이트(${SEC_HOST} 호스트에서)"
 
@@ -186,12 +187,19 @@ msgid "release updates"
 msgstr "릴리스 업데이트"
 
 #. Type: multiselect
-#. Description
+#. Choices
+#. SEC_HOST is a host name (e.g. security.debian.org)
+#. Translators: the *entire* string should be under 55 columns
+#. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
 #. :sl1:
+#: ../apt-setup-udeb.templates:11001
+msgid "backported software"
+msgstr "백포팅 소프트웨어"
+
 #. Type: multiselect
 #. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:11002 ../apt-setup-udeb.templates:12002
+#. :sl1:
+#: ../apt-setup-udeb.templates:11002
 msgid "Services to use:"
 msgstr "사용할 서비스:"
 
@@ -209,10 +217,7 @@ msgstr ""
 #. Type: multiselect
 #. Description
 #. :sl1:
-#. Type: multiselect
-#. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:11002 ../apt-setup-udeb.templates:12002
+#: ../apt-setup-udeb.templates:11002
 msgid ""
 "Security updates help to keep your system secured against attacks. Enabling "
 "this service is strongly recommended."
@@ -233,48 +238,54 @@ msgid ""
 msgstr ""
 "릴리스 업데이트는 더 최신 버전의 소프트웨어가 들어 있습니다. 이 소프트웨어는 "
 "비교적 자주 바뀌는 소프트웨어이면서, 최신 버전이 아닌 소프트웨어는 사용성이 "
-"떨어질 수 있는 소프트웨어입니다. 또 기존 기능을 망가뜨리는 문제점들을 수정한 "
-"버전도 들어있습니다. 이 서비스는 stable과 oldstable 릴리스에서만 제공합니다."
+"떨어질 수 있는 소프트웨어입니다. 또 기존 기능을 망가뜨리는 문제점을 수정한 버"
+"전도 들어있습니다. 이 서비스는 stable과 oldstable 릴리스에서만 제공합니다."
 
 #. Type: multiselect
-#. Choices
-#. SEC_HOST, and PARTNER_HOST are host names (e.g.
-#. security.ubuntu.com)
-#. Translators: the *entire* string should be under 55 columns
-#. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
-#. :sl2:
+#. Description
+#. :sl1:
+#: ../apt-setup-udeb.templates:11002
+msgid ""
+"Backported software are adapted from the development version to work with "
+"this release. Although this software has not gone through such complete "
+"testing as that contained in the release, it includes newer versions of some "
+"applications which may provide useful features. Enabling backports here does "
+"not cause any of them to be installed by default; it only allows you to "
+"manually select backports to use."
+msgstr ""
+"이 릴리스에서 동작하도록 개발버전에서 백포팅한 소프트웨어가 있습니다. 릴리스"
+"한 배포판에 들어 있는 소프트웨어만큼 철저한 테스트 과정을 거치지는 않았지만 "
+"몇 가지 기능이 추가되는 등 더 최신 버전의 소프트웨어입니다. 여기서 백포팅을 "
+"사용하더라도 기본으로 설치하지는 않습니다. 수동으로 백포팅을 선택할 수 있게"
+"만 합니다."
+
+#. Type: boolean
+#. Description
+#. :sl3:
 #: ../apt-setup-udeb.templates:12001
-#, fuzzy
-msgid "partner archive (from ${PARTNER_HOST}))"
-msgstr "보안 업데이트 (${SEC_HOST} 호스트에서)"
+msgid "Enable source repositories in APT?"
+msgstr "APT에 소스 저장소를 사용합니까?"
 
-#. Type: multiselect
+#. Type: boolean
 #. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:12002
-#, fuzzy
+#. :sl3:
+#: ../apt-setup-udeb.templates:12001
 msgid ""
-"Linux Mint has some additional services that provide updates to releases and add-"
-"on packages."
+"By default source repositories are listed in /etc/apt/sources.list (with "
+"appropriate \"deb-src\" lines) so that \"apt-get source\" works. However, if "
+"you don't need this feature, you can disable those entries and save some "
+"bandwidth during \"apt-get update\" operations."
 msgstr ""
-"데비안은 릴리스에 대한 두 가지 업데이트 서비스가 있습니다. 하나는 보안 업데이"
-"트이고 또 하나는 유동 업데이트입니다."
-
-#. Type: multiselect
-#. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:12002
-msgid ""
-"The partner archive contains software provided by Canonical's partners as a "
-"service to Linux Mint users."
-msgstr ""
+"기본값으로 소스 저장소를 /etc/apt/sources.list에 (적절한 \"deb-src\" 줄로) 넣"
+"습니다. 하지만, 이 기능이 필요하지 않을 경우 이 항목을 넣지 않고 \"apt-get "
+"update\" 동작할 때 네트워크 대역폭을 아낄 수 있습니다."
 
 #. Type: text
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:1001
-msgid "Scanning the CD-ROM..."
-msgstr "CD-ROM을 읽는 중입니다..."
+msgid "Scanning the installation media..."
+msgstr "설치 미디어를 검사하는 중입니다..."
 
 #. Type: error
 #. Description
@@ -286,11 +297,15 @@ msgstr "APT 설정 문제"
 #. Type: error
 #. Description
 #. :sl2:
-#: ../apt-cdrom-setup.templates:2001
+#. Type: boolean
+#. Description
+#. :sl1:
+#: ../apt-cdrom-setup.templates:2001 ../apt-cdrom-setup.templates:6001
 msgid ""
-"An attempt to configure apt to install additional packages from the CD "
+"An attempt to configure apt to install additional packages from the media "
 "failed."
-msgstr "APT를 설정해 CD에서 패키지를 설치하려고 했지만 실패했습니다."
+msgstr ""
+"APT를 설정해 설치 미디어에서 추가 패키지를 설치하려고 했지만 실패했습니다."
 
 #. Type: boolean
 #. Description
@@ -306,29 +321,29 @@ msgstr "APT를 설정해 CD에서 패키지를 설치하려고 했지만 실패�
 #. :sl1:
 #: ../apt-cdrom-setup.templates:3001 ../apt-cdrom-setup.templates:4001
 #: ../apt-cdrom-setup.templates:5001 ../apt-cdrom-setup.templates:6001
-msgid "Scan another CD or DVD?"
-msgstr "다른 CD나 DVD를 검사하시겠습니까?"
+msgid "Scan extra installation media?"
+msgstr "추가 설치 미디어를 검사하시겠습니까?"
 
 #. Type: boolean
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:3001
-msgid "Your installation CD or DVD has been scanned; its label is:"
-msgstr "설치 CD나 DVD를 검사했습니다. 이름은 다음과 같습니다:"
+msgid "Scanning your installation media finds the label:"
+msgstr "이름을 찾으려고 설치 미디어를 검사하는 중입니다:"
 
 #. Type: boolean
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:3001
 msgid ""
-"You now have the option to scan additional CDs or DVDs for use by the "
-"package manager (apt). Normally these should be from the same set as the "
-"installation CD/DVD. If you do not have any additional CDs or DVDs "
-"available, this step can just be skipped."
+"You now have the option of scanning additional media for use by the package "
+"manager (apt). Normally these should be from the same set as the one you "
+"booted from. If you do not have any additional media, this step can just be "
+"skipped."
 msgstr ""
-"이제 패키지 관리자(APT)에서 사용할 추가 CD나 DVD를 검사할 수 있습니다. 보통 "
-"이 CD나 DVD는 설치 CD/DVD와 같은 모음에 들어 있는 CD나 DVD를 말합니다. 추가 "
-"CD나 DVD가 없으면 이 단계를 건너 뛸 수 있습니다."
+"이제 패키지 관리자(APT)에서 사용할 추가 설치 미디어를 검사할 수 있습니다. 보"
+"통 이 미디어는 설치 미디어와 같은 모음에 들어 있는 미디어를 말합니다. 추가 미"
+"디어가 없으면 이 단계를 건너 뛸 수 있습니다."
 
 #. Type: boolean
 #. Description
@@ -337,52 +352,40 @@ msgstr ""
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:3001 ../apt-cdrom-setup.templates:4001
-msgid "If you wish to scan another CD or DVD, please insert it now."
-msgstr "CD나 DVD를 또 검사하려면 지금 CD나 DVD를 넣으십시오."
+msgid "If you wish to scan more media, please insert another one now."
+msgstr "미디어를 또 검사하려면 지금 미디어를 넣으십시오."
 
 #. Type: boolean
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:4001
-msgid "The CD or DVD with the following label has been scanned:"
-msgstr "다음 이름의 CD나 DVD를 검사했습니다:"
+msgid "The image with the following label has been scanned:"
+msgstr "다음 이름의 이미지를 검사했습니다:"
 
 #. Type: boolean
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:5001
-msgid "The CD or DVD with the following label has already been scanned:"
-msgstr "다음 이름의 CD나 DVD는 이미 검사했습니다:"
+msgid "The image with the following label has already been scanned:"
+msgstr "다음 이름의 이미지는 이미 검사했습니다:"
 
 #. Type: boolean
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:5001
-msgid "Please replace it now if you wish to scan another CD or DVD."
-msgstr "CD나 DVD를 또 검사하려면 지금 CD나 DVD를 바꿔 넣으십시오."
+msgid "Please replace it now, if you wish to scan another."
+msgstr "또 검사하려면 지금 미디어를 바꿔 넣으십시오."
 
 #. Type: boolean
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:6001
-msgid ""
-"An attempt to configure apt to install additional packages from the CD/DVD "
-"failed."
-msgstr ""
-"CD/DVD에서 추가 패키지를 설치하도록 APT를 설정하려 했지만 실패했습니다."
-
-#. Type: boolean
-#. Description
-#. :sl1:
-#: ../apt-cdrom-setup.templates:6001
-msgid "Please check that the CD/DVD has been inserted correctly."
-msgstr "CD/DVD를 올바르게 넣었는 지 확인하십시오."
+msgid "Please check that the media has been inserted correctly."
+msgstr "미디어를 올바르게 넣었는 지 확인하십시오."
 
 #. Type: text
 #. Description
 #. :sl1:
-#. This template uses the same text as used in the package apt for apt-cdrom
-#. Do not translate "/cdrom/" (the mount point)
 #: ../apt-cdrom-setup.templates:7001
 msgid "Media change"
 msgstr "미디어 바꾸기"
@@ -390,15 +393,9 @@ msgstr "미디어 바꾸기"
 #. Type: text
 #. Description
 #. :sl1:
-#. This template uses the same text as used in the package apt for apt-cdrom
-#. Do not translate "/cdrom/" (the mount point)
 #: ../apt-cdrom-setup.templates:7001
-msgid ""
-"/cdrom/:Please insert the disc labeled: '${LABEL}' in the drive '/cdrom/' "
-"and press enter."
-msgstr ""
-"/cdrom/:이름이 '${LABEL}'인 디스크를 '/cdrom/' 드라이브에 넣고 <Enter>를 누르"
-"십시오."
+msgid "Please insert the media labeled '${LABEL}' and press enter."
+msgstr "이름이 '${LABEL}'인 미디어를 넣고 <Enter>를 누르십시오."
 
 #. Type: text
 #. Description
@@ -416,32 +413,33 @@ msgstr "sources.list에서 netinst CD에서 지우는 중입니다..."
 #. :sl2:
 #: ../apt-cdrom-setup.templates:9001 ../apt-mirror-setup.templates:6001
 msgid ""
-"If you are installing from a netinst CD and choose not to use a mirror, you "
-"will end up with only a very minimal base system."
+"If you are installing from a netinst CD image and choose not to use a "
+"mirror, you will end up with only a very minimal base system."
 msgstr ""
-"netinst CD로 설치하면서 미러를 선택하지 않으면, 아주 최소한의 베이스 시스템"
-"만 설치하게 됩니다."
+"netinst CD 이미지로 설치하면서 미러를 선택하지 않으면, 아주 최소한의 베이스 "
+"시스템만 설치하게 됩니다."
 
 #. Type: text
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:10001
 msgid ""
-"You are installing from a netinst CD, which by itself only allows "
+"You are installing from a netinst CD image, which by itself only allows "
 "installation of a very minimal base system. Use a mirror to install a more "
 "complete system."
 msgstr ""
-"netinst CD로 설치하는 중입니다. netinst CD만 가지고 설치하면 아주 최소한의 베"
-"이스 시스템만 설치할 수 있습니다. 더 완전한 시스템을 설치하려면 미러 사이트"
-"를 사용하십시오."
+"netinst CD 이미지로 설치하는 중입니다. netinst CD만 가지고 설치하면 아주 최소"
+"한의 베이스 시스템만 설치할 수 있습니다. 더 완전한 시스템을 설치하려면 미러 "
+"사이트를 사용하십시오."
 
 #. Type: text
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:11001
 msgid ""
-"You are installing from a CD, which contains a limited selection of packages."
-msgstr "CD에서 설치하는 중입니다. CD에는 패키지의 작은 일부분만 들어 있습니다."
+"You are installing from an image which contains a limited selection of "
+"packages."
+msgstr "아주 일부분의 패키지만 들어 있는 이미지에서 설치하는 중입니다."
 
 #. Type: text
 #. Description
@@ -450,13 +448,13 @@ msgstr "CD에서 설치하는 중입니다. CD에는 패키지의 작은 일부�
 #: ../apt-cdrom-setup.templates:12001
 #, no-c-format
 msgid ""
-"You have scanned %i CDs. Even though these contain a fair selection of "
+"You have scanned %i images. Even though these contain a fair selection of "
 "packages, some may be missing (notably some packages needed to support "
 "languages other than English)."
 msgstr ""
-"CD를 %i개 검사했습니다. 이 CD에는 상당한 패키지가 들어 있지만 일부 빠진 패키"
-"지가 있을 수 있습니다. (특히 영어가 아닌 언어에 대한 지원 기능이 빠졌을 수 있"
-"습니다.)"
+"이미지를 %i개 검사했습니다. 이 이미지에는 상당한 패키지가 들어 있지만 일부 빠"
+"진 패키지가 있을 수 있습니다. (특히 영어가 아닌 언어에 대한 지원 기능이 빠졌"
+"을 수 있습니다.)"
 
 #. Type: text
 #. Description
@@ -465,11 +463,11 @@ msgstr ""
 #: ../apt-cdrom-setup.templates:13001
 #, no-c-format
 msgid ""
-"You have scanned %i CDs. Even though these contain a large selection of "
+"You have scanned %i images. Even though these contain a large selection of "
 "packages, some may be missing."
 msgstr ""
-"CD를 %i개 검사했습니다. 이 CD에는 많은 패키지가 들어 있지만 일부 빠진 패키지"
-"가 있을 수 있습니다."
+"이미지를 %i개 검사했습니다. 이 이미지에는 많은 패키지가 들어 있지만 일부 빠"
+"진 패키지가 있을 수 있습니다."
 
 #. Type: text
 #. Description
@@ -487,11 +485,11 @@ msgstr ""
 #. :sl1:
 #: ../apt-cdrom-setup.templates:15001
 msgid ""
-"You are installing from a DVD. Even though the DVD contains a large "
+"You are installing from a DVD image. Even though it contains a large "
 "selection of packages, some may be missing."
 msgstr ""
-"DVD에서 설치하는 중입니다. DVD에는 많은 패키지가 들어 있지만 일부 빠진 패키지"
-"가 있을 수 있습니다."
+"DVD 이미지에서 설치하는 중입니다. DVD 이미지에는 많은 패키지가 들어 있지만 일"
+"부 빠진 패키지가 있을 수 있습니다."
 
 #. Type: text
 #. Description
@@ -550,10 +548,9 @@ msgstr ""
 #. :sl1:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
-#: ../apt-mirror-setup.templates:2001
-#: ../apt-mirror-setup.templates-ubuntu:1001
+#: ../apt-mirror-setup.templates:2001 ../apt-mirror-setup.templates-ubuntu:1001
 msgid "Please choose whether you want to have it available anyway."
 msgstr "그래도 이 소프트웨어를 사용할 수 있도록 만들지 여부를 선택하십시오."
 
@@ -584,22 +581,21 @@ msgstr ""
 #. :sl1:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
-#: ../apt-mirror-setup.templates:3001
-#: ../apt-mirror-setup.templates-ubuntu:2001
+#: ../apt-mirror-setup.templates:3001 ../apt-mirror-setup.templates-ubuntu:2001
 #: ../apt-mirror-setup.templates-ubuntu:3001
 #: ../apt-mirror-setup.templates-ubuntu:4001
 #: ../apt-mirror-setup.templates-ubuntu:5001
@@ -618,12 +614,14 @@ msgstr "미러 사이트 바꾸기"
 
 #. Type: select
 #. Description
+#. :sl2:
 #: ../apt-mirror-setup.templates:4002
 msgid "Downloading a file failed:"
 msgstr "파일 다운로드가 실패했습니다:"
 
 #. Type: select
 #. Description
+#. :sl2:
 #: ../apt-mirror-setup.templates:4002
 msgid ""
 "The installer failed to access the mirror. This may be a problem with your "
@@ -649,11 +647,12 @@ msgstr "네트워크 미러 사이트를 사용하시겠습니까?"
 #: ../apt-mirror-setup.templates:5001
 msgid ""
 "A network mirror can be used to supplement the software that is included on "
-"the CD-ROM. This may also make newer versions of software available."
+"the installation media. This may also make newer versions of software "
+"available."
 msgstr ""
-"네트워크 미러사이트를 이용하면 CD-ROM에 들어 있는 소프트웨어 외에 추가 소프트"
-"웨어를 사용할 수 있습니다. 미러 사이트를 사용하면 CD-ROM에 들어 있는 소프트웨"
-"어보다 최신 버전의 소프트웨어도 사용할 수 있습니다."
+"네트워크 미러사이트를 이용하면 설치 미디어에 들어 있는 소프트웨어 외에 추가 "
+"소프트웨어를 사용할 수 있습니다. 미러 사이트를 사용하면 설치 미디어에 들어 있"
+"는 소프트웨어보다 최신 버전의 소프트웨어도 사용할 수 있습니다."
 
 #. Type: boolean
 #. Description
@@ -671,7 +670,7 @@ msgstr "선택한 네트워크 미러 사이트가 없습니다."
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:1001
 msgid "Use restricted software?"
@@ -679,7 +678,7 @@ msgstr "제한된 소프트웨어를 사용하시겠습니까?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:1001
 msgid ""
@@ -695,7 +694,7 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:2001
 msgid "Use software from the \"universe\" component?"
@@ -703,7 +702,7 @@ msgstr "\"유니버스\" 소프트웨어를 사용하시겠습니까?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:2001
 msgid ""
@@ -716,7 +715,7 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:3001
 msgid "Use software from the \"multiverse\" component?"
@@ -724,7 +723,7 @@ msgstr "\"멀티버스\" 소프트웨어를 사용하시겠습니까?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:3001
 msgid ""
@@ -741,7 +740,7 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:4001
 msgid "Use software from the \"partner\" repository?"
@@ -749,21 +748,21 @@ msgstr "\"파트너\" 저장소에 있는 소프트웨어를 사용하시겠습�
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:4001
 msgid ""
 "Some additional software is available from Canonical's \"partner\" "
-"repository. This software is not part of Linux Mint, but is offered by Canonical "
-"and the respective vendors as a service to Linux Mint users."
+"repository. This software is not part of Ubuntu, but is offered by Canonical "
+"and the respective vendors as a service to Ubuntu users."
 msgstr ""
 "캐노니컬의 \"파트너\" 저장고에 추가 소프트웨어가 일부 들어 있습니다. 이 소프"
-"트웨어는 우분투의 일부가 아니지만 캐노니컬 및 여러 회사들이 우분투 사용자에 "
-"대한 서비스로 제공합니다."
+"트웨어는 우분투의 일부가 아니지만 캐노니컬 및 여러 회사가 우분투 사용자에 대"
+"한 서비스로 제공합니다."
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:5001
 msgid "Use backported software?"
@@ -771,7 +770,7 @@ msgstr "백포팅한 소프트웨어를 사용합니까?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:5001
 msgid ""
@@ -783,23 +782,3 @@ msgstr ""
 "이 배포판에 적합하도록 백포팅한 소프트웨어가 있습니다. 릴리스한 배포판에 들"
 "어 있는 소프트웨어만큼 철저한 테스트 과정을 거치지는 않았지만 몇 가지 기능이 "
 "추가되는 등 더 최신 버전의 소프트웨어입니다."
-
-#~ msgid "Scanning the backports repository..."
-#~ msgstr "백포팅 저장소를 읽는 중입니다..."
-
-#~ msgid "backported software"
-#~ msgstr "백포팅 소프트웨어"
-
-#~ msgid ""
-#~ "Backported software are adapted from the development version to work with "
-#~ "this release. Although this software has not gone through such complete "
-#~ "testing as that contained in the release, it includes newer versions of "
-#~ "some applications which may provide useful features. Enabling backports "
-#~ "here does not cause any of them to be installed by default; it only "
-#~ "allows you to manually select backports to use."
-#~ msgstr ""
-#~ "이 릴리스에서 동작하도록 개발버전에서 백포팅한 소프트웨어가 있습니다. 릴리"
-#~ "스한 배포판에 들어 있는 소프트웨어만큼 철저한 테스트 과정을 거치지는 않았"
-#~ "지만 몇 가지 기능이 추가되는 등 더 최신 버전의 소프트웨어입니다. 여기서 백"
-#~ "포팅을 사용하더라도 기본으로 설치하지는 않습니다. 수동으로 백포팅을 선택"
-#~ "할 수 있게만 합니다."

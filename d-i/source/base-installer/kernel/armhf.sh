@@ -64,7 +64,7 @@ arch_check_usable_kernel () {
 
 arch_get_kernel () {
 	case "$KERNEL_MAJOR" in
-	    2.6|3.*|4.*)
+	    2.6|3.*|4.*|5.*)
 		imgbase="linux-image"
 
 		set -- $1

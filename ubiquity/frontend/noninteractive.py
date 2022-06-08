@@ -24,15 +24,13 @@
 # with Ubiquity; if not, write to the Free Software Foundation, Inc., 51
 # Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-from __future__ import print_function
-
 import os
 import signal
 import sys
 
 from gi.repository import GLib
 
-from ubiquity import filteredcommand, i18n, misc
+from ubiquity import filteredcommand, i18n, misc, telemetry
 from ubiquity.components import install, plugininstall, partman_commit
 import ubiquity.frontend.base
 from ubiquity.frontend.base import BaseFrontend
@@ -77,6 +75,10 @@ class Wizard(BaseFrontend):
                   file=self.console)
             sys.exit(1)
 
+        telemetry.get().set_installer_type('NonInteractive')
+        telemetry.get().set_is_oem(self.oem_config)
+        telemetry.get().add_stage(telemetry.START_INSTALL_STAGE_TAG)
+
         for x in self.pages:
             if issubclass(x.filter_class, Plugin):
                 ui = x.ui
@@ -110,6 +112,7 @@ class Wizard(BaseFrontend):
         if ret == 0:
             self.run_success_cmd()
             print('Installation complete.', file=self.console)
+            telemetry.get().done(self.db)
             if self.get_reboot():
                 misc.execute("reboot")
         if ret != 0:

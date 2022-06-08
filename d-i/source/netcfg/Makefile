@@ -6,7 +6,7 @@ CC		?= gcc
 TARGETS		?= netcfg-static netcfg
 
 LDOPTS		= -ldebconfclient -ldebian-installer
-CFLAGS		= -W -Wall -Werror -DNDEBUG -DNETCFG_VERSION="\"$(NETCFG_VERSION)\"" -I.
+CFLAGS		= -W -Wall -Werror -Wno-format -DNDEBUG -DNETCFG_VERSION="\"$(NETCFG_VERSION)\"" -I.
 COMMON_OBJS	= netcfg-common.o wireless.o write_interface.o ipv6.o vlan.o
 NETCFG_O   	= netcfg.o dhcp.o static.o ethtool-lite.o wpa.o wpa_ctrl.o rdnssd.o autoconfig.o
 NETCFG_STATIC_O	= netcfg-static.o static.o ethtool-lite.o

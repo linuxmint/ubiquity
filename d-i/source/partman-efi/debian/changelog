@@ -1,15 +1,180 @@
-partman-efi (71ubuntu2.2) bionic; urgency=medium
+partman-efi (84ubuntu1) groovy; urgency=low
+
+  * Merge from Debian unstable.  Remaining changes:
+    - check.d/efi: Make sure we block on a missing EFI partition no matter what
+      architecture, not just for ia64. One could attempt to install on EFI x86
+      and will need an ESP to be able to install GRUB. (LP: #1803031)
+    - debian/partman-efi.templates: Make the no_efi template clearer, so that it
+      clearly explains why an EFI System partition is important.
+    - Clean-up leftover checks for the no longer used ignore_uefi file.
+    - Save the number of ESPs found to /var/lib/partman/efi_esp_count for
+      partman-auto. (LP: #1766945)
+    - Do not ask the user about forcing UEFI installation if there are BIOS
+      compatibility mode installed systems as those will still be bootable from
+      grub if we proceed in UEFI mode.  (LP: #1668148)
+    - debian/partman-efi.templates: remove the partman-efi/non_efi_system
+      template as we no longer need it.
+    - Remove efi-modules dependency; it seems to be built into Ubuntu
+      kernels now.
+    - Require partman-base >= 129 to support a null value for the name.
+    - Only force an EFI system partition on ia64.
+    - Allow x86/macs booted in legacy mode to use EFI System partitions.
+
+  * Always init EFI mode, irrespective if booted in EFI or legacy
+    mode. LP: #1847721
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Tue, 26 May 2020 21:02:35 +0100
+
+partman-efi (84) unstable; urgency=medium
+
+  * Team upload
+
+  [ Updated translations ]
+  * Estonian (et.po) by Kristjan Räts
+  * Korean (ko.po) by Changwoo Ryu
+  * Portuguese (Brazil) (pt_BR.po) by Adriano Rafael Gomes
+  * Tamil (ta.po) by Jeyanthinath MuthuRam
+
+ -- Holger Wansing <hwansing@mailbox.org>  Sun, 10 May 2020 18:07:53 +0200
+
+partman-efi (83) unstable; urgency=medium
+
+  * Team upload
+
+  [ Updated translations ]
+  * Russian (ru.po) by Lev Lamberov
+
+ -- Holger Wansing <hwansing@mailbox.org>  Sat, 07 Mar 2020 21:18:56 +0100
+
+partman-efi (82) unstable; urgency=medium
+
+  * Team upload
+
+  [ Updated translations ]
+  * Czech (cs.po) by Miroslav Kure
+  * Esperanto (eo.po) by Felipe Castro
+  * Croatian (hr.po) by Milo Ivir
+  * Indonesian (id.po) by Andika Triwidada
+  * Icelandic (is.po) by Sveinn í Felli
+  * Swedish (sv.po) by Anders Jonsson
+  * Simplified Chinese (zh_CN.po) by 玉堂白鹤
+
+ -- Holger Wansing <hwansing@mailbox.org>  Tue, 28 Jan 2020 22:03:05 +0100
+
+partman-efi (81) unstable; urgency=medium
+
+  * Team upload
+
+  [ Cyril Brulebois ]
+  * Remove Christian Perrier from Uploaders, with many thanks for all
+    his contributions over the years! (Closes: #927572)
+
+  [ Holger Wansing ]
+  * Remove trailing whitespaces from changelog file, to fix lintian tag.
+  * Adapt sublevel definitions for template strings; also mark an ia64-only
+    string as not-translatable (no need for translators to work on this
+    dropped arch).
+    Includes udating all po|pot files.
+
+  [ Updated translations ]
+  * German (de.po) by Holger Wansing
+  * French (fr.po) by Baptiste Jammet
+  * Hebrew (he.po) by Yaron Shahrabani
+  * Indonesian (id.po) by Andika Triwidada
+  * Icelandic (is.po) by Sveinn í Felli
+  * Dutch (nl.po) by Frans Spiesschaert
+  * Punjabi (Gurmukhi) (pa.po) by Aman ALam
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Serbian (sr.po) by Filipovic Dragan
+
+ -- Holger Wansing <hwansing@mailbox.org>  Fri, 20 Dec 2019 16:36:16 +0100
+
+partman-efi (80) unstable; urgency=medium
+
+  * Team upload
+
+  [ Cyril Brulebois ]
+  * Update Vcs-{Browser,Git} to point to salsa (alioth's replacement).
+
+ -- Holger Wansing <hwansing@mailbox.org>  Tue, 28 Aug 2018 14:23:52 +0200
+
+partman-efi (79) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Hungarian (hu.po) by Dr. Nagy Elemér Károly
+  * Lithuanian (lt.po) by Rimas Kudelis
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 03 Dec 2017 16:05:08 +0100
+
+partman-efi (78) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Greek (el.po) by Sotirios Vrachas
+  * Estonian (et.po) by Kristjan Räts
+  * Norwegian Nynorsk (nn.po) by Allan Nordhøy
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 26 Nov 2017 07:31:24 +0100
+
+partman-efi (77) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Albanian (sq.po) by Sotirios Vrachas
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 18 Sep 2017 19:05:08 +0200
+
+partman-efi (76) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Simplified Chinese (zh_CN.po) by Yangfl
+  * Traditional Chinese (zh_TW.po) by Yao Wei (魏銘廷)
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 28 Jun 2017 07:42:37 +0200
+
+partman-efi (75) unstable; urgency=medium
+
+  [ Steve McIntyre ]
+  * Build for armhf too
+
+ -- Steve McIntyre <93sam@debian.org>  Wed, 10 Aug 2016 18:11:36 +0100
+
+partman-efi (74) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Serbian (sr.po) by Dragan Filipović
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 08 Jun 2016 06:48:04 +0200
+
+partman-efi (73) unstable; urgency=medium
+
+  [ Colin Watson ]
+  * Use HTTPS for Vcs-* URLs, and link to cgit rather than gitweb.
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 01 Feb 2016 18:29:04 +0100
+
+partman-efi (72) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Swedish (sv.po) by Martin Bagge / brother
+
+ -- Christian Perrier <bubulle@debian.org>  Wed, 27 Jan 2016 20:04:41 +0100
+
+partman-efi (71ubuntu5) disco; urgency=medium
 
   * check.d/efi: Make sure we block on a missing EFI partition no matter what
     architecture, not just for ia64. One could attempt to install on EFI x86
     and will need an ESP to be able to install GRUB. (LP: #1803031)
-  * check.d/efi: Drop duplicate ignore_uefi check.
   * debian/partman-efi.templates: Make the no_efi template clearer, so that it
     clearly explains why an EFI System partition is important.
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 31 Jan 2019 10:19:50 -0500
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 08 Feb 2019 17:04:09 -0500
 
-partman-efi (71ubuntu2.1) bionic; urgency=medium
+partman-efi (71ubuntu4) cosmic; urgency=medium
+
+  * Clean-up leftover checks for the no longer used ignore_uefi file.
+
+ -- Łukasz 'sil2100' Zemczak <lukasz.zemczak@ubuntu.com>  Tue, 03 Jul 2018 18:18:17 +0200
+
+partman-efi (71ubuntu3) cosmic; urgency=medium
 
   * Save the number of ESPs found to /var/lib/partman/efi_esp_count for
     partman-auto. (LP: #1766945)
@@ -29,7 +194,7 @@ partman-efi (71ubuntu2) bionic; urgency=medium
 partman-efi (71ubuntu1) xenial; urgency=medium
 
   * Resynchronise with Debian.  Remaining changes:
-    - Remove efi-modules dependency; it seems to be built into Linux Mint
+    - Remove efi-modules dependency; it seems to be built into Ubuntu
       kernels now.
     - Require partman-base >= 129 to support a null value for the name.
     - Only force an EFI system partition on ia64.
@@ -117,7 +282,7 @@ partman-efi (62ubuntu2) vivid; urgency=medium
 partman-efi (62ubuntu1) vivid; urgency=medium
 
   * Resynchronise with Debian.  Remaining changes:
-    - Remove efi-modules dependency; it seems to be built into Linux Mint
+    - Remove efi-modules dependency; it seems to be built into Ubuntu
       kernels now.
     - Require partman-base >= 129 to support a null value for the name.
     - Only force an EFI system partition on ia64.
@@ -290,7 +455,7 @@ partman-efi (45) unstable; urgency=medium
 partman-efi (44) unstable; urgency=medium
 
   [ Colin Watson ]
-  * Merge changes from Linux Mint to handle non-512-byte logical sectors
+  * Merge changes from Ubuntu to handle non-512-byte logical sectors
     (LP: #1065281):
     - Pass the correct logical sector size to mkdosfs.
     - Pass "-s 1" to mkdosfs if the logical sector size is not equal to 512
@@ -467,7 +632,7 @@ partman-efi (28) unstable; urgency=low
 partman-efi (27) unstable; urgency=low
 
   [ Steve McIntyre ]
-  * EFI development work, merging code from Linux Mint
+  * EFI development work, merging code from Ubuntu
     + format EFI system partition using fat32 on x86/efi, leave fat16 on
       ia64
     + label appropriately
@@ -543,7 +708,7 @@ partman-efi (25ubuntu1) precise; urgency=low
     - Create fat32 EFI partitions with the name "EFI System Partition" by
       default on Intel Macs.
     - choose_method/efi/do_option: Make sure no mountpoint is set.
-    - Remove efi-modules dependency; it seems to be built into Linux Mint
+    - Remove efi-modules dependency; it seems to be built into Ubuntu
       kernels now.
     - Require partman-base >= 129 to support a null value for the name.
     - Automatically mount the first method=efi filesystem we see on
@@ -606,7 +771,7 @@ partman-efi (24ubuntu1) oneiric; urgency=low
     - Create fat32 EFI partitions with the name "EFI System Partition" by
       default on Intel Macs.
     - choose_method/efi/do_option: Make sure no mountpoint is set.
-    - Remove efi-modules dependency; it seems to be built into Linux Mint
+    - Remove efi-modules dependency; it seems to be built into Ubuntu
       kernels now.
     - Require partman-base >= 129 to support a null value for the name.
     - Automatically mount the first method=efi filesystem we see on
@@ -639,7 +804,7 @@ partman-efi (23ubuntu1) natty; urgency=low
     - Create fat32 EFI partitions with the name "EFI System Partition" by
       default on Intel Macs.
     - choose_method/efi/do_option: Make sure no mountpoint is set.
-    - Remove efi-modules dependency; it seems to be built into Linux Mint
+    - Remove efi-modules dependency; it seems to be built into Ubuntu
       kernels now.
     - Require partman-base >= 129 to support a null value for the name.
     - Automatically mount the first method=efi filesystem we see on
@@ -663,7 +828,7 @@ partman-efi (22ubuntu1) natty; urgency=low
     - Create fat32 EFI partitions with the name "EFI System Partition" by
       default on Intel Macs.
     - choose_method/efi/do_option: Make sure no mountpoint is set.
-    - Remove efi-modules dependency; it seems to be built into Linux Mint
+    - Remove efi-modules dependency; it seems to be built into Ubuntu
       kernels now.
     - Require partman-base >= 129 to support a null value for the name.
     - Automatically mount the first method=efi filesystem we see on
@@ -699,7 +864,7 @@ partman-efi (21ubuntu1) maverick; urgency=low
     - Create fat32 EFI partitions with the name "EFI System Partition" by
       default on Intel Macs.
     - choose_method/efi/do_option: Make sure no mountpoint is set.
-    - Remove efi-modules dependency; it seems to be built into Linux Mint
+    - Remove efi-modules dependency; it seems to be built into Ubuntu
       kernels now.
     - Require partman-base >= 129 to support a null value for the name.
   * Automatically mount the first method=efi filesystem we see on /boot/efi.
@@ -756,7 +921,7 @@ partman-efi (20ubuntu1) karmic; urgency=low
     - Create fat32 EFI partitions with the name "EFI System Partition" by
       default on Intel Macs.
     - choose_method/efi/do_option: Make sure no mountpoint is set.
-    - Remove efi-modules dependency; it seems to be built into Linux Mint
+    - Remove efi-modules dependency; it seems to be built into Ubuntu
       kernels now
     - Also support lpia
   * Require partman-base >= 129 to support a null value for the name.
@@ -800,7 +965,7 @@ partman-efi (18ubuntu1) intrepid; urgency=low
     - Create fat32 EFI partitions with the name "EFI System Partition" by
       default on Intel Macs.
     - choose_method/efi/do_option: Make sure no mountpoint is set.
-    - Remove efi-modules dependency; it seems to be built into Linux Mint
+    - Remove efi-modules dependency; it seems to be built into Ubuntu
       intrepid kernels now
   * Also support lpia
 
@@ -826,7 +991,7 @@ partman-efi (18) unstable; urgency=low
 
 partman-efi (17ubuntu2) intrepid; urgency=low
 
-  * Remove efi-modules dependency; it seems to be built into Linux Mint intrepid
+  * Remove efi-modules dependency; it seems to be built into Ubuntu intrepid
     kernels now.
 
  -- Colin Watson <cjwatson@ubuntu.com>  Wed, 20 Aug 2008 10:56:12 +0100
@@ -1046,7 +1211,7 @@ partman-efi (8) unstable; urgency=low
 
   * Note that this includes fix(es) for variable substition bugs in translated
     templates.
-  * Updated translations: 
+  * Updated translations:
     - Bosnian (bs.po) by Safir Šećerović
     - Welsh (cy.po) by Dafydd Harries
     - Greek, Modern (1453-) (el.po) by Greek Translation Team
@@ -1061,7 +1226,7 @@ partman-efi (8) unstable; urgency=low
 
 partman-efi (7) unstable; urgency=low
 
-  * Updated translations: 
+  * Updated translations:
     - Bulgarian (bg.po) by Ognyan Kulev
     - Greek, Modern (1453-) (el.po) by Greek Translation Team
     - French (fr.po) by French Team
@@ -1072,7 +1237,7 @@ partman-efi (7) unstable; urgency=low
 
 partman-efi (6) unstable; urgency=low
 
-  * Updated translations: 
+  * Updated translations:
     - Welsh (cy.po) by Dafydd Harries
     - Hebrew (he.po) by Lior Kaplan
     - Hungarian (hu.po) by VEROK Istvan
@@ -1087,7 +1252,7 @@ partman-efi (5) unstable; urgency=low
   * Jim Lieb
     - remove format flag test in efi partition verification in finish.d/efi
     - Closes: #268554
-  * Updated translations: 
+  * Updated translations:
     - Czech (cs.po) by Miroslav Kure
     - Greek, Modern (1453-) (el.po) by Greek Translation Team
     - Indonesian (id.po) by Debian Indonesia Team
@@ -1103,7 +1268,7 @@ partman-efi (4) unstable; urgency=low
   * Joey Hess
     - Use a string in the filesystem list that is consistent with the others
       used there. No string changes, but dropped an unused string.
-  * Updated translations: 
+  * Updated translations:
     - Lithuanian (lt.po) by [unknown]
 
  -- Joey Hess <joeyh@debian.org>  Thu, 30 Sep 2004 13:44:06 -0400
@@ -1117,7 +1282,7 @@ partman-efi (3) unstable; urgency=low
     - Get file system type displayed properly
     - remove extra menu label
     - Closes: #268555
-  * Updated translations: 
+  * Updated translations:
     - Arabic (ar.po) by Ossama M. Khayat
     - Bulgarian (bg.po) by Ognyan Kulev
     - Bosnian (bs.po) by Safir Å eÄeroviÄ
@@ -1182,3 +1347,4 @@ partman-efi (1) unstable; urgency=high
       partitioning, which will cause the boot loader install to fail.
 
  -- dann frazier <dannf@dannf.org>  Wed, 11 Aug 2004 03:45:10 -0600
+

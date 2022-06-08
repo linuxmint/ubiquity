@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 import subprocess
 import sys
 
@@ -96,7 +94,7 @@ class Keyboard(QWidget):
     def resizeEvent(self, re):
         self.space = 6
         self.usable_width = self.width() - 2
-        self.key_w = (self.usable_width - 14 * self.space) / 15
+        self.key_w = (self.usable_width - 14 * self.space) // 15
 
         self.setMinimumHeight(self.key_w * 4 + self.space * 5)
 

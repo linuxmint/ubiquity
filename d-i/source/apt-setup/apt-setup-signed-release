@@ -2,6 +2,10 @@
 # Pre-populate signed Release files for an archive.
 set -e
 
+## TODO handle mirrors, i.e. archive.ubuntu.com should be install for
+## anything that is the selected ubuntu mirror,
+## i.e. gb.archive.ubuntu.com or mirror.mycompany.example.com
+
 archive_id="$1"
 sources_list="$2"
 
@@ -13,7 +17,7 @@ fi
 if [ "$ROOT" ] && [ "${sources_list#$ROOT/}" = "$sources_list" ]; then
 	# Generate a new temporary file that can be accessed by APT in the
 	# chroot.
-	file="$($chroot $ROOT tempfile)"
+	file="$($chroot $ROOT mktemp)"
 	cat "$sources_list" > "$ROOT$file"
 else
 	file="${sources_list#$ROOT}"
@@ -37,12 +41,15 @@ for line in $lines; do
 	base="${uri##*/}"
 	dir="${uri%/*}"
 	codename="${dir##*/}"
+    echo $base $file
 	case $base in
-	    Release|Release.gpg)
+	    InRelease|Release|Release.gpg)
+        set -x
 		release="/usr/share/apt-setup/release-files/$archive_id/$codename/$base"
 		if [ -f "$release" ]; then
 			cp -a "$release" "$ROOT/var/lib/apt/lists/$file"
 		fi
+        set +x
 		;;
 	esac
 	IFS="$NEWLINE"

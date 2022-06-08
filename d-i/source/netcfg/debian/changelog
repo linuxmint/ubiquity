@@ -1,3 +1,433 @@
+netcfg (1.171ubuntu1) hirsute; urgency=medium
+
+  * Merge from Debian unstable.  Remaining changes:
+    - Set default hostname to 'ubuntu'.
+    - Set priority for get_domain to high for static configurations.
+    - Set priority for get_domain to medium for non-static configurations.
+    - Use 'auto <interface>' for all interfaces, dropping allow-hotplug
+      which doesn't work with current udev.
+    - Set DHCP and DHCPv6 timeout to 30s.
+    - Use isc-dhcp-client-udeb on all architectures.
+    - Flush all addresses and routes before configuring interfaces
+      (LP: #848072)
+    - Don't copy /etc/resolv.conf to target if resolvconf is installed.  (We
+      already write resolvconf configuration to /etc/network/interfaces.)
+    - Add a post-base-install hook to detect resolvconf and copy
+      /run/resolvconf/resolv.conf to outside the target so that when /run is
+      bind-mounted DNS resolving continues to work. (LP: #926447)
+    - Apply patch from Alec Warner making netcfg respect
+      netcfg/dhcpv6_timeout and running dhclient in one-shot mode (-1).
+      (LP: #917905)
+    - Fix nm-conf to generate a valid NetworkManager static configuration
+      file.
+    - Always allow fe80::/64 for the default gateway. (LP: #1382295)
+    - Add vlan support.
+    - On s390x ask if DHCP autoconfiguration should be performed or not.
+    - Do now show an empty option 4 when using netcfg, without a wifi-card,
+      and when automatic configuration fails.
+    - Also use short stable systemd-udev names to discover descriptions for
+      the network interfaces. LP: #1572620
+    - On NetworkManager-using systems, write a netplan config file to hand
+      over control of all our interfaces to NetworkManager (LP: #1616400)
+    - Add support for using netplan for network configuration.
+    - debian/netcfg-common.templates: add debconf template for
+      netcfg/do_not_use_netplan.
+    - Add description for non-PCI platform network interfaces. LP: #1697914
+    - Add resolved support. LP: #1714167
+    - Fix writing IPv6 static config in the netplan case.
+    - Make sure we write nameservers and search domains correctly when using
+      netplan to drive network configuration. (LP: #1721798)
+    - IPv6 addresses in netplan YAML usually need to be quoted, let's make sure
+      they are always surrounded by double-quotes. (LP: #1751151)
+    - Write out nameservers without a domain, for example when preseeding a
+      static network configuration without any domains. LP: #1757078
+    - write_interfaces.c: Make sure ifupdown gets pulled in if someone preseeds
+      netcfg/do_not_use_netplan=true; otherwise they would have config written
+      but nothing to apply it at boot.
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Wed, 17 Mar 2021 00:24:29 +0000
+
+netcfg (1.171) unstable; urgency=medium
+
+  * Team upload
+
+  [ Francisco Vilmar Cardoso Ruviaro ]
+  * Update testcases to work with current Check API,
+    patch from Dennis Filder <d.filder@web.de>. (Closes: #980607)
+  * Satisfy GCC pedantery for strncpy() calls,
+    patch from Dennis Filder <d.filder@web.de>.
+
+  [ Updated translations ]
+  * Catalan (ca.po) by d
+  * Danish (da.po) by Michael Millet
+  * Galician (gl.po) by mantinan
+  * Hindi (hi.po) by KushagraKarira
+  * Kannada (kn.po) by Yogesh
+  * Latvian (lv.po) by Tranzistors
+  * Romanian (ro.po) by Sergiu
+  * Albanian (sq.po) by Sotirios Vrachas
+  * Tamil (ta.po) by Vasudevan Tirumurti
+  * Thai (th.po) by Theppitak Karoonboonyanan
+  * Ukrainian (uk.po) by Anton Gladky
+
+ -- Holger Wansing <hwansing@mailbox.org>  Mon, 22 Feb 2021 17:58:31 +0100
+
+netcfg (1.169) unstable; urgency=medium
+
+  * Team upload
+
+  [ Philipp Kern ]
+  * Removed myself from uploaders.
+
+  [ Updated translations ]
+  * Greek (el.po) by EG
+  * Esperanto (eo.po) by Felipe Castro
+  * oc (oc.po) by Quentin PAGÈS
+  * Russian (ru.po) by Yuri Kozlov
+
+ -- Philipp Kern <pkern@debian.org>  Sat, 21 Nov 2020 22:03:20 +0100
+
+netcfg (1.168) unstable; urgency=medium
+
+  * Team upload
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+  * Greek (el.po) by Vangelis Skarmoutsos
+  * Basque (eu.po) by Iñaki Larrañaga Murgoitio
+  * Persian (fa.po) by Seyed Hany Hosseini
+  * Italian (it.po) by Milo Casagrande
+  * Lithuanian (lt.po) by Kornelijus Tvarijanavičius
+  * Punjabi (Gurmukhi) (pa.po) by Aman ALam
+  * Traditional Chinese (zh_TW.po) by Walter Cheuk
+
+  [ New translations ]
+  * Kabyle (kab.po) by Slimane Selyan Amiri
+  * Occitan (oc.po) by Quentin PAGÈS
+
+ -- Holger Wansing <hwansing@mailbox.org>  Wed, 04 Nov 2020 19:41:51 +0100
+
+netcfg (1.167) unstable; urgency=medium
+
+  * Team upload
+
+  [ Updated translations ]
+  * Spanish (es.po) by Javier Fernández-Sanguino
+  * French (fr.po) by Baptiste Jammet
+  * Indonesian (id.po) by Andika Triwidada
+  * Norwegian Bokmal (nb.po) by Petter Reinholdtsen
+  * Polish (pl.po) by Bartosz Feński
+
+ -- Holger Wansing <hwansing@mailbox.org>  Sun, 20 Sep 2020 22:39:01 +0200
+
+netcfg (1.166) unstable; urgency=medium
+
+  * Team upload
+
+  [ Updated translations ]
+  * Czech (cs.po) by Miroslav Kure
+  * Estonian (et.po) by Kristjan Räts
+  * Hebrew (he.po) by Yaron Shahrabani
+  * Croatian (hr.po) by gogogogi
+  * Korean (ko.po) by Changwoo Ryu
+  * Norwegian Bokmal (nb.po) by Allan Nordhøy
+  * Dutch (nl.po) by Frans Spiesschaert
+  * Portuguese (Brazil) (pt_BR.po) by Adriano Rafael Gomes
+
+ -- Holger Wansing <hwansing@mailbox.org>  Sat, 09 May 2020 23:26:36 +0200
+
+netcfg (1.165) unstable; urgency=medium
+
+  * Team upload
+
+  [ Updated translations ]
+  * Serbian (sr.po) by Filipovic Dragan
+
+ -- Holger Wansing <hwansing@mailbox.org>  Sat, 07 Mar 2020 21:10:56 +0100
+
+netcfg (1.164) unstable; urgency=medium
+
+  * Team upload
+
+  * Fix lower case use of "dhcp" in template.
+  * Improve "Malformed IP address" template for simplification and
+    consistency.
+  * The points above include updating all po|pot files.
+
+  [ Updated translations ]
+  * Czech (cs.po) by Miroslav Kure
+  * German (de.po) by Holger Wansing
+  * Esperanto (eo.po) by Felipe Castro
+  * French (fr.po) by Baptiste Jammet
+  * Hebrew (he.po) by Yaron Shahrabani
+  * Croatian (hr.po) by Milo Ivir
+  * Indonesian (id.po) by Andika Triwidada
+  * Icelandic (is.po) by Sveinn í Felli
+  * Dutch (nl.po) by Frans Spiesschaert
+  * Punjabi (Gurmukhi) (pa.po) by Aman ALam
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Swedish (sv.po) by Anders Jonsson
+  * Simplified Chinese (zh_CN.po) by 玉堂白鹤
+
+ -- Holger Wansing <hwansing@mailbox.org>  Tue, 28 Jan 2020 21:57:11 +0100
+
+netcfg (1.163) unstable; urgency=medium
+
+  * Team upload
+
+  [ Updated translations ]
+  * French (fr.po) by Baptiste Jammet
+  * Dutch (nl.po) by Frans Spiesschaert
+  * Punjabi (Gurmukhi) (pa.po) by Aman ALam
+  * Serbian (sr.po) by Filipovic Dragan
+  * Swedish (sv.po) by Mattias Münster
+
+ -- Holger Wansing <hwansing@mailbox.org>  Fri, 20 Dec 2019 17:19:26 +0100
+
+netcfg (1.162) unstable; urgency=medium
+
+  * Team upload
+
+  [ Holger Wansing ]
+  * Change dhcp template (pump and dhcp-client are no longer in the archive;
+    rephrase message into a generic form).
+  * Rephrase template, to rename "CD"/"CD-ROM" into "installation media".
+  * Add comment for translators, to keep main menu entry below a 55 columns
+    limit. This updates all po|pot files.
+
+  [ Updated translations ]
+  * German (de.po) by Holger Wansing
+  * Esperanto (eo.po) by Felipe E. F. de Castro
+  * French (fr.po) by Baptiste Jammet
+  * Hebrew (he.po) by Yaron Shahrabani
+  * Croatian (hr.po) by gogogogi
+  * Indonesian (id.po) by Andika Triwidada
+  * Icelandic (is.po) by Sveinn í Felli
+  * Norwegian Bokmal (nb.po) by Allan Nordhøy
+  * Punjabi (Gurmukhi) (pa.po) by Aman ALam
+  * Portuguese (pt.po) by Miguel Figueiredo
+  * Portuguese (Brazil) (pt_BR.po) by Adriano Rafael Gomes
+  * Swedish (sv.po) by Anders Jonsson
+  * Simplified Chinese (zh_CN.po) by Boyuan Yang
+  * Traditional Chinese (zh_TW.po) by Walter Cheuk
+
+ -- Holger Wansing <hwansing@mailbox.org>  Mon, 07 Oct 2019 21:23:57 +0200
+
+netcfg (1.161) unstable; urgency=medium
+
+  * Team upload
+
+  [ Cyril Brulebois ]
+  * Remove Christian Perrier from Uploaders, with many thanks for all
+    his contributions over the years! (Closes: #927498)
+
+  [ Updated translations ]
+  * Arabic (ar.po) by ButterflyOfFire
+  * Croatian (hr.po) by gogogogi
+
+ -- Holger Wansing <hwansing@mailbox.org>  Tue, 30 Jul 2019 23:01:50 +0200
+
+netcfg (1.160) unstable; urgency=medium
+
+  * Team upload
+
+  [ Updated translations ]
+  * Ukrainian (uk.po) by Anton Gladky
+
+ -- Holger Wansing <hwansing@mailbox.org>  Thu, 28 Mar 2019 18:56:21 +0100
+
+netcfg (1.159) unstable; urgency=medium
+
+  * Team upload
+
+  [ Updated translations ]
+  * Vietnamese (vi.po) by Trần Ngọc Quân
+
+ -- Holger Wansing <hwansing@mailbox.org>  Mon, 04 Mar 2019 23:55:30 +0100
+
+netcfg (1.158) unstable; urgency=medium
+
+  * Team upload
+
+  [ Updated translations ]
+  * Persian (fa.po) by nima sahraneshin
+  * Finnish (fi.po) by Juhani Numminen
+  * Hebrew (he.po) by Yaron Shahrabani
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Traditional Chinese (zh_TW.po) by Louies
+
+ -- Holger Wansing <hwansing@mailbox.org>  Sat, 09 Feb 2019 09:36:32 +0100
+
+netcfg (1.157) unstable; urgency=medium
+
+  * Team upload
+
+  [ Colin Watson ]
+  * Use /usr/share/dpkg/default.mk rather than setting DEB_HOST_ARCH directly.
+
+  [ Holger Wansing ]
+  * Remove trailing whitespaces from changelog file, to fix lintian tag.
+
+  [ Updated translations ]
+  * Finnish (fi.po) by Juhani Numminen
+
+ -- Holger Wansing <hwansing@mailbox.org>  Sun, 23 Dec 2018 19:39:26 +0100
+
+netcfg (1.156) unstable; urgency=medium
+
+  * Team upload
+
+  [ Updated translations ]
+  * Asturian (ast.po) by Xuacu Saturio
+  * Galician (gl.po) by mantinan
+  * Croatian (hr.po) by Valentin Vidic
+  * Latvian (lv.po) by Tranzistors
+  * Marathi (mr.po) by Nayan Nakhare
+
+ -- Holger Wansing <hwansing@mailbox.org>  Mon, 29 Oct 2018 23:00:52 +0100
+
+netcfg (1.155) unstable; urgency=medium
+
+  * Team upload.
+
+  [ Updated translations ]
+  * Finnish (fi.po) by Arto Keiski
+  * Galician (gl.po) by mantinan
+  * Hebrew (he.po) by Yaron Shahrabani
+  * Norwegian Bokmal (nb.po) by Allan Nordhøy
+
+ -- Holger Wansing <hwansing@mailbox.org>  Sun, 23 Sep 2018 13:48:54 +0200
+
+netcfg (1.154) unstable; urgency=medium
+
+  * Team upload
+
+  [ Cyril Brulebois ]
+  * Update Vcs-{Browser,Git} to point to salsa (alioth's replacement).
+
+  [ Updated translations ]
+  * Hebrew (he.po) by Yaron Shahrabani
+
+ -- Holger Wansing <hwansing@mailbox.org>  Sun, 12 Aug 2018 10:44:20 +0200
+
+netcfg (1.153) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Arabic (ar.po) by ButterflyOfFire
+  * Hebrew (he.po) by Yaron Shahrabani
+  * Indonesian (id.po) by Andika Triwidada
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 02 Apr 2018 16:46:32 +0200
+
+netcfg (1.152) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Arabic (ar.po) by ButterflyOfFire
+  * Hebrew (he.po) by Yaron Shahrabani
+  * Norwegian Nynorsk (nn.po) by Alexander Jansen
+  * Tajik (tg.po) by Victor Ibragimov
+
+ -- Christian Perrier <bubulle@debian.org>  Fri, 16 Feb 2018 18:40:30 +0100
+
+netcfg (1.151) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Norwegian Nynorsk (nn.po) by Petter Reinholdtsen
+  * Tajik (tg.po) by Victor Ibragimov
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 21 Jan 2018 19:20:18 +0100
+
+netcfg (1.150) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Icelandic (is.po) by Sveinn í Felli
+  * Panjabi (pa.po) by Aman ALam
+  * Serbian (sr.po) by Filipovic Dragan
+  * Swedish (sv.po) by Sebastian Rasmussen
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 13 Jan 2018 15:29:38 +0100
+
+netcfg (1.149) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Nepali (ne.po) by Jeewal Kunwar
+  * Simplified Chinese (zh_CN.po) by Boyuan Yang
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 24 Dec 2017 18:51:19 +0100
+
+netcfg (1.148) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Bulgarian (bg.po) by Damyan Ivanov
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 10 Dec 2017 20:21:54 +0100
+
+netcfg (1.147) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Hungarian (hu.po) by Dr. Nagy Elemér Károly
+  * Lithuanian (lt.po) by Rimas Kudelis
+  * Swedish (sv.po) by Anders Jonsson
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 30 Nov 2017 21:32:03 +0100
+
+netcfg (1.146) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Greek (el.po) by Sotirios Vrachas
+  * Estonian (et.po) by Kristjan Räts
+  * Russian (ru.po) by Yuri Kozlov
+  * Swedish (sv.po) by Anders Jonsson
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 25 Nov 2017 19:32:24 +0100
+
+netcfg (1.145) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Greek (el.po) by Sotirios Vrachas
+  * Albanian (sq.po) by Silva Arapi
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 17 Sep 2017 08:31:21 +0200
+
+netcfg (1.144) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Simplified Chinese (zh_CN.po) by Yangfl
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 27 Jun 2017 05:56:38 +0200
+
+netcfg (1.143) unstable; urgency=medium
+
+  * Stop queueing rdnssd's installation with IPv6 setups. This component
+    conflicts with network-manager and installing it from the network
+    configuration step might prevents large parts of desktop environments
+    from being installed. This isn't a perfect solution but this should be
+    way better than the current status quo (Closes: #854801).
+
+ -- Cyril Brulebois <kibi@debian.org>  Fri, 26 May 2017 18:55:29 +0200
+
+netcfg (1.142ubuntu8) disco; urgency=medium
+
+  * write_interfaces.c: Make sure ifupdown gets pulled in if someone preseeds
+    netcfg/do_not_use_netplan=true; otherwise they would have config written
+    but nothing to apply it at boot.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 15 Feb 2019 14:35:12 -0500
+
+netcfg (1.142ubuntu7) bionic; urgency=medium
+
+  * Write out nameservers without a domain, for example when preseeding a
+    static network configuration without any domains. LP: #1757078
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Wed, 25 Apr 2018 13:25:45 +0100
+
+netcfg (1.142ubuntu6) bionic; urgency=medium
+
+  * IPv6 addresses in netplan YAML usually need to be quoted, let's make sure
+    they are always surrounded by double-quotes. (LP: #1751151)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Sun, 18 Mar 2018 21:24:47 -0400
+
 netcfg (1.142ubuntu5) artful; urgency=medium
 
   * Make sure we write nameservers and search domains correctly when using
@@ -1089,7 +1519,7 @@ netcfg (1.82) unstable; urgency=low
 netcfg (1.81) unstable; urgency=low
 
   * Team upload
-  
+
   [ Updated translations ]
   * Catalan (ca.po)
 
@@ -1098,7 +1528,7 @@ netcfg (1.81) unstable; urgency=low
 netcfg (1.80) unstable; urgency=low
 
   * Team upload
-  
+
   [ Updated translations ]
   * Malayalam (ml.po) by Praveen Arimbrathodiyil
 
@@ -1516,7 +1946,7 @@ netcfg (1.64) unstable; urgency=low
     netcfg/choose_interface is preseeded with an Ethernet hardware address
     (LP: #708908).  The latter case should work on kFreeBSD as well.
   * Also release lease at end of install when using isc-dhcp-client.
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - Call /usr/lib/NetworkManager/ifblacklist_migrate.sh from
       finish-install if present, so that 'auto dhcp' interfaces are disabled
       if network-manager is in use.  May be preseeded away with
@@ -2068,7 +2498,7 @@ netcfg (1.48) unstable; urgency=low
 
 netcfg (1.47) unstable; urgency=low
 
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - Build for lpia.
     - Add an /etc/network/interfaces stanza for lo even if the netcfg menu
       item wasn't run (LP: #9532).
@@ -2341,7 +2771,7 @@ netcfg (1.40ubuntu1) hardy; urgency=low
     - Call /usr/lib/network-manager/ifblacklist_migrate.sh from
       finish-install if present, so that 'auto dhcp' interfaces are disabled
       if network-manager is in use.
-  * debian/control: Add XS-Vcs-Bzr for the Linux Mint branch.
+  * debian/control: Add XS-Vcs-Bzr for the Ubuntu branch.
 
  -- Evan Dandrea <evand@ubuntu.com>  Fri, 23 Nov 2007 13:48:46 -0500
 
@@ -2501,7 +2931,7 @@ netcfg (1.37ubuntu1) gutsy; urgency=low
 netcfg (1.37) unstable; urgency=low
 
   [ Colin Watson ]
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - Fix backup from netcfg/no_interfaces to behave more usefully.
     - Give up gracefully if netcfg/wireless_essid was preseeded but
       association failed.
@@ -2809,7 +3239,7 @@ netcfg (1.27ubuntu2) edgy; urgency=low
 
 netcfg (1.27ubuntu1) edgy; urgency=low
 
-  [ Linux Mint Merge-o-Matic ]
+  [ Ubuntu Merge-o-Matic ]
   * Merge from debian unstable.
 
  -- Scott James Remnant <scott@ubuntu.com>  Thu, 29 Jun 2006 22:56:02 +0100
@@ -2952,7 +3382,7 @@ netcfg (1.23ubuntu4) dapper; urgency=low
   * Avoid writing duplicated MAC/ARP matching lines to /etc/iftab, as
     we can't handle that.  This notably breaks Sparc machines which can
     have multiple interfaces with the same MAC address (as it's generated
-    from the machine id).  Linux Mint #33787.
+    from the machine id).  Ubuntu #33787.
 
  -- Scott James Remnant <scott@ubuntu.com>  Mon,  6 Mar 2006 12:37:37 +0000
 
@@ -3351,7 +3781,7 @@ netcfg (1.09) unstable; urgency=low
       not have a 'canonical name' form; no address to host name translation
       is performed." Use getnameinfo() instead.
     - Detect ipw2100 and ipw2200 hardware kill switches, and warn the user
-      if they're enabled (Linux Mint bug #1877).
+      if they're enabled (Ubuntu bug #1877).
   * Updated translations:
     - Arabic (ar.po) by Ossama M. Khayat
     - Bulgarian (bg.po) by Ognyan Kulev
@@ -3441,7 +3871,7 @@ netcfg (1.08ubuntu5) hoary; urgency=low
 
 netcfg (1.08ubuntu4) hoary; urgency=low
 
-  * Substitute ${iface} in netcfg/wireless_essid_again (closes: Linux Mint
+  * Substitute ${iface} in netcfg/wireless_essid_again (closes: Ubuntu
     #8174).
 
  -- Colin Watson <cjwatson@ubuntu.com>  Fri, 25 Mar 2005 00:56:40 +0000
@@ -3449,11 +3879,11 @@ netcfg (1.08ubuntu4) hoary; urgency=low
 netcfg (1.08ubuntu3) hoary; urgency=low
 
   * If an interface's kill switch is enabled but the user continues without
-    disabling it, go on to the next interface (closes: Linux Mint #7451).
+    disabling it, go on to the next interface (closes: Ubuntu #7451).
   * Avoid infinite loop on wireless configuration if no access points are
     available, by introducing a slightly different question the second time
     round the loop; entering an empty ESSID there breaks out of wireless
-    configuration (closes: Linux Mint #7098).
+    configuration (closes: Ubuntu #7098).
   * Add draft Xhosa translation.
 
  -- Colin Watson <cjwatson@ubuntu.com>  Wed, 23 Mar 2005 14:32:46 +0000
@@ -3461,7 +3891,7 @@ netcfg (1.08ubuntu3) hoary; urgency=low
 netcfg (1.08ubuntu2) hoary; urgency=low
 
   * Check correct variable for read() return value when checking RF kill
-    switch (really closes: Linux Mint #1877).
+    switch (really closes: Ubuntu #1877).
 
  -- Colin Watson <cjwatson@ubuntu.com>  Mon, 28 Feb 2005 10:15:38 +0000
 
@@ -3539,7 +3969,7 @@ netcfg (1.07ubuntu5) hoary; urgency=low
 netcfg (1.07ubuntu4) hoary; urgency=low
 
   * Detect ipw2100 and ipw2200 hardware kill switches, and warn the user if
-    they're enabled (closes: Linux Mint #1877).
+    they're enabled (closes: Ubuntu #1877).
 
  -- Colin Watson <cjwatson@ubuntu.com>  Wed, 19 Jan 2005 14:09:31 +0000
 
@@ -3552,7 +3982,7 @@ netcfg (1.07ubuntu3) hoary; urgency=low
 netcfg (1.07ubuntu2) hoary; urgency=low
 
   * Drop priorities back to high of several questions that had been locally
-    changed in Linux Mint from high to critical.
+    changed in Ubuntu from high to critical.
   * Drop priority of netcfg/get_domain to medium.
 
  -- Colin Watson <cjwatson@canonical.com>  Sat,  1 Jan 2005 23:56:06 +0000
@@ -3562,7 +3992,7 @@ netcfg (1.07ubuntu1) hoary; urgency=low
   * Resynchronise with Debian.
     - Add comment from Debian .po files to netcfg-common.templates to avoid
       lots of needless diffs.
-    - Apply Linux Mint branding from scratch.
+    - Apply Ubuntu branding from scratch.
 
  -- Colin Watson <cjwatson@canonical.com>  Mon, 15 Nov 2004 11:31:58 +0000
 
@@ -3856,7 +4286,7 @@ netcfg (1.01ubuntu2) warty; urgency=low
 netcfg (1.01ubuntu1) warty; urgency=low
 
   * Merge from Debian: several fixes in 1.01 are relevant to us.
-  * Update Linux Mint branding.
+  * Update Ubuntu branding.
 
  -- Colin Watson <cjwatson@flatline.org.uk>  Wed, 25 Aug 2004 15:26:01 +0100
 
@@ -3918,7 +4348,7 @@ netcfg (1.00) unstable; urgency=low
 
 netcfg (0.72ubuntu6) warty; urgency=low
 
-  * Fix Linux Mint branding; debian/*.templates hadn't been updated, and fuzzy
+  * Fix Ubuntu branding; debian/*.templates hadn't been updated, and fuzzy
     markers were broken.
 
  -- Colin Watson <cjwatson@flatline.org.uk>  Wed, 25 Aug 2004 13:47:56 +0100
@@ -3938,7 +4368,7 @@ netcfg (0.72ubuntu4) warty; urgency=low
 
 netcfg (0.72ubuntu3) warty; urgency=low
 
-  * Linux Mint branding.
+  * Ubuntu branding.
 
  -- Tollef Fog Heen <tfheen@raw.no>  Fri, 20 Aug 2004 10:24:24 +0200
 

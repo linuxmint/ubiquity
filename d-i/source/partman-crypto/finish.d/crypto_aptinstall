@@ -5,44 +5,17 @@
 
 . /lib/partman/lib/base.sh
 
-dm_crypt=no
-
-for dev in $DEVICES/*; do
-	[ -d "$dev" ] || continue
-	cd $dev
-	open_dialog PARTITIONS
-	while { read_line num id size type fs path name; [ "$id" ]; }; do
-		[ "$fs" != free ] || continue
-		[ -f $id/method ] || continue
-		[ -f $id/crypto_type ] || continue
-
-		method=$(cat $id/method)
-		[ $method = crypto ] || [ $method = crypto_keep ] || continue
-
-		type=$(cat $id/crypto_type)
-		case $type in
-			dm-crypt)
-				dm_crypt=yes
-				;;
-		esac
-	done
-	close_dialog
-done
-
 if grep -q " device-mapper$" /proc/misc; then
     # We can't check the root node directly because root could be
     # on an LVM LV on top of an encrypted device
     if type dmsetup >/dev/null 2>&1 && \
 	   dmsetup table | cut -d' ' -f4 | grep -q "crypt" 2>/dev/null; then
-		apt-install cryptsetup || true
+		apt-install cryptsetup-initramfs || true
 	fi
 fi
 
-if grep -q " device-mapper$" /proc/misc; then
-	# We can't check the root node directly because root could be
-	# on an LVM LV on top of an encrypted device
-	if type dmsetup >/dev/null 2>&1 && \
-	   dmsetup table | cut -d' ' -f4 | grep -q "crypt" 2>/dev/null; then
-		apt-install cryptsetup || true
-	fi
+if type zkey >/dev/null 2>&1 && zkey list | grep -q key; then
+	apt-install s390-tools-zkey || true
+	mkdir -p /target/etc/zkey/repository
+	cp /etc/zkey/repository/* /target/etc/zkey/repository
 fi

@@ -246,7 +246,8 @@ int is_raw_80211(const char *iface)
     struct ifreq ifr;
     struct sockaddr sa;
 
-    strncpy(ifr.ifr_name, iface, IFNAMSIZ);
+    strncpy(ifr.ifr_name, iface, IFNAMSIZ-1);
+    ifr.ifr_name[IFNAMSIZ-1]='\0';
 
     if (skfd && ioctl(skfd, SIOCGIFHWADDR, &ifr) < 0) {
         di_warning("Unable to retrieve interface type.");
@@ -415,12 +416,13 @@ int get_all_ifs (int all, char*** ptr)
     char ibuf[512];
     char** list = NULL;
     size_t len = 0;
+    ibuf[sizeof(ibuf)-1]='\0';
 
     if (getifaddrs(&ifap) == -1)
         return 0;
 
     for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
-        strncpy(ibuf, ifa->ifa_name, sizeof(ibuf));
+        strncpy(ibuf, ifa->ifa_name, sizeof(ibuf)-1);
         if (ifa->ifa_flags & IFF_LOOPBACK)   /* ignore loopback devices */
             continue;
 #if defined(__linux__)
@@ -1327,11 +1329,12 @@ void interface_up (const char *if_name)
 {
     struct ifreq ifr;
 
-    strncpy(ifr.ifr_name, if_name, IFNAMSIZ);
+    strncpy(ifr.ifr_name, if_name, IFNAMSIZ-1);
+    ifr.ifr_name[IFNAMSIZ-1]='\0';
 
     if (skfd && ioctl(skfd, SIOCGIFFLAGS, &ifr) >= 0) {
         di_info("Activating interface %s", if_name);
-        strncpy(ifr.ifr_name, if_name, IFNAMSIZ);
+        strncpy(ifr.ifr_name, if_name, IFNAMSIZ-1);
         ifr.ifr_flags |= (IFF_UP | IFF_RUNNING);
         ioctl(skfd, SIOCSIFFLAGS, &ifr);
     } else {
@@ -1343,11 +1346,12 @@ void interface_down (const char *if_name)
 {
     struct ifreq ifr;
 
-    strncpy(ifr.ifr_name, if_name, IFNAMSIZ);
+    strncpy(ifr.ifr_name, if_name, IFNAMSIZ-1);
+    ifr.ifr_name[IFNAMSIZ-1]='\0';
 
     if (skfd && ioctl(skfd, SIOCGIFFLAGS, &ifr) >= 0) {
         di_info("Taking down interface %s", if_name);
-        strncpy(ifr.ifr_name, if_name, IFNAMSIZ);
+        strncpy(ifr.ifr_name, if_name, IFNAMSIZ-1);
         ifr.ifr_flags &= ~IFF_UP;
         ioctl(skfd, SIOCSIFFLAGS, &ifr);
     } else {
@@ -1621,7 +1625,8 @@ int netcfg_parse_cidr_address(const char *address, struct netcfg_interface *inte
     char *maskptr, *addrstr, addrbuf[NETCFG_ADDRSTRLEN];
     int i;
     
-    strncpy(addrbuf, address, NETCFG_ADDRSTRLEN);
+    strncpy(addrbuf, address, NETCFG_ADDRSTRLEN-1);
+    addrbuf[NETCFG_ADDRSTRLEN-1]='\0';
     addrstr = strtrim(addrbuf);
     
     if ((maskptr = strchr(addrstr, '/'))) {

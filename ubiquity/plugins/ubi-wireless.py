@@ -105,6 +105,8 @@ class PageGtk(WirelessPageBase):
             frontend.next.set_label(self.connect_text)
         if not self.back_normal:
             frontend.back.set_label(self.stop_text)
+        frontend.status_label.set_text(self.controller.get_string(
+            'ubiquity/text/connecting_label', lang))
 
     def selection_changed(self, unused):
         from ubiquity import nm
@@ -132,9 +134,9 @@ class PageGtk(WirelessPageBase):
                 self.nmwidget.select_usable_row()
             self.state_changed(None, self.state)
         else:
-            frontend.connecting_spinner.hide()
-            frontend.connecting_spinner.stop()
-            frontend.connecting_label.hide()
+            frontend.status_spinner.hide()
+            frontend.status_spinner.stop()
+            frontend.status_label.hide()
             frontend.translate_widget(frontend.next)
             self.next_normal = True
             self.controller.allow_go_forward(True)
@@ -145,9 +147,9 @@ class PageGtk(WirelessPageBase):
             self.nmwidget.disconnect_from_ap()
             return True
         else:
-            frontend.connecting_spinner.hide()
-            frontend.connecting_spinner.stop()
-            frontend.connecting_label.hide()
+            frontend.status_spinner.hide()
+            frontend.status_spinner.stop()
+            frontend.status_label.hide()
             self.no_wireless.set_active(True)
             return False
 
@@ -157,9 +159,9 @@ class PageGtk(WirelessPageBase):
             self.nmwidget.connect_to_ap()
             return True
         else:
-            frontend.connecting_spinner.hide()
-            frontend.connecting_spinner.stop()
-            frontend.connecting_label.hide()
+            frontend.status_spinner.hide()
+            frontend.status_spinner.stop()
+            frontend.status_label.hide()
             return False
 
     def state_changed(self, unused, state):
@@ -170,17 +172,17 @@ class PageGtk(WirelessPageBase):
         if not self.use_wireless.get_active():
             return
         if state != nm.NM_STATE_CONNECTING:
-            frontend.connecting_spinner.hide()
-            frontend.connecting_spinner.stop()
-            frontend.connecting_label.hide()
+            frontend.status_spinner.hide()
+            frontend.status_spinner.stop()
+            frontend.status_label.hide()
 
             frontend.translate_widget(frontend.back)
             self.back_normal = True
             frontend.back.set_sensitive(True)
         else:
-            frontend.connecting_spinner.show()
-            frontend.connecting_spinner.start()
-            frontend.connecting_label.show()
+            frontend.status_spinner.show()
+            frontend.status_spinner.start()
+            frontend.status_label.show()
 
             self.next_normal = True
 

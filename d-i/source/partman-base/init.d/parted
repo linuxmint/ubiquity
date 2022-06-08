@@ -157,6 +157,11 @@ if [ ! -f /var/run/parted_server.pid ]; then
 	if [ "$RET" = true ]; then
 		# Get a list of active mounts in a more convenient format.
 		mounts=
+		# If parted failed to parse partition table, still
+		# ensure that the overall blockdevice is marked as
+		# installation_medium, otherwise we end up offering it
+		# as the install target
+		installation_medium_block=
 		while read dev mp rest; do
 			[ -e "$dev" ] || continue
 			mappeddev="$(mapdevfs "$dev")" || true
@@ -164,6 +169,21 @@ if [ ! -f /var/run/parted_server.pid ]; then
 				dev="$mappeddev"
 			fi
 			mounts="${mounts:+$mounts$NL}$dev $mp"
+			# Oooh, installation media
+			if [ "$mp" = '/cdrom' ]; then
+				# Is a full block dev?
+				block=$(basename $dev)
+				if [ -d "/sys/block/$block" ]; then
+					installation_medium_block=/dev/$block
+				else
+					# Is it a partition?
+					for i in /sys/block/*/$block; do
+						if [ -d "$i" ]; then
+							installation_medium_block=/dev/$(basename $(dirname $i))
+						fi
+					done
+				fi
+			fi
 		done < /proc/mounts
 		# For each disk, check for any active mounts on it. If the
 		# only thing mounted is the installation medium and it uses
@@ -212,6 +232,14 @@ if [ ! -f /var/run/parted_server.pid ]; then
 				fi
 			done
 			close_dialog
+			if [ "$(cat device)" = "$installation_medium_block" ]; then
+				if [ -z "$instparts" ]; then
+					# Looks like parted failed to parse partition table
+					# of the thing, that has installation medium mounted
+					# make it so, anyway.
+					instparts="${instparts:+$instparts }$installation_medium_block"
+				fi
+			fi
 			if [ "$instparts" ]; then
 				if [ -z "$seen_unmounted" ] && \
 				   longint_le "$free" 16777216; then

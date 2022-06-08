@@ -7,7 +7,7 @@ START_TEST(test_inet_ptom_v4_24)
 	
 	inet_ptom(AF_INET, "255.255.255.0", &masklen);
 	
-	fail_unless (24 == masklen, "Expected masklen == 24, masklen was %i", masklen);
+	ck_assert_msg (24 == masklen, "Expected masklen == 24, masklen was %i", masklen);
 }
 END_TEST
 
@@ -17,7 +17,7 @@ START_TEST(test_inet_ptom_v4_22)
 	
 	inet_ptom(AF_INET, "255.255.252.0", &masklen);
 	
-	fail_unless (22 == masklen, "Expected masklen == 22, masklen was %i", masklen);
+	ck_assert_msg (22 == masklen, "Expected masklen == 22, masklen was %i", masklen);
 }
 END_TEST
 
@@ -27,7 +27,7 @@ START_TEST(test_inet_ptom_v6_64)
 	
 	inet_ptom(AF_INET6, "ffff:ffff:ffff:ffff::", &masklen);
 	
-	fail_unless (64 == masklen, "Expected masklen == 64, masklen was %i", masklen);
+	ck_assert_msg (64 == masklen, "Expected masklen == 64, masklen was %i", masklen);
 }
 END_TEST
 
@@ -37,7 +37,7 @@ START_TEST(test_inet_ptom_v6_60)
 	
 	inet_ptom(AF_INET6, "ffff:ffff:ffff:fff0::", &masklen);
 	
-	fail_unless (60 == masklen, "Expected masklen == 60, masklen was %i", masklen);
+	ck_assert_msg (60 == masklen, "Expected masklen == 60, masklen was %i", masklen);
 }
 END_TEST
 
@@ -51,7 +51,7 @@ START_TEST(test_inet_ptom_v6_60_with_scraps)
 	 */
 	inet_ptom(AF_INET6, "ffff:ffff:ffff:fff0:ffff::", &masklen);
 	
-	fail_unless (60 == masklen, "Expected masklen == 60, masklen was %i", masklen);
+	ck_assert_msg (60 == masklen, "Expected masklen == 60, masklen was %i", masklen);
 }
 END_TEST
 

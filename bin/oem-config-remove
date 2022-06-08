@@ -27,7 +27,11 @@ case $1 in
 			apt-get -y purge 'oem-config-slideshow-*' || true
 
 		debconf-apt-progress --stop
-		;;
+                # finish-install.d/01oem-config-udeb masks
+                # ubiquity.service so that getty@tty1.service runs as
+                # normal. Remove the clutter from that now.
+                rm -f /etc/systemd/system/ubiquity.service
+                ;;
 esac
 
 exit 0

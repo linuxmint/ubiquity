@@ -172,7 +172,7 @@ class PartMan(QtWidgets.QWidget):
             dialog.partition_create_type_widget.hide()
         # Yes, I know, 1000000 bytes is annoying. Sorry. This is what
         # partman expects.
-        max_size_mb = int(partition['parted']['size']) / 1000000
+        max_size_mb = int(partition['parted']['size']) // 1000000
         dialog.partition_create_size_spinbutton.setMaximum(max_size_mb)
         dialog.partition_create_size_spinbutton.setValue(max_size_mb)
 
@@ -271,9 +271,9 @@ class PartMan(QtWidgets.QWidget):
         else:
             # Yes, I know, 1000000 bytes is annoying. Sorry. This is what
             # partman expects.
-            min_size_mb = int(partition['resize_min_size']) / 1000000
-            cur_size_mb = int(partition['parted']['size']) / 1000000
-            max_size_mb = int(partition['resize_max_size']) / 1000000
+            min_size_mb = int(partition['resize_min_size']) // 1000000
+            cur_size_mb = int(partition['parted']['size']) // 1000000
+            max_size_mb = int(partition['resize_max_size']) // 1000000
             # Bad things happen if the current size is out of bounds.
             min_size_mb = min(min_size_mb, cur_size_mb)
             max_size_mb = max(cur_size_mb, max_size_mb)

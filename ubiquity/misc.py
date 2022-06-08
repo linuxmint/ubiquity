@@ -9,8 +9,10 @@ import re
 import shutil
 import subprocess
 import syslog
+import json
 
 from ubiquity import osextras
+from gi.repository import Gio, GLib, GObject
 
 
 def utf8(s, errors="strict"):
@@ -50,7 +52,7 @@ def set_groups_for_uid(uid):
 def drop_all_privileges():
     # gconf needs both the UID and effective UID set.
     global _dropped_privileges
-    uid = os.environ.get('PKEXEC_UID')
+    uid = os.environ.get('PKEXEC_UID', os.environ.get('SUDO_UID'))
     gid = None
     if uid is not None:
         uid = int(uid)
@@ -71,7 +73,7 @@ def drop_privileges():
     global _dropped_privileges
     assert _dropped_privileges is not None
     if _dropped_privileges == 0:
-        uid = os.environ.get('PKEXEC_UID')
+        uid = os.environ.get('PKEXEC_UID', os.environ.get('SUDO_UID'))
         gid = None
         if uid is not None:
             uid = int(uid)
@@ -100,7 +102,7 @@ def drop_privileges_save():
     # At the moment, we only know how to handle this when effective
     # privileges were already dropped.
     assert _dropped_privileges is not None and _dropped_privileges > 0
-    uid = os.environ.get('PKEXEC_UID')
+    uid = os.environ.get('PKEXEC_UID', os.environ.get('SUDO_UID'))
     gid = None
     if uid is not None:
         uid = int(uid)
@@ -116,9 +118,15 @@ def drop_privileges_save():
 def regain_privileges_save():
     """Recover our real UID/GID after calling drop_privileges_save."""
     assert _dropped_privileges is not None and _dropped_privileges > 0
+    # We need to call os.setresuid and os.setresgid twice to avoid
+    # permission issues when calling os.setgroups (see LP: #646827).
+    _, euid, _ = os.getresuid()
+    _, egid, _ = os.getresgid()
     os.setresuid(0, 0, 0)
     os.setresgid(0, 0, 0)
     os.setgroups([])
+    os.setresgid(-1, egid, -1)
+    os.setresuid(-1, euid, -1)
 
 
 @contextlib.contextmanager
@@ -143,10 +151,18 @@ def raise_privileges(func):
     return helper
 
 
+def get_live_user_home():
+    """Returns live user home directory, even if executed under SUDO or PKEXEC"""
+    uid = os.environ.get('PKEXEC_UID', os.environ.get('SUDO_UID'))
+    if uid is not None:
+        return pwd.getpwuid(int(uid)).pw_dir
+    return os.getenv('HOME', '')
+
+
 @raise_privileges
 def grub_options():
     """ Generates a list of suitable targets for grub-installer
-        @return empty list or a list of ['/dev/sda1','Linux Mint Hardy 8.04'] """
+        @return empty list or a list of ['/dev/sda1','Ubuntu Hardy 8.04'] """
     from ubiquity.parted_server import PartedServer
 
     ret = []
@@ -306,6 +322,24 @@ def partition_to_disk(partition):
     return udevadm_disk.get('DEVNAME', partition)
 
 
+@raise_privileges
+def is_bitlocker_partition_encrypted(devpath):
+    """Check if partition is BitLocker encryption."""
+    subp = subprocess.Popen(
+        ['blkid', '--match-tag', 'TYPE', devpath],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        universal_newlines=True)
+    result = subp.communicate()[0].split()
+    if result:
+        for line in result:
+            if devpath in line:
+                continue
+            name, value = line.split('=', 1)
+            if 'TYPE' in name and 'BitLocker' in value[1:-1]:
+                return True
+    return False
+
+
 def is_boot_device_removable(boot=None):
     if boot:
         return is_removable(boot)
@@ -347,11 +381,23 @@ def grub_default(boot=None):
 
     devices = grub_device_map()
     target = None
-    if devices:
+
+    if boot is not None:
+        for device in devices:
+            try:
+                candidate = os.path.realpath(device.split('\t')[1])
+            except (IndexError, OSError):
+                pass
+            if candidate == boot:
+                target = candidate
+                break
+
+    if target is None and devices:
         try:
             target = os.path.realpath(devices[0].split('\t')[1])
         except (IndexError, OSError):
             pass
+
     # last resort
     if target is None:
         target = '(hd0)'
@@ -438,10 +484,10 @@ def os_prober():
             res = res.split(':')
             # launchpad bug #1265192, fix os-prober Windows EFI path
             res[0] = re.match(r'[/\w\d]+', res[0]).group()
-            if res[2] == 'Linux Mint':
+            if res[2] == 'Ubuntu':
                 version = [v for v in re.findall('[0-9.]*', res[1]) if v][0]
                 # Get rid of the superfluous (development version) (11.04)
-                text = re.sub('\s*\(.*\).*', '', res[1])
+                text = re.sub(r'\s*\(.*\).*', '', res[1])
                 _os_prober_oslist[res[0]] = text
                 _os_prober_osvers[res[0]] = version
             else:
@@ -485,12 +531,16 @@ def get_release():
                 line = fp.readline()
                 if line:
                     line = line.split()
-                    get_release.release_info = ReleaseInfo(name=" ".join(line[0:2]), version=line[2])
+                    if line[2] == 'LTS':
+                        line[1] += ' LTS'
+                    line[0] = line[0].replace('-', ' ')
+                    get_release.release_info = ReleaseInfo(
+                        name=line[0], version=line[1])
         except Exception:
             syslog.syslog(syslog.LOG_ERR, 'Unable to determine the release.')
 
         if not get_release.release_info:
-            get_release.release_info = ReleaseInfo(name='Linux Mint', version='')
+            get_release.release_info = ReleaseInfo(name='Ubuntu', version='')
     return get_release.release_info
 
 
@@ -519,7 +569,7 @@ def get_release_name():
                 "Unable to determine the distribution name from "
                 "/cdrom/.disk/info")
         if not get_release_name.release_name:
-            get_release_name.release_name = 'Linux Mint'
+            get_release_name.release_name = 'Ubuntu'
     return get_release_name.release_name
 
 
@@ -591,6 +641,8 @@ def format_size(size):
 
 
 def debconf_escape(text):
+    if type(text) is not str:
+        return text
     escaped = text.replace('\\', '\\\\').replace('\n', '\\n')
     return re.sub(r'(\s)', r'\\\1', escaped)
 
@@ -637,7 +689,7 @@ def dmimodel():
             model = proc.communicate()[0]
         if 'apple' in manufacturer:
             # MacBook4,1 - strip the 4,1
-            model = re.sub('[^a-zA-Z\s]', '', model)
+            model = re.sub(r'[^a-zA-Z\s]', '', model)
         # Replace each gap of non-alphanumeric characters with a dash.
         # Ensure the resulting string does not begin or end with a dash.
         model = re.sub('[^a-zA-Z0-9]+', '-', model).rstrip('-').lstrip('-')
@@ -666,6 +718,8 @@ def set_indicator_keymaps(lang):
     Gtk
 
     gsettings_key = ['org.gnome.libgnomekbd.keyboard', 'layouts']
+    gsettings_sources = ('org.gnome.desktop.input-sources', 'sources')
+    gsettings_options = ('org.gnome.desktop.input-sources', 'xkb-options')
     lang = lang.split('_')[0]
     variants = []
 
@@ -700,7 +754,7 @@ def set_indicator_keymaps(lang):
     def item_str(s):
         '''Convert a zero-terminated byte array to a proper str'''
         import array
-        s = array.array('B', s).tostring()
+        s = array.array('B', s).tobytes()
         i = s.find(b'\x00')
         return s[:i].decode()
 
@@ -806,10 +860,28 @@ def set_indicator_keymaps(lang):
             # Use the system default if no other keymaps can be determined.
             gsettings.set_list(gsettings_key[0], gsettings_key[1], [])
 
+        # Gnome Shell only does keyboard layout conversion from old
+        # gsettings_key once. Recently we started to launch keyboard plugin
+        # during ubiquity-dm, hence if we change that key, we should purge the
+        # state that gsd uses, to determine if it should run the
+        # conversion. Which are a stamp file, and having the new key set.
+        # Ideally, I think ubiquity should be more universal and set the new key
+        # directly, instead of relying on gsd keeping the conversion code
+        # around. But it's too late for 20.10 release.
+        gsettings_stamp = os.path.join(
+            '/home',
+            os.getenv("SUDO_USER", os.getenv("USER", "root")),
+            '.local/share/gnome-settings-daemon/input-sources-converted')
+        if os.path.exists(gsettings_stamp):
+            os.remove(gsettings_stamp)
+        gsettings.unset(*gsettings_sources)
+        gsettings.unset(*gsettings_options)
+
     engine.lock_group(0)
 
 
 NM = 'org.freedesktop.NetworkManager'
+NM_STATE_CONNECTED_SITE = 60
 NM_STATE_CONNECTED_GLOBAL = 70
 
 
@@ -825,23 +897,33 @@ def get_prop(obj, iface, prop):
 
 
 def has_connection():
+    return connection_state() == NM_STATE_CONNECTED_GLOBAL
+
+
+def connection_state():
     import dbus
     bus = dbus.SystemBus()
     manager = bus.get_object(NM, '/org/freedesktop/NetworkManager')
-    state = get_prop(manager, NM, 'State')
-    return state == NM_STATE_CONNECTED_GLOBAL
+    return get_prop(manager, NM, 'State')
 
 
-def add_connection_watch(func):
+def add_connection_watch(func, global_only=True):
     import dbus
 
     def connection_cb(state):
-        func(state == NM_STATE_CONNECTED_GLOBAL)
+        is_connected = False
+        if global_only:
+            if state == NM_STATE_CONNECTED_GLOBAL:
+                is_connected = True
+        else:
+            if state == NM_STATE_CONNECTED_GLOBAL or state == NM_STATE_CONNECTED_SITE:
+                is_connected = True
+        func(is_connected)
 
     bus = dbus.SystemBus()
     bus.add_signal_receiver(connection_cb, 'StateChanged', NM, NM)
     try:
-        func(has_connection())
+        connection_cb(connection_state())
     except dbus.DBusException:
         # We can't talk to NM, so no idea.  Wild guess: we're connected
         # using ssh with X forwarding, and are therefore connected.  This
@@ -853,11 +935,11 @@ def install_size():
     if min_install_size:
         return min_install_size
 
-    # Fallback size to 8 GB
-    size = 8 * 1024 * 1024 * 1024
+    # Fallback size to 5 GB
+    size = 5 * 1024 * 1024 * 1024
 
-    # Maximal size to 10 GB
-    max_size = 10 * 1024 * 1024 * 1024
+    # Maximal size to 8 GB
+    max_size = 8 * 1024 * 1024 * 1024
 
     try:
         with open('/cdrom/casper/filesystem.size') as fp:
@@ -868,8 +950,8 @@ def install_size():
     # TODO substitute into the template for the state box.
     min_disk_size = size * 2  # fudge factor
 
-    # Set minimum size to 10GB if current minimum size is larger
-    # than 10GB and we still have an extra 20% of free space
+    # Set minimum size to 8GB if current minimum size is larger
+    # than 8GB and we still have an extra 20% of free space
     if min_disk_size > max_size and size * 1.2 < max_size:
         min_disk_size = max_size
 
@@ -877,5 +959,150 @@ def install_size():
 
 
 min_install_size = None
+
+
+def launch_uri(uri):
+    subprocess.Popen(['xdg-open', uri], close_fds=True,
+                     preexec_fn=drop_all_privileges)
+
+
+def is_removable_device(path):
+    """Returns True if path is on a removable device"""
+    lsblk_output = ""
+    cmd = "lsblk -J -o MOUNTPOINT,PATH,RM"
+
+    # Find mount point of path
+    mp = path
+    while not os.path.ismount(mp):
+        mp = os.path.dirname(mp)
+
+    # In ubiquity environment / is the installation media
+    if mp == "/":
+        return True
+
+    # Then search if the corresponding device is removable
+    try:
+        lsblk_output = subprocess.check_output(cmd.split())
+    except subprocess.CalledProcessError:
+        syslog.syslog(syslog.LOG_ERR, "Unable to determine if %s is on a removable device" % path)
+        return False
+
+    devices = json.loads(lsblk_output)
+    for entry in devices["blockdevices"]:
+        if entry["mountpoint"] == mp and entry["rm"]:
+            return True
+    return False
+
+
+class SystemdUnitWatcher:
+    def __init__(self, unit, cb):
+        # try connecting to the bus
+        try:
+            self.system_bus = Gio.bus_get_sync(Gio.BusType.SYSTEM)
+            self.system_bus.call_sync(
+                "org.freedesktop.systemd1",
+                "/org/freedesktop/systemd1",
+                "org.freedesktop.systemd1.Manager",
+                "Subscribe",
+                None,  # parameters
+                None,  # reply type
+                Gio.DBusCallFlags.NONE,
+                -1,  # timeout
+                None,  # cancellable
+            )
+            self.system_bus.call(
+                "org.freedesktop.systemd1",
+                "/org/freedesktop/systemd1",
+                "org.freedesktop.systemd1.Manager",
+                "LoadUnit",
+                GLib.Variant("(s)", (unit,)),  # parameters
+                GLib.VariantType("(o)"),  # reply type
+                Gio.DBusCallFlags.NONE,
+                -1,  # timeout
+                None,  # cancellable
+                self._on_get_unit,
+                cb,  # user_data
+            )
+            self.proxy = None
+            self.properties_changed_signal = None
+        except GLib.Error:
+            pass
+        except IOError:
+            pass
+
+    def stop(self):
+        if self.properties_changed_signal:
+            GObject.signal_handler_disconnect(
+                self.proxy, self.properties_changed_signal
+            )
+            self.properties_changed_signal = None
+        self.proxy = None
+
+    def _on_properties_changed(
+        self, proxy, changed_properties, invalidated_properties, cb
+    ):
+        try:
+            if changed_properties["ActiveState"] == "active":
+                self.stop()
+                cb()
+        except KeyError:  # this property didn't change
+            pass
+
+    def _on_got_unit_proxy(self, conn, res, cb):
+        self.proxy = conn.new_finish(res)
+        self.properties_changed_signal = self.proxy.connect(
+            "g-properties-changed", self._on_properties_changed, cb
+        )
+        active_state = self.proxy.get_cached_property(
+            "ActiveState"
+        ).get_string()
+        if active_state == "active":
+            self.stop()
+            cb()
+
+    def _on_get_unit(self, conn, res, cb):
+        try:
+            object_path_v = conn.call_finish(res)
+            object_path = object_path_v.get_child_value(0).get_string()
+            Gio.DBusProxy.new(
+                conn,
+                Gio.DBusProxyFlags.GET_INVALIDATED_PROPERTIES,
+                None,  # GDBusInterfaceInfo
+                "org.freedesktop.systemd1",
+                object_path,
+                "org.freedesktop.systemd1.Unit",
+                None,  # cancellable
+                self._on_got_unit_proxy,
+                cb,  # user_data
+            )
+        except GLib.Error as e:
+            if (
+                e.matches(Gio.io_error_quark(), Gio.IOErrorEnum.DBUS_ERROR) and
+                Gio.DBusError.get_remote_error(e) ==
+                "org.freedesktop.systemd1.NoSuchUnit"
+            ):
+                pass  # the unit doesn't exist, tweak this to error if desired
+            else:
+                raise
+
+
+def sudo_wrapper(user):
+    """Return a list of args suitable for use with the subprocess module,
+    to invoke a command as a given user, while preserving a set of useful
+    environment variables. Append the command and list of args to be invoked
+    to the return value of this helper.
+    """
+    preserve_env = [
+        'DBUS_SESSION_BUS_ADDRESS',
+        'XDG_DATA_DIRS',
+        'XDG_RUNTIME_DIR',
+    ]
+    return [
+        'sudo',
+        '--preserve-env={}'.format(','.join(preserve_env)),
+        '-H',
+        '-u', user
+    ]
+
 
 # vim:ai:et:sts=4:tw=80:sw=4:

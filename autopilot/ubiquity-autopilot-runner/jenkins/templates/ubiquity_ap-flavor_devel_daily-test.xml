@@ -2,7 +2,7 @@
 <matrix-project>
   <actions/>
   <description>Run Ubiquity test `{{ testcase }}' against daily development image of {{ flavor|capitalize() }}&lt;br/&gt;&#xd;
-  - Owner: Linux Mint QA Team - Linux Mint Community Team&lt;br/&gt;&#xd;
+  - Owner: Ubuntu QA Team - Ubuntu Community Team&lt;br/&gt;&#xd;
   - Contacts: balloons, DanChapman or jibel on #ubuntu-quality on freenode &lt;br/&gt;&#xd;</description>
   <logRotator>
     <daysToKeep>-1</daysToKeep>
@@ -50,7 +50,7 @@
 [ -n &quot;$WORKSPACE&quot; ] &amp;&amp; rm -Rf $WORKSPACE/*
 
 BRANCH=&quot;lp:ubiquity&quot;
-BZRDIR=`echo &quot;$BRANCH&quot; | awk -F: &apos;{ print $(NF) }&apos;`
+GITDIR=`echo &quot;$BRANCH&quot; | awk -F: &apos;{ print $(NF) }&apos;`
 
 RELEASE=$(distro-info -d||distro-info -s)
 VARIANT={{ variant }}
@@ -64,7 +64,7 @@ fi
 
 echo &quot;I: Starting test $TESTNAME with image $ISO&quot;
 FULLNAME=&quot;ubiquity_autopilot_tests.tests.${TESTNAME}&quot;
-$JENKINS_HOME/$BZRDIR/autopilot/ubiquity-autopilot-runner/run-ubiquity-test -t $FULLNAME $ISO</command>
+$JENKINS_HOME/$GITDIR/autopilot/ubiquity-autopilot-runner/run-ubiquity-test -t $FULLNAME $ISO</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers>

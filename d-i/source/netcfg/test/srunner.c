@@ -49,22 +49,39 @@ int main(int argc, char *argv[])
 void srunner_mock_path(const char *testcase)
 {
 	char *new_path;
+	char *testcasedir;
 	unsigned int new_path_len;
+	unsigned int l;
 	
 	original_path = strdup(getenv("PATH"));
+	testcasedir = strdup(testcase);
 	
+	if (testcasedir && (l=strlen(testcasedir)) >= 3 \
+	    && testcasedir[l-3]=='_' \
+	    && testcasedir[l-2]=='f' \
+	    && testcasedir[l-1]=='n')
+			testcasedir[l-3]='\0'; /* prune "_fn" suffix */
+	else {
+		if (testcasedir)
+			free(testcasedir);
+		testcasedir = NULL;
+	}
 	new_path_len = strlen(test_run_root)
 	               + 12 /* /mock_paths/ */
-	               + strlen(testcase) + 1 /* : */
+	               + strlen(testcasedir?testcasedir:testcase) + 1 /* : */
 	               + strlen(original_path) + 1 /* \0 */;
 	
 	new_path = malloc(new_path_len);
 	
-	snprintf(new_path, new_path_len, "%s/mock_paths/%s:%s", test_run_root, testcase, original_path);
+	snprintf(new_path, new_path_len, "%s/mock_paths/%s:%s",
+		 test_run_root, testcasedir?testcasedir:testcase,
+		 original_path);
 	
 	setenv("PATH", new_path, 1);
 	
 	free(new_path);
+	if (testcasedir)
+		free(testcasedir);
 }
 
 void srunner_reset_path()

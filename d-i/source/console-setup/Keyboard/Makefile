@@ -7,7 +7,7 @@ include $(kbddir)/../rules.mk
 ~ := kbd
 
 gzipped-ekmaps := $./amiga.ekmap.gz $./ataritt.ekmap.gz		\
-		$./macintosh_old.ekmap.gz $./pc105.ekmap.gz	\
+		$./pc105.ekmap.gz	\
 		$./sun4.ekmap.gz $./sun5.ekmap.gz
 
 gzipped-ekbds := $./pc105.ekbd.gz

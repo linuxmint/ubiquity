@@ -94,7 +94,7 @@ class PartAuto(QtWidgets.QWidget):
         release_name = misc.get_release().name
 
         bId = 0
-        if 'resize' in extra_options:
+        if 'resize' in extra_options and 'bitlocker' not in extra_options:
             button = QtWidgets.QRadioButton(
                 self.resizeChoice, self.autopart_selection_frame)
             self.autopart_selection_frame.layout().addWidget(button)
@@ -214,6 +214,11 @@ class PartAuto(QtWidgets.QWidget):
         self.verified_password.setEchoMode(QtWidgets.QLineEdit.Password)
         self.verified_password.textChanged.connect(self.verify_password)
         box.addWidget(self.verified_password)
+        self.show_password = QtWidgets.QToolButton()
+        self.show_password.setIcon(QtGui.QIcon.fromTheme("password-show-off"))
+        self.show_password.setCheckable(True)
+        self.show_password.toggled.connect(self.on_show_password)
+        box.addWidget(self.show_password)
         self.badPassword = QtWidgets.QLabel()
         self.badPassword.setPixmap(QtGui.QPixmap(
             "/usr/share/icons/oxygen/16x16/status/dialog-warning.png"))
@@ -234,6 +239,13 @@ class PartAuto(QtWidgets.QWidget):
         b = self.autopartition_buttongroup.button(0)
         b and b.click()
 
+    def on_show_password(self, state):
+        modes = (QtWidgets.QLineEdit.Password, QtWidgets.QLineEdit.Normal)
+        icons = ("password-show-off", "password-show-on")
+        self.password.setEchoMode(modes[state])
+        self.verified_password.setEchoMode(modes[state])
+        self.show_password.setIcon(QtGui.QIcon.fromTheme(icons[state]))
+
     # slot for when partition is resized on the bar
     def on_partitionResized(self, unused, size):
         self.resizeSize = size
@@ -252,18 +264,20 @@ class PartAuto(QtWidgets.QWidget):
             disk_id = self.extra_options['use_device'][1][comboText][0]
             disk_id = disk_id.rsplit('/', 1)[1]
             option = self.extra_options['resize'][disk_id][0]
-            return option, '%d B' % self.resizeSize
+            return option, '%d B' % self.resizeSize, 'resize_use_free'
         elif choice == self.useDeviceChoice:
             return (self.extra_options['use_device'][0],
-                    str(self.part_auto_disk_box.currentText()))
+                    str(self.part_auto_disk_box.currentText()), 'use_device')
         elif choice == self.lvm_choice:
             return (choice,
-                    str(self.part_auto_disk_box.currentText()))
+                    str(self.part_auto_disk_box.currentText()), 'use_lvm')
         elif choice == self.crypto_choice:
             return (choice,
-                    str(self.part_auto_disk_box.currentText()))
+                    str(self.part_auto_disk_box.currentText()), 'use_crypto')
+        elif choice == self.manualChoice:
+            return choice, None, 'manual'
         else:
-            return choice, None
+            return choice, None, 'unknown'
 
     def on_disks_combo_changed(self, index):
         for e in self.bar_frames:

@@ -15,7 +15,7 @@ START_TEST(test_nc_v6_interface_configured_simple)
 	
 	rv = nc_v6_interface_configured(&iface, 0);
 	
-	fail_unless(rv == 1, "Didn't find SLAAC");
+	ck_assert_msg(rv == 1, "Didn't find SLAAC");
 	
 	srunner_reset_path();
 }

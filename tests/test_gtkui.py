@@ -1,8 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8; -*-
 
-from __future__ import print_function
-
 import os
 import unittest
 
@@ -73,7 +71,7 @@ class TestFrontend(unittest.TestCase):
             # Anything smaller will need to use Alt+Ctrl+Pgd/Right
             # Scrollbars anyone?
             # self.assertLessEqual(alloc.width, 640, page.module.NAME)  # fixme
-            self.assertLessEqual(alloc.height, 556, page.module.NAME)
+            self.assertLessEqual(alloc.height, 744, page.module.NAME)  # 768 - 24px (top panel)
             if page.module.NAME == 'partman':
                 ui.allow_change_step(False)
 
@@ -106,6 +104,8 @@ class TestFrontend(unittest.TestCase):
                 'cancelbutton2', 'okbutton2', 'okbutton3',
                 'partition_dialog_okbutton', 'cancelbutton3',
                 'grub_fail_okbutton',
+                'advanced_features_cancelbutton',
+                'advanced_features_okbutton',
                 # These are calculated and set as the partitioning options are
                 # being calculated.
                 'reuse_partition_desc', 'reuse_partition',
@@ -113,6 +113,7 @@ class TestFrontend(unittest.TestCase):
                 'resize_use_free_desc', 'resize_use_free',
                 'use_device_desc', 'use_device', 'part_ask_heading',
                 'custom_partitioning_desc', 'custom_partitioning',
+                'advanced_features_selected',
                 # Pulled straight from debconf when the installation medium is
                 # already mounted.
                 'part_advanced_warning_message',
@@ -120,6 +121,7 @@ class TestFrontend(unittest.TestCase):
                 # setup page.
                 'password_strength', 'hostname_error_label',
                 'password_error_label', 'username_error_label',
+                'recovery_strength',
                 # Pulled straight from debconf into the UI on progress.
                 'install_progress_text',
                 # Contains just the traceback.
@@ -129,21 +131,25 @@ class TestFrontend(unittest.TestCase):
                 'page_title',
                 # To be calculated and set
                 'partition_lvm_status',
+                'recovery_key_location',
                 # These are "placeholders" for debconfs impromptu notices
                 'ubi_question_dialog', 'question_label',
                 # Calculated error string
                 'label_global_error',
                 'warning_password_label', 'label1', 'secureboot_label',
                 # secure boot
-                'disable_secureboot', 'prepare_foss_disclaimer_license',
+                'disable_secureboot', 'prepare_foss_disclaimer',
                 'label_free_space', 'label_required_space',
                 'label_download_updates',
+                # This one is set by either the wireless and prepare plugins
+                # to indicate status
+                'status_label',
             ]
             deb_host_arch = subprocess.Popen(
                 ['dpkg-architecture', '-qDEB_HOST_ARCH'],
                 stdout=subprocess.PIPE,
                 universal_newlines=True).communicate()[0].strip()
-            if deb_host_arch not in ('amd64', 'i386'):
+            if deb_host_arch not in ('amd64', 'arm64', 'i386'):
                 # grub-installer not available, but this template won't be
                 # displayed anyway.
                 whitelist.append('grub_device_label')

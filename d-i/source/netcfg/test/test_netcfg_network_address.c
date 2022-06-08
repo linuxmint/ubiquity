@@ -13,8 +13,8 @@ START_TEST(test_netcfg_network_address_v4_24)
 	
 	netcfg_network_address(&iface, network);
 	
-	fail_unless (strcmp("192.168.1.0", network) == 0,
-	             "Network address wrong; expected 192.168.1.0, got %s");
+	ck_assert_msg (strcmp("192.168.1.0", network) == 0,
+	             "Network address wrong; expected 192.168.1.0, got %s", network);
 }
 END_TEST
 
@@ -30,8 +30,8 @@ START_TEST(test_netcfg_network_address_v4_22)
 	
 	netcfg_network_address(&iface, network);
 	
-	fail_unless (strcmp("192.168.16.0", network) == 0,
-	             "Network address wrong; expected 192.168.16.0, got %s");
+	ck_assert_msg (strcmp("192.168.16.0", network) == 0,
+	             "Network address wrong; expected 192.168.16.0, got %s", network);
 }
 END_TEST
 
@@ -47,8 +47,8 @@ START_TEST(test_netcfg_network_address_v6_64)
 	
 	netcfg_network_address(&iface, network);
 	
-	fail_unless (strcmp("2001:3:5:7::", network) == 0,
-	             "Network address wrong; expected 2001:3:5:7::, got %s");
+	ck_assert_msg (strcmp("2001:3:5:7::", network) == 0,
+	             "Network address wrong; expected 2001:3:5:7::, got %s", network);
 }
 END_TEST
 
@@ -64,8 +64,8 @@ START_TEST(test_netcfg_network_address_v6_48)
 	
 	netcfg_network_address(&iface, network);
 	
-	fail_unless (strcmp("2001:3:5::", network) == 0,
-	             "Network address wrong; expected 2001:3:5::, got %s");
+	ck_assert_msg (strcmp("2001:3:5::", network) == 0,
+	             "Network address wrong; expected 2001:3:5::, got %s", network);
 }
 END_TEST
 

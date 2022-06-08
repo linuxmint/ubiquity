@@ -32,6 +32,12 @@ if [ -z "$AUTOMATIC" ]; then
 	done | debconf-communicate oem-config >/dev/null
 fi
 
+# if sddm.conf exists, add a comment to show that this is the original
+# version which existed before end user setup was run 
+if [ -f "/etc/sddm.conf" ]; then
+	echo "#original_oem_version" >> /etc/sddm.conf
+fi
+
 # Remove the oem-config-prepare menu item.
 rm -f /usr/share/applications/oem-config-prepare-gtk.desktop \
       /usr/share/applications/kde4/oem-config-prepare-kde.desktop
@@ -70,6 +76,10 @@ for try in $(seq 1 $TRY); do
 			/usr/sbin/oem-config-wrapper $DEBUG $AUTOMATIC --only || CODE=$?
 	fi
 	if [ "$CODE" -eq 0 ]; then
+		# if we still have the original sddm.conf, instead of a new version
+		# added in user setup to enable auto-login, remove the original 
+		# which will break sddm startup if left in place
+		grep -q '#original_oem_version' /etc/sddm.conf && rm -f /etc/sddm.conf
 		# Remove the temporary OEM configuration user, if possible
 		# and desired.
 		RET="$(echo GET oem-config/remove | debconf-communicate)"
@@ -81,6 +91,12 @@ for try in $(seq 1 $TRY); do
 		/bin/systemctl disable oem-config.service || true
 		/bin/systemctl disable oem-config.target || true
 		rm -f /lib/systemd/system/oem-config.* || true
+		RET="$(echo GET oem-config/reboot | debconf-communicate)" || true
+		if [ "${RET#* }" = true ]; then
+			/usr/bin/grub-editenv - unset recordfail || true
+			/usr/sbin/update-grub || true
+			/bin/systemctl reboot || true
+		fi
 		/bin/systemctl --no-block isolate graphical.target || true
 		exit 0
 	elif [ "$CODE" -eq 10 ]; then

@@ -287,9 +287,9 @@ auto_lvm_perform() {
 			defvgname=$(cat /etc/hostname | head -n 1 | tr -d " ")
 		fi
 		if [ "$defvgname" ]; then
-			db_set partman-auto-lvm/new_vg_name $defvgname-vg
+			db_set partman-auto-lvm/new_vg_name vg$defvgname
 		else
-			db_set partman-auto-lvm/new_vg_name Mint
+			db_set partman-auto-lvm/new_vg_name vgubuntu
 		fi
 	fi
 

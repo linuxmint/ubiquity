@@ -3,7 +3,7 @@
 '''
 Installer
 
-This is a installer program for a Linux Mint or Metadistros Live system.
+This is a installer program for a Ubuntu or Metadistros Live system.
 This is the main program, but there are also a couple of libraries to
 help it to work, such as the frontend.
 The way it works is simple. It detects the frontend to use, then
@@ -13,8 +13,6 @@ through the frontend in order to get the info necessary to install.
 Once it has the info, partitioning, format, copy the distro to the disk
 and configure everything.
 '''
-
-from __future__ import print_function
 
 import atexit
 import errno
@@ -382,16 +380,29 @@ def unmount_target():
     if not TARGET:
         return
     paths = []
+    pools = set()
     with open('/proc/mounts') as mounts:
         for line in mounts:
-            path = line.split(' ')[1]
+            source, path, fstype = line.split(' ')[:3]
             if path == TARGET or path.startswith(TARGET + '/'):
                 paths.append(path)
+                if fstype == 'zfs':
+                    pools.add(source.split('/')[0])
     paths.sort()
     paths.reverse()
     for path in paths:
         misc.execute_root('fuser', '-cv', path)
         misc.execute_root('umount', path)
+    keystore_mapper = "/dev/mapper/keystore-rpool"
+    if os.path.exists(keystore_mapper):
+        misc.execute_root('umount', keystore_mapper)
+        misc.execute_root('cryptsetup', 'luksClose', keystore_mapper)
+    swap_mapper = "/dev/mapper/cryptoswap"
+    if os.path.exists(swap_mapper):
+        misc.execute_root('swapoff', swap_mapper)
+        misc.execute_root('cryptsetup', 'luksClose', swap_mapper)
+    for pool in pools:
+        misc.execute_root('/sbin/zpool', 'export', pool)
 
 
 def prepend_path(directory):
@@ -454,9 +465,8 @@ def acquire_lock():
             sys.exit(1)
 
 
-def run_oem_hooks():
-    """Run hook scripts from /usr/lib/oem-config/post-install."""
-    hookdir = '/usr/lib/oem-config/post-install'
+def run_oem_hooks(hookdir):
+    """Run hook scripts from hookdir."""
 
     if os.path.isdir(hookdir):
         # Exclude hooks containing '.', so that *.dpkg-* et al are avoided.
@@ -635,13 +645,16 @@ def main(oem_config):
     if oem_config and not options.query:
         disable_autologin()
 
+    if oem_config:
+        run_oem_hooks("/usr/lib/oem-config/pre-install")
+
     if args:
         install(args[0], query=options.query)
     else:
         install(query=options.query)
 
     if oem_config:
-        run_oem_hooks()
+        run_oem_hooks("/usr/lib/oem-config/post-install")
     im_switch.kill_im()
 
 

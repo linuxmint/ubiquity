@@ -1,7 +1,86 @@
-The files in this directory are updated automatically from the distribution
-archive. Any changes you make under this directory will be lost!
+These repositories are managed with subtree (with full history).
 
-New ubiquity-specific scripts should be added to scripts/ instead; you can
-make local modifications here if you need to, but for inclusion in official
-builds the changes need to be applied to the corresponding source packages
-and uploaded.
+= How it was created ? =
+
+salsa d-i git repos are mirrored to launchpad.net/$project
+
+those repositories got forked as lp:~ubuntu-installer/$project at the
+tag of the common base revision (i.e. 101ubuntu3, got forked at debian
+tag 101).
+
+then current ubuntu delta got applied, as a single commit on top of that.
+
+then all those ubuntu-delta repositories got merged with subtree
+command as seen in `subtree-cmds.sh`.
+
+this means full history of d-i components is available, which is
+shared with debian, and one can merge/rebase/pull/push from salsa
+and/or lp:~ubuntu-installer/$project repositories. At least in theory.
+
+Caveats
+
+* some projects are ubuntu-only, i.e. partman-auto-loop thus I
+  imported them with whatever I could find.
+* some projects have no delta, so i simply pulled
+  launchpad.net/$project ubuntu mirror.
+
+* some projects still ships .deb and thus need to be uplaoded into
+  Ubuntu archive normally. For those, I pulled from read-only UDD
+  lp:ubuntu/+source/$package. Continue to upload those into the
+  Archive, and then pull from the UDD branch. I.e. user-setup,
+  console-setup, localechooser
+
+= How to make an upload ? =
+
+As before, it should just work:
+
+```
+./debian/rules update
+debuild -- clean
+debuild -S
+```
+
+= How to propose an ubuntu-delta to a d-i component and merge it? =
+
+Example patching grub-installer and using new functionality:
+
+# Merge the new functionality in the stand-alone repo This is actually
+# optional, but might make it easier to merge/rebase onto debian in
+# the future.
+git clone lp:~ubuntu-installer/grub-installer
+cd grub-installer
+git pull --no-ff lp:~mwhudson/grub-installer lp-1847721
+gbp dch
+dch --release '' --distribution groovy
+debcommit release -a
+git push --follow-tags
+
+# Pull the new "release" into ubiquity
+cd ../ubiquity
+git subtree pull --prefix=d-i/source/grub-installer https://git.launchpad.net/~ubuntu-installer/grub-installer 1.128ubuntu15
+git pull --no-ff lp:~mwhudson/ubiquity lp-1847721
+
+Note the is no harm if the submitter of the pull request to ubiquity
+already has performed `git subtree pull` of their changes, before they
+got "accepted" and tagged into the lp:~ubuntu-installer/$project. It
+actually makes the reviews easier to perform in launchad as the d-i/
+and ubiqutiy diffs are together. One can always pull the tagged
+grub-installer before or after.
+
+Or maybe we can even stop maintaining tagged grub-installer things, if
+we decide to never merge it again.
+
+# Release as usual
+
+gbp dch --ignore-branch
+./debian/rules update
+edit debian/changelog to make it pretty
+
+dch --release '' --distribution groovy
+debcommit release -a
+git push --follow-tags
+
+= How to merge updates from Debian? =
+
+Same as above, it's just one pulls lp:$project into
+lp:~ubuntu-installer/$project, and then pull subtree by tag as above.

@@ -39,9 +39,13 @@ for dev in $DEVICES/*; do
 		found_non_gpt=yes
 	fi
 done
-if [ "$found_gpt" = no ] || [ "$found_non_gpt" = yes ]; then
-	# We might be intending to boot from one of the non-GPT disks.
-	exit 0
+# For EFI we want to warn the user about a missing ESP partition regardless
+# of whether we have GPT or any non-GPT partitions.
+if [ "$want_method" != efi ]; then
+	if [ "$found_gpt" = no ] || [ "$found_non_gpt" = yes ]; then
+		# We might be intending to boot from one of the non-GPT disks.
+		exit 0
+	fi
 fi
 
 # Is there at least one EFI System Partition or BIOS Boot Partition, as
@@ -71,7 +75,7 @@ for dev in $DEVICES/*; do
 done
 
 if [ "$have_bootable" = no ]; then
-	template="partman-partitioning/no_bootable_gpt_$want_method"
+	template="partman-partitioning/no_bootable_$want_method"
 	db_set "$template" true
 	db_input critical "$template" || true
 	db_go || true

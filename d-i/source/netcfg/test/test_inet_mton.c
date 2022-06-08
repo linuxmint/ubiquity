@@ -8,7 +8,7 @@ START_TEST(test_inet_mton_v4_24)
 	
 	inet_mton(AF_INET, 24, &addr);
 	
-	fail_unless (memcmp(expected, &(addr.s_addr), 4) == 0,
+	ck_assert_msg (memcmp(expected, &(addr.s_addr), 4) == 0,
 	             "Mask address wasn't 24 bits");
 }
 END_TEST
@@ -20,7 +20,7 @@ START_TEST(test_inet_mton_v4_22)
 	
 	inet_mton(AF_INET, 22, &addr);
 	
-	fail_unless (memcmp(expected, &(addr.s_addr), 4) == 0,
+	ck_assert_msg (memcmp(expected, &(addr.s_addr), 4) == 0,
 	             "Mask address wasn't 22 bits");
 }
 END_TEST
@@ -34,7 +34,7 @@ START_TEST(test_inet_mton_v6_64)
 	
 	inet_mton(AF_INET6, 64, &addr);
 	
-	fail_unless (memcmp(expected, addr.s6_addr, 16) == 0,
+	ck_assert_msg (memcmp(expected, addr.s6_addr, 16) == 0,
 	             "Mask address wasn't 64 bits");
 }
 END_TEST
@@ -48,7 +48,7 @@ START_TEST(test_inet_mton_v6_60)
 	
 	inet_mton(AF_INET6, 60, &addr);
 
-	fail_unless (memcmp(expected, addr.s6_addr, 16) == 0,
+	ck_assert_msg (memcmp(expected, addr.s6_addr, 16) == 0,
 	             "Mask address wasn't 60 bits");
 }
 END_TEST

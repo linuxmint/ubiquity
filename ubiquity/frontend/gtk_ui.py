@@ -31,8 +31,6 @@
 # with Ubiquity; if not, write to the Free Software Foundation, Inc., 51
 # Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-from __future__ import print_function
-
 import atexit
 import configparser
 from functools import reduce
@@ -45,16 +43,18 @@ import syslog
 import traceback
 
 import dbus
+assert dbus  # silence, pyflakes!
 from dbus.mainloop.glib import DBusGMainLoop
 DBusGMainLoop(set_as_default=True)
 
 # in query mode we won't be in X, but import needs to pass
 if 'DISPLAY' in os.environ:
-    from gi.repository import Gtk, Gdk, GObject, GLib, Atk
+    gi.require_version('Gtk', '3.0')
+    from gi.repository import Gtk, Gdk, GObject, GLib, Atk, Gio
     from ubiquity import gtkwidgets
 
 from ubiquity import (
-    filteredcommand, gsettings, i18n, validation, misc, osextras)
+    filteredcommand, gsettings, i18n, validation, misc, osextras, telemetry)
 from ubiquity.components import install, plugininstall, partman_commit
 import ubiquity.frontend.base
 from ubiquity.frontend.base import BaseFrontend
@@ -149,14 +149,28 @@ class Controller(ubiquity.frontend.base.Controller):
             self._wizard.navigation_control.hide()
         self._wizard.refresh()
 
-    def toggle_next_button(self, label='gtk-go-forward'):
-        self._wizard.toggle_next_button(label)
+    def toggle_next_button(self, label='gtk-go-forward', suggested=False):
+        self._wizard.toggle_next_button(label, suggested=suggested)
 
     def toggle_skip_button(self, label='skip'):
         self._wizard.toggle_skip_button(label)
 
     def switch_to_install_interface(self):
         self._wizard.switch_to_install_interface()
+
+
+def on_screen_reader_enabled_changed(gsettings, key):
+    # handle starting orca only, it exits itself when the key is false
+    if key == "screen-reader-enabled":
+        # Besides starting orca, also make sure the screen-reader-enabled
+        # setting gets passed to the target system.
+        if (gsettings.get_boolean(key) and osextras.find_on_path('orca')):
+            # Enable
+            subprocess.Popen(['orca'], preexec_fn=misc.drop_all_privileges)
+            os.environ['UBIQUITY_A11Y_PROFILE'] = 'screen-reader'
+        elif 'UBIQUITY_A11Y_PROFILE' in os.environ:
+            # Disable
+            del os.environ['UBIQUITY_A11Y_PROFILE']
 
 
 class Wizard(BaseFrontend):
@@ -212,7 +226,9 @@ class Wizard(BaseFrontend):
         self.language_questions = ('live_installer', 'quit', 'back', 'next',
                                    'warning_dialog', 'warning_dialog_label',
                                    'cancelbutton', 'exitbutton',
-                                   'install_button', 'restart_to_continue')
+                                   'install_button',
+                                   'restart_button',
+                                   'restart_to_continue')
         self.current_page = None
         self.backup = None
         self.allowed_change_step = True
@@ -223,6 +239,9 @@ class Wizard(BaseFrontend):
         self.progress_cancelled = False
         self.installing = False
         self.installing_no_return = False
+        self.partitioned = False
+        self.timezone_set = False
+        self.ubuntu_drivers = None
         self.returncode = 0
         self.history = []
         self.builder = Gtk.Builder()
@@ -234,6 +253,8 @@ class Wizard(BaseFrontend):
         self.timeout_id = None
         self.screen_reader = False
         self.orca_process = None
+        self.a11y_settings = None
+        self.have_apt_updated = False
 
         # To get a "busy mouse":
         self.watch = Gdk.Cursor.new(Gdk.CursorType.WATCH)
@@ -244,6 +265,22 @@ class Wizard(BaseFrontend):
         with open('/proc/cmdline') as fp:
             if 'access=v3' in fp.read():
                 self.screen_reader = True
+
+        if 'UBIQUITY_ONLY' in os.environ:
+            # do not run this as root. The API pretends to be synchronous but
+            # it is actually asynchronous. If you become root before it
+            # finishes then D-Bus will reject our connection due to a
+            # mismatched user between the requestor and the owner of the
+            # session bus.
+
+            # handle orca only in ubiquity-dm where there is no gnome-session
+            self.a11y_settings = Gio.Settings.new(
+                "org.gnome.desktop.a11y.applications")
+            self.a11y_settings.connect("changed::screen-reader-enabled",
+                                       on_screen_reader_enabled_changed)
+            # enable if needed and a key read is needed to connect the signal
+            on_screen_reader_enabled_changed(self.a11y_settings,
+                                             "screen-reader-enabled")
 
         # set default language
         self.locale = i18n.reset_locale(self)
@@ -364,10 +401,70 @@ class Wizard(BaseFrontend):
             self.live_installer.connect(
                 'key-press-event', self.a11y_profile_keys)
 
+        # Wait for sound.target to become ready
+        self.soundWatcher = misc.SystemdUnitWatcher('sound.target',
+                                                    self.play_system_ready)
+
+        self.save_oem_metapackages_list()
+
+    def play_system_ready(self):
+        # play the system ready sound
         if osextras.find_on_path('canberra-gtk-play'):
             subprocess.Popen(
                 ['canberra-gtk-play', '--id=system-ready'],
                 preexec_fn=misc.drop_all_privileges)
+
+    def save_oem_metapackages_list(self, wait_finished=False):
+        ''' If we can, update the apt indexes. Then run 'ubuntu-drivers
+        list-oem' to find any OEM metapackages for this system. If we've
+        already done this with updated apt indexes before, there's no point
+        running again, so just return. '''
+
+        # We already did it
+        if self.have_apt_updated:
+            syslog.syslog(syslog.LOG_INFO, "We've already apt updated and "
+                          "run, not doing so again.")
+            return
+
+        with misc.raised_privileges():
+            try:
+                import apt
+                syslog.syslog(syslog.LOG_INFO, "Trying to update apt indexes "
+                              "to run ubuntu-drivers against fresh data.")
+                cache = apt.cache.Cache()
+                cache.update()
+                cache.open()
+                self.have_apt_updated = True
+            except apt.cache.FetchFailedException:
+                syslog.syslog(syslog.LOG_INFO,
+                              "Failed to update apt indexes; offline? "
+                              "Continuing without.")
+            except apt.cache.LockFailedException:
+                syslog.syslog(syslog.LOG_WARNING,
+                              "Failed to update apt indexes, permission "
+                              "denied: running under test?")
+
+            if osextras.find_on_path('ubuntu-drivers'):
+                # We already ran, were offline then, and are still offline, no
+                # point running again.
+                if os.path.exists('/run/ubuntu-drivers-oem.autoinstall') and \
+                        not self.have_apt_updated:
+                    return
+
+                # It's either the first run or a subsequent one but we now
+                # managed to update the apt indexes.
+                self.ubuntu_drivers = subprocess.Popen(
+                    ['ubuntu-drivers',
+                     'list-oem',
+                     '--package-list',
+                     '/run/ubuntu-drivers-oem.autoinstall'],
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL)
+
+                if wait_finished:
+                    self.ubuntu_drivers.communicate()
+                    self.ubuntu_drivers = None
 
     def all_children(self, parent):
         if isinstance(parent, Gtk.Container):
@@ -478,6 +575,11 @@ class Wizard(BaseFrontend):
             GLib.source_remove(self.timeout_id)
         self.timeout_id = GLib.timeout_add(300, self.check_returncode)
 
+    def set_connectivity_state(self, state):
+        for p in self.pages:
+            if hasattr(p.ui, 'plugin_set_connectivity_state'):
+                p.ui.plugin_set_connectivity_state(state)
+
     def set_online_state(self, state):
         for p in self.pages:
             if hasattr(p.ui, 'plugin_set_online_state'):
@@ -537,31 +639,6 @@ class Wizard(BaseFrontend):
 
         gsettings.set(gs_schema, gs_key, gs_value)
 
-    def disable_screen_reader(self):
-        gs_key = 'screenreader'
-        for gs_schema in 'org.gnome.settings-daemon.plugins.media-keys', \
-                         'org.mate.SettingsDaemon.plugins.media-keys':
-            gs_previous = '%s/%s' % (gs_schema, gs_key)
-            if gs_previous in self.gsettings_previous:
-                return
-
-            gs_value = gsettings.get(gs_schema, gs_key)
-            self.gsettings_previous[gs_previous] = gs_value
-
-            if gs_value:
-                gsettings.set(gs_schema, gs_key, '')
-
-        atexit.register(self.enable_screen_reader)
-
-    def enable_screen_reader(self):
-        gs_key = 'screenreader'
-        for gs_schema in 'org.gnome.settings-daemon.plugins.media-keys', \
-                         'org.mate.SettingsDaemon.plugins.media-keys':
-            gs_previous = '%s/%s' % (gs_schema, gs_key)
-            gs_value = self.gsettings_previous[gs_previous]
-
-            gsettings.set(gs_schema, gs_key, gs_value)
-
     def disable_screensaver(self):
         gs_schema = 'org.gnome.desktop.screensaver'
         gs_key = 'idle-activation-enabled'
@@ -580,6 +657,29 @@ class Wizard(BaseFrontend):
     def enable_screensaver(self):
         gs_schema = 'org.gnome.desktop.screensaver'
         gs_key = 'idle-activation-enabled'
+        gs_previous = '%s/%s' % (gs_schema, gs_key)
+        gs_value = self.gsettings_previous[gs_previous]
+
+        gsettings.set(gs_schema, gs_key, gs_value)
+
+    def disable_screen_blanking(self):
+        gs_schema = 'org.gnome.desktop.session'
+        gs_key = 'idle-delay'
+        gs_previous = '%s/%s' % (gs_schema, gs_key)
+        if gs_previous in self.gsettings_previous:
+            return
+
+        gs_value = gsettings.get(gs_schema, gs_key)
+        self.gsettings_previous[gs_previous] = gs_value
+
+        if gs_value:
+            gsettings.set(gs_schema, gs_key, 0)
+
+        atexit.register(self.enable_screen_blanking)
+
+    def enable_screen_blanking(self):
+        gs_schema = 'org.gnome.desktop.session'
+        gs_key = 'idle-delay'
         gs_previous = '%s/%s' % (gs_schema, gs_key)
         gs_value = self.gsettings_previous[gs_previous]
 
@@ -736,8 +836,8 @@ class Wizard(BaseFrontend):
 
         self.disable_volume_manager()
         self.disable_screensaver()
+        self.disable_screen_blanking()
         self.disable_powermgr()
-        self.disable_screen_reader()
 
         if 'UBIQUITY_ONLY' in os.environ:
             self.disable_logout_indicator()
@@ -756,6 +856,9 @@ class Wizard(BaseFrontend):
                 0, self.pageslen, self.get_string('ubiquity/install/checking'))
             self.debconf_progress_cancellable(False)
             self.refresh()
+
+        telemetry.get().set_installer_type('GTK')
+        telemetry.get().set_is_oem(self.oem_config)
 
         self.set_current_page(0)
         self.live_installer.show()
@@ -821,6 +924,8 @@ class Wizard(BaseFrontend):
         # postinstall will exit here by calling Gtk.main_quit in
         # find_next_step.
 
+        telemetry.get().done(self.db)
+
         self.unlock_environment()
         if self.oem_user_config:
             self.quit_installer()
@@ -859,9 +964,7 @@ class Wizard(BaseFrontend):
             request = decision.get_request()
             uri = request.get_uri()
             decision.ignore()
-            subprocess.Popen(['sensible-browser', uri],
-                             close_fds=True,
-                             preexec_fn=misc.drop_all_privileges)
+            misc.launch_uri(uri)
             return True
         return False
 
@@ -870,6 +973,7 @@ class Wizard(BaseFrontend):
         misc.drop_privileges_save()
         self.progress_mode.set_current_page(
             self.progress_pages['progress_bar'])
+        telemetry.get().add_stage('user_done')
 
         if not self.slideshow:
             self.page_mode.hide()
@@ -929,7 +1033,7 @@ class Wizard(BaseFrontend):
                          'install_details_expander']:
             box = self.builder.get_object(eventbox)
             style = box.get_style_context()
-            style.add_class('ubiquity-menubar')
+            style.add_class('menubar')
 
         # TODO lazy load
         import gi
@@ -1021,6 +1125,7 @@ class Wizard(BaseFrontend):
         self.allow_go_backward(False)
 
         misc.add_connection_watch(self.network_change)
+        misc.add_connection_watch(self.set_connectivity_state, global_only=False)
 
     def set_window_hints(self, widget):
         if (self.oem_user_config or
@@ -1275,12 +1380,18 @@ class Wizard(BaseFrontend):
     def page_name(self, step_index):
         return self.steps.get_nth_page(step_index).get_name()
 
-    def toggle_next_button(self, label='gtk-go-forward'):
+    def toggle_next_button(self, label='gtk-go-forward', suggested=False):
         if label != 'gtk-go-forward':
             self.next.set_label(self.get_string(label))
         else:
             self.next.set_label(label)
             self.translate_widget(self.next)
+
+        style_context = self.next.get_style_context()
+        if suggested:
+            style_context.add_class('suggested-action')
+        else:
+            style_context.remove_class('suggested-action')
 
     def toggle_skip_button(self, label='skip'):
         self.skip.set_label(self.get_string(label))
@@ -1324,11 +1435,15 @@ class Wizard(BaseFrontend):
                         hasattr(page.ui, 'plugin_on_skip_clicked'))
                     cur.show()
                     is_install = page.ui.get('plugin_is_install')
+                    is_restart = \
+                        page.ui.get('plugin_is_restart')
                     break
         if not cur:
             return False
 
-        if is_install and not self.oem_user_config:
+        if is_restart and not self.oem_user_config:
+            self.toggle_next_button('restart_button', suggested=True)
+        elif is_install and not self.oem_user_config:
             self.toggle_next_button('install_button')
         else:
             self.toggle_next_button()
@@ -1344,7 +1459,8 @@ class Wizard(BaseFrontend):
 
         if self.pagesindex == 0:
             self.allow_go_backward(False)
-        elif self.pages[self.pagesindex - 1].module.NAME == 'partman':
+        elif 'partman' in [page.module.NAME for page in
+                           self.pages[:self.pagesindex - 1]]:
             # We're past partitioning.  Unless the install fails, there is no
             # going back.
             self.allow_go_backward(False)
@@ -1411,45 +1527,23 @@ class Wizard(BaseFrontend):
 
     def do_reboot(self):
         """Callback for main program to actually reboot the machine."""
-        try:
-            session = dbus.Bus.get_session()
-            gnome_session = session.name_has_owner('org.gnome.SessionManager')
-        except dbus.exceptions.DBusException:
-            gnome_session = False
-
-        if gnome_session:
-            manager = session.get_object('org.gnome.SessionManager',
-                                         '/org/gnome/SessionManager')
-            manager.RequestReboot()
-        else:
-            # don't let reboot race with the shutdown of X in ubiquity-dm;
-            # reboot might be too fast and X will stay around forever instead
-            # of moving to plymouth
-            misc.execute_root(
-                "sh", "-c",
-                "if ! service display-manager status; then killall Xorg; "
-                "while pidof X; do sleep 0.5; done; fi; reboot")
+        # don't let reboot race with the shutdown of X in ubiquity-dm;
+        # reboot might be too fast and X will stay around forever instead
+        # of moving to plymouth
+        misc.execute_root(
+            "sh", "-c",
+            "if ! service display-manager status; then killall Xorg; "
+            "while pidof X; do sleep 0.5; done; fi; reboot")
 
     def do_shutdown(self):
         """Callback for main program to actually shutdown the machine."""
-        try:
-            session = dbus.Bus.get_session()
-            gnome_session = session.name_has_owner('org.gnome.SessionManager')
-        except dbus.exceptions.DBusException:
-            gnome_session = False
-
-        if gnome_session:
-            manager = session.get_object('org.gnome.SessionManager',
-                                         '/org/gnome/SessionManager')
-            manager.RequestShutdown()
-        else:
-            # don't let poweroff race with the shutdown of X in ubiquity-dm;
-            # poweroff might be too fast and X will stay around forever instead
-            # of moving to plymouth
-            misc.execute_root(
-                "sh", "-c",
-                "if ! service display-manager status; then killall Xorg; "
-                "while pidof X; do sleep 0.5; done; fi; poweroff")
+        # don't let poweroff race with the shutdown of X in ubiquity-dm;
+        # poweroff might be too fast and X will stay around forever instead
+        # of moving to plymouth
+        misc.execute_root(
+            "sh", "-c",
+            "if ! service display-manager status; then killall Xorg; "
+            "while pidof X; do sleep 0.5; done; fi; poweroff")
 
     def quit_installer(self, *args):
         """Quit installer cleanly."""
@@ -1468,9 +1562,6 @@ class Wizard(BaseFrontend):
         self.quit_main_loop()
 
     # Callbacks
-    def dialog_hide_on_delete(self, widget, event, data=None):
-        widget.hide()
-        return True
 
     def on_quit_clicked(self, unused_widget):
         self.warning_dialog.set_transient_for(
@@ -1558,6 +1649,7 @@ class Wizard(BaseFrontend):
         for i in range(len(self.pages))[index + 1:]:
             self.dot_grid.get_child_at(i, 0).set_fraction(0)
 
+        telemetry.get().add_stage(name)
         syslog.syslog('switched to page %s' % name)
 
     # Callbacks provided to components.
@@ -1648,8 +1740,44 @@ class Wizard(BaseFrontend):
             return False
 
     def switch_to_install_interface(self):
+        if not self.installing:
+            telemetry.get().add_stage(telemetry.START_INSTALL_STAGE_TAG)
         self.installing = True
         self.lockdown_environment()
+
+    def maybe_start_installing(self):
+        if not (self.partitioned and self.timezone_set):
+            syslog.syslog(
+                'Not installing yet, partitioned: %s, timezone_set %s' %
+                (self.partitioned, self.timezone_set))
+            return
+
+        # Setup zfs layout
+        use_zfs = self.db.get('ubiquity/use_zfs')
+        if use_zfs == 'true':
+            env = os.environ.copy()
+            zfs_keystore_key = self.db.get('ubiquity/zfs_keystore_key')
+            if zfs_keystore_key:
+                os.environ['ZFS_KS_KEY'] = zfs_keystore_key
+            misc.execute_root('/usr/share/ubiquity/zsys-setup', 'init')
+            os.environ.clear()
+            os.environ.update(env)
+
+        syslog.syslog('Starting the installation')
+
+        from ubiquity.debconfcommunicator import DebconfCommunicator
+        if self.parallel_db is not None:
+            self.parallel_db.shutdown()
+        env = os.environ.copy()
+        # debconf-apt-progress, start_debconf()
+        env['DEBCONF_DB_REPLACE'] = 'configdb'
+        env['DEBCONF_DB_OVERRIDE'] = 'Pipe{infd:none outfd:none}'
+        self.parallel_db = DebconfCommunicator('ubiquity',
+                                               cloexec=True,
+                                               env=env)
+        # Start the actual install
+        dbfilter = install.Install(self, db=self.parallel_db)
+        dbfilter.start(auto_process=True)
 
     def find_next_step(self, finished_step):
         # TODO need to handle the case where debconffilters launched from
@@ -1690,11 +1818,19 @@ class Wizard(BaseFrontend):
             dbfilter = partman_commit.PartmanCommit(self, db=self.parallel_db)
             dbfilter.start(auto_process=True)
 
-        # FIXME OH DEAR LORD.  Use isinstance.
-        elif finished_step == 'ubiquity.components.partman_commit':
-            dbfilter = install.Install(self, db=self.parallel_db)
-            dbfilter.start(auto_process=True)
+        elif finished_step == 'ubi-timezone':
+            self.timezone_set = True
+            # Flush changes to the database so that when the parallel db
+            # starts, it does so with the most recent changes.
+            self.stop_debconf()
+            self.start_debconf()
+            self.maybe_start_installing()
 
+        elif finished_step == 'ubiquity.components.partman_commit':
+            self.partitioned = True
+            self.maybe_start_installing()
+
+        # FIXME OH DEAR LORD.  Use isinstance.
         elif finished_step == 'ubiquity.components.install':
             self.finished_installing = True
             if self.finished_pages:
@@ -1760,13 +1896,21 @@ class Wizard(BaseFrontend):
             msg = title
         dialog = Gtk.MessageDialog(
             self.live_installer, Gtk.DialogFlags.MODAL,
-            Gtk.MessageType.ERROR, Gtk.ButtonsType.OK, msg)
+            Gtk.MessageType.ERROR, Gtk.ButtonsType.OK, "")
         dialog.set_title(title)
+        dialog.set_markup(msg)
+        for label in dialog.get_message_area().get_children():
+            if not isinstance(label, Gtk.Label):
+                continue
+            label.connect('activate-link', self.on_link_clicked)
         dialog.run()
         self.set_busy_cursor(saved_busy_cursor)
         dialog.hide()
         if fatal:
             self.return_to_partitioning()
+
+    def on_link_clicked(self, widget, uri):
+        misc.launch_uri(uri)
 
     def toggle_grub_fail(self, unused_widget):
         if self.grub_no_new_device.get_active():

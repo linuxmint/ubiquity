@@ -666,7 +666,8 @@ int read_resolv_conf_nameservers(char *resolv_conf_file, struct netcfg_interface
             	rtrim(buf);
 
                 ptr = buf + strlen("nameserver ");
-                strncpy(interface->nameservers[i], ptr, NETCFG_ADDRSTRLEN);
+                memcpy(interface->nameservers[i], ptr, NETCFG_ADDRSTRLEN-1);
+                interface->nameservers[i][NETCFG_ADDRSTRLEN-1]='\0';
                 di_debug("Read nameserver %s", interface->nameservers[i]);
                 i++;
                 if (i >= NETCFG_NAMESERVERS_MAX) {

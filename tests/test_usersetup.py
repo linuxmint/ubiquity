@@ -41,6 +41,7 @@ class UserSetupTests(unittest.TestCase):
         error_msg = 'That name already exists on the network.'
         self.gtk.resolver = UbiquityMockResolver.MockResolver(
             hostname='myhostname')
+        self.gtk.plugin_translate('en')
         self.gtk.hostname_ok.show()
         self.gtk.hostname.set_text('myhostname')
         self.gtk.hostname_error = mock.Mock()
@@ -105,17 +106,6 @@ class UserSetupTests(unittest.TestCase):
         self.gtk.hostname_edited = False
         self.gtk.info_loop(self.gtk.fullname)
         self.gtk.info_loop(self.gtk.username)
-
-    def test_on_authentication_toggled(self):
-        self.gtk.login_encrypt.set_active(True)
-        self.gtk.login_auto.set_active(True)
-        self.gtk.on_authentication_toggled(self.gtk.login_auto)
-        self.assertFalse(self.gtk.login_encrypt.get_active())
-
-        self.gtk.login_auto.set_active(True)
-        self.gtk.login_encrypt.set_active(True)
-        self.gtk.on_authentication_toggled(self.gtk.login_encrypt)
-        self.assertTrue(self.gtk.login_pass.get_active())
 
     def test_default_username(self):
         self.gtk.controller.get_string = mock_get_string

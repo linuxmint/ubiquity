@@ -468,10 +468,8 @@ do_lv_delete() {
 	for line in $(lv_list); do
 		lv=$(echo "$line" | cut -d':' -f1)
 		vg=$(echo "$line" | cut -d':' -f2)
-		db_subst partman-lvm/text/lvdelete_invg VG "$vg"
-		db_metaget partman-lvm/text/lvdelete_invg description
 		lv_get_info "$vg" "$lv"
-		output=$(printf "%-30s (%sMB - %s)" "$lv" "$SIZE" "$RET")
+		output=$(printf "%-30s (%sMB - %s)" "$lv" "$SIZE" "$vg")
 		lvs="${lvs:+$lvs, }$output"
 	done
 

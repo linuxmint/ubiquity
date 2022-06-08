@@ -116,6 +116,12 @@ def password_strength(password):
         strength = 1
     if strength < 0:
         strength = 0
+
+    # Recovery keys are 48 digits number and cannot be considered "fair"
+    # so set it a level higher
+    if len(password) >= 48 and strength < 0.75:
+        strength = 0.8
+
     return strength
 
 

@@ -10,6 +10,10 @@ Type: boolean
 Default: true
 Description: enable frame buffer console on boot
 
+Template: ubiquity/text/preparing_ud_label
+Type: text
+_Description: Preparing ubuntu-drivers...
+
 Template: ubiquity/text/connecting_label
 Type: text
 _Description: Connecting...
@@ -44,7 +48,7 @@ _Description:
 
 Template: ubiquity/text/try_install_text_label
 Type: text
-# RELEASE is a variable substituted into this string, and may be 'Linux Mint'
+# RELEASE is a variable substituted into this string, and may be 'Ubuntu'
 #flag:comment:2
 # MEDIUM is a variable substituted into this string, and may be 'CD'
 _Description:
@@ -56,12 +60,12 @@ _Description:
 
 Template: ubiquity/text/try_ubuntu
 Type: text
-# RELEASE is a variable substituted into this string, and may be 'Linux Mint'
+# RELEASE is a variable substituted into this string, and may be 'Ubuntu'
 _Description: Try ${RELEASE}
 
 Template: ubiquity/text/install_ubuntu
 Type: text
-# RELEASE is a variable substituted into this string, and may be 'Linux Mint'
+# RELEASE is a variable substituted into this string, and may be 'Ubuntu'
 _Description: Install ${RELEASE}
 
 Template: ubiquity/text/release_notes_label
@@ -221,10 +225,6 @@ Template: ubiquity/text/login_pass
 Type: text
 _Description: Require my password to log in
 
-Template: ubiquity/text/login_encrypt
-Type: text
-_Description: Encrypt my home folder
-
 Template: ubiquity/text/part_auto_heading_label
 Type: text
 _Description: Installation type
@@ -241,6 +241,12 @@ _Description: Where would you like to install Kubuntu?
 Template: ubiquity/text/part_advanced_heading_label
 Type: text
 _Description: Prepare partitions
+
+Template: ubiquity/text/restart_button
+Type: text
+# This is used as a button label, and should be translated as an action.
+# Omit the [ ... ] from the translation.
+_Description: _Restart[ action ]
 
 Template: ubiquity/text/install_button
 Type: text
@@ -276,7 +282,7 @@ _Description: Continue without a bootloader.
 
 Template: ubiquity/text/skip_label
 Type: text
-# RELEASE is a variable substituted into this string, and may be 'Linux Mint'
+# RELEASE is a variable substituted into this string, and may be 'Ubuntu'
 _Description:
  You will need to manually install a bootloader in order to start ${RELEASE}.
 
@@ -294,7 +300,7 @@ _Description: How would you like to proceed?
 
 Template: ubiquity/text/progress_cancel_button
 Type: text
-_Description: Skip
+_Description: _Skip
 
 Template: ubiquity/text/finished_dialog
 Type: title
@@ -469,7 +475,7 @@ _Description: Boot loader
 
 Template: ubiquity/text/finished_label
 Type: text
-# RELEASE is a variable substituted into this string, and may be 'Linux Mint'
+# RELEASE is a variable substituted into this string, and may be 'Ubuntu'
 _Description:
  Installation has finished.  You can continue testing ${RELEASE} now, but until
  you restart the computer, any changes you make or documents you save will
@@ -654,6 +660,10 @@ Template: ubiquity/install/bootloader
 Type: text
 _Description: Configuring boot loader...
 
+Template: ubiquity/install/activedirectory
+Type: text
+_Description: Configuring Active Directory...
+
 Template: ubiquity/install/apt_clone_save
 Type: text
 _Description: Saving installed packages...
@@ -761,12 +771,20 @@ _Description: Error copying bluetooth configuration
  continue, but the bluetooth configuration will have to be set up again in the
  installed system.
 
-Template: ubiquity/install/broken_apt_clone
+Template: ubiquity/install/broken_active_directory
 Type: error
-_Description: Error restoring installed applications
- An error occurred while restoring previously-installed applications.  The
- installation will continue, but you may have to manually reinstall some
- applications after the computer reboots.
+_Description: Error configuring connection to Active Directory
+ Sorry, Active Directory can't be set up at the moment. Once your system is up
+ and running, visit help.ubuntu.com/activedirectory for help.
+
+Template: ubiquity/install/broken_luks_add_key
+Type: error
+_Description: Error setting LUKS recovery key
+ An error occurred while setting the recovery key.  The
+ installation will continue, but you may have to manually add the recovery
+ key in the installed system with the command:
+ .
+ cryptsetup luksAddKey device_name
 
 Template: ubiquity/install/md5_check
 Type: boolean
@@ -915,10 +933,6 @@ Template: ubiquity/text/network_heading_label
 Type: text
 _Description: Network configuration
 
-Template: ubiquity/text/tasks_heading_label
-Type: text
-_Description: Software selection
-
 Template: ubiquity/text/breadcrumb_language
 Type: text
 _Description: Language
@@ -929,7 +943,7 @@ _Description: Wireless
 
 Template: ubiquity/text/breadcrumb_prepare
 Type: text
-_Description: Prepare
+_Description: Software
 
 Template: ubiquity/text/breadcrumb_timezone
 Type: text
@@ -1031,8 +1045,7 @@ Description: for internal use; automatically reboot when the install fails.
 
 Template: ubiquity/text/prepare_heading_label
 Type: text
-# RELEASE is a variable substituted into this string, and may be 'Linux Mint'
-_Description: Preparing to install ${RELEASE}
+_Description: Updates and other software
 
 Template: ubiquity/text/wireless_heading_label
 Type: text
@@ -1041,7 +1054,7 @@ _Description: Wireless
 Template: ubiquity/text/wireless_section_label
 Type: text
 _Description:
- Connecting this computer to a wi-fi network allows you to install
+ Connecting this computer to a Wi-Fi network allows you to install
  third-party software, download updates, automatically detect your timezone,
  and install full support for your language.
 
@@ -1056,7 +1069,7 @@ _Description: Display password
 Template: ubiquity/text/no_wireless
 Type: text
 _Description:
- I don't want to connect to a wi-fi network right now
+ I don't want to connect to a Wi-Fi network right now
 
 Template: ubiquity/text/use_wireless
 Type: text
@@ -1067,6 +1080,12 @@ Type: boolean
 Default: false
 Description: for internal use; use non-free software.
 
+Template: ubiquity/install_oem
+Type: boolean
+Default: true
+Description: for internal use; can be preseeded
+ Install hardware enablement packages for this device, if available.
+
 Template: ubiquity/nonfree_package
 Type: text
 Default: ubuntu-restricted-addons
@@ -1076,8 +1095,15 @@ Description: for internal use; can be preseeded
 
 Template: ubiquity/download_updates
 Type: boolean
-Default: false
+Default: true
 Description: for internal use; download updates while installing.
+
+Template: ubiquity/minimal_install
+Type: boolean
+Default: false
+Description: for internal use; can be preseeded
+ Only a minimal set of package(s) will be installed when the minimal installation
+ checkbox is selected.
 
 Template: ubiquity/text/part_auto_select_drive_label
 Type: text
@@ -1133,10 +1159,27 @@ Type: text
 _Description:
  Sorry
 
+Template: ubiquity/text/rst_header
+Type: text
+# RST means "Rapid Storage Technology". Don't translate it.
+_Description: Turn off RST
+
+Template: ubiquity/text/label_using_rst
+Type: text
+_Description: This computer uses Intel RST (Rapid Storage Technology). You need to turn off RST before installing Ubuntu. For instructions, open this page on a phone or other device: <a href="https://help.ubuntu.com/rst">help.ubuntu.com/rst</a>
+
+Template: ubiquity/text/bitlocker_header
+Type: text
+_Description: Turn off BitLocker
+
+Template: ubiquity/text/label_using_bitlocker
+Type: text
+_Description: This computer uses Windows BitLocker encryption. You need to turn off BitLocker in Windows before installing Ubuntu. For instructions, open this page on a phone or other device: <a href="https://help.ubuntu.com/bitlocker">help.ubuntu.com/bitlocker</a>
+
 Template: ubiquity/text/required_space
 Type: text
 # SIZE is a variable substituted into this string, and may be '3.7 GB'
-# RELEASE is a variable substituted into this string, the Linux Mint flavor'
+# RELEASE is a variable substituted into this string, the Ubuntu flavor'
 _Description: You need at least ${SIZE} disk space to install ${RELEASE}.
 
 Template: ubiquity/text/free_space
@@ -1155,18 +1198,12 @@ _Description: is connected to the Internet
 Template: ubiquity/text/prepare_foss_disclaimer
 Type: text
 _Description:
- This software is subject to license terms included with its documentation. Some is proprietary. 
-
-Template: ubiquity/text/prepare_foss_disclaimer_extra_label
-Type: text
-_Description:
- Fluendo MP3 plugin includes MPEG Layer-3 audio decoding technology licensed
- from Fraunhofer IIS and Technicolor SA.
+ This software is subject to license terms included with its documentation. Some is proprietary.
 
 Template: ubiquity/text/prepare_nonfree_software
 Type: text
 _Description:
- Install third-party software for graphics and Wi-Fi hardware, Flash, MP3 and other media
+ Install third-party software for graphics and Wi-Fi hardware and additional media formats
 
 Template: ubiquity/text/prepare_download_updates
 Type: text
@@ -1183,10 +1220,55 @@ Type: text
 _Description:
  Not available because there is no Internet connection.
 
+Template: ubiquity/text/minimal_install_header
+Type: text
+_Description:
+ What apps would you like to install to start with?
+
+Template: ubiquity/text/qt_minimal_install_header
+Type: text
+_Description:
+ Which applications would you like to start with?
+
+Template: ubiquity/text/prepare_minimal_install
+Type: text
+_Description:
+ Minimal installation
+
+Template: ubiquity/text/label_minimal_install
+Type: text
+_Description:
+ Web browser and basic utilities.
+
+Template: ubiquity/text/qt_label_minimal_install
+Type: text
+_Description:
+ Web browser plus basic utilities and applications.
+
+Template: ubiquity/text/prepare_normal_install
+Type: text
+_Description:
+ Normal installation
+
+Template: ubiquity/text/label_normal_install
+Type: text
+_Description:
+ Web browser, utilities, office software, games, and media players.
+
+Template: ubiquity/text/qt_label_normal_install
+Type: text
+_Description:
+ Web browser, utilities, office software, plus additional internet applications and media players.
+
+Template: ubiquity/text/install_other_options_header
+Type: text
+_Description:
+ Other options
+
 Template: ubiquity/text/secureboot_label
 Type: text
 _Description:
- Installing third-party drivers requires turning off Secure Boot. To do this, you need to choose a security key now, and enter it when the system restarts.
+ Installing third-party drivers requires configuring Secure Boot. To do this, you need to choose a security key now, and enter it when the system restarts.
 
 Template: ubiquity/force_failsafe_graphics
 Type: boolean
@@ -1243,7 +1325,7 @@ Template: ubiquity/partitioner/single_os_replace
 Type: text
 # OS is a variable substituted into this string, and may be 'Windows 7'
 #flag:comment:1
-# DISTRO is a variable substituted into this string, and may be 'Linux Mint'
+# DISTRO is a variable substituted into this string, and may be 'Ubuntu'
 _Description: Replace ${OS} with ${DISTRO}
  <span foreground="darkred">Warning:</span> This will delete all of your ${OS}
  programs, documents, photos, music, and any other files.
@@ -1251,7 +1333,7 @@ _Description: Replace ${OS} with ${DISTRO}
 Template: ubiquity/partitioner/single_os_resize
 Type: text
 #flag:comment:1
-# DISTRO is a variable substituted into this string, and may be 'Linux Mint'
+# DISTRO is a variable substituted into this string, and may be 'Ubuntu'
 # OS is a variable substituted into this string, and may be 'Windows 7'
 _Description: Install ${DISTRO} alongside ${OS}
  Documents, music, and other personal files will be kept. You can choose which
@@ -1260,7 +1342,7 @@ _Description: Install ${DISTRO} alongside ${OS}
 Template: ubiquity/partitioner/ubuntu_inside
 Type: text
 #flag:comment:1
-# DISTRO is a variable substituted into this string, and may be 'Linux Mint'
+# DISTRO is a variable substituted into this string, and may be 'Ubuntu'
 # OS is a variable substituted into this string, and may be 'Windows 7'
 _Description: Install ${DISTRO} inside ${OS}
  Documents, music, and other personal files will be kept. You can choose which
@@ -1269,33 +1351,24 @@ _Description: Install ${DISTRO} inside ${OS}
 Template: ubiquity/partitioner/advanced
 Type: text
 #flag:comment:2
-# DISTRO is a variable substituted into this string, and may be 'Linux Mint'
+# DISTRO is a variable substituted into this string, and may be 'Ubuntu'
 _Description: Something else
  You can create or resize partitions yourself, or choose multiple partitions
  for ${DISTRO}.
 
 Template: ubiquity/partitioner/ubuntu_format
 Type: text
-# CURDISTRO is a variable substituted into this string, and may be 'Linux Mint 10.10'
+# CURDISTRO is a variable substituted into this string, and may be 'Ubuntu 10.10'
 _Description: Erase ${CURDISTRO} and reinstall
  <span foreground="darkred">Warning:</span> This will delete all your
  ${CURDISTRO} programs, documents, photos, music, and any other files.
 
-Template: ubiquity/partitioner/ubuntu_upgrade
-Type: text
-#flag:comment:1
-# CURDISTRO is a variable substituted into this string, and may be 'Linux Mint 10.10'
-# VER is a variable substituted into this string, and may be '11.04'
-_Description: Upgrade ${CURDISTRO} to ${VER}
- Documents, music, and other personal files will be kept. Installed software
- will be kept where possible. System-wide settings will be cleared.
-
 Template: ubiquity/partitioner/ubuntu_resize
 Type: text
 #flag:comment:1
-# DISTRO is a variable substituted into this string, and may be 'Linux Mint'
+# DISTRO is a variable substituted into this string, and may be 'Ubuntu'
 # VER is a variable substituted into this string, and may be '11.04'
-# CURDISTRO is a variable substituted into this string, and may be 'Linux Mint 10.10'
+# CURDISTRO is a variable substituted into this string, and may be 'Ubuntu 10.10'
 _Description: Install ${DISTRO} ${VER} alongside ${CURDISTRO}
  Documents, music, and other personal files will be kept. You can choose which
  operating system you want each time the computer starts up.
@@ -1303,7 +1376,7 @@ _Description: Install ${DISTRO} ${VER} alongside ${CURDISTRO}
 Template: ubiquity/partitioner/no_systems_format
 Type: text
 #flag:comment:1
-# DISTRO is a variable substituted into this string, and may be 'Linux Mint'
+# DISTRO is a variable substituted into this string, and may be 'Ubuntu'
 _Description: Erase disk and install ${DISTRO}
  <span foreground="darkred">Warning:</span> This will delete any files on the
  disk.
@@ -1312,7 +1385,7 @@ Template: ubiquity/partitioner/ubuntu_and_os_format
 Type: text
 #flag:comment:2
 # OS is a variable substituted into this string, and may be 'Windows 7'
-# CURDISTRO is a variable substituted into this string, and may be 'Linux Mint 10.10'
+# CURDISTRO is a variable substituted into this string, and may be 'Ubuntu 10.10'
 _Description: Erase everything and reinstall
  <span foreground="darkred">Warning:</span> This will delete all your
  programs, documents, photos, music, and other files in both ${OS} and
@@ -1321,15 +1394,15 @@ _Description: Erase everything and reinstall
 Template: ubiquity/partitioner/ubuntu_reinstall
 Type: text
 #flag:comment:1
-# CURDISTRO is a variable substituted into this string, and may be 'Linux Mint 10.10'
+# CURDISTRO is a variable substituted into this string, and may be 'Ubuntu 10.10'
 _Description: Reinstall ${CURDISTRO}
  Documents, music, and other personal files will be kept. Installed software
- will be kept where possible. System-wide settings will be cleared.
+ and system-wide settings will be cleared.
 
 Template: ubiquity/partitioner/multiple_os_format
 Type: text
 #flag:comment:1
-# DISTRO is a variable substituted into this string, and may be 'Linux Mint'
+# DISTRO is a variable substituted into this string, and may be 'Ubuntu'
 _Description: Erase disk and install ${DISTRO}
  <span foreground="darkred">Warning:</span> This will delete all your programs,
  documents, photos, music, and any other files in all operating systems.
@@ -1337,7 +1410,7 @@ _Description: Erase disk and install ${DISTRO}
 Template: ubiquity/partitioner/multiple_os_resize
 Type: text
 #flag:comment:1
-# DISTRO is a variable substituted into this string, and may be 'Linux Mint'
+# DISTRO is a variable substituted into this string, and may be 'Ubuntu'
 _Description: Install ${DISTRO} alongside them
  Documents, music, and other personal files will be kept. You can choose which
  operating system you want each time the computer starts up.
@@ -1399,6 +1472,58 @@ Template: ubiquity/text/use_lvm_desc
 Type: text
 _Description:
  This will set up Logical Volume Management. It allows taking snapshots and easier partition resizing.
+
+Template: ubiquity/text/use_zfs
+Type: text
+_Description:
+ Erase disk and use ZFS
+
+Template: ubiquity/text/use_zfs_desc
+Type: text
+_Description:
+ <span foreground="darkred">Warning:</span> This will delete all your files on all operating systems.
+
+Template: ubiquity/use_zfs
+Type: boolean
+Default: false
+Description: for internal use; can be preseeded
+ This will set up ZFS and configure it for zsys.
+
+Template: ubiquity/text/advanced_features_dialog
+Type: text
+_Description: Advanced Features
+
+Template: ubiquity/text/advanced_features_radio_none
+Type: text
+_Description: None
+
+Template: ubiquity/text/advanced_features_desc
+Type: text
+_Description: None selected
+
+Template: ubiquity/text/advanced_features_selected
+Type: text
+_Description: Advanced features...
+
+Template: ubiquity/text/advanced_features_none_selected
+Type: text
+_Description: None selected
+
+Template: ubiquity/text/advanced_features_lvm_selected
+Type: text
+_Description: LVM selected
+
+Template: ubiquity/text/advanced_features_lvm_crypto_selected
+Type: text
+_Description: LVM and encryption selected
+
+Template: ubiquity/text/advanced_features_zfs_selected
+Type: text
+_Description: ZFS selected
+
+Template: ubiquity/text/advanced_features_zfs_crypto_selected
+Type: text
+_Description: ZFS and encryption selected
 
 Template: ubiquity/text/verified_crypto_label
 Type: text
@@ -1499,20 +1624,177 @@ Template: ubiquity/text/efi_secureboot_info
 Type: text
 _Description:
  You have chosen to enable third-party software as part of your install,
- which for this system includes hardware drivers for graphics and/or wi-fi
+ which for this system includes hardware drivers for graphics and/or Wi-Fi
  hardware. Your system also has UEFI Secure Boot enabled. UEFI Secure Boot
- is not compatible with the use of these third-party drivers.
+ needs to be configured to allow the use of these third-party drivers.
  .
- After installation completes, Linux Mint will assist you in disabling UEFI
+ After installation completes, Ubuntu will assist you in configuring UEFI
  Secure Boot. To ensure that this change is being made by you as an authorized
  user, and not by an attacker, you must choose a password now and then use
  the same password after reboot to confirm the change.
  .
  <span foreground="darkred">Warning</span>: If you choose not to install
  these drivers, or if you proceed but do not confirm the password upon reboot,
- Linux Mint will still be able to boot on your system but these third-party
+ Ubuntu will still be able to boot on your system but these third-party
  drivers will not be available for your hardware.
 
 Template: ubiquity/secureboot_key
 Type: password
 _Description: SecureBoot key for MokPW
+
+Template: ubiquity/text/partman_confirm_zfs
+Type: text
+_Description:
+ partition #%(partid)s as %(parttype)s used for %(partusage)s
+
+Template: ubiquity/zfs_keystore_key
+Type: password
+_Description: Key to secure the keystore on ZFS installations
+
+Template: ubiquity/login_use_directory
+Type: text
+_Description: Authenticate against a directory
+
+Template: ubiquity/directory_domain
+Type: text
+_Description: Active Directory domain name
+
+Template: ubiquity/directory_user
+Type: text
+_Description: Administrator to join the domain
+
+Template: ubiquity/directory_passwd
+Type: password
+_Description: Administrator password to join the domain
+
+Template: ubiquity/text/login_directory
+Type: text
+_Description:
+ Use Active Directory
+
+Template: ubiquity/text/login_directory_extra_label
+Type: text
+_Description:
+  You'll enter domain and other details in the next step.
+
+Template: ubiquity/text/domain_label
+Type: text
+_Description:
+ Domain:
+
+Template: ubiquity/text/domain_name_error_label
+Type: text
+_Description:
+ You must enter a domain name
+
+Template: ubiquity/text/directory_testbutton
+Type: text
+_Description:
+ Test Connection
+
+Template: ubiquity/text/domain_user_label
+Type: text
+_Description:
+ Domain Administrator:
+
+Template: ubiquity/text/domain_user_error_label
+Type: text
+_Description:
+ You must enter a user name
+
+Template: ubiquity/text/domain_passwd_label
+Type: text
+_Description:
+ Password:
+
+Template: ubiquity/text/directory_information_title
+Type: text
+_Description: Configure Active Directory
+
+Template: ubiquity/text/hostname_error
+Type: text
+_Description: That name already exists on the network.
+
+Template: ubiquity/text/domain_connection_error
+Type: text
+_Description: Failed to connect to domain.
+
+Template: ubiquity/text/recovery_key_enable
+Type: text
+_Description:
+ Enable recovery key:
+
+Template: ubiquity/text/recovery_key_label
+Type: text
+_Description:
+ Recovery key:
+
+Template: ubiquity/text/verified_recovery_key_label
+Type: text
+_Description:
+ Confirm recovery key:
+
+Template: ubiquity/text/show_recovery_key
+Type: text
+_Description:
+ Display recovery key:
+
+Template: ubiquity/text/recovery_key_warning
+Type: text
+_Description:
+ A recovery key is generated and will be temporarily saved on the live system.
+ You can select an alternate location. Save this file and keep it in a safe
+ place elsewhere before rebooting.
+
+Template: ubiquity/text/recovery_key_location_label
+Type: text
+_Description: Location:
+
+Template: ubiquity/text/recovery_key_location_warning
+Type: text
+_Description:
+ It is not recommended to store the key on a non removable device.
+
+Template: ubiquity/crypto_key
+Type: password
+_Description: Crypto key for LUKS + LVM
+
+Template: ubiquity/recovery_key
+Type: password
+_Description: Recovery key for LUKS + LVM
+
+Template: ubiquity/text/save_recovery_key_info
+Type: text
+_Description:
+ Count not save recovery key:
+ .
+ ${ERRORMSG}
+
+Template: ubiquity/text/recovery_key_filename
+Type: text
+_Description:
+ Enter recovery key filename
+
+Template: ubiquity/text/recovery_mismatch
+Type: text
+_Description: Passwords do not match
+
+Template: ubiquity/text/recovery_too_short
+Type: text
+_Description: Short password
+
+Template: ubiquity/text/recovery_weak
+Type: text
+_Description: Weak password
+
+Template: ubiquity/text/recovery_fair
+Type: text
+_Description: Fair password
+
+Template: ubiquity/text/recovery_good
+Type: text
+_Description: Good password
+
+Template: ubiquity/text/recovery_strong
+Type: text
+_Description: Strong password

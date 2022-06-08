@@ -164,7 +164,7 @@ class PartitionsBar(QtWidgets.QWidget):
                 QtCore.Qt.TextSingleLine, text)
             painter.drawText(
                 x + 18,
-                labelY + v_off + textSize.height() / 2, text)
+                labelY + v_off + textSize.height() // 2, text)
             v_off += textSize.height()
             painter.setFont(infoFont)
             painter.setPen(QtGui.QColor(PartitionsBar.InfoColor))

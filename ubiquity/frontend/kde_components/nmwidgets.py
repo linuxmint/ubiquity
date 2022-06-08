@@ -24,12 +24,6 @@
 import string
 import syslog
 
-if __name__ == "__main__":
-    # This is done by kde_ui.py. We need to do the same for our test main(),
-    # but it must be done *before* importing any PyQt5 module
-    import sip
-    sip.setapi('QVariant', 1)
-
 from PyQt5 import QtCore
 from PyQt5 import QtGui, QtWidgets
 
@@ -79,7 +73,7 @@ def draw_level_pix(wanted_level):
 
     right = pix.width()
     bottom = pix.height()
-    middle = bottom / 2 + 1
+    middle = bottom // 2 + 1
 
     center = QtCore.QPointF(right / 2., bottom - 1)
     for level in range(4):
@@ -94,11 +88,11 @@ def draw_level_pix(wanted_level):
     painter.setBrush(QtCore.Qt.black)
     painter.drawPolygon(QtGui.QPolygon(
         [QtCore.QPoint(int(center.x()), bottom),
-         QtCore.QPoint(0, int(middle)),
+         QtCore.QPoint(0, middle),
          QtCore.QPoint(0, bottom)]))
     painter.drawPolygon(QtGui.QPolygon(
         [QtCore.QPoint(int(center.x()), bottom),
-         QtCore.QPoint(right, int(middle)),
+         QtCore.QPoint(right, middle),
          QtCore.QPoint(right, bottom)]))
     painter.translate(0, 2)
     painter.drawRect(0, pix.height() - 2, pix.width(), 2)
@@ -211,7 +205,7 @@ class QtNetworkStore(QtGui.QStandardItemModel, NetworkStore):
             pixes.append(draw_level_pix(level))
 
         secure_icon = QtGui.QIcon.fromTheme("emblem-locked")
-        secure_pix = secure_icon.pixmap(ICON_SIZE / 2, ICON_SIZE / 2)
+        secure_pix = secure_icon.pixmap(ICON_SIZE // 2, ICON_SIZE // 2)
         for level in range(5):
             pix2 = QtGui.QPixmap(pixes[level])
             painter = QtGui.QPainter(pix2)

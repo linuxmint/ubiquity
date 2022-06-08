@@ -3,8 +3,6 @@
 # Wrapper script to run Ubiquity as root using the appropriate privilege
 # escalation method for the frontend.
 
-from __future__ import print_function
-
 import os
 import sys
 
@@ -71,16 +69,15 @@ def main():
         if frontend is None:
             # Try to detect which frontend will be used by looking for a
             # frontend module.
-            import imp
-            import ubiquity.frontend
+            from importlib import util
             frontend_names = ['gtk_ui', 'kde_ui']
             for f in frontend_names:
-                try:
-                    imp.find_module(f, ubiquity.frontend.__path__)
+                if util.find_spec('ubiquity.frontend.%s' % f) is not None:
                     frontend = f
                     break
-                except ImportError:
-                    pass
+            if frontend is None:
+                raise AttributeError('No frontend available; tried %s' %
+                                     ', '.join(frontend_names))
 
         toexec = ['pkexec', sys.argv[0]]
         toexec.extend(newargv)

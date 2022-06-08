@@ -61,9 +61,6 @@ if [ -f /target/swapfile ]; then
 fi
 
 
-db_input medium partman-swapfile/size || true
-db_input medium partman-swapfile/percentage || true
-db_go || true
 db_get partman-swapfile/size
 max_size=$RET
 db_get partman-swapfile/percentage
@@ -89,21 +86,14 @@ then
     return 0
 fi
 
-db_progress START 0 5 partman/text/formatting
-db_progress INFO partman-swapfile/progress_swap_formatting
-db_progress SET 1
 if type fallocate >/dev/null 2>&1 && $fallocatesupport; then
     log-output -t partman-swapfile --pass-stdout fallocate -l ${size}KiB /target/swapfile
 else
     log-output -t partman-swapfile --pass-stdout dd if=/dev/zero of=/target/swapfile bs=1024 count=$size
 fi
-db_progress SET 2
 chmod 600 /target/swapfile
-db_progress SET 3
 log-output -t partman-swapfile --pass-stdout mkswap /target/swapfile >/dev/null
 sync
-db_progress SET 4
 enable_swap
-db_progress STOP
 
 return 0

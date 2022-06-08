@@ -22,8 +22,15 @@ from ubiquity.filteredcommand import FilteredCommand
 
 
 class GrubInstaller(FilteredCommand):
+    def __init__(self, frontend, db=None, ui=None, extra_args=None):
+        super().__init__(frontend, db, ui)
+        self.extra_args = extra_args
+
     def prepare(self):
-        return (['/usr/share/grub-installer/grub-installer', '/target'],
+        cmd = ['/usr/share/grub-installer/grub-installer', '/target']
+        if self.extra_args is not None:
+            cmd.extend(self.extra_args)
+        return (cmd,
                 ['^grub-installer/bootdev$', 'ERROR'],
                 {'OVERRIDE_UNSUPPORTED_OS': '1'})
 

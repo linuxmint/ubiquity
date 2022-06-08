@@ -17,8 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-from __future__ import print_function
-
 import os
 import re
 import time
@@ -191,7 +189,9 @@ class PageGtk(plugin.PluginUI):
 
     def setup_page(self):
         # TODO Put a frame around the completion to add contrast (LP: # 605908)
+        from gi import require_version
         from gi.repository import Gtk, GLib
+        require_version('TimezoneMap', '1.0')
         from gi.repository import TimezoneMap
         self.tzdb = ubiquity.tz.Database()
         self.tzmap = TimezoneMap.TimezoneMap()

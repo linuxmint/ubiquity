@@ -13,6 +13,14 @@ arch_get_kernel () {
 	echo "linux-generic"
 	echo "linux-image-generic"
 
+	echo "linux-generic-hwe-22.04"
+	echo "linux-image-generic-hwe-22.04"
+
 	echo "linux-virtual"
 	echo "linux-image-virtual"
+	echo "linux-image-extra-virtual"
+
+	echo "linux-virtual-hwe-22.04"
+	echo "linux-image-virtual-hwe-22.04"
+	echo "linux-image-extra-virtual-hwe-22.04"
 }

@@ -1,7 +1,9 @@
 from dbus.mainloop.glib import DBusGMainLoop
 DBusGMainLoop(set_as_default=True)
 
+from gi import require_version
 from gi.repository import Gtk, GObject, GLib
+require_version('NMA', '1.0')
 from gi.repository import NM, NMA
 
 from ubiquity.nm import decode_ssid, QueuedCaller, NetworkStore, NetworkManager

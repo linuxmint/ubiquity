@@ -14,8 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import print_function
-
 import os
 import logging
 import random
@@ -44,6 +42,7 @@ from ubiquity_autopilot_tests.emulators.gtkcontrols import (
     GtkLabel,
     GtkProgressBar,
     GtkTreeView,
+    GtkRadioButton,
 )
 from ubiquity_autopilot_tests.emulators.gtktoplevel import (
     GtkWindow,
@@ -230,6 +229,7 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
         self._check_navigation_buttons()
 
     def preparing_page_tests(self, updates=False, thirdParty=False,
+                             minimal_installation=False,
                              networkConnection=True, sufficientSpace=True,
                              powerSource=False):
         """ Runs the tests for the 'Preparing to install' page
@@ -238,6 +238,8 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
 
         :param thirdParty: Boolean, if True selects install third-party
                                     software
+        :param minimal_installation: Boolean, if True selects minimal
+                                       installation option
 
         :param networkConnection: Boolean if True checks the network state box
                                     is visible and objects are correct, If
@@ -265,7 +267,8 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
             GtkAlignment, BuilderName='stepPrepare')
 
         objList = [
-            'prepare_foss_disclaimer_license',
+            'prepare_foss_disclaimer',
+            'prepare_minimal_install',
             'prepare_download_updates',
             'prepare_nonfree_software'
         ]
@@ -282,6 +285,12 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
             thrdprty_checkbutton = preparing_page.select_single(
                 GtkCheckButton, BuilderName='prepare_nonfree_software')
             self.pointing_device.click_object(thrdprty_checkbutton)
+
+        if minimal_installation:
+            logger.debug("Selecting install Minimal installation")
+            minimal_installation_checkbutton = preparing_page.select_single(
+                GtkRadioButton, BuilderName='prepare_minimal_install')
+            self.pointing_device.click_object(minimal_installation_checkbutton)
 
         self._check_page_titles()
         self._check_navigation_buttons()
@@ -577,14 +586,12 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
                                        quit_button=True, skip_button=False)
 
     def user_info_page_tests(self, username, pwd,
-                             encrypted=False, autologin=False):
+                             autologin=False):
         """ Runs tests for the User Info Page
 
         :param username:*String*, name of user
 
         :param pwd: *String*, password for user
-
-        :param encrypted: *Bool* if true encypts the home directory
 
         :param autologin: *Bool* if true sets the user account to login
                            automagically
@@ -607,8 +614,6 @@ class UbiquityAutopilotTestCase(UbiquityTestCase):
 
         user_info_page.create_user(username, pwd)
         # TODO: get these working
-        if encrypted:
-            user_info_page.encrypt_home_dir(encrypt=True)
         if autologin:
             user_info_page.set_auto_login()
 

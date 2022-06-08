@@ -5,11 +5,15 @@
 PACKAGE=localechooser
 DATAPACKAGE=localechooser-data
 
+ifeq (,$(filter noudeb, $(DEB_BUILD_PROFILES)))
+  with_udeb = yes
+endif
+
 ARCH=$(shell dpkg-architecture -qDEB_HOST_ARCH)
 
 ifeq (,$(findstring $(ARCH), s390 s390x))
 MENUITEMNUM=1000
-else # run after network-console for s390 
+else # run after network-console for s390
 MENUITEMNUM=2110
 endif
 
@@ -20,6 +24,9 @@ override_dh_clean:
 
 override_dh_install:
 	dh_install
+ifneq ($(with_udeb),yes)
+	mkdir -p debian/$(PACKAGE)/usr/share/localechooser
+endif
 	cat languagelist | grep -v "^#.*" | cut -d";" -f1,4- \
 		>debian/$(PACKAGE)/usr/share/localechooser/languagelist
 	chmod 0644 debian/$(PACKAGE)/usr/share/localechooser/languagelist

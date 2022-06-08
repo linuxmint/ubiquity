@@ -18,12 +18,10 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-from __future__ import print_function
-
 import os
 import re
 
-from ubiquity import keyboard_names, misc, osextras, plugin
+from ubiquity import gsettings, keyboard_names, misc, osextras, plugin
 
 
 NAME = 'console_setup'
@@ -288,17 +286,17 @@ class PageKde(plugin.PluginUI):
         layout = self.get_keyboard()
         lang = self.controller.dbfilter.get_locale()
         if layout is not None:
-                # skip updating keyboard if not using display
-                if self.keyboardDisplay:
-                    try:
-                        ly = keyboard_names.layout_id(lang, misc.utf8(layout))
-                    except KeyError:
-                        ly = keyboard_names.layout_id('C', misc.utf8(layout))
-                    self.keyboardDisplay.setLayout(ly)
+            # skip updating keyboard if not using display
+            if self.keyboardDisplay:
+                try:
+                    ly = keyboard_names.layout_id(lang, misc.utf8(layout))
+                except KeyError:
+                    ly = keyboard_names.layout_id('C', misc.utf8(layout))
+                self.keyboardDisplay.setLayout(ly)
 
-                    # no variants, force update by setting none
-                    # if not keyboard_names.has_variants(l, ly):
-                    #    self.keyboardDisplay.setVariant(None)
+                # no variants, force update by setting none
+                # if not keyboard_names.has_variants(l, ly):
+                #    self.keyboardDisplay.setVariant(None)
 
                 self.current_layout = layout
                 self.controller.dbfilter.change_layout(layout)
@@ -456,6 +454,8 @@ class Page(plugin.Plugin):
         self._locale = ret
 
         self.has_variants = False
+
+        self.gnome_input_sources = self.get_gnome_input_sources()
 
         # Technically we should provide a version as the second argument,
         # but that isn't currently needed and it would require querying
@@ -698,9 +698,41 @@ class Page(plugin.Plugin):
 
         (model, layout, variant, options) = \
             self.adjust_keyboard(model, layout, variant, [])
+        self.set_gnome_keyboard_layout(layout, variant)
         self.debug("Setting keyboard layout: %s %s %s %s" %
                    (model, layout, variant, options))
         self.apply_real_keyboard(model, layout, variant, options)
+
+    @staticmethod
+    def get_gnome_input_sources():
+        return gsettings.get_list("org.gnome.desktop.input-sources", "sources")
+
+    def set_gnome_input_sources(self, input_sources):
+        self.debug(
+            "Setting org.gnome.desktop.input-sources sources to %r",
+            input_sources,
+        )
+        gsettings.set_list(
+            "org.gnome.desktop.input-sources", "sources", input_sources
+        )
+
+    def set_gnome_keyboard_layout(self, layout, variant):
+        if variant:
+            input_source = ("xkb", f"{layout}+{variant}")
+        else:
+            input_source = ("xkb", f"{layout}")
+
+        # The only reliable way to change the keyboard layout in GNOME is to
+        # set the input sources to exacly the desired layout. See also
+        # https://discourse.gnome.org/t/how-to-set-gnome-keyboard-layout-programatically/9459
+        self.set_gnome_input_sources([input_source])
+        if not self.gnome_input_sources:
+            return
+        if input_source in self.gnome_input_sources:
+            input_sources = self.gnome_input_sources
+        else:
+            input_sources = [input_source] + self.gnome_input_sources
+        self.set_gnome_input_sources(input_sources)
 
     def apply_real_keyboard(self, model, layout, variant, options):
         args = []
@@ -814,6 +846,7 @@ class Page(plugin.Plugin):
             options_list = options.split(',')
         else:
             options_list = []
+        self.set_gnome_keyboard_layout(layout, variant)
         self.apply_real_keyboard(model, layout, variant, options_list)
 
         plugin.Plugin.cleanup(self)

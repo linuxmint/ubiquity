@@ -1,3 +1,209 @@
+partman-base (206ubuntu6) eoan; urgency=medium
+
+  * init.d/parted: even if parsing partitions fails, ensure that the block
+    device that has /cdrom mounted is marked as
+    installation_medium. Unless of course partman/filter_mounted is
+    preseeded to false. Currently our isos are built such that partman
+    fails to detect partititions, but blkid/sfdisk/kernel can. LP:
+    #1847944
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Mon, 14 Oct 2019 12:26:06 +0100
+
+partman-base (206ubuntu5) eoan; urgency=medium
+
+  * Move superblock wiping code from command_new_label to command_commit, as
+    the disk is not supposed to be written to until the latter is called.
+
+ -- Michael Hudson-Doyle <michael.hudson@ubuntu.com>  Tue, 06 Aug 2019 12:04:16 +1200
+
+partman-base (206ubuntu4) eoan; urgency=medium
+
+  * parted_server.c: Wipe all known superblocks from device in
+    command_new_label. (LP: #1828558)
+
+ -- Michael Hudson-Doyle <michael.hudson@ubuntu.com>  Fri, 02 Aug 2019 12:31:05 +1200
+
+partman-base (206ubuntu3) eoan; urgency=medium
+
+  * Revert previous upload, it is intentional to use non-part names, to
+    match parted.
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Fri, 21 Jun 2019 02:01:18 +0100
+
+partman-base (206ubuntu2) eoan; urgency=medium
+
+  * Multipath support:
+    - lib/base.sh: is_multipath_part(): Use '-part' as multipath
+    disk-partition separator. As otherwise there are differences in
+    devices naming between d-i and the installed systems. LP: #1825189
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Mon, 17 Jun 2019 15:47:54 +0100
+
+partman-base (206ubuntu1) disco; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    - Ubiquity integration: If PARTMAN_NO_COMMIT is set, then exit rather
+      than running commit.d and finish.d scripts; add a partman-commit
+      script; dump extra information to /var/lib/partman/snoop if
+      PARTMAN_SNOOP is set; check for per-menu 'no_show_choices' file in
+      ask_user and don't reshow the menu if it exists.
+    - Don't skip over dmraid devices if the user chooses not to activate
+      them.
+    - If the only thing mounted on a disk is the installation medium and it
+      uses more or less the whole disk, then silently exclude that disk; if
+      the installation medium is mounted but doesn't use the whole disk,
+      issue a warning that partitioning may be difficult; if anything else
+      is mounted, offer to unmount it. partman/filter_mounted=false disables
+      this.
+    - debian/control: replace harddrive-detection Depends with the specific
+      disk-detect version needed (>= 1.95ubuntu4) to support multipath-tools
+      0.5.0. There are no other harddrive-detection providers yet anyway.
+    - Multipath support:
+      - lib/base.sh: is_multipath_part(): Use 'p' (not '-part') as multipath
+        disk-partition separator.
+      - lib/base.sh: humandev(): Accept spaces in multipath WWID.
+      - init.d/parted: part_of_multipath(): Update grep expression for more
+        recent output of 'multipath -l'.
+      - lib/base.sh: drop the p separator for multipath partitions
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Tue, 05 Mar 2019 08:51:58 +0000
+
+partman-base (206) unstable; urgency=medium
+
+  [ Iain Lane ]
+  * Replace use of '%as' (and '%a[...]') scanf directives with '%ms'
+    (LP: #1818285).
+
+ -- Colin Watson <cjwatson@debian.org>  Mon, 04 Mar 2019 22:49:35 +0000
+
+partman-base (205) unstable; urgency=medium
+  * Team upload
+
+  [ Updated translations ]
+  * Hebrew (he.po) by Yaron Shahrabani
+  * Vietnamese (vi.po) by Trần Ngọc Quân
+
+ -- Holger Wansing <hwansing@mailbox.org>  Mon, 04 Mar 2019 05:15:55 +0100
+
+partman-base (204) unstable; urgency=medium
+  * Team upload
+
+  [ Updated translations ]
+  * Hebrew (he.po) by Yaron Shahrabani
+  * Kazakh (kk.po) by Baurzhan Muftakhidinov
+  * Traditional Chinese (zh_TW.po) by Louies
+
+ -- Holger Wansing <hwansing@mailbox.org>  Sun, 10 Feb 2019 11:50:22 +0100
+
+partman-base (203) unstable; urgency=medium
+  * Team upload
+
+  [ Holger Wansing ]
+  * Remove trailing whitespaces from changelog file, to fix lintian tag.
+
+  [ Updated translations ]
+  * Danish (da.po) by Joe Hansen
+  * Greek (el.po) by Vangelis Skarmoutsos
+  * Persian (fa.po) by Nima Sahraneshin
+
+ -- Holger Wansing <hwansing@mailbox.org>  Thu, 03 Jan 2019 19:01:11 +0100
+
+partman-base (202) unstable; urgency=medium
+
+  * Team upload
+
+  [ Updated translations ]
+  * Latvian (lv.po) by Tranzistors
+  * Marathi (mr.po) by Nayan Nakhare
+
+ -- Holger Wansing <hwansing@mailbox.org>  Wed, 31 Oct 2018 20:42:40 +0100
+
+partman-base (201) unstable; urgency=medium
+
+  * Team upload
+
+  [ Holger Wansing ]
+  * Change deprecated Priority: extra into optional.
+
+  [ Updated translations ]
+  * Finnish (fi.po) by Juhani Numminen
+  * Galician (gl.po) by mantinan
+  * Tamil (ta.po) by Dr.T.Vasudevan
+
+ -- Holger Wansing <hwansing@mailbox.org>  Sun, 23 Sep 2018 19:46:19 +0200
+
+partman-base (200) unstable; urgency=medium
+
+  * Team upload
+
+  [ Cyril Brulebois ]
+  * Update Vcs-{Browser,Git} to point to salsa (alioth's replacement).
+
+  [ Updated translations ]
+  * Hebrew (he.po) by Yaron Shahrabani
+
+ -- Holger Wansing <hwansing@mailbox.org>  Sun, 12 Aug 2018 11:38:58 +0200
+
+partman-base (199) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Esperanto (eo.po) by Felipe Castro
+  * Hebrew (he.po) by Yaron Shahrabani
+  * Indonesian (id.po) by Andika Triwidada
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 05 Apr 2018 06:59:07 +0200
+
+partman-base (198) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Hebrew (he.po) by Yaron Shahrabani
+  * Tajik (tg.po) by Victor Ibragimov
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 20 Feb 2018 13:37:09 +0100
+
+partman-base (197) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Tajik (tg.po) by Victor Ibragimov
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 23 Jan 2018 06:48:03 +0100
+
+partman-base (196) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Icelandic (is.po) by Sveinn í Felli
+  * Bokmål, Norwegian (nb.po) by Alexander Jansen
+  * Panjabi (pa.po) by Aman ALam
+  * Serbian (sr.po) by Filipovic Dragan
+  * Swedish (sv.po) by Sebastian Rasmussen
+
+ -- Christian Perrier <bubulle@debian.org>  Sat, 13 Jan 2018 17:17:15 +0100
+
+partman-base (195) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Esperanto (eo.po) by Felipe Castro
+  * Nepali (ne.po) by Jeewal Kunwar
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 25 Dec 2017 09:43:07 +0100
+
+partman-base (194) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Esperanto (eo.po) by Felipe Castro
+  * Hungarian (hu.po) by Dr. Nagy Elemér Károly
+  * Lithuanian (lt.po) by Rimas Kudelis
+  * Norwegian Nynorsk (nn.po) by Allan Nordhøy
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 03 Dec 2017 06:21:30 +0100
+
+partman-base (193) unstable; urgency=medium
+
+  [ Updated translations ]
+  * Albanian (sq.po) by Silva Arapi
+
+ -- Christian Perrier <bubulle@debian.org>  Mon, 18 Sep 2017 06:49:43 +0200
+
 partman-base (192ubuntu1) bionic; urgency=medium
 
   * Resynchronise with Debian.  Remaining changes:
@@ -17,7 +223,7 @@ partman-base (192ubuntu1) bionic; urgency=medium
     - debian/control: replace harddrive-detection Depends with the specific
       disk-detect version needed (>= 1.95ubuntu4) to support multipath-tools
       0.5.0. There are no other harddrive-detection providers yet anyway.
-    - Multipath support: 
+    - Multipath support:
       - lib/base.sh: is_multipath_part(): Use 'p' (not '-part') as multipath
         disk-partition separator.
       - lib/base.sh: humandev(): Accept spaces in multipath WWID.
@@ -119,7 +325,7 @@ partman-base (187ubuntu1) wily; urgency=medium
     - debian/control: replace harddrive-detection Depends with the specific
       disk-detect version needed (>= 1.95ubuntu4) to support multipath-tools
       0.5.0. There are no other harddrive-detection providers yet anyway.
-    - Multipath support: 
+    - Multipath support:
       - lib/base.sh: is_multipath_part(): Use 'p' (not '-part') as multipath
         disk-partition separator.
       - lib/base.sh: humandev(): Accept spaces in multipath WWID.
@@ -314,7 +520,7 @@ partman-base (177) unstable; urgency=medium
 partman-base (176) unstable; urgency=medium
 
   [ Colin Watson ]
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - Use the device's logical sector size throughout rather than
       PED_SECTOR_SIZE_DEFAULT (closes: #474698, LP: #1065281).
 
@@ -757,7 +963,7 @@ partman-base (155) unstable; urgency=low
 partman-base (154) unstable; urgency=low
 
   [ Colin Watson ]
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - Handle /dev/zram* the same way as /dev/ramzswap* (exclude from
       partitioning, and don't disable swap devices there).
   * Be more careful about printing translated visuals, in case a translation
@@ -805,13 +1011,13 @@ partman-base (153ubuntu4) precise; urgency=low
 
 partman-base (153ubuntu3) precise; urgency=low
 
-  * Update Linux Mint-specific translations from Launchpad.
+  * Update Ubuntu-specific translations from Launchpad.
 
  -- Colin Watson <cjwatson@ubuntu.com>  Wed, 11 Apr 2012 12:38:01 +0100
 
 partman-base (153ubuntu2) precise; urgency=low
 
-  * Update Linux Mint-specific translations from Launchpad.
+  * Update Ubuntu-specific translations from Launchpad.
 
  -- Colin Watson <cjwatson@ubuntu.com>  Wed, 07 Mar 2012 23:47:53 +0000
 
@@ -1101,7 +1307,7 @@ partman-base (145ubuntu1) natty; urgency=low
 partman-base (145) unstable; urgency=low
 
   [ Colin Watson ]
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - Expand the small gap we leave at the end of the disk to avoid MD
       superblock ambiguity so that it correctly covers the region where
       ambiguity might arise.  The previous gap was insufficient on disks
@@ -1281,7 +1487,7 @@ partman-base (139ubuntu6) lucid; urgency=low
 
 partman-base (139ubuntu5) lucid; urgency=low
 
-  * Update Linux Mint-specific translations from Launchpad.
+  * Update Ubuntu-specific translations from Launchpad.
 
  -- Colin Watson <cjwatson@ubuntu.com>  Thu, 15 Apr 2010 00:43:54 +0100
 
@@ -1443,7 +1649,7 @@ partman-base (136) unstable; urgency=low
   * Upgrade to debhelper v7.
   * Fix typo in partman-command that broke commands such as "partman-command
     /dev/sda IS_CHANGED".
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - Call sed outside debconf_select's inner loop. In my benchmarks using
       two disks with eight partitions each, this reduces debconf_select's
       runtime on partman/choose_partition from 0.69 seconds to 0.07 seconds.
@@ -1558,14 +1764,14 @@ partman-base (135) unstable; urgency=low
   * Allow the default filesystem to depends on the architecture.
   * Change the default filesystem to ufs on GNU/kFreeBSD.
   * Correctly detect cdrom and floppy drives on GNU/kFreeBSD.
-  * Add support for GNU/kFreeBSD in human_dev() and add the 
+  * Add support for GNU/kFreeBSD in human_dev() and add the
     corresponding templates.
 
  -- Aurelien Jarno <aurel32@debian.org>  Sun, 23 Aug 2009 18:57:00 +0200
 
 partman-base (134) unstable; urgency=low
 
-  * Change disable_swap to take $id as second optional argument. Some 
+  * Change disable_swap to take $id as second optional argument. Some
     callers need this to disable swap on a partition.
   * Add myself to uploaders.
 
@@ -1613,7 +1819,7 @@ partman-base (133ubuntu1) karmic; urgency=low
 partman-base (133) unstable; urgency=low
 
   [ Max Vozeler ]
-  * Add functions ask_active_partition and partman_list_allowed 
+  * Add functions ask_active_partition and partman_list_allowed
     to lib/base.sh.
 
   [ Updated translations ]
@@ -1682,7 +1888,7 @@ partman-base (131) unstable; urgency=low
 partman-base (130) unstable; urgency=low
 
   [ Colin Watson ]
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - Don't disable /dev/ramzswap* swap devices (thanks, John
       McCabe-Dansted; LP: #193552).
 
@@ -1706,7 +1912,7 @@ partman-base (129ubuntu8) karmic; urgency=low
 
 partman-base (129ubuntu7) jaunty; urgency=low
 
-  * Update Linux Mint-specific strings from Launchpad.
+  * Update Ubuntu-specific strings from Launchpad.
   * Ignore non-zero exit statuses from mapdevfs (LP: #357725).
 
  -- Colin Watson <cjwatson@ubuntu.com>  Thu, 09 Apr 2009 02:15:30 +0100
@@ -1778,7 +1984,7 @@ partman-base (129ubuntu1) jaunty; urgency=low
 partman-base (129) unstable; urgency=low
 
   [ Colin Watson ]
-  * Merge from Linux Mint:
+  * Merge from Ubuntu:
     - Disable backup while displaying device/partition locked errors; it
       makes no sense and it can cause us to exit without closing the FIFO to
       parted_server (closes: #505477, LP: #274219).
@@ -1944,7 +2150,7 @@ partman-base (126) unstable; urgency=low
 
   [ Giuseppe Iuculano ]
   * init.d/parted: Set the sataraid flag for dmraid arrays.
-    Patch based on work done by Luke Yelavich <themuso@ubuntu.com> in Linux Mint.
+    Patch based on work done by Luke Yelavich <themuso@ubuntu.com> in Ubuntu.
     The improved dmraid support requires parted (>= 1.8.8.git.2008.03.24-10).
 
   [ Updated translations ]
@@ -2015,7 +2221,7 @@ partman-base (124) unstable; urgency=low
   * Croatian (hr.po) by Josip Rodin
   * Italian (it.po) by Milo Casagrande
   * Dutch (nl.po) by Frans Pop
-	
+
  -- Otavio Salvador <otavio@ossystems.com.br>  Mon, 04 Aug 2008 10:00:55 -0300
 
 partman-base (123) unstable; urgency=low
@@ -2133,7 +2339,7 @@ partman-base (121) unstable; urgency=low
   * Basque (eu.po) by Iñaki Larrañaga Murgoitio
   * Slovenian (sl.po) by Matej Kovacic
   * Turkish (tr.po) by Mert Dirik
-  
+
  -- Otavio Salvador <otavio@debian.org>  Sat, 21 Jun 2008 17:02:06 -0300
 
 partman-base (120ubuntu1) intrepid; urgency=low
@@ -2415,7 +2621,7 @@ partman-base (113ubuntu1) hardy; urgency=low
       than running commit.d and finish.d scripts; add a partman-commit
       script; dump extra information to /var/lib/partman/snoop if
       PARTMAN_SNOOP is set.
-  * Set Vcs-Bzr for Linux Mint.
+  * Set Vcs-Bzr for Ubuntu.
 
  -- Colin Watson <cjwatson@ubuntu.com>  Thu, 06 Dec 2007 13:29:43 +0000
 
@@ -3545,7 +3751,7 @@ partman-base (75) unstable; urgency=low
 
 partman-base (74ubuntu2) dapper; urgency=low
 
-  * Backport from trunk (closes: Linux Mint #19635):
+  * Backport from trunk (closes: Ubuntu #19635):
     - Exclude CD/DVD drives from the output of parted_devices.
 
  -- Colin Watson <cjwatson@ubuntu.com>  Thu, 17 Nov 2005 20:06:31 +0000
@@ -3561,7 +3767,7 @@ partman-base (74) unstable; urgency=low
   * ped_disk_get_max_partition_geometry returns NULL if the partition's
     current geometry is invalid in some way. Deal with this in
     GET_RESIZE_RANGE and GET_VIRTUAL_RESIZE_RANGE by just claiming that the
-    partition cannot be enlarged (closes: Linux Mint #13250).
+    partition cannot be enlarged (closes: Ubuntu #13250).
   * Remove Standards-Version:, not applicable to udebs.
 
  -- Colin Watson <cjwatson@debian.org>  Thu, 27 Oct 2005 14:35:43 +0100
@@ -3615,7 +3821,7 @@ partman-base (71) unstable; urgency=low
 
   [ Joey Hess ]
   * All ads* subarches collapsed into one.
-  
+
   [ Otavio Salvador ]
   * Enforce the use of new parted version 1.6.24 since it has a soname
     change.
@@ -3635,7 +3841,7 @@ partman-base (70ubuntu2) breezy; urgency=low
   * ped_disk_get_max_partition_geometry returns NULL if the partition's
     current geometry is invalid in some way. Deal with this in
     GET_RESIZE_RANGE and GET_VIRTUAL_RESIZE_RANGE by just claiming that the
-    partition cannot be enlarged (closes: Linux Mint #13250).
+    partition cannot be enlarged (closes: Ubuntu #13250).
 
  -- Colin Watson <cjwatson@ubuntu.com>  Fri, 30 Sep 2005 15:22:17 +0100
 
@@ -3682,7 +3888,7 @@ partman (68) unstable; urgency=low
   * If using udev, ensure that its queue is flushed before attempting any
     format operations.
 
-  * Updated translations: 
+  * Updated translations:
     - Greek, Modern (1453-) (el.po) by Greek Translation Team
     - Lithuanian (lt.po) by Kęstutis Biliūnas
     - Tagalog (tl.po) by Eric Pareja
@@ -3696,8 +3902,8 @@ partman (67) unstable; urgency=low
   [ Joey Hess ]
   * Removed no_media check; disk-detect does this check now, and
     lets the user load modules etc if a disk is not found.
-  
-  * Updated translations: 
+
+  * Updated translations:
     - Arabic (ar.po) by Ossama M. Khayat
     - Catalan (ca.po) by Guillem Jover
     - Greek, Modern (1453-) (el.po) by Greek Translation Team
@@ -3772,9 +3978,9 @@ partman (64) unstable; urgency=low
   * Joey Hess
     - Applied patch from Eugeniy Meshcheryakov to prevent partman from trying
       to create partition tables on disks of type "loop", which is used for
-      LVM LVs and MD devices, which cannot be successfully partitioned. 
+      LVM LVs and MD devices, which cannot be successfully partitioned.
       Closes: #303914
-  * Updated translations: 
+  * Updated translations:
     - Bulgarian (bg.po) by Ognyan Kulev
     - Catalan (ca.po) by Guillem Jover
     - Greek, Modern (1453-) (el.po) by Greek Translation Team
@@ -3788,7 +3994,7 @@ partman (63) unstable; urgency=low
   * Matt Kraai
     - Fix the spelling of "file system".
     - Use the US English spelling of "journaling".
-  * Updated translations: 
+  * Updated translations:
     - Czech (cs.po) by Miroslav Kure
     - Gallegan (gl.po) by Jacobo Tarrio
     - Hebrew (he.po) by Lior Kaplan
@@ -3871,7 +4077,7 @@ partman (60ubuntu1) hoary; urgency=low
 
 partman (60) unstable; urgency=low
 
-  * Updated translations: 
+  * Updated translations:
     - Bulgarian (bg.po) by Ognyan Kulev
     - Catalan (ca.po) by Jordi Mallach
     - Greek, Modern (1453-) (el.po) by Greek Translation Team
@@ -3883,7 +4089,7 @@ partman (60) unstable; urgency=low
 
 partman (59) unstable; urgency=low
 
-  * Updated translations: 
+  * Updated translations:
     - Bulgarian (bg.po) by Ognyan Kulev
     - Catalan (ca.po) by Jordi Mallach
     - Czech (cs.po) by Miroslav Kure
@@ -3930,7 +4136,7 @@ partman (58) unstable; urgency=low
     - parted_server.c: new commands VIRTUAL_RESIZE_PARTITION and
       GET_VIRTUAL_RESIZE_RANGE.  They are undocumented and hopefully will
       exist only temporary to resize NTFS partition.
-  * Updated translations: 
+  * Updated translations:
     - Bulgarian (bg.po) by Ognyan Kulev
     - Greek, Modern (1453-) (el.po) by Greek Translation Team
     - Indonesian (id.po) by Arief S Fitrianto
@@ -3939,14 +4145,14 @@ partman (58) unstable; urgency=low
     - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
     - Romanian (ro.po) by Eddy Petrisor
     - Swedish (sv.po) by Per Olofsson
-  
+
  -- Joey Hess <joeyh@debian.org>  Wed, 29 Sep 2004 23:24:23 -0400
 
 partman (57) unstable; urgency=low
 
   * Jim Lieb
     - add correct name handling of cciss raid controllers. Closes: #271907
-  * Updated translations: 
+  * Updated translations:
     - Bulgarian (bg.po) by Ognyan Kulev
     - Catalan (ca.po) by Jordi Mallach
     - Czech (cs.po) by Miroslav Kure
@@ -3961,7 +4167,7 @@ partman (56) unstable; urgency=low
 
   * Joey Hess
     - Remove the abort confirmation.
-  * Updated translations: 
+  * Updated translations:
     - Bulgarian (bg.po) by Ognyan Kulev
     - Catalan (ca.po) by Jordi Mallach
     - Czech (cs.po) by Miroslav Kure
@@ -4051,17 +4257,17 @@ partman (50) unstable; urgency=low
       Thanks to Thorsten Schaefer, closes: #259868.
     - partman (confirm_changes): do not show the confirmation when there
       are no changes to be written and at least one partition has been
-      already formatted.  Thanks to ntr0p13 at free dot fr, 
+      already formatted.  Thanks to ntr0p13 at free dot fr,
       closes: #265293.
     - parted_server.c: pretend that dvh partitin label does not support
       extended/logical partitions:
       - new function minimize_extended_partition that ignores requests to
         minimize the extended partition
       - partition_info: do not try to give proper device names of the
-        partitions, parted now is fixed 
+        partitions, parted now is fixed
       - command_partitions: do not show the logical partitions
       - command_uses_extended: say dvh doesn't use extended partitions
-  * Updated translations: 
+  * Updated translations:
     - Arabic (ar.po) by Abdulaziz Al-Arfaj
     - Bulgarian (bg.po) by Ognyan Kulev
     - Bosnian (bs.po) by Safir Šećerović
@@ -4081,7 +4287,7 @@ partman (50) unstable; urgency=low
     - Polish (pl.po) by Bartosz Fenski
     - Russian (ru.po) by Yuri Kozlov
     - Turkish (tr.po) by Recai Oktaş
-  
+
  -- Joey Hess <joeyh@debian.org>  Tue, 31 Aug 2004 10:38:34 -0400
 
 partman (49) unstable; urgency=low
@@ -4091,7 +4297,7 @@ partman (49) unstable; urgency=low
       partition_tree_choices to allow differentiation of partitions that
       stringify to exactly the same lines.
       Closes: #241785, #246909, #255597, #263046
-  * Updated translations: 
+  * Updated translations:
     - Bosnian (bs.po) by Safir Šećerović
     - Catalan (ca.po) by Jordi Mallach
     - Basque (eu.po) by Piarres Beobide Egaña
@@ -4104,14 +4310,14 @@ partman (49) unstable; urgency=low
 
 partman (48) unstable; urgency=low
 
-  * Updated translations: 
+  * Updated translations:
     - Portuguese (pt.po) by Miguel Figueiredo
 
  -- Joey Hess <joeyh@debian.org>  Mon, 26 Jul 2004 13:34:02 -0400
 
 partman (47) unstable; urgency=low
 
-  * Updated translations: 
+  * Updated translations:
     - Portuguese (pt.po) by Miguel Figueiredo
     - Swedish (sv.po) by Per Olofsson
 
@@ -4136,7 +4342,7 @@ partman (46) unstable; urgency=low
 
 partman (45) unstable; urgency=low
 
-  * On second thought, don't enable swap at all in commit.d/parted, 
+  * On second thought, don't enable swap at all in commit.d/parted,
     since any swap partitions at that point are leftover from a prior install
     and could be bad to use. Swap will be enabled later.
 
@@ -4147,7 +4353,7 @@ partman (44) unstable; urgency=HIGH
   * Joey Hess
     - Don't fail in enable_swap if a swap partition is not yet formatted.
       Closes: #261008
-  * Updated translations: 
+  * Updated translations:
     - Greek, Modern (1453-) (el.po) by George Papamichelakis
     - Korean (ko.po) by Changwoo Ryu
     - Polish (pl.po) by Bartosz Fenski
@@ -4173,7 +4379,7 @@ partman (43) unstable; urgency=low
       #debian-boot
   * Joshua Kwan
     - Fix heinous abuses of cat.
-  * Updated translations: 
+  * Updated translations:
     - Bulgarian (bg.po) by Ognyan Kulev
     - Czech (cs.po) by Miroslav Kure
     - Danish (da.po) by Claus Hindsgaul
@@ -4211,7 +4417,7 @@ partman (42) unstable; urgency=low
     - partman: Show not only a list of the partitions to be formatted but
       also a list of changed partition tables.  Show a customized
       confirmation dialog when there are no changes.  Thanks to Scott
-      Robinson and Joey Hess, closes: #255102, #246523 
+      Robinson and Joey Hess, closes: #255102, #246523
     - parted_server.c (resize_partition): allow resizing of file system
       which boundaries are not equal with the boundaries of the partition
       provided the file system is completely inside the partition.  Thanks
@@ -4219,7 +4425,7 @@ partman (42) unstable; urgency=low
     - apply patch by Christian Perrier to give title to some of the
       progress bars when formatting partitions.  Thanks to Christian
       Perrier, closes: #251549
-  * Updated translations: 
+  * Updated translations:
     - Albanian (sq.po) by Elian Myftiu
     - German (de.po) by Dennis Stampfer
     - Persian (fa.po) by Arash Bijanzadeh
@@ -4235,7 +4441,7 @@ partman (41) unstable; urgency=low
   * Martin Michlmayr
     - Add more SGI definitions (Indy, Origin, O2).
     - Don't yet run on any of these SGI systems.
-  * Updated translations: 
+  * Updated translations:
     - Bosnian (bs.po) by Safir Šećerović
     - Welsh (cy.po) by Dafydd Harries
     - German (de.po) by Dennis Stampfer
@@ -4272,7 +4478,7 @@ partman (40ubuntu1) warty; urgency=low
 
 partman (40) unstable; urgency=low
 
-  * Updated translations: 
+  * Updated translations:
     - Bulgarian (bg.po) by Ognyan Kulev
     - Catalan (ca.po) by Jordi Mallach
     - German (de.po) by Dennis Stampfer
@@ -4316,7 +4522,7 @@ partman (38) unstable; urgency=low
 
   * Anton Zinoviev
      - parted_server.c (command_undo): destroy the old disk before
-       reopening.  It is possible that this fixes #239300 
+       reopening.  It is possible that this fixes #239300
      - init.d/unsupported: exit 10 when the user presses <back> (instead
        of continuing the partitioner).  Thanks to Martin Michlmayr,
        closes: #243374
@@ -4346,8 +4552,8 @@ partman (38) unstable; urgency=low
      - init.d/backup: never rely on old backup directory
   * Christian Perrier
     - Fix ellipsis typography
-  
-  * Updated translations: 
+
+  * Updated translations:
     - Czech (cs.po) by Miroslav Kure
     - Danish (da.po) by Claus Hindsgaul
     - French (fr.po) by Christian Perrier
@@ -4413,7 +4619,7 @@ partman (36) unstable; urgency=low
     - Print LVM1 and LVM2 devices as "LVM VG %s, LV %s".
   * Stephen R. Marenka
     - Add support for q40 and sun(x) m68k subarchs.
-  
+
  -- Joey Hess <joeyh@debian.org>  Mon, 26 Apr 2004 22:25:50 -0400
 
 partman (35) unstable; urgency=low
@@ -4425,7 +4631,7 @@ partman (35) unstable; urgency=low
 
 partman (34) unstable; urgency=low
 
-  * Updated translations: 
+  * Updated translations:
     - Italian (it.po) by Stefano Canepa
     - Bokmal, Norwegian (nb.po) by Bjørn Steensrud
     - Norwegian Nynorsk (nn.po) by Håvard Korsvoll
@@ -4439,7 +4645,7 @@ partman (33) unstable; urgency=low
     - Work around bug #243373 by using ">" instead of a NBSP if the
       terminal is not bterm (or xterm). ">" was chosen somewhat arbitrarily
       as looking reasonably ok.
-  * Updated translations: 
+  * Updated translations:
     - Finnish (fi.po) by Tapio Lehtonen
     - Romanian (ro.po) by Eddy Petrisor
 
@@ -4449,7 +4655,7 @@ partman (32) unstable; urgency=low
 
   * Joey Hess
     - Exit 10 on backup from main partitioning menu. Closes: #242677
-  * Updated translations: 
+  * Updated translations:
     - Hebrew (he.po) by Lior Kaplan
     - Indonesian (id.po) by I Gede Wijaya S
     - Italian (it.po) by Stefano Canepa
@@ -4468,7 +4674,7 @@ partman (31) unstable; urgency=low
   * Colin Watson
     - Fix typo in partman/text/confirm_item_header. Unfuzzy corresponding
       translations.
-  * Updated translations: 
+  * Updated translations:
     - Bosnian (bs.po) by Safir Šećerović
     - Catalan (ca.po) by Jordi Mallach
     - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
@@ -4497,26 +4703,26 @@ partman (30) unstable; urgency=low
       Those which are supported use msdos labels.
   * Anton Zinoviev
     - make clearer in the description of the main menu that selecting a
-      device creates a new empty partition table in it 
+      device creates a new empty partition table in it
     - move the finish and undo item in choose_partition menu before the
-      partition table. 
+      partition table.
     - the description of the template of the main menu is clearer and is
       visible at startup.  Also partman-target provides a help item in
-      the main menu.  Thanks to Martin Michlmayr (closes: #238381).  
+      the main menu.  Thanks to Martin Michlmayr (closes: #238381).
     - two dividers -- before and below the partition table.
     - in the confirmation dialog say which partitions are going to be
-      formatted.  Thanks to Sven Luther, Mario Girlando and Frans Pop 
+      formatted.  Thanks to Sven Luther, Mario Girlando and Frans Pop
       (closes: #237009, #238389, #239388).
     - templates: make partman/confirm_write_new_label translatable
     - parted_server.c: do not generate exceptions when creation of file
-      system fails. 
+      system fails.
     - definitions.sh: write separator in the log file.  This keeps track
-      in the log file which scripts are being executed. 
+      in the log file which scripts are being executed.
     - definitions.sh (debconf_select): convert the first space in the
       options to non-break space as otherwise the default options is
       ignored if it starts with space.
     - visual.d/method: show the smileys for all methods, not only for keep
-      and format. 
+      and format.
     - add a new script update.d/default_visuals
     - visual.d/{filesystem,mountpoint} use visual_{filesystem,mountpoint}
     - definitions.sh (valid_human): allow strings ending with spaces
@@ -4543,7 +4749,7 @@ partman (30) unstable; urgency=low
       instead
     - parted_server.c (partition_info): parted returns wrong paths of the
       devices of the partitions in dvh (SGI) disk labels.  Correct them.
-      Thanks to Thiemo Seufer, Nicholas Breen and Maitland Bottoms, 
+      Thanks to Thiemo Seufer, Nicholas Breen and Maitland Bottoms,
       closes: #220990, #238363, #239648.
     - do not provide partitioned-harddrives on mips (parted recognises but
       can not edit properly dvh disk labels
@@ -4562,7 +4768,7 @@ partman (30) unstable; urgency=low
     - Update to debhelper's new udeb support.
   * Joey Hess
     - Template polishing.
-  * Updated translations: 
+  * Updated translations:
     - Czech (cs.po) by Miroslav Kure
     - Danish (da.po) by Claus Hindsgaul
     - German (de.po) by Dennis Stampfer
@@ -4589,12 +4795,12 @@ partman (30) unstable; urgency=low
     - Ukrainian (uk.po) by Eugeniy Meshcheryakov
     - Simplified Chinese (zh_CN.po) by Carlos Z.F. Liu
     - Traditional Chinese (zh_TW.po) by Tetralet
-    
+
  -- Joey Hess <joeyh@debian.org>  Sun, 11 Apr 2004 21:21:02 -0400
 
 partman (29) unstable; urgency=low
 
-  * Updated translations: 
+  * Updated translations:
     - Bosnian (bs.po) by Safir Šećerović
     - Lithuanian (lt.po) by Kęstutis Biliūnas
     - Swedish (sv.po) by Anders Lundgren
@@ -4618,7 +4824,7 @@ partman (27) unstable; urgency=low
       msdos for the Broadcom MIPS development board "SWARM" (BCM91250A).
     - Split mipsel into sub-architectures: support DECstations and the
       SWARM board.
-  * Updated translations: 
+  * Updated translations:
     - Finnish (fi.po) by Tapio Lehtonen
     - Hungarian (hu.po) by VERÓK István
     - Italian (it.po) by Stefano Canepa
@@ -4635,7 +4841,7 @@ partman (27) unstable; urgency=low
 
 partman (26) unstable; urgency=low
 
-  * Updated translations: 
+  * Updated translations:
     - Bokmal, Norwegian (nb.po) by Steinar H. Gunderson
     - Dutch (nl.po) by Bart Cornelis
     - Russian (ru.po) by Nikolai Prokoschenko
@@ -4646,7 +4852,7 @@ partman (26) unstable; urgency=low
 
 partman (25) unstable; urgency=low
 
-  * Updated translations: 
+  * Updated translations:
     - Bulgarian (bg.po) by Ognyan Kulev
     - Italian (it.po) by Stefano Canepa
     - Russian (ru.po) by Nikolai Prokoschenko
@@ -4656,13 +4862,13 @@ partman (25) unstable; urgency=low
   * Anton Zinoviev
     - definitions.sh (default_disk_label): correct records for powerpc
       newworld and oldworld.  Add powerpc/amiga (not sure if this is not the
-      same as powerpc/apus). 
+      same as powerpc/apus).
 
  -- Anton Zinoviev <zinoviev@debian.org>  Sun, 14 Mar 2004 17:08:14 +0200
 
 partman (24) unstable; urgency=low
 
-  * Updated translations: 
+  * Updated translations:
     - Bulgarian (bg.po) by Ognyan Kulev
     - Catalan (ca.po) by Jordi Mallach
     - Czech (cs.po) by Miroslav Kure
@@ -4679,7 +4885,7 @@ partman (23) unstable; urgency=low
 
   * Anton Zinoviev
     - creation of new label should ignore the non-zero codes returned by
-      storage_device/label/do_option. 
+      storage_device/label/do_option.
     - visual.d/filesystem: show the unusable free spaces as "unusable"
       instead of "FREE SPACE".  Most of the partition table types do not
       have extended and logical partitions and there was no indication in
@@ -4694,12 +4900,12 @@ partman (23) unstable; urgency=low
       characters in printf.
     - visual.d/{filesystem,type,number} use stralign.
     - partman, visual.d/number: measure the width of partman/text/number
-      using stralign 
+      using stralign
   * Christian Perrier
     - s/Continue the partitioner/Continue with partitining
     - debconf-updatepo
     - unfuzzy translations
-  * Updated translations: 
+  * Updated translations:
     - Welsh (cy.po) by Dafydd Harries (fix slight inconsistency)
     - Albanian (sq.po) by Elian Myftiu
 
@@ -4715,7 +4921,7 @@ partman (22) unstable; urgency=low
     - a necessary change for SPARCs.  Because of bug/limitation in the
       implementation of the Sun disk labels in libparted they must be
       written to the disk before any consequent edition.  Because of that
-      a new template had to be added (it is going to be used only on SPARCs). 
+      a new template had to be added (it is going to be used only on SPARCs).
     - these changes are still not used by the other code of partman.
   * Joey Hess
     - Parameterise the menu-item-number.
@@ -4724,7 +4930,7 @@ partman (22) unstable; urgency=low
     - For mips, do the same, since parted does not know about dvh
       partitioning. Also because it's kinda slow (15 minutes on a fast indy).
     - Minor polishing of the new template.
-  
+
  -- Joey Hess <joeyh@debian.org>  Thu, 11 Mar 2004 11:45:31 -0500
 
 partman (21) unstable; urgency=low
@@ -4734,7 +4940,7 @@ partman (21) unstable; urgency=low
     - init.d/parted: the IDE and SCSI devices are always ordered before
       the other devices (i.e. LVM) in the main partitioning menu.
     - init.d/umount_target: add commands to deactivate swap.
-  
+
  -- Joey Hess <joeyh@debian.org>  Tue,  9 Mar 2004 18:53:30 -0500
 
 partman (20) unstable; urgency=low
@@ -4758,7 +4964,7 @@ partman (18) unstable; urgency=low
 
   * Joey Hess
     - Remove autogenerated postrm.
-  * Updated translations: 
+  * Updated translations:
     - Bulgarian (bg.po) by Ognyan Kulev
     - Czech (cs.po) by Miroslav Kure
     - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
@@ -4787,7 +4993,7 @@ partman (17) unstable; urgency=low
   * Sven Luther
     - added file system type for chrp, chrp_rs6k and chrp_pegasos.
 
-  * Updated translations: 
+  * Updated translations:
     - Bulgarian (bg.po) by Ognyan Kulev
     - French (fr.po) by Christian Perrier
     - Norwegian (nb.po) by Knut Yrvin
@@ -4797,7 +5003,7 @@ partman (17) unstable; urgency=low
 
 partman (16) unstable; urgency=low
 
-  * Updated translations: 
+  * Updated translations:
     - bg.po (Bulgarian) by Ognyan Kulev
     - cs.po (Czech) by Miroslav Kure
     - da.po (Danish) by Claus Hindsgaul
@@ -4822,8 +5028,8 @@ partman (16) unstable; urgency=low
     - parted_server.c (command_set_flags): do not throw critial error for
       unknown flags, ignore them instead
     - parted_server.c (command_change_filesystem): do not mark the device
-      as changed. 
-  
+      as changed.
+
  -- Anton Zinoviev <zinoviev@debian.org>  Sat,  6 Mar 2004 20:27:41 +0200
 
 partman (15) unstable; urgency=low
@@ -4838,7 +5044,7 @@ partman (15) unstable; urgency=low
       UNKNOWN for architectures with atari and ibm partition table types.
     - new file: init.d/unsupported: warn the user if the architecture uses
       unsupported or unknown default partition table type.
-  * Updated translations: 
+  * Updated translations:
     - bg.po (Bulgarian) by Ognyan Kulev
     - cs.po (Czech) by Miroslav Kure
     - de.po (German) by Dennis Stampfer
@@ -4855,7 +5061,7 @@ partman (15) unstable; urgency=low
     - pt.po (Portuguese) by Miguel Figueiredo
     - uk.po (Ukrainian) by Eugeniy Meshcheryakov
     - zh_CN.po (Simplified Chinese) by Carlos Z.F. Liu
-  
+
  -- Anton Zinoviev <zinoviev@debian.org>  Fri,  5 Mar 2004 23:50:43 +0200
 
 partman (14) unstable; urgency=low
@@ -4868,7 +5074,7 @@ partman (14) unstable; urgency=low
     - New cdebconf is in the archive, so re-enable the space escape code.
   * Christian Perrier
     - templates: s/partiton/partition s/latter/later
-  * Updated translations: 
+  * Updated translations:
     - Czech (cs.po) by Miroslav Kure
     - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
     - Finnish (fi.po) by Tapio Lehtonen
@@ -4928,7 +5134,7 @@ partman (13) unstable; urgency=low
       able to display non-break spaces.)
     - Enhance confirm_new_label template text.
 
-  * Updated translations: 
+  * Updated translations:
     - Czech (cs.po) by Miroslav Kure
     - Greek, Modern (1453-) (el.po) by Konstantinos Margaritis
     - Finnish (fi.po) by Tapio Lehtonen
@@ -4958,7 +5164,7 @@ partman (12) unstable; urgency=low
       not accidentially destroy his data
     - shorten title to work around cdebconf bug
     - change device_name to put the drive size before the device name
-    - change menu item number to 42 so it's the default partitioner 
+    - change menu item number to 42 so it's the default partitioner
       (should this only be on i386?)
     - add a progress bar while partman is starting up. Closes: #235364
   * Christian Perrier
@@ -5001,7 +5207,7 @@ partman (12) unstable; urgency=low
     - Claus Hindsgaul
       - Updated Danish translation (da.po)
     - Bart Cornelis
-      - Updated Dutch translation (nl.po) 
+      - Updated Dutch translation (nl.po)
     - Javier Fernandez-Sanguino
       - Added Spanish translation (es.po)
     - Ming Hua
@@ -5028,7 +5234,7 @@ partman (11) unstable; urgency=low
       and abort
     - renumbered init.d/update_partitions (90->70),
       init.d/filesystems_detected (91->71) and active_partition/finish
-      (99->75) 
+      (99->75)
     - deactivated active_partition/chs (put "exit 0" in choices script)
     - fixed bug in update.d/visual causing only the first word of the
       partition name to be shown in the main menu
@@ -5046,7 +5252,7 @@ partman (11) unstable; urgency=low
     - debian/templates: state that `partition the storage devices' is an
       alternative partitioner rather than additional partitioning step in
       the installer process
-  
+
   * Translations
     - Elian Myftiu
       - Updated Albanian (sq) translation
@@ -5062,7 +5268,7 @@ partman (10) unstable; urgency=low
   * Anton Zinoviev
     - Partman doesn't rely any more on partconf-mkfstab to convert devfs
       devices to normal devices.  A new command map_devfs does this using
-      directly libdebian-installer.  
+      directly libdebian-installer.
     - Add dependency on libdebian-installer4-udeb and build-dependency on
       libdebian-installer4-dev.
     - Use 32 instead of 40 as number for update-dev in commit.d to make
@@ -5070,7 +5276,7 @@ partman (10) unstable; urgency=low
     - Use 20 instead of 90 as number for remove_backup in commit.d.
       Otherwise `undo' can restore invalid partition scheme.
     - Removed probably unnecessary loop in the abort function of /bin/partman.
-  
+
  -- Anton Zinoviev <zinoviev@debian.org>  Mon, 16 Feb 2004 11:13:08 +0200
 
 partman (9) unstable; urgency=low
@@ -5083,7 +5289,7 @@ partman (9) unstable; urgency=low
       before the partman/active_partition template.  Closes: #232489
 
   * Translations:
-    
+
     - Bartosz Fenski
       - Updated Polish (pl) translation.
     - Bart Cornelis
@@ -5134,9 +5340,9 @@ partman (8) unstable; urgency=low
     - Swap binary-arch and binary-indep in debian/rules.  Thanks to
       Stephen R. Marenka (closes: #229236).
     - parted_server.c (command_set_flags): initialise explicitly `last' to
-      avoid unnecessary warning. 
+      avoid unnecessary warning.
     - templates: remove `chosen' from `Action on the chosen partition'.
-  
+
  -- Anton Zinoviev <zinoviev@debian.org>  Thu, 29 Jan 2004 11:52:22 +0200
 
 partman (7) unstable; urgency=low
@@ -5175,9 +5381,9 @@ partman (7) unstable; urgency=low
     - parted_server.c: remove unnecessary debugging block with log-commands
     - parted_server.c: eliminate the use of PED_PARTITION_{FIRST,LAST}_FLAG.
       Thanks to Richard Hirst (closes: #229465).
-    - definitions.sh (error_handler): fix the progress bars, the proper 
+    - definitions.sh (error_handler): fix the progress bars, the proper
       template is partman/text/please_wait, not partman/please_wait.
-  
+
  -- Anton Zinoviev <zinoviev@debian.org>  Tue, 27 Jan 2004 10:43:02 +0200
 
 partman (6) unstable; urgency=low
@@ -5253,7 +5459,7 @@ partman (3) never-released; urgency=low
     /var/lib/partman/filesystems_detected.  New scripts:
     init.d/filesystems_detected and commit.d/filesystems_changed.
   * Uses `exit 0' and `return 0' instead of just `exit' and `return'.
-  
+
  -- Anton Zinoviev <zinoviev@debian.org>  Fri, 12 Dec 2003 09:00:05 +0200
 
 partman (2) never-released; urgency=low

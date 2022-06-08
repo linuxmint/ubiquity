@@ -19,21 +19,23 @@
 # Gediminas Paulauskas <menesis@delfi.lt>, 2000-2001.
 # Alastair McKinstry <mckinstry@computer.org>, 2001,2002.
 # Kęstutis Biliūnas <kebil@kaunas.init.lt>, 2004, 2006, 2008, 2009, 2010.
-# Rimas Kudelis <rq@akl.lt>, 2012.
+# Rimas Kudelis <rq@akl.lt>, 2012, 2017, 2018.
+# Tautvydas Zukauskas <tautzuk@tutanota.com>, 2020.
 msgid ""
 msgstr ""
 "Project-Id-Version: debian-installer\n"
 "Report-Msgid-Bugs-To: apt-setup@packages.debian.org\n"
-"POT-Creation-Date: 2015-01-11 23:02+0000\n"
-"PO-Revision-Date: 2012-08-25 11:10+0300\n"
-"Last-Translator: Rimas Kudelis <rq@akl.lt>\n"
+"POT-Creation-Date: 2019-11-02 22:41+0100\n"
+"PO-Revision-Date: 2020-02-16 17:50+0000\n"
+"Last-Translator: Tautvydas Zukauskas <tautzuk@tutanota.com>\n"
 "Language-Team: Lithuanian <komp_lt@konferencijos.lt>\n"
 "Language: lt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && (n"
-"%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n % 10 == 1 && (n % 100 < 11 || n % 100 > "
+"19)) ? 0 : ((n % 10 >= 2 && n % 10 <= 9 && (n % 100 < 11 || n % 100 > 19)) ? "
+"1 : 2);\n"
 
 #. Type: text
 #. Description
@@ -81,12 +83,19 @@ msgstr "Apžvelgiama saugumo atnaujinimų repozitorija..."
 msgid "Scanning the release updates repository..."
 msgstr "Apžvelgiama laidos naujinimų saugykla..."
 
+#. Type: text
+#. Description
+#. :sl2:
+#: ../apt-setup-udeb.templates:7001
+msgid "Scanning the backports repository..."
+msgstr "Apžvelgiama atgalinio perkėlimo saugykla..."
+
 #. Type: select
 #. Choices
 #. :sl2:
 #. These are choices of actions so this is, at least in English,
 #. an infinitive form
-#: ../apt-setup-udeb.templates:7001 ../apt-mirror-setup.templates:4001
+#: ../apt-setup-udeb.templates:8001 ../apt-mirror-setup.templates:4001
 msgid "Retry"
 msgstr "Pakartoti"
 
@@ -95,13 +104,13 @@ msgstr "Pakartoti"
 #. :sl2:
 #. These are choices of actions so this is, at least in English,
 #. an infinitive form
-#: ../apt-setup-udeb.templates:7001 ../apt-mirror-setup.templates:4001
+#: ../apt-setup-udeb.templates:8001 ../apt-mirror-setup.templates:4001
 msgid "Ignore"
 msgstr "Ignoruoti"
 
 #. Type: select
 #. Description
-#: ../apt-setup-udeb.templates:7002
+#: ../apt-setup-udeb.templates:8002
 msgid "Downloading local repository key failed:"
 msgstr "Vietinės saugyklos rakto parsiųsti nepavyko:"
 
@@ -109,7 +118,8 @@ msgstr "Vietinės saugyklos rakto parsiųsti nepavyko:"
 #. Description
 #. You should end this with a colon. A non-translatable variable
 #. follows with the mirror URL
-#: ../apt-setup-udeb.templates:7002
+#. :sl2:
+#: ../apt-setup-udeb.templates:8002
 msgid ""
 "The installer failed to download the public key used to sign the local "
 "repository at ${MIRROR}:"
@@ -119,7 +129,7 @@ msgstr ""
 
 #. Type: select
 #. Description
-#: ../apt-setup-udeb.templates:7002
+#: ../apt-setup-udeb.templates:8002
 msgid ""
 "This may be a problem with your network, or with the server hosting this "
 "key. You can choose to retry the download, or ignore the problem and "
@@ -163,14 +173,7 @@ msgstr ""
 #. Translators: the *entire* string should be under 55 columns
 #. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
 #. :sl1:
-#. Type: multiselect
-#. Choices
-#. SEC_HOST, and PARTNER_HOST are host names (e.g.
-#. security.ubuntu.com)
-#. Translators: the *entire* string should be under 55 columns
-#. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
-#. :sl2:
-#: ../apt-setup-udeb.templates:11001 ../apt-setup-udeb.templates:12001
+#: ../apt-setup-udeb.templates:11001
 msgid "security updates (from ${SEC_HOST})"
 msgstr "saugumo naujinimai (iš ${SEC_HOST})"
 
@@ -185,12 +188,19 @@ msgid "release updates"
 msgstr "laidos naujinimai"
 
 #. Type: multiselect
-#. Description
+#. Choices
+#. SEC_HOST is a host name (e.g. security.debian.org)
+#. Translators: the *entire* string should be under 55 columns
+#. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
 #. :sl1:
+#: ../apt-setup-udeb.templates:11001
+msgid "backported software"
+msgstr "atgalinio perkėlimo (backported) programinė įranga"
+
 #. Type: multiselect
 #. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:11002 ../apt-setup-udeb.templates:12002
+#. :sl1:
+#: ../apt-setup-udeb.templates:11002
 msgid "Services to use:"
 msgstr "Naudoti naujinimus:"
 
@@ -206,10 +216,7 @@ msgstr "„Debian“ laidoms teikia dviejų tipų naujinimus: saugumo ir laidų.
 #. Type: multiselect
 #. Description
 #. :sl1:
-#. Type: multiselect
-#. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:11002 ../apt-setup-udeb.templates:12002
+#: ../apt-setup-udeb.templates:11002
 msgid ""
 "Security updates help to keep your system secured against attacks. Enabling "
 "this service is strongly recommended."
@@ -233,44 +240,54 @@ msgstr ""
 "pateikiami tik stabiliai ir senai stabiliai („oldstable“) laidoms."
 
 #. Type: multiselect
-#. Choices
-#. SEC_HOST, and PARTNER_HOST are host names (e.g.
-#. security.ubuntu.com)
-#. Translators: the *entire* string should be under 55 columns
-#. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
-#. :sl2:
+#. Description
+#. :sl1:
+#: ../apt-setup-udeb.templates:11002
+msgid ""
+"Backported software are adapted from the development version to work with "
+"this release. Although this software has not gone through such complete "
+"testing as that contained in the release, it includes newer versions of some "
+"applications which may provide useful features. Enabling backports here does "
+"not cause any of them to be installed by default; it only allows you to "
+"manually select backports to use."
+msgstr ""
+"Atgalinio perkėlimo (backported) programinė įranga – tai paketai iš "
+"projektuojamos šakos, kurie adaptuoti, kad veiktų su šia laida. Nors tokie "
+"paketai nėra ištestuoti taip nuodugniai, kaip esantys šioje laidoje, jie "
+"gali pateikti naujesnes programinės įrangos versijas, pasižyminčias naujomis "
+"naudingomis funkcijomis. Net ir įjungus šią parinktį čia, tokie paketai "
+"nebus diegiami automatiškai – tiesiog turėsite galimybę tai patogiai atlikti "
+"rankiniu būdu."
+
+#. Type: boolean
+#. Description
+#. :sl3:
 #: ../apt-setup-udeb.templates:12001
-#, fuzzy
-msgid "partner archive (from ${PARTNER_HOST}))"
-msgstr "saugumo atnaujinimai (iš ${SEC_HOST})"
+msgid "Enable source repositories in APT?"
+msgstr "Ar įjungti pirminių tekstų APT saugyklas?"
 
-#. Type: multiselect
+#. Type: boolean
 #. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:12002
-#, fuzzy
+#. :sl3:
+#: ../apt-setup-udeb.templates:12001
 msgid ""
-"Linux Mint has some additional services that provide updates to releases and add-"
-"on packages."
+"By default source repositories are listed in /etc/apt/sources.list (with "
+"appropriate \"deb-src\" lines) so that \"apt-get source\" works. However, if "
+"you don't need this feature, you can disable those entries and save some "
+"bandwidth during \"apt-get update\" operations."
 msgstr ""
-"Debian'as turi du servisus, tiekiančius atnaujinimus savo laidoms: saugumo "
-"ir lakiuosius."
-
-#. Type: multiselect
-#. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:12002
-msgid ""
-"The partner archive contains software provided by Canonical's partners as a "
-"service to Linux Mint users."
-msgstr ""
+"Numatytuoju atveju pirminių tekstų saugyklos išvardijamos /etc/apt/sources."
+"list faile, naudojant „deb-src“ įrašus. Tai užtikrina „apt-get source“ "
+"komandos veikimą. Tačiau jei ši galimybė jums nereikalinga, galite šiuos "
+"įrašys išjungti ir taip sumažinti „apt-get update“ metu parsiunčiamų duomenų "
+"kiekį."
 
 #. Type: text
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:1001
-msgid "Scanning the CD-ROM..."
-msgstr "Apžvelgiamas CD-ROM..."
+msgid "Scanning the installation media..."
+msgstr "Skenuojama diegimo laikmena..."
 
 #. Type: error
 #. Description
@@ -282,11 +299,15 @@ msgstr "Apt konfigūravimo problema"
 #. Type: error
 #. Description
 #. :sl2:
-#: ../apt-cdrom-setup.templates:2001
+#. Type: boolean
+#. Description
+#. :sl1:
+#: ../apt-cdrom-setup.templates:2001 ../apt-cdrom-setup.templates:6001
 msgid ""
-"An attempt to configure apt to install additional packages from the CD "
+"An attempt to configure apt to install additional packages from the media "
 "failed."
-msgstr "Bandymas sukonfigūruoti apt papildomų paketų įdiegimui iš CD nepavyko."
+msgstr ""
+"Bandymas sukonfigūruoti apt papildomų paketų įdiegimui iš laikmenos nepavyko."
 
 #. Type: boolean
 #. Description
@@ -302,30 +323,30 @@ msgstr "Bandymas sukonfigūruoti apt papildomų paketų įdiegimui iš CD nepavy
 #. :sl1:
 #: ../apt-cdrom-setup.templates:3001 ../apt-cdrom-setup.templates:4001
 #: ../apt-cdrom-setup.templates:5001 ../apt-cdrom-setup.templates:6001
-msgid "Scan another CD or DVD?"
-msgstr "Ar apžvelgti kita CD arba DVD?"
+msgid "Scan extra installation media?"
+msgstr "Skenuoti papildomą diegimo laikmeną?"
 
 #. Type: boolean
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:3001
-msgid "Your installation CD or DVD has been scanned; its label is:"
-msgstr "Jūsų įdiegimo CD arba DCD apžvelgtas: jo žymuo yra:"
+msgid "Scanning your installation media finds the label:"
+msgstr "Skenuojant jūsų diegimo laikmeną randama etiketė:"
 
 #. Type: boolean
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:3001
 msgid ""
-"You now have the option to scan additional CDs or DVDs for use by the "
-"package manager (apt). Normally these should be from the same set as the "
-"installation CD/DVD. If you do not have any additional CDs or DVDs "
-"available, this step can just be skipped."
+"You now have the option of scanning additional media for use by the package "
+"manager (apt). Normally these should be from the same set as the one you "
+"booted from. If you do not have any additional media, this step can just be "
+"skipped."
 msgstr ""
-"Dabar Jūs galite atlikti papildomų CD arba DVD diskų apžvalgą, kad paketų "
-"tvarkyklė (apt) galėtų juos naudoti. Paprastai, jie turėtų būti iš to pačio "
-"rinkinio, kaip ir įdiegimo diskas. Jei papildomų diskų neturite - "
-"praleiskite šį žingsnį."
+"Dabar Jūs galite atlikti papildomų laikmneų apžvalgą, kad paketų tvarkyklė "
+"(apt) galėtų juos naudoti. Paprastai, jie turėtų būti iš to pačio rinkinio, "
+"kaip ir įdiegimo laikmena. Jei papildomų laikmenų neturite, praleiskite šį "
+"žingsnį."
 
 #. Type: boolean
 #. Description
@@ -334,68 +355,50 @@ msgstr ""
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:3001 ../apt-cdrom-setup.templates:4001
-msgid "If you wish to scan another CD or DVD, please insert it now."
-msgstr "Jei Jūs pageidaujate apžvelgti kitą CD arba DVD, įdėkite jį dabar."
+msgid "If you wish to scan more media, please insert another one now."
+msgstr "Jei Jūs pageidaujate apžvelgti kitą laikmeną, įdėkite ją dabar."
 
 #. Type: boolean
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:4001
-msgid "The CD or DVD with the following label has been scanned:"
-msgstr "Apžvelgtas CD arba DVD, kurio žymuo yra:"
+msgid "The image with the following label has been scanned:"
+msgstr "Apžvelgta laikmena, kurio žymuo yra:"
 
 #. Type: boolean
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:5001
-msgid "The CD or DVD with the following label has already been scanned:"
-msgstr "Taip pat apžvelgtas CD arba DVD, kurio žymuo yra:"
+msgid "The image with the following label has already been scanned:"
+msgstr "Taip pat apžvelgta laikmena, kurios žymuo yra:"
 
 #. Type: boolean
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:5001
-msgid "Please replace it now if you wish to scan another CD or DVD."
-msgstr "Pakeiskite diską dabar, jei norite apžvelgti kitą CD arba DVD."
+msgid "Please replace it now, if you wish to scan another."
+msgstr "Pakeiskite ją dabar, jei norite apžvelgti kitą laikmeną."
 
 #. Type: boolean
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:6001
-msgid ""
-"An attempt to configure apt to install additional packages from the CD/DVD "
-"failed."
-msgstr ""
-"Bandymas sukonfigūruoti apt papildomų paketų įdiegimui iš CD/DVD nepavyko."
-
-#. Type: boolean
-#. Description
-#. :sl1:
-#: ../apt-cdrom-setup.templates:6001
-msgid "Please check that the CD/DVD has been inserted correctly."
-msgstr "Patikrinkite ar CD/DVD įdėtas teisingai."
+msgid "Please check that the media has been inserted correctly."
+msgstr "Patikrinkite ar laikmena įdėta teisingai."
 
 #. Type: text
 #. Description
 #. :sl1:
-#. This template uses the same text as used in the package apt for apt-cdrom
-#. Do not translate "/cdrom/" (the mount point)
 #: ../apt-cdrom-setup.templates:7001
 msgid "Media change"
-msgstr "Nėra atidėtų išsaugojimui pakeitimų."
+msgstr "Laikmenos keitimas"
 
 #. Type: text
 #. Description
 #. :sl1:
-#. This template uses the same text as used in the package apt for apt-cdrom
-#. Do not translate "/cdrom/" (the mount point)
 #: ../apt-cdrom-setup.templates:7001
-msgid ""
-"/cdrom/:Please insert the disc labeled: '${LABEL}' in the drive '/cdrom/' "
-"and press enter."
-msgstr ""
-"/cdrom/:Įdėkite diską su žyme '${LABEL}' į įrenginį '/cdrom/' ir paspauskite "
-"'enter'."
+msgid "Please insert the media labeled '${LABEL}' and press enter."
+msgstr "Įdėkite laikmeną su žyme „${LABEL}“ ir nuspauskite klavišą enter."
 
 #. Type: text
 #. Description
@@ -413,31 +416,33 @@ msgstr "Pašalinamas „netinst CD“ iš sources.list..."
 #. :sl2:
 #: ../apt-cdrom-setup.templates:9001 ../apt-mirror-setup.templates:6001
 msgid ""
-"If you are installing from a netinst CD and choose not to use a mirror, you "
-"will end up with only a very minimal base system."
+"If you are installing from a netinst CD image and choose not to use a "
+"mirror, you will end up with only a very minimal base system."
 msgstr ""
-"Jei diegiate iš „netinst CD“ ir pasirinksite nenaudoti „veidrodžio“, tuomet "
-"įdiegsite tik labai minimalią bazinę sistemą."
+"Jei diegiate iš „netinst“ atvaizdo ir pasirinksite nenaudoti paketų archyvo "
+"serverio, bus įdiegta tik labai minimali bazinė sistema."
 
 #. Type: text
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:10001
 msgid ""
-"You are installing from a netinst CD, which by itself only allows "
+"You are installing from a netinst CD image, which by itself only allows "
 "installation of a very minimal base system. Use a mirror to install a more "
 "complete system."
 msgstr ""
-"Jūs diegiate iš „netinst CD“, kuris leis turėti tik labai minimalią bazinę "
-"sistemą. Naudokite archyvo „veidrodžius“ pilnesnės sistemos įdiegimui."
+"Jūs diegiate iš „netinst“ atvaizdo, kuris leis turėti tik labai minimalią "
+"bazinę sistemą. Pilnesnės sistemos įdiegimui naudokite paketų archyvo "
+"serverį."
 
 #. Type: text
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:11001
 msgid ""
-"You are installing from a CD, which contains a limited selection of packages."
-msgstr "Jūs diegiate iš CD, kuris turi ribotą paketų pasirinkimą."
+"You are installing from an image which contains a limited selection of "
+"packages."
+msgstr "Jūs diegiate iš atvaizdo, kuris turi ribotą paketų pasirinkimą."
 
 #. Type: text
 #. Description
@@ -446,13 +451,13 @@ msgstr "Jūs diegiate iš CD, kuris turi ribotą paketų pasirinkimą."
 #: ../apt-cdrom-setup.templates:12001
 #, no-c-format
 msgid ""
-"You have scanned %i CDs. Even though these contain a fair selection of "
+"You have scanned %i images. Even though these contain a fair selection of "
 "packages, some may be missing (notably some packages needed to support "
 "languages other than English)."
 msgstr ""
-"Jūs atlikote %i CD apžvalgą. Nors tai sudaro nemažą kiekį paketų, vis dėlto "
-"kai kurių paketų gali pritrūkti (ypač paketų, reikalingų kitų kalbų nei "
-"anglų, palaikymui)."
+"Jūs atlikote %i atvaizdo apžvalgą. Nors tai sudaro nemažą kiekį paketų, vis "
+"dėlto kai kurių paketų gali pritrūkti (ypač paketų, reikalingų kitų kalbų "
+"nei anglų, palaikymui)."
 
 #. Type: text
 #. Description
@@ -461,11 +466,11 @@ msgstr ""
 #: ../apt-cdrom-setup.templates:13001
 #, no-c-format
 msgid ""
-"You have scanned %i CDs. Even though these contain a large selection of "
+"You have scanned %i images. Even though these contain a large selection of "
 "packages, some may be missing."
 msgstr ""
-"Jūs atlikote %i CD apžvalgą. Nors tai sudaro nemažą kiekį paketų, vis dėlto "
-"kai kurių paketų gali pritrūkti"
+"Jūs atlikote %i atvaizdo apžvalgą. Nors tai sudaro nemažą kiekį paketų, vis "
+"dėlto kai kurių paketų gali pritrūkti."
 
 #. Type: text
 #. Description
@@ -475,7 +480,7 @@ msgid ""
 "Note that using a mirror can result in a large amount of data being "
 "downloaded during the next step of the installation."
 msgstr ""
-"Turėkite omenyje, kad naudojant archyvo „veidrodį“, sekančiame įdiegimo "
+"Turėkite omenyje, kad naudojant paketų archyvo serverį, kitame įdiegimo "
 "etape gali tekti parsisiųsti didelį duomenų kiekį."
 
 #. Type: text
@@ -483,11 +488,11 @@ msgstr ""
 #. :sl1:
 #: ../apt-cdrom-setup.templates:15001
 msgid ""
-"You are installing from a DVD. Even though the DVD contains a large "
+"You are installing from a DVD image. Even though it contains a large "
 "selection of packages, some may be missing."
 msgstr ""
-"Jūs diegiate iš DVD disko. Nors DVD talpina didelį kiekį paketų, vis dėlto "
-"kai kurių paketų gali pritrūkti"
+"Jūs diegiate iš DVD atvaizdo. Nors jis talpina didelį kiekį paketų, vis "
+"dėlto kai kurių paketų gali pritrūkti."
 
 #. Type: text
 #. Description
@@ -498,7 +503,7 @@ msgid ""
 "recommended, especially if you plan to install a graphical desktop "
 "environment."
 msgstr ""
-"Visuomet rekomenduotina naudoti archyvo „veidrodį“, ypač jei planuojate "
+"Visuomet rekomenduotina naudoti paketų archyvo serverį, ypač jei planuojate "
 "diegti grafinę darbastalio aplinką, nebent neturite gero internetinio ryšio."
 
 #. Type: text
@@ -509,15 +514,15 @@ msgid ""
 "If you have a reasonably good Internet connection, use of a mirror is "
 "suggested if you plan to install a graphical desktop environment."
 msgstr ""
-"Jei turite pakankamai gerą internetinį ryšį, patariama naudoti archyvo "
-"„veidrodį“, ypač jei planuojate diegti grafinę darbastalio aplinką."
+"Jei turite pakankamai gerą internetinį ryšį, patariama naudoti paketų "
+"archyvo serverį, ypač jei planuojate diegti grafinę darbastalio aplinką."
 
 #. Type: text
 #. Description
 #. :sl1:
 #: ../apt-mirror-setup.templates:1001
 msgid "Scanning the mirror..."
-msgstr "Apžvelgiamas archyvo \"veidrodis\"..."
+msgstr "Apžvelgiamas paketų archyvo serveris..."
 
 #. Type: boolean
 #. Description
@@ -536,29 +541,30 @@ msgid ""
 "to install it. This software has varying licenses which may prevent you from "
 "using, modifying, or sharing it."
 msgstr ""
-"Kai kuri ne laisva programinė įranga yra paruošta dirbti Debian'e. Nors ši "
-"programinė įranga nėra Debian'o dalis, standartiniai Debian'o įrankiai gali "
-"būti naudojami jos įdiegimui. Ši programinė įranga turi įvairias licencijas, "
-"kurios riboja Jus ją naudojant, keičiant ar dalinantis su kitais."
+"Kai kuri ne laisva programinė įranga yra parengta dirbti „Debian“ sistemose. "
+"Nors ši programinė įranga nėra „Debian“ dalis, jos įdiegimui gali būti "
+"naudojamos standartinės „Debian“ priemonės. Ši programinė įranga platinama "
+"pagal įvairias licencijas, kurios riboja Jus ją naudojant, keičiant ar "
+"dalinantis su kitais."
 
 #. Type: boolean
 #. Description
 #. :sl1:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
-#: ../apt-mirror-setup.templates:2001
-#: ../apt-mirror-setup.templates-ubuntu:1001
+#: ../apt-mirror-setup.templates:2001 ../apt-mirror-setup.templates-ubuntu:1001
 msgid "Please choose whether you want to have it available anyway."
-msgstr "Prašau nuspręskite ar vis tik norite ją turėti."
+msgstr ""
+"Pasirinkite, ar vis tik norite, kad ši programinė įranga būtų Jums prieinama."
 
 #. Type: boolean
 #. Description
 #. :sl1:
 #: ../apt-mirror-setup.templates:3001
 msgid "Use contrib software?"
-msgstr "Ar naudoti \"contrib\" programinę įrangą?"
+msgstr "Ar naudoti „contrib“ programinę įrangą?"
 
 #. Type: boolean
 #. Description
@@ -570,40 +576,38 @@ msgid ""
 "software is not a part of Debian, but standard Debian tools can be used to "
 "install it."
 msgstr ""
-"Kai kuri papildoma programinė įranga yra paruošta dirbti Debian'e. Nors ši "
-"programinė įranga yra laisva, jos veikimas priklauso nuo nelaisvos "
-"programinės įrangos. Ši programinė įranga nėra Debian'o dalis, bet "
-"standartiniai Debian'o įrankiai gali būti naudojami jos įdiegimui."
+"Kai kuri papildoma programinė įranga yra parengta dirbti „Debian“ sistemose. "
+"Nors ši programinė įranga yra laisva, jos veikimas priklauso nuo nelaisvos "
+"programinės įrangos. Ši programinė įranga nėra „Debian“ dalis, tačiau jos "
+"įdiegimui gali būti naudojamos standartinįs „Debian“ priemonės."
 
 #. Type: boolean
 #. Description
 #. :sl1:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
-#: ../apt-mirror-setup.templates:3001
-#: ../apt-mirror-setup.templates-ubuntu:2001
+#: ../apt-mirror-setup.templates:3001 ../apt-mirror-setup.templates-ubuntu:2001
 #: ../apt-mirror-setup.templates-ubuntu:3001
 #: ../apt-mirror-setup.templates-ubuntu:4001
 #: ../apt-mirror-setup.templates-ubuntu:5001
 msgid ""
 "Please choose whether you want this software to be made available to you."
 msgstr ""
-"Prašau nuspręskite, ar vis tik norite, kad ši programinė įranga būtų Jums "
-"prieinama."
+"Pasirinkite, ar vis tik norite, kad ši programinė įranga būtų Jums prieinama."
 
 #. Type: select
 #. Choices
@@ -612,16 +616,18 @@ msgstr ""
 #. an infinitive form
 #: ../apt-mirror-setup.templates:4001
 msgid "Change mirror"
-msgstr "Pakeisti archyvo \"veidrodį\""
+msgstr "Keisti archyvo serverį"
 
 #. Type: select
 #. Description
+#. :sl2:
 #: ../apt-mirror-setup.templates:4002
 msgid "Downloading a file failed:"
 msgstr "Veiksmas įvykus failo atsisiuntimo klaidai:"
 
 #. Type: select
 #. Description
+#. :sl2:
 #: ../apt-mirror-setup.templates:4002
 msgid ""
 "The installer failed to access the mirror. This may be a problem with your "
@@ -639,7 +645,7 @@ msgstr ""
 #. :sl1:
 #: ../apt-mirror-setup.templates:5001
 msgid "Use a network mirror?"
-msgstr "Ar naudoti archyvo „veidrodį“ iš tinklo?"
+msgstr "Ar naudoti paketų archyvo serverį iš tinklo?"
 
 #. Type: boolean
 #. Description
@@ -647,29 +653,30 @@ msgstr "Ar naudoti archyvo „veidrodį“ iš tinklo?"
 #: ../apt-mirror-setup.templates:5001
 msgid ""
 "A network mirror can be used to supplement the software that is included on "
-"the CD-ROM. This may also make newer versions of software available."
+"the installation media. This may also make newer versions of software "
+"available."
 msgstr ""
-"Archyvo „veidrodis“ iš tinklo gali būti naudojamas kaip programinės įrangos "
-"papildymas prie jau pajungto CD-ROM'o. Taip pat jame gali būti naujesnė "
-"programinė įranga."
+"Paketų archyvo serveris iš tinklo gali būti naudojamas kaip programinės "
+"įrangos, pateikiamos įdiegimo laikmenoje, papildymas. Taip pat jame gali "
+"būti naujesnė programinė įranga."
 
 #. Type: boolean
 #. Description
 #. :sl2:
 #: ../apt-mirror-setup.templates:6001
 msgid "Continue without a network mirror?"
-msgstr "Ar tęsti be archyvo „veidrodžio“ tinkle?"
+msgstr "Ar tęsti be paketų archyvo serverio tinkle?"
 
 #. Type: boolean
 #. Description
 #. :sl2:
 #: ../apt-mirror-setup.templates:6001
 msgid "No network mirror was selected."
-msgstr "Nepasirinktas archyvo „veidrodis“ tinkle."
+msgstr "Nepasirinktas paketų archyvo serveris tinkle."
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:1001
 msgid "Use restricted software?"
@@ -677,7 +684,7 @@ msgstr "Ar naudoti apribotą (restricted) programinę įrangą?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:1001
 msgid ""
@@ -694,7 +701,7 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:2001
 msgid "Use software from the \"universe\" component?"
@@ -702,7 +709,7 @@ msgstr "Ar naudoti programinę įrangą iš \"universe\" šakos?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:2001
 msgid ""
@@ -717,7 +724,7 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:3001
 msgid "Use software from the \"multiverse\" component?"
@@ -725,7 +732,7 @@ msgstr "Ar naudoti programinę įrangą iš \"multiverse\" šakos?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:3001
 msgid ""
@@ -743,7 +750,7 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:4001
 msgid "Use software from the \"partner\" repository?"
@@ -751,21 +758,21 @@ msgstr "Ar naudoti programinę įrangą iš \"partner\" šakos?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:4001
 msgid ""
 "Some additional software is available from Canonical's \"partner\" "
-"repository. This software is not part of Linux Mint, but is offered by Canonical "
-"and the respective vendors as a service to Linux Mint users."
+"repository. This software is not part of Ubuntu, but is offered by Canonical "
+"and the respective vendors as a service to Ubuntu users."
 msgstr ""
 "Kai kurios papildomos programinės įrangos galima rasti Canonical \"partneris"
-"\" saugykloje. Ši programinė įranga nėra Linux Mint dalis, tačiau kompanija "
-"Canonical ir atitinkami tiekėjai siūlo tai kaip paslaugą Linux Mint naudotojams."
+"\" saugykloje. Ši programinė įranga nėra Ubuntu dalis, tačiau kompanija "
+"Canonical ir atitinkami tiekėjai siūlo tai kaip paslaugą Ubuntu naudotojams."
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:5001
 msgid "Use backported software?"
@@ -773,7 +780,7 @@ msgstr "Ar naudoti palaikomojo pernešimo (backported) programinę įrangą?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:5001
 msgid ""
@@ -786,32 +793,3 @@ msgstr ""
 "laidą. Nors ji nėra praėjusi pilno testavimo ciklo, kaip kitos programos "
 "šioje laidoje, tačiau turi naujesnes versijas ir gali turėti naudingų "
 "savybių."
-
-#, fuzzy
-#~| msgid "Scanning the release updates repository..."
-#~ msgid "Scanning the backports repository..."
-#~ msgstr "Apžvelgiama laidos naujinimų saugykla..."
-
-#, fuzzy
-#~| msgid "Use backported software?"
-#~ msgid "backported software"
-#~ msgstr "Ar naudoti palaikomojo pernešimo (backported) programinę įrangą?"
-
-#, fuzzy
-#~| msgid ""
-#~| "Some software has been backported from the development tree to work with "
-#~| "this release. Although this software has not gone through such complete "
-#~| "testing as that contained in the release, it includes newer versions of "
-#~| "some applications which may provide useful features."
-#~ msgid ""
-#~ "Backported software are adapted from the development version to work with "
-#~ "this release. Although this software has not gone through such complete "
-#~ "testing as that contained in the release, it includes newer versions of "
-#~ "some applications which may provide useful features. Enabling backports "
-#~ "here does not cause any of them to be installed by default; it only "
-#~ "allows you to manually select backports to use."
-#~ msgstr ""
-#~ "Tam tikra programinė įranga buvo pernešta iš projektuojamos šakos į šią "
-#~ "laidą. Nors ji nėra praėjusi pilno testavimo ciklo, kaip kitos programos "
-#~ "šioje laidoje, tačiau turi naujesnes versijas ir gali turėti naudingų "
-#~ "savybių."

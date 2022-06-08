@@ -11,12 +11,12 @@ START_TEST(test_netcfg_gateway_reachable_v4_24)
 	iface.masklen = 24;
 	iface.address_family = AF_INET;
 	
-	fail_unless (netcfg_gateway_reachable(&iface),
+	ck_assert_msg (netcfg_gateway_reachable(&iface),
 	             "Gateway erroneously unreachable");
 
 	strcpy(iface.gateway, "192.168.2.254");
 	
-	fail_if (netcfg_gateway_reachable(&iface),
+	ck_assert_msg (!netcfg_gateway_reachable(&iface),
 	         "Gateway erroneously reachable");
 }
 END_TEST
@@ -31,12 +31,12 @@ START_TEST(test_netcfg_gateway_reachable_v4_22)
 	iface.masklen = 22;
 	iface.address_family = AF_INET;
 	
-	fail_unless (netcfg_gateway_reachable(&iface),
+	ck_assert_msg (netcfg_gateway_reachable(&iface),
 	             "Gateway erroneously unreachable");
 
 	strcpy(iface.gateway, "192.168.4.254");
 	
-	fail_if (netcfg_gateway_reachable(&iface),
+	ck_assert_msg (!netcfg_gateway_reachable(&iface),
 	         "Gateway erroneously reachable");
 }
 END_TEST
@@ -51,12 +51,12 @@ START_TEST(test_netcfg_gateway_reachable_v6_64)
 	iface.masklen = 64;
 	iface.address_family = AF_INET6;
 	
-	fail_unless (netcfg_gateway_reachable(&iface),
+	ck_assert_msg (netcfg_gateway_reachable(&iface),
 	             "Gateway erroneously unreachable");
 
 	strcpy(iface.gateway, "2001:3:5::1");
 	
-	fail_if (netcfg_gateway_reachable(&iface),
+	ck_assert_msg (!netcfg_gateway_reachable(&iface),
 	         "Gateway erroneously reachable");
 }
 END_TEST
@@ -71,12 +71,12 @@ START_TEST(test_netcfg_gateway_reachable_v6_48)
 	iface.masklen = 48;
 	iface.address_family = AF_INET6;
 	
-	fail_unless (netcfg_gateway_reachable(&iface),
+	ck_assert_msg (netcfg_gateway_reachable(&iface),
 	             "Gateway erroneously unreachable");
 
 	strcpy(iface.gateway, "2001:3:6::1");
 	
-	fail_if (netcfg_gateway_reachable(&iface),
+	ck_assert_msg (!netcfg_gateway_reachable(&iface),
 	         "Gateway erroneously reachable");
 }
 END_TEST

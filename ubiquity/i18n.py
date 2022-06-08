@@ -17,8 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-from __future__ import print_function
-
 import codecs
 from functools import reduce
 import locale
@@ -102,7 +100,6 @@ def get_translations(languages=None, core_names=[], extra_prefixes=[]):
             'partman-target/no_root',
             'partman-target/text/method',
             'grub-installer/bootdev',
-            'popularity-contest/participate',
         ))
         prefixes = reduce(lambda x, y: x + '|' + y, extra_prefixes, prefixes)
 

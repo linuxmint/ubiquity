@@ -7,7 +7,7 @@
 # This file is distributed under the same license as debian-installer.
 #
 # Felipe Augusto van de Wiel (faw) <faw@debian.org>, 2008-2012.
-# Adriano Rafael Gomes <adrianorg@arg.eti.br>, 2010-2015.
+# Adriano Rafael Gomes <adrianorg@debian.org>, 2010-2020.
 #
 # Translations from iso-codes:
 #   Alastair McKinstry <mckinstry@computer.org>, 2001-2002.
@@ -22,9 +22,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: debian-installer\n"
 "Report-Msgid-Bugs-To: apt-setup@packages.debian.org\n"
-"POT-Creation-Date: 2015-01-11 23:02+0000\n"
-"PO-Revision-Date: 2015-06-22 23:15-0300\n"
-"Last-Translator: Adriano Rafael Gomes <adrianorg@arg.eti.br>\n"
+"POT-Creation-Date: 2019-11-02 22:41+0100\n"
+"PO-Revision-Date: 2020-04-12 20:04-0300\n"
+"Last-Translator: Adriano Rafael Gomes <adrianorg@debian.org>\n"
 "Language-Team: Brazilian Portuguese <debian-l10n-portuguese@lists.debian."
 "org>\n"
 "Language: pt_BR\n"
@@ -78,12 +78,19 @@ msgstr "Lendo o repositório de atualizações de segurança..."
 msgid "Scanning the release updates repository..."
 msgstr "Lendo o repositório de atualizações da distribuição..."
 
+#. Type: text
+#. Description
+#. :sl2:
+#: ../apt-setup-udeb.templates:7001
+msgid "Scanning the backports repository..."
+msgstr "Lendo o repositório de portes de novas versões (\"backports\")..."
+
 #. Type: select
 #. Choices
 #. :sl2:
 #. These are choices of actions so this is, at least in English,
 #. an infinitive form
-#: ../apt-setup-udeb.templates:7001 ../apt-mirror-setup.templates:4001
+#: ../apt-setup-udeb.templates:8001 ../apt-mirror-setup.templates:4001
 msgid "Retry"
 msgstr "Tentar novamente"
 
@@ -92,13 +99,13 @@ msgstr "Tentar novamente"
 #. :sl2:
 #. These are choices of actions so this is, at least in English,
 #. an infinitive form
-#: ../apt-setup-udeb.templates:7001 ../apt-mirror-setup.templates:4001
+#: ../apt-setup-udeb.templates:8001 ../apt-mirror-setup.templates:4001
 msgid "Ignore"
 msgstr "Ignorar"
 
 #. Type: select
 #. Description
-#: ../apt-setup-udeb.templates:7002
+#: ../apt-setup-udeb.templates:8002
 msgid "Downloading local repository key failed:"
 msgstr "Falha enquanto baixava a chave do repositório local:"
 
@@ -106,7 +113,8 @@ msgstr "Falha enquanto baixava a chave do repositório local:"
 #. Description
 #. You should end this with a colon. A non-translatable variable
 #. follows with the mirror URL
-#: ../apt-setup-udeb.templates:7002
+#. :sl2:
+#: ../apt-setup-udeb.templates:8002
 msgid ""
 "The installer failed to download the public key used to sign the local "
 "repository at ${MIRROR}:"
@@ -116,7 +124,7 @@ msgstr ""
 
 #. Type: select
 #. Description
-#: ../apt-setup-udeb.templates:7002
+#: ../apt-setup-udeb.templates:8002
 msgid ""
 "This may be a problem with your network, or with the server hosting this "
 "key. You can choose to retry the download, or ignore the problem and "
@@ -162,14 +170,7 @@ msgstr ""
 #. Translators: the *entire* string should be under 55 columns
 #. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
 #. :sl1:
-#. Type: multiselect
-#. Choices
-#. SEC_HOST, and PARTNER_HOST are host names (e.g.
-#. security.ubuntu.com)
-#. Translators: the *entire* string should be under 55 columns
-#. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
-#. :sl2:
-#: ../apt-setup-udeb.templates:11001 ../apt-setup-udeb.templates:12001
+#: ../apt-setup-udeb.templates:11001
 msgid "security updates (from ${SEC_HOST})"
 msgstr "atualizações de segurança (de ${SEC_HOST})"
 
@@ -184,12 +185,19 @@ msgid "release updates"
 msgstr "atualizações da distribuição"
 
 #. Type: multiselect
-#. Description
+#. Choices
+#. SEC_HOST is a host name (e.g. security.debian.org)
+#. Translators: the *entire* string should be under 55 columns
+#. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
 #. :sl1:
+#: ../apt-setup-udeb.templates:11001
+msgid "backported software"
+msgstr "software portado de versões mais novas"
+
 #. Type: multiselect
 #. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:11002 ../apt-setup-udeb.templates:12002
+#. :sl1:
+#: ../apt-setup-udeb.templates:11002
 msgid "Services to use:"
 msgstr "Serviços a serem usados:"
 
@@ -208,10 +216,7 @@ msgstr ""
 #. Type: multiselect
 #. Description
 #. :sl1:
-#. Type: multiselect
-#. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:11002 ../apt-setup-udeb.templates:12002
+#: ../apt-setup-udeb.templates:11002
 msgid ""
 "Security updates help to keep your system secured against attacks. Enabling "
 "this service is strongly recommended."
@@ -236,44 +241,55 @@ msgstr ""
 "\") e estável-antiga (\"oldstable\")."
 
 #. Type: multiselect
-#. Choices
-#. SEC_HOST, and PARTNER_HOST are host names (e.g.
-#. security.ubuntu.com)
-#. Translators: the *entire* string should be under 55 columns
-#. including host name. In short, KEEP THIS SHORT and, yes, that's tricky
-#. :sl2:
+#. Description
+#. :sl1:
+#: ../apt-setup-udeb.templates:11002
+msgid ""
+"Backported software are adapted from the development version to work with "
+"this release. Although this software has not gone through such complete "
+"testing as that contained in the release, it includes newer versions of some "
+"applications which may provide useful features. Enabling backports here does "
+"not cause any of them to be installed by default; it only allows you to "
+"manually select backports to use."
+msgstr ""
+"Softwares portados de versões mais novas são adaptados a partir da versão em "
+"desenvolvimento do Debian para funcionar com esta versão. Apesar desses "
+"softwares não terem passado por testes completos como os softwares presentes "
+"na versão estável, os mesmos incluem versões mais novas de algumas "
+"aplicações que podem fornecer recursos úteis. Habilitar softwares portados "
+"de versões mais novas aqui não faz nenhum deles ser instalado por padrão, "
+"apenas permite que você selecione manualmente softwares portados de versões "
+"mais novas para usar."
+
+#. Type: boolean
+#. Description
+#. :sl3:
 #: ../apt-setup-udeb.templates:12001
-#, fuzzy
-msgid "partner archive (from ${PARTNER_HOST}))"
-msgstr "atualizações de segurança (de ${SEC_HOST})"
+msgid "Enable source repositories in APT?"
+msgstr "Habilitar repositórios fonte no APT?"
 
-#. Type: multiselect
+#. Type: boolean
 #. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:12002
-#, fuzzy
+#. :sl3:
+#: ../apt-setup-udeb.templates:12001
 msgid ""
-"Linux Mint has some additional services that provide updates to releases and add-"
-"on packages."
+"By default source repositories are listed in /etc/apt/sources.list (with "
+"appropriate \"deb-src\" lines) so that \"apt-get source\" works. However, if "
+"you don't need this feature, you can disable those entries and save some "
+"bandwidth during \"apt-get update\" operations."
 msgstr ""
-"O Debian possui dois serviços que fornecem atualizações para os lançamentos: "
-"segurança (\"security\") e voláteis (\"volatile\")."
-
-#. Type: multiselect
-#. Description
-#. :sl2:
-#: ../apt-setup-udeb.templates:12002
-msgid ""
-"The partner archive contains software provided by Canonical's partners as a "
-"service to Linux Mint users."
-msgstr ""
+"Por padrão, repositórios fonte são listados em /etc/apt/sources.list (com "
+"linhas \"deb-src\" apropriadas) de modo que \"apt-get source\" funcione. "
+"Entretanto, se você não precisa dessa funcionalidade, você pode desabilitar "
+"essas entradas e economizar alguma largura de banda durante operações de "
+"\"apt-get update\"."
 
 #. Type: text
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:1001
-msgid "Scanning the CD-ROM..."
-msgstr "Lendo o CD-ROM..."
+msgid "Scanning the installation media..."
+msgstr "Lendo a mídia de instalação..."
 
 #. Type: error
 #. Description
@@ -285,13 +301,16 @@ msgstr "Problema de configuração do apt"
 #. Type: error
 #. Description
 #. :sl2:
-#: ../apt-cdrom-setup.templates:2001
+#. Type: boolean
+#. Description
+#. :sl1:
+#: ../apt-cdrom-setup.templates:2001 ../apt-cdrom-setup.templates:6001
 msgid ""
-"An attempt to configure apt to install additional packages from the CD "
+"An attempt to configure apt to install additional packages from the media "
 "failed."
 msgstr ""
 "Uma tentativa de configurar o apt para instalar pacotes adicionais a partir "
-"do CD falhou."
+"da mídia falhou."
 
 #. Type: boolean
 #. Description
@@ -307,30 +326,31 @@ msgstr ""
 #. :sl1:
 #: ../apt-cdrom-setup.templates:3001 ../apt-cdrom-setup.templates:4001
 #: ../apt-cdrom-setup.templates:5001 ../apt-cdrom-setup.templates:6001
-msgid "Scan another CD or DVD?"
-msgstr "Ler outro CD ou DVD?"
+msgid "Scan extra installation media?"
+msgstr "Ler mídia de instalação adicional?"
 
 #. Type: boolean
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:3001
-msgid "Your installation CD or DVD has been scanned; its label is:"
-msgstr "Seu CD ou DVD de instalação foi lido; sua identificação é:"
+msgid "Scanning your installation media finds the label:"
+msgstr ""
+"A seguinte identificação foi encontrada ao ler sua mídia de instalação:"
 
 #. Type: boolean
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:3001
 msgid ""
-"You now have the option to scan additional CDs or DVDs for use by the "
-"package manager (apt). Normally these should be from the same set as the "
-"installation CD/DVD. If you do not have any additional CDs or DVDs "
-"available, this step can just be skipped."
+"You now have the option of scanning additional media for use by the package "
+"manager (apt). Normally these should be from the same set as the one you "
+"booted from. If you do not have any additional media, this step can just be "
+"skipped."
 msgstr ""
-"Agora, você tem a opção de ler CDs ou DVDs adicionais para serem usados pelo "
-"gerenciador de pacotes (apt). Normalmente, eles deveriam ser do mesmo "
-"conjunto do CD/DVD de instalação. Se você não possui CDs ou DVDs adicionais, "
-"este passo pode ser ignorado."
+"Agora, você tem a opção de ler mídias adicionais para serem usadas pelo "
+"gerenciador de pacotes (apt). Normalmente, elas deveriam ser do mesmo "
+"conjunto que foi usado para inicializar o computador. Se você não possui "
+"mídias adicionais, este passo pode ser ignorado."
 
 #. Type: boolean
 #. Description
@@ -339,53 +359,40 @@ msgstr ""
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:3001 ../apt-cdrom-setup.templates:4001
-msgid "If you wish to scan another CD or DVD, please insert it now."
-msgstr "Se você deseja ler outro CD ou DVD, por favor, insira-o agora."
+msgid "If you wish to scan more media, please insert another one now."
+msgstr "Se você deseja ler mais mídias, por favor, insira outra agora."
 
 #. Type: boolean
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:4001
-msgid "The CD or DVD with the following label has been scanned:"
-msgstr "O CD ou DVD com a seguinte identificação foi lido:"
+msgid "The image with the following label has been scanned:"
+msgstr "A imagem com a seguinte identificação foi lida:"
 
 #. Type: boolean
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:5001
-msgid "The CD or DVD with the following label has already been scanned:"
-msgstr "O CD ou DVD com a seguinte identificação já foi lido:"
+msgid "The image with the following label has already been scanned:"
+msgstr "A imagem com a seguinte identificação já foi lida:"
 
 #. Type: boolean
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:5001
-msgid "Please replace it now if you wish to scan another CD or DVD."
-msgstr "Por favor, substitua-o agora se você deseja ler outro CD ou DVD."
+msgid "Please replace it now, if you wish to scan another."
+msgstr "Por favor, substitua-a agora se você deseja ler outra mídia."
 
 #. Type: boolean
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:6001
-msgid ""
-"An attempt to configure apt to install additional packages from the CD/DVD "
-"failed."
-msgstr ""
-"Uma tentativa de configurar o apt para instalar pacotes adicionais a partir "
-"do CD/DVD falhou."
-
-#. Type: boolean
-#. Description
-#. :sl1:
-#: ../apt-cdrom-setup.templates:6001
-msgid "Please check that the CD/DVD has been inserted correctly."
-msgstr "Por favor, verifique se o CD/DVD foi inserido corretamente."
+msgid "Please check that the media has been inserted correctly."
+msgstr "Por favor, verifique se a mídia foi inserida corretamente."
 
 #. Type: text
 #. Description
 #. :sl1:
-#. This template uses the same text as used in the package apt for apt-cdrom
-#. Do not translate "/cdrom/" (the mount point)
 #: ../apt-cdrom-setup.templates:7001
 msgid "Media change"
 msgstr "Mudança de mídia"
@@ -393,15 +400,10 @@ msgstr "Mudança de mídia"
 #. Type: text
 #. Description
 #. :sl1:
-#. This template uses the same text as used in the package apt for apt-cdrom
-#. Do not translate "/cdrom/" (the mount point)
 #: ../apt-cdrom-setup.templates:7001
-msgid ""
-"/cdrom/:Please insert the disc labeled: '${LABEL}' in the drive '/cdrom/' "
-"and press enter."
+msgid "Please insert the media labeled '${LABEL}' and press enter."
 msgstr ""
-"/cdrom/:Por favor, insira o disco identificado como '${LABEL}' na unidade '/"
-"cdrom/' e pressione enter."
+"Por favor, insira a mídia identificada como '${LABEL}' e pressione enter."
 
 #. Type: text
 #. Description
@@ -419,34 +421,36 @@ msgstr "Desabilitando o CD do tipo 'netinst' no arquivo sources.list..."
 #. :sl2:
 #: ../apt-cdrom-setup.templates:9001 ../apt-mirror-setup.templates:6001
 msgid ""
-"If you are installing from a netinst CD and choose not to use a mirror, you "
-"will end up with only a very minimal base system."
+"If you are installing from a netinst CD image and choose not to use a "
+"mirror, you will end up with only a very minimal base system."
 msgstr ""
-"Se você está instalando a partir de um CD do tipo 'netinst' e optar por não "
-"usar um espelho de rede, você terminará com um sistema básico mínimo."
+"Se você está instalando a partir de uma imagem de CD do tipo 'netinst' e "
+"optar por não usar um espelho de rede, você terminará com um sistema básico "
+"mínimo."
 
 #. Type: text
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:10001
 msgid ""
-"You are installing from a netinst CD, which by itself only allows "
+"You are installing from a netinst CD image, which by itself only allows "
 "installation of a very minimal base system. Use a mirror to install a more "
 "complete system."
 msgstr ""
-"Você está instalando a partir de um CD do tipo 'netinst', que por si só "
-"permite apenas a instalação de um sistema básico mínimo. Use um espelho de "
-"rede para instalar um sistema mais completo."
+"Você está instalando a partir de uma imagem de CD do tipo 'netinst', que por "
+"si só permite apenas a instalação de um sistema básico mínimo. Use um "
+"espelho de rede para instalar um sistema mais completo."
 
 #. Type: text
 #. Description
 #. :sl1:
 #: ../apt-cdrom-setup.templates:11001
 msgid ""
-"You are installing from a CD, which contains a limited selection of packages."
+"You are installing from an image which contains a limited selection of "
+"packages."
 msgstr ""
-"Você está instalando a partir de um CD que contém uma seleção limitada de "
-"pacotes."
+"Você está instalando a partir de uma imagem que contém uma seleção limitada "
+"de pacotes."
 
 #. Type: text
 #. Description
@@ -455,13 +459,13 @@ msgstr ""
 #: ../apt-cdrom-setup.templates:12001
 #, no-c-format
 msgid ""
-"You have scanned %i CDs. Even though these contain a fair selection of "
+"You have scanned %i images. Even though these contain a fair selection of "
 "packages, some may be missing (notably some packages needed to support "
 "languages other than English)."
 msgstr ""
-"Você leu %i CDs. Embora eles contenham uma grande seleção de pacotes, alguns "
-"podem estar faltando (notavelmente alguns pacotes necessários para dar "
-"suporte a outros idiomas além do inglês)."
+"Você leu %i imagens. Embora elas contenham uma grande seleção de pacotes, "
+"alguns podem estar faltando (notavelmente alguns pacotes necessários para "
+"dar suporte a outros idiomas além do inglês)."
 
 #. Type: text
 #. Description
@@ -470,11 +474,11 @@ msgstr ""
 #: ../apt-cdrom-setup.templates:13001
 #, no-c-format
 msgid ""
-"You have scanned %i CDs. Even though these contain a large selection of "
+"You have scanned %i images. Even though these contain a large selection of "
 "packages, some may be missing."
 msgstr ""
-"Você leu %i CDs. Mesmo que estes contenham uma grande seleção de pacotes, "
-"alguns podem estar faltando."
+"Você leu %i imagens. Mesmo que estas contenham uma grande seleção de "
+"pacotes, alguns podem estar faltando."
 
 #. Type: text
 #. Description
@@ -492,11 +496,11 @@ msgstr ""
 #. :sl1:
 #: ../apt-cdrom-setup.templates:15001
 msgid ""
-"You are installing from a DVD. Even though the DVD contains a large "
+"You are installing from a DVD image. Even though it contains a large "
 "selection of packages, some may be missing."
 msgstr ""
-"Você está instalando a partir de um DVD. Mesmo que o DVD contenha uma grande "
-"seleção de pacotes, alguns podem estar faltando."
+"Você está instalando a partir de uma imagem de DVD. Mesmo que ela contenha "
+"uma grande seleção de pacotes, alguns podem estar faltando."
 
 #. Type: text
 #. Description
@@ -558,10 +562,9 @@ msgstr ""
 #. :sl1:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
-#: ../apt-mirror-setup.templates:2001
-#: ../apt-mirror-setup.templates-ubuntu:1001
+#: ../apt-mirror-setup.templates:2001 ../apt-mirror-setup.templates-ubuntu:1001
 msgid "Please choose whether you want to have it available anyway."
 msgstr ""
 "Por favor, decida se mesmo assim estes softwares devem ser disponibilizados."
@@ -593,22 +596,21 @@ msgstr ""
 #. :sl1:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
-#: ../apt-mirror-setup.templates:3001
-#: ../apt-mirror-setup.templates-ubuntu:2001
+#: ../apt-mirror-setup.templates:3001 ../apt-mirror-setup.templates-ubuntu:2001
 #: ../apt-mirror-setup.templates-ubuntu:3001
 #: ../apt-mirror-setup.templates-ubuntu:4001
 #: ../apt-mirror-setup.templates-ubuntu:5001
@@ -628,12 +630,14 @@ msgstr "Mudar espelho de rede"
 
 #. Type: select
 #. Description
+#. :sl2:
 #: ../apt-mirror-setup.templates:4002
 msgid "Downloading a file failed:"
 msgstr "Ocorreu uma falha enquanto um arquivo era baixado:"
 
 #. Type: select
 #. Description
+#. :sl2:
 #: ../apt-mirror-setup.templates:4002
 msgid ""
 "The installer failed to access the mirror. This may be a problem with your "
@@ -659,11 +663,12 @@ msgstr "Usar um espelho de rede?"
 #: ../apt-mirror-setup.templates:5001
 msgid ""
 "A network mirror can be used to supplement the software that is included on "
-"the CD-ROM. This may also make newer versions of software available."
+"the installation media. This may also make newer versions of software "
+"available."
 msgstr ""
 "Um espelho de rede pode ser usado para suplementar o software que está "
-"incluso no CD-ROM. Isto também pode disponibilizar novas versões de "
-"softwares."
+"incluso na mídia de instalação. Isto também pode disponibilizar novas "
+"versões de software."
 
 #. Type: boolean
 #. Description
@@ -681,7 +686,7 @@ msgstr "Nenhum espelho de rede foi selecionado."
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:1001
 msgid "Use restricted software?"
@@ -689,7 +694,7 @@ msgstr "Usar softwares restritos?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:1001
 msgid ""
@@ -706,7 +711,7 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:2001
 msgid "Use software from the \"universe\" component?"
@@ -714,7 +719,7 @@ msgstr "Usar softwares do componente \"universe\"?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:2001
 msgid ""
@@ -729,7 +734,7 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:3001
 msgid "Use software from the \"multiverse\" component?"
@@ -737,7 +742,7 @@ msgstr "Usar softwares do componente \"multiverse\"?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:3001
 msgid ""
@@ -755,7 +760,7 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:4001
 msgid "Use software from the \"partner\" repository?"
@@ -763,22 +768,22 @@ msgstr "Usar softwares do repositório \"partner\"?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:4001
 msgid ""
 "Some additional software is available from Canonical's \"partner\" "
-"repository. This software is not part of Linux Mint, but is offered by Canonical "
-"and the respective vendors as a service to Linux Mint users."
+"repository. This software is not part of Ubuntu, but is offered by Canonical "
+"and the respective vendors as a service to Ubuntu users."
 msgstr ""
 "Alguns softwares adicionais estão disponíveis a partir do repositório "
-"\"partner\" da Canonical. Estes softwares não fazem parte do Linux Mint, mas são "
+"\"partner\" da Canonical. Estes softwares não fazem parte do Ubuntu, mas são "
 "oferecidos pela Canonical e respectivos fornecedores como um serviço aos "
-"usuários Linux Mint."
+"usuários Ubuntu."
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:5001
 msgid "Use backported software?"
@@ -786,7 +791,7 @@ msgstr "Usar softwares portados de versões mais novas?"
 
 #. Type: boolean
 #. Description
-#. This template is used by the Linux Mint version of d-i.
+#. This template is used by the Ubuntu version of d-i.
 #. :sl2:
 #: ../apt-mirror-setup.templates-ubuntu:5001
 msgid ""
@@ -800,26 +805,3 @@ msgstr ""
 "completos como os softwares presentes na versão oficial passaram, os mesmos "
 "incluem versões mais novas de algumas aplicações que podem fornecer recursos "
 "úteis."
-
-#~ msgid "Scanning the backports repository..."
-#~ msgstr "Lendo o repositório de portes de novas versões (\"backports\")..."
-
-#~ msgid "backported software"
-#~ msgstr "software portado de versões mais novas"
-
-#~ msgid ""
-#~ "Backported software are adapted from the development version to work with "
-#~ "this release. Although this software has not gone through such complete "
-#~ "testing as that contained in the release, it includes newer versions of "
-#~ "some applications which may provide useful features. Enabling backports "
-#~ "here does not cause any of them to be installed by default; it only "
-#~ "allows you to manually select backports to use."
-#~ msgstr ""
-#~ "Softwares portados de versões mais novas são adaptados a partir da versão "
-#~ "em desenvolvimento do Debian para funcionar com esta versão. Apesar "
-#~ "desses softwares não terem passado por testes completos como os softwares "
-#~ "presentes na versão estável, os mesmos incluem versões mais novas de "
-#~ "algumas aplicações que podem fornecer recursos úteis. Habilitar softwares "
-#~ "portados de versões mais novas aqui não faz nenhum deles ser instalado "
-#~ "por padrão, apenas permite que você selecione manualmente softwares "
-#~ "portados de versões mais novas para usar."

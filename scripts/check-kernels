@@ -29,8 +29,15 @@ if db_get base-installer/kernel/altmeta && [ "$RET" ]; then
 	preferred_kernels="$(echo "$preferred_kernels" | sed "s/$/-$RET/"; \
 			     echo "$preferred_kernels")"
 fi
+
+# for kernels that are not on livefs, i.e. from the internet or cd-rom
+# pool, i.e. linux-generic
+# do not repeat it in compatible
 install_new=
+# for kernels that are preinstalled in the livefs
+# must match linux-image-*
 compatible=
+# for kernels that we want to purge from target
 incompatible=
 
 # TODO cjwatson 2009-10-19: Nasty hack for PAE-capable systems; see
@@ -108,8 +115,65 @@ if [ -z "$compatible" ] && [ -z "$install_new" ]; then
 	done
 fi
 
+OEM_KERNEL=linux-oem-22.04
+wants_oem_kernel() {
+	if [ "$(apt-cache search -n "^${OEM_KERNEL}\$")" ]; then
+        test -e /run/ubuntu-drivers-oem.autoinstall || return 1
+        for pkg in $(cat /run/ubuntu-drivers-oem.autoinstall); do
+            case $pkg in
+                oem-*-meta)
+                    oem_kernel="$(apt-cache show "$pkg" | grep-dctrl -v -XF Ubuntu-OEM-Kernel-Flavour default)"
+                    if [ -n "$oem_kernel" ]; then
+                        return
+                    fi
+                    ;;
+            esac
+        done
+    fi
+    return 1
+}
+wants_nvidia() {
+    test -e /run/ubuntu-drivers.autoinstall || return
+    for pkg in $(cat /run/ubuntu-drivers.autoinstall); do
+        case $pkg in
+            nvidia-driver-*)
+                echo $pkg | sed 's/nvidia-driver-/nvidia-/'
+                break
+            ;;
+        esac
+    done
+}
+nvidia_stem="$(wants_nvidia)"
+
+if wants_oem_kernel; then
+    if [ -n "$compatible" ]; then
+        i="${incompatible:+$incompatible }$compatible"
+        compatible=""
+        incompatible=""
+        for incompat in ${i}; do
+            # We want the oem, it's not incompatible with us, don't remove it.
+            if [ "${incompat#*-oem}" = "${incompat}" ]; then
+                incompatible="${incompatible:+$incompatible }$incompat"
+            fi
+        done
+    fi
+    install_new="${install_new:+$install_new }${OEM_KERNEL}"
+    if [ "$nvidia_stem" ]; then
+        install_new="${install_new} linux-modules-${nvidia_stem}-${OEM_KERNEL#linux-}"
+    fi
+fi
+
 kernel_to_headers () {
 	echo "$1" | sed 's/linux\(-signed\|\)\(-image\|\)/linux-headers/'
+}
+kernel_image_to_meta () {
+    echo "$1" | sed -n 's/^linux-image-/linux-/p' | xargs dpkg-query -W -f'${Package}\n' 2>/dev/null
+}
+kernel_image_to_modules () {
+    echo "$1" | sed -n 's/^linux-image-/linux-modules-/p' | xargs dpkg-query -W -f'${Package}\n' 2>/dev/null
+    if [ "$nvidia_stem" ]; then
+        echo "$1" | sed -n "s/^linux-image-/linux-modules-${nvidia_stem}-/p" | xargs dpkg-query -W -f'${Package}\n' 2>/dev/null
+    fi
 }
 
 if [ -z "$compatible" ] && [ -z "$install_new" ]; then
@@ -117,12 +181,11 @@ if [ -z "$compatible" ] && [ -z "$install_new" ]; then
 	echo 'No usable kernel found; assuming foreign package naming' >&2
 else
 	mkdir -p /var/lib/ubiquity
-	for kernel in $install_new; do
-		echo "$kernel" >>/var/lib/ubiquity/install-kernels
-		kernel_to_headers "$kernel" >>/var/lib/ubiquity/install-kernels
+	for meta in $install_new; do
+		echo "$meta" >>/var/lib/ubiquity/install-kernels
 	done
 	for kernel in $compatible; do
-		apt-install "$kernel" "$(kernel_to_headers "$kernel")"
+		apt-install "$(kernel_image_to_meta "$kernel")"
 	done
 	for kernel in $incompatible; do
 		echo "$kernel" >> /var/lib/ubiquity/remove-kernels
@@ -135,6 +198,8 @@ else
 			;;
 		    *)
 			kernel_to_headers "$kernel" >>/var/lib/ubiquity/remove-kernels
+			kernel_image_to_meta "$kernel" >>/var/lib/ubiquity/remove-kernels
+			kernel_image_to_modules "$kernel" >>/var/lib/ubiquity/remove-kernels            
 			;;
 		esac
 	done

@@ -6,6 +6,8 @@ from test.support import run_unittest
 import unittest
 
 import dbus
+import gi
+gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, TimezoneMap
 import mock
 
@@ -216,7 +218,7 @@ class NetworkManagerTests(unittest.TestCase):
                 dbus.Byte(116), dbus.Byte(117), dbus.Byte(45), dbus.Byte(66),
                 dbus.Byte(97), dbus.Byte(116), dbus.Byte(116), dbus.Byte(101),
                 dbus.Byte(114), dbus.Byte(115), dbus.Byte(101), dbus.Byte(97)]
-        self.assertEqual(nm.decode_ssid(ssid), 'Linux Mint-Battersea')
+        self.assertEqual(nm.decode_ssid(ssid), 'Ubuntu-Battersea')
 
     def test_decode_ssid_utf8(self):
         ssid = [dbus.Byte(82), dbus.Byte(195), dbus.Byte(169), dbus.Byte(115),

@@ -161,6 +161,7 @@ class PageBase(plugin.PluginUI):
     def plugin_translate(self, lang):
         self.hostname_error_text = i18n.get_string('hostname_error', lang)
         self.domain_connection_error_text = i18n.get_string('domain_connection_error', lang)
+        self.login_encrypt.set_label(i18n.get_string('mint:Encrypt my home folder', lang))
 
 
 class PageGtk(PageBase):

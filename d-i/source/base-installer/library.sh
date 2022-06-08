@@ -937,7 +937,7 @@ EOT
 		fi
 		
 		if [ "$MIRROR" = ports.ubuntu.com ]; then
-			# Awful Ubuntu-specific hack. *-security suites for ports
+			# Awful Linux Mint-specific hack. *-security suites for ports
 			# architectures aren't available on security.ubuntu.com, only on
 			# ports.ubuntu.com.
 			SECMIRROR="$MIRROR"

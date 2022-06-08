@@ -1,7 +1,7 @@
 Ubiquity
 ========
 
-This is a graphical installer for Ubuntu, written largely in Python, using
+This is a graphical installer for Linux Mint, written largely in Python, using
 d-i as a backend for many of its functions. The authors are indebted to the
 efforts of the Guadalinex project in developing the original
 "ubuntu-express" code used as a basis for this project.
@@ -14,14 +14,14 @@ replace the old Debian "boot-floppies" installer. The goals of this project
 included long-term maintainability, modularity, and code reuse. After a
 hiatus during the Debian 3.0 release, this project matured into a usable
 installer in 2004 in time for, among others, the releases of Debian 3.1 and
-Ubuntu 4.10. From Ubuntu 4.10 to Ubuntu 5.10, d-i was used as the primary
+Linux Mint 4.10. From Linux Mint 4.10 to Linux Mint 5.10, d-i was used as the primary
 installation program.
 
 d-i continues to provide flexibility and (for a certain significant class of
 users) ease of use that a simplified graphical installer will always be
 hard-pushed to provide. It is therefore important to continue to support it
-in Ubuntu. From a maintainability point of view, it follows that it is
-important for any graphical installer supported by Ubuntu to share
+in Linux Mint. From a maintainability point of view, it follows that it is
+important for any graphical installer supported by Linux Mint to share
 substantial amounts of code with d-i, particularly where the backend logic
 is intrinsically difficult and has accumulated large quantities of expertise
 and bug fixes. Accordingly, Ubiquity is designed to use logic from d-i where
@@ -38,7 +38,7 @@ UI Design
 The primary focus of Ubiquity's UI is ease of use for new users.
 Accordingly, it does not try to provide all possible options, deferring
 advanced installation scenarios to d-i so that it does not have to be all
-things to all people. See http://wiki.ubuntu.com/UbuntuExpress for the
+things to all people. See http://wiki.ubuntu.com/Linux MintExpress for the
 original details of its user interface design.
 
 Debconf Integration
@@ -102,7 +102,7 @@ live boot process is responsible for installing hooks in
 After copying the live filesystem, certain unnecessary packages (such as
 Ubiquity itself) will be removed. The set of packages to be removed is
 computed by taking those packages present in
-/cdrom/casper/filesystem.manifest-remove (or, in older versions of Ubuntu,
+/cdrom/casper/filesystem.manifest-remove (or, in older versions of Linux Mint,
 those packages present in /cdrom/casper/filesystem.manifest but not present
 in /cdrom/casper/filesystem.manifest-desktop), and removing any packages
 explicitly requested for installation by installer code. Language packs for
@@ -128,7 +128,7 @@ preseeded steps will be skipped.
 The read-only live filesystem should generally be mounted on /rofs.
 Alternatively, an image may be present as /cdrom/casper/filesystem.cloop,
 /cdrom/casper/filesystem.squashfs, or (for Guadalinex/Metadistros)
-/cdrom/META/META.squashfs. Ubuntu currently uses
+/cdrom/META/META.squashfs. Linux Mint currently uses
 /cdrom/casper/filesystem.squashfs. You can preseed
 ubiquity/install/filesystem-images with a space-separated list of image
 paths to override this; if you provide more than one image, then they will
@@ -142,7 +142,7 @@ Ubiquity to ensure that, for example, Ubiquity itself doesn't end up on the
 target system.
 
 Language packs for the selected language are installed by default, using the
-Ubuntu naming scheme of language-pack-$LL and language-support-$LL. If you
+Linux Mint naming scheme of language-pack-$LL and language-support-$LL. If you
 want to get rid of these (for example because their dependencies are
 inconvenient), then you can preseed pkgsel/language-packs to the empty
 string.
@@ -161,7 +161,7 @@ also set up the files listed above in some other way.
 Frequently Asked Questions
 --------------------------
 
-Q. Can I backport the version of Ubiquity from the current Ubuntu
+Q. Can I backport the version of Ubiquity from the current Linux Mint
    development release to the previous stable release?
 
 A. Not without quite a bit of work. At present, Ubiquity is still a complex
@@ -173,35 +173,35 @@ A. Not without quite a bit of work. At present, Ubiquity is still a complex
    Debian-based distributions.
 
    At the moment, I can think of the following specific issues with
-   backporting Ubiquity from Ubuntu 6.10 to Ubuntu 6.06:
+   backporting Ubiquity from Linux Mint 6.10 to Linux Mint 6.06:
 
      * Ubiquity now uses the new Python policy, which involves a number of
        packaging changes and even a couple of code changes that are
-       incompatible with Ubuntu 6.06. These would need to be reverted.
+       incompatible with Linux Mint 6.06. These would need to be reverted.
 
      * Ubiquity now uses console-setup as the backend for the keyboard
-       screen rather than kbd-chooser. console-setup will not work on Ubuntu
+       screen rather than kbd-chooser. console-setup will not work on Linux Mint
        6.06, so the kbd-chooser code would need to be resurrected.
 
      * Ubiquity's GTK frontend now relies on new features in gparted in
        order to fix some user interface bugs.
 
      * Ubiquity now integrates with the apport crash reporting facility in
-       Ubuntu 6.10, which is not available in Ubuntu 6.06. (This would just
+       Linux Mint 6.10, which is not available in Linux Mint 6.06. (This would just
        be a matter of removing dependencies; it's optional as far as the
        code is concerned.)
 
      * Ubiquity's debconf template translations now rely on new features in
-       po-debconf 1.0, which was not available in Ubuntu 6.06.
+       po-debconf 1.0, which was not available in Linux Mint 6.06.
 
    While I'm aware that there were a number of serious issues with the
-   version of Ubiquity that shipped with Ubuntu 6.06 (many of which were
-   corrected in Ubuntu 6.06.1), I feel that the right answer to these is to
+   version of Ubiquity that shipped with Linux Mint 6.06 (many of which were
+   corrected in Linux Mint 6.06.1), I feel that the right answer to these is to
    backport selected fixes to that branch of Ubiquity rather than trying to
    backport the whole package.
 
    Similarly, there are at least the following issues with backporting
-   Ubiquity from Ubuntu 7.04 to Ubuntu 6.10:
+   Ubiquity from Linux Mint 7.04 to Linux Mint 6.10:
 
      * Ubiquity depends on a version of console-setup at least as new as the
        one in its own source tree, so the two packages would need to be
@@ -209,12 +209,12 @@ A. Not without quite a bit of work. At present, Ubiquity is still a complex
        on a newer version of xkb-data (although probably not inextricably).
 
      * Ubiquity's GTK frontend now uses gtk.LinkButton, which isn't
-       available in the versions of GTK+/PyGTK in Ubuntu 6.10. Similarly,
-       you need a more recent version of glade-3 than is available in Ubuntu
+       available in the versions of GTK+/PyGTK in Linux Mint 6.10. Similarly,
+       you need a more recent version of glade-3 than is available in Linux Mint
        6.10 to edit the user interface definition for the GTK frontend.
 
      * Regenerating Ubiquity's autotools files (configure et al) requires
-       Automake 1.10, not available in Ubuntu 6.10.
+       Automake 1.10, not available in Linux Mint 6.10.
 
      * Ubiquity's apport crash handler now requires a new Python API
        introduced in apport 0.33.

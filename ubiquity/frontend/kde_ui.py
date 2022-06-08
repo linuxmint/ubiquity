@@ -83,7 +83,7 @@ class UbiquityUI(QtWidgets.QMainWindow):
                     name = str.strip(line.split("=")[1], '\n')
                     if name.startswith('"') and name.endswith('"'):
                         name = name[1:-1]
-                    if name != "Ubuntu":
+                    if name != "Linux Mint":
                         distro_name = name
                 elif "DISTRIB_RELEASE=" in line:
                     distro_release = str.strip(line.split("=")[1], '\n')

@@ -2,8 +2,8 @@ Introduction
 ============
 
 This document describes how to setup and run automated autopilot tests of
-Ubiquity. These testcases work for Ubuntu, Xubuntu and Lubuntu. and should work
-for all other flavours of Ubuntu.
+Ubiquity. These testcases work for Linux Mint, Xubuntu and Lubuntu. and should work
+for all other flavours of Linux Mint.
 
 Source code: `lp:ubiquity`
 

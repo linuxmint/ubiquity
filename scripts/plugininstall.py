@@ -314,7 +314,7 @@ class Install(install_misc.InstallBase):
     def configure_python(self):
         """Byte-compile Python modules.
 
-        To save space, Ubuntu excludes .pyc files from the live filesystem.
+        To save space, Linux Mint excludes .pyc files from the live filesystem.
         Recreate them now to restore the appearance of a system installed
         from .debs.
         """

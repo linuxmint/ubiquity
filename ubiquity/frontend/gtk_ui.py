@@ -1051,9 +1051,12 @@ class Wizard(BaseFrontend):
         self.vte.set_font(fontdesc)
         self.vte.show()
         misc.regain_privileges_save()
-        # FIXME shrink the window horizontally instead of locking the window
-        # size.
-        self.live_installer.set_resizable(False)
+        
+        # Window should be resizable for better overview while partitioning
+        # instead of fixing the window size. The general defaulted size
+        # is okay, and the window can be dragged by ALT-click as explained 
+        # in the relaese notes. Trie undefined so we use 1.
+        self.live_installer.set_resizable(1)
 
         def expand(widget):
             if widget.get_property('expanded'):

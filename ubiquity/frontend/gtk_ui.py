@@ -1055,7 +1055,7 @@ class Wizard(BaseFrontend):
         # Window should be resizable for better overview while partitioning
         # instead of fixing the window size. The general defaulted size
         # is okay, and the window can be dragged by ALT-click as explained 
-        # in the relaese notes. Trie undefined so we use 1.
+        # in the relaese notes. TRUE is undefined so we use 1.
         self.live_installer.set_resizable(1)
 
         def expand(widget):

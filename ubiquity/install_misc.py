@@ -996,6 +996,11 @@ class InstallBase:
                         syslog.syslog(syslog.LOG_ERR, line)
                     commit_error = str(e)
             finally:
+                if "mint-meta-codecs" in to_install:
+                    os.system("echo 'DEBIAN_FRONTEND=noninteractive apt-get install --yes mint-meta-codecs' > /target/usr/bin/install-mint-codecs")
+                    os.system("chmod a+rx /target/usr/bin/install-mint-codecs")
+                    chrex(self.target, '/usr/bin/install-mint-codecs')
+                    os.system("rm -f /target/usr/bin/install-mint-codecs")
                 chroot_cleanup(self.target)
             self.db.progress('SET', 10)
 

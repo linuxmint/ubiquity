@@ -248,6 +248,10 @@ class Install(install_misc.InstallBase):
 
         self.install_restricted_extras()
 
+        # Fix mint-meta-codecs not being properly installed
+        if os.path.exists("/target/var/lib/dpkg/info/cabextract.list"):
+            install_misc.chrex(self.target, 'DEBIAN_FRONTEND=noninteractive apt-get install --yes mint-meta-codecs')
+
         try:
             self.copy_network_config()
         except Exception:

@@ -297,6 +297,8 @@ class Install(install_misc.InstallBase):
         self.copy_logs()
         self.save_random_seed()
 
+        os.system("cat /etc/resolv.conf > /target/etc/resolv.conf")
+
         self.db.progress('SET', self.end)
 
     def _get_uid_gid_on_target(self, target_user):

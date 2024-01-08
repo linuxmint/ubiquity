@@ -1115,13 +1115,13 @@ class InstallBase:
             pkg for pkg in to_install if get_cache_pkg(cache, pkg) is not None]
 
         install_new = True
-        try:
-            install_new_key = \
-                self.db.get('pkgsel/install-language-support') == 'true'
-            if install_new_key != '' and not misc.create_bool(install_new_key):
-                install_new = False
-        except debconf.DebconfError:
-            pass
+        # try:
+        #     install_new_key = \
+        #         self.db.get('pkgsel/install-language-support') == 'true'
+        #     if install_new_key != '' and not misc.create_bool(install_new_key):
+        #         install_new = False
+        # except debconf.DebconfError:
+        #     pass
 
         if not install_new:
             # Keep packages that are on the live filesystem, but don't install

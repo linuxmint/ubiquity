@@ -141,6 +141,7 @@ class ResizeWidget(Gtk.Paned):
         frame = Gtk.Frame.new()
         frame.set_shadow_type(Gtk.ShadowType.ETCHED_IN)
         frame.modify_bg(Gtk.StateFlags.NORMAL, self.highlight_color.to_color())
+        frame.modify_fg(Gtk.StateFlags.NORMAL, Gdk.color_parse("black"))
         frame.add(self.existing_part)
         self.pack1(frame, resize=False, shrink=False)
 
@@ -148,6 +149,7 @@ class ResizeWidget(Gtk.Paned):
         frame = Gtk.Frame.new()
         frame.set_shadow_type(Gtk.ShadowType.ETCHED_IN)
         frame.modify_bg(Gtk.StateFlags.NORMAL, self.highlight_color.to_color())
+        frame.modify_fg(Gtk.StateFlags.NORMAL, Gdk.color_parse("black"))
         frame.add(self.new_part)
         self.pack2(frame, resize=False, shrink=False)
 

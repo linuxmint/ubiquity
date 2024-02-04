@@ -40,7 +40,7 @@ fi
 
 # Remove the oem-config-prepare menu item.
 rm -f /usr/share/applications/oem-config-prepare-gtk.desktop \
-      /usr/share/applications/kde4/oem-config-prepare-kde.desktop
+      /usr/share/applications/kde/oem-config-prepare-kde.desktop
 # Run a command just before starting oem-config.
 RET="$(echo GET oem-config/early_command | debconf-communicate)" || true
 if [ "${RET%% *}" = 0 ]; then
@@ -151,7 +151,7 @@ EOF
 			pkill -u oem || true
 			userdel --force --remove oem || true
 		fi
-		apt-get -y purge ubiquity >>/var/log/oem-config.log 2>&1
+		apt-get -y autoremove --purge ubiquity >>/var/log/oem-config.log 2>&1
 	fi
 
 	reboot

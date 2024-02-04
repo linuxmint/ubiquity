@@ -257,12 +257,12 @@ format_disk() {
 
 	echo "I: Formatting disk $disk with partitions swap:${partswap} bpool:${partbpool} rpool:${partrpool}"
 
-	# bpool size: 500M < 5% of ZFS allocated space < 2G
+	# bpool size: 1.75G < 5% of ZFS allocated space < 2G
 	# srcpath is the system partition on initial layout.
 	srcpath=$(lsblk -ln -o PATH ${disk}|tail -1)
 	partsrc=${srcpath##*${partprefix}}
 	size_percent=$(expr \( $(blockdev --getsize64 ${srcpath}) / 1024 / 1024 \) \* 5 / 100)
-	bpool_size=500
+	bpool_size=1792
 	[ ${size_percent} -gt ${bpool_size} ] && bpool_size=${size_percent}
 	[ ${bpool_size} -gt 2048 ] && bpool_size=2048
 
@@ -584,18 +584,6 @@ elif [ "${COMMAND}" = "finalize" ]; then
 		exit 1
 	fi
 
-	# Activate zfs generator.
-	# After enabling the generator we should run zfs set canmount=on DATASET
-	# in the chroot for one dataset of each pool to refresh the zfs cache.
-	echo "I: Activating zfs generator"
-
-	# Create zpool cache
-	zpool set cachefile= bpool
-	zpool set cachefile= rpool
-	cp /etc/zfs/zpool.cache "${TARGET}/etc/zfs/"
-	mkdir -p "${TARGET}/etc/zfs/zfs-list.cache"
-	touch "${TARGET}/etc/zfs/zfs-list.cache/bpool" "${TARGET}/etc/zfs/zfs-list.cache/rpool"
-
 	# Handle userdata
 	UUID_ORIG=$(head -100 /dev/urandom | tr -dc 'a-z0-9' |head -c6)
 	mkdir -p "${TARGET}/tmp/home"
@@ -617,6 +605,28 @@ elif [ "${COMMAND}" = "finalize" ]; then
 		echo "RESUME=none" > "${TARGET}/etc/initramfs-tools/conf.d/resume"
 		chroot "${TARGET}" update-initramfs -u
 	fi
+
+	# Activate zfs generator, after all zfs commands have completed
+	echo "I: Activating zfs generator"
+
+	# Create zpool cache
+	zpool set cachefile= bpool
+	zpool set cachefile= rpool
+	cp /etc/zfs/zpool.cache "${TARGET}/etc/zfs/"
+	mkdir -p "/etc/zfs/zfs-list.cache" "${TARGET}/etc/zfs/zfs-list.cache"
+	for pool in bpool rpool; do
+		# Force cache generation
+		: >"/etc/zfs/zfs-list.cache/${pool}"
+		# Execute zfs-list-cacher with a manual fake event
+		env -i ZEVENT_POOL=${pool} ZED_ZEDLET_DIR=/etc/zfs/zed.d ZEVENT_SUBCLASS=history_event ZFS=zfs ZEVENT_HISTORY_INTERNAL_NAME=create /etc/zfs/zed.d/history_event-zfs-list-cacher.sh
+		# ZFS list doesn't honor target prefix for chroots for
+		# the mountpoint property
+		# https://github.com/openzfs/zfs/issues/1078
+		# Drop leading /target from all mountpoint fields
+		sed -E "s|\t${TARGET}/?|\t/|g" "/etc/zfs/zfs-list.cache/${pool}" > "${TARGET}/etc/zfs/zfs-list.cache/${pool}"
+		# Ensure installer system doesn't generate mount units
+		rm -f "/etc/zfs/zfs-list.cache/${pool}"
+	done
 
 	echo "I: ZFS setup complete"
 else

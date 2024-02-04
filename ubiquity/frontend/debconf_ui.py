@@ -116,7 +116,7 @@ class Wizard(BaseFrontend):
                     self.pageslen += 1
                     self.pages.append(mod)
 
-        while(self.pagesindex >= 0 and self.pagesindex < self.pageslen):
+        while (self.pagesindex >= 0 and self.pagesindex < self.pageslen):
             step = self.pages[self.pagesindex]
 
             self.db.settitle(step.title)

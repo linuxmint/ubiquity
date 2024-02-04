@@ -19,6 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+import glob
 import grp
 import gzip
 import io
@@ -205,7 +206,7 @@ class Install(install_misc.InstallBase):
             pass
 
         self.next_region()
-        #self.remove_unusable_kernels()
+        self.remove_unusable_kernels()
 
         self.next_region(size=4)
         self.db.progress('INFO', 'ubiquity/install/hardware')
@@ -218,7 +219,10 @@ class Install(install_misc.InstallBase):
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/installing')
 
-        self.install_extras()
+        if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
+            self.install_oem_extras()
+        else:
+            self.install_extras()
 
         # Configure zsys
         self.configure_zsys()
@@ -245,8 +249,8 @@ class Install(install_misc.InstallBase):
             self.remove_extras()
 
         self.next_region()
-
-        self.install_restricted_extras()
+        if 'UBIQUITY_OEM_USER_CONFIG' not in os.environ:
+            self.install_restricted_extras()
 
         try:
             self.copy_network_config()
@@ -284,20 +288,10 @@ class Install(install_misc.InstallBase):
                 syslog.syslog(syslog.LOG_WARNING, line)
         self.copy_dcd()
 
-        # Fix /etc/crypttab
-        crypttab_file = self.target_file("etc/crypttab")
-        if os.path.exists(crypttab_file):
-            os.system("sed -i 's@/target/@/@g' %s" % crypttab_file)
-
-        # Fix Grub title
-        install_misc.chrex(self.target, '/usr/share/ubuntu-system-adjustments/systemd/adjust-grub-title')
-
         self.db.progress('SET', self.count)
         self.db.progress('INFO', 'ubiquity/install/log_files')
         self.copy_logs()
         self.save_random_seed()
-
-        os.system("cat /etc/resolv.conf > /target/etc/resolv.conf")
 
         self.db.progress('SET', self.end)
 
@@ -321,7 +315,7 @@ class Install(install_misc.InstallBase):
     def configure_python(self):
         """Byte-compile Python modules.
 
-        To save space, Linux Mint excludes .pyc files from the live filesystem.
+        To save space, Ubuntu excludes .pyc files from the live filesystem.
         Recreate them now to restore the appearance of a system installed
         from .debs.
         """
@@ -451,7 +445,7 @@ class Install(install_misc.InstallBase):
         except debconf.DebconfError:
             domain = ''
         if hostname == '':
-            hostname = 'mint'
+            hostname = 'ubuntu'
 
         with open(self.target_file('etc/hosts'), 'w') as hosts:
             print("127.0.0.1\tlocalhost", file=hosts)
@@ -1282,17 +1276,17 @@ class Install(install_misc.InstallBase):
     def install_extras(self):
         """Try to install packages requested by installer components."""
         # We only ever install these packages from the CD.
-        # sources_list = self.target_file('etc/apt/sources.list')
-        # os.rename(sources_list, "%s.apt-setup" % sources_list)
-        # with open("%s.apt-setup" % sources_list) as old_sources:
-        #     with open(sources_list, 'w') as new_sources:
-        #         found_cdrom = False
-        #         for line in old_sources:
-        #             if 'cdrom:' in line:
-        #                 print(line, end="", file=new_sources)
-        #                 found_cdrom = True
-        # if not found_cdrom:
-        #     os.rename("%s.apt-setup" % sources_list, sources_list)
+        sources_list = self.target_file('etc/apt/sources.list')
+        os.rename(sources_list, "%s.apt-setup" % sources_list)
+        with open("%s.apt-setup" % sources_list) as old_sources:
+            with open(sources_list, 'w') as new_sources:
+                found_cdrom = False
+                for line in old_sources:
+                    if 'cdrom:' in line:
+                        print(line, end="", file=new_sources)
+                        found_cdrom = True
+        if not found_cdrom:
+            os.rename("%s.apt-setup" % sources_list, sources_list)
 
         # this will install free & non-free things, but not things
         # that have multiarch Depends or Recommends. Instead, those
@@ -1339,8 +1333,8 @@ class Install(install_misc.InstallBase):
             except FileNotFoundError:
                 pass
 
-        # if found_cdrom:
-        #     os.rename("%s.apt-setup" % sources_list, sources_list)
+        if found_cdrom:
+            os.rename("%s.apt-setup" % sources_list, sources_list)
 
         # TODO cjwatson 2007-08-09: python reimplementation of
         # oem-config/finish-install.d/07oem-config-user. This really needs
@@ -1348,8 +1342,6 @@ class Install(install_misc.InstallBase):
         # instead.
         try:
             if self.db.get('oem-config/enable') == 'true':
-                oem_pkgs = ['oem-config-gtk']
-                self.do_install(oem_pkgs)
                 if os.path.isdir(self.target_file('home/oem')):
                     with open(self.target_file('home/oem/.hwdb'), 'w'):
                         pass
@@ -1357,7 +1349,7 @@ class Install(install_misc.InstallBase):
                     apps_dir = 'usr/share/applications'
                     for desktop_file in (
                             apps_dir + '/oem-config-prepare-gtk.desktop',
-                            apps_dir + '/kde4/oem-config-prepare-kde.desktop'):
+                            apps_dir + '/kde/oem-config-prepare-kde.desktop'):
                         if os.path.exists(self.target_file(desktop_file)):
                             desktop_base = os.path.basename(desktop_file)
                             install_misc.chrex(
@@ -1657,6 +1649,18 @@ class Install(install_misc.InstallBase):
                     continue
 
                 shutil.copy(source_network, target_network)
+
+        source_netplan = "/etc/netplan"
+        target_netplan = "/target" + source_netplan
+        if os.path.exists(source_netplan) and os.path.exists(target_netplan):
+            for cfg in glob.glob("90-NM-*", root_dir=source_netplan):
+                source_cfg = os.path.join(source_netplan, cfg)
+                target_cfg = os.path.join(target_netplan, cfg)
+
+                if os.path.exists(target_cfg):
+                    continue
+
+                shutil.copy(source_cfg, target_cfg)
 
     def copy_bluetooth_config(self):
         if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:

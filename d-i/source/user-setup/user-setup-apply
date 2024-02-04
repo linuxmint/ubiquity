@@ -168,6 +168,13 @@ if [ "$RET" = true ] && ! is_system_user; then
 		else
 			$log $chroot $ROOT udevadm settle
 		fi
+		if ! $log $chroot $ROOT ecryptfs-setup-swap -f -n; then
+			echo "ecryptfs-setup-swap failed." >&2
+			db_input critical user-setup/encrypt-home-failed || true
+			db_go || true
+			ENCRYPT_HOME="false"
+			ENCRYPT_HOME_OPT=
+		fi
 		if $umountproc; then
 			$log $chroot $ROOT umount /proc
 		fi
@@ -281,13 +288,13 @@ AutomaticLogin=$USER\n"
 				fi
 			fi
 	 
-			if $chroot $ROOT [ -f /etc/kde4/kdm/kdmrc ]; then
+			if $chroot $ROOT [ -f /etc/kde/kdm/kdmrc ]; then
 				# Configure KDM autologin
 				$log $chroot $ROOT sed -i$BACKUP -r \
 					-e "s/^#?AutoLoginEnable=.*\$/AutoLoginEnable=true/" \
 					-e "s/^#?AutoLoginUser=.*\$/AutoLoginUser=$USER/" \
 					-e "s/^#?AutoReLogin=.*\$/AutoReLogin=true/" \
-					/etc/kde4/kdm/kdmrc
+					/etc/kde/kdm/kdmrc
 			fi
 
 			if $chroot $ROOT [ -f /etc/lxdm/lxdm.conf ]; then
@@ -380,6 +387,29 @@ autologin-user-timeout=0"
 			$log $chroot $ROOT update-alternatives --set libgksu-gconf-defaults /usr/share/libgksu/debian/gconf-defaults.libgksu-su
 			$log $chroot $ROOT update-gconf-defaults || true
 		fi
+	fi
+	if [ -z "$OVERRIDE_ALREADY_ENCRYPTED_SWAP" ] && \
+	   [ -n "$ENCRYPT_HOME_OPT" ] && [ -e $ROOT/etc/crypttab ]; then
+		# Zero out all encrypted swap partitions.  It is assumed that
+		# passwords are not used beyond this point in the install.
+		# cryptswap0 /dev/sda5 /dev/urandom swap,cipher=aes-cbc-essiv:sha256
+		# Ideally we would set up a new progress bar here, but we're
+		# inside finish-install's and cdebconf doesn't support nested
+		# progress bars.
+		db_progress INFO user-setup/progress/wipe-swap
+		while read name device source options; do
+			if echo "$options" | grep -q "swap"; then
+				if swapoff $device; then
+					if [ ! -b $device ]; then
+						ONE_MEG=$((1024*1024))
+						size=$(($(stat -c %s ${device})/${ONE_MEG}))
+						dd if=/dev/zero of=$device bs=${ONE_MEG} count=$size 2>/dev/null || true
+					else
+						dd if=/dev/zero of=$device bs=16M 2>/dev/null || true
+					fi
+				fi
+			fi
+		done < $ROOT/etc/crypttab
 	fi
 
 else

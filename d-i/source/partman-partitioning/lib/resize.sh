@@ -45,6 +45,50 @@ do_ntfsresize () {
 	return $RET
 }
 
+# add_margin_to_minsize: add a max(minsize*0.25, 2GiB) margin to the minimal
+# size of a filesystem but also cap the result to its current size.
+#
+# When minsize is first computed, it is only an estimation and it doesn't leave
+# any margin to continue actually using the filesystem that is about to be
+# shrunk. Below is an excerpt from ntfsresize(1) which is applicable to every
+# filesystem and operating system:
+#   Practically  the  smallest  shrunken size generally is at around
+#   "used space" + (20-200 MB). Please also take into  account  that
+#   Windows  might  need  about  50-100  MB  free space left to boot
+#   safely.
+#
+# The margin is max(minsize*0.25, 2GiB). This is the same as in subiquity.
+# Expect the same accuracy as you would expect from any arithmetic done in
+# shell scripts.
+#
+# I /think/ there is no issue with filesystem alignment because we don't change
+# the beginning of the filesystem and tools are supposed to properly align the
+# beginning of partitions/filesystems no matter their input.
+add_margin_to_minsize()
+{
+	local minsize cursize plus_25_percents plus_2G
+	minsize="$1"
+	cursize="$2"
+
+	plus_25_percents="$(expr 125 \* "$minsize" / 100)"
+	plus_2G="$(expr "$minsize" + 2 \* 1024 \* 1024 \* 1024)"
+
+	if longint_le "$plus_25_percents" "$plus_2G"; then
+		plus_25_percents_or_2G="$plus_2G"
+	else
+		plus_25_percents_or_2G="$plus_25_percents"
+	fi
+
+	if longint_le "$cursize" "$plus_25_percents_or_2G"; then
+		logger -t partman "Filesystem is already as small as it can reasonably be"
+		minsize="$cursize"
+	else
+		minsize="$plus_25_percents_or_2G"
+	fi
+
+	echo $minsize
+}
+
 get_ntfs_resize_range () {
 	local bdev size
 	open_dialog GET_VIRTUAL_RESIZE_RANGE $oldid
@@ -71,7 +115,7 @@ get_ntfs_resize_range () {
 				unset minsize cursize maxsize prefsize
 				return 1
 			else
-				minsize=$size
+				minsize="$(add_margin_to_minsize "$size" "$cursize")"
 			fi
 		fi
 	fi
@@ -108,7 +152,7 @@ get_ext2_resize_range () {
 				unset minsize cursize maxsize prefsize
 				return 1
 			else
-				minsize="$real_minsize"
+				minsize="$(add_margin_to_minsize "$real_minsize" "$cursize")"
 			fi
 		fi
 	fi

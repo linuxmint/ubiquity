@@ -3,27 +3,21 @@ set -e
 
 . /usr/share/debconf/confmodule
 
-# Remove locale source
-if ([ -e /target/etc/apt/sources.list.d/locale.list ]); then
-	logger -t finish-install "Removing linuxmint locale source"
-	rm -rf /target/etc/apt/sources.list.d/locale.list
-fi
-
 # Can be preseed to true to force cdrom entries to be disabled
 db_get apt-setup/disable-cdrom-entries
 disable_cdrom_entries="$RET"
 
-# Always disable CD image in sources.list
-if ([ -e /cdrom/.disk/base_installable ] || [ "$OVERRIDE_BASE_INSTALLABLE" ]); then
+# Always disable CD image in sources.list if any other sources are present
+if ([ -e /cdrom/.disk/base_installable ] || [ "$OVERRIDE_BASE_INSTALLABLE" ]) && \
+   grep -q "^deb \(ht\|f\)tp" /target/etc/apt/sources.list; then
 	disable_cdrom_entries="true"
 fi
 
 # Comment out the cdrom entries and update APT's cache
 if [ "$disable_cdrom_entries" = "true" ]; then
-	if [ -e /target/etc/apt/sources.list ]; then
-		logger -t finish-install "Disabling CDROM entries in sources.list"
-		sed -i "/^deb cdrom:/s/^/#/" /target/etc/apt/sources.list
-		cat >> /target/etc/apt/sources.list <<EOF
+	logger -t finish-install "Disabling CDROM entries in sources.list"
+	sed -i "/^deb cdrom:/s/^/#/" /target/etc/apt/sources.list
+	cat >> /target/etc/apt/sources.list <<EOF
 
 # This system was installed using small removable media
 # (e.g. netinst, live or single CD). The matching "deb cdrom"
@@ -31,6 +25,5 @@ if [ "$disable_cdrom_entries" = "true" ]; then
 # For information about how to configure apt package sources,
 # see the sources.list(5) manual.
 EOF
-	fi
 	log-output -t finish-install chroot /target apt-get update
 fi

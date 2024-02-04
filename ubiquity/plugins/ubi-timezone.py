@@ -93,8 +93,8 @@ class PageGtk(plugin.PluginUI):
             self.controller.allow_go_forward(True)
 
     def changed(self, entry):
-        from gi import require_version
-        require_version('Soup', '2.4')
+        import gi
+        gi.require_version('Soup', '2.4')
         from gi.repository import Gtk, GObject, GLib, Soup
 
         text = misc.utf8(self.city_entry.get_text())
@@ -156,8 +156,6 @@ class PageGtk(plugin.PluginUI):
     def geoname_cb(self, session, message, user_data):
         import syslog
         import json
-        from gi import require_version
-        require_version('Soup', '2.4')
         from gi.repository import GLib, Soup
 
         text, model = user_data

@@ -80,6 +80,12 @@ then
     size=$limit
 fi
 
+# Allow partman-auto to override
+db_get partman-auto/desired-swap
+if [ -n "$RET" ]; then
+    size=$(($RET * 1024))
+fi
+
 # No swapfile if limits are 0MB or 0%
 if [ $size = 0 ]
 then

@@ -51,11 +51,39 @@ Type: string
 Default: 1024
 Description: for internal use; can be preseeded
  Cap RAM size to specified size in MB, when calculating the swap
- partition size. Defaults to 1024, meaning 1GB, and since swap is
- maximum 200% of RAM in the default recipes, it results in swap
- partitions to be capped at 2GB. To revert to previous behaviour of
- uncapped swap size with respect to available ram, pressed this key to
- any string, e.g. partman-auto/cap-ram=false
+ partition size. Defaults to 1024, meaning 1GB, and since swap is 200%
+ of RAM in the default recipes, it results in swap partitions to be
+ capped at 2GB. To revert to previous behaviour of uncapped swap size
+ with respect to available ram, preseed this key to any string,
+ e.g. partman-auto/cap-ram=false
+
+Template: partman-auto/cap-ram-percentage
+Type: string
+Default: 10
+Description: for internal use; can be preseeded
+ Cap RAM size such that resulting swap does not take up more than the
+ given percentage of free disk space. Defaults to 10%.
+
+Template: partman-auto/ensure-min-mem
+Type: string
+Default: 8192
+Description: for internal use; can be preseeded
+ Ensure minimum amount of total available memory available (RAM+swap)
+ in MB. Achieve this by reverse calculating what declared memory size
+ needs to be, to ensure that double of that will result in enough swap
+ in default recipes to reach minimum required memory. This will raise
+ partman-auto/cap-ram for machines with less than 6GB of RAM to
+ increase the amount of calculated SWAP. To revert to previous
+ behaviour of not raising swap size with respect to low ram, preseed
+ this key to any string, e.g. partman-auto/ensure-min-mem=false.
+
+Template: partman-auto/desired-swap
+Type: string
+Description: for internal use; automatically set
+
+Template: partman-auto/cap-ram-free-size
+Type: string
+Description: for internal use; automatically set
 
 Template: partman-auto/automatically_partition
 Type: select

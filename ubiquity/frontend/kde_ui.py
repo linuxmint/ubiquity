@@ -83,7 +83,7 @@ class UbiquityUI(QtWidgets.QMainWindow):
                     name = str.strip(line.split("=")[1], '\n')
                     if name.startswith('"') and name.endswith('"'):
                         name = name[1:-1]
-                    if name != "Linux Mint":
+                    if name != "Ubuntu":
                         distro_name = name
                 elif "DISTRIB_RELEASE=" in line:
                     distro_release = str.strip(line.split("=")[1], '\n')
@@ -474,7 +474,7 @@ class Wizard(BaseFrontend):
             self.start_slideshow()
             self.run_main_loop()
 
-        while(self.pagesindex < self.pageslen):
+        while (self.pagesindex < self.pageslen):
             if self.current_page is None:
                 break
 

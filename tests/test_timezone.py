@@ -52,7 +52,7 @@ class TimezoneTests(unittest.TestCase):
             self.gtk.changed(self.gtk.city_entry)
         m = self.gtk.city_entry.get_completion().get_model()
         results = []
-        expected = (('Eastern', 'United States'), ('Eastern', 'Bahamas'))
+        expected = (('Eastern', 'United States'), ('Eastern', 'Canada'))
         for x in m:
             results.append((x[0], x[2]))
         self.assertEqual(

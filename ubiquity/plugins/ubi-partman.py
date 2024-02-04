@@ -169,7 +169,7 @@ class PageGtk(PageBase):
         self.resize_max_size = None
         self.resize_pref_size = None
         self.resize_path = ''
-        self.auto_colors = ['0d95bc', '9ab87c', 'ebcb38', 'f36f13', 'c13018', '063951']
+        self.auto_colors = ['3465a4', '73d216', 'f57900']
         self.extra_options = {}
 
         self.partition_mount_combo.get_child().set_activates_default(True)
@@ -705,7 +705,7 @@ class PageGtk(PageBase):
                     '/usr/share/ubiquity')
                 icon.logo.set_from_file(os.path.join(
                     PATH, 'pixmaps', 'windows_square.png'))
-            elif 'linux mint' in title.lower():
+            elif 'buntu' in title.lower():
                 icon.set_property('icon-name', 'distributor-logo')
             else:
                 icon.set_property('icon-name', 'block-device')
@@ -1728,7 +1728,7 @@ class PageGtk(PageBase):
         self.move_crypto_widgets()
         self.show_encryption_passphrase(True)
         self.generate_recovery_key()
-        self.show_overwrite_space(not(self.use_crypto.get_active() and self.use_zfs.get_active()))
+        self.show_overwrite_space(not (self.use_crypto.get_active() and self.use_zfs.get_active()))
         self.controller.go_to_page(self.current_page)
         self.controller.toggle_next_button('install_button')
         self.info_loop(None)
@@ -2172,7 +2172,7 @@ class Page(plugin.Plugin):
             return True
         else:
             if 'locked' in self.partition_cache[devpart]:
-                del(self.partition_cache[devpart]['locked'])
+                del (self.partition_cache[devpart]['locked'])
             return False
 
     def get_actions(self, devpart, partition):
@@ -2300,7 +2300,7 @@ class Page(plugin.Plugin):
                 self.thaw_choices('choose_partition')
 
     def calculate_reuse_option(self):
-        '''Takes the current Linux Mint version on disk and the release we're about
+        '''Takes the current Ubuntu version on disk and the release we're about
         to install as parameters.'''
 
         # TODO: verify that ubuntu is the same partition as one of the ones
@@ -2325,7 +2325,7 @@ class Page(plugin.Plugin):
                     return None
 
                 if current_version == new_version and final:
-                    # "Windows (or Mac, ...) and the current version of Linux Mint
+                    # "Windows (or Mac, ...) and the current version of Ubuntu
                     # are present" case
                     q = 'ubiquity/partitioner/ubuntu_reinstall'
                     self.db.subst(q, 'CURDISTRO', ubuntu)
@@ -2364,7 +2364,7 @@ class Page(plugin.Plugin):
                     if not system.startswith('Windows Recovery'):
                         operating_systems.append(system)
         ubuntu_systems = [x for x in operating_systems
-                          if x.lower().find('linux mint') != -1]
+                          if x.lower().find('buntu') != -1]
         return (operating_systems, ubuntu_systems)
 
     def calculate_autopartitioning_options(self, operating_systems,
@@ -2372,10 +2372,10 @@ class Page(plugin.Plugin):
         '''
         There are six possibilities we have to consider:
         - Just Windows (or Mac, ...) is present
-        - An older version of Linux Mint is present
+        - An older version of Ubuntu is present
         - There are no operating systems present
-        - Windows (or Mac, ...) and an older version of Linux Mint are present
-        - Windows (or Mac, ...) and the current version of Linux Mint are present
+        - Windows (or Mac, ...) and an older version of Ubuntu are present
+        - Windows (or Mac, ...) and the current version of Ubuntu are present
         - There are multiple operating systems present
 
         We leave ordering and providing icons for each option to the frontend,
@@ -2430,7 +2430,7 @@ class Page(plugin.Plugin):
         elif os_count == 1:
             system = operating_systems[0]
             if len(ubuntu_systems) == 1:
-                # "An older version of Linux Mint is present" case
+                # "An older version of Ubuntu is present" case
                 if 'replace' in self.extra_options:
                     q = 'ubiquity/partitioner/ubuntu_format'
                     self.db.subst(q, 'CURDISTRO', system)
@@ -2449,7 +2449,7 @@ class Page(plugin.Plugin):
                 options['use_device'] = opt
 
                 if wubi_option:
-                    # We don't have a Wubi-like solution for Linux Mint yet (though
+                    # We don't have a Wubi-like solution for Ubuntu yet (though
                     # wubi_option is also a check for ntfs).
                     pass
                 elif resize_option:
@@ -3518,7 +3518,7 @@ class Page(plugin.Plugin):
         lines = description.splitlines()
         # Remove the last line of the output from partman which corresponds to
         # the ext4 partition
-        del(lines[-1])
+        del (lines[-1])
 
         if not os.path.exists(zsys_layout):
             return description

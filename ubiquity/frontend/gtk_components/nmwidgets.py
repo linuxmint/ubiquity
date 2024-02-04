@@ -3,6 +3,7 @@ DBusGMainLoop(set_as_default=True)
 
 from gi import require_version
 from gi.repository import Gtk, GObject, GLib
+require_version('NM', '1.0')
 require_version('NMA', '1.0')
 from gi.repository import NM, NMA
 

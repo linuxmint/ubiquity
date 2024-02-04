@@ -3,7 +3,6 @@
 import os
 import unittest
 import unittest.mock
-from test.support import run_unittest
 
 import debconf
 
@@ -30,7 +29,7 @@ class TestPage(TestPageBase):
         ("xkb", "gb"),
     ]
 
-    @unittest.mock.patch("ubi-console-setup.gsettings.set_list")
+    @unittest.mock.patch.object(ubi_console_setup.gsettings, "set_list")
     def test_set_gnome_keyboard_layout_with_variant(self, set_list_mock):
         self.page.gnome_input_sources = self.DEFAULT_ENGLISH_KEYBOARDS
         self.page.set_gnome_keyboard_layout("de", "neo")
@@ -49,7 +48,7 @@ class TestPage(TestPageBase):
             ]
         )
 
-    @unittest.mock.patch("ubi-console-setup.gsettings.set_list")
+    @unittest.mock.patch.object(ubi_console_setup.gsettings, "set_list")
     def test_set_gnome_keyboard_layout_without_variant(self, set_list_mock):
         self.page.gnome_input_sources = self.DEFAULT_ENGLISH_KEYBOARDS
         self.page.set_gnome_keyboard_layout("de", "")
@@ -68,7 +67,7 @@ class TestPage(TestPageBase):
             ]
         )
 
-    @unittest.mock.patch("ubi-console-setup.gsettings.set_list")
+    @unittest.mock.patch.object(ubi_console_setup.gsettings, "set_list")
     def test_set_gnome_keyboard_layout_to_existing_layout(self, set_list_mock):
         self.page.gnome_input_sources = self.DEFAULT_ENGLISH_KEYBOARDS
         self.page.set_gnome_keyboard_layout("gb", "")
@@ -87,7 +86,7 @@ class TestPage(TestPageBase):
             ]
         )
 
-    @unittest.mock.patch("ubi-console-setup.gsettings.set_list")
+    @unittest.mock.patch.object(ubi_console_setup.gsettings, "set_list")
     def test_set_gnome_keyboard_layout_with_empty_input_sources(
         self, set_list_mock
     ):
@@ -96,7 +95,3 @@ class TestPage(TestPageBase):
         set_list_mock.assert_called_once_with(
             "org.gnome.desktop.input-sources", "sources", [("xkb", "us")]
         )
-
-
-if __name__ == "__main__":
-    run_unittest(TestPage)  # pragma: no cover

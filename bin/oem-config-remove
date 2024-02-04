@@ -18,13 +18,13 @@ case $1 in
 
 		debconf-apt-progress --from 0 --to 50 \
 			--logfile /var/log/oem-config.log -- \
-			apt-get -y purge ubiquity ubiquity-casper ubiquity-ubuntu-artwork
+			apt-get -y autoremove --purge ubiquity ubiquity-casper ubiquity-ubuntu-artwork
 		debconf-apt-progress --from 50 --to 75 \
 			--logfile /var/log/oem-config.log -- \
-			apt-get -y purge 'ubiquity-slideshow-*' || true
+			apt-get -y autoremove --purge 'ubiquity-slideshow-*' || true
 		debconf-apt-progress --from 75 --to 100 \
 			--logfile /var/log/oem-config.log -- \
-			apt-get -y purge 'oem-config-slideshow-*' || true
+			apt-get -y autoremove --purge 'oem-config-slideshow-*' || true
 
 		debconf-apt-progress --stop
                 # finish-install.d/01oem-config-udeb masks

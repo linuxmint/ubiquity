@@ -23,8 +23,6 @@ import subprocess
 import sys
 import syslog
 
-import gettext
-
 from ubiquity import i18n, misc, osextras, plugin, upower
 from ubiquity.install_misc import (archdetect, is_secure_boot,
                                    minimal_install_rlist_path)
@@ -41,7 +39,7 @@ OEM = False
 # need the dbfilter for that get.
 
 class PreparePageBase(plugin.PluginUI):
-    plugin_title = 'mint:Multimedia codecs'
+    plugin_title = 'ubiquity/text/prepare_heading_label'
     download_updates = True
     download_updates_enabled = True
 
@@ -81,7 +79,7 @@ class PreparePageBase(plugin.PluginUI):
 
 
 class PageGtk(PreparePageBase):
-    restricted_package_name = 'mint-meta-codecs'
+    restricted_package_name = 'ubuntu-restricted-addons'
 
     def __init__(self, controller, *args, **kwargs):
         self.controller = controller
@@ -231,9 +229,6 @@ class PageGtk(PreparePageBase):
             'ubiquity/text/preparing_ud_label', lang))
 
         release = misc.get_release()
-
-        self.prepare_nonfree_software.set_label(gettext.dgettext("mintreport", "Install multimedia codecs"))
-        self.prepare_foss_disclaimer.set_label(gettext.dgettext("mintreport", "Multimedia codecs are required to play some video formats and to properly render some websites."))
 
         from gi.repository import Gtk
         for widget in [self.prepare_download_updates,
@@ -471,7 +466,7 @@ class PageKde(PreparePageBase):
         for widget in widgets:
             text = widget.text()
             text = text.replace('${RELEASE}', release.name)
-            text = text.replace('Linux Mint', 'Kubuntu')
+            text = text.replace('Ubuntu', 'Kubuntu')
             widget.setText(text)
 
 
@@ -568,7 +563,7 @@ class Page(plugin.Plugin):
         return biggest
 
     def ok_handler(self):
-        download_updates = False
+        download_updates = self.ui.get_download_updates()
         minimal_install = self.ui.get_minimal_install()
         use_nonfree = self.ui.get_use_nonfree()
         secureboot_key = self.ui.get_secureboot_key()

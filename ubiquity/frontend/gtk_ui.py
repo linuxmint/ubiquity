@@ -49,7 +49,12 @@ DBusGMainLoop(set_as_default=True)
 
 # in query mode we won't be in X, but import needs to pass
 if 'DISPLAY' in os.environ:
+    gi.require_version('Atk', '1.0')
+    gi.require_version('Gdk', '3.0')
     gi.require_version('Gtk', '3.0')
+    gi.require_version('Gio', '2.0')
+    gi.require_version('GLib', '2.0')
+    gi.require_version('GObject', '2.0')
     from gi.repository import Gtk, Gdk, GObject, GLib, Atk, Gio
     from ubiquity import gtkwidgets
 
@@ -306,7 +311,7 @@ class Wizard(BaseFrontend):
             }
             progressbar progress {
               min-height: 10px;
-              border-radius: 2px;
+              border-radius: 4px;
               border: none;
             }
             paned separator {
@@ -863,7 +868,7 @@ class Wizard(BaseFrontend):
         self.set_current_page(0)
         self.live_installer.show()
 
-        while(self.pagesindex < len(self.pages)):
+        while (self.pagesindex < len(self.pages)):
             if self.current_page is None:
                 return self.returncode
 
@@ -1033,11 +1038,12 @@ class Wizard(BaseFrontend):
                          'install_details_expander']:
             box = self.builder.get_object(eventbox)
             style = box.get_style_context()
-            style.add_class('ubiquity-menubar')
+            style.add_class('menubar')
 
         # TODO lazy load
         import gi
         gi.require_version("Vte", "2.91")
+        gi.require_version("Pango", "1.0")
         from gi.repository import Vte, Pango
         misc.drop_privileges_save()
         self.vte = Vte.Terminal()
@@ -1562,9 +1568,6 @@ class Wizard(BaseFrontend):
         self.quit_main_loop()
 
     # Callbacks
-    def dialog_hide_on_delete(self, widget, event, data=None):
-        widget.hide()
-        return True
 
     def on_quit_clicked(self, unused_widget):
         self.warning_dialog.set_transient_for(

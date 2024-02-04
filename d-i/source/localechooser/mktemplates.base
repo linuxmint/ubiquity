@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -e
+set -xe
 
 # Script for generating a debconf templates file from both files
 # in debian/po/*.po and country names translations from the
@@ -42,7 +42,7 @@ for pofile in debian/po/*.po ; do
 		# msgcat will properly handle different encodings
 		msgcat --use-first $ISO3166TRANSLATIONS/$pofilename \
 			debian/po/$pofilename \
-			> debian/pobuild/$pofilename 2>/dev/null
+			> debian/pobuild/$pofilename
 
 		msgmerge -U debian/pobuild/$pofilename \
 			debian/pobuild/templates.pot

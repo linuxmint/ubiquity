@@ -40,15 +40,44 @@ find_method () {
 }
 
 cap_ram () {
-    local ram
+    local ram min_ram limit
     ram="$1"
+    min_ram="0"
+
+    db_get partman-auto/ensure-min-mem
+    # test that return string is all numbers, otherwise do not raise
+    if [ $(expr "x$RET" : "x[0-9]*$") -gt 1 ]; then
+	if [ "$ram" -lt "$RET" ]; then
+            min_ram=$(expr \( "$RET" - "$ram" \) / 2)
+        fi
+    fi
+
     db_get partman-auto/cap-ram
     # test that return string is all numbers, otherwise do not cap
     if [ $(expr "x$RET" : "x[0-9]*$") -gt 1 ]; then
-	if [ $ram -gt "$RET" ]; then
+	if [ "$ram" -gt "$RET" ]; then
 	    ram=$RET
 	fi
     fi
+
+    if [ "$min_ram" -gt "$ram" ]; then
+        ram=$min_ram
+    fi
+
+    db_get partman-auto/cap-ram-free-size
+    limit=$((RET/100))
+
+    db_get partman-auto/cap-ram-percentage
+    limit=$((limit*RET))
+
+    limit=$((limit/2))
+
+    if [ "$ram" -gt "$limit" ]; then
+        ram=$limit
+    fi
+
+    db_set partman-auto/desired-swap $((ram*2))
+
     echo "$ram"
 }
 
@@ -376,6 +405,9 @@ choose_recipe () {
 	type=$1
 	target="$2"
 	free_size=$3
+
+	# Export free_size for cap_ram calculation
+	db_set partman-auto/cap-ram-free-size $free_size
 
 	# Preseeding of recipes
 	db_get partman-auto/expert_recipe

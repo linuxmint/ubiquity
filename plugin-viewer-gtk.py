@@ -3,7 +3,10 @@
 import os
 import sys
 
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
+
 from dbus.mainloop.glib import DBusGMainLoop
 DBusGMainLoop(set_as_default=True)
 
@@ -64,8 +67,8 @@ if __name__ == "__main__":
     plugin_module = load_plugin(plugin_name)
 
     win = Gtk.Window()
-    win.button_next = Gtk.Button("next")
-    win.button_back = Gtk.Button("back")
+    win.button_next = Gtk.Button(label="next")
+    win.button_back = Gtk.Button(label="back")
 
     mock_controller = MockController(win)
     page_gtk = plugin_module.PageGtk(mock_controller)

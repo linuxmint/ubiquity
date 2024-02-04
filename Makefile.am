@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = data pixmaps po src mint-po
+SUBDIRS = data pixmaps po src
 
 ACLOCAL_AMFLAGS = -I m4
 

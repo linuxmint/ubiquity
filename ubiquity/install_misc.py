@@ -130,9 +130,10 @@ def chroot_setup(target, x11=False):
 exit 101""", file=f)
     os.chmod(policy_rc_d, 0o755)
 
+    chrex(target, 'dpkg-divert',
+          '--divert', '/sbin/start-stop-daemon.REAL',
+          '--rename', '/sbin/start-stop-daemon')
     start_stop_daemon = os.path.join(target, 'sbin/start-stop-daemon')
-    if os.path.exists(start_stop_daemon):
-        os.rename(start_stop_daemon, '%s.REAL' % start_stop_daemon)
     with open(start_stop_daemon, 'w') as f:
         print("""\
 #!/bin/sh
@@ -200,10 +201,9 @@ def chroot_cleanup(target, x11=False):
         os.rename('%s.REAL' % initctl, initctl)
 
     start_stop_daemon = os.path.join(target, 'sbin/start-stop-daemon')
-    if os.path.exists('%s.REAL' % start_stop_daemon):
-        os.rename('%s.REAL' % start_stop_daemon, start_stop_daemon)
-    else:
-        osextras.unlink_force(start_stop_daemon)
+    osextras.unlink_force(start_stop_daemon)
+    chrex(target, 'dpkg-divert',
+          '--rename', '--remove', '/sbin/start-stop-daemon')
 
     policy_rc_d = os.path.join(target, 'usr/sbin/policy-rc.d')
     osextras.unlink_force(policy_rc_d)
@@ -996,11 +996,6 @@ class InstallBase:
                         syslog.syslog(syslog.LOG_ERR, line)
                     commit_error = str(e)
             finally:
-                if "mint-meta-codecs" in to_install:
-                    os.system("echo 'DEBIAN_FRONTEND=noninteractive apt-get install --yes mint-meta-codecs' > /target/usr/bin/install-mint-codecs")
-                    os.system("chmod a+rx /target/usr/bin/install-mint-codecs")
-                    chrex(self.target, '/usr/bin/install-mint-codecs')
-                    os.system("rm -f /target/usr/bin/install-mint-codecs")
                 chroot_cleanup(self.target)
             self.db.progress('SET', 10)
 
@@ -1115,13 +1110,13 @@ class InstallBase:
             pkg for pkg in to_install if get_cache_pkg(cache, pkg) is not None]
 
         install_new = True
-        # try:
-        #     install_new_key = \
-        #         self.db.get('pkgsel/install-language-support') == 'true'
-        #     if install_new_key != '' and not misc.create_bool(install_new_key):
-        #         install_new = False
-        # except debconf.DebconfError:
-        #     pass
+        try:
+            install_new_key = \
+                self.db.get('pkgsel/install-language-support') == 'true'
+            if install_new_key != '' and not misc.create_bool(install_new_key):
+                install_new = False
+        except debconf.DebconfError:
+            pass
 
         if not install_new:
             # Keep packages that are on the live filesystem, but don't install

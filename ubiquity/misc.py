@@ -12,6 +12,10 @@ import syslog
 import json
 
 from ubiquity import osextras
+import gi
+gi.require_version('Gio', '2.0')
+gi.require_version('GLib', '2.0')
+gi.require_version('GObject', '2.0')
 from gi.repository import Gio, GLib, GObject
 
 
@@ -162,7 +166,7 @@ def get_live_user_home():
 @raise_privileges
 def grub_options():
     """ Generates a list of suitable targets for grub-installer
-        @return empty list or a list of ['/dev/sda1','Linux Mint Hardy 8.04'] """
+        @return empty list or a list of ['/dev/sda1','Ubuntu Hardy 8.04'] """
     from ubiquity.parted_server import PartedServer
 
     ret = []
@@ -484,7 +488,7 @@ def os_prober():
             res = res.split(':')
             # launchpad bug #1265192, fix os-prober Windows EFI path
             res[0] = re.match(r'[/\w\d]+', res[0]).group()
-            if res[2] == 'Linux Mint':
+            if res[2] == 'Ubuntu':
                 version = [v for v in re.findall('[0-9.]*', res[1]) if v][0]
                 # Get rid of the superfluous (development version) (11.04)
                 text = re.sub(r'\s*\(.*\).*', '', res[1])
@@ -531,12 +535,16 @@ def get_release():
                 line = fp.readline()
                 if line:
                     line = line.split()
-                    get_release.release_info = ReleaseInfo(name=" ".join(line[0:2]), version=line[2])
+                    if line[2] == 'LTS':
+                        line[1] += ' LTS'
+                    line[0] = line[0].replace('-', ' ')
+                    get_release.release_info = ReleaseInfo(
+                        name=line[0], version=line[1])
         except Exception:
             syslog.syslog(syslog.LOG_ERR, 'Unable to determine the release.')
 
         if not get_release.release_info:
-            get_release.release_info = ReleaseInfo(name='Linux Mint', version='')
+            get_release.release_info = ReleaseInfo(name='Ubuntu', version='')
     return get_release.release_info
 
 
@@ -565,7 +573,7 @@ def get_release_name():
                 "Unable to determine the distribution name from "
                 "/cdrom/.disk/info")
         if not get_release_name.release_name:
-            get_release_name.release_name = 'Linux Mint'
+            get_release_name.release_name = 'Ubuntu'
     return get_release_name.release_name
 
 
@@ -703,6 +711,9 @@ def dmimodel():
 
 def set_indicator_keymaps(lang):
     import xml.etree.cElementTree as ElementTree
+    import gi
+    gi.require_version('GdkX11', '3.0')
+    gi.require_version('Xkl', '1.0')
     from gi.repository import Xkl, GdkX11
     # GdkX11.x11_get_default_xdisplay() segfaults if Gtk hasn't been
     # imported; possibly finer-grained than this, but anything using this
@@ -931,11 +942,11 @@ def install_size():
     if min_install_size:
         return min_install_size
 
-    # Fallback size to 8 GB
-    size = 8 * 1024 * 1024 * 1024
+    # Fallback size to 5 GB
+    size = 5 * 1024 * 1024 * 1024
 
-    # Maximal size to 15 GB
-    max_size = 15 * 1024 * 1024 * 1024
+    # Maximal size to 8 GB
+    max_size = 8 * 1024 * 1024 * 1024
 
     try:
         with open('/cdrom/casper/filesystem.size') as fp:
@@ -946,8 +957,8 @@ def install_size():
     # TODO substitute into the template for the state box.
     min_disk_size = size * 2  # fudge factor
 
-    # Set minimum size to 15GB if current minimum size is larger
-    # than 15GB and we still have an extra 20% of free space
+    # Set minimum size to 8GB if current minimum size is larger
+    # than 8GB and we still have an extra 20% of free space
     if min_disk_size > max_size and size * 1.2 < max_size:
         min_disk_size = max_size
 

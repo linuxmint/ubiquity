@@ -429,7 +429,12 @@ EndSection
             visual_a11y = 'access=v' in proc_cmdline
 
             background_image = None
-            for background in ('/usr/share/backgrounds/linuxmint/default_background.jpg'):
+            for background in (
+                    '/usr/share/xfce4/backdrops/xubuntu-wallpaper.png',
+                    '/usr/share/backgrounds/'
+                    'ubuntustudio/ubuntustudio-default.png',
+                    '/usr/share/lubuntu/wallpapers/'
+                    'lubuntu-default-wallpaper.png'):
                 exists = os.access(background, os.R_OK)
                 if exists:
                     background_image = background
@@ -507,7 +512,7 @@ EndSection
 
                 if (osextras.find_on_path('gnome-shell')):
                     # set this environment variable since we have
-                    # session-specific GSettings overrides for Linux Mint/Shell,
+                    # session-specific GSettings overrides for Ubuntu/Shell,
                     # like the theme.
                     os.environ['XDG_CURRENT_DESKTOP'] = 'ubuntu:GNOME'
                     if (osextras.find_on_path(
@@ -539,24 +544,11 @@ EndSection
                        '/usr/libexec/gsd-media-keys',
                        '/usr/libexec/gsd-power',
                        '/usr/libexec/gsd-xsettings']
-                csd = ['/usr/bin/csd-a11y-settings',
-                       '/usr/bin/csd-clipboard',
-                       '/usr/bin/csd-media-keys',
-                       '/usr/bin/csd-power',
-                       '/usr/bin/csd-xsettings']
 
                 if osextras.find_on_path(msd):
                     extras.append(subprocess.Popen(
                         [msd], stdin=null, stdout=logfile, stderr=logfile,
                         preexec_fn=self.drop_privileges))
-
-                elif osextras.find_on_path(csd[0]):
-                    for csdbinary in csd:
-                        if osextras.find_on_path(csdbinary):
-                            extras.append(subprocess.Popen(
-                                [csdbinary],
-                                stdin=null, stdout=logfile, stderr=logfile,
-                                preexec_fn=self.drop_privileges))
 
                 elif (osextras.find_on_path(usd)):
                     # Wait until xsettings plugin is activated
@@ -646,11 +638,12 @@ EndSection
                     stdin=null, stdout=logfile, stderr=logfile,
                     preexec_fn=self.drop_privileges))
 
-            if os.path.exists('/usr/lib/ubiquity/panel') and not os.path.exists('/usr/bin/cinnamon'):
+            if os.path.exists('/usr/lib/ubiquity/panel'):
                 if ("openbox-lubuntu" not in wm_cmd and
                         "openbox" not in wm_cmd and
                         "gnome-shell" not in wm_cmd and
-                        "xfwm4" not in wm_cmd):
+                        "xfwm4" not in wm_cmd and
+                        "budgie-wm" not in wm_cmd):
                     multiarchdir = os.path.split(
                         sysconfig.get_config_var('multiarchsubdir'))[-1]
                     indicators = list(filter(os.path.isfile, [

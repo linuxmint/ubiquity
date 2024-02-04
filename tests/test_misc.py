@@ -4,7 +4,6 @@ import grp
 import io
 import os
 import pwd
-from test.support import run_unittest
 try:
     from test.support import EnvironmentVarGuard
 except ImportError:
@@ -20,7 +19,7 @@ from ubiquity import misc
 _proc_swaps = [
     'Filename\t\t\t\tType\t\tSize\tUsed\tPriority',
     '/dev/sda5                               partition\t1046524\t56160\t-1']
-_disk_info = ('Linux Mint-Server 10.04.1 LTS _Lucid Lynx_ '
+_disk_info = ('Ubuntu-Server 10.04.1 LTS _Lucid Lynx_ '
               '- Release i386 (20100816.2)')
 _proc_mounts = [
     'rootfs / rootfs rw 0 0',
@@ -104,14 +103,14 @@ class MiscTests(unittest.TestCase):
         mock_open.return_value = magic
         magic.readline.return_value = _disk_info
         release = misc.get_release()
-        self.assertEqual(release.name, 'Linux Mint Server')
+        self.assertEqual(release.name, 'Ubuntu Server')
         self.assertEqual(release.version, '10.04.1 LTS')
 
     @mock.patch('builtins.open')
     def test_get_release_fail(self, mock_open):
         mock_open.side_effect = Exception('Pow!')
         release = misc.get_release()
-        self.assertEqual(release.name, 'Linux Mint')
+        self.assertEqual(release.name, 'Ubuntu')
         self.assertEqual(release.version, '')
 
     # @mock.patch('os.path.exists')
@@ -426,7 +425,3 @@ class GrubDefaultTests(unittest.TestCase):
         self.assertEqual('/dev/sda', misc.grub_default())
         self.boot_device = '/dev/sda'
         self.assertEqual('/dev/sda', misc.grub_default())
-
-
-if __name__ == '__main__':
-    run_unittest(MiscTests, PrivilegeTests, GrubDefaultTests)

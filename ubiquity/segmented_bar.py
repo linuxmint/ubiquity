@@ -31,6 +31,8 @@
 import math
 
 import cairo
+import gi
+gi.require_version('PangoCairo', '1.0')
 from gi.repository import GObject, Gdk, Gtk, PangoCairo
 
 from ubiquity.misc import find_in_os_prober, format_size

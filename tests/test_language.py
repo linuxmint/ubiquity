@@ -88,7 +88,7 @@ class LanguageTests(unittest.TestCase):
         self.controller.oem_config = False
         self.ubi_language = ubi_language
         # Set the environment variable needed in order for PageGtk to hook up
-        # the Try Ubuntu button with the appropriate action.
+        # the Try Linux Mint button with the appropriate action.
         with EnvironmentVarGuard() as environ:
             environ['UBIQUITY_GREETER'] = '1'
             self.gtk = self.ubi_language.PageGtk(self.controller)
@@ -104,11 +104,11 @@ class LanguageTests(unittest.TestCase):
             self.controller.allowed_change_step.return_value = args[0]
 
         self.controller.allow_change_step.side_effect = side_effect
-        # Multiple clicks on Try Ubuntu crash the installer.  LP: #911907
+        # Multiple clicks on Try Linux Mint crash the installer.  LP: #911907
         self.gtk.try_ubuntu.clicked()
         self.gtk.try_ubuntu.clicked()
         # Process the clicks.
         gtkwidgets.refresh()
-        # When the Try Ubuntu button is clicked, the dbfilter's ok_handler()
+        # When the Try Linux Mint button is clicked, the dbfilter's ok_handler()
         # methods should have been called only once.
         self.assertEqual(self.controller.dbfilter.ok_handler.call_count, 1)

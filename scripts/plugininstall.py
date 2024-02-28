@@ -184,6 +184,15 @@ class Install(install_misc.InstallBase):
         self.configure_network()
 
         self.configure_locale()
+        # Fix locale
+        # Starting with Ubuntu 24.04 systemd deletes /etc/default/locale at boot time
+        # and turns it into a symlink to /etc/locale.conf.
+        # ubiquity and d-i write to /etc/default/locale though so the call
+        # below copies the content written by the installer into /etc/locale.conf
+        if 'UBIQUITY_OEM_USER_CONFIG' in os.environ:
+            os.system("cp /etc/default/locale /etc/locale.conf")
+        else:
+            os.system("cp /target/etc/default/locale /target/etc/locale.conf")
 
         self.next_region()
         self.db.progress('INFO', 'ubiquity/install/apt')

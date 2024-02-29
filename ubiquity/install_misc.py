@@ -1087,7 +1087,7 @@ class InstallBase:
             if not all_langpacks and checker:
                 check_lang = subprocess.Popen(
                     ['check-language-support', '-l', lp_locale.split('.')[0],
-                     '--show-installed'],
+                     '--show-installed', '-d', '/usr/share/linuxmint/mintlocale/'],
                     stdout=subprocess.PIPE, universal_newlines=True)
                 to_install.extend(check_lang.communicate()[0].strip().split())
             else:
@@ -1103,7 +1103,7 @@ class InstallBase:
                     to_install.append(toplevel)
         if all_langpacks and checker:
             check_lang = subprocess.Popen(
-                ['check-language-support', '-a', '--show-installed'],
+                ['check-language-support', '-a', '--show-installed', '-d', '/usr/share/linuxmint/mintlocale/'],
                 stdout=subprocess.PIPE, universal_newlines=True)
             to_install.extend(check_lang.communicate()[0].strip().split())
 

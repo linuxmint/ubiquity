@@ -540,6 +540,8 @@ def mark_install(cache, to_install):
         if not cachedpkg.is_installed:
             cachedpkg.mark_install(auto_fix=False, auto_inst=False, from_user=True)
         elif cachedpkg.is_upgradable:
+            if pkg.startswith("firefox-locale-"):
+                continue
             auto = cachedpkg.is_auto_installed
             cachedpkg.mark_install(auto_fix=False, auto_inst=False, from_user=True)
             cachedpkg.mark_auto(auto)
@@ -551,6 +553,8 @@ def mark_install(cache, to_install):
         if not cachedpkg.is_installed:
             cachedpkg.mark_install(auto_fix=False, auto_inst=True, from_user=True)
         elif cachedpkg.is_upgradable:
+            if pkg.startswith("firefox-locale-"):
+                continue
             auto = cachedpkg.is_auto_installed
             cachedpkg.mark_install(auto_fix=False, auto_inst=True, from_user=True)
             cachedpkg.mark_auto(auto)

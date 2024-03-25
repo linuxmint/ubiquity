@@ -338,7 +338,7 @@ class PageGtk(PageBase):
 
         # Only show zfs when available
         zpool_exists = os.path.exists('/sbin/zpool')
-        self.use_zfs.set_visible(zpool_exists)
+        self.use_zfs.set_visible(False)
 
         dlg = self.advanced_features_dialog
         dlg.show()

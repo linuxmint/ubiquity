@@ -28,6 +28,13 @@ import icu
 from ubiquity import i18n, misc, plugin
 import ubiquity.tz
 
+import gi
+gi.require_version("Gtk", "3.0")
+gi.require_version("TimezoneMap", "1.0")
+gi.require_version("Soup", "3.0")
+from gi.repository import Gtk, GLib, TimezoneMap, Soup, GObject
+import syslog
+import json
 
 NAME = 'timezone'
 # after partman for default install, but language for oem install
@@ -42,7 +49,6 @@ class PageGtk(plugin.PluginUI):
 
     def __init__(self, controller, *args, **kwargs):
         self.controller = controller
-        from gi.repository import Gtk
         builder = Gtk.Builder()
         self.controller.add_builder(builder)
         builder.add_from_file(os.path.join(
@@ -93,10 +99,6 @@ class PageGtk(plugin.PluginUI):
             self.controller.allow_go_forward(True)
 
     def changed(self, entry):
-        import gi
-        gi.require_version('Soup', '2.4')
-        from gi.repository import Gtk, GObject, GLib, Soup
-
         text = misc.utf8(self.city_entry.get_text())
         if not text:
             return
@@ -111,18 +113,18 @@ class PageGtk(plugin.PluginUI):
                                   GObject.TYPE_STRING)
 
             if self.geoname_session is None:
-                self.geoname_session = Soup.SessionAsync()
+                self.geoname_session = Soup.Session()
             url = _geoname_url % (quote(text), misc.get_release().version)
             message = Soup.Message.new('GET', url)
-            message.request_headers.append('User-agent', 'Ubiquity/1.0')
+            message.get_request_headers().append('User-agent', 'Ubiquity/1.0')
             self.geoname_session.abort()
             if self.geoname_timeout_id is not None:
                 GLib.source_remove(self.geoname_timeout_id)
             self.geoname_timeout_id = \
                 GLib.timeout_add_seconds(2, self.geoname_timeout,
                                          (text, model))
-            self.geoname_session.queue_message(message, self.geoname_cb,
-                                               (text, model))
+            self.geoname_session.send_and_read_async(message, Soup.MessagePriority.NORMAL, None, self.geoname_cb,
+                                               (message, text, model))
 
     def geoname_add_tzdb(self, text, model):
         if len(model):
@@ -147,35 +149,40 @@ class PageGtk(plugin.PluginUI):
                               str(loc.latitude), str(loc.longitude)])
 
     def geoname_timeout(self, user_data):
+        if self.geoname_timeout_id is not None:
+            GLib.source_remove(self.geoname_timeout_id)
+            self.geoname_timeout_id = None
+
         text, model = user_data
         self.geoname_add_tzdb(text, model)
         self.geoname_timeout_id = None
         self.city_entry.get_completion().set_model(model)
         return False
 
-    def geoname_cb(self, session, message, user_data):
-        import syslog
-        import json
-        from gi.repository import GLib, Soup
-
-        text, model = user_data
+    def geoname_cb(self, session, result, user_data=None):
+        message, text, model = user_data
 
         if self.geoname_timeout_id is not None:
             GLib.source_remove(self.geoname_timeout_id)
             self.geoname_timeout_id = None
         self.geoname_add_tzdb(text, model)
 
-        if message.status_code == Soup.KnownStatusCode.CANCELLED:
-            # Silently ignore cancellation.
-            pass
-        elif message.status_code != Soup.KnownStatusCode.OK:
+        _bytes = None
+
+        try:
+            _bytes = session.send_and_read_finish(result)
+        except GLib.Error as e:
+            if e.code == Gio.IOErrorEnum.CANCELLED:
+                pass
+
+        if message.get_status() != Soup.Status.OK:
             # Log but otherwise ignore failures.
             syslog.syslog(
                 'Geoname lookup for "%s" failed: %d %s' %
                 (text, message.status_code, message.reason_phrase))
         else:
             try:
-                for result in json.loads(message.response_body.data):
+                for result in json.loads(_bytes.get_data().decode("utf-8")):
                     model.append([
                         result['name'], result['admin1'], result['country'],
                         result['latitude'], result['longitude']])
@@ -186,15 +193,10 @@ class PageGtk(plugin.PluginUI):
             except ValueError:
                 syslog.syslog(
                     'Server return does not appear to be valid JSON.')
-
         self.city_entry.get_completion().set_model(model)
 
     def setup_page(self):
         # TODO Put a frame around the completion to add contrast (LP: # 605908)
-        from gi import require_version
-        from gi.repository import Gtk, GLib
-        require_version('TimezoneMap', '1.0')
-        from gi.repository import TimezoneMap
         self.tzdb = ubiquity.tz.Database()
         self.tzmap = TimezoneMap.TimezoneMap()
         self.tzmap.connect('location-changed', self.select_city)

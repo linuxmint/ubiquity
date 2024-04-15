@@ -32,7 +32,7 @@ import gi
 gi.require_version("Gtk", "3.0")
 gi.require_version("TimezoneMap", "1.0")
 gi.require_version("Soup", "3.0")
-from gi.repository import Gtk, GLib, TimezoneMap, Soup, GObject
+from gi.repository import Gtk, GLib, TimezoneMap, Soup, GObject, Gio
 import syslog
 import json
 

@@ -179,7 +179,7 @@ class PageGtk(plugin.PluginUI):
             # Log but otherwise ignore failures.
             syslog.syslog(
                 'Geoname lookup for "%s" failed: %d %s' %
-                (text, message.status_code, message.reason_phrase))
+                (text, message.get_status(), message.get_reason_phrase()))
         else:
             try:
                 for result in json.loads(_bytes.get_data().decode("utf-8")):

@@ -40,7 +40,7 @@ def get_vendor_and_model(udi):
     with open('/dev/null', 'w') as devnull:
         out = subprocess.Popen(
             cmd, stdout=subprocess.PIPE, stderr=devnull,
-            universal_newlines=True)
+            universal_newlines=True, errors='replace')
         out = out.communicate()
     if not out[1]:
         for prop in out[0].split('\n'):

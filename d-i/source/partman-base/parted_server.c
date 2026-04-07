@@ -1398,7 +1398,7 @@ do_wipe(char *devname)
                                          BLKID_PARTS_FORCE_GPT);
 
         while (blkid_do_probe(pr) == 0) {
-                char *type = "unknown";
+                const char *type = "unknown";
                 if (blkid_probe_lookup_value(pr, "TYPE", &type, NULL) < 0)
                         blkid_probe_lookup_value(pr, "PTTYPE", &type, NULL);
                 log("wiping superblock of type %s", type);

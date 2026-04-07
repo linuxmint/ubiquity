@@ -66,7 +66,7 @@ static int netcfg_get_pointopoint(struct debconfclient *client, struct netcfg_in
         }
     }
 
-    inet_ntop(interface->address_family, &addr, interface->pointopoint, NETCFG_ADDRSTRLEN);
+    inet_ntop(interface->address_family, &addr, interface->pointopoint, INET_ADDRSTRLEN);
     return 0;
 }
 

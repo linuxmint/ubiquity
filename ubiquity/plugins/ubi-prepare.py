@@ -488,6 +488,7 @@ class Page(plugin.Plugin):
         if 'efi' in subarch:
             if is_secure_boot():
                 self.ui.set_using_secureboot(True)
+        self.check_bitlocker_and_space()
 
         self.ui.download_updates = self.db.get('ubiquity/download_updates') == 'true'
         if self.ui.download_updates_enabled:
@@ -532,6 +533,35 @@ class Page(plugin.Plugin):
         for template in ['ubiquity/text/required_space',
                          'ubiquity/text/free_space']:
             self.db.subst(template, 'RELEASE', release.name)
+
+    def check_bitlocker_and_space(self):
+        from ubiquity import parted_server
+        try:
+            parted = parted_server.PartedServer()
+            required_size = misc.install_size()
+            has_suitable_drive = False
+            for disk in parted.disks():
+                parted.select_disk(disk)
+                can_install = False
+                for partition in parted.partitions():
+                    p_size = int(partition[2])
+                    p_fs = partition[4]
+                    if p_fs == 'free' and p_size >= required_size:
+                        can_install = True
+                        break
+                    elif p_fs not in ('free', 'BitLocker'):
+                        can_install = True
+                        break
+                if can_install:
+                    has_suitable_drive = True
+                    break
+            if not has_suitable_drive:
+                title = self.controller.get_string('ubiquity/text/bitlocker_header')
+                self.frontend.error_dialog(title, '', True)
+                return True
+        except Exception:
+            pass
+        return False
 
     def should_show_rst_page(self):
         search = '/sys/module/ahci/drivers/pci:ahci/*/remapped_nvme'

@@ -765,6 +765,20 @@ class TestPageGtk(unittest.TestCase):
         gtkwidgets.refresh()
         self.gtk.controller.go_forward.assert_called_once_with()
 
+    def test_update_partman_no_disks_disables_buttons(self):
+        self.gtk.controller.dbfilter.get_actions.side_effect = (
+            lambda devpart, partition: iter([]))
+        self.gtk.update_partman({}, {}, [])
+        for action in ('new_label', 'new', 'edit', 'delete'):
+            button = getattr(self.gtk, 'partition_button_%s' % action)
+            self.assertFalse(button.get_sensitive(), action)
+
+    def test_edit_and_new_without_selection(self):
+        self.gtk.partman_dialog = mock.Mock()
+        self.gtk.on_partition_list_edit_activate(None)
+        self.gtk.on_partition_list_new_activate(None)
+        self.gtk.partman_dialog.assert_not_called()
+
     @mock.patch('ubiquity.misc.grub_options',
                 _fake_grub_options_pairs(
                     ('/dev/vda', '/dev/vdb',

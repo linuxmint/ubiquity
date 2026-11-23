@@ -1521,10 +1521,14 @@ class PageGtk(PageBase):
 
     def on_partition_list_new_activate(self, unused_widget):
         devpart, partition = self.partition_list_get_selection()
+        if partition is None:
+            return
         self.partman_dialog(devpart, partition)
 
     def on_partition_list_edit_activate(self, unused_widget):
         devpart, partition = self.partition_list_get_selection()
+        if partition is None:
+            return
         self.partman_dialog(devpart, partition, create=False)
 
     @plugin.only_this_page
@@ -1662,6 +1666,10 @@ class PageGtk(PageBase):
         sel = self.partition_list_treeview.get_selection()
         if sel.count_selected_rows() == 0:
             sel.select_path(0)
+        if sel.count_selected_rows() == 0:
+            # Nothing to select (e.g. no disks), so the "changed" signal
+            # never fires; refresh the buttons so they are not left enabled.
+            self.on_partition_list_treeview_selection_changed(sel)
         # make sure we're on the advanced partitioning page
         self.show_page_advanced()
 

@@ -558,9 +558,12 @@ class Page(plugin.Plugin):
     def free_space(self):
         biggest = 0
         with misc.raised_privileges():
+            # Disk model names are not guaranteed to be valid UTF-8, and
+            # only the size column is used here.
             proc = subprocess.Popen(
                 ['parted_devices'],
-                stdout=subprocess.PIPE, universal_newlines=True)
+                stdout=subprocess.PIPE, universal_newlines=True,
+                errors='replace')
             devices = proc.communicate()[0].rstrip('\n').split('\n')
             for device in devices:
                 if device and int(device.split('\t')[1]) > biggest:

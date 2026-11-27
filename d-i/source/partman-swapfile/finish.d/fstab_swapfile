@@ -2,6 +2,30 @@
 
 . /lib/partman/lib/base.sh
 
+# Swapfile in the btrfs subvolume @swap, which create_swapfile has mounted
+# at /target/swap (see swap_subvolume_mounted there); the subvolume is
+# mounted at /swap from the filesystem of /
+if grep -q '^[^ ]* [^ ]* [^ ]* /@swap /target/swap .* - btrfs ' /proc/self/mountinfo &&
+   [ -f /target/swap/swapfile ]; then
+    rootfs=
+    while read -r fs mp rest; do
+	case "$fs" in
+	    \#*|'')
+		continue
+		;;
+	esac
+	if [ "$mp" = / ]; then
+	    rootfs=$fs
+	fi
+    done </target/etc/fstab
+    if [ -z "$rootfs" ]; then
+	return 0
+    fi
+    printf "%-41s %-15s %-7s %-15s %-7s %s\n" "$rootfs" /swap btrfs defaults,subvol=@swap,nofail 0 0 >> /target/etc/fstab
+    printf "%-41s %-15s %-7s %-15s %-7s %s\n" /swap/swapfile none swap sw 0 0 >> /target/etc/fstab
+    return 0
+fi
+
 # No swapfile
 if [ ! -f /target/swapfile ]; then
     return 0

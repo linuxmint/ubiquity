@@ -2,11 +2,18 @@
 
 . /lib/partman/lib/base.sh
 
+# True if the swapfile is active: create_swapfile activates the swapfiles
+# that work (assumed if the kernel has no /proc/swaps)
+swap_active () {
+    [ -f "$1" ] || return 1
+    [ ! -f /proc/swaps ] || grep -q "^$(readlink -f "$1") " /proc/swaps
+}
+
 # Swapfile in the btrfs subvolume @swap, which create_swapfile has mounted
 # at /target/swap (see swap_subvolume_mounted there); the subvolume is
 # mounted at /swap from the filesystem of /
 if grep -q '^[^ ]* [^ ]* [^ ]* /@swap /target/swap .* - btrfs ' /proc/self/mountinfo &&
-   [ -f /target/swap/swapfile ]; then
+   swap_active /target/swap/swapfile; then
     rootfs=
     while read -r fs mp rest; do
 	case "$fs" in
@@ -26,8 +33,9 @@ if grep -q '^[^ ]* [^ ]* [^ ]* /@swap /target/swap .* - btrfs ' /proc/self/mount
     return 0
 fi
 
-# No swapfile
-if [ ! -f /target/swapfile ]; then
+# No working swapfile (e.g. only an old copy-on-write /swapfile in a btrfs
+# @ that is reused without formatting)
+if ! swap_active /target/swapfile; then
     return 0
 fi
 

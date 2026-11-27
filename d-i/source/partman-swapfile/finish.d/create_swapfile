@@ -35,9 +35,25 @@ enable_swap () {
     fi
 }
 
+# Prints the type of the filesystem mounted at /target. In
+# /proc/self/mountinfo, the mount point is the fifth field; it is followed
+# by the mount options, any number of optional fields (e.g. "shared:1" on
+# systems with systemd), the separator "-" and the filesystem type.
+target_fstype () {
+    local id parent devno root mountpoint rest
+    while read -r id parent devno root mountpoint rest; do
+	[ "$mountpoint" = /target ] || continue
+	set -- $rest
+	while [ $# -gt 0 ] && [ "$1" != - ]; do
+	    shift
+	done
+	echo "$2"
+    done </proc/self/mountinfo | tail -n 1
+}
+
 # Check target filesystem, might not support swapfiles...
 # Also check if fallocate can be used
-rootfstype=$(cat /proc/self/mountinfo | grep '/target' | cut -d\  -f8)
+rootfstype=$(target_fstype)
 fallocatesupport=false
 case $rootfstype in
     ext4)

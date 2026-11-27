@@ -30,20 +30,85 @@ swap_partition () {
 enable_swap () {
     # do swapon only when we will be able to swapoff afterwards
     [ -f /proc/swaps ] || return 0
-    if ! grep -q "^$(readlink -f /target/swapfile) " /proc/swaps; then
-	    swapon /target/swapfile 2>/dev/null || true
+    if ! grep -q "^$(readlink -f $swapfile) " /proc/swaps; then
+	    swapon $swapfile 2>/dev/null || true
     fi
+}
+
+# True if the swapfile is active (assumed if the kernel has no /proc/swaps)
+swap_active () {
+    [ ! -f /proc/swaps ] || grep -q "^$(readlink -f $swapfile) " /proc/swaps
+}
+
+# Prints the type and the device of the filesystem mounted at /target. In
+# /proc/self/mountinfo, the mount point is the fifth field; it is followed
+# by the mount options, any number of optional fields (e.g. "shared:1" on
+# systems with systemd), the separator "-", the filesystem type and the
+# device.
+target_filesystem () {
+    local id parent devno root mountpoint rest
+    while read -r id parent devno root mountpoint rest; do
+	[ "$mountpoint" = /target ] || continue
+	set -- $rest
+	while [ $# -gt 0 ] && [ "$1" != - ]; do
+	    shift
+	done
+	echo "$2 $3"
+    done </proc/self/mountinfo | tail -n 1
+}
+
+# True if the btrfs subvolume @swap is mounted at /target/swap: in
+# /proc/self/mountinfo, the fourth field is the path of the mount within
+# its filesystem and the fifth field the mount point.
+swap_subvolume_mounted () {
+    grep -q '^[^ ]* [^ ]* [^ ]* /@swap /target/swap .* - btrfs ' /proc/self/mountinfo
+}
+
+# The kernel only accepts a swapfile on btrfs that is not copy-on-write,
+# and btrfs refuses to snapshot a subvolume that contains an active
+# swapfile, which would break snapshots of / (e.g. with Timeshift). So on
+# btrfs, the swapfile gets the subvolume @swap at the top level of the
+# filesystem (next to @ and @home), mounted at /swap.
+mount_swap_subvolume () {
+    local top=/tmp/partman-swapfile-top
+    # mounted already, e.g. when partman runs again
+    if swap_subvolume_mounted; then
+	return 0
+    fi
+    # something else is mounted at or below /swap, e.g. a partition of the user
+    if grep -q '^[^ ]* [^ ]* [^ ]* [^ ]* /target/swap[ /]' /proc/self/mountinfo; then
+	return 1
+    fi
+    mkdir -p $top || return 1
+    if ! mount -t btrfs -o subvolid=5 $rootdevice $top; then
+	rmdir $top
+	return 1
+    fi
+    if [ ! -d $top/@swap ]; then
+	log-output -t partman-swapfile btrfs subvolume create $top/@swap
+    fi
+    umount $top
+    rmdir $top
+    mkdir -p /target/swap
+    mount -t btrfs -o subvol=@swap $rootdevice /target/swap
 }
 
 # Check target filesystem, might not support swapfiles...
 # Also check if fallocate can be used
-rootfstype=$(cat /proc/self/mountinfo | grep '/target' | cut -d\  -f8)
+set -- $(target_filesystem)
+rootfstype=$1
+rootdevice=$2
+swapfile=/target/swapfile
 fallocatesupport=false
 case $rootfstype in
     ext4)
         fallocatesupport=true
         ;;
-    btrfs|zfs)
+    btrfs)
+        swapfile=/target/swap/swapfile
+        fallocatesupport=true
+        ;;
+    zfs)
         # No support for swapfiles
         return 0
         ;;
@@ -55,7 +120,8 @@ if swap_partition; then
 fi
 
 # No new swapfile... if there is one already, e.g. reuse/reinstall recipes
-if [ -f /target/swapfile ]; then
+# (on btrfs, the subvolume @swap is checked once it is mounted, see below)
+if [ "$rootfstype" != btrfs ] && [ -f $swapfile ]; then
     enable_swap
     return 0
 fi
@@ -92,14 +158,37 @@ then
     return 0
 fi
 
-if type fallocate >/dev/null 2>&1 && $fallocatesupport; then
-    log-output -t partman-swapfile --pass-stdout fallocate -l ${size}KiB /target/swapfile
-else
-    log-output -t partman-swapfile --pass-stdout dd if=/dev/zero of=/target/swapfile bs=1024 count=$size
+if [ "$rootfstype" = btrfs ]; then
+    mount_swap_subvolume || return 0
+    # No new swapfile... if the subvolume @swap has one that works (one
+    # that shares its extents with a snapshot of @swap doesn't)
+    if [ -f $swapfile ]; then
+	enable_swap
+	if swap_active; then
+	    return 0
+	fi
+	rm -f $swapfile
+    fi
+    # copy-on-write can only be turned off while the file is empty
+    touch $swapfile
+    if ! log-output -t partman-swapfile chattr +C $swapfile; then
+	rm -f $swapfile
+	return 0
+    fi
 fi
-chmod 600 /target/swapfile
-log-output -t partman-swapfile --pass-stdout mkswap /target/swapfile >/dev/null
+
+# Don't keep a swapfile that couldn't be allocated or formatted (e.g. on a
+# full disk), or that the kernel refuses (e.g. on btrfs with several
+# devices): fstab_swapfile only adds an active swapfile to /etc/fstab
+if type fallocate >/dev/null 2>&1 && $fallocatesupport; then
+    log-output -t partman-swapfile --pass-stdout fallocate -l ${size}KiB $swapfile
+else
+    log-output -t partman-swapfile --pass-stdout dd if=/dev/zero of=$swapfile bs=1024 count=$size
+fi || { rm -f $swapfile; return 0; }
+chmod 600 $swapfile
+log-output -t partman-swapfile --pass-stdout mkswap $swapfile >/dev/null || { rm -f $swapfile; return 0; }
 sync
 enable_swap
+swap_active || rm -f $swapfile
 
 return 0
